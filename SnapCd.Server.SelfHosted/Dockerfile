@@ -1,5 +1,4 @@
-# Preview base image — switch to mcr.microsoft.com/dotnet/aspnet:10.0 at .NET 10 GA.
-FROM mcr.microsoft.com/dotnet/nightly/aspnet:10.0.0-rc.2-noble
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443

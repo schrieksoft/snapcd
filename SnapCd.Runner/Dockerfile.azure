@@ -1,5 +1,4 @@
-# Preview base image — switch to mcr.microsoft.com/dotnet/aspnet:10.0 at .NET 10 GA.
-FROM mcr.microsoft.com/dotnet/nightly/aspnet:10.0-preview-bookworm-slim
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-bookworm-slim
 
 EXPOSE 80
 EXPOSE 443

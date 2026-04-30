@@ -19,12 +19,6 @@
         <ProjectReference Include="..\SnapCd.Server.Core\SnapCd.Server.Core.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <AdditionalFiles Include="UI\Dashboard\Components\ServerEditionNavItems.razor" />
-      <AdditionalFiles Include="UI\Dashboard\Pages\Organization\License.razor" />
-      <AdditionalFiles Include="UI\_Imports.razor" />
-    </ItemGroup>
-
     <!-- Version Configuration -->
     <PropertyGroup>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
