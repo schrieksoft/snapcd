@@ -179,10 +179,15 @@ public class ProductionDataSeeder : IDataSeeder
             ? $"{spToSeed.OrganizationId}:{spToSeed.ClientId}"
             : spToSeed.ClientId;
 
-        // Check if ServicePrincipal already exists - search by both new and old ClientId formats
-        // to handle migration from old format to new prefixed format
+        // Check if ServicePrincipal already exists in the *same organization* — search by both
+        // new and old ClientId formats to handle migration from old format to new prefixed format.
+        // Restricting by OrganizationId is critical: ServicePrincipal has an alternate key on
+        // (Id, OrganizationId), so finding a row from a different org and reassigning OrganizationId
+        // throws "OrganizationId is part of a key and so cannot be modified".
         var existingServicePrincipal = await _dbContext.ServicePrincipals
-            .FirstOrDefaultAsync(sp => sp.ClientId == storedClientId || sp.ClientId == spToSeed.ClientId);
+            .FirstOrDefaultAsync(sp =>
+                sp.OrganizationId == spToSeed.OrganizationId &&
+                (sp.ClientId == storedClientId || sp.ClientId == spToSeed.ClientId));
 
 
         string? permissions = null;
@@ -258,13 +263,14 @@ public class ProductionDataSeeder : IDataSeeder
         else
         {
             // Update existing ServicePrincipal
-            // Migrate ClientId to prefixed format if needed
+            // Migrate ClientId to prefixed format if needed.
+            // Do NOT reassign OrganizationId: it's part of an alternate key (see ServicePrincipalClassMap),
+            // so EF refuses to modify it. The lookup above is already constrained to the target org.
             existingServicePrincipal.ClientId = storedClientId;
             existingServicePrincipal.ClientSecret = spToSeed.ClientSecret;
             existingServicePrincipal.ConsentType = spToSeed.ConsentType;
             existingServicePrincipal.DisplayName = spToSeed.DisplayName;
             existingServicePrincipal.ClientType = spToSeed.ClientType;
-            existingServicePrincipal.OrganizationId = spToSeed.OrganizationId;
 
             // Update OpenIddict-specific properties
             existingServicePrincipal.RedirectUris = $"[\"{spToSeed.LoginRedirectUri}\"]";
