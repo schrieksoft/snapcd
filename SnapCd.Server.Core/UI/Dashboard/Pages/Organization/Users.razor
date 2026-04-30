@@ -1,0 +1,394 @@
+@page "/Users"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IOrganizationContext OrganizationContext
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.UI.Dashboard.Components.Users
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Users
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles.OrganizationRoles
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+
+<PageTitle>Manage Users</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudText Typo="Typo.h4" GutterBottom="true">Manage Users</MudText>
+
+    @if (_showInvite)
+    {
+        <MudItem Class="mb-2">
+            <InviteUser OnInvited="HandleInvited" OnCancel="HandleCancelInvite"/>
+        </MudItem>
+    }
+    else
+    {
+        <MudButton
+            Variant="Variant.Filled"
+            Color="Color.Secondary"
+            Class="mt-2 mb-2"
+            OnClick="ShowInvite">
+            Invite User
+        </MudButton>
+    }
+
+    @if (_organizationUsers == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else
+    {
+        @* Active users and pending invitations *@
+        <MudExpansionPanels>
+            @foreach (var orgUser in _organizationUsers.Where(ou => !ou.IsDeactivated || !ou.InvitationCompleted))
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <MudText>@(orgUser.User?.Email ?? "Unknown")</MudText>
+                            @if (!orgUser.InvitationCompleted)
+                            {
+                                @* Show invitation status - takes priority over deactivated *@
+                                @if (GetInvitationState(orgUser) == InvitationState.Pending)
+                                {
+                                    <MudChip T="string" Color="Color.Warning" Text="Invitation Pending" Size="Size.Small"/>
+                                }
+                                else if (GetInvitationState(orgUser) == InvitationState.Expired)
+                                {
+                                    <MudChip T="string" Color="Color.Error" Text="Invitation Expired" Size="Size.Small"/>
+                                }
+                            }
+                            else if (orgUser.IsDeactivated)
+                            {
+                                <MudChip T="string" Color="Color.Error" Text="Deactivated" Size="Size.Small"/>
+                            }
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @if (orgUser.InvitationCompleted)
+                        {
+                            @if (!orgUser.IsDeactivated)
+                            {
+                                <MudTooltip Text="User is active, click to deactivate">
+                                    <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   OnClick="() => DeactivateUser(orgUser)"/>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="User is deactivated, click to activate">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Secondary"
+                                                   Size="Size.Small"
+                                                   OnClick="() => ActivateUser(orgUser)"/>
+                                </MudTooltip>
+                            }
+
+                            <MudTooltip Text="Manage user's organization roles">
+                                <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                               Color="@GetColor(orgUser.Id, ShowingType.Roles)" Size="Size.Small"
+                                               OnClick="() => ManageRoles(orgUser)"/>
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            @* Pending invitation actions *@
+                            <MudTooltip Text="Cancel invitation">
+                                <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="() => CancelInvitation(orgUser)"/>
+                            </MudTooltip>
+                        }
+
+                        <MudTooltip Text="Remove user from organization">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => RemoveUser(orgUser)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(orgUser.Id, ShowingType.Roles))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageUserOrganizationRoles
+                                    UserId="orgUser.UserId"
+                                    OnSaved="HandleRoleAssignmentsClosed"
+                                    OnCancel="HandleRoleAssignmentsClosed"/>
+                            </MudItem>
+                        }
+
+                        @* Show additional info *@
+                        <MudItem Class="mt-2">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Joined: @orgUser.JoinedAt.ToString("yyyy-MM-dd HH:mm")
+                                @if (orgUser.LastAccessedAt.HasValue)
+                                {
+                                    <text> | Last accessed: @orgUser.LastAccessedAt.Value.ToString("yyyy-MM-dd HH:mm")</text>
+                                }
+                            </MudText>
+                        </MudItem>
+
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+
+        @* Deactivated members section *@
+        @if (_organizationUsers.Any(ou => ou.IsDeactivated && ou.InvitationCompleted))
+        {
+            <MudExpansionPanels Class="mt-4">
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small"/>
+                            <MudText>Deactivated Members (@_organizationUsers.Count(ou => ou.IsDeactivated && ou.InvitationCompleted))</MudText>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudExpansionPanels>
+                            @foreach (var orgUser in _organizationUsers.Where(ou => ou.IsDeactivated && ou.InvitationCompleted))
+                            {
+                                <MudExpansionPanel>
+                                    <TitleContent>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <MudText>@(orgUser.User?.Email ?? "Unknown")</MudText>
+                                            <MudChip T="string" Color="Color.Error" Text="Deactivated" Size="Size.Small"/>
+                                        </div>
+                                    </TitleContent>
+                                    <ChildContent>
+                                        <MudTooltip Text="Reactivate user">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Secondary"
+                                                           Size="Size.Small"
+                                                           OnClick="() => ActivateUser(orgUser)"/>
+                                        </MudTooltip>
+
+                                        <MudTooltip Text="Manage user's organization roles">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                                           Color="@GetColor(orgUser.Id, ShowingType.Roles)" Size="Size.Small"
+                                                           OnClick="() => ManageRoles(orgUser)"/>
+                                        </MudTooltip>
+
+                                        <MudTooltip Text="Remove user from organization">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                                           OnClick="() => RemoveUser(orgUser)"/>
+                                        </MudTooltip>
+
+                                        @if (IsShowing(orgUser.Id, ShowingType.Roles))
+                                        {
+                                            <MudItem Class="mt-2">
+                                                <ManageUserOrganizationRoles
+                                                    UserId="orgUser.UserId"
+                                                    OnSaved="HandleRoleAssignmentsClosed"
+                                                    OnCancel="HandleRoleAssignmentsClosed"/>
+                                            </MudItem>
+                                        }
+
+                                        <MudItem Class="mt-2">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                Joined: @orgUser.JoinedAt.ToString("yyyy-MM-dd HH:mm")
+                                                @if (orgUser.LastAccessedAt.HasValue)
+                                                {
+                                                    <text> | Last accessed: @orgUser.LastAccessedAt.Value.ToString("yyyy-MM-dd HH:mm")</text>
+                                                }
+                                            </MudText>
+                                        </MudItem>
+                                    </ChildContent>
+                                </MudExpansionPanel>
+                            }
+                        </MudExpansionPanels>
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+    }
+</CascadingValue>
+
+@code {
+    [Inject] private OrganizationUserSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private MemberServiceFactory MemberServiceFactory { get; set; } = null!;
+    [Inject] private IdentityUserAccessorFactory UserAccessorFactory { get; set; } = null!;
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<OrganizationUser>? _organizationUsers;
+    private bool _showInvite;
+
+    private OrganizationUser? _selectedUser;
+    private ShowingType _showing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadUsers();
+    }
+
+    private enum ShowingType
+    {
+        None,
+        Roles
+    }
+
+    private enum InvitationState
+    {
+        Pending,
+        Expired,
+        Completed
+    }
+
+    private InvitationState GetInvitationState(OrganizationUser orgUser)
+    {
+        if (orgUser.InvitationCompleted)
+            return InvitationState.Completed;
+
+        if (orgUser.InvitationExpirationDateTime.HasValue &&
+            orgUser.InvitationExpirationDateTime <= DateTime.UtcNow)
+            return InvitationState.Expired;
+
+        return InvitationState.Pending;
+    }
+
+    private Color GetColor(Guid orgUserId, ShowingType showTypeToMatch)
+    {
+        if (_selectedUser == null)
+            return Color.Primary;
+        if (orgUserId == _selectedUser.Id)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid orgUserId, ShowingType showTypeToMatch)
+    {
+        if (_selectedUser == null)
+            return false;
+        return orgUserId == _selectedUser.Id && _showing == showTypeToMatch;
+    }
+
+    private void HandleRoleAssignmentsClosed()
+    {
+        _selectedUser = null;
+        _showing = ShowingType.None;
+    }
+
+    private void ShowInvite()
+    {
+        _showInvite = true;
+    }
+
+    private void HandleCancelInvite()
+    {
+        _showInvite = false;
+    }
+
+    private async Task HandleInvited(Guid orgUserId)
+    {
+        _showInvite = false;
+        await ReloadUsers();
+        Snackbar.Add("Invitation sent successfully", Severity.Success);
+    }
+
+    private void ManageRoles(OrganizationUser orgUser)
+    {
+        _selectedUser = orgUser;
+        _showing = ShowingType.Roles;
+    }
+
+    private async Task ReloadUsers()
+    {
+        using var repo = RepoFactory.Create();
+        // Include: active members, pending invitations, and deactivated members
+        _organizationUsers = await repo.List(OrganizationId,
+            q => q
+                .Include(ou => ou.User)
+                .OrderBy(ou => ou.User!.Email));
+    }
+
+    private async Task ActivateUser(OrganizationUser orgUser)
+    {
+        var parameters = new DialogParameters<ActivateOrganizationUserDialog>
+        {
+            { x => x.OrganizationUser, orgUser },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ActivateOrganizationUserDialog>("Activate User", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add($"Successfully activated user \"{orgUser.User?.Email}\"", Severity.Success);
+            await ReloadUsers();
+        }
+    }
+
+    private async Task DeactivateUser(OrganizationUser orgUser)
+    {
+        var parameters = new DialogParameters<DeactivateOrganizationUserDialog>
+        {
+            { x => x.OrganizationUser, orgUser },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeactivateOrganizationUserDialog>("Deactivate User", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add($"Successfully deactivated user \"{orgUser.User?.Email}\"", Severity.Success);
+            await ReloadUsers();
+        }
+    }
+
+    private async Task RemoveUser(OrganizationUser orgUser)
+    {
+        var parameters = new DialogParameters<RemoveOrganizationUserDialog>
+        {
+            { x => x.OrganizationUser, orgUser },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<RemoveOrganizationUserDialog>("Remove User", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add($"Successfully removed user \"{orgUser.User?.Email}\" from organization", Severity.Success);
+            await ReloadUsers();
+        }
+    }
+
+    private async Task CancelInvitation(OrganizationUser orgUser)
+    {
+        var parameters = new DialogParameters<CancelInvitationDialog>
+        {
+            { x => x.OrganizationUser, orgUser },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<CancelInvitationDialog>("Cancel Invitation", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Invitation cancelled successfully", Severity.Success);
+            await ReloadUsers();
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+}

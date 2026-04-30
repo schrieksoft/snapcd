@@ -1,0 +1,50 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Server.Core.Services.Crud.Jobs
+
+@inject ISnackbar Snackbar
+@inject ILogger<CreateApplyJobDialog> Logger
+
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+
+<MudDialog>
+    <TitleContent>
+    </TitleContent>
+    <DialogContent>
+        <MudText>Apply module?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Confirm">Confirm</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid NamespaceId { get; set; }
+    [Parameter] public required Guid JobId { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Confirm()
+    {
+        using var service = SecuredJobServiceFactory.Create();
+        try
+        {
+            MudDialog.Close(DialogResult.Ok(ModuleId));
+            await service.Apply(ModuleId, OrganizationId, JobId);
+            await InvokeAsync(() => Snackbar.Add($"Apply job created successfully", Severity.Success));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating Apply job: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error creating Apply job");
+        }
+    }
+
+
+}

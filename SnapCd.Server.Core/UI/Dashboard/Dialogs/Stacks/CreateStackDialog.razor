@@ -1,0 +1,71 @@
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Create a new Stack</MudText>
+    </TitleContent>
+    <DialogActions>
+        <EditForm Model="Input" method="post" OnValidSubmit="Create" FormName="register">
+            <DataAnnotationsValidator/>
+            <MudGrid Class="pa-4">
+                <MudItem md="12">
+                    <MudTextField For="@(() => Input.Name)" @bind-Value="Input.Name"
+                                  Label="Name"
+                                  UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "true" }, { "aria-required", "true" } })"/>
+                </MudItem>
+                <MudItem md="12">
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" FormAction="FormAction.Submit">
+                        Create
+                    </MudStaticButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    [Inject] private StackSecuredRepository StackSecuredRepository { get; set; } = null!;
+
+
+    [Parameter] public required Guid PrincipalId { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    private sealed class InputModel
+    {
+        [Required] [Display(Name = "Name")] public string Name { get; set; } = null!;
+    }
+
+
+    private async Task Create()
+    {
+        var id = Guid.NewGuid();
+        var stack = new Stack
+        {
+            Id = Guid.NewGuid(),
+            Name = Input.Name
+        };
+
+        await StackSecuredRepository.Create(stack);
+
+
+        MudDialog.Close(DialogResult.Ok(id));
+    }
+
+}

@@ -1,0 +1,304 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.Variables
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Variables
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudTooltip Text="Refresh">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium"
+                       OnClick="() => ReloadVariableSets()"/>
+    </MudTooltip>
+
+    @if (_variableSets == null)
+    {
+        <MudText Typo="Typo.body1"><em>Loading variable sets...</em></MudText>
+    }
+    else if (!_variableSets.Any())
+    {
+        <MudText Typo="Typo.body1">No variable sets found.</MudText>
+    }
+    else
+    {
+        <MudExpansionPanels MultiExpansion="true">
+            @foreach (var variableSet in _variableSets)
+            {
+                <MudExpansionPanel @key="variableSet.Id"
+                                   ExpandedChanged="@(async isExpanded => await OnVariableSetExpanded(isExpanded, variableSet))">
+                    <TitleContent>
+                        @{
+                            var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(variableSet.Timestamp).DateTime;
+                            <div class="d-flex align-center justify-space-between">
+                                <MudText>Variable Set @dateTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                                <MudTooltip Text="Delete Variable Set">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Dark"
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await ShowDeleteDialog(variableSet))"/>
+                                </MudTooltip>
+                            </div>
+                        }
+                    </TitleContent>
+                    <ChildContent>
+                        @if (!variableSet.Variables.Any())
+                        {
+                            <MudText Typo="Typo.body2">No variables found.</MudText>
+                        }
+                        else
+                        {
+                            var currentPage = _variableCurrentPages.GetValueOrDefault(variableSet.Id, 1);
+                            var totalPages = _variableTotalPages.GetValueOrDefault(variableSet.Id, 1);
+                            var totalCount = _variableTotalCounts.GetValueOrDefault(variableSet.Id, variableSet.Variables.Count);
+                            var startIndex = (currentPage - 1) * VariablePageSize + 1;
+                            var endIndex = Math.Min(currentPage * VariablePageSize, totalCount);
+
+                            var sourceVariables = variableSet.Variables.Where(v => !v.FromExtraFile).ToList();
+                            var extraFileVariables = variableSet.Variables.Where(v => v.FromExtraFile).ToList();
+
+                            <MudText Typo="Typo.caption" Class="mb-2">
+                                @if (totalCount > VariablePageSize)
+                                {
+                                    @:Showing @startIndex-@endIndex of @totalCount variables
+                                }
+                                else
+                                {
+                                    @:Showing @totalCount variable@(totalCount == 1 ? "" : "s")
+                                }
+                                @if (sourceVariables.Any() && extraFileVariables.Any())
+                                {
+                                    @:(@sourceVariables.Count from source, @extraFileVariables.Count from extra files)
+                                }
+                            </MudText>
+
+                            @if (sourceVariables.Any())
+                            {
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">Source Variables</MudText>
+                                <div class="variable-table-scrollable">
+                                    <MudTable Items="@sourceVariables" Hover="true" Dense="true" Class="mb-4">
+                                        <HeaderContent>
+                                            <MudTh>Name</MudTh>
+                                            <MudTh>Type</MudTh>
+                                            <MudTh>Description</MudTh>
+                                            <MudTh Style="width: 80px;">Sensitive</MudTh>
+                                            <MudTh Style="width: 80px;">Nullable</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="Name">@context.Name</MudTd>
+                                            <MudTd DataLabel="Type">@(context.Type ?? "-")</MudTd>
+                                            <MudTd DataLabel="Description">@(context.Description ?? "-")</MudTd>
+                                            <MudTd DataLabel="Sensitive">
+                                                @if (context.Sensitive)
+                                                {
+                                                    <MudTooltip Text="Sensitive">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning"/>
+                                                    </MudTooltip>
+                                                }
+                                            </MudTd>
+                                            <MudTd DataLabel="Nullable">
+                                                @if (context.Nullable)
+                                                {
+                                                    <MudTooltip Text="Nullable">
+                                                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Color="Color.Info"/>
+                                                    </MudTooltip>
+                                                }
+                                            </MudTd>
+                                        </RowTemplate>
+                                        <NoRecordsContent>
+                                            <MudText Typo="Typo.body2" Class="pa-4">No variables found</MudText>
+                                        </NoRecordsContent>
+                                    </MudTable>
+                                </div>
+                            }
+
+                            @if (extraFileVariables.Any())
+                            {
+                                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Extra File Variables</MudText>
+                                <div class="variable-table-scrollable">
+                                    <MudTable Items="@extraFileVariables" Hover="true" Dense="true" Class="mb-4">
+                                        <HeaderContent>
+                                            <MudTh>Name</MudTh>
+                                            <MudTh>Type</MudTh>
+                                            <MudTh>Description</MudTh>
+                                            <MudTh Style="width: 80px;">Sensitive</MudTh>
+                                            <MudTh Style="width: 80px;">Nullable</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="Name">@context.Name</MudTd>
+                                            <MudTd DataLabel="Type">@(context.Type ?? "-")</MudTd>
+                                            <MudTd DataLabel="Description">@(context.Description ?? "-")</MudTd>
+                                            <MudTd DataLabel="Sensitive">
+                                                @if (context.Sensitive)
+                                                {
+                                                    <MudTooltip Text="Sensitive">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning"/>
+                                                    </MudTooltip>
+                                                }
+                                            </MudTd>
+                                            <MudTd DataLabel="Nullable">
+                                                @if (context.Nullable)
+                                                {
+                                                    <MudTooltip Text="Nullable">
+                                                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Color="Color.Info"/>
+                                                    </MudTooltip>
+                                                }
+                                            </MudTd>
+                                        </RowTemplate>
+                                        <NoRecordsContent>
+                                            <MudText Typo="Typo.body2" Class="pa-4">No variables found</MudText>
+                                        </NoRecordsContent>
+                                    </MudTable>
+                                </div>
+                            }
+
+                            <Pagination CurrentPage="@currentPage"
+                                        TotalPages="@totalPages"
+                                        PageChanged="@(page => SetVariablePage(variableSet, page))"/>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+
+        <Pagination CurrentPage="@_currentVariableSetPage"
+                    TotalPages="@_totalVariableSetPages"
+                    PageChanged="@(page => SetVariableSetPage(page))"/>
+    }
+</MudPaper>
+
+<style>
+    .variable-table-scrollable {
+        max-height: 600px;
+        overflow-y: auto;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+    }
+</style>
+
+@code {
+    [Parameter] public required Module Module { get; set; }
+    [Parameter] public required string StackName { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private const int VariableSetPageSize = 10;
+    private const int VariablePageSize = 25;
+
+    private int _currentVariableSetPage = 1;
+    private int _totalVariableSetPages;
+    private List<VariableSet>? _variableSets;
+
+    // Pagination state for variables within each VariableSet
+    private readonly Dictionary<Guid, int> _variableCurrentPages = new();
+    private readonly Dictionary<Guid, int> _variableTotalPages = new();
+    private readonly Dictionary<Guid, int> _variableTotalCounts = new();
+
+    [Inject] private VariableSecuredRepositoryFactory VariableRepoFactory { get; set; } = null!;
+    [Inject] private VariableSetSecuredRepositoryFactory VariableSetRepoFactory { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVariableSets();
+    }
+
+    private async Task LoadVariableSets()
+    {
+        try
+        {
+            using var repo = VariableSetRepoFactory.Create();
+            var count = await repo.Count(OrganizationId, q => q.Where(x => x.ModuleId == Module.Id));
+            _totalVariableSetPages = (int)Math.Ceiling(count / (double)VariableSetPageSize);
+
+            _variableSets = await repo.List<VariableSet>(OrganizationId,
+                q => q.Where(vs => vs.ModuleId == Module.Id),
+                pageNumber: _currentVariableSetPage,
+                pageSize: VariableSetPageSize,
+                orderBy: q => q.OrderByDescending(vs => vs.CreatedDateTime)
+            );
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading variable sets: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnVariableSetExpanded(bool isExpanded, VariableSet variableSet)
+    {
+        if (isExpanded && !variableSet.Variables.Any())
+        {
+            // Initialize pagination state for this VariableSet
+            _variableCurrentPages[variableSet.Id] = 1;
+            await LoadVariables(variableSet, 1);
+        }
+    }
+
+    private async Task LoadVariables(VariableSet variableSet, int page = 1)
+    {
+        try
+        {
+            using var repo = VariableRepoFactory.Create();
+
+            // Get total count for pagination
+            var totalCount = await repo.Count(OrganizationId,
+                q => q.Where(x => x.VariableSetId == variableSet.Id));
+
+            _variableTotalCounts[variableSet.Id] = totalCount;
+            _variableTotalPages[variableSet.Id] = (int)Math.Ceiling(totalCount / (double)VariablePageSize);
+            _variableCurrentPages[variableSet.Id] = page;
+
+            // Load paginated variables
+            variableSet.Variables = await repo.List<Variable>(OrganizationId,
+                q => q.Where(x => x.VariableSetId == variableSet.Id),
+                q => q.OrderBy(v => v.Name),
+                pageNumber: page,
+                pageSize: VariablePageSize
+            );
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading variables: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SetVariablePage(VariableSet variableSet, int page)
+    {
+        await LoadVariables(variableSet, page);
+    }
+
+    private async Task SetVariableSetPage(int page)
+    {
+        _currentVariableSetPage = page;
+        await LoadVariableSets();
+    }
+
+    private async Task ReloadVariableSets()
+    {
+        _currentVariableSetPage = 1;
+        await LoadVariableSets();
+    }
+
+    private async Task ShowDeleteDialog(VariableSet variableSet)
+    {
+        var parameters = new DialogParameters<DeleteVariableSetDialog>
+        {
+            { x => x.VariableSet, variableSet },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteVariableSetDialog>("Delete Variable Set", parameters);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: true })
+        {
+            // Remove from local list to update UI immediately
+            if (_variableSets != null)
+            {
+                _variableSets.Remove(variableSet);
+                StateHasChanged();
+            }
+
+            // Reload to ensure consistency
+            await LoadVariableSets();
+        }
+    }
+}

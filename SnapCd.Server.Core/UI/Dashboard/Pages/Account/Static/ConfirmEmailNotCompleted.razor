@@ -1,0 +1,183 @@
+@page "/Account/ConfirmEmailNotCompleted"
+@layout AccountLayout
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject EmailConfirmationService EmailConfirmationService
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<ConfirmEmailNotCompleted> Logger
+
+<PageTitle>Verify Your Email - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Verify your email">
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <MudAlert Severity="@_statusSeverity" Class="mb-4">@_statusMessage</MudAlert>
+    }
+
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        <MudText Typo="Typo.body1" Class="mb-3">
+            <strong>Please check your email to confirm your account.</strong>
+        </MudText>
+        <MudText Typo="Typo.body2">
+            @if (_hasResent)
+            {
+                <text>We've just resent a confirmation link to <strong>@Email</strong>.</text>
+            }
+            else
+            {
+                <text>We've sent a confirmation link to <strong>@Email</strong>.</text>
+            }
+            Click the link in the email to verify your account and continue.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">
+            If you don't see the email in your inbox, check your spam folder.
+        </MudText>
+    </MudAlert>
+
+    @if (!_hasResent)
+    {
+        <EditForm Model="@(Input ?? new InputModel())" FormName="resend-confirmation" OnValidSubmit="ResendConfirmationEmail" method="post">
+            <div class="register-link">
+                <div class="login-button-container">
+                    <div class="divider-line"></div>
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                     FormAction="FormAction.Submit" Class="sign-in-btn">
+                        resend confirmation email
+                    </MudStaticButton>
+                    <div class="divider-line"></div>
+                </div>
+            </div>
+        </EditForm>
+    }
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            <MudLink Href="/" Typo="Typo.body2">
+                Back to Home
+            </MudLink>
+        </MudText>
+    </div>
+
+</StaticAccountComponent>
+
+<style>
+    .login-button-container {
+        display: flex;
+        align-items: center;
+        margin: 1rem 0;
+    }
+
+    .sign-in-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+    }
+
+    .sign-in-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 0 1rem;
+    }
+
+    .mud-dark .divider-line {
+        background-color: #333;
+    }
+
+    .register-link {
+        margin-top: 1rem;
+    }
+</style>
+
+@code {
+    private string? _statusMessage;
+    private Severity _statusSeverity = Severity.Info;
+    private bool _isResending;
+    private bool _hasResent;
+
+    [SupplyParameterFromForm(FormName = "resend-confirmation")]
+    private InputModel? Input { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Email { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        // Redirect to home if no email provided
+        if (string.IsNullOrWhiteSpace(Email))
+        {
+            RedirectManager.RedirectTo("");
+        }
+    }
+
+    private async Task ResendConfirmationEmail()
+    {
+        // Don't allow resend if already resent
+        if (_hasResent)
+        {
+            return;
+        }
+
+        // Hide button immediately
+        _hasResent = true;
+        _statusMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Build confirmation URL template
+            var confirmationUrlTemplate = NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri
+                + "?userId={userId}&code={code}";
+
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                confirmationUrlTemplate += $"&returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+
+            // Use the service to resend email
+            var (success, message) = await EmailConfirmationService.ResendConfirmationEmailAsync(
+                Email!,
+                confirmationUrlTemplate);
+
+            _statusMessage = message;
+            _statusSeverity = success ? Severity.Success : Severity.Warning;
+
+            if (success)
+            {
+                Logger.LogInformation("Successfully resent confirmation email to {Email}", Email);
+            }
+            else
+            {
+                Logger.LogWarning("Failed to resend confirmation email to {Email}: {Message}", Email, message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resending confirmation email to {Email}", Email);
+            _statusMessage = "An error occurred. Please try again later.";
+            _statusSeverity = Severity.Error;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private sealed class InputModel
+    {
+    }
+}

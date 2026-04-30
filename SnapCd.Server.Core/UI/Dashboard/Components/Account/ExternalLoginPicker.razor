@@ -1,0 +1,291 @@
+﻿@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+
+@inject SignInManager<User> SignInManager
+
+@if (_externalLogins.Length == 0)
+{
+    <MudText Align="Align.Center" Typo="Typo.body2" Color="Color.Secondary">
+        No external login providers configured
+    </MudText>
+}
+else
+{
+    <form class="external-login-form" action="Account/PerformExternalLogin" method="post">
+        <AntiforgeryToken/>
+        <input type="hidden" name="ReturnUrl" value="@ReturnUrl"/>
+        @if (!string.IsNullOrEmpty(Token))
+        {
+            <input type="hidden" name="Token" value="@Token"/>
+        }
+        @if (IsRegistrationContext)
+        {
+            <input type="hidden" name="isRegistration" value="true"/>
+        }
+        <div class="external-login-container">
+            <div class="divider-line"></div>
+            <div class="external-login-buttons">
+                @foreach (var provider in _externalLogins)
+                {
+                    var (iconHtml, color, textColor) = GetProviderStyleHtml(provider.Name);
+                    <button type="submit"
+                            name="provider"
+                            value="@provider.Name"
+                            class="external-login-btn @($"provider-{provider.Name.ToLower()}")"
+                            style="background-color: @color;"
+                            title="@provider.DisplayName"
+                            aria-label="@($"Sign in with {provider.DisplayName}")">
+                        <MudTooltip Text="@provider.DisplayName" Placement="Placement.Top" Arrow="true">
+                            <span class="provider-icon">@((MarkupString)iconHtml)</span>
+                        </MudTooltip>
+                    </button>
+                }
+            </div>
+            <div class="divider-line"></div>
+        </div>
+    </form>
+}
+
+<style>
+    .external-login-form {
+        width: 100%;
+    }
+
+    .external-login-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin: 1rem 0;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .external-login-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .external-login-btn {
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .external-login-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .external-login-btn:active {
+        transform: scale(0.95);
+    }
+
+    .mud-dark .external-login-btn:hover {
+        box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+    }
+
+    .provider-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .provider-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Provider-specific styles */
+    .provider-microsoft {
+        background: white !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-microsoft:hover {
+        background: #f5f5f5 !important;
+    }
+
+    .provider-google {
+        background: white !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-google:hover {
+        background: #f5f5f5 !important;
+    }
+
+    .provider-okta {
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-okta:hover {
+        background: #f5f5f5 !important;
+    }
+
+    .provider-okta .provider-icon svg {
+        fill: white;
+    }
+
+    .provider-github {
+        background: #24292e !important;
+    }
+
+    .provider-github:hover {
+        background: #1a1e22 !important;
+    }
+
+    .provider-github .provider-icon svg {
+        fill: white;
+    }
+
+    .provider-auth0 {
+        background: #2d2d2d !important;
+    }
+
+    .provider-auth0:hover {
+        background: #1a1a1a !important;
+    }
+
+    .provider-auth0 .provider-icon svg {
+        fill: white;
+    }
+
+    /* Dark mode adjustments */
+    .mud-dark .provider-microsoft,
+    .mud-dark .provider-google {
+        background: white !important;
+    }
+
+    .mud-dark .provider-microsoft:hover,
+    .mud-dark .provider-google:hover {
+        background: #f5f5f5 !important;
+    }
+
+    /* Responsive design */
+    @@media (max-width: 400px) {
+        .external-login-btn {
+            width: 40px;
+            height: 40px;
+        }
+
+        .provider-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .external-login-buttons {
+            gap: 0.75rem;
+        }
+    }
+</style>
+
+@code {
+    private AuthenticationScheme[] _externalLogins = [];
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [Parameter] public string? Token { get; set; }
+
+    [Parameter] public bool IsRegistrationContext { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _externalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToArray();
+    }
+
+    private (string iconHtml, string color, string textColor) GetProviderStyleHtml(string providerName)
+    {
+        return providerName.ToLower() switch
+        {
+            "microsoft" => (GetMicrosoftSvgIcon(), "#ffffff", "#000000"),
+            "google" => (GetGoogleSvgIcon(), "#ffffff", "#000000"),
+            "okta" => (GetOktaSvgIcon(), "#ffffff", "#000000"),
+            "github" => (GetGitHubSvgIcon(), "#24292e", "#ffffff"),
+            "auth0" => (GetAuth0SvgIcon(), "#2d2d2d", "#ffffff"),
+            "facebook" => (GetFacebookSvgIcon(), "#1877f2", "#ffffff"),
+            "twitter" => (GetTwitterSvgIcon(), "#1da1f2", "#ffffff"),
+            _ => (GetDefaultSvgIcon(), "#666666", "#ffffff")
+        };
+    }
+
+    private string GetMicrosoftSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 21 21"" xmlns=""http://www.w3.org/2000/svg"">
+            <rect x=""1"" y=""1"" width=""9"" height=""9"" fill=""#f25022""/>
+            <rect x=""1"" y=""11"" width=""9"" height=""9"" fill=""#00a4ef""/>
+            <rect x=""11"" y=""1"" width=""9"" height=""9"" fill=""#7fba00""/>
+            <rect x=""11"" y=""11"" width=""9"" height=""9"" fill=""#ffb900""/>
+        </svg>";
+    }
+
+    private string GetGoogleSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"" fill=""#4285F4""/>
+            <path d=""M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"" fill=""#34A853""/>
+            <path d=""M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"" fill=""#FBBC05""/>
+            <path d=""M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"" fill=""#EA4335""/>
+        </svg>";
+    }
+
+    private string GetOktaSvgIcon()
+    {
+        return @"<img src=""/_content/SnapCd.Server.Core/okta.png"" alt=""Okta"" style=""width: 24px; height: 24px;"" />";
+    }
+
+    private string GetGitHubSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"" fill=""white""/>
+        </svg>";
+    }
+
+    private string GetAuth0SvgIcon()
+    {
+        return @"<img src=""/_content/SnapCd.Server.Core/auth0.png"" alt=""Auth0"" style=""width: 24px; height: 24px;"" />";
+    }
+
+    private string GetFacebookSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"" fill=""white""/>
+        </svg>";
+    }
+
+    private string GetTwitterSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"" fill=""white""/>
+        </svg>";
+    }
+
+    private string GetDefaultSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M18,8H16V6A6,6 0 0,0 10,0H9A6,6 0 0,0 3,6V8H1A1,1 0 0,0 0,9V23A1,1 0 0,0 1,24H23A1,1 0 0,0 24,23V9A1,1 0 0,0 23,8M5,6A4,4 0 0,1 9,2H10A4,4 0 0,1 14,6V8H5V6Z"" fill=""white""/>
+        </svg>";
+    }
+
+}

@@ -1,0 +1,162 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  REPO_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+
+    outputs:
+      version: ${{ steps.gitversion.outputs.SemVer }}
+
+    permissions:
+      contents: write
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Needed for GitVersion
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v3.1.11
+      with:
+        versionSpec: 5.x
+
+    - name: Determine Version
+      uses: gittools/actions/gitversion/execute@v3.1.11
+      id: gitversion
+      with:
+        useConfigFile: true
+        configFilePath: gitversion.yaml
+
+    - name: Display GitVersion outputs
+      run: |
+        echo "Version: ${{ steps.gitversion.outputs.SemVer }}"
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+        dotnet-quality: preview
+
+    - name: Publish binaries
+      env:
+        SEMVER: ${{ steps.gitversion.outputs.SemVer }}
+      run: |
+        dotnet publish SnapCd.Server.SelfHosted/SnapCd.Server.SelfHosted.csproj \
+          -c Release -o out/snapcd-server \
+          /p:Version=$SEMVER
+        dotnet publish SnapCd.Runner/SnapCd.Runner.csproj \
+          -c Release -o out/snapcd-runner \
+          -r linux-x64 --self-contained \
+          /p:Version=$SEMVER
+        dotnet publish SnapCd.Runner/SnapCd.Runner.csproj \
+          -c Release -o out/snapcd-runner-azure \
+          -r linux-x64 --self-contained \
+          /p:Version=$SEMVER
+
+    - name: Zip binaries
+      env:
+        SEMVER: ${{ steps.gitversion.outputs.SemVer }}
+      run: |
+        mkdir -p release-assets
+        for d in out/*/; do
+          name="$(basename "$d")"
+          (cd out && zip -r "../release-assets/${name}-${SEMVER}.zip" "$name")
+        done
+        ls -la release-assets
+
+    - name: Pack libraries
+      env:
+        SEMVER: ${{ steps.gitversion.outputs.SemVer }}
+      run: |
+        dotnet pack SnapCd.Contracts/SnapCd.Contracts.csproj \
+          -c Release -o nupkgs /p:Version=$SEMVER
+        dotnet pack SnapCd.Server.Core/SnapCd.Server.Core.csproj \
+          -c Release -o nupkgs /p:Version=$SEMVER
+
+    - name: Push to GitHub Packages
+      if: github.ref == 'refs/heads/main'
+      # Pushes to schrieksoft/snapcd-lib (repo association is set via RepositoryUrl in
+      # each csproj). The auto GITHUB_TOKEN is scoped to this repo (snapcd) and cannot
+      # publish packages targeting a different repo, so we use a classic PAT
+      # (scopes: write:packages, repo) stored as PACKAGES_WRITE_TOKEN.
+      run: |
+        dotnet nuget push "nupkgs/*.nupkg" \
+          --source "https://nuget.pkg.github.com/schrieksoft/index.json" \
+          --api-key ${{ secrets.PACKAGES_WRITE_TOKEN }} \
+          --skip-duplicate
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for Docker (Server)
+      id: meta-server
+      uses: docker/metadata-action@v5
+      with:
+        images: "ghcr.io/schrieksoft/snapcd/snapcd-server"
+
+    - name: Extract metadata for Docker (Runner)
+      id: meta-runner
+      uses: docker/metadata-action@v5
+      with:
+        images: "ghcr.io/schrieksoft/snapcd/snapcd-runner"
+
+    - name: Extract metadata for Docker (Runner Azure)
+      id: meta-runner-azure
+      uses: docker/metadata-action@v5
+      with:
+        images: "ghcr.io/schrieksoft/snapcd/snapcd-runner-azure"
+
+    - name: Build and push Docker image (Server)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: "SnapCd.Server.SelfHosted/Dockerfile"
+        push: true
+        tags: "ghcr.io/schrieksoft/snapcd/snapcd-server:${{ steps.gitversion.outputs.SemVer }}"
+        labels: ${{ steps.meta-server.outputs.labels }}
+
+    - name: Build and push Docker image (Runner)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: "SnapCd.Runner/Dockerfile"
+        push: true
+        tags: "ghcr.io/schrieksoft/snapcd/snapcd-runner:${{ steps.gitversion.outputs.SemVer }}"
+        labels: ${{ steps.meta-runner.outputs.labels }}
+
+    - name: Build and push Docker image (Runner Azure)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: "SnapCd.Runner/Dockerfile.azure"
+        push: true
+        tags: "ghcr.io/schrieksoft/snapcd/snapcd-runner-azure:${{ steps.gitversion.outputs.SemVer }}"
+        labels: ${{ steps.meta-runner-azure.outputs.labels }}
+
+    - name: Release
+      if: github.ref == 'refs/heads/main'
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      run: |
+        gh release create ${{ steps.gitversion.outputs.SemVer }} \
+          --notes "Release ${{ steps.gitversion.outputs.SemVer }}" \
+          -R https://github.com/schrieksoft/snapcd \
+          release-assets/*.zip

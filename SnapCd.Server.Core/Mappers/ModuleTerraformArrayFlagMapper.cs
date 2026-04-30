@@ -1,0 +1,40 @@
+using SnapCd.Contracts.Dto.ModuleTerraformArrayFlags;
+using SnapCd.Server.Core.Entities.Definition;
+
+namespace SnapCd.Server.Core.Mappers;
+
+public static class ModuleTerraformArrayFlagMapper
+{
+    public static ModuleTerraformArrayFlag ToEntity(ModuleTerraformArrayFlagCreateDto dto, Guid organizationId)
+    {
+        return new ModuleTerraformArrayFlag
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            Task = dto.Task,
+            Flag = dto.Flag,
+            Value = dto.Value,
+            ModuleId = dto.ModuleId
+        };
+    }
+
+    public static ModuleTerraformArrayFlagReadDto ToDto(ModuleTerraformArrayFlag entity)
+    {
+        return new ModuleTerraformArrayFlagReadDto
+        {
+            Id = entity.Id,
+            Task = entity.Task,
+            Flag = entity.Flag,
+            Value = entity.Value,
+            ModuleId = entity.ModuleId
+        };
+    }
+
+    public static void UpdateEntity(ModuleTerraformArrayFlag entity, ModuleTerraformArrayFlagUpdateDto dto)
+    {
+        entity.Task = dto.Task;
+        entity.Flag = dto.Flag;
+        entity.Value = dto.Value;
+        entity.ModuleId = dto.ModuleId;
+    }
+}

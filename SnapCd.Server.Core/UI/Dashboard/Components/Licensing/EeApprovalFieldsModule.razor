@@ -1,0 +1,57 @@
+@using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.Licensing.Services
+@inject LicenseService LicenseService
+
+@if (_isCommunityEdition)
+{
+    <MudItem md="12">
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+            Approval workflows are an Enterprise Edition feature. These settings will have no effect without a valid Enterprise license.
+        </MudAlert>
+    </MudItem>
+}
+
+<MudItem md="12">
+    <MudTextField T="int?" Label="Approval Threshold (Apply)"
+                  Value="@ApplyApprovalThreshold"
+                  ValueChanged="@ApplyApprovalThresholdChanged"
+                  Variant="Variant.Outlined"
+                  Disabled="@_isCommunityEdition"/>
+</MudItem>
+
+<MudItem md="12">
+    <MudTextField T="int?" Label="Approval Threshold (Destroy)"
+                  Value="@DestroyApprovalThreshold"
+                  ValueChanged="@DestroyApprovalThresholdChanged"
+                  Variant="Variant.Outlined"
+                  Disabled="@_isCommunityEdition"/>
+</MudItem>
+
+<MudItem md="12">
+    <MudTextField T="int?" Label="Approval Timeout Minutes"
+                  Value="@ApprovalTimeoutMinutes"
+                  ValueChanged="@ApprovalTimeoutMinutesChanged"
+                  Variant="Variant.Outlined"
+                  Disabled="@_isCommunityEdition"/>
+</MudItem>
+
+@code {
+    [Parameter] public int? ApplyApprovalThreshold { get; set; }
+    [Parameter] public EventCallback<int?> ApplyApprovalThresholdChanged { get; set; }
+
+    [Parameter] public int? DestroyApprovalThreshold { get; set; }
+    [Parameter] public EventCallback<int?> DestroyApprovalThresholdChanged { get; set; }
+
+    [Parameter] public int? ApprovalTimeoutMinutes { get; set; }
+    [Parameter] public EventCallback<int?> ApprovalTimeoutMinutesChanged { get; set; }
+
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private bool _isCommunityEdition;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var licenseInfo = await LicenseService.GetLicenseInfoAsync(OrganizationId);
+        _isCommunityEdition = licenseInfo is not { Edition: Edition.EnterpriseEdition, IsValid: true };
+    }
+}

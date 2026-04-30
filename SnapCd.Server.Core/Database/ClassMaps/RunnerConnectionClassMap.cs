@@ -1,0 +1,46 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SnapCd.Server.Core.Entities.Definition;
+
+namespace SnapCd.Server.Core.Database.ClassMaps;
+
+/// <summary>
+/// Entity configuration for RunnerConnection - active runner connections to server instances.
+/// </summary>
+public class RunnerConnectionClassMap : IEntityTypeConfiguration<RunnerConnection>
+{
+    public void Configure(EntityTypeBuilder<RunnerConnection> entity)
+    {
+        // Composite primary key with OrganizationId
+        entity.HasKey(e => new { e.Id, e.OrganizationId });
+
+        // Unique index on Id
+        entity.HasIndex(e => e.Id).IsUnique();
+        
+        // Unique index on Id
+        entity.HasIndex(e => new { e.OrganizationId, e.SignalRConnectionId }).IsUnique();
+
+        // Unique index on (OrganizationId, RunnerId, InstanceName) - only one connection per runner instance
+        entity
+            .HasIndex(e => new { e.OrganizationId, e.RunnerId, e.InstanceName })
+            .IsUnique();
+
+        // Index on ServerInstanceId for cleanup queries
+        entity.HasIndex(e => e.ServerInstanceId);
+
+        // Organization navigation property
+        entity
+            .HasOne(e => e.Organization)
+            .WithMany()
+            .HasForeignKey(e => e.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Runner navigation property with composite FK
+        entity
+            .HasOne(e => e.Runner)
+            .WithMany()
+            .HasForeignKey(e => new { e.RunnerId, e.OrganizationId })
+            .HasPrincipalKey(r => new { r.Id, r.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

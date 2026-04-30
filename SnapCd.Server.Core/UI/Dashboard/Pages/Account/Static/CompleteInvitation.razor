@@ -1,0 +1,449 @@
+@page "/Account/CompleteInvitation"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Options
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject SignInManager<User> SignInManager
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject MemberService MemberService
+@inject ILogger<CompleteInvitation> Logger
+@inject ITermsAcceptanceService TermsService
+
+<PageTitle>Complete Registration - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="@GetSubtitle()">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+
+        <div class="register-link">
+            <div class="login-button-container">
+                <div class="divider-line"></div>
+                <a href="/" class="login-btn-link">
+                    return to home
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+    else if (_registrationSuccessful)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4">
+            Your registration is complete! Please check your email to verify your account, then log in to accept or decline the organization invitation.
+        </MudAlert>
+
+        <div class="register-link">
+            <div class="login-button-container">
+                <div class="divider-line"></div>
+                <a href="/Account/Login" class="login-btn-link">
+                    go to login
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+    else if (_invitation != null && IsNewUser)
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+        }
+
+        <div class="invitation-info">
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                <MudText Typo="Typo.body2">
+                    You've been invited to join <strong>@_invitation.Organization.Name</strong> on SnapCD.
+                    Complete your registration below, then verify your email and log in to accept the invitation.
+                </MudText>
+            </MudAlert>
+        </div>
+
+        <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="registration" method="post">
+            <DataAnnotationsValidator/>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudStaticTextField For="@(() => Input.Email)" @bind-Value="@Input.Email"
+                                        Label="Email"
+                                        Variant="Variant.Outlined"
+                                        FullWidth="true"
+                                        ReadOnly="true"
+                                        Disabled="true"/>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudStaticTextField For="@(() => Input.FirstName)" @bind-Value="Input.FirstName"
+                                        Label="First Name"
+                                        Variant="Variant.Outlined" FullWidth="true"
+                                        Required="true"/>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudStaticTextField For="@(() => Input.LastName)" @bind-Value="Input.LastName"
+                                        Label="Last Name"
+                                        Variant="Variant.Outlined" FullWidth="true"
+                                        Required="true"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStaticTextField For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                        Label="Password" InputType="InputType.Password"
+                                        Placeholder="Enter your password"
+                                        Variant="Variant.Outlined" FullWidth="true"
+                                        UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStaticTextField For="@(() => Input.ConfirmPassword)" @bind-Value="Input.ConfirmPassword"
+                                        Label="Confirm Password" InputType="InputType.Password"
+                                        Placeholder="Confirm your password"
+                                        Variant="Variant.Outlined" FullWidth="true"
+                                        UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
+                </MudItem>
+                <MudItem xs="12" Class="mt-2">
+                    <MudStaticCheckBox T="bool" @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                        <MudText Typo="Typo.body2">
+                            I agree to the
+                            <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
+                            and
+                            <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
+                        </MudText>
+                    </MudStaticCheckBox>
+                </MudItem>
+                <MudItem xs="12">
+                    <div class="complete-button-container">
+                        <div class="divider-line"></div>
+                        <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                         FormAction="FormAction.Submit" Class="complete-btn">
+                            Complete Registration
+                        </MudStaticButton>
+                        <div class="divider-line"></div>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+
+        <div class="external-login-section">
+            <MudText Align="Align.Center" Typo="Typo.body2" Class="mb-2"
+                     Style="color: var(--mud-palette-text-secondary);">or continue with
+            </MudText>
+            <ExternalLoginPicker Token="@Token"/>
+        </div>
+    }
+    else if (_invitation != null && !IsNewUser)
+    {
+        @* Existing user - redirect to organization invitation page *@
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            You already have a SnapCD account. Please log in to accept or decline this invitation.
+        </MudAlert>
+
+        <div class="register-link">
+            <div class="login-button-container">
+                <div class="divider-line"></div>
+                <a href="/Account/Login?returnUrl=/Account/PendingInvitations" class="login-btn-link">
+                    go to login
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+</StaticAccountComponent>
+
+<style>
+    .d-flex {
+        display: flex;
+    }
+
+    .justify-space-between {
+        justify-content: space-between;
+    }
+
+    .mx-auto {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .complete-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin: 2rem 0 1rem 0;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .complete-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+    }
+
+    .complete-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .external-login-section {
+        margin-top: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .login-button-container {
+        display: flex;
+        align-items: center;
+        margin: 1rem 0;
+    }
+
+    .login-btn-link {
+        color: #ffffff !important;
+        text-decoration: none !important;
+        background-color: #000000 !important;
+        border: 1px solid #000000;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        border-radius: 24px;
+        display: inline-block;
+    }
+
+    .login-btn-link:hover {
+        background-color: #333333 !important;
+        color: #ffffff !important;
+        text-decoration: none !important;
+    }
+
+    .mud-dark .login-btn-link {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #ffffff;
+    }
+
+    .mud-dark .login-btn-link:hover {
+        background-color: #e0e0e0 !important;
+        color: #000000 !important;
+        text-decoration: none !important;
+    }
+
+    .login-button-container .divider-line {
+        flex: 1;
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 0 1rem;
+    }
+
+    .mud-dark .login-button-container .divider-line {
+        background-color: #333;
+    }
+
+    .mt-2 {
+        margin-top: 0.5rem;
+    }
+
+    .mt-3 {
+        margin-top: 0.75rem;
+    }
+
+    .mt-4 {
+        margin-top: 1rem;
+    }
+
+    .mb-2 {
+        margin-bottom: 0.5rem;
+    }
+
+    .mb-4 {
+        margin-bottom: 1rem;
+    }
+</style>
+
+@code {
+    private string? errorMessage;
+    private string? _token;
+    private OrganizationUser? _invitation;
+    private User? _invitedUser;
+    private bool _registrationSuccessful = false;
+
+    [SupplyParameterFromQuery] private string? Token { get; set; }
+
+    [SupplyParameterFromQuery] private string? Error { get; set; }
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    private bool IsNewUser => _invitedUser?.IsRegistrationNotCompleted == true;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    private string? GetSubtitle()
+    {
+        if (!string.IsNullOrEmpty(errorMessage)) return "Invalid Invitation";
+        if (_registrationSuccessful) return "Registration Complete!";
+        if (_invitation != null && IsNewUser) return "Complete Your Registration";
+        if (_invitation != null && !IsNewUser) return "Already Registered";
+        return null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get error message from query parameter
+        errorMessage = Error;
+
+        // Get token from query string
+        _token = Token;
+
+        if (string.IsNullOrWhiteSpace(_token))
+        {
+            errorMessage = "No invitation token provided.";
+            return;
+        }
+
+        try
+        {
+            // Load invitation details
+            _invitation = await MemberService.GetInvitationByTokenAsync(_token);
+
+            if (_invitation == null)
+            {
+                errorMessage = "Invalid or expired invitation token.";
+                return;
+            }
+
+            // Check if invitation has expired
+            if (_invitation.InvitationExpirationDateTime <= DateTime.UtcNow)
+            {
+                errorMessage = "This invitation has expired. Please request a new invitation.";
+                return;
+            }
+
+            // Check if invitation is already completed
+            if (_invitation.InvitationCompleted)
+            {
+                errorMessage = "This invitation has already been completed.";
+                return;
+            }
+
+            // Get the user
+            _invitedUser = _invitation.User;
+            if (_invitedUser == null)
+            {
+                errorMessage = "User not found for this invitation.";
+                return;
+            }
+
+            // Initialize form model for new users
+            if (IsNewUser)
+            {
+                Input.Email = _invitedUser.Email ?? "";
+                Input.FirstName = _invitedUser.FirstName ?? "";
+                Input.LastName = _invitedUser.LastName ?? "";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading invitation");
+            errorMessage = "An error occurred while processing the invitation.";
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        try
+        {
+            // Get a fresh user instance from UserManager to avoid tracking conflicts
+            var userToUpdate = await UserManager.FindByIdAsync(_invitedUser!.Id.ToString());
+            if (userToUpdate == null)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("User not found.", HttpContext);
+                return;
+            }
+
+            // Update user profile
+            userToUpdate.FirstName = Input.FirstName;
+            userToUpdate.LastName = Input.LastName;
+            userToUpdate.IsRegistrationNotCompleted = false;
+
+            // Add password
+            var addPasswordResult = await UserManager.AddPasswordAsync(userToUpdate, Input.Password);
+            if (!addPasswordResult.Succeeded)
+            {
+                var errors = string.Join(", ", addPasswordResult.Errors.Select(e => e.Description));
+                RedirectManager.RedirectToCurrentPageWithStatus($"Error setting password: {errors}", HttpContext);
+                return;
+            }
+
+            // Update user
+            var updateResult = await UserManager.UpdateAsync(userToUpdate);
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                RedirectManager.RedirectToCurrentPageWithStatus($"Error updating user: {errors}", HttpContext);
+                return;
+            }
+
+            // Record terms acceptance
+            var ipAddress = HttpContext?.Connection.RemoteIpAddress?.ToString();
+            var userAgent = HttpContext?.Request.Headers["User-Agent"].ToString();
+            await TermsService.RecordAcceptanceAsync(
+                userToUpdate.Id,
+                TermsAcceptanceContext.InvitationRegistration,
+                ipAddress,
+                userAgent);
+
+            // Mark registration as successful - user still needs to verify email and then accept org invitation
+            _registrationSuccessful = true;
+
+            Logger.LogInformation("User registration completed for {Email}", userToUpdate.Email);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error completing registration for token {Token}", _token);
+            RedirectManager.RedirectToCurrentPageWithStatus("An error occurred while processing the registration. Please try again.", HttpContext);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(50, ErrorMessage = "The {0} must be at most {1} characters long.")]
+        [Display(Name = "First Name")]
+        public string FirstName { get; set; } = "";
+
+        [Required]
+        [StringLength(50, ErrorMessage = "The {0} must be at most {1} characters long.")]
+        [Display(Name = "Last Name")]
+        public string LastName { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Display(Name = "Accept Terms")]
+        public bool AcceptTerms { get; set; } = false;
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SnapCd.Server.SelfHosted": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:20002",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

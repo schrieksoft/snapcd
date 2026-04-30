@@ -1,0 +1,478 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Contracts.Dto
+@using SnapCd.Server.Core.UI.Dashboard.Components.Namespace
+@using MassTransit
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.Linq
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.DependencyGraph
+
+@inject ISnackbar Snackbar
+@inject ModuleJobSecuredRepositoryFactory ModuleJobSecuredRepositoryFactory
+@inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Destroy All Modules in Namespace</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <div class="text-center">
+                <MudText Typo="Typo.h6" Class="mb-4">Loading dependency graph...</MudText>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+            </div>
+        }
+        else if (_dependencyGraph != null)
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                Are you sure you want to destroy these modules?
+            </MudText>
+
+            var modulesInNamespace = _dependencyGraph.NodeStates
+                .Where(n => n.NamespaceId == NamespaceId)
+                .Select(n => n.DisplayName)
+                .ToList();
+
+            // External modules that depend on namespace modules (must be destroyed first)
+            var externalDependentModules = _dependencyGraph.NodeStates
+                .Where(n => n.NamespaceId != NamespaceId &&
+                            n.OutgoingEdges.Any(e =>
+                                _dependencyGraph.NodeStates.Any(ns => ns.ModuleId == e.ModuleId && ns.NamespaceId == NamespaceId)))
+                .ToList();
+
+            // External modules that namespace modules depend on (should remain)
+            var externalReferencedModules = _dependencyGraph.NodeStates
+                .Where(n => n.NamespaceId != NamespaceId &&
+                            n.IncomingEdges.Any(e =>
+                                _dependencyGraph.NodeStates.Any(ns => ns.ModuleId == e.ModuleId && ns.NamespaceId == NamespaceId)))
+                .ToList();
+
+            @if (modulesInNamespace.Any())
+            {
+                <div class="d-flex flex-column gap-1 mb-3">
+                    @foreach (var moduleNode in _dependencyGraph.NodeStates.Where(n => n.NamespaceId == NamespaceId))
+                    {
+                        <div class="d-flex align-center gap-2">
+                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                     Size="Size.Medium">@moduleNode.DisplayName</MudChip>
+                            @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
+                            {
+                                <MudTooltip Text="You do not have permission to destroy this module">
+                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                             Size="Size.Small"/>
+                                </MudTooltip>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (externalDependentModules.Any())
+            {
+                <MudText Typo="Typo.body1" Class="mb-2">Modules outside this namespace that depend on ones within it
+                    (must be destroyed first):
+                </MudText>
+
+                <MudCheckBox T="bool"
+                             Value="@_destroyExternalModules"
+                             Label="Also destroy these dependent modules"
+                             Color="Color.Info"
+                             Class="mb-3"
+                             Disabled="@_isDestroying"
+                             ValueChanged="@OnDestroyExternalModulesChanged"
+                />
+                <div class="d-flex flex-column gap-1 mb-3">
+                    @foreach (var moduleNode in externalDependentModules)
+                    {
+                        <div class="d-flex align-center gap-2">
+                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                     Size="Size.Medium">@moduleNode.DisplayName</MudChip>
+                            @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
+                            {
+                                <MudTooltip Text="You do not have permission to destroy this module">
+                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                             Size="Size.Small"/>
+                                </MudTooltip>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    <strong>Note:</strong> @externalDependentModules.Count module(s) outside this namespace depend on
+                    ones within it and must be destroyed first.
+                </MudAlert>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-3">
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2" Color="Color.Success">No modules outside this namespace depend on
+                                ones within it
+                            </MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudPaper>
+            }
+
+
+            <MudText Typo="Typo.h6" Class="mb-3">Destruction Plan</MudText>
+            var filteredGraph = GetFilteredGraph();
+            var uninvolvedModuleIds = GetUninvolvedModuleIds();
+            var uninvolvedNamespaceIds = GetUninvolvedNamespaceIds();
+
+            <MudText Typo="Typo.body2" Class="mb-4">
+                The following @(filteredGraph.NodeStates.Count - uninvolvedModuleIds.Count) module(s) will be destroyed:
+            </MudText>
+
+            <div style="max-height: 400px; overflow-y: auto;">
+                <NamespaceDependencyGraphExecutionFlow DependencyGraphWithStates="filteredGraph"
+                                                       UninvolvedModuleIds="uninvolvedModuleIds"
+                                                       PrimaryNamespaceId="NamespaceId"
+                                                       UninvolvedNamespaceIds="uninvolvedNamespaceIds"/>
+            </div>
+        }
+        else if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error">
+                Error loading dependency graph: @_error
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_dependencyGraph != null)
+        {
+            var filteredGraph = GetFilteredGraph();
+            var uninvolvedCount = GetUninvolvedModuleIds().Count;
+            var involvedCount = filteredGraph.NodeStates.Count - uninvolvedCount;
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       OnClick="ExecuteNamespaceDestruction"
+                       Disabled="@_isDestroying">
+                @if (_isDestroying)
+                {
+                    @:Destroying Infrastructure...
+                }
+                else
+                {
+                    @:Destroy All (@involvedCount modules)
+                }
+            </MudButton>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: black; color: white;"
+                   OnClick="Cancel"
+                   Disabled="@_isDestroying">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private DestroyModuleGraphServiceFactory DestroyServiceFactory { get; set; } = null!;
+    [Inject] private IPublishEndpoint Publisher { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid NamespaceId { get; set; }
+    [Parameter] public required string NamespaceName { get; set; }
+
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+
+    private bool _isLoading = true;
+    private string? _error = null;
+    private NamespaceDependencyGraphDto? _dependencyGraph = null;
+    private bool _destroyExternalModules = false;
+    private bool _isDestroying;
+    private DestroyModuleGraphService? _destroyService;
+    private Dictionary<Guid, bool> _modulePermissions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cacheKey = $"destroyNamespaceDialog_{NamespaceId}";
+
+        _destroyService = DestroyServiceFactory.Create();
+
+        await LoadDependencyGraph();
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedDialogData
+        //     {
+        //         DependencyGraph = _dependencyGraph,
+        //         IsLoading = _isLoading,
+        //         Error = _error,
+        //         DestroyExternalModules = _destroyExternalModules,
+        //         IsDestroying = _isDestroying,
+        //         ModulePermissions = _modulePermissions
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedDialogData>(cacheKey, out var cachedData))
+        // {
+        //     _dependencyGraph = cachedData.DependencyGraph;
+        //     _isLoading = false;
+        //     _error = cachedData.Error;
+        //     _destroyExternalModules = cachedData.DestroyExternalModules;
+        //     _isDestroying = cachedData.IsDestroying;
+        //     _modulePermissions = cachedData.ModulePermissions ?? new Dictionary<Guid, bool>();
+        // }
+    }
+
+    private async Task LoadDependencyGraph()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            _dependencyGraph = await _destroyService!.BuildNamespaceDestroyGraphAsync(NamespaceId, NamespaceName);
+
+            // Check permissions for all modules in the graph
+            await LoadModulePermissions();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private NamespaceDependencyGraphDto GetFilteredGraph()
+    {
+        if (_dependencyGraph == null)
+        {
+            return null!;
+        }
+
+        // Always include all modules in the graph for display
+        return _dependencyGraph;
+    }
+
+    private HashSet<Guid> GetUninvolvedModuleIds()
+    {
+        var uninvolvedIds = new HashSet<Guid>();
+
+        if (_dependencyGraph == null)
+        {
+            return uninvolvedIds;
+        }
+
+        // For Destroy operation:
+        // - External modules that depend on namespace modules (defined outside, reference inside) must be destroyed first
+        //   They are INVOLVED if checkbox is checked, UNINVOLVED if unchecked
+        // - External modules that namespace modules depend on (referenced by namespace modules) should NOT be destroyed
+        //   They are ALWAYS UNINVOLVED regardless of checkbox state
+
+        // Find all external modules (not in this namespace)
+        var externalModules = _dependencyGraph.NodeStates
+            .Where(n => n.NamespaceId != NamespaceId)
+            .ToList();
+
+        foreach (var externalModule in externalModules)
+        {
+            // Check if any namespace module depends on this external module (this module is in their outgoing edges)
+            var namespaceModulesDependOnThis = _dependencyGraph.NodeStates
+                .Any(ns => ns.NamespaceId == NamespaceId &&
+                           ns.OutgoingEdges.Any(e => e.ModuleId == externalModule.ModuleId));
+
+            // Check if this external module depends on any namespace module (has namespace modules in its outgoing edges)  
+            var thisDependsOnNamespaceModules = externalModule.OutgoingEdges
+                .Any(e => _dependencyGraph.NodeStates.Any(ns =>
+                    ns.ModuleId == e.ModuleId && ns.NamespaceId == NamespaceId));
+
+            if (namespaceModulesDependOnThis)
+            {
+                // Namespace modules depend on this external module - it's a prerequisite, NEVER destroy it
+                uninvolvedIds.Add(externalModule.ModuleId);
+            }
+            else if (thisDependsOnNamespaceModules && !_destroyExternalModules)
+            {
+                // This external module depends on namespace modules (downstream dependent)
+                // It should be destroyed first, but only if checkbox is checked
+                // Mark as uninvolved if we're NOT destroying external modules
+                uninvolvedIds.Add(externalModule.ModuleId);
+            }
+            else if (!namespaceModulesDependOnThis && !thisDependsOnNamespaceModules)
+            {
+                // This external module has no relationship with namespace modules
+                // It should be uninvolved
+                uninvolvedIds.Add(externalModule.ModuleId);
+            }
+        }
+
+        return uninvolvedIds;
+    }
+
+    private HashSet<Guid> GetUninvolvedNamespaceIds()
+    {
+        var uninvolvedIds = new HashSet<Guid>();
+
+        if (_dependencyGraph == null || _destroyExternalModules)
+        {
+            return uninvolvedIds;
+        }
+
+        // Get namespaces that contain uninvolved modules
+        var uninvolvedModuleIds = GetUninvolvedModuleIds();
+        var uninvolvedNamespaces = _dependencyGraph.NodeStates
+            .Where(n => uninvolvedModuleIds.Contains(n.ModuleId))
+            .Select(n => n.NamespaceId)
+            .Distinct();
+
+        foreach (var namespaceId in uninvolvedNamespaces)
+        {
+            uninvolvedIds.Add(namespaceId);
+        }
+
+        return uninvolvedIds;
+    }
+
+    private async Task LoadModulePermissions()
+    {
+        if (_dependencyGraph == null) return;
+
+        var modulesToCheck = _dependencyGraph.NodeStates
+            .Select(n => new ModuleNamespaceIdTuple
+            {
+                ModuleId = n.ModuleId,
+                NamespaceId = n.NamespaceId
+            })
+            .ToList();
+
+        if (!modulesToCheck.Any()) return;
+
+        using var jobSecuredRepository = ModuleJobSecuredRepositoryFactory.Create();
+        var permissions = await jobSecuredRepository.ListHasRunJobPermission(modulesToCheck, OrganizationId);
+
+        _modulePermissions = permissions.ToDictionary(p => p.ModuleId, p => p.HasPermission);
+    }
+
+    private void OnDestroyExternalModulesChanged(bool isChecked)
+    {
+        _destroyExternalModules = isChecked;
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        if (!_isDestroying)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task ExecuteNamespaceDestruction()
+    {
+        var filteredGraph = GetFilteredGraph();
+        if (filteredGraph == null)
+        {
+            Snackbar.Add("Destroy graph not loaded", Severity.Error);
+            return;
+        }
+
+        // Categorize modules for the confirmation dialog - only modules that aren't already destroyed or being destroyed
+        var uninvolvedModuleIds = GetUninvolvedModuleIds();
+        var modulesToDestroy = filteredGraph.NodeStates
+            .Where(n => !uninvolvedModuleIds.Contains(n.ModuleId) &&
+                        n.LatestActualState != ActualStateHeadline.Destroyed &&
+                        n.DesiredState != DesiredStateHeadline.Destroyed)
+            .ToList();
+
+        if (!modulesToDestroy.Any())
+        {
+            Snackbar.Add("All modules are already destroyed", Severity.Info);
+            MudDialog.Close(DialogResult.Ok(new List<Guid>()));
+            return;
+        }
+
+        // Find dependent modules (modules outside the filtered graph that depend on modules being destroyed)
+        var allModulesInGraph = _dependencyGraph?.NodeStates ?? new List<DependencyGraphNodeStateDto>();
+        var moduleIdsToDestroy = modulesToDestroy.Select(m => m.ModuleId).ToHashSet();
+
+        var dependentModules = allModulesInGraph
+            .Where(m => !moduleIdsToDestroy.Contains(m.ModuleId) &&
+                        m.IncomingEdges.Any(e => moduleIdsToDestroy.Contains(e.ModuleId)))
+            .ToList();
+
+        // Find remaining modules in the namespace that won't be destroyed
+        var remainingModules = allModulesInGraph
+            .Where(m => m.NamespaceId == NamespaceId &&
+                        !moduleIdsToDestroy.Contains(m.ModuleId) &&
+                        m.LatestActualState != ActualStateHeadline.Destroyed &&
+                        m.DesiredState != DesiredStateHeadline.Destroyed)
+            .ToList();
+
+        // Find already destroyed modules in the namespace
+        var alreadyDestroyedModules = allModulesInGraph
+            .Where(m => m.NamespaceId == NamespaceId &&
+                        (m.LatestActualState == ActualStateHeadline.Destroyed ||
+                         m.DesiredState == DesiredStateHeadline.Destroyed) &&
+                        !moduleIdsToDestroy.Contains(m.ModuleId))
+            .ToList();
+
+        // Open confirmation dialog
+        var parameters = new DialogParameters
+        {
+            { nameof(DestroyNamespaceConfirmationDialog.NamespaceId), NamespaceId },
+            { nameof(DestroyNamespaceConfirmationDialog.NamespaceName), NamespaceName },
+            { nameof(DestroyNamespaceConfirmationDialog.ModulesToDestroy), modulesToDestroy },
+            { nameof(DestroyNamespaceConfirmationDialog.DependentModules), dependentModules },
+            { nameof(DestroyNamespaceConfirmationDialog.RemainingModules), remainingModules },
+            { nameof(DestroyNamespaceConfirmationDialog.AlreadyDestroyedModules), alreadyDestroyedModules },
+            { nameof(DestroyNamespaceConfirmationDialog.ModulePermissions), _modulePermissions }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = false,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var confirmationDialog = await DialogService.ShowAsync<DestroyNamespaceConfirmationDialog>(
+            "Confirm Destruction", parameters, options);
+
+        var result = await confirmationDialog.Result;
+
+        if (!result.Canceled && result.Data is List<Guid> destroyedModuleIds)
+        {
+            // Close the original dialog with the result
+            MudDialog.Close(DialogResult.Ok(destroyedModuleIds));
+        }
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+        _destroyService?.Dispose();
+    }
+
+    private class CachedDialogData
+    {
+        public NamespaceDependencyGraphDto? DependencyGraph { get; set; }
+        public bool IsLoading { get; set; }
+        public string? Error { get; set; }
+        public bool DestroyExternalModules { get; set; }
+        public bool IsDestroying { get; set; }
+        public Dictionary<Guid, bool>? ModulePermissions { get; set; }
+    }
+
+}

@@ -1,0 +1,20 @@
+﻿@page "/Home"
+@layout OrganizationMainLayout
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Server.Core.Services.OrganizationContext
+
+@attribute [Authorize]
+
+@inject IOrganizationContext OrganizationContext
+
+<PageTitle>Home</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
+        <MudText Typo="Typo.h3" GutterBottom="true">Welcome to SnapCD</MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+}

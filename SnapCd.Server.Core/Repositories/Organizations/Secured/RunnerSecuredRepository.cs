@@ -1,0 +1,135 @@
+using MassTransit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SnapCd.Contracts;
+using SnapCd.Contracts.Dto.Runners;
+using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
+using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+
+namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
+
+public class RunnerSecuredRepositoryFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
+    IPublishEndpoint bus,
+    IOptions<RunnerRepositorySettings> options)
+{
+    public RunnerSecuredRepository Create(IPrincipalProvider? principalProvider = null)
+    {
+        if (principalProvider == null)
+            principalProvider = new HttpContextPrincipalProvider(new HttpContextAccessor());
+        var dbContext = dbFactory.CreateDbContext();
+        return new RunnerSecuredRepository(
+            new RunnerRepository(dbContext, principalProvider, bus, options),
+            principalProvider);
+    }
+}
+
+public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository<
+    Runner,
+    RunnerReadDto,
+    RunnerRepository,
+    RunnerCreatedEvent,
+    RunnerUpdatedEvent,
+    RunnerDeletedEvent,
+    RunnerRepositorySettings>
+{
+    public RunnerSecuredRepository(
+        RunnerRepository repository,
+        IPrincipalProvider principalProvider)
+        : base(repository, principalProvider)
+    {
+    }
+
+    public async Task<Runner> GetByName(string name, Guid organizationId)
+    {
+        var entity = await Repository.GetByName(name, organizationId);
+
+        if (!CanRead(entity.Id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Runner)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
+
+        return entity;
+    }
+
+    public async Task<List<Runner>> ListAssignedToModule(Guid moduleId, Guid organizationId)
+    {
+        return await Repository.ListAssignedToModule(moduleId, organizationId, ReadQuery(organizationId));
+    }
+
+    public async Task<List<Runner>> ListAssignedToNamespace(Guid namespaceId, Guid organizationId)
+    {
+        return await Repository.ListAssignedToNamespace(namespaceId, organizationId, ReadQuery(organizationId));
+    }
+
+    public async Task<List<Runner>> ListAssignedToStack(Guid stackId, Guid organizationId)
+    {
+        return await Repository.ListAssignedToStack(stackId, organizationId, ReadQuery(organizationId));
+    }
+
+    /// <summary>
+    /// Checks if the current principal is the ServicePrincipal assigned to the specified Runner by name.
+    /// Only ServicePrincipals can act as runners.
+    /// </summary>
+    /// <param name="organizationId">The organization ID</param>
+    /// <param name="runnerName">The name of the Runner</param>
+    /// <returns>True if the principal can act as a runner for this pool, false otherwise</returns>
+    public bool CanActAsRunner(Guid organizationId, string runnerName)
+    {
+        // Only ServicePrincipals can act as runners
+        if (PrincipalDiscriminator != PrincipalDiscriminator.ServicePrincipal)
+            return false;
+
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        // Check if any runner with this name has this ServicePrincipal assigned
+        return Repository.DbContext.Runners
+            .Any(r => r.Name == runnerName
+                && r.OrganizationId == organizationId
+                && r.ServicePrincipalId == principalId);
+    }
+
+    /// <summary>
+    /// Returns a list of all Runners in the organization with a flag indicating whether the current principal can act as a runner for each pool.
+    /// Only ServicePrincipals can act as runners.
+    /// </summary>
+    /// <param name="organizationId">The organization ID</param>
+    /// <returns>List of RunnerCheckView objects</returns>
+    public async Task<List<RunnerCheckView>> ListCanActAsRunner(Guid organizationId)
+    {
+        // Only ServicePrincipals can act as runners
+        if (PrincipalDiscriminator != PrincipalDiscriminator.ServicePrincipal)
+        {
+            // Return all runners with CanActAsRunner = false for non-ServicePrincipals
+            return await Repository.DbContext.Runners
+                .Where(r => r.OrganizationId == organizationId)
+                .Select(r => new RunnerCheckView
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    CanActAsRunner = false
+                })
+                .ToListAsync();
+        }
+
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        // Get all runners in the organization with flag indicating if this ServicePrincipal is assigned
+        return await Repository.DbContext.Runners
+            .Where(r => r.OrganizationId == organizationId)
+            .Select(r => new RunnerCheckView
+            {
+                Id = r.Id,
+                Name = r.Name,
+                CanActAsRunner = r.ServicePrincipalId == principalId
+            })
+            .ToListAsync();
+    }
+
+}

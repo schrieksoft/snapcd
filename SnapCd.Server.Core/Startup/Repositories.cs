@@ -1,0 +1,115 @@
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Repositories.Custom.Nonsecured;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.GroupMembers;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.Base;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
+using SnapCd.Server.Core.Repositories.System.Nonsecured;
+
+namespace SnapCd.Server.Core.Startup;
+
+public static class Repositories
+{
+    public static IServiceCollection AddSnapCdRepositories(this IServiceCollection services)
+    {
+        // Core Entity Repositories
+        services.AddScoped<StackRepository>();
+        services.AddScoped<ModuleRepository>();
+        services.AddScoped<ModuleSagaRepository>();
+        services.AddScoped<NamespaceRepository>();
+        services.AddScoped<RunnerRepository>();
+        services.AddScoped<ServicePrincipalRepository>();
+        services.AddScoped<UserSystemRepository>();
+        services.AddScoped<OrganizationSystemRepository>();
+        services.AddScoped<OrganizationUserRepository>();
+        services.AddScoped<GroupRepository>();
+        services.AddScoped<GroupMemberRepository>();
+        services.AddScoped<GroupGroupMemberRepository>();
+        services.AddScoped<UserGroupMemberRepository>();
+        services.AddScoped<ServicePrincipalGroupMemberRepository>();
+        services.AddScoped<SourceRefresherPreselectionRepository>();
+        services.AddScoped<RunnerConnectionJobRepository>();
+        services.AddScoped<NamespaceInputRepository>();
+        services.AddScoped<ModuleInputRepository>();
+        services.AddScoped<ModuleInputFromDefinitionRepository<ModuleEnvVarFromDefinition>>();
+        services.AddScoped<ModuleInputFromNamespaceRepository<ModuleEnvVarFromNamespace>>();
+        services.AddScoped<ModuleInputFromLiteralRepository<ModuleEnvVarFromLiteral>>();
+        services.AddScoped<ModuleInputFromOutputRepository<ModuleEnvVarFromOutput>>();
+        services.AddScoped<ModuleInputFromDefinitionRepository<ModuleParamFromDefinition>>();
+        services.AddScoped<ModuleInputFromNamespaceRepository<ModuleParamFromNamespace>>();
+        services.AddScoped<ModuleInputFromLiteralRepository<ModuleParamFromLiteral>>();
+        services.AddScoped<ModuleInputFromSecretRepository<ModuleParamFromSecret>>();
+        services.AddScoped<ModuleInputFromSecretRepository<ModuleEnvVarFromSecret>>();
+        services.AddScoped<ModuleInputFromOutputRepository<ModuleParamFromOutput>>();
+        services.AddScoped<ModuleInputFromOutputSetRepository<ModuleParamFromOutputSet>>();
+        services.AddScoped<NamespaceInputFromLiteralRepository<NamespaceParamFromLiteral>>();
+        services.AddScoped<NamespaceInputFromLiteralRepository<NamespaceEnvVarFromLiteral>>();
+        services.AddScoped<NamespaceInputFromDefinitionRepository<NamespaceParamFromDefinition>>();
+        services.AddScoped<NamespaceInputFromDefinitionRepository<NamespaceEnvVarFromDefinition>>();
+        services.AddScoped<NamespaceInputFromSecretRepository<NamespaceParamFromSecret>>();
+        services.AddScoped<NamespaceInputFromSecretRepository<NamespaceEnvVarFromSecret>>();
+        services.AddScoped<RunnerStackAssignmentRepository>();
+        services.AddScoped<RunnerNamespaceAssignmentRepository>();
+        services.AddScoped<RunnerModuleAssignmentRepository>();
+        services.AddScoped<StackSecretRepository>();
+        services.AddScoped<NamespaceSecretRepository>();
+        services.AddScoped<ModuleSecretRepository>();
+        services.AddScoped<SecretRepository>();
+        services.AddScoped<SecretOutputRepository>();
+        services.AddScoped<DependsOnModuleRepository>();
+        services.AddScoped<ModuleExtraFileRepository>();
+        services.AddScoped<NamespaceExtraFileRepository>();
+        services.AddScoped<ModuleBackendConfigRepository>();
+        services.AddScoped<NamespaceBackendConfigRepository>();
+        services.AddScoped<ModulePulumiFlagRepository>();
+        services.AddScoped<ModulePulumiArrayFlagRepository>();
+        services.AddScoped<NamespacePulumiFlagRepository>();
+        services.AddScoped<NamespacePulumiArrayFlagRepository>();
+        services.AddScoped<ModuleTerraformFlagRepository>();
+        services.AddScoped<ModuleTerraformArrayFlagRepository>();
+        services.AddScoped<NamespaceTerraformFlagRepository>();
+        services.AddScoped<NamespaceTerraformArrayFlagRepository>();
+        services.AddScoped<ModuleHookRepository>();
+        services.AddScoped<NamespaceHookRepository>();
+        services.AddScoped<PreviewFeatureAcceptanceRepository>();
+        services.AddScoped<ModuleJobRepository>();
+        services.AddScoped<ModuleJobApprovalRepository>();
+        services.AddScoped<ApplyJobSagaRepository>();
+        services.AddScoped<DestroyJobSagaRepository>();
+        services.AddScoped<OutputSetRepository>();
+        services.AddScoped<OutputRepository>();
+        services.AddScoped<LiteralOutputRepository>();
+        services.AddScoped<VariableSetRepository>();
+        services.AddScoped<VariableRepository>();
+        
+        services.AddScoped<OrganizationRoleAssignmentRepository>();
+        services.AddScoped<StackRoleAssignmentRepository>();
+        services.AddScoped<NamespaceRoleAssignmentRepository>();
+        services.AddScoped<ModuleRoleAssignmentRepository>();
+        services.AddScoped<RunnerRoleAssignmentRepository>();
+        
+        services.AddScoped<UserOrganizationRoleAssignmentRepository>();
+        services.AddScoped<UserStackRoleAssignmentRepository>();
+        services.AddScoped<UserNamespaceRoleAssignmentRepository>();
+        services.AddScoped<UserModuleRoleAssignmentRepository>();
+        services.AddScoped<UserRunnerRoleAssignmentRepository>();
+        
+        services.AddScoped<ServicePrincipalOrganizationRoleAssignmentRepository>();
+        services.AddScoped<ServicePrincipalStackRoleAssignmentRepository>();
+        services.AddScoped<ServicePrincipalNamespaceRoleAssignmentRepository>();
+        services.AddScoped<ServicePrincipalModuleRoleAssignmentRepository>();
+        services.AddScoped<ServicePrincipalRunnerRoleAssignmentRepository>();
+        
+        services.AddScoped<GroupOrganizationRoleAssignmentRepository>();
+        services.AddScoped<GroupStackRoleAssignmentRepository>();
+        services.AddScoped<GroupNamespaceRoleAssignmentRepository>();
+        services.AddScoped<GroupModuleRoleAssignmentRepository>();
+        services.AddScoped<GroupRunnerRoleAssignmentRepository>();
+
+        return services;
+    }
+}

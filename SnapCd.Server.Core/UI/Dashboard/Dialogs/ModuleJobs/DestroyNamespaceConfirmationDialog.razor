@@ -1,0 +1,197 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Contracts.Dto
+@using SnapCd.Server.Core.UI.Dashboard.Components.Namespace
+@using MassTransit
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.Linq
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Services.Crud.Jobs
+
+@inject ISnackbar Snackbar
+@inject ILogger<DestroyNamespaceConfirmationDialog> Logger
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Confirm Namespace Destruction</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (AlreadyDestroyedModules.Any())
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                <strong>These modules are already destroyed:</strong>
+            </MudText>
+            <div class="d-flex flex-column gap-1 mb-3">
+                @foreach (var module in AlreadyDestroyedModules)
+                {
+                    <div class="d-flex align-center gap-2">
+                        <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                 Size="Size.Medium">@module.DisplayName</MudChip>
+                        @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
+                        {
+                            <MudTooltip Text="You do not have permission to destroy this module">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                            </MudTooltip>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (ModulesToDestroy.Any())
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                <strong>These modules will be destroyed:</strong>
+            </MudText>
+            <div class="d-flex flex-column gap-1 mb-3">
+                @foreach (var module in ModulesToDestroy)
+                {
+                    <div class="d-flex align-center gap-2">
+                        <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                 Size="Size.Medium">@module.DisplayName</MudChip>
+                        @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
+                        {
+                            <MudTooltip Text="You do not have permission to destroy this module">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                            </MudTooltip>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (RemainingModules.Any())
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                <strong>These modules will still be within the Namespace afterward:</strong>
+            </MudText>
+            <div class="d-flex flex-column gap-1 mb-3">
+                @foreach (var module in RemainingModules)
+                {
+                    <div class="d-flex align-center gap-2">
+                        <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                 Size="Size.Medium">@module.DisplayName</MudChip>
+                        @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
+                        {
+                            <MudTooltip Text="You do not have permission to destroy this module">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                            </MudTooltip>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <MudDivider Class="my-4"/>
+
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Enter <strong>DESTROY</strong> in the box below to confirm:
+        </MudText>
+
+        <MudTextField T="string"
+                      @bind-Value="_confirmationText"
+                      Label="Confirmation"
+                      Placeholder="Type DESTROY to confirm"
+                      Variant="Variant.Outlined"
+                      Class="mb-3"
+                      Disabled="@_isDestroying"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: black; color: white;"
+                   OnClick="ConfirmDestruction"
+                   Disabled="@(_confirmationText != "DESTROY" || _isDestroying)">
+            @if (_isDestroying)
+            {
+                @:Destroying...
+            }
+            else
+            {
+                @:Confirm
+            }
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: black; color: white;"
+                   OnClick="Cancel"
+                   Disabled="@_isDestroying">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid NamespaceId { get; set; }
+    [Parameter] public required string NamespaceName { get; set; }
+    [Parameter] public required List<DependencyGraphNodeStateDto> ModulesToDestroy { get; set; }
+    [Parameter] public required List<DependencyGraphNodeStateDto> DependentModules { get; set; }
+    [Parameter] public required List<DependencyGraphNodeStateDto> RemainingModules { get; set; }
+    [Parameter] public required List<DependencyGraphNodeStateDto> AlreadyDestroyedModules { get; set; }
+    [Parameter] public required Dictionary<Guid, bool> ModulePermissions { get; set; }
+
+    private string _confirmationText = "";
+    private bool _isDestroying = false;
+
+    private void Cancel()
+    {
+        if (!_isDestroying)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task ConfirmDestruction()
+    {
+        if (_confirmationText != "DESTROY" || _isDestroying)
+            return;
+
+        _isDestroying = true;
+        StateHasChanged();
+
+        try
+        {
+            // Only destroy modules that the user has permission to destroy
+            var modulesToActuallyDestroy = ModulesToDestroy
+                .Where(m => ModulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (!modulesToActuallyDestroy.Any())
+            {
+                Snackbar.Add("No modules to destroy - insufficient permissions", Severity.Warning);
+                MudDialog.Close(DialogResult.Ok(new List<Guid>()));
+                return;
+            }
+
+            var modulesWithoutPermission = ModulesToDestroy
+                .Where(m => !ModulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (modulesWithoutPermission.Any())
+            {
+                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
+            }
+
+            // Destroy modules using SecuredJobService
+            foreach (var nodeState in modulesToActuallyDestroy)
+            {
+                using var securedJobService = SecuredJobServiceFactory.Create();
+                await securedJobService.Destroy(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+            }
+
+            Snackbar.Add($"Destruction initiated for {modulesToActuallyDestroy.Count} modules", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(modulesToActuallyDestroy.Select(n => n.ModuleId).ToList()));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initiate destruction: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Failed to initiate namespace destruction");
+            _isDestroying = false;
+            StateHasChanged();
+        }
+    }
+
+}

@@ -1,0 +1,170 @@
+@page "/Account/GenerateRecoveryCodes"
+@layout AccountLayout
+
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<GenerateRecoveryCodes> Logger
+
+<PageTitle>Generate two-factor recovery codes - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Generate two-factor recovery codes">
+    @if (_recoveryCodes is not null)
+    {
+        <ShowRecoveryCodes RecoveryCodes="_recoveryCodes.ToArray()" StatusMessage="@_message"/>
+    }
+    else
+    {
+        <StatusMessage Message="@_message"/>
+
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            <MudText Typo="Typo.h6" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
+                Generate new recovery codes
+            </MudText>
+            <MudText Typo="Typo.body1">
+                If you generate new recovery codes, any existing codes will no longer work.
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mt-2">
+                You should only generate new recovery codes if you've lost your existing codes or if you've used most of
+                them.
+            </MudText>
+        </MudAlert>
+
+        @if (_currentCodesCount > 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                <MudText Typo="Typo.body1">
+                    You currently have <strong>@_currentCodesCount</strong> unused recovery code(s) remaining.
+                </MudText>
+            </MudAlert>
+        }
+
+        <form @formname="generate-codes" @onsubmit="OnSubmitAsync" method="post">
+            <AntiforgeryToken/>
+            <div class="complete-button-container">
+                <div class="divider-line"></div>
+                <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                 FormAction="FormAction.Submit" Class="complete-btn">
+                    Generate Recovery Codes
+                </MudStaticButton>
+                <div class="divider-line"></div>
+            </div>
+        </form>
+
+        <div class="register-link">
+            <div class="back-button-container">
+                <div class="divider-line"></div>
+                <a href="/Account/Manage/Profile" class="back-btn-link">
+                    Cancel
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+</StaticAccountComponent>
+
+<style>
+    .complete-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin-top: 2rem;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .complete-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+        border-radius: 24px !important;
+    }
+
+    .complete-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .register-link {
+        margin-top: 1.5rem;
+    }
+
+    .back-button-container {
+        display: flex;
+        align-items: center;
+        margin: 1rem 0;
+    }
+
+    .back-btn-link {
+        color: #ffffff !important;
+        text-decoration: none !important;
+        background-color: #000000 !important;
+        border: 1px solid #000000;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        border-radius: 24px;
+        display: inline-block;
+    }
+
+    .back-btn-link:hover {
+        background-color: #333333 !important;
+        color: #ffffff !important;
+        text-decoration: none !important;
+    }
+
+    .mud-dark .back-btn-link {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #ffffff;
+    }
+
+    .mud-dark .back-btn-link:hover {
+        background-color: #e0e0e0 !important;
+        color: #000000 !important;
+        text-decoration: none !important;
+    }
+</style>
+
+@code {
+    private string? _message;
+    private User _user = null!;
+    private IEnumerable<string>? _recoveryCodes;
+    private int _currentCodesCount;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        var isTwoFactorEnabled = await UserManager.GetTwoFactorEnabledAsync(_user);
+        if (!isTwoFactorEnabled)
+        {
+            throw new InvalidOperationException("Cannot generate recovery codes for user because they do not have 2FA enabled.");
+        }
+
+        _currentCodesCount = await UserManager.CountRecoveryCodesAsync(_user);
+    }
+
+    private async Task OnSubmitAsync()
+    {
+        var userId = await UserManager.GetUserIdAsync(_user);
+        _recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(_user, 10);
+        _message = "You have generated new recovery codes.";
+
+        Logger.LogInformation("User with ID '{UserId}' has generated new 2FA recovery codes.", userId);
+    }
+
+}

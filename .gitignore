@@ -1,0 +1,126 @@
+##############################################################################
+# OS / editor cruft
+##############################################################################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+*.swp
+*~
+*.*~
+
+##############################################################################
+# IDE / editor state
+##############################################################################
+.vs/
+.vscode/
+.idea/
+.fleet/
+.cr/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+##############################################################################
+# .NET build output
+##############################################################################
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+artifacts/
+publish/
+
+# NuGet
+*.nupkg
+*.snupkg
+nupkg/
+nupkgs/
+project.lock.json
+
+# MSBuild
+msbuild.log
+msbuild.err
+msbuild.wrn
+*.binlog
+
+# Test + coverage
+[Tt]est[Rr]esults/
+[Cc]overage/
+coverage/
+*.coverage
+*.coveragexml
+coverage.cobertura.xml
+
+# Debug
+*.pdb
+*-debug
+
+##############################################################################
+# App secrets / local config
+##############################################################################
+appsettings.dev.json
+appsettings.prod.json
+appsettings.Development.json
+appsettings.Production.json
+
+##############################################################################
+# Release assets / local pipeline output
+##############################################################################
+release-assets/
+
+##############################################################################
+# Docker
+##############################################################################
+docker-compose.override.yml
+docker-compose.override.yaml
+
+##############################################################################
+# Environment files
+##############################################################################
+.env
+.env.*
+!.env.example
+
+##############################################################################
+# Logs
+##############################################################################
+*.log
+logs/
+
+##############################################################################
+# Terraform (product wraps terraform; contributors may drop sample configs)
+##############################################################################
+**/.terraform/*
+*.terraform
+*.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+##############################################################################
+# SnapCD-specific local state
+##############################################################################
+.runnerwd
+
+##############################################################################
+# Misc
+##############################################################################
+*.pyc
+.claude

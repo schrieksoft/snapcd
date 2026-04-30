@@ -1,0 +1,41 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Are you sure you want to remove user "@OrganizationUser.User?.Email" from this organization?</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            This will permanently remove the user's membership and all their role assignments in this organization.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Filled" Style="background-color: #000; color: #fff;">Cancel</MudButton>
+        <MudButton OnClick="Submit" Variant="Variant.Filled" Style="background-color: #000; color: #fff;">Remove</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public required OrganizationUser OrganizationUser { get; set; }
+    [Parameter] public required Guid OrganizationId { get; set; }
+
+    [Inject] private OrganizationUserSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            await repo.Delete(OrganizationUser.Id, OrganizationId);
+            MudDialog.Close(DialogResult.Ok(OrganizationUser.Id));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to remove user: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,42 @@
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Clear Queued</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are your sure you want clear the existing queued Job?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Clear">Clear</MudButton>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid NamespaceId { get; set; }
+
+    [Parameter] public required IPrincipalProvider PrincipalProvider { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Clear()
+    {
+        using var jobService = SecuredJobServiceFactory.Create(PrincipalProvider);
+        await jobService.ClearQueue(ModuleId, NamespaceId, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(ModuleId));
+    }
+
+}

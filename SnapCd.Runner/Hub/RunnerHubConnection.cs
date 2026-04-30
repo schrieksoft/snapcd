@@ -1,0 +1,409 @@
+using System.Collections.Concurrent;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using SnapCd.Contracts.Constants;
+using SnapCd.Contracts.Dto.Misc;
+using SnapCd.Contracts.RunnerRequests;
+using SnapCd.Runner.Constants;
+using SnapCd.Runner.Services;
+using SnapCd.Runner.Settings;
+
+namespace SnapCd.Runner.Hub;
+
+/// <summary>
+/// SignalR client for bidirectional communication with SnapCD server.
+/// Handles connection, reconnection, and log sending with buffering.
+/// </summary>
+public class RunnerHubConnection : IAsyncDisposable
+{
+    private readonly ILogger<RunnerHubConnection> _logger;
+    private readonly RunnerSettings _runnerSettings;
+    private readonly ServerSettings _serverSettings;
+    private readonly IMemoryCache _memoryCache;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly Tasks.Tasks _tasks;
+
+    private HubConnection? _connection;
+    private bool _isDisposing;
+
+    // Log buffering
+    private readonly ConcurrentQueue<LogEntryDto> _logBuffer = new();
+    private const int MaxLogBufferSize = 10000;
+    private int _droppedLogCount = 0;
+
+    private readonly ProcessRegistry _processRegistry;
+
+    public RunnerHubConnection(
+        ILogger<RunnerHubConnection> logger,
+        IOptions<RunnerSettings> runnerSettings,
+        IOptions<ServerSettings> serverSettings,
+        ILoggerFactory loggerFactory,
+        IMemoryCache memoryCache,
+        ProcessRegistry processRegistry,
+        Tasks.Tasks tasks)
+    {
+        _logger = logger;
+        _loggerFactory = loggerFactory;
+        _processRegistry = processRegistry;
+        _runnerSettings = runnerSettings.Value;
+        _serverSettings = serverSettings.Value;
+        _memoryCache = memoryCache;
+        _tasks = tasks;
+    }
+
+    /// <summary>
+    /// Start the SignalR connection to the server
+    /// </summary>
+    public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        if (_connection != null)
+        {
+            _logger.LogWarning("Already connected to server");
+            return;
+        }
+
+        var hubUrl = $"{_serverSettings.Url}/runnerhub" +
+                     $"?organization_id={_runnerSettings.OrganizationId}" +
+                     $"&runner_id={_runnerSettings.Id}" +
+                     $"&runner_instance={Uri.EscapeDataString(_runnerSettings.Instance)}";
+
+        _logger.LogInformation("Connecting to SignalR hub at {HubUrl}", hubUrl);
+
+        _connection = new HubConnectionBuilder()
+            .WithUrl(hubUrl, options =>
+            {
+                // Provide access token for authentication
+                options.AccessTokenProvider = () =>
+                {
+                    var token = _memoryCache.Get<string>(MemoryCacheConstants.AccessTokenCacheKey);
+                    if (string.IsNullOrEmpty(token)) _logger.LogWarning("Access token not found in cache during connection");
+                    return Task.FromResult(token);
+                };
+
+                // Configure HTTP client
+                options.HttpMessageHandlerFactory = handler =>
+                {
+                    if (handler is HttpClientHandler clientHandler)
+                    {
+                        // Configure any HTTP client settings here if needed
+                    }
+
+                    return handler;
+                };
+            })
+            .WithAutomaticReconnect(new RetryPolicy())
+            .Build();
+
+        // Handle reconnection events
+        _connection.Reconnecting += async error =>
+        {
+            var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
+            logger.LogWarning(error, "SignalR connection lost, reconnecting...");
+            await Task.CompletedTask;
+        };
+
+        _connection.Reconnected += async connectionId =>
+        {
+            var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
+            logger.LogInformation("SignalR reconnected with connection ID {ConnectionId}", connectionId);
+            // Flush buffered logs
+            await FlushLogBufferAsync();
+        };
+
+        _connection.Closed += async error =>
+        {
+            Console.WriteLine("closed");
+            if (!_isDisposing)
+            {
+                var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
+                logger.LogError(error, "SignalR connection closed unexpectedly");
+                // Connection will auto-reconnect via WithAutomaticReconnect
+            }
+
+            await Task.CompletedTask;
+        };
+
+        // Register handler for GetDefinitiveRevision
+        _connection.On<GetDefinitiveRevisionRequest>(RunnerEndpoints.GetDefinitiveRevision, (request) =>
+            {
+                Task.Run(async () => { await _tasks.GetDefinitiveRevision(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for GetModule
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.GetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.GetModule(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for Init
+        _connection.On<InitRequestBase>(RunnerEndpoints.Init, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Init(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for Validate
+        _connection.On<ValidateRequestBase>(RunnerEndpoints.Validate, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Validate(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for Input
+        _connection.On<VariablesRequestBase>(RunnerEndpoints.Variables, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Variables(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for Plan
+        _connection.On<PlanRequestBase>(RunnerEndpoints.Plan, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Plan(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for PlanDestroy
+        _connection.On<PlanDestroyRequestBase>(RunnerEndpoints.PlanDestroy, (request) =>
+            {
+                Task.Run(async () => { await _tasks.PlanDestroy(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for ApplyFromPlan
+        _connection.On<ApplyFromPlanRequestBase>(RunnerEndpoints.ApplyFromPlan, (request) =>
+            {
+                Task.Run(async () => { await _tasks.ApplyFromPlan(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for DestroyFromPlan
+        _connection.On<DestroyFromPlanRequestBase>(RunnerEndpoints.DestroyFromPlan, (request) =>
+            {
+                Task.Run(async () => { await _tasks.DestroyFromPlan(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for Output
+        _connection.On<OutputRequestBase>(RunnerEndpoints.Output, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Output(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for SourceRefresh (stateless operation)
+        _connection.On<SourceRefreshRequest>(RunnerEndpoints.SourceRefresh, (request) =>
+            {
+                Task.Run(async () => { await _tasks.SourceRefresh(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for CancelKill
+        _connection.On<CancelKillRequest>(RunnerEndpoints.CancelKill, (request) =>
+            {
+                Task.Run(async () => { await _tasks.CancelKill(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for CancelGraceful
+        _connection.On<CancelGracefulRequest>(RunnerEndpoints.CancelGraceful, (request) =>
+            {
+                Task.Run(async () => { await _tasks.CancelGraceful(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Start the connection
+        await _connection.StartAsync(cancellationToken);
+        _logger.LogInformation("Connected to SignalR hub");
+
+        // Flush any buffered logs from before connection
+        await FlushLogBufferAsync();
+    }
+
+    /// <summary>
+    /// Stop the SignalR connection
+    /// </summary>
+    public async Task StopAsync()
+    {
+        _isDisposing = true;
+
+        if (_connection != null)
+        {
+            await _connection.StopAsync();
+            await _connection.DisposeAsync();
+            _connection = null;
+        }
+
+        _logger.LogInformation("Disconnected from SignalR hub");
+    }
+
+    /// <summary>
+    /// Disconnect and reconnect to refresh the connection with a new token from cache.
+    /// Used when token expiration is detected.
+    /// </summary>
+    public async Task DisconnectAndReconnectAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Disconnecting and reconnecting to refresh authentication token");
+
+        // Temporarily disable disposing flag to allow reconnection
+        var wasDisposing = _isDisposing;
+        _isDisposing = false;
+
+        try
+        {
+            // Disconnect current connection
+            if (_connection != null)
+            {
+                await _connection.StopAsync();
+                await _connection.DisposeAsync();
+                _connection = null;
+            }
+
+            // Small delay to ensure clean disconnect
+            await Task.Delay(100, cancellationToken);
+
+            // Reconnect - will use fresh token from cache via AccessTokenProvider
+            await StartAsync(cancellationToken);
+
+            _logger.LogInformation("Successfully reconnected with refreshed token");
+        }
+        finally
+        {
+            _isDisposing = wasDisposing;
+        }
+    }
+
+    /// <summary>
+    /// Send a batch of log entries to the server via SignalR.
+    /// If not connected, logs are buffered for sending when connection is restored.
+    /// </summary>
+    public async Task SendLogsAsync(List<LogEntryDto> logEntries)
+    {
+        if (logEntries == null || logEntries.Count == 0)
+            return;
+
+        // If not connected, buffer the logs
+        if (_connection?.State != HubConnectionState.Connected)
+        {
+            foreach (var log in logEntries)
+            {
+                if (_logBuffer.Count >= MaxLogBufferSize)
+                {
+                    // Drop oldest log
+                    _logBuffer.TryDequeue(out _);
+                    _droppedLogCount++;
+                }
+
+                _logBuffer.Enqueue(log);
+            }
+
+            if (_droppedLogCount > 0) _logger.LogWarning("Dropped {Count} log entries due to buffer overflow", _droppedLogCount);
+
+            return;
+        }
+
+        try
+        {
+            await _connection.InvokeAsync(ServerEndpoints.AddLogs, logEntries);
+            _logger.LogTrace("Sent {Count} log entries to server", logEntries.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending logs to server, buffering for retry");
+
+            // Buffer the logs for retry
+            foreach (var log in logEntries)
+                if (_logBuffer.Count < MaxLogBufferSize)
+                    _logBuffer.Enqueue(log);
+        }
+    }
+
+    private async Task FlushLogBufferAsync()
+    {
+        if (_logBuffer.IsEmpty || _connection?.State != HubConnectionState.Connected)
+            return;
+
+        var logsToSend = new List<LogEntryDto>();
+        while (_logBuffer.TryDequeue(out var log) && logsToSend.Count < 100) logsToSend.Add(log);
+
+        if (logsToSend.Count > 0)
+        {
+            _logger.LogInformation("Flushing {Count} buffered log entries", logsToSend.Count);
+            try
+            {
+                await _connection.InvokeAsync("SendLogs", logsToSend);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error flushing buffered logs, will retry later");
+                // Re-queue the logs
+                foreach (var log in logsToSend) _logBuffer.Enqueue(log);
+            }
+        }
+
+        if (_droppedLogCount > 0)
+        {
+            _logger.LogWarning("Total of {Count} log entries were dropped due to buffer overflow", _droppedLogCount);
+            _droppedLogCount = 0;
+        }
+    }
+
+    /// <summary>
+    /// Invoke a hub method with the specified arguments.
+    /// </summary>
+    public async Task InvokeHubMethodAsync(string methodName, params object[] args)
+    {
+        if (_connection == null)
+        {
+            _logger.LogWarning("Cannot invoke hub method {MethodName} - not connected", methodName);
+            throw new InvalidOperationException("Not connected to SignalR hub");
+        }
+
+        await _connection.InvokeAsync(methodName, args);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+    }
+
+    /// <summary>
+    /// Custom retry policy for SignalR reconnection
+    /// </summary>
+    private class RetryPolicy : IRetryPolicy
+    {
+        private readonly TimeSpan[] _retryDelays = new[]
+        {
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(20)
+        };
+
+        public TimeSpan? NextRetryDelay(RetryContext retryContext)
+        {
+            // Use exponential backoff up to 30 seconds
+            if (retryContext.PreviousRetryCount < _retryDelays.Length) return _retryDelays[retryContext.PreviousRetryCount];
+
+            // After that, retry every 30 seconds indefinitely
+            return TimeSpan.FromSeconds(30);
+        }
+    }
+}

@@ -1,0 +1,176 @@
+@inject IHttpContextAccessor HttpContextAccessor
+
+<div class="account-page-container">
+    <MudPaper Class="login-card" Elevation="0" Style="@($"max-width: {MaxWidth}")">
+        <div class="login-header">
+            <div class="logo-section">
+                <img src="/_content/SnapCd.Server.Core/login-logo.png" alt="Snap CD" width="64" height="64" class="login-logo"/>
+                <MudText Typo="Typo.h3" Class="login-title">Snap CD</MudText>
+            </div>
+            @if (!string.IsNullOrEmpty(Subtitle))
+            {
+                <MudText Typo="Typo.subtitle1" Class="login-subtitle">@Subtitle</MudText>
+            }
+        </div>
+
+        @ChildContent
+        
+        <!-- Theme Toggle - Bottom Left -->
+        <div class="theme-toggle-container">
+            <form action="/Theme/ToggleDarkMode" method="post">
+                <AntiforgeryToken/>
+                <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
+                    <MudStaticButton Style="box-shadow: none; min-width: unset; padding: 8px; background-color: var(--mud-palette-surface); border-radius: 50%;" 
+                                   Variant="Variant.Text" FormAction="FormAction.Submit">
+                        <MudIcon Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" Size="Size.Small"/>
+                    </MudStaticButton>
+                </MudTooltip>
+            </form>
+        </div>
+    </MudPaper>
+</div>
+
+<style>
+    .account-page-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background-color: #000000;
+    }
+    
+    .login-card {
+        max-width: 500px;
+        width: 100%;
+        padding: 3rem;
+        border-radius: 8px;
+        position: relative;
+        background-color: var(--mud-palette-surface);
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .logo-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .login-logo {
+        margin-bottom: 0.25rem;
+    }
+    
+    .login-title {
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    
+    .login-subtitle {
+        color: var(--mud-palette-text-secondary);
+    }
+    
+    .sign-in-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    
+    .login-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+    }
+    
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+    
+    .sign-in-btn {
+        flex-shrink: 0;
+        text-transform: lowercase !important;
+        background-color: #000 !important;
+        color: white !important;
+        padding: 8px 24px;
+        border-radius: 24px;
+    }
+    
+    .sign-in-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+    
+    .login-btn-link {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 24px;
+        background-color: #000 !important;
+        color: white !important;
+        text-decoration: none;
+        border-radius: 24px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        line-height: 1.75;
+        letter-spacing: 0.02857em;
+        text-transform: lowercase;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .login-btn-link:hover {
+        background-color: #333 !important;
+        color: white !important;
+        text-decoration: none;
+    }
+    
+    .external-login-section {
+        margin-top: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .register-link {
+        margin-top: 2rem;
+    }
+    
+    .theme-toggle-container {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+    }
+    
+    @@media (max-width: 600px) {
+        .login-card {
+            padding: 2rem;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string MaxWidth { get; set; } = "500px";
+
+    private bool _isDarkMode;
+
+    protected override void OnInitialized()
+    {
+        // Get theme from cookie
+        var themeCookie = HttpContextAccessor.HttpContext?.Request.Cookies["theme"];
+        _isDarkMode = themeCookie == "dark";
+    }
+}

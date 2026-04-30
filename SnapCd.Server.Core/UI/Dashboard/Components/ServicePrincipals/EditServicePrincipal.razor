@@ -1,0 +1,134 @@
+@using SnapCd.Contracts.Dto
+@using SnapCd.Contracts.Dto.ServicePrincipals
+@using SnapCd.Server.Core.Misc.Utils
+@using SnapCd.Server.Core.Services.Crud
+
+<MudPaper Elevation="1" Class="pa-4 my-4">
+    <MudForm @ref="_form">
+        <MudStack Spacing="3">
+            <MudTextField Label="Client Id"
+                          @bind-Value="ClientId"
+                          Required="true"
+                          Disabled="true"
+                          HelperText="Unique identifier for the service principal"/>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField Label="Service Principal Id"
+                                  @bind-Value="ServicePrincipal.Id"
+                                  Disabled="true"/>
+                </MudItem>
+
+                <MudItem xs="9">
+                    <MudTextField Label="Client Secret"
+                                  @bind-Value="ClientSecret"
+                                  HelperText="Set a new Client Secret (leave blank to keep existing)"
+                                  InputType="InputType.Password"
+                                  Immediate="true"/>
+                </MudItem>
+                <MudItem xs="3" Class="d-flex gap-2">
+                    <MudTooltip Text="Generate a new random secret">
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="GenerateClientSecret"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Copy the secret">
+                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="CopyClientSecret"/>
+                    </MudTooltip>
+                </MudItem>
+            </MudGrid>
+
+            <div class="d-flex justify-end gap-2 mt-4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="HandleValidSubmit">
+                    Save Changes
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Discard Changes
+                </MudButton>
+            </div>
+        </MudStack>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required ServicePrincipalReadDto ServicePrincipal { get; set; }
+    [Parameter] public required EventCallback<Guid> OnSaved { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
+    [Inject] private ServicePrincipalService ServicePrincipalService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private MudForm? _form;
+    private string ClientId { get; set; } = string.Empty;
+    private string ClientSecret { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        ClientId = ServicePrincipal.ClientId ?? string.Empty;
+        ClientSecret = string.Empty; // if blank then when calling ServicePrincipalService.Update, the current ClientSecret will remain in place.
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid) return;
+        }
+        else
+        {
+            throw new Exception("Form is null");
+        }
+
+        try
+        {
+            var updateDto = new ServicePrincipalUpdateDto
+            {
+                ClientId = ClientId,
+                ClientSecret = ClientSecret
+            };
+
+            await ServicePrincipalService.Update(updateDto, ServicePrincipal.Id, OrganizationId);
+            await OnSaved.InvokeAsync(ServicePrincipal.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating service principal: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task GenerateClientSecret()
+    {
+        ClientSecret = CredentialHelper.GenerateRandomPassword(32);
+        if (_form != null)
+        {
+            await _form.Validate();
+        }
+        else throw new Exception("Form is null");
+    }
+
+    private async Task CopyClientSecret()
+    {
+        if (!string.IsNullOrEmpty(ClientSecret))
+        {
+            await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", ClientSecret);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        ClientSecret = string.Empty;
+        await OnCancel.InvokeAsync();
+    }
+
+}

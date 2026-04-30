@@ -1,0 +1,41 @@
+@using MudBlazor
+@using SnapCd.Server.Core.Entities.Definition
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Remove Member</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Are you sure you want to remove
+            <strong>@(OrganizationUser?.User?.FirstName) @(OrganizationUser?.User?.LastName) (@(OrganizationUser?.User?.Email))</strong>
+            from the organization?
+        </MudText>
+
+        <MudAlert Severity="Severity.Error" Class="mt-3">
+            This action cannot be undone. The user will lose access to all organization resources immediately.
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Yes">Remove Member</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="No">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public required OrganizationUser OrganizationUser { get; set; }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void No()
+    {
+        MudDialog.Cancel();
+    }
+
+    private Task Yes()
+    {
+        MudDialog.Close(DialogResult.Ok(OrganizationUser.Id));
+        return Task.CompletedTask;
+    }
+
+}

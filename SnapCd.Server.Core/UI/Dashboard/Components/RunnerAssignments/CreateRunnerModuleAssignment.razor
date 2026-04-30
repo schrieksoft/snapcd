@@ -1,0 +1,155 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.RunnerAssignments
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerAssignments
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudForm @ref="_form">
+        <MudGrid Class="pa-4" Spacing="3">
+            <!-- Module Selection -->
+            <MudItem xs="12" md="6">
+                <MudItem xs="12" md="12">
+                    <MudAutocomplete T="Module?"
+                                     Label="Module"
+                                     @bind-Value="_selectedModule"
+                                     Disabled="@(ModuleId.HasValue)"
+                                     Required="@(!ModuleId.HasValue)"
+                                     RequiredError="Module is required"
+                                     SearchFunc="@SearchModules"
+                                     ToStringFunc="@(m => m?.Name ?? string.Empty)"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     Variant="Variant.Outlined">
+                    </MudAutocomplete>
+                </MudItem>
+
+                <!-- Runner Selection -->
+                <MudItem xs="12" md="12">
+                    <MudAutocomplete T="Runner?"
+                                     Label="Runner"
+                                     @bind-Value="_selectedRunner"
+                                     Disabled="@(RunnerId.HasValue)"
+                                     Required="@(!RunnerId.HasValue)"
+                                     RequiredError="Runner is required"
+                                     SearchFunc="@SearchRunners"
+                                     ToStringFunc="@(s => s?.Name ?? string.Empty)"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     Variant="Variant.Outlined">
+                    </MudAutocomplete>
+                </MudItem>
+            </MudItem>
+
+            <!-- Action Buttons -->
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="SaveAssignment"
+                           Class="mr-2">
+                    Create
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter] public Guid? ModuleId { get; set; }
+    [Parameter] public Guid? RunnerId { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private RunnerModuleAssignmentSecuredRepositoryFactory AssignmentRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
+
+    private MudForm? _form;
+    private Module? _selectedModule;
+    private Runner? _selectedRunner;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInitialValues();
+    }
+
+    private async Task LoadInitialValues()
+    {
+        if (ModuleId.HasValue)
+        {
+            using var moduleRepo = ModuleRepoFactory.Create();
+            _selectedModule = await moduleRepo.Get(ModuleId.Value, OrganizationId);
+        }
+
+        if (RunnerId.HasValue)
+        {
+            using var storeRepo = RunnerRepoFactory.Create();
+            _selectedRunner = await storeRepo.Get(RunnerId.Value, OrganizationId);
+        }
+    }
+
+
+    private async Task<IEnumerable<Module>> SearchModules(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<Module>();
+
+        using var repo = ModuleRepoFactory.Create();
+        return await repo.List<Module>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+    }
+
+    private async Task<IEnumerable<Runner>> SearchRunners(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<Runner>();
+
+        using var repo = RunnerRepoFactory.Create();
+        return await repo.List<Runner>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+    }
+
+    private async Task SaveAssignment()
+    {
+        if (_form is null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            var assignment = new RunnerModuleAssignment
+            {
+                Id = Guid.NewGuid(),
+                ModuleId = ModuleId ?? _selectedModule?.Id ?? Guid.Empty,
+                RunnerId = RunnerId ?? _selectedRunner?.Id ?? Guid.Empty,
+                OrganizationId = OrganizationId
+            };
+
+            if (assignment.ModuleId == Guid.Empty || assignment.RunnerId == Guid.Empty)
+            {
+                Snackbar.Add("Please select both module and Runner", Severity.Error);
+                return;
+            }
+
+            using var repo = AssignmentRepoFactory.Create();
+            await repo.Create(assignment);
+
+            Snackbar.Add("Assignment created successfully", Severity.Success);
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating assignment: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        _selectedModule = null;
+        _selectedRunner = null;
+        await OnCancel.InvokeAsync();
+    }
+
+}

@@ -1,0 +1,36 @@
+using SnapCd.Contracts;
+using SnapCd.Server.Core.Tests.Infrastructure;
+using SnapCd.Server.Core.Tests.TestActions;
+
+namespace SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Variables;
+
+[Collection("NewRoleBasedSharedFixture")]
+public class OrganizationOwner_Input_GroupMember_Tests : TestBase
+{
+    public OrganizationOwner_Input_GroupMember_Tests(Fixture fixture)
+        : base(fixture, CreateConfig(fixture))
+    {
+    }
+
+    private static TestScenarioConfiguration CreateConfig(Fixture fixture)
+    {
+        return new TestScenarioConfiguration
+        {
+            PrincipalId = fixture.OrganizationPrincipals["0"][OrganizationRole.Owner].GroupUser.Id,
+            Discriminator = PrincipalDiscriminator.User,
+            TestActionsFactory = (f, db) => new InputTestActions(f, db),
+            NamePrefix = nameof(OrganizationOwner_Input_GroupMember_Tests),
+            CanGetIds = new[] { fixture.Inputs["00000"].Id, fixture.Inputs["00001"].Id },
+            CannotGetIds = new[] { fixture.Inputs["10000"].Id },
+            // Input is immutable - cannot be updated
+            CanUpdateIds = Array.Empty<Guid>(),
+            CannotUpdateIds = Array.Empty<Guid>(),
+            // Input can only be created by Runner roles, NOT by OrganizationOwner
+            CanCreateParentIds = Array.Empty<Guid>(),
+            CannotCreateParentIds = Array.Empty<Guid>(),
+            // Input can be deleted by OrganizationOwner
+            CanDeleteIds = new[] { fixture.InputAdditionalTestEntities[$"{nameof(OrganizationOwner_Input_GroupMember_Tests)}_DeleteCan"].Id },
+            CannotDeleteIds = Array.Empty<Guid>()
+        };
+    }
+}

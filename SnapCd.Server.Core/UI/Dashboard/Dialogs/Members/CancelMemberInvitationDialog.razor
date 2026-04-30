@@ -1,0 +1,40 @@
+@using MudBlazor
+@using SnapCd.Server.Core.Entities.Definition
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Cancel Invitation</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Are you sure you want to cancel the invitation for
+            <strong>@(OrganizationUser?.User?.Email)</strong>?
+        </MudText>
+
+        <MudAlert Severity="Severity.Warning" Class="mt-3">
+            This action cannot be undone. The user will need to be invited again to join the organization.
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Yes">Cancel Invitation</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="No">Keep Invitation</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public required OrganizationUser OrganizationUser { get; set; }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void No()
+    {
+        MudDialog.Cancel();
+    }
+
+    private Task Yes()
+    {
+        MudDialog.Close(DialogResult.Ok(OrganizationUser.Id));
+        return Task.CompletedTask;
+    }
+
+}

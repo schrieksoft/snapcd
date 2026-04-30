@@ -1,0 +1,295 @@
+@using SnapCd.Contracts.Dto
+@using System.Collections.Generic
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Services.DependencyGraph
+@using SnapCd.Server.Core.Services.Notification
+@implements IDisposable
+
+@inject ApplyModuleGraphServiceFactory ApplyServiceFactory
+@inject DestroyModuleGraphServiceFactory DestroyServiceFactory
+@inject PersistentComponentState ApplicationState
+@inject ModuleStateModifiedNotificationService ModuleStateModifiedNotificationService
+@inject DependencyGraphServiceFactory DependencyGraphServiceFactory
+
+@if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true"/>
+    <MudText Typo="Typo.body2" Class="mt-2">Loading dependency graph...</MudText>
+}
+else if (_dependencyGraph != null)
+{
+    <MudStack Class="mb-3">
+        <MudTooltip Text="@GetToggleTooltipText()">
+            <MudSwitch Value="_showDestroyGraph"
+                       ValueChanged="@(async (bool val) => await OnShowDestroyGraphChanged(val))"
+                       Color="Color.Info"
+                       Disabled="DisableDirectionToggle">
+                Show Destroy Graph
+            </MudSwitch>
+        </MudTooltip>
+    </MudStack>
+
+    <StackDependencyGraphExecutionFlow DependencyGraphWithStates="_dependencyGraph"/>
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">
+        Error loading dependency graph: @_error
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public Guid StackId { get; set; }
+    [Parameter] public string StackName { get; set; } = null!;
+    [Parameter] public string Direction { get; set; } = "Apply"; // "Apply" or "Destroy"
+    [Parameter] public bool DisableDirectionToggle { get; set; } = false;
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _error = null;
+    private StackDependencyGraphDto? _dependencyGraph = null;
+    private StackDependencyGraphDto? _applyDependencyGraph = null;
+    private StackDependencyGraphDto? _destroyDependencyGraph = null;
+    private bool _showDestroyGraph = false;
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+    private HashSet<Guid> _subscribedModuleIds = new();
+
+    // Track previous parameter values to detect changes
+    private Guid _previousStackId;
+    private string _previousStackName = string.Empty;
+    private string _previousDirection = string.Empty;
+
+    private class CachedStackDependencyGraphData
+    {
+        public StackDependencyGraphDto? DependencyGraph { get; set; }
+        public bool IsLoading { get; set; }
+        public string? Error { get; set; }
+        public bool ShowDestroyGraph { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize parameter tracking
+        _previousStackId = StackId;
+        _previousStackName = StackName;
+        _previousDirection = Direction;
+
+        // Sync internal toggle with Direction parameter
+        _showDestroyGraph = Direction == "Destroy";
+
+        await LoadDependencyGraph();
+        UpdateSubscriptions();
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // var cacheKey = $"stack_dependency_graph_{StackId}_{Direction}";
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedStackDependencyGraphData
+        //     {
+        //         DependencyGraph = _dependencyGraph,
+        //         IsLoading = _isLoading,
+        //         Error = _error,
+        //         ShowDestroyGraph = _showDestroyGraph
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedStackDependencyGraphData>(cacheKey, out var cachedData))
+        // {
+        //     _dependencyGraph = cachedData.DependencyGraph;
+        //     _isLoading = false;
+        //     _error = cachedData.Error;
+        //     _showDestroyGraph = cachedData.ShowDestroyGraph;
+        //     UpdateSubscriptions();
+        // }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Always sync internal toggle with Direction parameter
+        _showDestroyGraph = Direction == "Destroy";
+
+        // Check if any parameters have actually changed
+        var parametersChanged = StackId != _previousStackId ||
+                                StackName != _previousStackName ||
+                                Direction != _previousDirection;
+
+        if (!parametersChanged)
+        {
+            // No parameters changed, but toggle might have been synced, so trigger re-render
+            StateHasChanged();
+            return;
+        }
+
+        // Update previous parameter values
+        _previousStackId = StackId;
+        _previousStackName = StackName;
+        _previousDirection = Direction;
+
+        // Clear both caches when parameters change
+        _applyDependencyGraph = null;
+        _destroyDependencyGraph = null;
+
+        // Reload when parameters actually change
+        await LoadDependencyGraph();
+        UpdateSubscriptions();
+    }
+
+    private async Task LoadDependencyGraph()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            if (_showDestroyGraph)
+            {
+                var destroyService = DestroyServiceFactory.Create();
+                _destroyDependencyGraph = await destroyService.BuildStackDestroyGraphAsync(StackId, StackName);
+                _dependencyGraph = _destroyDependencyGraph;
+            }
+            else
+            {
+                var applyService = ApplyServiceFactory.Create();
+                _applyDependencyGraph = await applyService.BuildStackApplyGraphAsync(StackId, StackName);
+                _dependencyGraph = _applyDependencyGraph;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void UpdateSubscriptions()
+    {
+        // Get all module IDs from BOTH graphs
+        var moduleIdsToSubscribe = new HashSet<Guid>();
+        if (_applyDependencyGraph != null)
+        {
+            foreach (var node in _applyDependencyGraph.NodeStates)
+                moduleIdsToSubscribe.Add(node.ModuleId);
+        }
+        if (_destroyDependencyGraph != null)
+        {
+            foreach (var node in _destroyDependencyGraph.NodeStates)
+                moduleIdsToSubscribe.Add(node.ModuleId);
+        }
+
+        // Unsubscribe from modules no longer in either graph
+        var toUnsubscribe = _subscribedModuleIds.Except(moduleIdsToSubscribe).ToList();
+        foreach (var moduleId in toUnsubscribe)
+        {
+            ModuleStateModifiedNotificationService.Unsubscribe(moduleId, HandleModuleStateChanged);
+            _subscribedModuleIds.Remove(moduleId);
+        }
+
+        // Subscribe to new modules
+        var toSubscribe = moduleIdsToSubscribe.Except(_subscribedModuleIds).ToList();
+        foreach (var moduleId in toSubscribe)
+        {
+            ModuleStateModifiedNotificationService.Subscribe(moduleId, HandleModuleStateChanged);
+            _subscribedModuleIds.Add(moduleId);
+        }
+    }
+
+    private async Task HandleModuleStateChanged(Guid moduleId)
+    {
+        using var dependencyGraphService = DependencyGraphServiceFactory.Create();
+        var moduleState = await dependencyGraphService.GetModuleStateAsync(moduleId);
+
+        if (moduleState != null)
+        {
+            bool updated = false;
+
+            // Update in apply graph if exists
+            if (_applyDependencyGraph?.NodeStates != null)
+            {
+                var nodeToUpdate = _applyDependencyGraph.NodeStates.FirstOrDefault(n => n.ModuleId == moduleId);
+                if (nodeToUpdate != null)
+                {
+                    ModuleGraphServiceBase.UpdateNodeState(nodeToUpdate, moduleState);
+                    updated = true;
+                }
+            }
+
+            // Update in destroy graph if exists
+            if (_destroyDependencyGraph?.NodeStates != null)
+            {
+                var nodeToUpdate = _destroyDependencyGraph.NodeStates.FirstOrDefault(n => n.ModuleId == moduleId);
+                if (nodeToUpdate != null)
+                {
+                    ModuleGraphServiceBase.UpdateNodeState(nodeToUpdate, moduleState);
+                    updated = true;
+                }
+            }
+
+            if (updated)
+                await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task OnShowDestroyGraphChanged(bool value)
+    {
+        _showDestroyGraph = value;
+
+        if (_showDestroyGraph)
+        {
+            if (_destroyDependencyGraph != null)
+            {
+                // Already cached, just switch
+                _dependencyGraph = _destroyDependencyGraph;
+            }
+            else
+            {
+                // Not cached, need to load
+                await LoadDependencyGraph();
+            }
+        }
+        else
+        {
+            if (_applyDependencyGraph != null)
+            {
+                // Already cached, just switch
+                _dependencyGraph = _applyDependencyGraph;
+            }
+            else
+            {
+                // Not cached, need to load
+                await LoadDependencyGraph();
+            }
+        }
+
+        UpdateSubscriptions();
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+
+        // Unsubscribe from all module notifications
+        foreach (var moduleId in _subscribedModuleIds)
+        {
+            ModuleStateModifiedNotificationService.Unsubscribe(moduleId, HandleModuleStateChanged);
+        }
+
+        _subscribedModuleIds.Clear();
+    }
+
+    private string GetToggleTooltipText()
+    {
+        if (DisableDirectionToggle)
+        {
+            return "Toggle is disabled while \"Apply All Modules\" or \"Destroy All Modules\" operation is active";
+        }
+
+        return _showDestroyGraph
+            ? "Switch to Apply dependency graph view"
+            : "Switch to Destroy dependency graph view";
+    }
+
+}

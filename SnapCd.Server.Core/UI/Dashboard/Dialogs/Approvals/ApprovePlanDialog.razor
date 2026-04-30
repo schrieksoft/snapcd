@@ -1,0 +1,33 @@
+<MudDialog>
+    <TitleContent>
+        <MudText>Approve Plan</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are your to want to approve plan?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Approve">Approve</MudButton>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid ModuleJobId { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Approve()
+    {
+        MudDialog.Close(DialogResult.Ok(ModuleJobId));
+    }
+
+}

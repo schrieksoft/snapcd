@@ -1,0 +1,72 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <EditForm Model="Stack" OnValidSubmit="SaveStack">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="pa-4">
+            <!-- Read-only IDs -->
+            <MudItem md="12">
+                <MudTextField Label="Stack ID" @bind-Value="Stack.Id"
+                              Variant="Variant.Outlined" ReadOnly Disabled="true"/>
+            </MudItem>
+
+            <!-- Core Properties -->
+            <MudItem md="12">
+                <MudTextField Label="Name" @bind-Value="Stack.Name"
+                              Variant="Variant.Outlined" Required RequiredError="Name is required"
+                              MaxLength="255" Counter="255"/>
+            </MudItem>
+
+            <!-- Action Buttons -->
+            <MudItem md="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary">
+                    Save
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="OnCancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required Stack Stack { get; set; }
+    [Parameter] public required EventCallback OnSaved { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private bool _isSearchingSecretStore;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+    }
+
+
+    private async Task SaveStack()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create(PrincipalProvider);
+            await repo.Update(Stack);
+
+            Snackbar.Add("Stack updated successfully", Severity.Success);
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating stack: {ex.Message}", Severity.Error);
+        }
+    }
+
+}

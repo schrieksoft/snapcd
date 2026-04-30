@@ -1,0 +1,111 @@
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+
+<MudPaper Elevation="1" Class="pa-4 my-4">
+    <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="d-flex flex-column gap-4">
+            <MudItem xs="12">
+                <MudTextField Label="Id"
+                              @bind-Value="SourceRefresherPreselection.Id"
+                              Disabled="true"/>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Label="SourceUrl"
+                              @bind-Value="Input.SourceUrl"
+                              Required="true"
+                              UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="RunnerInstanceName"
+                              @bind-Value="Input.RunnerInstanceName"
+                              Required="false"
+                              UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="RunnerId"
+                              @bind-Value="Input.RunnerId"
+                              Required="true"
+                              UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
+            </MudItem>
+
+
+            <MudItem xs="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary">
+                    Save
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required SourceRefresherPreselection SourceRefresherPreselection { get; set; }
+    [Parameter] public required EventCallback<SourceRefresherPreselection> OnSaved { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private SourceRefresherPreselectionSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private InputModel Input { get; set; } = new();
+
+    protected override void OnParametersSet()
+    {
+        Input = new InputModel
+        {
+            SourceUrl = SourceRefresherPreselection.SourceUrl,
+            RunnerInstanceName = SourceRefresherPreselection.RunnerInstanceName,
+            RunnerId = SourceRefresherPreselection.RunnerId
+        };
+    }
+
+    private sealed class InputModel
+    {
+        [Display(Name = "RunnerInstanceName")]
+        public string? RunnerInstanceName { get; set; }
+
+        [Required]
+        [Display(Name = "SourceUrl")]
+        public string SourceUrl { get; set; } = string.Empty;
+
+        [Required]
+        [Display(Name = "RunnerId")]
+        public Guid RunnerId { get; set; }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            SourceRefresherPreselection.SourceUrl = Input.SourceUrl;
+            SourceRefresherPreselection.RunnerInstanceName = Input.RunnerInstanceName;
+            SourceRefresherPreselection.RunnerId = Input.RunnerId;
+            await repo.Update(SourceRefresherPreselection);
+            Snackbar.Add("SourceRefresherPreselection updated successfully", Severity.Success);
+            await OnSaved.InvokeAsync(SourceRefresherPreselection);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating sourceRefresherPreselection: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

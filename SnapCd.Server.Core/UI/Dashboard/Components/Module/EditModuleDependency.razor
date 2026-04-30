@@ -1,0 +1,252 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@inherits ComponentBase
+
+<MudGrid>
+    <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
+        <MudItem xs="12" Class="mb-4">
+            <MudAutocomplete T="ModuleDisplay?"
+                             @bind-Value="_selectedModule"
+                             Label="Depends On Module"
+                             SearchFunc="@SearchModules"
+                             ToStringFunc="@(m => m?.DisplayName ?? string.Empty)"
+                             ResetValueOnEmptyText="true"
+                             Required="true"
+                             DebounceInterval="300">
+                <ItemTemplate Context="itemTemplateContext">
+                    <MudText>@itemTemplateContext?.DisplayName</MudText>
+                    <MudText Color="Color.Secondary" Typo="Typo.caption">
+                        @if (itemTemplateContext != null)
+                        {
+                            @itemTemplateContext.Id
+                        }
+                    </MudText>
+                </ItemTemplate>
+                <NoItemsTemplate>
+                    @if (_isSearchingModules)
+                    {
+                        <div class="d-flex align-center gap-2">
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                            <MudText>Searching modules...</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText>@GetNoItemsMessage()</MudText>
+                    }
+                </NoItemsTemplate>
+            </MudAutocomplete>
+        </MudItem>
+
+        <MudStack Row="true" Spacing="4" Class="mt-4">
+            @if (IsCreateMode)
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="CreateItem"
+                           Disabled="@(_selectedModule == null)">
+                    Create
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           Disabled="@(!HasChanges)"
+                           OnClick="UpdateItem">
+                    Save
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteItem">
+                    Delete
+                </MudButton>
+            }
+        </MudStack>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public bool IsCreateMode { get; set; } = true;
+    [Parameter] public DependsOnModule Context { get; set; } = default!;
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnUpdate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [Parameter] public Guid StackId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private DependsOnModule _original = new();
+    private ModuleDisplay? _selectedModule;
+    private bool _isSearchingModules;
+
+    private class ModuleDisplay
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string NamespaceName { get; set; } = string.Empty;
+        public string DisplayName => $"{NamespaceName}.{Name}";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        SetOriginal();
+
+        if (!IsCreateMode && Context.DependsOnModuleId != Guid.Empty)
+        {
+            // Load the current module info for display
+            await LoadCurrentModule();
+        }
+    }
+
+    private async Task LoadCurrentModule()
+    {
+        using var repo = ModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+        var moduleInfo = await repo.Get<ModuleDisplay>(
+            Context.DependsOnModuleId, OrganizationId,
+            query => query.Select(m => new ModuleDisplay
+            {
+                Id = m.Id,
+                Name = m.Name,
+                NamespaceName = m.Namespace.Name
+            })
+        );
+
+
+        _selectedModule = moduleInfo;
+    }
+
+    private bool HasChanges =>
+        (_selectedModule?.Id ?? Guid.Empty) != _original.DependsOnModuleId;
+
+    private void SetOriginal()
+    {
+        _original = new DependsOnModule
+        {
+            ModuleId = Context.ModuleId,
+            DependsOnModuleId = Context.DependsOnModuleId
+        };
+    }
+
+    private async Task<IEnumerable<ModuleDisplay>> SearchModules(string searchText, CancellationToken cancellationToken)
+    {
+        _isSearchingModules = true;
+        StateHasChanged();
+
+        try
+        {
+            using var repo = ModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+            return await repo.List<ModuleDisplay>(OrganizationId,
+                q => q.Where(m =>
+                        m.Id != Context.ModuleId && // Don't allow self-dependency
+                        m.Namespace.StackId == StackId && // Only show modules from same stack
+                        (m.Name.Contains(searchText) ||
+                         m.Namespace.Name.Contains(searchText) ||
+                         m.Id.ToString().Contains(searchText))
+                    ).OrderBy(m => m.Namespace.Name).ThenBy(m => m.Name)
+                    .Select(m => new ModuleDisplay
+                    {
+                        Id = m.Id,
+                        Name = m.Name,
+                        NamespaceName = m.Namespace.Name
+                    })
+            );
+        }
+        finally
+        {
+            _isSearchingModules = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetNoItemsMessage()
+    {
+        return _selectedModule == null
+            ? "Start typing to search modules"
+            : "No other matching modules found";
+    }
+
+    private async Task DeleteItem()
+    {
+        try
+        {
+            using var repo = DependsOnModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Delete(Context.Id, OrganizationId);
+
+            await OnDelete.InvokeAsync();
+            Snackbar.Add("Module dependency deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting dependency");
+        }
+    }
+
+    private async Task CreateItem()
+    {
+        if (_selectedModule == null)
+        {
+            Snackbar.Add("Please select a module", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            Context.DependsOnModuleId = _selectedModule.Id;
+
+            using var repo = DependsOnModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Create(Context);
+            await OnCreate.InvokeAsync();
+            Snackbar.Add("Module dependency created successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating dependency");
+        }
+    }
+
+    private async Task UpdateItem()
+    {
+        if (_selectedModule == null)
+        {
+            Snackbar.Add("Please select a module", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            Context.DependsOnModuleId = _selectedModule.Id;
+
+            using var repo = DependsOnModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Update(Context);
+            SetOriginal();
+            await OnUpdate.InvokeAsync();
+            Snackbar.Add("Module dependency updated successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "updating dependency");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

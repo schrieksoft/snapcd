@@ -1,0 +1,9 @@
+{
+  "variable": {
+    "from_json_file": {
+      "type": "string",
+      "description": "Variable from .tf.json file",
+      "default": "json-value"
+    }
+  }
+}

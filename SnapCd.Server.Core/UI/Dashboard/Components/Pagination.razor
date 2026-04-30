@@ -1,0 +1,80 @@
+@if (TotalPages > 1)
+{
+    <MudPaper Elevation="1" Class="pa-4 mb-4 align-center">
+        <MudStack Justify="Justify.Center" Row="true" Spacing="1" Style="margin-top: 1px; margin-bottom: 1px;">
+            <MudIconButton Icon="@Icons.Material.Filled.FirstPage"
+                           Disabled="@(CurrentPage == 1)"
+                           Class="my-auto"
+                           OnClick="() => GoToPage(1)"/>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                           Disabled="@(CurrentPage == 1)"
+                           Class="my-auto"
+                           OnClick="PreviousPage"/>
+
+            @foreach (var item in GetVisiblePages())
+            {
+                @if (item == -1)
+                {
+                    <MudLink Class="my-auto">...</MudLink>
+                }
+                else
+                {
+                    <MudLink Class="my-auto cursor-pointer" Style="@(CurrentPage == item ? "font-weight: bold; color: var(--mud-palette-primary);" : "color: var(--mud-palette-text-primary);")"
+                             OnClick="() => GoToPage(item)">
+                        @item
+                    </MudLink>
+                }
+            }
+
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                           Disabled="@(CurrentPage >= TotalPages)"
+                           OnClick="NextPage"/>
+            <MudIconButton Icon="@Icons.Material.Filled.LastPage"
+                           Disabled="@(CurrentPage >= TotalPages)"
+                           OnClick="() => GoToPage(TotalPages)"/>
+        </MudStack>
+    </MudPaper>
+}
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+        line-height: 36px;
+        padding: 0 8px;
+    }
+</style>
+
+@code {
+    [Parameter] public int CurrentPage { get; set; }
+    [Parameter] public int TotalPages { get; set; }
+    [Parameter] public EventCallback<int> PageChanged { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private async Task GoToPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages)
+        {
+            await PageChanged.InvokeAsync(page);
+        }
+    }
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        const int maxVisible = 5;
+        if (TotalPages <= maxVisible) return Enumerable.Range(1, TotalPages);
+
+        var pages = new List<int> { 1, 2 };
+        var start = Math.Max(3, CurrentPage - 1);
+        var end = Math.Min(TotalPages - 1, CurrentPage + 1);
+
+        if (start > 3) pages.Add(-1);
+        pages.AddRange(Enumerable.Range(start, end - start + 1));
+        if (end < TotalPages - 1) pages.Add(-1);
+        pages.Add(TotalPages);
+
+        return pages.Distinct().ToList();
+    }
+
+    private async Task NextPage() => await GoToPage(CurrentPage + 1);
+    private async Task PreviousPage() => await GoToPage(CurrentPage - 1);
+}

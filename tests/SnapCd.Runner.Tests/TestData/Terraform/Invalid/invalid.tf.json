@@ -1,0 +1,7 @@
+{
+  "variable": {
+    "bad_json": {
+      "type": "string"
+      "missing_comma": true
+    }
+  }

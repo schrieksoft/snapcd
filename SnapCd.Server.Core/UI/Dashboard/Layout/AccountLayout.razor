@@ -1,0 +1,85 @@
+@inherits LayoutComponentBase
+@using SnapCd.Server.Core.Services.Dashboard
+@implements IDisposable
+@inject ThemeService ThemeService
+@inject NavigationManager NavigationManager
+
+<MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+@if (HttpContext is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @Body
+}
+
+@code {
+    private bool _isDarkMode;
+
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (HttpContext is null)
+        {
+            // If this code runs, we're currently rendering in interactive mode, so there is no HttpContext.
+            // The identity pages need to set cookies, so they require an HttpContext. To achieve this we
+            // must transition back from interactive mode to a server-rendered page.
+            NavigationManager.Refresh(true);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        // Get theme from cookie for SSR pages
+        var themeCookie = HttpContext?.Request.Cookies["theme"];
+        _isDarkMode = themeCookie == "dark";
+
+        // Subscribe to theme changes for interactive pages
+        ThemeService.Initialize(_isDarkMode);
+        ThemeService.OnThemeChanged += HandleThemeChanged;
+    }
+
+    private void HandleThemeChanged()
+    {
+        _isDarkMode = ThemeService.IsDarkMode;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= HandleThemeChanged;
+    }
+
+    private readonly MudTheme _myCustomTheme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = Colors.Blue.Default,
+            Secondary = Colors.Orange.Default,
+            AppbarBackground = Colors.Blue.Default,
+            Background = Colors.Gray.Lighten5,
+            DrawerBackground = "#FFF",
+            DrawerText = "rgba(0,0,0, 0.7)",
+            Success = "#06D6A0"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = Colors.Blue.Lighten1,
+            Secondary = Colors.Orange.Lighten1,
+            AppbarBackground = Colors.Gray.Darken4,
+            Background = Colors.Gray.Darken4,
+            Surface = Colors.Gray.Darken3,
+            DrawerBackground = "#1a1a1a",
+            DrawerText = "rgba(255,255,255, 0.7)",
+            Success = "#06D6A0"
+        },
+        Typography = new Typography()
+    };
+
+}

@@ -1,0 +1,272 @@
+﻿@page "/Groups"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+
+@* TODO, move this to Account/Pages/Manage and add to nav menu Account/Shared/ManageNavMenu.razor. For some reason when in that location the buttons do not work! *@
+
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject IOrganizationContext OrganizationContext
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Groups
+@using SnapCd.Server.Core.UI.Dashboard.Components.Group
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.RoleAssignments
+@using SnapCd.Server.Core.UI.Dashboard.Components.GroupMember
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles.OrganizationRoles
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+<PageTitle>Manage Groups</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudText Typo="Typo.h4" GutterBottom="true">Manage Groups</MudText>
+
+    <EeFeatureAlert Message="Group management is an Enterprise Edition feature. Enter a valid license key on the License page to enable creating and modifying groups."/>
+
+    @if (_showCreateGroup)
+    {
+        <MudItem Class="mb-2">
+            <CreateGroup OnCreated="HandleGroupCreated"
+                         OnCancel="HandleCancelCreate"/>
+        </MudItem>
+    }
+
+    else
+    {
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="ShowCreateGroup"
+                   Class="mt-2 mb-2">
+            Create New
+        </MudButton>
+    }
+
+    @if (_groups == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var group in _groups)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <MudText>@group.Name</MudText>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudTooltip Text="Edit group">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="@GetColor(group.Id, ShowingType.Edit)"
+                                           Size="Size.Small" OnClick="() => Edit(group)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage groups's roles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                           Color="@GetColor(group.Id, ShowingType.Roles)" Size="Size.Small"
+                                           OnClick="() => ManageRoles(group)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage groups's members">
+                            <MudIconButton Icon="@Icons.Material.Filled.Group"
+                                           Color="@GetColor(group.Id, ShowingType.Members)" Size="Size.Small"
+                                           OnClick="() => ManageMembers(group)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Delete group">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(group)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(group.Id, ShowingType.Edit))
+                        {
+                            <MudItem Class="mt-2">
+                                <EditGroup Group="_selectedGroup"
+                                           OnSaved="HandleGroupSaved"
+                                           OnCancel="HandleCancelEdit"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(group.Id, ShowingType.Roles))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageGroupOrganizationRoles
+                                    GroupId="group.Id"
+                                    OnClose="HandleRoleAssignmentsClosed"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(group.Id, ShowingType.Members))
+                        {
+                            <MudItem Class="mt-2">
+                                <GroupMembers
+                                    GroupId=group.Id
+                                    OnClose="HandleGroupMembersClosed"/>
+                            </MudItem>
+                        }
+
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+
+        </MudExpansionPanels>
+    }
+</CascadingValue>
+
+
+
+@code {
+    [Inject] private GroupSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<Group>? _groups;
+    private bool _showCreateGroup;
+    private Group? _selectedGroup;
+    private ShowingType _showing;
+
+
+    private enum ShowingType
+    {
+        None,
+        Edit,
+        Roles,
+        Members
+    }
+
+    private Color GetColor(Guid groupId, ShowingType showTypeToMatch)
+    {
+        if (_selectedGroup == null)
+            return Color.Primary;
+        if (groupId == _selectedGroup.Id)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid groupId, ShowingType showTypeToMatch)
+    {
+        if (_selectedGroup == null)
+            return false;
+        if (groupId == _selectedGroup.Id && _showing == showTypeToMatch)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private void ShowCreateGroup()
+    {
+        _showCreateGroup = true;
+    }
+
+    private async Task HandleGroupCreated(Guid groupId)
+    {
+        _showCreateGroup = false;
+        await ReloadGroups();
+    }
+
+    private void HandleGroupMembersClosed()
+    {
+        _selectedGroup = null;
+        _showing = ShowingType.None;
+    }
+
+    private void HandleRoleAssignmentsClosed()
+    {
+        _selectedGroup = null;
+        _showing = ShowingType.None;
+    }
+
+    private void HandleCancelCreate()
+    {
+        _showCreateGroup = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadGroups();
+    }
+
+    private async Task ReloadGroups()
+    {
+        using var repo = RepoFactory.Create();
+        _groups = await repo.List(OrganizationId);
+    }
+
+
+    private async Task Delete(Group group)
+    {
+        var parameters = new DialogParameters<DeleteGroupDialog>
+        {
+            { x => x.Group, group },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteGroupDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deletedUserId);
+            Snackbar.Add($"Successfully deleted user \"{deletedUserId}\"");
+            await ReloadGroups();
+        }
+    }
+
+    private async Task HandleGroupSaved(Group group)
+    {
+        _selectedGroup = null;
+        _showing = ShowingType.None;
+        Snackbar.Add($"Successfully updated group {group.Name}", Severity.Success);
+        await ReloadGroups();
+    }
+
+    private void HandleCancelEdit()
+    {
+        _selectedGroup = null;
+        _showing = ShowingType.None;
+    }
+
+
+    private void ManageRoles(Group group)
+    {
+        _selectedGroup = group;
+        _showing = ShowingType.Roles;
+    }
+
+    private void ManageMembers(Group group)
+    {
+        _selectedGroup = group;
+        _showing = ShowingType.Members;
+    }
+
+    private void Edit(Group group)
+    {
+        _selectedGroup = group;
+        _showing = ShowingType.Edit;
+    }
+
+
+    public void Dispose()
+    {
+    }
+
+}

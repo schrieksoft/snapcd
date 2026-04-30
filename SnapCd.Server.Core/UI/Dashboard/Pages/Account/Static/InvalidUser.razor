@@ -1,0 +1,25 @@
+﻿@page "/Account/InvalidUser"
+@layout AccountLayout
+
+
+<PageTitle>Invalid User - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Invalid User">
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        <MudText Typo="Typo.body1">
+            The user account is invalid or does not exist.
+        </MudText>
+    </MudAlert>
+    
+    <StatusMessage />
+    
+    <div class="register-link">
+        <div class="login-button-container">
+            <div class="divider-line"></div>
+            <a href="/Account/Login" class="login-btn-link">
+                go to login
+            </a>
+            <div class="divider-line"></div>
+        </div>
+    </div>
+</StaticAccountComponent>

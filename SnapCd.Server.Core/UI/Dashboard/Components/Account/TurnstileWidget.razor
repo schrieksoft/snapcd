@@ -1,0 +1,57 @@
+@using Microsoft.Extensions.Options
+@using SnapCd.Server.Core.Licensing.Services
+@using SnapCd.Server.Core.Settings
+@inject IOptions<TurnstileSettings> TurnstileOptions
+@inject IServiceProvider ServiceProvider
+
+@if (_enabled)
+{
+    <div class="turnstile-container @Class">
+        <div class="turnstile-wrapper">
+            <div class="cf-turnstile"
+                 data-sitekey="@TurnstileOptions.Value.SiteKey"
+                 data-theme="@GetTheme()"
+                 data-size="flexible"
+                 data-error-callback="onTurnstileError"
+                 data-expired-callback="onTurnstileExpired">
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Class { get; set; }
+
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private bool _enabled;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _enabled = await TurnstileGatingService.ShouldEnableTurnstileAsync(ServiceProvider);
+    }
+
+    private string GetTheme()
+    {
+        var configuredTheme = TurnstileOptions.Value.Theme;
+
+        if (configuredTheme == "auto")
+        {
+            var themeCookie = HttpContext?.Request.Cookies["theme"];
+            return themeCookie == "dark" ? "dark" : "light";
+        }
+
+        return configuredTheme;
+    }
+}
+
+<style>
+    .turnstile-container {
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+
+    .turnstile-wrapper {
+        width: 100%;
+    }
+</style>

@@ -1,0 +1,90 @@
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Server.Core.Factories
+
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudPaper Elevation="1" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-4">Invite User</MudText>
+
+    <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator/>
+
+        <MudTextField @bind-Value="_model.Email"
+                      Label="Email Address"
+                      For="@(() => _model.Email)"
+                      Variant="Variant.Outlined"
+                      Class="mb-3"
+                      HelperText="Enter the email address of the user to invite"/>
+
+        <MudStack Row Class="mt-2">
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@_isSubmitting">
+                @if (_isSubmitting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                }
+                Send Invitation
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       OnClick="HandleCancel"
+                       Disabled="@_isSubmitting">
+                Cancel
+            </MudButton>
+        </MudStack>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public EventCallback<Guid> OnInvited { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private MemberServiceFactory MemberServiceFactory { get; set; } = null!;
+    [Inject] private IdentityUserAccessorFactory UserAccessorFactory { get; set; } = null!;
+
+    private InviteUserModel _model = new();
+    private bool _isSubmitting;
+
+    private async Task HandleSubmit()
+    {
+        _isSubmitting = true;
+        try
+        {
+            using var userAccessor = UserAccessorFactory.Create();
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var currentUser = await userAccessor.UserAccessor.GetRequiredUserAsync(authState);
+
+            using var memberService = MemberServiceFactory.Create();
+            var orgUser = await memberService.Service.InviteMemberAsync(
+                OrganizationId,
+                _model.Email!,
+                currentUser.Id);
+
+            await OnInvited.InvokeAsync(orgUser.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to send invitation: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private class InviteUserModel
+    {
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string? Email { get; set; }
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "variable": {
+    "environment": {
+      "type": "string",
+      "description": "The environment name",
+      "default": "production"
+    },
+    "port": {
+      "type": "number",
+      "default": 8080
+    },
+    "enabled": {
+      "type": "bool",
+      "default": true
+    }
+  }
+}

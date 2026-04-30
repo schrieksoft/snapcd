@@ -1,0 +1,23 @@
+﻿@page "/Account/Lockout"
+@layout AccountLayout
+
+
+<PageTitle>Account Locked - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Account Locked">
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+        <MudText Typo="Typo.body1">
+            This account has been locked out, please try again later.
+        </MudText>
+    </MudAlert>
+    
+    <div class="register-link">
+        <div class="login-button-container">
+            <div class="divider-line"></div>
+            <a href="/Account/Login" class="login-btn-link">
+                back to login
+            </a>
+            <div class="divider-line"></div>
+        </div>
+    </div>
+</StaticAccountComponent>

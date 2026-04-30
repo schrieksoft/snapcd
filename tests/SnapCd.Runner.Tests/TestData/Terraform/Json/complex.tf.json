@@ -1,0 +1,30 @@
+{
+  "variable": {
+    "config": {
+      "type": "object",
+      "description": "Complex configuration object",
+      "default": {
+        "host": "localhost",
+        "port": 5432,
+        "ssl": true
+      }
+    },
+    "allowed_ips": {
+      "type": "list",
+      "default": ["10.0.0.1", "10.0.0.2", "10.0.0.3"]
+    },
+    "secret_key": {
+      "type": "string",
+      "sensitive": true
+    },
+    "nullable_field": {
+      "type": "string",
+      "nullable": true,
+      "default": null
+    },
+    "required_field": {
+      "type": "string",
+      "description": "This field is required"
+    }
+  }
+}

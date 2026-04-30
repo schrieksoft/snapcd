@@ -1,0 +1,36 @@
+@using MudBlazor
+@using SnapCd.Server.Core.Entities.Definition
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Send Invitation</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Are you sure you want to send an invitation to
+            <strong>@(OrganizationUser.User?.Email)</strong>?
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Yes">Yes</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="No">No</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public required OrganizationUser OrganizationUser { get; set; }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void No()
+    {
+        MudDialog.Cancel();
+    }
+
+    private Task Yes()
+    {
+        MudDialog.Close(DialogResult.Ok(OrganizationUser.Id));
+        return Task.CompletedTask;
+    }
+
+}

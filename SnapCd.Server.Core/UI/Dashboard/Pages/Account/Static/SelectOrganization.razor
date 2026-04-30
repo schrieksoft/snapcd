@@ -1,0 +1,218 @@
+@page "/Account/SelectOrganization"
+@layout AccountLayout
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Edition
+@using SnapCd.Server.Core.Settings.DataSeeder
+@using SnapCd.Server.Core.Services.OrganizationContext
+
+@attribute [Authorize]
+
+@inject UserManager<User> UserManager
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<SnapCdDbContext> DbContextFactory
+@inject IOrganizationLimitPolicy OrganizationLimitPolicy
+
+<PageTitle>Select Organization - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Select an organization">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Class="d-block mx-auto"/>
+    }
+    else if (_organizations?.Any() == true)
+    {
+        <MudText Typo="Typo.body2" Class="mb-4" Align="Align.Center">
+            Please select an organization to continue.
+        </MudText>
+
+        <EditForm Model="Input" method="post" OnValidSubmit="OnSelectOrganization" FormName="select-organization">
+            <div class="select-container">
+                <label for="organization-select">Organization</label>
+                <select id="organization-select" name="Input.OrganizationId">
+                    @foreach (var org in _organizations)
+                    {
+                        <option value="@org.OrganizationId" selected="@(Input.OrganizationId == org.OrganizationId)">@org.Organization.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="sign-in-container">
+                <div class="divider-line"></div>
+                <MudStaticButton Variant="Variant.Filled"
+                                 Size="Size.Large"
+                                 FormAction="FormAction.Submit"
+                                 Class="sign-in-btn">
+                    Select
+                </MudStaticButton>
+                <div class="divider-line"></div>
+            </div>
+        </EditForm>
+    }
+    else if (_autoAssigned)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Class="d-block mx-auto"/>
+    }
+    else if (OrganizationLimitPolicy.AllowsOrganizationCreation)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            You are not a member of any organizations.
+        </MudAlert>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   FullWidth="true"
+                   Href="/Account/YourOrganization/Create">
+            Create Organization
+        </MudButton>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            No organization is available. Please contact your administrator.
+        </MudAlert>
+    }
+</StaticAccountComponent>
+
+<style>
+    .select-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .select-container label {
+        font-size: 0.875rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .select-container select {
+        width: 100%;
+        padding: 16px 14px;
+        font-size: 1rem;
+        font-family: inherit;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 4px;
+        background-color: var(--mud-palette-surface);
+        color: var(--mud-palette-text-primary);
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+    }
+
+    .select-container select:hover {
+        border-color: var(--mud-palette-text-primary);
+    }
+
+    .select-container select:focus {
+        outline: none;
+        border-color: var(--mud-palette-primary);
+        border-width: 2px;
+    }
+
+    .mud-theme-dark .select-container select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23aaa' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    }
+</style>
+
+@code {
+    private List<OrganizationUser>? _organizations;
+    private bool _loading = true;
+    private bool _autoAssigned;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Clear any invalid organization cookie
+        OrganizationContext.ClearOrganizationCookie(HttpContext.Response);
+
+        var user = await UserManager.GetUserAsync(HttpContext.User);
+        if (user == null)
+        {
+            NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        await using var context = await DbContextFactory.CreateDbContextAsync();
+
+        _organizations = await context.OrganizationUsers
+            .Include(ou => ou.Organization)
+            .Where(ou => ou.UserId == user.Id
+                         && ou.InvitationCompleted
+                         && !ou.IsDeactivated)
+            .OrderBy(ou => ou.Organization.Name)
+            .ToListAsync();
+
+        // Pre-select first organization if available
+        if (_organizations.Any() && Input.OrganizationId == Guid.Empty)
+        {
+            Input.OrganizationId = _organizations.First().OrganizationId;
+        }
+
+        // Auto-assign user to single org in self-hosted mode
+        if (!_organizations.Any() && !OrganizationLimitPolicy.AllowsOrganizationCreation)
+        {
+            var defaultOrg = await context.Organizations
+                .FirstOrDefaultAsync(o => o.DeletedDateTime == null
+                                          && o.Id != PreseededSettings.DefaultId);
+
+            if (defaultOrg != null)
+            {
+                var orgUser = new OrganizationUser
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = defaultOrg.Id,
+                    UserId = user.Id,
+                    JoinedAt = DateTime.UtcNow,
+                    IsDeactivated = false,
+                    InvitationCompleted = true,
+                    InvitationCompletedDateTime = DateTime.UtcNow
+                };
+
+                context.OrganizationUsers.Add(orgUser);
+                await context.SaveChangesAsync();
+
+                _autoAssigned = true;
+
+                var switchUrl = $"/api/organization/switch/{defaultOrg.Id}";
+                if (!string.IsNullOrEmpty(ReturnUrl))
+                {
+                    switchUrl += $"?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+                }
+                NavigationManager.NavigateTo(switchUrl, forceLoad: true);
+                return;
+            }
+        }
+
+        _loading = false;
+    }
+
+    private void OnSelectOrganization()
+    {
+        if (Input.OrganizationId != Guid.Empty)
+        {
+            var switchUrl = $"/api/organization/switch/{Input.OrganizationId}";
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                switchUrl += $"?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+            NavigationManager.NavigateTo(switchUrl, forceLoad: true);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        public Guid OrganizationId { get; set; }
+    }
+}

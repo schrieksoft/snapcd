@@ -1,0 +1,74 @@
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+
+<MudPaper Elevation="1" Class="pa-4 my-4">
+    <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="d-flex flex-column gap-4">
+            <MudItem xs="12">
+                <MudTextField Label="Group Name *"
+                              @bind-Value="Input.Name"
+                              Required="true"
+                              UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
+            </MudItem>
+
+            <MudItem xs="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary">
+                    Create
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public EventCallback<Guid> OnCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private GroupSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private InputModel Input { get; set; } = new();
+
+    private sealed class InputModel
+    {
+        [Required] [Display(Name = "Name")] public string Name { get; set; } = string.Empty;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            var group = new Group
+            {
+                Id = Guid.NewGuid(),
+                Name = Input.Name,
+                OrganizationId = OrganizationId
+            };
+
+            await repo.Create(group);
+            Snackbar.Add("Group created successfully", Severity.Success);
+            await OnCreated.InvokeAsync(group.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating group: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

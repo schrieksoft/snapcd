@@ -1,0 +1,451 @@
+@page "/Account/AssociateExternalLogin"
+@layout AccountLayout
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authentication
+@using System.Security.Claims
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+
+@inject UserManager<User> UserManager
+@inject SignInManager<User> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IUserStore<User> UserStore
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<AssociateExternalLogin> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>Associate External Login - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Associate External Login">
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+
+        <div class="register-link">
+            <div class="login-button-container">
+                <div class="divider-line"></div>
+                <a href="/Account/Manage/Profile" class="login-btn-link">
+                    back to external logins
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+    else if (_associationSuccessful)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4">
+            The <strong>@Provider</strong> login has been successfully added to your account.
+        </MudAlert>
+
+        <div class="register-link">
+            <div class="login-button-container">
+                <div class="divider-line"></div>
+                <a href="/Account/Manage/Profile" class="login-btn-link">
+                    back to external logins
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Provider))
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+            <MudText Typo="Typo.body2">
+                You are about to associate your account with <strong>@Provider</strong>.
+            </MudText>
+        </MudAlert>
+
+        <div style="text-align: center; margin: 2rem 0;">
+            <div class="external-login-preview">
+                @{
+                    var (iconHtml, color) = GetProviderStyleInfo(Provider);
+                }
+                <div class="external-login-btn provider-@(Provider.ToLower())"
+                     style="background-color: @color; display: inline-flex; align-items: center; justify-content: center;">
+                    <span class="provider-icon">@((MarkupString)iconHtml)</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <MudText Typo="Typo.h6">@Provider</MudText>
+                </div>
+            </div>
+        </div>
+
+        <div class="sign-in-container">
+            <div class="divider-line"></div>
+            <form action="/Account/Manage/LinkExternalLogin" method="post">
+                <AntiforgeryToken/>
+                <input type="hidden" name="Provider" value="@Provider"/>
+                <MudStaticButton Class="sign-in-btn" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                                 FormAction="FormAction.Submit">
+                    Continue
+                </MudStaticButton>
+            </form>
+            <div class="divider-line"></div>
+        </div>
+        <div class="mt-3 text-center">
+            <form action="/Account/Manage/Profile" method="get">
+                <MudStaticButton Variant="Variant.Text" Color="Color.Default" Size="Size.Medium"
+                                 Class="decline-btn" FormAction="FormAction.Submit">
+                    Go Back
+                </MudStaticButton>
+            </form>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            No provider specified.
+        </MudAlert>
+
+        <div class="register-link">
+            <div class="login-button-container">
+                <div class="divider-line"></div>
+                <a href="/Account/Manage/Profile" class="login-btn-link">
+                    back to external logins
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+</StaticAccountComponent>
+
+<style>
+    .external-login-preview {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .external-login-btn {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: none;
+        cursor: default;
+    }
+
+    .provider-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .provider-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Provider-specific styles */
+    .provider-microsoft {
+        background: white !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-google {
+        background: white !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-okta {
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-github {
+        background: #24292e !important;
+    }
+
+    .provider-github .provider-icon svg path {
+        fill: white !important;
+    }
+
+    .provider-auth0 {
+        background: #2d2d2d !important;
+    }
+
+    /* Button styling matching other static pages */
+    .sign-in-container {
+        display: flex;
+        align-items: center;
+        margin: 2rem 0 1rem 0;
+    }
+
+    .sign-in-btn {
+        min-width: 200px;
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        padding: 12px 24px;
+    }
+
+    .mud-dark .sign-in-btn {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 0 1rem;
+    }
+
+    .mud-dark .divider-line {
+        background-color: #333;
+    }
+
+    .decline-btn {
+        color: #666 !important;
+        text-decoration: underline;
+    }
+
+    .mud-dark .decline-btn {
+        color: #ccc !important;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .mt-3 {
+        margin-top: 1rem;
+    }
+
+    .register-link {
+        margin-top: 1rem;
+    }
+
+    .login-button-container {
+        display: flex;
+        align-items: center;
+        margin: 1rem 0;
+    }
+
+    .login-btn-link {
+        color: #ffffff !important;
+        text-decoration: none !important;
+        background-color: #000000 !important;
+        border: 1px solid #000000;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        border-radius: 24px;
+        display: inline-block;
+    }
+
+    .login-btn-link:hover {
+        background-color: #333333 !important;
+        color: #ffffff !important;
+        text-decoration: none !important;
+    }
+
+    .mud-dark .login-btn-link {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #ffffff;
+    }
+
+    .mud-dark .login-btn-link:hover {
+        background-color: #e0e0e0 !important;
+        color: #000000 !important;
+        text-decoration: none !important;
+    }
+</style>
+
+@code {
+    private string? errorMessage;
+    private string? _statusMessage;
+    private User _user = null!;
+    private bool _associationSuccessful = false;
+
+    [SupplyParameterFromQuery] private string? Provider { get; set; }
+
+    [SupplyParameterFromQuery] private string? Action { get; set; }
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        // Handle link login callback if needed
+        if (HttpMethods.IsGet(HttpContext.Request.Method) && Action == ExternalLoginConstants.LinkLoginCallbackAction)
+        {
+            await OnGetLinkLoginCallbackAsync();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(Provider))
+        {
+            errorMessage = "No external login provider specified.";
+        }
+    }
+
+    private async Task OnGetLinkLoginCallbackAsync()
+    {
+        // Load fresh user to avoid EF tracking conflicts
+        var currentUser = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        var userId = await UserManager.GetUserIdAsync(currentUser);
+        var info = await SignInManager.GetExternalLoginInfoAsync(userId);
+
+        if (info is null)
+        {
+            errorMessage = "Error: Could not load external login info.";
+            return;
+        }
+
+        // Validate that the external login matches the current user's email
+        if (!DoesExternalLoginMatchUser(currentUser.Email ?? "", info))
+        {
+            var externalLoginEmail = GetExternalLoginEmail(info);
+            errorMessage = $"Error: Cannot associate external login to your account with email {currentUser.Email}. External login \"{externalLoginEmail}\" does not match this email address.";
+            return;
+        }
+
+        var result = await UserManager.AddLoginAsync(currentUser, info);
+        if (!result.Succeeded)
+        {
+            errorMessage = "Error: The external login was not added. External logins can only be associated with one account.";
+            return;
+        }
+
+        // Clear the existing external cookie to ensure a clean login process
+        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+
+        Logger.LogInformation("External login {Provider} added for user {UserId}", info.LoginProvider, currentUser.Id);
+        _associationSuccessful = true;
+    }
+
+    private string GetExternalLoginEmail(ExternalLoginInfo externalLoginInfo)
+    {
+        if (externalLoginInfo?.Principal == null)
+            return "";
+
+        // First try to get email from the email claim
+        var email = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email);
+
+        // If email claim is missing, try to get it from the username/name identifier
+        if (string.IsNullOrEmpty(email))
+        {
+            var username = externalLoginInfo.Principal.Identity?.Name;
+
+            // Check if the username looks like an email address
+            if (!string.IsNullOrEmpty(username) && username.Contains('@') && username.Contains('.'))
+            {
+                email = username;
+                Logger.LogInformation("External login: Using username '{Username}' as email for provider '{Provider}'",
+                    username, externalLoginInfo.LoginProvider);
+            }
+        }
+
+        return email ?? "";
+    }
+
+    private bool DoesExternalLoginMatchUser(string userEmail, ExternalLoginInfo externalLoginInfo)
+    {
+        if (externalLoginInfo?.Principal == null || string.IsNullOrEmpty(userEmail))
+            return false;
+
+        // First check if user email equals external login username
+        var username = externalLoginInfo.Principal.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(username) && string.Equals(userEmail, username, StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogInformation("External login: User email '{UserEmail}' matches username '{Username}' from provider '{Provider}'",
+                userEmail, username, externalLoginInfo.LoginProvider);
+            return true;
+        }
+
+        // Then check against email claim
+        var externalEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email);
+        if (!string.IsNullOrEmpty(externalEmail) && string.Equals(userEmail, externalEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogInformation("External login: User email '{UserEmail}' matches email claim '{ExternalEmail}' from provider '{Provider}'",
+                userEmail, externalEmail, externalLoginInfo.LoginProvider);
+            return true;
+        }
+
+        Logger.LogWarning("External login: User email '{UserEmail}' does not match username '{Username}' or email claim '{ExternalEmail}' from provider '{Provider}'",
+            userEmail, username ?? "null", externalEmail ?? "null", externalLoginInfo.LoginProvider);
+        return false;
+    }
+
+    private (string iconHtml, string color) GetProviderStyleInfo(string providerName)
+    {
+        return providerName.ToLower() switch
+        {
+            "microsoft" => (GetMicrosoftSvgIcon(), "#ffffff"),
+            "google" => (GetGoogleSvgIcon(), "#ffffff"),
+            "okta" => (GetOktaSvgIcon(), "#ffffff"),
+            "github" => (GetGitHubSvgIcon(), "#24292e"),
+            "auth0" => (GetAuth0SvgIcon(), "#2d2d2d"),
+            "facebook" => (GetFacebookSvgIcon(), "#1877f2"),
+            "twitter" => (GetTwitterSvgIcon(), "#1da1f2"),
+            _ => (GetDefaultSvgIcon(), "#666666")
+        };
+    }
+
+    private string GetMicrosoftSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 21 21"" xmlns=""http://www.w3.org/2000/svg"">
+            <rect x=""1"" y=""1"" width=""9"" height=""9"" fill=""#f25022""/>
+            <rect x=""1"" y=""11"" width=""9"" height=""9"" fill=""#00a4ef""/>
+            <rect x=""11"" y=""1"" width=""9"" height=""9"" fill=""#7fba00""/>
+            <rect x=""11"" y=""11"" width=""9"" height=""9"" fill=""#ffb900""/>
+        </svg>";
+    }
+
+    private string GetGoogleSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"" fill=""#4285F4""/>
+            <path d=""M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"" fill=""#34A853""/>
+            <path d=""M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"" fill=""#FBBC05""/>
+            <path d=""M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"" fill=""#EA4335""/>
+        </svg>";
+    }
+
+    private string GetOktaSvgIcon()
+    {
+        return @"<img src=""/_content/SnapCd.Server.Core/okta.png"" alt=""Okta"" style=""width: 32px; height: 32px;"" />";
+    }
+
+    private string GetGitHubSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z""/>
+        </svg>";
+    }
+
+    private string GetAuth0SvgIcon()
+    {
+        return @"<img src=""/_content/SnapCd.Server.Core/auth0.png"" alt=""Auth0"" style=""width: 32px; height: 32px;"" />";
+    }
+
+    private string GetFacebookSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"" fill=""white""/>
+        </svg>";
+    }
+
+    private string GetTwitterSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"" fill=""white""/>
+        </svg>";
+    }
+
+    private string GetDefaultSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M18,8H16V6A6,6 0 0,0 10,0H9A6,6 0 0,0 3,6V8H1A1,1 0 0,0 0,9V23A1,1 0 0,0 1,24H23A1,1 0 0,0 24,23V9A1,1 0 0,0 23,8M5,6A4,4 0 0,1 9,2H10A4,4 0 0,1 14,6V8H5V6Z"" fill=""#666666""/>
+        </svg>";
+    }
+
+}

@@ -1,0 +1,173 @@
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.RoleAssignments
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments
+
+@implements IDisposable
+
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudPaper Elevation="1" Class="pa-4">
+
+    @if (!_showCreateForm)
+    {
+        <MudButton Color="Color.Secondary"
+                   Variant="Variant.Filled"
+                   OnClick="@ShowCreateForm"
+                   Size="Size.Small"
+                   Class="mb-4">
+            Assign Role
+        </MudButton>
+    }
+
+    @if (_showCreateForm)
+    {
+        <MudPaper Elevation="2" Class="pa-3 mb-4">
+            <MudSelect T="OrganizationRole"
+                       @bind-Value="_selectedRole"
+                       Label="Select Role"
+                       Variant="Variant.Outlined"
+                       Class="mb-3">
+                @foreach (OrganizationRole role in Enum.GetValues(typeof(OrganizationRole)))
+                {
+                    <MudSelectItem Value="@role">@role.ToString()</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudStack Row Class="mt-2">
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="@CreateRoleAssignment"
+                           Size="Size.Small">
+                    Assign
+                </MudButton>
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="@CancelCreate"
+                           Size="Size.Small">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <MudExpansionPanels MultiExpansion="true">
+        @foreach (var assignment in _roleAssignments)
+        {
+            <MudExpansionPanel Text="@assignment.RoleName.ToString()" Class="mb-2">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               OnClick="@(async () => await DeleteRoleAssignment(assignment))"/>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+</MudPaper>
+
+@code {
+    [Parameter] public required Guid ServicePrincipalId { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ServicePrincipalOrganizationRoleAssignmentSecuredRepositoryFactory RoleRepoFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
+
+    private List<ServicePrincipalOrganizationRoleAssignment> _roleAssignments = new();
+    private ServicePrincipal? _servicePrincipal;
+
+    private bool _showCreateForm;
+    private OrganizationRole _selectedRole = OrganizationRole.Reader;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoleAssignments();
+        await LoadServicePrincipal();
+    }
+
+    private async Task LoadRoleAssignments()
+    {
+        using var repo = RoleRepoFactory.Create();
+        _roleAssignments = await repo.List(OrganizationId,
+            q => q
+                .Include(ra => ra.ServicePrincipal)
+                .Where(ra => ra.ServicePrincipalId == ServicePrincipalId));
+    }
+
+    private async Task LoadServicePrincipal()
+    {
+        using var repo = ServicePrincipalRepoFactory.Create();
+        _servicePrincipal = await repo.List(OrganizationId,
+                q => q.Where(sp => sp.Id == ServicePrincipalId))
+            .ContinueWith(t => t.Result.FirstOrDefault());
+    }
+
+    private void ShowCreateForm()
+    {
+        _showCreateForm = true;
+        _selectedRole = OrganizationRole.Reader;
+    }
+
+    private void CancelCreate()
+    {
+        _showCreateForm = false;
+    }
+
+    private async Task CreateRoleAssignment()
+    {
+        try
+        {
+            var assignment = new ServicePrincipalOrganizationRoleAssignment
+            {
+                Id = Guid.NewGuid(),
+                ServicePrincipalId = ServicePrincipalId,
+                RoleName = _selectedRole,
+                OrganizationId = OrganizationId
+            };
+
+            using var repo = RoleRepoFactory.Create();
+            await repo.Create(assignment);
+
+            Snackbar.Add("Role assignment created successfully", Severity.Success);
+            _showCreateForm = false;
+            await LoadRoleAssignments();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating role assignment: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteRoleAssignment(ServicePrincipalOrganizationRoleAssignment assignment)
+    {
+        var parameters = new DialogParameters<DeleteServicePrincipalOrganizationRoleAssignmentDialog>
+        {
+            { x => x.Assignment, assignment },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteServicePrincipalOrganizationRoleAssignmentDialog>("Delete Role Assignment", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Role assignment deleted successfully", Severity.Success);
+            await LoadRoleAssignments();
+        }
+    }
+
+    private string GetServicePrincipalDisplayName()
+    {
+        return _servicePrincipal?.ClientId ?? $"ServicePrincipal {ServicePrincipalId}";
+    }
+
+    public void Dispose()
+    {
+    }
+
+}

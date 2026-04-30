@@ -1,0 +1,391 @@
+@page "/Organizations"
+@rendermode InteractiveServer
+@layout SnapCd.Server.Core.UI.Dashboard.Layout.AccountInteractiveLayout
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Misc.Exceptions
+@using SnapCd.Server.Core.Services
+
+@attribute [Authorize]
+
+@inject UserManager<User> UserManager
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ILogger<Organizations> Logger
+@inject IDbContextFactory<SnapCdDbContext> DbContextFactory
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject IJSRuntime JsRuntime
+
+<PageTitle>My Organizations - Snap CD</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">My Organizations</MudText>
+
+@if (_showCreate)
+{
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" GutterBottom="true">Create New Organization</MudText>
+        <EditForm Model="_createModel" OnValidSubmit="CreateOrganization">
+            <DataAnnotationsValidator/>
+            <MudGrid Class="pa-4">
+                <MudItem md="12">
+                    <MudTextField Label="Organization Name" @bind-Value="_createModel.Name"
+                                  Variant="Variant.Outlined" Required RequiredError="Name is required"
+                                  MaxLength="255" Counter="255"
+                                  HelperText="Enter a unique name for your organization"/>
+                </MudItem>
+
+                <MudItem md="12" class="d-flex justify-end gap-2">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Disabled="@_isCreating">
+                        @if (_isCreating)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        }
+                        Create
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="HandleCreateCanceled"
+                               Disabled="@_isCreating">
+                        Cancel
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudPaper>
+}
+else
+{
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Secondary"
+               OnClick="ShowCreate"
+               Class="mt-2 mb-2">
+        Create Organization
+    </MudButton>
+}
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    @* Pending Invitations Section *@
+    @if (_pendingInvitations?.Any() == true)
+    {
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Pending Invitations</MudText>
+        <MudExpansionPanels>
+            @foreach (var invitation in _pendingInvitations)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Mail" Size="Size.Small" />
+                            <MudText>@invitation.Organization.Name</MudText>
+                            @if (IsExpired(invitation))
+                            {
+                                <MudChip T="string" Color="Color.Error" Text="Expired" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Warning" Text="Pending" Size="Size.Small" />
+                            }
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @if (!IsExpired(invitation))
+                        {
+                            <MudText Typo="Typo.body2" Class="mb-2">
+                                Invited on @invitation.InvitationSentDateTime?.ToString("yyyy-MM-dd HH:mm")
+                                @if (invitation.InvitationExpirationDateTime.HasValue)
+                                {
+                                    <text> (expires @invitation.InvitationExpirationDateTime.Value.ToString("yyyy-MM-dd HH:mm"))</text>
+                                }
+                            </MudText>
+
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           OnClick="() => AcceptInvitation(invitation)">
+                                    Accept
+                                </MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           OnClick="() => DeclineInvitation(invitation)">
+                                    Decline
+                                </MudButton>
+                            </div>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Error">
+                                This invitation expired on @invitation.InvitationExpirationDateTime?.ToString("yyyy-MM-dd HH:mm").
+                                Please request a new invitation.
+                            </MudText>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    }
+
+    @* Active Organizations Section *@
+    <MudText Typo="Typo.h6" Class="mt-4 mb-2">My Organizations</MudText>
+    @if (_activeOrganizations?.Any() == true)
+    {
+        <MudExpansionPanels>
+            @foreach (var membership in _activeOrganizations)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                            <MudText>@membership.Organization.Name</MudText>
+                            <MudText Typo="Typo.caption" Style="font-family: monospace; color: var(--mud-palette-text-secondary);">@membership.OrganizationId</MudText>
+                            <MudTooltip Text="Copy Organization ID">
+                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                               Size="Size.Small"
+                                               OnClick:stopPropagation="true"
+                                               OnClick="() => CopyOrganizationId(membership.OrganizationId)"/>
+                            </MudTooltip>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Joined: @membership.JoinedAt.ToString("yyyy-MM-dd HH:mm")
+                            @if (membership.LastAccessedAt.HasValue)
+                            {
+                                <text> | Last accessed: @membership.LastAccessedAt.Value.ToString("yyyy-MM-dd HH:mm")</text>
+                            }
+                        </MudText>
+
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       OnClick="() => GoToOrganization(membership)">
+                                Go to Organization
+                            </MudButton>
+                        </div>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info">
+            You are not a member of any organizations yet.
+        </MudAlert>
+    }
+}
+
+@code {
+    [Inject] private MemberServiceFactory MemberServiceFactory { get; set; } = null!;
+
+    private List<OrganizationUser>? _pendingInvitations;
+    private List<OrganizationUser>? _activeOrganizations;
+    private bool _loading = true;
+    private bool _showCreate;
+    private bool _isCreating;
+    private CreateOrganizationModel _createModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private void ShowCreate()
+    {
+        _showCreate = true;
+    }
+
+    private async Task CreateOrganization()
+    {
+        if (_isCreating) return;
+        _isCreating = true;
+
+        try
+        {
+            var userId = await GetCurrentUserIdAsync();
+            if (userId == null)
+            {
+                Snackbar.Add("Unable to determine current user", Severity.Error);
+                return;
+            }
+
+            using var orgServiceScope = OrganizationServiceFactory.Create();
+            var organization = await orgServiceScope.Service.CreateOrganizationAsync(
+                _createModel.Name!.Trim(),
+                userId.Value);
+
+            Snackbar.Add($"Organization '{organization.Name}' created successfully", Severity.Success);
+
+            _showCreate = false;
+            _createModel = new CreateOrganizationModel();
+
+            // Navigate to the newly created organization via API endpoint which sets the cookie
+            NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}", forceLoad: true);
+        }
+        catch (QuotaExceededException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating organization");
+            Snackbar.Add($"Error creating organization: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+    }
+
+    private void HandleCreateCanceled()
+    {
+        _showCreate = false;
+        _createModel = new CreateOrganizationModel();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+
+        try
+        {
+            // Get current user from the actual authentication context
+            var userId = await GetCurrentUserIdAsync();
+            if (userId == null)
+            {
+                _loading = false;
+                return;
+            }
+
+            await using var context = await DbContextFactory.CreateDbContextAsync();
+
+            // Get all organization memberships for the user
+            var allMemberships = await context.Set<OrganizationUser>()
+                .Include(ou => ou.Organization)
+                .Where(ou => ou.UserId == userId.Value)
+                .OrderBy(ou => ou.Organization.Name)
+                .ToListAsync();
+
+            // Split into pending invitations and active memberships
+            _pendingInvitations = allMemberships
+                .Where(ou => !ou.InvitationCompleted)
+                .ToList();
+
+            _activeOrganizations = allMemberships
+                .Where(ou => ou.InvitationCompleted && !ou.IsDeactivated)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading organizations");
+            Snackbar.Add("Error loading organizations", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task<Guid?> GetCurrentUserIdAsync()
+    {
+        await using var context = await DbContextFactory.CreateDbContextAsync();
+
+        // Get username from the navigation manager's base URI or use UserManager
+        var authState = await GetAuthenticationStateAsync();
+        if (authState?.User?.Identity?.Name == null)
+            return null;
+
+        var user = await context.Users.FirstOrDefaultAsync(u => u.UserName == authState.User.Identity.Name);
+        return user?.Id;
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private async Task<AuthenticationState?> GetAuthenticationStateAsync()
+    {
+        if (AuthenticationStateTask == null)
+            return null;
+        return await AuthenticationStateTask;
+    }
+
+    private bool IsExpired(OrganizationUser invitation)
+    {
+        return invitation.InvitationExpirationDateTime.HasValue &&
+               invitation.InvitationExpirationDateTime <= DateTime.UtcNow;
+    }
+
+    private async Task AcceptInvitation(OrganizationUser invitation)
+    {
+        if (string.IsNullOrEmpty(invitation.InvitationToken))
+        {
+            Snackbar.Add("Invalid invitation token", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            using var memberServiceScope = MemberServiceFactory.Create();
+            await memberServiceScope.Service.CompleteInvitationAsync(invitation.InvitationToken);
+            Snackbar.Add($"Successfully joined {invitation.Organization.Name}", Severity.Success);
+            // Force page reload to update nav menu badge
+            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error accepting invitation");
+            Snackbar.Add("Error accepting invitation", Severity.Error);
+        }
+    }
+
+    private async Task DeclineInvitation(OrganizationUser invitation)
+    {
+        if (string.IsNullOrEmpty(invitation.InvitationToken))
+        {
+            Snackbar.Add("Invalid invitation token", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            using var memberServiceScope = MemberServiceFactory.Create();
+            await memberServiceScope.Service.DeclineInvitationAsync(invitation.InvitationToken);
+            Snackbar.Add($"Declined invitation to {invitation.Organization.Name}", Severity.Info);
+            // Force page reload to update nav menu badge
+            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error declining invitation");
+            Snackbar.Add("Error declining invitation", Severity.Error);
+        }
+    }
+
+    private void GoToOrganization(OrganizationUser membership)
+    {
+        // Navigate via API endpoint which sets the cookie
+        NavigationManager.NavigateTo($"/api/organization/switch/{membership.OrganizationId}", forceLoad: true);
+    }
+
+    private async Task CopyOrganizationId(Guid organizationId)
+    {
+        await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", organizationId.ToString());
+        Snackbar.Add("Organization ID copied to clipboard", Severity.Success);
+    }
+
+
+    private class CreateOrganizationModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Organization name is required")]
+        [System.ComponentModel.DataAnnotations.StringLength(255, MinimumLength = 1, ErrorMessage = "Name must be between 1 and 255 characters")]
+        public string? Name { get; set; }
+    }
+}

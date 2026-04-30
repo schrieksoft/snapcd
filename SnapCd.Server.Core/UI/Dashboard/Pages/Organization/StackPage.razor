@@ -1,0 +1,1016 @@
+﻿@page "/Stacks/{stackName}"
+@layout OrganizationMainLayout
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Misc.Exceptions
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.DependencyGraph
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Stacks
+@using Stack = SnapCd.Server.Core.Entities.Definition.Stack
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Components.Stack
+@using SnapCd.Server.Core.UI.Dashboard.Components.Namespace
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Namespaces
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.ModuleJobs
+
+@implements IDisposable
+
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject PersistentComponentState ApplicationState
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+@inject ModuleJobSecuredRepositoryFactory ModuleJobSecuredRepositoryFactory
+@inject IOrganizationContext OrganizationContext
+
+@inject ApplyModuleGraphServiceFactory ApplyServiceFactory
+@inject DestroyModuleGraphServiceFactory DestroyServiceFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+
+<CascadingValue Value="OrganizationId">
+    <MudBreadcrumbs Items="_breadCrumbs"></MudBreadcrumbs>
+
+    @if (_stack != null)
+    {
+        @if (_showCreate)
+        {
+            <MudItem Class="mb-2">
+                <CreateNamespace
+                    StackId="@_stack.Id"
+                    PrincipalProvider="_literalPrincipalProvider"
+                    OnCreated="HandleCreated"
+                    OnCancel="HandleCreateCanceled"/>
+            </MudItem>
+        }
+
+        else
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       OnClick="ShowCreate"
+                       Class="mt-2 mb-2"
+            >
+                Create Namespace
+            </MudButton>
+        }
+
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudTooltip Text="Manage Namespaces">
+                <MudIconButton Icon="@Icons.Material.Filled.SpaceDashboard" Color="GetColor(ShowingType.Namespaces)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Namespaces)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Edit Stack">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="GetColor(ShowingType.Edit)" Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Edit)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Dependency Graph">
+                <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.DependencyGraph)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Manage Roles">
+                <MudIconButton Icon="@Icons.Material.Filled.Shield" Color="GetColor(ShowingType.Roles)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Roles)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Manage Secrets">
+                <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Secrets)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Delete Stack">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                               OnClick="() => Delete(_stack)"/>
+            </MudTooltip>
+        </MudPaper>
+
+        @if (_showing == ShowingType.Namespaces && _stack != null)
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-4">
+                <div class="namespace-header">
+                    <MudTooltip Text="Select multiple">
+                        <MudIconButton Icon="@Icons.Material.Filled.Checklist"
+                                       Color="@(_showSelectionMode ? Color.Info : Color.Primary)"
+                                       Size="Size.Small"
+                                       OnClick="() => ToggleSelectionMode()"/>
+                    </MudTooltip>
+
+                    <MudTooltip Text="Search namespaces">
+                        <MudIconButton Icon="@Icons.Material.Filled.Search"
+                                       Color="@(_showNamespaceSearch ? Color.Info : Color.Primary)"
+                                       Size="Size.Small"
+                                       OnClick="@(() => _showNamespaceSearch = !_showNamespaceSearch)"/>
+                    </MudTooltip>
+
+                    @if (_searchTerms.Any())
+                    {
+                        <div class="search-chips-header">
+                            @foreach (var term in _searchTerms)
+                            {
+                                <MudChip T="string"
+                                         Text="@term"
+                                         Size="Size.Small"
+                                         Color="Color.Primary"
+                                         OnClose="@(() => RemoveSearchTerm(term))"/>
+                            }
+                        </div>
+                    }
+
+                    @if (_showNamespaceSearch)
+                    {
+                        <div class="search-input-container">
+                            <MudTextField @bind-Value="_searchInput"
+                                          Label="Search namespaces by name"
+                                          HelperText="Press Enter to search (minimum 2 characters)"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@Icons.Material.Filled.Search"
+                                          OnKeyDown="@HandleKeyDown"
+                                          Immediate="true"
+                                          Class="search-field-inline"/>
+                        </div>
+                    }
+                </div>
+
+                @if (_showSelectionMode)
+                {
+                    <div class="selection-controls">
+                        <MudCheckBox T="bool"
+                                     @bind-Value="_selectAllNamespaces"
+                                     Label="Select all Namespaces"
+                                     Color="Color.Info"
+                                     Dense="true"/>
+
+                        @if (_selectedNamespaces.Any())
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       OnClick="DeleteSelectedNamespaces"
+                                       Size="Size.Small">
+                                Delete Selected (@_selectedNamespaces.Count)
+                            </MudButton>
+                        }
+                    </div>
+                }
+
+                @if (_truncatedStack != null)
+                {
+                    <ListNamespaces @ref="_listNamespacesComponent"
+                                    StackName="@_truncatedStack.Name"
+                                    StackId="@_truncatedStack.Id"
+                                    SearchTerms="@_searchTerms"
+                                    ShowCheckboxes="@_showSelectionMode"
+                                    SelectAll="@_selectAllNamespaces"
+                                    OnSelectionChanged="@HandleNamespaceSelectionChanged"/>
+                }
+            </MudPaper>
+        }
+
+        @if (_showing == ShowingType.Edit && _stack != null)
+        {
+            <EditStack Stack="_stack"
+                       PrincipalProvider="_literalPrincipalProvider"
+                       OnSaved="() => _showing = ShowingType.None"
+                       OnCancel="() => _showing = ShowingType.None"/>
+        }
+
+        @if (_showing == ShowingType.Roles && _stack != null)
+        {
+            <ManageStackRoles StackId="_stack.Id"
+                              OnSaved="() => _showing = ShowingType.None"
+                              OnCancel="() => _showing = ShowingType.None"/>
+        }
+
+        @if (_showing == ShowingType.Secrets && _stack != null)
+        {
+            <ManageStackSecrets
+                StackId="_stack.Id"/>
+        }
+
+        @if (_showing == ShowingType.DependencyGraph && _stack != null)
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-4">
+
+                @if (!_showApplyComponent && !_showDestroyComponent)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="ShowApplyComponent">
+                        Apply All Modules
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="ShowDestroyComponent">
+                        Destroy All Modules
+                    </MudButton>
+                }
+
+                @if (_showApplyComponent)
+                {
+                    <MudText Typo="Typo.h6" Class="mb-3">Apply All Modules</MudText>
+
+                    @if (_modulesToApply.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            These modules will be applied:
+                        </MudText>
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _modulesToApply)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
+                                    {
+                                        <MudTooltip Text="You do not have permission to apply this module">
+                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                                     Size="Size.Small"/>
+                                        </MudTooltip>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (_alreadyAppliedModules.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            These modules are already applied:
+                        </MudText>
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _alreadyAppliedModules)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
+                                    {
+                                        <MudTooltip Text="You do not have permission to apply this module">
+                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                                     Size="Size.Small"/>
+                                        </MudTooltip>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <MudDivider Class="my-4"/>
+
+                    <MudStack Row>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="ExecuteApply"
+                                   Disabled="@_isApplying">
+                            @if (_isApplying)
+                            {
+                                @:Applying...
+                            }
+                            else
+                            {
+                                @:Apply All (@_modulesToApply.Count modules)
+                            }
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="CancelApply"
+                                   Disabled="@_isApplying">
+                            Cancel
+                        </MudButton>
+                    </MudStack>
+                }
+
+                @if (_showDestroyComponent)
+                {
+                    <MudText Typo="Typo.h6" Class="mb-3">Destroy All Modules</MudText>
+
+                    @if (_alreadyDestroyedModules.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>These modules are already destroyed:</strong>
+                        </MudText>
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _alreadyDestroyedModules)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
+                                    {
+                                        <MudTooltip Text="You do not have permission to destroy this module">
+                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                                     Size="Size.Small"/>
+                                        </MudTooltip>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (_modulesToDestroy.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            These modules will be destroyed:
+                        </MudText>
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _modulesToDestroy)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
+                                    {
+                                        <MudTooltip Text="You do not have permission to destroy this module">
+                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                                     Size="Size.Small"/>
+                                        </MudTooltip>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <MudDivider Class="my-4"/>
+
+                    <MudText Typo="Typo.body1" Class="mb-3">
+                        Enter <strong>DESTROY</strong> in the box below to confirm:
+                    </MudText>
+
+                    <MudTextField T="string"
+                                  Value="_destroyConfirmationText"
+                                  ValueChanged="@((string value) =>
+                                                {
+                                                    _destroyConfirmationText = value;
+                                                    _destroyValidationError = null;
+                                                    StateHasChanged();
+                                                })"
+                                  Label="Confirmation"
+                                  Placeholder="Type DESTROY to confirm"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-3"
+                                  Disabled="@_isDestroying"/>
+
+                    @if (!string.IsNullOrEmpty(_destroyValidationError))
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-3">
+                            @_destroyValidationError
+                        </MudAlert>
+                    }
+
+                    <MudStack Row>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   OnClick="ExecuteDestroy"
+                                   Disabled="@_isDestroying">
+                            @if (_isDestroying)
+                            {
+                                @:Destroying...
+                            }
+                            else
+                            {
+                                @:Destroy All (@_modulesToDestroy.Count modules)
+                            }
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   OnClick="CancelDestroy"
+                                   Disabled="@_isDestroying">
+                            Cancel
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudPaper>
+
+            <MudPaper Elevation="1" Class="pa-4 mb-4" Style="overflow-x: auto;">
+                <MudText Typo="Typo.h5" Class="mb-4">Dependency Graph</MudText>
+
+                <StackDependencyGraph
+                    StackId="_stack.Id"
+                    StackName="_stack.Name"
+                    Direction="@GetGraphDirection()"
+                    DisableDirectionToggle="@(_showApplyComponent || _showDestroyComponent)"/>
+            </MudPaper>
+        }
+    }
+</CascadingValue>
+
+@code {
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+    [Parameter] public required string StackName { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+    [SupplyParameterFromQuery] public string? Search { get; set; }
+    [SupplyParameterFromQuery] public string? Direction { get; set; }
+    [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private Stack? _stack;
+    private TruncatedStack? _truncatedStack;
+    private List<BreadcrumbItem> _breadCrumbs = [];
+
+    private ShowingType _showing = ShowingType.None;
+
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+    private bool _showCreate;
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+    private IPrincipalProvider _literalPrincipalProvider;
+    private ListNamespaces? _listNamespacesComponent;
+    private bool _showNamespaceSearch;
+    private string _searchInput = string.Empty;
+    private List<string> _searchTerms = new();
+    private bool _selectAllNamespaces;
+    private HashSet<Guid> _selectedNamespaces = new();
+    private bool _showSelectionMode;
+    private bool _showDestroyGraph = false;
+
+    // Inline action components state
+    private bool _showApplyComponent = false;
+    private bool _showDestroyComponent = false;
+    private bool _isApplying = false;
+    private bool _isDestroying = false;
+    private string _destroyConfirmationText = "";
+    private string? _destroyValidationError = null;
+    private List<DependencyGraphNodeStateDto> _modulesToApply = new();
+    private List<DependencyGraphNodeStateDto> _alreadyAppliedModules = new();
+    private List<DependencyGraphNodeStateDto> _modulesToDestroy = new();
+    private List<DependencyGraphNodeStateDto> _alreadyDestroyedModules = new();
+    private Dictionary<Guid, bool> _modulePermissions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+        _literalPrincipalProvider = new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]);
+
+        var cacheKey = $"module_{StackName}";
+
+        // Parse search terms from URL query parameter
+        if (!string.IsNullOrEmpty(Search))
+        {
+            _searchTerms = Search.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        }
+
+        var stacksUrl = _searchTerms.Any()
+            ? $"/Stacks?search={Uri.EscapeDataString(string.Join(",", _searchTerms))}"
+            : "/Stacks";
+
+        _breadCrumbs =
+        [
+            new BreadcrumbItem("Stacks", "/Stacks"),
+            new BreadcrumbItem($"{StackName} (Stack)", $"/Stacks/{StackName}")
+        ];
+
+        using var repo = RepoFactory.Create();
+        try
+        {
+            _stack = await repo.GetByName(StackName, OrganizationId);
+        }
+        catch (EntityNotFoundException)
+        {
+            Snackbar.Add($"Stack \"{StackName}\" does not exist.", Severity.Error);
+            NavigationManager.NavigateTo("/Stacks", true);
+            return;
+        }
+
+        _truncatedStack = new TruncatedStack
+        {
+            Id = _stack.Id,
+            Name = _stack.Name,
+            Namespaces = new List<TruncatedNamespace>()
+        };
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedStackData
+        //     {
+        //         Stack = _stack!,
+        //         TruncatedStack = _truncatedStack!,
+        //         ShowingState = _showing
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedStackData>(cacheKey, out var cachedData))
+        // {
+        //     _stack = cachedData.Stack;
+        //     _truncatedStack = cachedData.TruncatedStack;
+        //     _showing = cachedData.ShowingState;
+        // }
+
+        // Set initial showing based on query parameter
+        _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Namespaces;
+    }
+
+    private Color GetColor(ShowingType showTypeToMatch)
+    {
+        return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+    }
+
+    private void SwitchShowing(ShowingType newShowing)
+    {
+        var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
+        _showing = targetShowing;
+
+        // Update URL without reloading, preserving organizationId and search terms
+        var actionQuery = GetActionFromShowingType(targetShowing);
+        var queryParams = new List<string>();
+
+        if (actionQuery != null)
+            queryParams.Add($"action={actionQuery}");
+
+        if (_searchTerms.Any())
+            queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
+
+        var queryString = "?" + string.Join("&", queryParams);
+        var newUrl = $"/Stacks/{StackName}{queryString}";
+        NavigationManager.NavigateTo(newUrl, false);
+    }
+
+    private enum ShowingType
+    {
+        None,
+        Namespaces,
+        Edit,
+        Roles,
+        Secrets,
+        DependencyGraph
+    }
+
+
+    private async Task Delete(Stack stack)
+    {
+        var parameters = new DialogParameters<DeleteStackDialog>
+        {
+            { x => x.Stack, stack },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteStackDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deletedStackId);
+            Snackbar.Add($"Successfully deleted stack \"{deletedStackId}\"");
+            NavigationManager.NavigateTo("/Stacks");
+        }
+    }
+
+    private async Task HandleCreated()
+    {
+        _showCreate = false;
+
+        if (_listNamespacesComponent != null)
+        {
+            await _listNamespacesComponent.LoadNamespaces();
+            _listNamespacesComponent.TriggerStateHasChanged();
+        }
+    }
+
+    private void HandleCreateCanceled()
+    {
+        _showCreate = false;
+    }
+
+    private void ShowCreate()
+    {
+        _showCreate = true;
+    }
+
+    private async Task AddSearchTerm()
+    {
+        if (!string.IsNullOrWhiteSpace(_searchInput) &&
+            _searchInput.Length >= 2 &&
+            !_searchTerms.Contains(_searchInput))
+        {
+            _searchTerms.Add(_searchInput);
+            _searchInput = string.Empty;
+            _showNamespaceSearch = false; // Hide search box after adding term
+
+            // Update URL with search terms
+            UpdateUrlWithSearchTerms();
+
+            if (_listNamespacesComponent != null)
+                await _listNamespacesComponent.LoadNamespaces();
+        }
+    }
+
+    private async Task RemoveSearchTerm(string term)
+    {
+        _searchTerms.Remove(term);
+
+        // Update URL with search terms
+        UpdateUrlWithSearchTerms();
+
+        if (_listNamespacesComponent != null)
+            await _listNamespacesComponent.LoadNamespaces();
+    }
+
+    private void UpdateUrlWithSearchTerms()
+    {
+        var queryParams = new List<string>();
+
+        // Preserve action parameter if present
+        var actionQuery = GetActionFromShowingType(_showing);
+        if (actionQuery != null)
+            queryParams.Add($"action={actionQuery}");
+
+        if (_searchTerms.Any())
+            queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
+
+        var queryString = "?" + string.Join("&", queryParams);
+        var newUrl = $"/Stacks/{StackName}{queryString}";
+        NavigationManager.NavigateTo(newUrl, false);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddSearchTerm();
+        }
+    }
+
+
+    private void ToggleSelectionMode()
+    {
+        _showSelectionMode = !_showSelectionMode;
+
+        // Clear selections when exiting selection mode
+        if (!_showSelectionMode)
+        {
+            _selectAllNamespaces = false;
+            _selectedNamespaces.Clear();
+        }
+    }
+
+    private void HandleNamespaceSelectionChanged(HashSet<Guid> selectedNamespaces)
+    {
+        _selectedNamespaces = selectedNamespaces;
+        StateHasChanged();
+    }
+
+    private async Task DeleteSelectedNamespaces()
+    {
+        if (!_selectedNamespaces.Any() || _listNamespacesComponent == null)
+            return;
+
+        var selectedNamespaces = _listNamespacesComponent.GetSelectedNamespaces();
+
+        var parameters = new DialogParameters<DeleteSelectedNamespacesDialog>
+        {
+            { x => x.Namespaces, selectedNamespaces },
+            { x => x.StackName, StackName },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, CloseOnEscapeKey = true };
+
+        var dialog = await DialogService.ShowAsync<DeleteSelectedNamespacesDialog>("Delete Selected Namespaces", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Clear selection
+            _selectAllNamespaces = false;
+            _selectedNamespaces.Clear();
+
+            // Reload namespaces list
+            if (_listNamespacesComponent != null)
+                await _listNamespacesComponent.LoadNamespaces();
+
+            Snackbar.Add($"Successfully deleted {selectedNamespaces.Count} namespace(s)", Severity.Success);
+        }
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+    }
+
+    private class CachedStackData
+    {
+        public Stack Stack { get; set; } = null!;
+        public TruncatedStack TruncatedStack { get; set; } = null!;
+        public ShowingType ShowingState { get; set; }
+    }
+
+    private ShowingType? GetShowingTypeFromAction(string? action)
+    {
+        return action?.ToLower() switch
+        {
+            "edit" => ShowingType.Edit,
+            "secrets" => ShowingType.Secrets,
+            "roles" => ShowingType.Roles,
+            "namespaces" => ShowingType.Namespaces,
+            "dependencygraph" => ShowingType.DependencyGraph,
+            _ => null
+        };
+    }
+
+    private string? GetActionFromShowingType(ShowingType showingType)
+    {
+        return showingType switch
+        {
+            ShowingType.Edit => "Edit",
+            ShowingType.Secrets => "Secrets",
+            ShowingType.Roles => "Roles",
+            ShowingType.Namespaces => "Namespaces",
+            ShowingType.DependencyGraph => "DependencyGraph",
+            _ => null
+        };
+    }
+
+    private string GetGraphDirection()
+    {
+        // When inline components are active, they control the graph direction
+        if (_showDestroyComponent)
+        {
+            return "Destroy";
+        }
+        else if (_showApplyComponent)
+        {
+            return "Apply";
+        }
+
+        // When no inline components are active, use the toggle
+        return _showDestroyGraph ? "Destroy" : "Apply";
+    }
+
+    private async Task ShowApplyComponent()
+    {
+        _showDestroyComponent = false;
+        _showApplyComponent = true;
+        _showDestroyGraph = false; // Force apply graph
+        _destroyConfirmationText = "";
+        _destroyValidationError = null;
+
+        await LoadApplyModules();
+        StateHasChanged();
+    }
+
+    private async Task ShowDestroyComponent()
+    {
+        _showApplyComponent = false;
+        _showDestroyComponent = true;
+        _showDestroyGraph = true; // Activate destroy graph switch
+        _destroyConfirmationText = "";
+        _destroyValidationError = null;
+
+        await LoadDestroyModules();
+        StateHasChanged();
+    }
+
+    private void CancelApply()
+    {
+        _showApplyComponent = false;
+        _isApplying = false;
+        StateHasChanged();
+    }
+
+    private void CancelDestroy()
+    {
+        _showDestroyComponent = false;
+        _isDestroying = false;
+        _destroyConfirmationText = "";
+        _destroyValidationError = null;
+        StateHasChanged();
+    }
+
+    private async Task LoadApplyModules()
+    {
+        try
+        {
+            using var applyService = ApplyServiceFactory.Create();
+            var dependencyGraph = await applyService.BuildStackApplyGraphAsync(_stack!.Id, _stack.Name);
+
+            _modulesToApply = dependencyGraph.NodeStates
+                .Where(n => n.LatestActualState != ActualStateHeadline.Applied &&
+                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Applied))
+                .ToList();
+
+            _alreadyAppliedModules = dependencyGraph.NodeStates
+                .Where(n => n.LatestActualState == ActualStateHeadline.Applied)
+                .ToList();
+
+            await LoadModulePermissions(dependencyGraph.NodeStates);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load modules: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadDestroyModules()
+    {
+        try
+        {
+            using var destroyService = DestroyServiceFactory.Create();
+            var dependencyGraph = await destroyService.BuildStackDestroyGraphAsync(_stack!.Id, _stack.Name);
+
+            _modulesToDestroy = dependencyGraph.NodeStates
+                .Where(n => n.LatestActualState != ActualStateHeadline.Destroyed &&
+                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Destroyed))
+                .ToList();
+
+            _alreadyDestroyedModules = dependencyGraph.NodeStates
+                .Where(n => n.LatestActualState == ActualStateHeadline.Destroyed)
+                .ToList();
+
+            await LoadModulePermissions(dependencyGraph.NodeStates);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load modules: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadModulePermissions(List<DependencyGraphNodeStateDto> nodeStates)
+    {
+        var modulesToCheck = nodeStates
+            .Select(n => new ModuleNamespaceIdTuple
+            {
+                ModuleId = n.ModuleId,
+                NamespaceId = n.NamespaceId
+            })
+            .ToList();
+
+        if (!modulesToCheck.Any()) return;
+
+        using var jobSecuredRepository = ModuleJobSecuredRepositoryFactory.Create();
+        var permissions = await jobSecuredRepository.ListHasRunJobPermission(modulesToCheck, OrganizationId);
+
+        _modulePermissions = permissions.ToDictionary(p => p.ModuleId, p => p.HasPermission);
+    }
+
+    private async Task ExecuteApply()
+    {
+        if (_isApplying) return;
+
+        _isApplying = true;
+        StateHasChanged();
+
+        try
+        {
+            var modulesToActuallyApply = _modulesToApply
+                .Where(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (!modulesToActuallyApply.Any())
+            {
+                Snackbar.Add("No modules to apply - insufficient permissions", Severity.Warning);
+                _isApplying = false;
+                StateHasChanged();
+                return;
+            }
+
+            var modulesWithoutPermission = _modulesToApply
+                .Where(m => !_modulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (modulesWithoutPermission.Any())
+            {
+                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
+            }
+
+            foreach (var nodeState in modulesToActuallyApply)
+            {
+                using var securedJobService = SecuredJobServiceFactory.Create();
+                await securedJobService.Apply(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+            }
+
+            Snackbar.Add($"Apply initiated for {modulesToActuallyApply.Count} modules", Severity.Success);
+            _showApplyComponent = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initiate application: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isApplying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExecuteDestroy()
+    {
+        if (_isDestroying) return;
+
+        if (_destroyConfirmationText != "DESTROY")
+        {
+            _destroyValidationError = "You must type 'DESTROY' exactly to confirm destruction.";
+            StateHasChanged();
+            return;
+        }
+
+        _isDestroying = true;
+        StateHasChanged();
+
+        try
+        {
+            var modulesToActuallyDestroy = _modulesToDestroy
+                .Where(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (!modulesToActuallyDestroy.Any())
+            {
+                Snackbar.Add("No modules to destroy - insufficient permissions", Severity.Warning);
+                _isDestroying = false;
+                StateHasChanged();
+                return;
+            }
+
+            var modulesWithoutPermission = _modulesToDestroy
+                .Where(m => !_modulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (modulesWithoutPermission.Any())
+            {
+                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
+            }
+
+            foreach (var nodeState in modulesToActuallyDestroy)
+            {
+                using var securedJobService = SecuredJobServiceFactory.Create();
+                await securedJobService.Destroy(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+            }
+
+            Snackbar.Add($"Destruction initiated for {modulesToActuallyDestroy.Count} modules", Severity.Success);
+            _showDestroyComponent = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initiate destruction: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isDestroying = false;
+            StateHasChanged();
+        }
+    }
+
+}
+
+<style>
+    .namespace-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .selection-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background-color: var(--mud-palette-background-grey);
+        border-radius: 4px;
+    }
+
+    .search-chips-header {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        align-items: center;
+    }
+
+    .search-input-container {
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .search-field-inline {
+        margin-bottom: 0;
+    }
+</style>

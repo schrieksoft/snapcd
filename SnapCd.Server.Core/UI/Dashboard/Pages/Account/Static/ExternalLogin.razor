@@ -1,0 +1,324 @@
+﻿@page "/Account/ExternalLogin"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@inject IUserStore<User> UserStore
+@inject IEmailSender<User> EmailSender
+@inject EmailConfirmationService EmailConfirmationService
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<ExternalLogin> Logger
+
+<PageTitle>External Login - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Sign In">
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <MudAlert Severity="@(isEmailConfirmationError ? Severity.Error : Severity.Warning)" Class="mb-4">
+            <div>@message</div>
+            @if (!string.IsNullOrEmpty(unconfirmedEmail))
+            {
+                <div class="mt-3">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               OnClick="ResendConfirmationEmail"
+                               Disabled="@_isResending">
+                        @if (_isResending)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                            <span>Sending...</span>
+                        }
+                        else
+                        {
+                            <span>Resend Confirmation Email</span>
+                        }
+                    </MudButton>
+                </div>
+            }
+        </MudAlert>
+
+        @if (!string.IsNullOrEmpty(_resendMessage))
+        {
+            <MudAlert Severity="@(_resendSuccess ? Severity.Success : Severity.Warning)" Class="mb-4">
+                @_resendMessage
+            </MudAlert>
+        }
+
+        <div class="register-link">
+            <div class="login-button-container">
+                <div class="divider-line"></div>
+                <a href="/Account/Login" class="login-btn-link">
+                    Back to Sign In
+                </a>
+                <div class="divider-line"></div>
+            </div>
+        </div>
+    }
+    else if (_showRegistrationOption)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            <MudText Typo="Typo.body1">
+                @message
+            </MudText>
+        </MudAlert>
+
+        <div class="sign-in-container">
+            <div class="divider-line"></div>
+            <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                             Href="/Account/Register" Class="sign-in-btn">
+                Create Account
+            </MudStaticButton>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="register-link">
+            <MudText Align="Align.Center" Typo="Typo.body2">
+                <MudLink Typo="Typo.body2" Href="Account/Login">
+                    Back to Sign In
+                </MudLink>
+            </MudText>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudText Typo="Typo.body1">
+                Signing you in with <strong>@ProviderDisplayName</strong>...
+            </MudText>
+        </MudAlert>
+    }
+</StaticAccountComponent>
+
+@code {
+    private string? message;
+    private bool isEmailConfirmationError = false;
+    private bool _showRegistrationOption = false;
+    private ExternalLoginInfo externalLoginInfo = default!;
+    private string? unconfirmedEmail;
+    private bool _isResending;
+    private string? _resendMessage;
+    private bool _resendSuccess;
+
+    [SupplyParameterFromQuery] private string? RemoteError { get; set; }
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery] private string? Action { get; set; }
+
+    private string? ProviderDisplayName => externalLoginInfo.ProviderDisplayName;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RemoteError is not null)
+        {
+            RedirectManager.RedirectToWithStatus("Account/Login", $"Error from external provider: {RemoteError}", HttpContext);
+        }
+
+        var info = await SignInManager.GetExternalLoginInfoAsync();
+        if (info is null)
+        {
+            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information.", HttpContext);
+        }
+
+        externalLoginInfo = info;
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            if (Action == ExternalLoginConstants.LoginCallbackAction)
+            {
+                await OnLoginCallbackAsync();
+                return;
+            }
+
+            // We should only reach this page via the login callback, so redirect back to
+            // the login page if we get here some other way.
+            RedirectManager.RedirectTo("Account/Login");
+        }
+    }
+
+    private async Task OnLoginCallbackAsync()
+    {
+        // First, check if a user exists with this external login
+        var existingUser = await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey);
+
+        if (existingUser == null)
+        {
+            // No user associated with this external login - offer registration
+            message = $"No account found for your {ProviderDisplayName} login. Please create an account first.";
+            _showRegistrationOption = true;
+            return;
+        }
+
+        // Attempt to sign in the user with this external login provider
+        var result = await SignInManager.ExternalLoginSignInAsync(
+            externalLoginInfo.LoginProvider,
+            externalLoginInfo.ProviderKey,
+            false,
+            true);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation(
+                "{Name} logged in with {LoginProvider} provider.",
+                externalLoginInfo.Principal.Identity?.Name,
+                externalLoginInfo.LoginProvider);
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                RedirectManager.RedirectTo(ReturnUrl);
+            }
+            else
+            {
+                RedirectManager.RedirectTo("/Stacks");
+            }
+        }
+        else if (result.IsLockedOut)
+        {
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else if (result.IsNotAllowed)
+        {
+            // User exists but login is not allowed - check why
+            var isEmailConfirmed = await UserManager.IsEmailConfirmedAsync(existingUser);
+            if (!isEmailConfirmed)
+            {
+                // Redirect to email confirmation page
+                RedirectManager.RedirectTo(
+                    "Account/ConfirmEmailNotCompleted",
+                    new Dictionary<string, object?> { ["email"] = existingUser.Email, ["returnUrl"] = ReturnUrl });
+                return;
+            }
+            else
+            {
+                message = "Your account is not allowed to sign in. Please contact support.";
+            }
+        }
+        else
+        {
+            // Other login failure
+            message = "Unable to sign in. Please try again.";
+        }
+    }
+
+    private async Task ResendConfirmationEmail()
+    {
+        _isResending = true;
+        _resendMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Build confirmation URL template
+            var confirmationUrlTemplate = NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri
+                + "?userId={userId}&code={code}";
+
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                confirmationUrlTemplate += $"&returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+
+            // Use the service to resend email
+            var (success, resendMessage) = await EmailConfirmationService.ResendConfirmationEmailAsync(
+                unconfirmedEmail!,
+                confirmationUrlTemplate);
+
+            _resendMessage = resendMessage;
+            _resendSuccess = success;
+
+            if (success)
+            {
+                Logger.LogInformation("Successfully resent confirmation email to {Email} from external login page", unconfirmedEmail);
+            }
+            else
+            {
+                Logger.LogWarning("Failed to resend confirmation email to {Email} from external login page: {Message}",
+                    unconfirmedEmail, resendMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resending confirmation email to {Email} from external login page", unconfirmedEmail);
+            _resendMessage = "An error occurred. Please try again later.";
+            _resendSuccess = false;
+        }
+        finally
+        {
+            _isResending = false;
+            StateHasChanged();
+        }
+    }
+
+}
+
+<style>
+    .login-button-container {
+        display: flex;
+        align-items: center;
+        margin: 1rem 0;
+    }
+
+    .login-btn-link {
+        color: #ffffff !important;
+        text-decoration: none !important;
+        background-color: #000000 !important;
+        border: 1px solid #000000;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        border-radius: 24px;
+        display: inline-block;
+    }
+
+    .login-btn-link:hover {
+        background-color: #333333 !important;
+        color: #ffffff !important;
+        text-decoration: none !important;
+    }
+
+    .mud-dark .login-btn-link {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #ffffff;
+    }
+
+    .mud-dark .login-btn-link:hover {
+        background-color: #e0e0e0 !important;
+        color: #000000 !important;
+        text-decoration: none !important;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 0 1rem;
+    }
+
+    .mud-dark .divider-line {
+        background-color: #333;
+    }
+
+    .sign-in-container {
+        display: flex;
+        align-items: center;
+        margin: 2rem 0 1rem 0;
+    }
+
+    .register-link {
+        margin-top: 1rem;
+    }
+</style>

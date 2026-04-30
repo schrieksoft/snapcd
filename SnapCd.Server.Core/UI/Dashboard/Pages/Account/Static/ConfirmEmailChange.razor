@@ -1,0 +1,77 @@
+﻿@page "/Account/ConfirmEmailChange"
+@layout AccountLayout
+
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject SignInManager<User> SignInManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Confirm Email Change - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Email change confirmation">
+    <StatusMessage Message="@message"/>
+
+    <div class="register-link">
+        <div class="login-button-container">
+            <div class="divider-line"></div>
+            <a href="/Account/Login" class="login-btn-link">
+                go to login
+            </a>
+            <div class="divider-line"></div>
+        </div>
+    </div>
+</StaticAccountComponent>
+
+@code {
+    private string? message;
+
+    [SupplyParameterFromQuery] private string? UserId { get; set; }
+
+    [SupplyParameterFromQuery] private string? Email { get; set; }
+
+    [SupplyParameterFromQuery] private string? Code { get; set; }
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId is null || Email is null || Code is null)
+        {
+            RedirectManager.RedirectToWithStatus(
+                "Account/Login", "Error: Invalid email change confirmation link.", HttpContext);
+        }
+
+        var user = await UserManager.FindByIdAsync(UserId);
+        if (user is null)
+        {
+            message = "Unable to find user with Id '{userId}'";
+            return;
+        }
+
+        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        var result = await UserManager.ChangeEmailAsync(user, Email, code);
+        if (!result.Succeeded)
+        {
+            message = "Error changing email.";
+            return;
+        }
+
+        // In our UI email and user name are one and the same, so when we update the email
+        // we need to update the user name.
+        var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
+        if (!setUserNameResult.Succeeded)
+        {
+            message = "Error changing user name.";
+            return;
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        message = "Thank you for confirming your email change.";
+    }
+
+}

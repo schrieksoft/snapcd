@@ -1,0 +1,42 @@
+using SnapCd.Contracts;
+using SnapCd.Server.Core.Tests.Infrastructure;
+using SnapCd.Server.Core.Tests.TestActions;
+
+namespace SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Modules;
+
+/// <summary>
+/// Tests for Organization Owner role with Module entity using User as a member of a group.
+/// Organization Owners have full permissions to all modules in the organization.
+/// This test class is purely configuration-driven - all test logic is in ScenarioBasedTestBase.
+/// </summary>
+[Collection("NewRoleBasedSharedFixture")]
+public class OrganizationOwner_Module_GroupMember_Tests : TestBase
+{
+    public OrganizationOwner_Module_GroupMember_Tests(Fixture fixture)
+        : base(fixture, CreateConfig(fixture))
+    {
+    }
+
+    private static TestScenarioConfiguration CreateConfig(Fixture fixture)
+    {
+        return new TestScenarioConfiguration
+        {
+            PrincipalId = fixture.OrganizationPrincipals["0"][OrganizationRole.Owner].GroupUser.Id,
+            Discriminator = PrincipalDiscriminator.User,
+            TestActionsFactory = (f, db) => new ModuleTestActions(f, db),
+            NamePrefix = nameof(OrganizationOwner_Module_GroupMember_Tests),
+
+            // Positive cases - Organization Owner should have full access to Org "0"
+            CanGetIds = new[] { fixture.Modules["0000"].Id, fixture.Modules["0001"].Id },
+            CanUpdateIds = new[] { fixture.ModuleAdditionalTestEntities[$"{nameof(OrganizationOwner_Module_GroupMember_Tests)}_UpdateCan"].Id },
+            CanDeleteIds = new[] { fixture.ModuleAdditionalTestEntities[$"{nameof(OrganizationOwner_Module_GroupMember_Tests)}_DeleteCan"].Id },
+            CanCreateParentIds = new[] { fixture.Namespaces["000"].Id },
+
+            // Negative cases - Organization Owner should NOT have access to Org "1" (cross-org isolation)
+            CannotGetIds = new[] { fixture.Modules["1000"].Id },
+            CannotUpdateIds = new[] { fixture.Modules["1000"].Id },
+            CannotDeleteIds = new[] { fixture.Modules["1000"].Id },
+            CannotCreateParentIds = new[] { fixture.Namespaces["100"].Id }
+        };
+    }
+}

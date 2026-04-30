@@ -1,0 +1,270 @@
+
+@implements IDisposable
+
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.GroupMembers.Base
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Crud
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.GroupMembers
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+
+@inject ILogger<GroupMembers> Logger
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="User Members" Style="text-transform: none">
+        @if (_groupMembers == null)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                       OnClick="() => CreateMember(GroupMemberDiscriminator.User)"
+                       Class="mt-2 mb-2">Add Member
+            </MudButton>
+            <MudExpansionPanels>
+                @foreach (var principal in _groupMembers.Where(x => x.GroupMemberDiscriminator == GroupMemberDiscriminator.User))
+                {
+                    <MudExpansionPanel>
+                        <TitleContent>
+                            <MudText>@GetPrincipalDisplayName(principal)</MudText>
+                        </TitleContent>
+                        <ChildContent>
+                            <MudTooltip Text="Delete member">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary"
+                                               Size="Size.Small" OnClick="() => DeleteMember(principal)"/>
+                            </MudTooltip>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+            @* Conditionally render the CreateGroupMember component *@
+            @if (_showCreateMember && _currentPrincipalDiscriminator == GroupMemberDiscriminator.User)
+            {
+                <CreateGroupMember
+                    GroupId="GroupId"
+                    Discriminator="_currentPrincipalDiscriminator"
+                    OnCreated="HandleMemberCreated"
+                    OnCancel="HandleCancelCreate"/>
+            }
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Service Principal Members" Style="text-transform: none">
+        @if (_groupMembers == null)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                       OnClick="() => CreateMember(GroupMemberDiscriminator.ServicePrincipal)" Class="mt-2 mb-2">Add
+                Member
+            </MudButton>
+            <MudExpansionPanels>
+                @foreach (var principal in _groupMembers.Where(x => x.GroupMemberDiscriminator == GroupMemberDiscriminator.ServicePrincipal))
+                {
+                    <MudExpansionPanel>
+                        <TitleContent>
+                            <MudText>@GetPrincipalDisplayName(principal)</MudText>
+                        </TitleContent>
+                        <ChildContent>
+                            <MudTooltip Text="Delete member">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary"
+                                               Size="Size.Small" OnClick="() => DeleteMember(principal)"/>
+                            </MudTooltip>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+            @* Conditionally render the CreateGroupMember component *@
+            @if (_showCreateMember && _currentPrincipalDiscriminator == GroupMemberDiscriminator.ServicePrincipal)
+            {
+                <CreateGroupMember
+                    GroupId="GroupId"
+                    Discriminator="_currentPrincipalDiscriminator"
+                    OnCreated="HandleMemberCreated"
+                    OnCancel="HandleCancelCreate"/>
+            }
+        }
+    </MudTabPanel>
+
+</MudTabs>
+
+
+<MudButton
+    Variant="Variant.Filled"
+    Color="Color.Secondary"
+    Class="mt-2 mb-2"
+    OnClick="Close">Close
+</MudButton>
+
+@code {
+    [Parameter] public Guid GroupId { get; set; }
+    [Parameter] public required EventCallback OnClose { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private GroupMemberServiceFactory GroupMemberServiceFactory { get; set; } = null!;
+    [Inject] private OrganizationUserSecuredRepositoryFactory OrganizationUserSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
+
+    private List<GroupMemberReadDto>? _groupMembers;
+    private Dictionary<Guid, string> _principalNames = new();
+
+
+    private bool _showCreateMember;
+    private GroupMemberDiscriminator? _currentPrincipalDiscriminator;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (GroupId == Guid.Empty)
+        {
+            Logger.LogError("No group ID provided");
+            await Close();
+            return;
+        }
+
+        await ReloadGroupMembers();
+    }
+
+    private void CreateMember(GroupMemberDiscriminator discriminator)
+    {
+        _currentPrincipalDiscriminator = discriminator;
+        _showCreateMember = true;
+    }
+
+    private async Task HandleMemberCreated()
+    {
+        _showCreateMember = false;
+        await ReloadGroupMembers();
+    }
+
+    private void HandleCancelCreate()
+    {
+        _showCreateMember = false;
+    }
+
+    private async Task ReloadGroupMembers()
+    {
+        using var service = GroupMemberServiceFactory.Create();
+        var allMembers = await service.List(OrganizationId);
+
+        // Filter to only members of this specific group
+        _groupMembers = allMembers.Where(gm => gm.GroupId == GroupId).ToList();
+
+        // Load principal names
+        await LoadPrincipalNames();
+    }
+
+
+    private class UserView
+    {
+        public Guid Id { get; set; }
+
+        public string UserName { get; set; }
+    }
+
+    private async Task LoadPrincipalNames()
+    {
+        _principalNames.Clear();
+
+        if (_groupMembers == null) return;
+
+        // Load user names
+        var userIds = _groupMembers
+            .Where(gm => gm.GroupMemberDiscriminator == GroupMemberDiscriminator.User)
+            .Select(gm => gm.PrincipalId)
+            .ToList();
+
+
+        if (userIds.Any())
+        {
+            using var userRepo = OrganizationUserSecuredRepositoryFactory.Create();
+            var users = await userRepo.List<UserView>(
+                OrganizationId,
+                q => q
+                    .Where(u => userIds.Contains(u.Id))
+                    .Include(x => x.User)
+                    .Select(u => new UserView { Id = u.Id, UserName = u.User.UserName })
+            );
+
+            foreach (var user in users)
+            {
+                if (!string.IsNullOrEmpty(user.UserName))
+                {
+                    _principalNames[user.Id] = user.UserName;
+                }
+            }
+        }
+
+        // Load service principal names
+        var servicePrincipalIds = _groupMembers
+            .Where(gm => gm.GroupMemberDiscriminator == GroupMemberDiscriminator.ServicePrincipal)
+            .Select(gm => gm.PrincipalId)
+            .ToList();
+
+        if (servicePrincipalIds.Any())
+        {
+            using var spRepo = ServicePrincipalRepoFactory.Create();
+            var servicePrincipals = await spRepo.List(
+                queryModifier: q => q.Where(sp => servicePrincipalIds.Contains(sp.Id))
+                    .Select(sp => new { sp.Id, sp.ClientId }),
+                organizationId: OrganizationId
+            );
+
+            foreach (var sp in servicePrincipals)
+            {
+                if (!string.IsNullOrEmpty(sp.ClientId))
+                {
+                    _principalNames[sp.Id] = sp.ClientId;
+                }
+            }
+        }
+    }
+
+    private string GetPrincipalDisplayName(GroupMemberReadDto groupMember)
+    {
+        if (_principalNames.TryGetValue(groupMember.PrincipalId, out var name))
+        {
+            return name;
+        }
+
+        // Fallback to ID if name not found
+        return groupMember.PrincipalId.ToString();
+    }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task DeleteMember(GroupMemberReadDto groupMember)
+    {
+
+        var parameters = new DialogParameters<DeleteGroupMemberDialog>
+        {
+            { x => x.GroupMemberId, groupMember.Id },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteGroupMemberDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var id);
+            Snackbar.Add($"Successfully deleted group member\"{id}\"");
+            await ReloadGroupMembers();
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+
+}

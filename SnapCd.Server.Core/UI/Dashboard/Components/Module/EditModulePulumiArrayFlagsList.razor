@@ -1,0 +1,111 @@
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@if (_items == null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+
+else
+{
+    <MudExpansionPanels>
+
+        @foreach (var item in _items)
+        {
+            <MudExpansionPanel Text="@($"{item.Task} - {item.Flag}")">
+                <EditModulePulumiArrayFlag Context="@item"
+                                           PrincipalProvider="@PrincipalProvider"
+                                           OnDelete="() => ResetAll()"
+                                           OnUpdate="() => ResetAll()"
+                                           OnCreate="() => ResetAll()"
+                                           OnCancel="() => ResetAll()"
+                                           IsCreateMode="false"/>
+            </MudExpansionPanel>
+        }
+
+        @if (_isCreating)
+        {
+            <MudExpansionPanel IsExpanded="_newItemExpanded" IsExpandedChanged="OnNewItemExpandedChanged">
+                <EditModulePulumiArrayFlag Context="_newItem"
+                                           PrincipalProvider="@PrincipalProvider"
+                                           OnDelete="() => ResetAll()"
+                                           OnUpdate="() => ResetAll()"
+                                           OnCreate="() => ResetAll()"
+                                           OnCancel="() => ResetAll()"
+                                           IsCreateMode="true"/>
+            </MudExpansionPanel>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="StartCreate"
+                   Class="mt-2">
+            Add New
+        </MudButton>
+
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = null!;
+    [Parameter] public Guid ModuleId { get; set; }
+    [Parameter] public EventCallback OnTabClick { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ModulePulumiArrayFlagSecuredRepositoryFactory ModulePulumiArrayFlagSecuredRepositoryFactory { get; set; } = null!;
+
+    private bool _isCreating;
+    private bool _newItemExpanded;
+    private ModulePulumiArrayFlag? _newItem;
+    private List<ModulePulumiArrayFlag>? _items;
+
+    protected override Task OnInitializedAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    private void StartCreate()
+    {
+        _newItem = new ModulePulumiArrayFlag { Id = Guid.NewGuid(), ModuleId = ModuleId, OrganizationId = OrganizationId };
+        _isCreating = true;
+        _newItemExpanded = true;
+        StateHasChanged();
+    }
+
+    private void OnNewItemExpandedChanged(bool expanded)
+    {
+        _newItemExpanded = expanded;
+        if (!expanded && _isCreating)
+        {
+            // Cancel creation when panel is collapsed
+            ResetAll();
+        }
+    }
+
+    private async void ResetAll()
+    {
+        _isCreating = false;
+        _newItemExpanded = false;
+        _newItem = null;
+        await ReloadItems();
+        StateHasChanged();
+    }
+
+    private async Task ReloadItems()
+    {
+        using var repo = ModulePulumiArrayFlagSecuredRepositoryFactory.Create(PrincipalProvider);
+        _items = await repo.ListByParentId(ModuleId, OrganizationId);
+    }
+
+    public async Task InitializeItems()
+    {
+        if (_items == null)
+        {
+            await ReloadItems();
+            StateHasChanged();
+        }
+    }
+
+}

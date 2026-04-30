@@ -1,0 +1,85 @@
+﻿@page "/Account/ResendEmailConfirmation"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject IEmailSender<User> EmailSender
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Resend Email Confirmation - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Resend confirmation email">
+
+    <StatusMessage Message="@message"/>
+
+    <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <DataAnnotationsValidator/>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                    Label="Email" Placeholder="name@example.com"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "true" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12">
+                <div class="sign-in-container">
+                    <div class="divider-line"></div>
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                     FormAction="FormAction.Submit" Class="sign-in-btn">
+                        resend confirmation
+                    </MudStaticButton>
+                    <div class="divider-line"></div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            <MudLink Typo="Typo.body2" Href="Account/Login">
+                Back to Sign in
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+@code {
+    private string? message;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    private async Task OnValidSubmitAsync()
+    {
+        var user = await UserManager.FindByEmailAsync(Input.Email!);
+        if (user is null)
+        {
+            message = "Verification email sent. Please check your email.";
+            return;
+        }
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
+        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+
+        message = "Verification email sent. Please check your email.";
+    }
+
+    private sealed class InputModel
+    {
+        [Required] [EmailAddress] public string Email { get; set; } = "";
+    }
+
+}

@@ -1,0 +1,29 @@
+services:
+  sql-server-db:
+    container_name: snapcd-localdev-sql-server
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    volumes:
+      - mssqldata:/var/opt/snapcd-localdev-mssql
+    networks:
+      - snapcd-localdev-network
+    ports:
+      - "1435:1433"
+    environment:
+      SA_PASSWORD: "myPassw0rd"
+      ACCEPT_EULA: "Y"
+      # MSSQL_PID: "Express"
+
+  redis:
+    container_name: snapcd-localdev-redis
+    image: redis:7-alpine
+    networks:
+      - snapcd-localdev-network
+    ports:
+      - "6379:6379"
+
+volumes:
+  mssqldata:
+
+networks:
+  snapcd-localdev-network:
+    external: true

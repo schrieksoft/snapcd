@@ -1,0 +1,42 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Are you sure you want to deactivate user "@OrganizationUser.User?.Email"?</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            This will revoke the user's access to this organization. The user can be reactivated later.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Submit">Deactivate</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public required OrganizationUser OrganizationUser { get; set; }
+    [Parameter] public required Guid OrganizationId { get; set; }
+
+    [Inject] private OrganizationUserSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            OrganizationUser.IsDeactivated = true;
+            await repo.Update(OrganizationUser);
+            MudDialog.Close(DialogResult.Ok(OrganizationUser.Id));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to deactivate user: {ex.Message}", Severity.Error);
+        }
+    }
+}

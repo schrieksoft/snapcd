@@ -1,0 +1,39 @@
+@using SnapCd.Contracts.Dto.ServicePrincipals
+@using SnapCd.Server.Core.Services.Crud
+<MudDialog>
+    <TitleContent>
+        <MudText>Delete Service Principal</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to delete service principal "@ServicePrincipal.ClientId" (ID "@ServicePrincipal.Id")?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete">Delete</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [Inject] private ServicePrincipalServiceFactory ServiceFactory { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required ServicePrincipalReadDto ServicePrincipal { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Delete()
+    {
+        var service = ServiceFactory.Create();
+        await service.Delete(ServicePrincipal.Id, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(ServicePrincipal.Id));
+    }
+
+}

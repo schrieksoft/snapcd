@@ -1,0 +1,215 @@
+﻿@page "/SourceRefresherPreselections"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+
+@* TODO, move this to Account/Pages/Manage and add to nav menu Account/Shared/ManageNavMenu.razor. For some reason when in that location the buttons do not work! *@
+
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject IOrganizationContext OrganizationContext
+
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.SourceRefresherPreselection
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.SourceRefreshPreselections
+
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+<PageTitle>Source Refresher Preselections</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudText Typo="Typo.h4" GutterBottom="true">Source Refresher Preselections</MudText>
+
+    @if (_showCreateSourceRefresherPreselection)
+    {
+        <MudItem Class="mb-2">
+            <CreateSourceRefresherPreselection OnCreated="HandleSourceRefresherPreselectionCreated"
+                                               OnCancel="HandleCancelCreate"/>
+        </MudItem>
+    }
+
+    else
+    {
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="ShowCreateSourceRefresherPreselection"
+                   Class="mt-2 mb-2"
+        >
+            Create New
+        </MudButton>
+    }
+
+    @if (_sourceRefresherPreselections == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var sourceRefresherPreselection in _sourceRefresherPreselections)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <MudText>@sourceRefresherPreselection.SourceUrl</MudText>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudTooltip Text="Edit SourceRefresherPreselection">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="@GetColor(sourceRefresherPreselection.Id, ShowingType.Edit)"
+                                           Size="Size.Small" OnClick="() => Edit(sourceRefresherPreselection)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Delete SourceRefresherPreselection">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(sourceRefresherPreselection)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(sourceRefresherPreselection.Id, ShowingType.Edit))
+                        {
+                            <MudItem Class="mt-2">
+                                <EditSourceRefresherPreselection
+                                    SourceRefresherPreselection="_selectedSourceRefresherPreselection"
+                                    OnSaved="HandleSourceRefresherPreselectionSaved"
+                                    OnCancel="HandleCancelEdit"/>
+                            </MudItem>
+                        }
+
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+
+        </MudExpansionPanels>
+    }
+</CascadingValue>
+
+
+
+@code {
+    [Inject] private SourceRefresherPreselectionSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<SourceRefresherPreselection>? _sourceRefresherPreselections;
+    private bool _showCreateSourceRefresherPreselection;
+    private SourceRefresherPreselection? _selectedSourceRefresherPreselection;
+    private ShowingType _showing;
+
+
+    private enum ShowingType
+    {
+        None,
+        Edit
+    }
+
+    private Color GetColor(Guid sourceRefresherPreselectionId, ShowingType showTypeToMatch)
+    {
+        if (_selectedSourceRefresherPreselection == null)
+            return Color.Primary;
+        if (sourceRefresherPreselectionId == _selectedSourceRefresherPreselection.Id)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid sourceRefresherPreselectionId, ShowingType showTypeToMatch)
+    {
+        if (_selectedSourceRefresherPreselection == null)
+            return false;
+        if (sourceRefresherPreselectionId == _selectedSourceRefresherPreselection.Id && _showing == showTypeToMatch)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private void ShowCreateSourceRefresherPreselection()
+    {
+        _showCreateSourceRefresherPreselection = true;
+    }
+
+    private async Task HandleSourceRefresherPreselectionCreated(Guid sourceRefresherPreselectionId)
+    {
+        _showCreateSourceRefresherPreselection = false;
+        await ReloadSourceRefresherPreselections();
+    }
+
+    private void HandleCancelCreate()
+    {
+        _showCreateSourceRefresherPreselection = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure organizationId is in URL, redirect if missing
+        await ReloadSourceRefresherPreselections();
+    }
+
+    private async Task ReloadSourceRefresherPreselections()
+    {
+        using var repo = RepoFactory.Create();
+        _sourceRefresherPreselections = await repo.List(OrganizationId);
+    }
+
+
+    private async Task Delete(SourceRefresherPreselection sourceRefresherPreselection)
+    {
+        var parameters = new DialogParameters<DeleteSourceRefresherPreselectionDialog>
+        {
+            {
+                x => x.SourceRefresherPreselection, sourceRefresherPreselection
+            },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteSourceRefresherPreselectionDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var sourceRefresherPreselectionId);
+            Snackbar.Add($"Successfully deleted Runner \"{sourceRefresherPreselectionId}\"", Severity.Success);
+
+            await ReloadSourceRefresherPreselections();
+        }
+    }
+
+    private async Task HandleSourceRefresherPreselectionSaved(SourceRefresherPreselection sourceRefresherPreselection)
+    {
+        _selectedSourceRefresherPreselection = null;
+        _showing = ShowingType.None;
+        await ReloadSourceRefresherPreselections();
+    }
+
+    private void HandleCancelEdit()
+    {
+        _selectedSourceRefresherPreselection = null;
+        _showing = ShowingType.None;
+    }
+
+    private void Edit(SourceRefresherPreselection sourceRefresherPreselection)
+    {
+        _selectedSourceRefresherPreselection = sourceRefresherPreselection;
+        _showing = ShowingType.Edit;
+    }
+
+
+    public void Dispose()
+    {
+    }
+
+
+}

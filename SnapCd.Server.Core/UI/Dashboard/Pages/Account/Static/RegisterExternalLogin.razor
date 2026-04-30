@@ -1,0 +1,265 @@
+@page "/Account/RegisterExternalLogin"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.Extensions.Options
+@using MassTransit
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Events.Repository.Organization
+@using SnapCd.Server.Core.Mappers
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject SignInManager<User> SignInManager
+@inject IBus Bus
+@inject UserManager<User> UserManager
+@inject IUserStore<User> UserStore
+@inject IEmailSender<User> EmailSender
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<RegisterExternalLogin> Logger
+
+<PageTitle>Complete Registration - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Complete Registration">
+
+    @if (externalLoginInfo == null)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudText Typo="Typo.body1">
+                Loading external login information...
+            </MudText>
+        </MudAlert>
+    }
+    else if (!string.IsNullOrEmpty(message))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            @message
+        </MudAlert>
+    }
+    else
+    {
+
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudText Typo="Typo.body1">
+                You've successfully authenticated with <strong>@ProviderDisplayName</strong>.
+                @if (string.IsNullOrEmpty(_externalEmail))
+                {
+                    <text>Please confirm your email address to finish registration.</text>
+                }
+                else
+                {
+                    <text>Complete your registration with the email address from your
+                        <strong>@ProviderDisplayName</strong> account.</text>
+                }
+            </MudText>
+        </MudAlert>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField Value="@_externalEmail"
+                              Label="Email"
+                              Variant="Variant.Outlined" FullWidth="true"
+                              ReadOnly="true"
+                              Disabled="true"
+                              HelperText="@($"Email from your {ProviderDisplayName} account")"/>
+            </MudItem>
+            <MudItem xs="12">
+                <div class="sign-in-container">
+                    <div class="divider-line"></div>
+                    <form method="post" @formname="register-confirmation" style="display: inline;">
+                        <AntiforgeryToken/>
+                        <input type="hidden" name="Email" value="@_externalEmail"/>
+                        <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                         FormAction="FormAction.Submit" Class="sign-in-btn">
+                            Complete Registration
+                        </MudStaticButton>
+                    </form>
+                    <div class="divider-line"></div>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <div class="register-link">
+            <MudText Align="Align.Center" Typo="Typo.body2">
+                <MudLink Typo="Typo.body2" Href="Account/Register">
+                    Back to Register
+                </MudLink>
+            </MudText>
+        </div>
+    }
+</StaticAccountComponent>
+
+@code {
+    private string? message;
+    private ExternalLoginInfo externalLoginInfo = default!;
+    private string? _externalEmail;
+
+
+    [SupplyParameterFromQuery] private string? RemoteError { get; set; }
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery] private string? Action { get; set; }
+
+    private string? ProviderDisplayName => externalLoginInfo?.ProviderDisplayName;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RemoteError is not null)
+        {
+            RedirectManager.RedirectToWithStatus("Account/Register", $"Error from external provider: {RemoteError}", HttpContext);
+        }
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            var info = await SignInManager.GetExternalLoginInfoAsync();
+            if (info is null)
+            {
+                RedirectManager.RedirectToWithStatus("Account/Register", "Error loading external login information.", HttpContext);
+            }
+
+            externalLoginInfo = info;
+
+            if (Action == ExternalLoginConstants.RegisterCallbackAction)
+            {
+                await OnRegisterCallbackAsync();
+                return;
+            }
+
+            // We should only reach this page via the register callback, so redirect back to
+            // the register page if we get here some other way.
+            RedirectManager.RedirectTo("Account/Register");
+        }
+        else if (HttpMethods.IsPost(HttpContext.Request.Method))
+        {
+            // For POST requests, we need to get the external login info again
+            var info = await SignInManager.GetExternalLoginInfoAsync();
+            if (info is null)
+            {
+                RedirectManager.RedirectToWithStatus("Account/Register", "Error loading external login information during registration.", HttpContext);
+            }
+
+            externalLoginInfo = info;
+
+            // Set the external email for POST requests
+            if (externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
+            {
+                _externalEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+            }
+
+            await OnValidSubmitAsync();
+        }
+    }
+
+    private async Task OnRegisterCallbackAsync()
+    {
+        // Check if user already has an account with this external login
+        var existingLoginUser = await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey);
+        if (existingLoginUser != null)
+        {
+            message = $"This {ProviderDisplayName} account is already associated with an existing user. Please sign in instead.";
+            return;
+        }
+
+        // Get email from external login
+        if (externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
+        {
+            _externalEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        // Get email from form data
+        var formEmail = HttpContext.Request.Form["Email"].FirstOrDefault();
+        var emailToUse = !string.IsNullOrEmpty(formEmail) ? formEmail : _externalEmail;
+
+        if (string.IsNullOrEmpty(emailToUse))
+        {
+            message = "Error: No email address received from external login provider.";
+            return;
+        }
+
+        // Check if user already exists with this email
+        var existingUser = await UserManager.FindByEmailAsync(emailToUse);
+        if (existingUser != null)
+        {
+            // User exists but doesn't have this external login associated
+            message = $"Error: An account with email {emailToUse} already exists. Please sign in with your existing account first, then associate this {ProviderDisplayName} login from your profile.";
+            return;
+        }
+
+        var emailStore = GetEmailStore();
+        var user = CreateUser();
+
+        await UserStore.SetUserNameAsync(user, emailToUse, CancellationToken.None);
+        await emailStore.SetEmailAsync(user, emailToUse, CancellationToken.None);
+
+        var result = await UserManager.CreateAsync(user);
+        if (result.Succeeded)
+        {
+            result = await UserManager.AddLoginAsync(user, externalLoginInfo);
+            if (result.Succeeded)
+            {
+                Logger.LogInformation("User created an account using {Name} provider.", externalLoginInfo.LoginProvider);
+
+                await Bus.Publish(new UserCreatedEvent
+                {
+                    Data = UserMapper.ToDto(user),
+                    CreatedDateTime = DateTime.UtcNow
+                });
+
+                var userId = await UserManager.GetUserIdAsync(user);
+                var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
+                var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+                    NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+                    new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
+                await EmailSender.SendConfirmationLinkAsync(user, emailToUse, HtmlEncoder.Default.Encode(callbackUrl));
+
+                // Always show the registration confirmation for external login users
+                // They need to verify their email before they can log in
+                RedirectManager.RedirectTo("Account/RegisterConfirmation", new Dictionary<string, object?> { ["email"] = emailToUse });
+            }
+        }
+
+        message = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
+    }
+
+    private User CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<User>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(User)}'. " +
+                                                $"Ensure that '{nameof(User)}' is not an abstract class and has a parameterless constructor");
+        }
+    }
+
+    private IUserEmailStore<User> GetEmailStore()
+    {
+        if (!UserManager.SupportsUserEmail)
+        {
+            throw new NotSupportedException("The default UI requires a user store with email support.");
+        }
+
+        return (IUserEmailStore<User>)UserStore;
+    }
+
+    private void ShowMailingListDialog()
+    {
+        // In a real implementation, this would open a dialog or redirect to a mailing list signup
+    }
+
+}

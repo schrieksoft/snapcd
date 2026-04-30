@@ -1,0 +1,112 @@
+﻿@page "/Account/LoginWith2fa"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<LoginWith2fa> Logger
+
+<PageTitle>Two-Factor Authentication - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Two-factor authentication">
+
+    <StatusMessage Message="@message"/>
+
+    <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <input type="hidden" name="ReturnUrl" value="@ReturnUrl"/>
+        <input type="hidden" name="RememberMe" value="@RememberMe"/>
+        <DataAnnotationsValidator/>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.TwoFactorCode)" @bind-Value="Input.TwoFactorCode"
+                                    Label="Authenticator code" Placeholder="000000"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "off" } })"/>
+            </MudItem>
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudStaticCheckBox @bind-Value="Input.RememberMachine" For="@(() => Input.RememberMachine)">
+                    Remember this machine
+                </MudStaticCheckBox>
+            </MudItem>
+            <MudItem xs="12">
+                <div class="sign-in-container">
+                    <div class="divider-line"></div>
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                     FormAction="FormAction.Submit" Class="sign-in-btn">
+                        sign in
+                    </MudStaticButton>
+                    <div class="divider-line"></div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            Don't have access to your authenticator device?
+            <MudLink Typo="Typo.body2" Href="@($"Account/LoginWithRecoveryCode?ReturnUrl={ReturnUrl}")">
+                Use a recovery code
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+@code {
+    private string? message;
+    private User user = default!;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery] private bool RememberMe { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure the user has gone through the username & password screen first
+        user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
+               throw new InvalidOperationException("Unable to load two-factor authentication user.");
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        var authenticatorCode = Input.TwoFactorCode!.Replace(" ", string.Empty).Replace("-", string.Empty);
+        var result = await SignInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, RememberMe, Input.RememberMachine);
+        var userId = await UserManager.GetUserIdAsync(user);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User with ID '{UserId}' logged in with 2fa.", userId);
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User with ID '{UserId}' account locked out.", userId);
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            Logger.LogWarning("Invalid authenticator code entered for user with ID '{UserId}'.", userId);
+            message = "Error: Invalid authenticator code.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Text)]
+        [Display(Name = "Authenticator code")]
+        public string? TwoFactorCode { get; set; }
+
+        [Display(Name = "Remember this machine")]
+        public bool RememberMachine { get; set; }
+    }
+
+}

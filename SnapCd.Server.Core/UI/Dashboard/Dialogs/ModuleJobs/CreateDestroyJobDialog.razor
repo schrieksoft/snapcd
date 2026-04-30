@@ -1,0 +1,426 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Contracts.Dto
+@using SnapCd.Server.Core.UI.Dashboard.Components.Module
+@using MassTransit
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Events.Gatekeeping
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.DependencyGraph
+
+@inject ISnackbar Snackbar
+@inject ILogger<CreateDestroyJobDialog> Logger
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+@inject PersistentComponentState ApplicationState
+
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Destroy Module</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (Module == null)
+        {
+            <div class="text-center">
+                <MudText Typo="Typo.h6" Class="mb-4">Loading module...</MudText>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+            </div>
+        }
+        else if (!_dependencyCheckCompleted)
+        {
+            <div class="text-center">
+                <MudText Typo="Typo.h6" Class="mb-4">Analyzing dependencies...</MudText>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+                <MudText Typo="Typo.body2" Class="mt-4">
+                    Checking dependencies for "@Module.Name"...
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                Are you sure you want to destroy this module?
+            </MudText>
+            <div class="mb-3">
+                <MudChip T="string" Color="Color.Info"
+                         Variant="Variant.Text">@(_currentModuleDisplayName ?? Module?.Name ?? "this module")</MudChip>
+            </div>
+
+            @if (_recursiveDependencies.Any())
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    <strong>Note:</strong> Destroying this module may affect @_recursiveDependencies.Count dependent
+                    module(s).
+                </MudAlert>
+                <MudText Typo="Typo.body1" Class="mb-2">Modules that depend on this module:</MudText>
+                <MudStack Class="mb-3" AlignItems="AlignItems.Start">
+                    @foreach (var dep in _recursiveDependencies)
+                    {
+                        <MudChip T="string" Color="Color.Info" Variant="Variant.Text">@dep</MudChip>
+                    }
+                </MudStack>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-3">
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2" Color="Color.Success">No other modules depend on this module
+                            </MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudPaper>
+            }
+
+            <MudCheckBox T="bool"
+                         Value="@_destroyWithDependencies"
+                         Label="Also destroy all dependent modules"
+                         Color="Color.Info"
+                         Class="mb-3"
+                         Disabled="@_isDestroying"
+                         ValueChanged="@(async (bool e) => await OnDestroyWithDependenciesChanged(e))"
+            />
+
+            @if (_destroyWithDependencies && !_dependencyGraphLoaded)
+            {
+                <div class="text-center mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-2">Building destruction plan</MudText>
+                    <MudProgressCircular Color="Color.Error" Indeterminate="true" Size="Size.Medium"/>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Analyzing dependency graph for destruction...
+                    </MudText>
+                </div>
+            }
+
+            @if (_destroyWithDependencies && _dependencyGraphLoaded && _destroyGraph != null)
+            {
+                <MudText Typo="Typo.h6" Class="mb-3">Destruction Plan</MudText>
+                <MudText Typo="Typo.body2" Class="mb-4">
+                    The following @_destroyGraph.TotalModuleCount module(s) will be destroyed
+                    in @_destroyGraph.TotalStages stage(s):
+                </MudText>
+
+
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <DestroyModuleDependencyFlow DestroyGraph="_destroyGraph"/>
+                </div>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_destroyWithDependencies && _dependencyGraphLoaded && _destroyGraph != null)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Style="background-color: black; color: white;"
+                       OnClick="ExecuteDependencyDestruction"
+                       Disabled="@_isDestroying">
+                @if (_isDestroying)
+                {
+                    @:Destroying Infrastructure...
+                }
+                else
+                {
+                    @:Destroy All (@_destroyGraph.TotalModuleCount modules)
+                }
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled"
+                       Style="background-color: black; color: white;"
+                       OnClick="DestroyModule"
+                       Disabled="@(_isDestroying || Module == null || !_dependencyCheckCompleted || (_destroyWithDependencies && !_dependencyGraphLoaded))">
+                @if (_isDestroying)
+                {
+                    @:Destroying...
+                }
+                else if (_destroyWithDependencies && _destroyGraph != null)
+                {
+                    @:Destroy All (@_destroyGraph.TotalModuleCount modules)
+                }
+                else
+                {
+                    @:Destroy Module
+                }
+            </MudButton>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: black; color: white;"
+                   OnClick="Cancel"
+                   Disabled="@_isDestroying">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private DestroyModuleGraphServiceFactory DestroyGraphServiceFactory { get; set; } = null!;
+    [Inject] private DependencyGraphServiceFactory DependencyGraphServiceFactory { get; set; } = null!;
+    [Inject] private IPublishEndpoint Publisher { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid NamespaceId { get; set; }
+    [Parameter] public required Guid JobId { get; set; }
+
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+
+    private Module? Module;
+    private bool _isDestroying;
+    private bool _dependencyCheckCompleted;
+    private string _currentModuleDisplayName = "";
+    private List<string> _recursiveDependencies = new();
+
+    // Properties for dependency destruction
+    private bool _destroyWithDependencies = false;
+    private bool _dependencyGraphLoaded;
+    private DestroyModuleGraphDto? _destroyGraph;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load module information
+        using var moduleRepo = ModuleRepoFactory.Create();
+        Module = await moduleRepo.Get(
+            queryModifier: q => q.Include(m => m.Namespace),
+            id: ModuleId,
+            organizationId: OrganizationId
+        );
+
+        // Check dependencies to show in single module view
+        await CheckDependencies();
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // var cacheKey = $"createDestroyJobDialog_{ModuleId}_{NamespaceId}_{JobId}";
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedDialogData
+        //     {
+        //         Module = Module,
+        //         IsDestroying = _isDestroying,
+        //         DependencyCheckCompleted = _dependencyCheckCompleted,
+        //         CurrentModuleDisplayName = _currentModuleDisplayName,
+        //         RecursiveDependencies = _recursiveDependencies,
+        //         DestroyWithDependencies = _destroyWithDependencies,
+        //         DependencyGraphLoaded = _dependencyGraphLoaded,
+        //         DestroyGraph = _destroyGraph
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedDialogData>(cacheKey, out var cachedData))
+        // {
+        //     Module = cachedData.Module;
+        //     _isDestroying = cachedData.IsDestroying;
+        //     _dependencyCheckCompleted = cachedData.DependencyCheckCompleted;
+        //     _currentModuleDisplayName = cachedData.CurrentModuleDisplayName;
+        //     _recursiveDependencies = cachedData.RecursiveDependencies;
+        //     _destroyWithDependencies = cachedData.DestroyWithDependencies;
+        //     _dependencyGraphLoaded = cachedData.DependencyGraphLoaded;
+        //     _destroyGraph = cachedData.DestroyGraph;
+        // }
+    }
+
+    private async Task CheckDependencies()
+    {
+        try
+        {
+            // Use DestroyModuleGraphService to get recursive dependencies
+            using var destroyGraphService = DestroyGraphServiceFactory.Create();
+
+            // Get all modules that recursively depend on this module
+            var allDependencies = await destroyGraphService.ListRecursiveDestroyDependenciesForReferencedModule(ModuleId);
+
+            // Get the current module's display name from the dependencies where this module is referenced
+            var currentModuleRef = allDependencies
+                .Where(x => x.ReferencedModuleId == ModuleId)
+                .Select(x => x.ReferencedDisplayName)
+                .FirstOrDefault();
+
+            if (currentModuleRef != null)
+            {
+                _currentModuleDisplayName = currentModuleRef;
+            }
+            else if (Module != null)
+            {
+                // Fallback: construct display name from module info
+                _currentModuleDisplayName = $"{Module.Namespace.Name}/{Module.Name}";
+            }
+
+            // Group by the dependent module to show each one only once
+            var dependentModules = allDependencies
+                .GroupBy(d => new { d.DefinedModuleId, d.DefinedDisplayName })
+                .Select(g => g.First())
+                .ToList();
+
+            _recursiveDependencies.Clear();
+            foreach (var dep in dependentModules)
+            {
+                _recursiveDependencies.Add(dep.DefinedDisplayName);
+            }
+
+            _dependencyCheckCompleted = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error checking dependencies: {ex.Message}", Severity.Error);
+            _dependencyCheckCompleted = true;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        if (!_isDestroying)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task DestroyModule()
+    {
+        _isDestroying = true;
+        StateHasChanged();
+
+        try
+        {
+            if (_destroyWithDependencies && _destroyGraph != null)
+            {
+                await ExecuteDependencyDestruction();
+            }
+            else
+            {
+                using var service = SecuredJobServiceFactory.Create();
+                await service.Destroy(ModuleId, OrganizationId, JobId);
+                await InvokeAsync(() => Snackbar.Add($"Destroy job created successfully", Severity.Success));
+                MudDialog.Close(DialogResult.Ok(ModuleId));
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating destroy job: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error creating destroy job");
+            _isDestroying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnDestroyWithDependenciesChanged(bool isChecked)
+    {
+        Logger.LogInformation("Destroy with dependencies changed to: {IsChecked}", isChecked);
+        _destroyWithDependencies = isChecked;
+
+        if (isChecked)
+        {
+            // Reset state and show loading
+            _dependencyGraphLoaded = false;
+            _destroyGraph = null;
+            Logger.LogInformation("Resetting dependency graph state, will show loading spinner");
+            StateHasChanged();
+
+            await LoadDependencyGraph();
+        }
+        else
+        {
+            // Clear dependency graph when unchecked
+            _dependencyGraphLoaded = false;
+            _destroyGraph = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadDependencyGraph()
+    {
+        try
+        {
+            Logger.LogInformation("Starting to load dependency graph for module {ModuleId}", ModuleId);
+            using var destroyGraphService = DestroyGraphServiceFactory.Create();
+            _destroyGraph = await destroyGraphService.BuildDestroyGraphAsync(ModuleId);
+
+            _dependencyGraphLoaded = true;
+            Logger.LogInformation("Dependency graph loaded successfully. Graph has {ModuleCount} modules", _destroyGraph?.TotalModuleCount ?? 0);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load dependency graph for module {ModuleId}", ModuleId);
+            await InvokeAsync(() => Snackbar.Add($"Failed to build destroy graph: {ex.Message}", Severity.Error));
+            _destroyWithDependencies = false;
+            _dependencyGraphLoaded = false;
+            _destroyGraph = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ExecuteDependencyDestruction()
+    {
+        if (_destroyGraph == null)
+        {
+            Snackbar.Add("Destroy graph not loaded", Severity.Error);
+            return;
+        }
+
+        _isDestroying = true;
+        StateHasChanged();
+
+        try
+        {
+            // Send GatekeepingJobRequested events for all modules in the destroy graph
+            // Process in reverse stage order to ensure proper destruction sequence
+            var modulesByStage = _destroyGraph.NodeStates
+                .GroupBy(n => n.Stage)
+                .OrderByDescending(g => g.Key); // Highest stage numbers first
+
+            foreach (var stage in modulesByStage)
+            {
+                foreach (var nodeState in stage)
+                {
+                    var gatekeepingJobRequest = new GatekeepingJobRequested
+                    {
+                        ModuleId = nodeState.ModuleId,
+                        OrganizationId = OrganizationId,
+                        DesiredStateHeadline = DesiredStateHeadline.Destroyed,
+                        SetNewDesiredState = true
+                    };
+
+                    await Publisher.Publish(gatekeepingJobRequest);
+                }
+            }
+
+            Snackbar.Add($"Destruction initiated for {_destroyGraph.TotalModuleCount} modules in {_destroyGraph.TotalStages} stages", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(_destroyGraph.NodeStates.Select(n => n.ModuleId).ToList()));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initiate destruction: {ex.Message}", Severity.Error);
+            _isDestroying = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+    }
+
+    private class CachedDialogData
+    {
+        public Module? Module { get; set; }
+        public bool IsDestroying { get; set; }
+        public bool DependencyCheckCompleted { get; set; }
+        public string CurrentModuleDisplayName { get; set; } = "";
+        public List<string> RecursiveDependencies { get; set; } = new();
+        public bool DestroyWithDependencies { get; set; }
+        public bool DependencyGraphLoaded { get; set; }
+        public DestroyModuleGraphDto? DestroyGraph { get; set; }
+    }
+
+}

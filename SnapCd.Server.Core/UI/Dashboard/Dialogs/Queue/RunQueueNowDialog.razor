@@ -1,0 +1,44 @@
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Run Queued</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are your sure you want to force queued items to run now? This may cause conflicts if another Job is currently
+        running!
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Run">Run</MudButton>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid NamespaceId { get; set; }
+
+    [Parameter] public required IPrincipalProvider PrincipalProvider { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Run()
+    {
+        using var jobService = SecuredJobServiceFactory.Create(PrincipalProvider);
+        await jobService.RunQueued(ModuleId, NamespaceId, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(ModuleId));
+    }
+
+}

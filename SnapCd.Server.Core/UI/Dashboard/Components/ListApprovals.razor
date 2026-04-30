@@ -1,0 +1,388 @@
+@implements IDisposable
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Approvals
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Sagas
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using Color = MudBlazor.Color
+
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+
+
+
+@if (_approvals == null)
+{
+    <p><em>Loading approvals...</em></p>
+}
+else
+{
+    <MudExpansionPanels>
+        <MudPaper Elevation="0" Class="pa-4 mb-4">
+            <MudText>@GetApprovalCountText()</MudText>
+        </MudPaper>
+        @foreach (var approval in _approvals)
+        {
+            {
+                var iconColor = approval.ModuleJobApproval.Declined ? Color.Error : Color.Success;
+                var iconType = approval.ModuleJobApproval.Declined ? Icons.Material.Filled.Error : Icons.Material.Filled.CheckCircle;
+                var iconTooltip = approval.ModuleJobApproval.Declined ? "Declined" : "Approved";
+                var isUsersApproval = _principalId == approval.ModuleJobApproval.PrincipalId;
+
+                var elapsedTime = DateTime.UtcNow - approval.ModuleJobApproval.DecisionDateTime;
+                var elapsedDisplay = elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes} minutes ago"
+                    : elapsedTime.TotalHours < 24 ? $"{(int)elapsedTime.TotalHours} hours ago"
+                    : elapsedTime.TotalHours >= 24 && elapsedTime.TotalHours < 48 ? "yesterday"
+                    : $"{(int)elapsedTime.TotalDays} days ago";
+
+                <MudExpansionPanel Class="custom-panel" @key="approval.ModuleJobApproval.Id" Disabled="true"
+                                   HideIcon="true">
+                    <TitleContent>
+                        <MudGrid>
+                            <MudItem md="3">
+                                <MudGrid>
+                                    <MudItem md="2">
+                                        <MudTooltip Text="@iconTooltip">
+                                            <MudIcon Icon="@iconType" Color="@iconColor"></MudIcon>
+                                        </MudTooltip>
+                                    </MudItem>
+                                    <MudItem md="10">
+                                        <MudText Typo="Typo.body2">@iconTooltip</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+                            <MudItem md="3">
+                                <MudText Typo="Typo.body2">@approval.PrincipalName</MudText>
+                            </MudItem>
+                            <MudItem md="3">
+                                <MudText Typo="Typo.body2">@elapsedDisplay</MudText>
+                            </MudItem>
+                            <MudItem md="3">
+                                @if (isUsersApproval && _isWaitingForApproval)
+                                {
+                                    <MudTooltip Text="Remove My Approval">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Color="Color.Primary" Size="Size.Small"
+                                                       OnClick="() => RemoveApproval(approval.ModuleJobApproval.Id)"/>
+                                    </MudTooltip>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    </TitleContent>
+                    <ChildContent>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        }
+
+    </MudExpansionPanels>
+}
+
+
+<MudPaper Elevation="0" Class="pa-4 mb-4">
+    @if (_isWaitingForApproval)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Approve">Approve</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Decline">Decline</MudButton>
+    }
+
+    @* <MudTooltip Text="Refresh"> *@
+    @*     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium" *@
+    @*                    OnClick="() => ReloadApprovals()"/> *@
+    @* </MudTooltip> *@
+</MudPaper>
+
+
+
+
+
+@code {
+    [Parameter] public required Guid ModuleJobId { get; set; }
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required string JobSagaType { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private ModuleJobSecuredRepositoryFactory ModuleJobRepoFactory { get; set; } = null!;
+    [Inject] private ModuleJobApprovalSecuredRepositoryFactory ModuleJobApprovalRepoFactory { get; set; } = null!;
+    [Inject] private OrganizationUserSecuredRepositoryFactory OrganizationUserSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
+
+    private List<Approval>? _approvals;
+    private int _approvalCount;
+    private int _approvalThreshold;
+    private bool _isWaitingForApproval;
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO set up caching
+
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+
+        await ReloadApprovalThreshold();
+        await ReloadModuleJobStatus();
+        await ReloadApprovals();
+    }
+
+
+    public void Dispose()
+    {
+    }
+
+
+    public async Task RefreshAll(bool invokeAsync = false)
+    {
+        await ReloadApprovalThreshold();
+        await ReloadModuleJobStatus();
+        await ReloadApprovals();
+
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+    public async Task RefreshModuleJobStatus(bool invokeAsync = false)
+    {
+        await ReloadModuleJobStatus();
+
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+    public async Task RefreshApprovalThreshold(bool invokeAsync = false)
+    {
+        await ReloadApprovalThreshold();
+
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+
+    private string GetApprovalCountText()
+    {
+        return $"{_approvalCount} of {_approvalThreshold} Approvals";
+    }
+
+
+    private async Task RemoveApproval(Guid moduleJobApprovalId)
+    {
+        var parameters = new DialogParameters<DeleteApprovalDialog>
+        {
+            { x => x.ModuleJobApprovalId, moduleJobApprovalId },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteApprovalDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deletedModuleJobId);
+            using var repo = ModuleJobApprovalRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+            await repo.Delete(moduleJobApprovalId, OrganizationId);
+            Snackbar.Add($"Successfully deleted  \"{deletedModuleJobId}\"");
+        }
+    }
+
+    private async Task Approve()
+    {
+        var parameters = new DialogParameters<ApprovePlanDialog>
+        {
+            { x => x.ModuleJobId, ModuleJobId },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ApprovePlanDialog>("Approve", parameters, options);
+        var result = await dialog.Result;
+
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var approvedModuleJobId);
+            using var repo = ModuleJobApprovalRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+            await repo.Create(CreateApprovalEntity(false));
+            Snackbar.Add($"Successfully approved  \"{approvedModuleJobId}\"");
+        }
+    }
+
+
+    private async Task Decline()
+    {
+        var parameters = new DialogParameters<DeclinePlanDialog>
+        {
+            { x => x.ModuleJobId, ModuleJobId },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeclinePlanDialog>("Decline", parameters, options);
+        var result = await dialog.Result;
+
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var declinedModuleJobId);
+            using var repo = ModuleJobApprovalRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+            await repo.Create(CreateApprovalEntity(true));
+            Snackbar.Add($"Successfully declined  \"{declinedModuleJobId}\"");
+        }
+    }
+
+
+    private ModuleJobApproval CreateApprovalEntity(bool declined)
+    {
+        return new ModuleJobApproval
+        {
+            Id = Guid.NewGuid(),
+            ModuleJobId = ModuleJobId,
+            OrganizationId = OrganizationId,
+            DecisionDateTime = DateTime.UtcNow,
+            Declined = declined,
+            PrincipalId = _principalId,
+            PrincipalDiscriminator = _principalDiscriminator
+        };
+    }
+
+
+    private async Task ReloadModuleJobStatus()
+    {
+        using var repo = ModuleJobRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+
+        _isWaitingForApproval = (await repo.Get(ModuleJobId, OrganizationId)).WaitingForApproval.GetValueOrDefault();
+
+        // // TODO this is not working for some reason!
+        // var foo = await repo.Get<bool?>(ModuleJobId, x => x.Select(y => y.WaitingForApproval));
+        //
+    }
+
+
+    private async Task ReloadApprovalThreshold()
+    {
+        using var repo = ModuleRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+
+        // Get both module and namespace approval thresholds
+        var module = await repo.Get<SnapCd.Server.Core.Entities.Definition.Module>(ModuleId, OrganizationId, x => x
+            .Include(m => m.Namespace)
+            .Select(y => new SnapCd.Server.Core.Entities.Definition.Module
+            {
+                Id = ModuleId,
+                ApplyApprovalThreshold = y.ApplyApprovalThreshold,
+                DestroyApprovalThreshold = y.DestroyApprovalThreshold,
+                Namespace = new SnapCd.Server.Core.Entities.Definition.Namespace
+                {
+                    Id = y.Namespace.Id,
+                    DefaultApplyApprovalThreshold = y.Namespace.DefaultApplyApprovalThreshold,
+                    DefaultDestroyApprovalThreshold = y.Namespace.DefaultDestroyApprovalThreshold
+                }
+            }));
+
+        if (JobSagaType == nameof(ApplyJobSaga))
+        {
+            // Use module-level threshold if set, otherwise fall back to namespace default, then 0
+            _approvalThreshold = module.ApplyApprovalThreshold ?? module.Namespace.DefaultApplyApprovalThreshold ?? 0;
+        }
+        else if (JobSagaType == nameof(DestroyJobSaga))
+        {
+            // Use module-level threshold if set, otherwise fall back to namespace default, then 0
+            _approvalThreshold = module.DestroyApprovalThreshold ?? module.Namespace.DefaultDestroyApprovalThreshold ?? 0;
+        }
+        else
+            throw new NotImplementedException($"Not implemented for JobSagaType {JobSagaType}");
+    }
+
+    public async Task ReloadApprovals()
+    {
+        using var repo = ModuleJobApprovalRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        var moduleJobApprovals = await repo.ListByJob(ModuleJobId, OrganizationId);
+
+        var servicePrincipalIds = moduleJobApprovals
+            .Where(x => x.PrincipalDiscriminator == PrincipalDiscriminator.ServicePrincipal)
+            .Select(x => x.PrincipalId)
+            .ToList();
+
+        var userIds = moduleJobApprovals
+            .Where(x => x.PrincipalDiscriminator == PrincipalDiscriminator.User)
+            .Select(x => x.PrincipalId)
+            .ToList();
+
+        using var servicePrincipalRepo = ServicePrincipalRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        var servicePrincipals = await servicePrincipalRepo
+            .List(OrganizationId,
+                x => x.Where(y => servicePrincipalIds.Contains(y.Id))
+            );
+
+        using var userRepo = OrganizationUserSecuredRepositoryFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        var users = await userRepo
+            .List(
+                OrganizationId,
+                x => x
+                    .Where(y => userIds.Contains(y.UserId))
+                    .Include(x => x.User)
+            );
+
+        var approvals = new List<Approval>();
+
+        foreach (var moduleJobApproval in moduleJobApprovals)
+        {
+            string principalName;
+
+            switch (moduleJobApproval.PrincipalDiscriminator)
+            {
+                case PrincipalDiscriminator.ServicePrincipal:
+                {
+                    principalName = servicePrincipals
+                        .Where(x => x.Id == moduleJobApproval.PrincipalId)
+                        .Select(x => x.ClientId)
+                        .SingleOrDefault() ?? string.Empty;
+                    break;
+                }
+                case PrincipalDiscriminator.User:
+                {
+                    principalName = users
+                        .Where(x => x.UserId == moduleJobApproval.PrincipalId)
+                        .Select(x => x.User.UserName)
+                        .SingleOrDefault() ?? string.Empty;
+                    break;
+                }
+                default:
+                    throw new NotImplementedException($"Not implemented for PrincipalDiscriminator {nameof(moduleJobApproval.PrincipalDiscriminator)}");
+            }
+
+            var approval = new Approval
+            {
+                ModuleJobApproval = moduleJobApproval,
+                PrincipalName = principalName
+            };
+
+            approvals.Add(approval);
+        }
+
+        _approvals = approvals;
+        _approvalCount = approvals.Count(x => !x.ModuleJobApproval.Declined);
+    }
+
+    private class Approval
+    {
+        public ModuleJobApproval ModuleJobApproval { get; set; } = null!;
+
+        public string PrincipalName { get; set; } = null!;
+    }
+
+
+}

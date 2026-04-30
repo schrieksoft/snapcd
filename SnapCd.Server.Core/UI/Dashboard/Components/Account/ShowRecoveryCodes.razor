@@ -1,0 +1,38 @@
+@using MudBlazor
+
+<StatusMessage Message="@StatusMessage" />
+
+<MudText Typo="Typo.h4" GutterBottom="true">Recovery codes</MudText>
+
+<MudAlert Severity="Severity.Warning" Class="mb-4">
+    <MudText Typo="Typo.body1">
+        <strong>Put these codes in a safe place.</strong>
+    </MudText>
+    <MudText Typo="Typo.body2">
+        If you lose your device and don't have the recovery codes you will lose access to your account.
+    </MudText>
+</MudAlert>
+
+<MudPaper Elevation="1" Class="pa-4 mb-4" Style="background-color: #f5f5f5;">
+    <div style="font-family: monospace; font-size: 1.1rem; line-height: 1.8;">
+        @foreach (var recoveryCode in RecoveryCodes)
+        {
+            <div>@recoveryCode</div>
+        }
+    </div>
+</MudPaper>
+
+<MudButton Variant="Variant.Filled" 
+           Color="Color.Primary" 
+           Href="/Account/Manage/Profile"
+           StartIcon="@Icons.Material.Filled.ArrowBack">
+    Back to Profile
+</MudButton>
+
+@code {
+    [Parameter]
+    public string[] RecoveryCodes { get; set; } = [];
+
+    [Parameter]
+    public string? StatusMessage { get; set; }
+}

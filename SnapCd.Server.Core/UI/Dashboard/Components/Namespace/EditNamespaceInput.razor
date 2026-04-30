@@ -1,0 +1,289 @@
+@typeparam TEntity where TEntity : SnapCd.Server.Core.Entities.Definition.Base.NamespaceInput, new()
+    @typeparam TSecuredRepositoryFactory where TSecuredRepositoryFactory : class
+@using System.Text.Json
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.Base
+@using SnapCd.Server.Core.Entities.Interfaces
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@using InputType = SnapCd.Contracts.InputType
+@inherits ComponentBase
+
+<MudGrid>
+    <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
+        @if (Context is NamespaceInput input)
+        {
+            <MudItem xs="12" Class="mb-4">
+                <MudTextField
+                    Label="Name"
+                    @bind-Value="input.Name"
+                    FullWidth="true"
+                    Immediate="true"
+                />
+            </MudItem>
+        }
+
+        @if (Context is INamespaceInputFromDefinition fromDef)
+        {
+            <MudItem xs="12" Class="mb-4">
+                <MudSelect Label="Definition Type"
+                           @bind-Value="fromDef.DefinitionName"
+                           T="DefinitionInputType"
+                           FullWidth="true">
+                    @foreach (var type in Enum.GetValues<DefinitionInputType>())
+                    {
+                        <MudSelectItem Value="@type">@type.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+
+        @if (Context is INamespaceInputFromLiteral fromLiteral)
+        {
+            <MudItem xs="12" Class="mb-4">
+                <MudTextField Label="Literal Value"
+                              @bind-Value="fromLiteral.LiteralValue"
+                              Required
+                              Immediate="true"
+                              RequiredError="Literal value is required"
+                              FullWidth="true"/>
+            </MudItem>
+            <MudItem xs="12" Class="mb-4">
+                <MudSelect Label="Type"
+                           @bind-Value="fromLiteral.Type"
+                           T="InputType"
+                           FullWidth="true">
+                    @foreach (var type in Enum.GetValues<InputType>())
+                    {
+                        <MudSelectItem Value="@type">@type.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+
+        <!-- FromSecret -->
+        @if (Context is INamespaceInputFromSecret fromSecret && Context is NamespaceInputFromSecret concreteFromSecret)
+        {
+            <MudItem xs="12" Class="mb-4">
+                <MudAutocomplete T="SecretItem"
+                                 Label="Secret"
+                                 Value="_selectedSecret"
+                                 ValueChanged="OnSecretSelected"
+                                 SearchFunc="@SearchSecrets"
+                                 ToStringFunc="@(s => s?.DisplayName ?? string.Empty)"
+                                 Variant="Variant.Outlined"
+                                 FullWidth="true"
+                                 Required="true"
+                                 RequiredError="Secret is required">
+                    <ItemTemplate Context="secretItem">
+                        <MudText>@secretItem.Name <MudText Typo="Typo.caption" Class="ml-2">(@secretItem.Source)</MudText></MudText>
+                    </ItemTemplate>
+                </MudAutocomplete>
+            </MudItem>
+            <MudItem xs="12" Class="mb-4">
+                <MudSelect Label="Type"
+                           @bind-Value="concreteFromSecret.Type"
+                           T="InputType"
+                           FullWidth="true">
+                    @foreach (var type in Enum.GetValues<InputType>())
+                    {
+                        <MudSelectItem Value="@type">@type.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+
+
+
+        <MudStack Row="true" Spacing="4" Class="mt-4">
+
+            @if (IsCreateMode)
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="CreateItem">
+                    Create
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           Disabled="@(!HasChanges)"
+                           OnClick="UpdateItem">
+                    Save
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteItem">
+                    Delete
+                </MudButton>
+            }
+        </MudStack>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public bool IsCreateMode { get; set; } = true;
+    [Parameter] public TEntity Context { get; set; } = default!;
+    [Parameter] public TSecuredRepositoryFactory RepositoryFactory { get; set; } = default!;
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [Parameter] public Guid NamespaceId { get; set; }
+    [Parameter] public Guid StackId { get; set; }
+
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnUpdate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private NamespaceSecretSecuredRepositoryFactory NamespaceSecretRepoFactory { get; set; } = null!;
+    [Inject] private StackSecretSecuredRepositoryFactory StackSecretRepoFactory { get; set; } = null!;
+
+    private TEntity _original = default!;
+    private SecretItem? _selectedSecret;
+    private List<SecretItem> _allSecrets = new();
+
+    // Helper class to hold secret info with source
+    private class SecretItem
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
+        public string DisplayName => $"{Name} ({Source})";
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _original = Clone(Context);
+
+        // Load secrets if this is a FromSecret type
+        if (Context is INamespaceInputFromSecret fromSecret)
+        {
+            await LoadSecrets();
+
+            // Set selected secret if already has a value
+            if (fromSecret.SecretId != Guid.Empty)
+            {
+                _selectedSecret = _allSecrets.FirstOrDefault(s => s.Id == fromSecret.SecretId);
+            }
+        }
+    }
+
+    private async Task LoadSecrets()
+    {
+        _allSecrets.Clear();
+
+        // Load Namespace secrets
+        using var namespaceSecretRepo = NamespaceSecretRepoFactory.Create(PrincipalProvider);
+        var namespaceSecrets = await namespaceSecretRepo.ListByParentId(NamespaceId, OrganizationId);
+        foreach (var secret in namespaceSecrets)
+        {
+            _allSecrets.Add(new SecretItem { Id = secret.Id, Name = secret.Name, Source = "Namespace" });
+        }
+
+        // Load Stack secrets
+        using var stackSecretRepo = StackSecretRepoFactory.Create(PrincipalProvider);
+        var stackSecrets = await stackSecretRepo.ListByParentId(StackId, OrganizationId);
+        foreach (var secret in stackSecrets)
+        {
+            _allSecrets.Add(new SecretItem { Id = secret.Id, Name = secret.Name, Source = "Stack" });
+        }
+    }
+
+    private Task<IEnumerable<SecretItem>> SearchSecrets(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult<IEnumerable<SecretItem>>(_allSecrets);
+
+        var filtered = _allSecrets.Where(s => s.Name.Contains(value, StringComparison.OrdinalIgnoreCase)
+                                           || s.Source.Contains(value, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult<IEnumerable<SecretItem>>(filtered);
+    }
+
+    private void OnSecretSelected(SecretItem? value)
+    {
+        _selectedSecret = value;
+        if (Context is INamespaceInputFromSecret fromSecret)
+        {
+            fromSecret.SecretId = value?.Id ?? Guid.Empty;
+        }
+    }
+
+    private bool HasChanges => !AreEqual(Context, _original);
+
+    private async Task DeleteItem()
+    {
+        try
+        {
+            using var repository = ((dynamic)RepositoryFactory).Create(PrincipalProvider);
+            await repository.Delete((Context as IEntity).Id);
+            await OnDelete.InvokeAsync();
+            Snackbar.Add("Item deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting item");
+        }
+    }
+
+    private async Task CreateItem()
+    {
+        try
+        {
+            using var repository = ((dynamic)RepositoryFactory).Create(PrincipalProvider);
+            await repository.Create(Context);
+            await OnCreate.InvokeAsync();
+            Snackbar.Add("Item created successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating item");
+        }
+    }
+
+    private async Task UpdateItem()
+    {
+        try
+        {
+            using var repository = ((dynamic)RepositoryFactory).Create(PrincipalProvider);
+            await repository.Update(Context, (Context as IEntity).Id);
+            _original = Clone(Context);
+            await OnUpdate.InvokeAsync();
+            Snackbar.Add("Item updated successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "updating item");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+
+    private TEntity Clone(TEntity source)
+    {
+        return JsonSerializer.Deserialize<TEntity>(JsonSerializer.Serialize(source))!;
+    }
+
+
+    private bool AreEqual(TEntity a, TEntity b)
+    {
+        return JsonSerializer.Serialize(a) == JsonSerializer.Serialize(b);
+    }
+
+}

@@ -1,0 +1,28 @@
+﻿@page "/Account/AccessDenied"
+
+@layout AccountLayout
+
+
+<PageTitle>Access Denied - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Access Denied">
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        <MudText Typo="Typo.body1" Class="mb-3">
+            You do not have access to this resource.
+        </MudText>
+        
+        <MudText Typo="Typo.body1">
+            If you believe this is an error, please contact your administrator.
+        </MudText>
+    </MudAlert>
+    
+    <div class="register-link">
+        <div class="login-button-container">
+            <div class="divider-line"></div>
+            <a href="/Account/Login" class="login-btn-link">
+                go to login
+            </a>
+            <div class="divider-line"></div>
+        </div>
+    </div>
+</StaticAccountComponent>

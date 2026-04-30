@@ -1,0 +1,268 @@
+@page "/Account/Login"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@inject EmailConfirmationService EmailConfirmationService
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject TurnstileVerificationService TurnstileService
+
+<PageTitle>Log in - Snap CD</PageTitle>
+
+<StaticAccountComponent>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            <div>@errorMessage</div>
+            @if (!string.IsNullOrEmpty(unconfirmedEmail))
+            {
+                <div class="mt-3">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               OnClick="ResendConfirmationEmail"
+                               Disabled="@_isResending">
+                        @if (_isResending)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                            <span>Sending...</span>
+                        }
+                        else
+                        {
+                            <span>Resend Confirmation Email</span>
+                        }
+                    </MudButton>
+                </div>
+            }
+        </MudAlert>
+    }
+
+    @if (!string.IsNullOrEmpty(_resendMessage))
+    {
+        <MudAlert Severity="@(_resendSuccess ? Severity.Success : Severity.Warning)" Class="mb-4">
+            @_resendMessage
+        </MudAlert>
+    }
+
+    <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+        <DataAnnotationsValidator/>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                    Label="Email" Placeholder="name@example.com"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "true" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                    Label="Password" InputType="InputType.Password" Placeholder="password"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "current-password" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12" Class="d-flex justify-space-between align-center">
+                <MudStaticCheckBox For="@(() => Input.RememberMe)" @bind-Value="Input.RememberMe">Remember me
+                </MudStaticCheckBox>
+                <MudLink Href="Account/ForgotPassword" Typo="Typo.body2">Forgot password?</MudLink>
+            </MudItem>
+            <MudItem xs="12">
+                <TurnstileWidget />
+            </MudItem>
+            <MudItem xs="12">
+                <div class="sign-in-container">
+                    <div class="divider-line"></div>
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                     FormAction="FormAction.Submit" Class="sign-in-btn">
+                        Sign In
+                    </MudStaticButton>
+                    <div class="divider-line"></div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    <div class="external-login-section">
+        <MudText Align="Align.Center" Typo="Typo.body2" Class="mb-2" Style="color: var(--mud-palette-text-secondary);">
+            or continue with
+        </MudText>
+        <ExternalLoginPicker/>
+    </div>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            Don't have an account?
+            <MudLink Typo="Typo.body2"
+                     Href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">
+                Sign up
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+
+@code {
+    private string? errorMessage;
+    private string? unconfirmedEmail;
+    private bool _isResending;
+    private string? _resendMessage;
+    private bool _resendSuccess;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContext != null && HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        // Clear previous messages
+        errorMessage = null;
+        unconfirmedEmail = null;
+        _resendMessage = null;
+
+        // Verify Turnstile token
+        var turnstileToken = HttpContext.Request.Form["cf-turnstile-response"].ToString();
+        Logger.LogInformation("Form turnstile token length: {Length}", turnstileToken?.Length ?? 0);
+        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var turnstileResult = await TurnstileService.VerifyAsync(turnstileToken, remoteIp);
+        if (!turnstileResult.IsSuccess)
+        {
+            errorMessage = turnstileResult.ErrorMessage;
+            return;
+        }
+
+        // This doesn't count login failures towards account lockout
+        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, false);
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                RedirectManager.RedirectTo(ReturnUrl);
+            }
+            else
+            {
+                RedirectManager.RedirectTo("/Stacks");
+            }
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo(
+                "Account/LoginWith2fa",
+                new Dictionary<string, object?> { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else if (result.IsNotAllowed)
+        {
+            // Check specifically why login is not allowed
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+            if (user != null)
+            {
+                var isEmailConfirmed = await UserManager.IsEmailConfirmedAsync(user);
+                if (!isEmailConfirmed)
+                {
+                    // Redirect to email confirmation page
+                    RedirectManager.RedirectTo(
+                        "Account/ConfirmEmailNotCompleted",
+                        new Dictionary<string, object?> { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+                    return;
+                }
+                else
+                {
+                    errorMessage = "Your account is not allowed to sign in. Please contact support.";
+                }
+            }
+            else
+            {
+                errorMessage = "Unable to sign in. Please try again.";
+            }
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private async Task ResendConfirmationEmail()
+    {
+        _isResending = true;
+        _resendMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Build confirmation URL template
+            var confirmationUrlTemplate = NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri
+                + "?userId={userId}&code={code}";
+
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                confirmationUrlTemplate += $"&returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+
+            // Use the service to resend email
+            var (success, message) = await EmailConfirmationService.ResendConfirmationEmailAsync(
+                unconfirmedEmail!,
+                confirmationUrlTemplate);
+
+            _resendMessage = message;
+            _resendSuccess = success;
+
+            if (success)
+            {
+                Logger.LogInformation("Successfully resent confirmation email to {Email} from login page", unconfirmedEmail);
+            }
+            else
+            {
+                Logger.LogWarning("Failed to resend confirmation email to {Email} from login page: {Message}",
+                    unconfirmedEmail, message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resending confirmation email to {Email} from login page", unconfirmedEmail);
+            _resendMessage = "An error occurred. Please try again later.";
+            _resendSuccess = false;
+        }
+        finally
+        {
+            _isResending = false;
+            StateHasChanged();
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required] [EmailAddress] public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
+    }
+
+}

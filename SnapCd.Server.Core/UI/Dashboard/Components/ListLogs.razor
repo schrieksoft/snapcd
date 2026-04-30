@@ -1,0 +1,142 @@
+@implements IDisposable
+
+@using AnsiConsoleToHtml
+@using SnapCd.Server.Core.Services
+@inject LogService LogService
+
+
+
+@* <MudTooltip Text="Refresh"> *@
+@*     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="MudBlazor.Color.Primary" Size="Size.Medium" *@
+@*                    OnClick="() => ReloadLogs()"/> *@
+@* </MudTooltip> *@
+
+@if (_htmlLogs.Count == 0)
+{
+    <p><em>Loading logs...</em></p>
+}
+else
+{
+    <MudExpansionPanels>
+
+
+        @foreach (var kvp in _htmlLogs)
+        {
+            <MudExpansionPanel @key="kvp.Key">
+                <TitleContent>
+                    <MudText>@kvp.Key</MudText>
+                </TitleContent>
+                <ChildContent>
+                    <div
+                        style="padding: 1em; background: #000000; color: white; font-family: monospace; white-space: pre-wrap;">
+                        @((MarkupString)(kvp.Value ?? string.Empty))
+                    </div>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter] public Guid ModuleJobId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private Dictionary<string, string?>? _logs;
+    private Dictionary<string, string?> _htmlLogs = new();
+
+    protected override void OnInitialized()
+    {
+    }
+
+    private string ConvertToWrappedHtml(string ansiText)
+    {
+        int CountOccurrences(string source, string substring)
+        {
+            var count = 0;
+            var index = 0;
+
+            while ((index = source.IndexOf(substring, index, StringComparison.Ordinal)) != -1)
+            {
+                index += substring.Length;
+                count++;
+            }
+
+            return count;
+        }
+
+        var html = AnsiConsole.ToHtml(ansiText);
+
+        // replace <pre> with <div>, since otherwise lines will not wrap properly
+        const string preOpenTag = "<pre style='color:#FFFFFF;background:#000000'>";
+        const string preCloseTag = "</pre>";
+
+        const string divOpenTag = "<div style='color:#FFFFFF;background:#000000'>";
+        const string divCloseTag = "</div>";
+
+        // Verify we have matching tags
+        var openCount = CountOccurrences(html, preOpenTag);
+        var closeCount = CountOccurrences(html, preCloseTag);
+
+        if (openCount == 1 && closeCount == 1)
+        {
+            // Simple case - single pre tag
+            html = html.Replace(preOpenTag, divOpenTag)
+                .Replace(preCloseTag, divCloseTag);
+        }
+        else if (closeCount > 0)
+        {
+            // Complex case - replace only last closing tag
+            var lastClosePos = html.LastIndexOf(preCloseTag, StringComparison.Ordinal);
+            html = html.Remove(lastClosePos, preCloseTag.Length)
+                .Insert(lastClosePos, divCloseTag);
+
+            // Replace first opening tag (assuming it exists)
+            var firstOpenPos = html.IndexOf(preOpenTag, StringComparison.Ordinal);
+            if (firstOpenPos >= 0)
+            {
+                html = html.Remove(firstOpenPos, preOpenTag.Length)
+                    .Insert(firstOpenPos, divOpenTag);
+            }
+        }
+
+        return html;
+    }
+
+    public void Dispose()
+    {
+    }
+
+    private async Task ReloadLogs()
+    {
+        _logs = await LogService.GetLogStrings(ModuleJobId);
+
+        foreach (var kvp in _logs)
+        {
+            if (!string.IsNullOrEmpty(kvp.Value))
+            {
+                _htmlLogs[kvp.Key] = ConvertToWrappedHtml(kvp.Value);
+            }
+        }
+    }
+
+    public async Task RefreshLogs(bool invokeAsync = false)
+    {
+        await ReloadLogs();
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+    public async Task InitializeLogs()
+    {
+        if (_logs == null)
+        {
+            await ReloadLogs();
+            StateHasChanged();
+        }
+    }
+
+}

@@ -1,0 +1,120 @@
+@using SnapCd.Contracts.Dto
+@using SnapCd.Contracts.Dto.ServicePrincipals
+@using SnapCd.Server.Core.Misc.Utils
+@using SnapCd.Server.Core.Services.Crud
+
+<MudPaper Elevation="1" Class="pa-4 my-4">
+    <MudForm @ref="_form">
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.h5" Class="mb-4">Create New Service Principal</MudText>
+
+            <MudTextField Label="Client Id"
+                          @bind-Value="ClientId"
+                          Required="true"
+                          HelperText="Set a unique Client Id for the Service Principal."/>
+
+
+            <MudGrid>
+                <MudItem xs="9">
+                    <MudTextField Label="Client Secret"
+                                  @bind-Value="ClientSecret"
+                                  HelperText="Set a Client Secret for the Service Principal"
+                                  InputType="InputType.Password"/>
+                </MudItem>
+                <MudItem xs="3" Class="d-flex gap-2">
+                    <MudTooltip Text="Generate a new random secret">
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="GenerateClientSecret"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Copy the secret">
+                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="CopyClientSecret"/>
+                    </MudTooltip>
+                </MudItem>
+            </MudGrid>
+
+            <div class="d-flex justify-end gap-2 mt-4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="HandleValidSubmit">
+                    Create
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </div>
+        </MudStack>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter] public EventCallback<Guid> OnCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
+    [Inject] private ServicePrincipalService ServicePrincipalService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private MudForm? _form;
+    private string ClientId { get; set; } = string.Empty;
+    private string ClientSecret { get; set; } = string.Empty;
+
+    private async Task CopyClientSecret()
+    {
+        if (!string.IsNullOrEmpty(ClientSecret))
+        {
+            await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", ClientSecret);
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (_form != null)
+            {
+                await _form.Validate();
+                if (!_form.IsValid) throw new Exception($"Form not valid. {_form.Validation}");
+            }
+            else
+            {
+                throw new Exception($"Form is null.");
+            }
+
+            var servicePrincipal = new ServicePrincipalCreateDto
+            {
+                ClientId = ClientId,
+                ClientSecret = ClientSecret
+            };
+
+            var result = await ServicePrincipalService.Create(servicePrincipal, OrganizationId);
+            await OnCreated.InvokeAsync(result.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating service principal: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task GenerateClientSecret()
+    {
+        ClientSecret = CredentialHelper.GenerateRandomPassword(32);
+        if (_form != null) await _form.Validate();
+        else throw new Exception("Form is null");
+    }
+
+    private async Task Cancel()
+    {
+        ClientId = string.Empty;
+        ClientSecret = string.Empty;
+        await OnCancel.InvokeAsync();
+    }
+
+}

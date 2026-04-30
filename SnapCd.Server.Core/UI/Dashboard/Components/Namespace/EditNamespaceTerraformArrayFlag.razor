@@ -1,0 +1,159 @@
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@inherits ComponentBase
+
+<MudGrid>
+    <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
+        <MudItem xs="12" Class="mb-4">
+            <MudSelect T="TerraformCommandTask" Label="Task" @bind-Value="Context.Task" Variant="Variant.Outlined" Immediate="true">
+                @foreach (var val in Enum.GetValues<TerraformCommandTask>())
+                {
+                    <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudSelect T="TerraformArrayFlag" Label="Flag" @bind-Value="Context.Flag" Variant="Variant.Outlined" Immediate="true">
+                @foreach (var val in Enum.GetValues<TerraformArrayFlag>())
+                {
+                    <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="Value"
+                          @bind-Value="Context.Value"
+                          Immediate="true"
+                          FullWidth="true"/>
+        </MudItem>
+
+        <MudStack Row="true" Spacing="4" Class="mt-4">
+
+            @if (IsCreateMode)
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="CreateItem">
+                    Create
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           Disabled="@(!HasChanges)"
+                           OnClick="UpdateItem">
+                    Save
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteItem">
+                    Delete
+                </MudButton>
+            }
+        </MudStack>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public bool IsCreateMode { get; set; } = true;
+    [Parameter] public NamespaceTerraformArrayFlag Context { get; set; } = default!;
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnUpdate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private NamespaceTerraformArrayFlagSecuredRepositoryFactory NamespaceTerraformArrayFlagSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private NamespaceTerraformArrayFlag _original = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SetOriginal();
+    }
+
+    private bool HasChanges =>
+        Context.Task != _original.Task ||
+        Context.Flag != _original.Flag ||
+        Context.Value != _original.Value;
+
+    private Task SetOriginal()
+    {
+        _original = new NamespaceTerraformArrayFlag
+        {
+            Task = Context.Task,
+            Flag = Context.Flag,
+            Value = Context.Value
+        };
+        return Task.CompletedTask;
+    }
+
+    private async Task DeleteItem()
+    {
+        try
+        {
+            using var repo = NamespaceTerraformArrayFlagSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Delete(Context.Id, OrganizationId);
+
+            await OnDelete.InvokeAsync();
+            Snackbar.Add("Terraform array flag deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting terraform array flag");
+        }
+    }
+
+    private async Task CreateItem()
+    {
+        try
+        {
+            using var repo = NamespaceTerraformArrayFlagSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Create(Context);
+            await OnCreate.InvokeAsync();
+            Snackbar.Add("Terraform array flag created successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating terraform array flag");
+        }
+    }
+
+    private async Task UpdateItem()
+    {
+        try
+        {
+            using var repo = NamespaceTerraformArrayFlagSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Update(Context);
+            await SetOriginal();
+            await OnUpdate.InvokeAsync();
+            Snackbar.Add("Terraform array flag updated successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "updating terraform array flag");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

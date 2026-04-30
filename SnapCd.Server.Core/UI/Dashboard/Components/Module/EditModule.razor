@@ -1,0 +1,656 @@
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
+@implements IDisposable
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudForm @ref="_form">
+        <MudGrid Class="pa-4">
+            <!-- Read-only IDs -->
+            <MudItem md="12">
+                <MudTextField Label="Module ID" @bind-Value="Module.Id" Variant="Variant.Outlined" ReadOnly
+                              Disabled="true"/>
+            </MudItem>
+            <MudItem md="12">
+                <MudTextField Label="Namespace ID" @bind-Value="Module.NamespaceId" Variant="Variant.Outlined" ReadOnly
+                              Disabled="true"/>
+            </MudItem>
+
+            <!-- Core Properties -->
+            <MudItem md="12">
+                <MudTextField Label="Name" @bind-Value="Module.Name"
+                              Variant="Variant.Outlined" Required RequiredError="Name is required"
+                              MaxLength="255" Counter="255"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Source Url" @bind-Value="Module.SourceUrl" Required
+                              RequiredError="Source Url is required"
+                              Variant="Variant.Outlined" MaxLength="800"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Source Relative Path" @bind-Value="Module.SourceSubdirectory"
+                              Variant="Variant.Outlined" MaxLength="800"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Source Revision" @bind-Value="Module.SourceRevision" Required
+                              RequiredError="Source Revision is required"
+                              Variant="Variant.Outlined" MaxLength="255"/>
+            </MudItem>
+
+
+            <MudItem md="12">
+                <MudSelect T="Guid" Label="Runner" @bind-Value="Module.RunnerId"
+                           Variant="Variant.Outlined" Required="true" RequiredError="Runner is required">
+                    @foreach (var runner in _availableRunners)
+                    {
+                        <MudSelectItem Value="@runner.Id">@runner.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Runner Instance Name" @bind-Value="Module.RunnerInstanceName"
+                              Variant="Variant.Outlined" MaxLength="255"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSelect T="StateManagementEngine?" Label="Engine" @bind-Value="Module.Engine"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Use Namespace Default</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Terraform)">Terraform</MudSelectItem>
+                    @if (_pulumiEnabled)
+                    {
+                        <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Pulumi)">Pulumi</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* *@
+            @* <MudItem md="12"> *@
+            @*     <MudAutocomplete T="SecretStoreDisplay?" *@
+            @*                      @bind-Value="_selectedSecretStore" *@
+            @*                      Label="Default Output Secret Store" *@
+            @*                      SearchFunc="@SearchSecretStores" *@
+            @*                      ToStringFunc="@(s => s?.FormattedName ?? string.Empty)" *@
+            @*                      ResetValueOnEmptyText="true" *@
+            @*                      Required="false" *@
+            @*                      DebounceInterval="300"> *@
+            @*         <ItemTemplate Context="itemTemplateContext"> *@
+            @*             <MudText>@itemTemplateContext?.FormattedName</MudText> *@
+            @*             <MudText Color="Color.Info" Typo="Typo.caption"> *@
+            @*                 @if (itemTemplateContext != null) *@
+            @*                 { *@
+            @*                     @itemTemplateContext.Id *@
+            @*                 } *@
+            @*             </MudText> *@
+            @*         </ItemTemplate> *@
+            @*         <NoItemsTemplate> *@
+            @*             @if (_isSearchingSecretStore) *@
+            @*             { *@
+            @*                 <div class="d-flex align-center gap-2"> *@
+            @*                     <MudProgressCircular Size="Size.Small" Indeterminate="true"/> *@
+            @*                     <MudText>Searching secret stores...</MudText> *@
+            @*                 </div> *@
+            @*             } *@
+            @*             else *@
+            @*             { *@
+            @*                 <MudText>@GetNoItemsMessage()</MudText> *@
+            @*             } *@
+            @*         </NoItemsTemplate> *@
+            @*     </MudAutocomplete> *@
+            @* </MudItem> *@
+
+
+            @* <!-- Cache Settings --> *@
+            @* <MudItem md="12"> *@
+            @*     <MudSwitch T="bool" @bind-Value="Module.ProviderCacheEnabled" Label="Provider Cache Enabled" Color="Color.Info"/> *@
+            @* </MudItem> *@
+            @* <MudItem md="12"> *@
+            @*     <MudSwitch T="bool" @bind-Value="Module.ModuleCacheEnabled" Label="Module Cache Enabled" Color="Color.Info"/> *@
+            @* </MudItem> *@
+
+            <EeApprovalFieldsModule
+                ApplyApprovalThreshold="@Module.ApplyApprovalThreshold"
+                ApplyApprovalThresholdChanged="@(v => Module.ApplyApprovalThreshold = v)"
+                DestroyApprovalThreshold="@Module.DestroyApprovalThreshold"
+                DestroyApprovalThresholdChanged="@(v => Module.DestroyApprovalThreshold = v)"
+                ApprovalTimeoutMinutes="@Module.ApprovalTimeoutMinutes"
+                ApprovalTimeoutMinutesChanged="@(v => Module.ApprovalTimeoutMinutes = v)"/>
+
+            <MudItem md="12">
+                <MudSelect T="WaitForApplyDependencies" Label="Wait For Apply Dependencies"
+                           @bind-Value="Module.WaitForApplyDependencies"
+                           Variant="Variant.Outlined" Required="true"
+                           RequiredError="Wait For Apply Dependencies is required">
+                    <MudSelectItem Value="WaitForApplyDependencies.Always">Always</MudSelectItem>
+                    <MudSelectItem Value="WaitForApplyDependencies.Never">Never</MudSelectItem>
+                    <MudSelectItem Value="WaitForApplyDependencies.OnFirstApply">On First Apply</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSelect T="WaitForDestroyDependencies" Label="Wait For Destroy Dependencies"
+                           @bind-Value="Module.WaitForDestroyDependencies"
+                           Variant="Variant.Outlined" Required="true"
+                           RequiredError="Wait For Destroy Dependencies is required">
+                    <MudSelectItem Value="WaitForDestroyDependencies.Always">Always</MudSelectItem>
+                    <MudSelectItem Value="WaitForDestroyDependencies.Never">Never</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="Module.TriggerOnDefinitionChanged"
+                           Label="Trigger on Definition Changed" Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="Module.TriggerOnUpstreamOutputChanged"
+                           Label="Trigger on Upstream Output Changed" Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="Module.TriggerOnSourceChanged" Label="Trigger on Source Changed"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="Module.TriggerOnSourceChangedNotification"
+                           Label="Trigger on Source Changed Notification"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="Module.IgnoreNamespaceBackendConfigs"
+                           Label="Ignore Namespace Backend Configs (Deprecated)"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="Module.IgnoreNamespaceExtraFiles" Label="Ignore Namespace Extra Files"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="Module.IgnoreNamespaceFlags" Label="Ignore Namespace Flags"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <!-- Auto-Upgrade Settings -->
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Auto Upgrade Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Module.AutoUpgradeEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Auto Reconfigure Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Module.AutoReconfigureEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Auto Migrate Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Module.AutoMigrateEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Clean Init Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Module.CleanInitEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Drift Check Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Module.DriftCheckEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField T="int?" Label="Drift Check Interval Minutes" @bind-Value="Module.DriftCheckIntervalMinutes"
+                              Variant="Variant.Outlined"/>
+            </MudItem>
+
+            <!-- Backend Configuration Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Backend Configurations (Deprecated)"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _backendConfigsRef.InitializeItems(); }">
+                        <EditModuleBackendConfigsList Title="EBackend Configurations"
+                                                      ModuleId="Module.Id"
+                                                      PrincipalProvider="@PrincipalProvider"
+                                                      @ref="_backendConfigsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Terraform Flags -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Terraform Flags"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _terraformFlagsRef.InitializeItems(); }">
+                        <EditModuleTerraformFlagsList Title="Terraform Flags"
+                                                      ModuleId="Module.Id"
+                                                      PrincipalProvider="@PrincipalProvider"
+                                                      @ref="_terraformFlagsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Terraform Array Flags"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _terraformArrayFlagsRef.InitializeItems(); }">
+                        <EditModuleTerraformArrayFlagsList Title="Terraform Array Flags"
+                                                           ModuleId="Module.Id"
+                                                           PrincipalProvider="@PrincipalProvider"
+                                                           @ref="_terraformArrayFlagsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Pulumi Flags -->
+            @if (_pulumiEnabled)
+            {
+                <MudItem md="12">
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="Pulumi Flags"
+                                           ExpandedChanged="async (expanded) => { if (expanded) await _pulumiFlagsRef.InitializeItems(); }">
+                            <EditModulePulumiFlagsList Title="Pulumi Flags"
+                                                       ModuleId="Module.Id"
+                                                       PrincipalProvider="@PrincipalProvider"
+                                                       @ref="_pulumiFlagsRef"/>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+
+                <MudItem md="12">
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="Pulumi Array Flags"
+                                           ExpandedChanged="async (expanded) => { if (expanded) await _pulumiArrayFlagsRef.InitializeItems(); }">
+                            <EditModulePulumiArrayFlagsList Title="Pulumi Array Flags"
+                                                            ModuleId="Module.Id"
+                                                            PrincipalProvider="@PrincipalProvider"
+                                                            @ref="_pulumiArrayFlagsRef"/>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            }
+
+            <!-- Inputs Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Inputs (Parameters)"
+                                       ExpandedChanged="async (opened) => { if (opened) await _envVarsDefRef!.InitializeItems(); }">
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                            <EditModuleInputTab TEntity="ModuleParamFromDefinition"
+                                                TSecuredRepositoryFactory="ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleParamFromDefinition>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Definition"
+                                                SecuredRepositoryFactory="@ModuleParamFromDefinitionSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_paramsDefRef"
+                                                OnTabClick="async () => await _paramsDefRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleParamFromLiteral"
+                                                TSecuredRepositoryFactory="ModuleInputFromLiteralSecuredRepositoryFactory<ModuleParamFromLiteral>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Literal"
+                                                SecuredRepositoryFactory="@ModuleParamFromLiteralSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_paramsLiteralRef"
+                                                OnTabClick="async () => await _paramsLiteralRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleParamFromNamespace"
+                                                TSecuredRepositoryFactory="ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Namespace"
+                                                SecuredRepositoryFactory="@ModuleParamFromNamespaceSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_paramsNamespaceRef"
+                                                OnTabClick="async () => await _paramsNamespaceRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleParamFromOutputSet"
+                                                TSecuredRepositoryFactory="ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From OutputSet"
+                                                SecuredRepositoryFactory="@ModuleParamFromOutputSetSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_paramsOutputSetRef"
+                                                OnTabClick="async () => await _paramsOutputSetRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleParamFromOutput"
+                                                TSecuredRepositoryFactory="ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Output"
+                                                SecuredRepositoryFactory="@ModuleParamFromOutputSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_paramsOutputRef"
+                                                OnTabClick="async () => await _paramsOutputRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleParamFromSecret"
+                                                TSecuredRepositoryFactory="ModuleInputFromSecretSecuredRepositoryFactory<ModuleParamFromSecret>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Secret"
+                                                SecuredRepositoryFactory="@ModuleParamFromSecretSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_paramsSecretRef"
+                                                OnTabClick="async () => await _paramsSecretRef!.InitializeItems()"/>
+                        </MudTabs>
+                    </MudExpansionPanel>
+
+                    <!-- Environment Variables Section -->
+                    <MudExpansionPanel Text="Inputs (Environment Variables)"
+                                       ExpandedChanged="async (opened) => { if (opened) await _envVarsDefRef!.InitializeItems(); }">
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                            <EditModuleInputTab TEntity="ModuleEnvVarFromDefinition"
+                                                TSecuredRepositoryFactory="ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleEnvVarFromDefinition>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Definition"
+                                                SecuredRepositoryFactory="@ModuleEnvVarFromDefinitionSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_envVarsDefRef"
+                                                OnTabClick="async () => await _envVarsDefRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleEnvVarFromLiteral"
+                                                TSecuredRepositoryFactory="ModuleInputFromLiteralSecuredRepositoryFactory<ModuleEnvVarFromLiteral>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Literal"
+                                                SecuredRepositoryFactory="@ModuleEnvVarFromLiteralSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_envVarsLiteralRef"
+                                                OnTabClick="async () => await _envVarsLiteralRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleEnvVarFromNamespace"
+                                                TSecuredRepositoryFactory="ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Namespace"
+                                                SecuredRepositoryFactory="@ModuleEnvVarFromNamespaceSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_envVarsNamespaceRef"
+                                                OnTabClick="async () => await _envVarsNamespaceRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleEnvVarFromOutput"
+                                                TSecuredRepositoryFactory="ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Output"
+                                                SecuredRepositoryFactory="@ModuleEnvVarFromOutputSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_envVarsOutputRef"
+                                                OnTabClick="async () => await _envVarsOutputRef!.InitializeItems()"/>
+
+                            <EditModuleInputTab TEntity="ModuleEnvVarFromSecret"
+                                                TSecuredRepositoryFactory="ModuleInputFromSecretSecuredRepositoryFactory<ModuleEnvVarFromSecret>"
+                                                ModuleId="Module.Id"
+                                                NamespaceId="Module.NamespaceId"
+                                                StackId="StackId"
+                                                Title="From Secret"
+                                                SecuredRepositoryFactory="@ModuleEnvVarFromSecretSecuredRepositoryFactory"
+                                                PrincipalProvider="@PrincipalProvider"
+                                                @ref="_envVarsSecretRef"
+                                                OnTabClick="async () => await _envVarsSecretRef!.InitializeItems()"/>
+                        </MudTabs>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+
+            </MudItem>
+
+            <!-- Hooks Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    @CreateHookPanel("Init Hooks",
+                        Module.InitBeforeHook,
+                        val => Module.InitBeforeHook = val,
+                        Module.InitAfterHook,
+                        val => Module.InitAfterHook = val)
+
+                    @CreateHookPanel("Validate Hooks",
+                        Module.ValidateBeforeHook,
+                        val => Module.ValidateBeforeHook = val,
+                        Module.ValidateAfterHook,
+                        val => Module.ValidateAfterHook = val)
+
+                    @CreateHookPanel("Plan Hooks",
+                        Module.PlanBeforeHook,
+                        val => Module.PlanBeforeHook = val,
+                        Module.PlanAfterHook,
+                        val => Module.PlanAfterHook = val)
+
+                    @CreateHookPanel("Apply Hooks",
+                        Module.ApplyBeforeHook,
+                        val => Module.ApplyBeforeHook = val,
+                        Module.ApplyAfterHook,
+                        val => Module.ApplyAfterHook = val)
+
+                    @CreateHookPanel("Plan Destroy Hooks",
+                        Module.PlanDestroyBeforeHook,
+                        val => Module.PlanDestroyBeforeHook = val,
+                        Module.PlanDestroyAfterHook,
+                        val => Module.PlanDestroyAfterHook = val)
+
+                    @CreateHookPanel("Destroy Hooks",
+                        Module.DestroyBeforeHook,
+                        val => Module.DestroyBeforeHook = val,
+                        Module.DestroyAfterHook,
+                        val => Module.DestroyAfterHook = val)
+
+                    @CreateHookPanel("Output Hooks",
+                        Module.OutputBeforeHook,
+                        val => Module.OutputBeforeHook = val,
+                        Module.OutputAfterHook,
+                        val => Module.OutputAfterHook = val)
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Extra Files"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _extraFilesRef.InitializeItems(); }">
+                        <EditModuleExtraFilesList Title="Extra Files"
+                                                  ModuleId="Module.Id"
+                                                  PrincipalProvider="@PrincipalProvider"
+                                                  @ref="_extraFilesRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Depends on Modules"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _dependenciesRef.InitializeItems(); }">
+                        <EditModuleDependenciesList Title="Depends on Modules"
+                                                    ModuleId="Module.Id"
+                                                    StackId="@StackId"
+                                                    PrincipalProvider="@PrincipalProvider"
+                                                    @ref="_dependenciesRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+
+
+            <!-- Action Buttons -->
+            <MudItem md="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveModule">Save</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel">Cancel</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required Module Module { get; set; }
+    [Parameter] public required Guid StackId { get; set; }
+    [Parameter] public required EventCallback OnSaved { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    // Repository Factories
+    [Inject] private ModuleSecuredRepositoryFactory ModuleSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleParamFromDefinition> ModuleParamFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromLiteralSecuredRepositoryFactory<ModuleParamFromLiteral> ModuleParamFromLiteralSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace> ModuleParamFromNamespaceSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromSecretSecuredRepositoryFactory<ModuleParamFromSecret> ModuleParamFromSecretSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleEnvVarFromDefinition> ModuleEnvVarFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromLiteralSecuredRepositoryFactory<ModuleEnvVarFromLiteral> ModuleEnvVarFromLiteralSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace> ModuleEnvVarFromNamespaceSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromSecretSecuredRepositoryFactory<ModuleEnvVarFromSecret> ModuleEnvVarFromSecretSecuredRepositoryFactory { get; set; } = null!;
+
+    [Inject] private RunnerSecuredRepositoryFactory RunnerSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    private MudForm? _form;
+
+    private EditModuleInputTab<ModuleParamFromDefinition, ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleParamFromDefinition>>? _paramsDefRef;
+    private EditModuleInputTab<ModuleParamFromLiteral, ModuleInputFromLiteralSecuredRepositoryFactory<ModuleParamFromLiteral>>? _paramsLiteralRef;
+    private EditModuleInputTab<ModuleParamFromSecret, ModuleInputFromSecretSecuredRepositoryFactory<ModuleParamFromSecret>>? _paramsSecretRef;
+    private EditModuleInputTab<ModuleParamFromOutputSet, ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet>>? _paramsOutputSetRef;
+    private EditModuleInputTab<ModuleParamFromOutput, ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput>>? _paramsOutputRef;
+    private EditModuleInputTab<ModuleParamFromNamespace, ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace>>? _paramsNamespaceRef;
+
+    private EditModuleInputTab<ModuleEnvVarFromDefinition, ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleEnvVarFromDefinition>>? _envVarsDefRef;
+    private EditModuleInputTab<ModuleEnvVarFromLiteral, ModuleInputFromLiteralSecuredRepositoryFactory<ModuleEnvVarFromLiteral>>? _envVarsLiteralRef;
+    private EditModuleInputTab<ModuleEnvVarFromSecret, ModuleInputFromSecretSecuredRepositoryFactory<ModuleEnvVarFromSecret>>? _envVarsSecretRef;
+    private EditModuleInputTab<ModuleEnvVarFromOutput, ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput>>? _envVarsOutputRef;
+    private EditModuleInputTab<ModuleEnvVarFromNamespace, ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleEnvVarFromNamespace>>? _envVarsNamespaceRef;
+
+    private EditModuleExtraFilesList _extraFilesRef = new();
+    private EditModuleDependenciesList _dependenciesRef = new();
+    private EditModuleBackendConfigsList _backendConfigsRef = new();
+    private EditModuleTerraformFlagsList _terraformFlagsRef = new();
+    private EditModuleTerraformArrayFlagsList _terraformArrayFlagsRef = new();
+    private EditModulePulumiFlagsList _pulumiFlagsRef = new();
+    private EditModulePulumiArrayFlagsList _pulumiArrayFlagsRef = new();
+
+
+    private List<Runner> _availableRunners = new();
+    private bool _pulumiEnabled;
+
+    private RenderFragment CreateHookPanel(
+        string title,
+        string? beforeHookValue,
+        Action<string?> beforeHookValueChanged,
+        string? afterHookValue,
+        Action<string?> afterHookValueChanged) =>
+        @<MudExpansionPanel Text="@title">
+            <MudTextField Label="Before Hook"
+                          Value="@beforeHookValue"
+                          ValueChanged="@beforeHookValueChanged"
+                          Multiline Rows="3"/>
+            <MudTextField Label="After Hook"
+                          Value="@afterHookValue"
+                          ValueChanged="@afterHookValueChanged"
+                          Multiline Rows="3"/>
+        </MudExpansionPanel>;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var runnerRepo = RunnerSecuredRepositoryFactory.Create(PrincipalProvider);
+        _availableRunners = await runnerRepo.ListAssignedToModule(Module.Id, OrganizationId);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        _pulumiEnabled = await dbContext.PreviewFeatureAcceptances
+            .AnyAsync(p => p.OrganizationId == OrganizationId && p.PreviewFeature == PreviewFeature.Pulumi);
+    }
+
+    private async Task SaveModule()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid)
+            {
+                Snackbar.Add("Please fix validation errors", Severity.Error);
+                return;
+            }
+        }
+        else throw new Exception("Form is null");
+
+        using var repo = ModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+
+        await repo.Update(Module);
+        Snackbar.Add("Module updated successfully", Severity.Success);
+        await OnSaved.InvokeAsync();
+    }
+
+    // private async Task OnOpenedInput<TEntity>(
+    //     IGenericSecuredRepository<TEntity> securedRepository,
+    //     List<TEntity>? list)
+    //     where TEntity : ModuleInput
+    // {
+    //     if (list.IsNullOrEmpty())
+    //     {
+    //         var items = await securedRepository.ListByParentId(Module.Id, OrganizationId);
+    //         list = items;
+    //     }
+    // }
+    //
+    //
+    // private async Task OnOpenedExtraFiles(
+    //     ModuleExtraFileSecuredRepository securedRepository,
+    //     List<ModuleExtraFile>? list)
+    // {
+    //     if (list.IsNullOrEmpty())
+    //     {
+    //         var items = await securedRepository.ListByParentId(Module.Id, OrganizationId);
+    //         list = items;
+    //     }
+    // }
+
+    public void Dispose()
+    {
+        // Add any necessary cleanup logic here
+    }
+
+}

@@ -1,0 +1,40 @@
+using SnapCd.Contracts.Dto.ModulePulumiArrayFlags;
+using SnapCd.Server.Core.Entities.Definition;
+
+namespace SnapCd.Server.Core.Mappers;
+
+public static class ModulePulumiArrayFlagMapper
+{
+    public static ModulePulumiArrayFlag ToEntity(ModulePulumiArrayFlagCreateDto dto, Guid organizationId)
+    {
+        return new ModulePulumiArrayFlag
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            Task = dto.Task,
+            Flag = dto.Flag,
+            Value = dto.Value,
+            ModuleId = dto.ModuleId
+        };
+    }
+
+    public static ModulePulumiArrayFlagReadDto ToDto(ModulePulumiArrayFlag entity)
+    {
+        return new ModulePulumiArrayFlagReadDto
+        {
+            Id = entity.Id,
+            Task = entity.Task,
+            Flag = entity.Flag,
+            Value = entity.Value,
+            ModuleId = entity.ModuleId
+        };
+    }
+
+    public static void UpdateEntity(ModulePulumiArrayFlag entity, ModulePulumiArrayFlagUpdateDto dto)
+    {
+        entity.Task = dto.Task;
+        entity.Flag = dto.Flag;
+        entity.Value = dto.Value;
+        entity.ModuleId = dto.ModuleId;
+    }
+}

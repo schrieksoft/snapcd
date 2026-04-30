@@ -1,0 +1,159 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@if (_items == null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else
+{
+    <MudExpansionPanels>
+
+        @foreach (var item in _items)
+        {
+            <MudExpansionPanel Text="@GetDependencyDisplayName(item)">
+                <EditModuleDependency Context="@item"
+                                      PrincipalProvider="@PrincipalProvider"
+                                      StackId="@StackId"
+                                      OnDelete="() => ResetAll()"
+                                      OnUpdate="() => ResetAll()"
+                                      OnCreate="() => ResetAll()"
+                                      OnCancel="() => ResetAll()"
+                                      IsCreateMode="false"/>
+            </MudExpansionPanel>
+        }
+
+        @if (_isCreating)
+        {
+            <MudExpansionPanel IsExpanded="_newItemExpanded" IsExpandedChanged="OnNewItemExpandedChanged">
+                <EditModuleDependency Context="_newItem"
+                                      PrincipalProvider="@PrincipalProvider"
+                                      StackId="@StackId"
+                                      OnDelete="() => ResetAll()"
+                                      OnUpdate="() => ResetAll()"
+                                      OnCreate="() => ResetAll()"
+                                      OnCancel="() => ResetAll()"
+                                      IsCreateMode="true"/>
+            </MudExpansionPanel>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="StartCreate"
+                   Class="mt-2">
+            Add New Dependency
+        </MudButton>
+
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = null!;
+    [Parameter] public Guid ModuleId { get; set; }
+    [Parameter] public Guid StackId { get; set; }
+    [Parameter] public EventCallback OnTabClick { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleSecuredRepositoryFactory { get; set; } = null!;
+
+    private bool _isCreating;
+    private bool _newItemExpanded;
+    private DependsOnModule? _newItem;
+    private List<DependsOnModule>? _items;
+    private Dictionary<Guid, string>? _moduleNames;
+
+    protected override Task OnInitializedAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadModuleNames()
+    {
+        if (_moduleNames == null && _items != null)
+        {
+            using var repo = ModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+            var dependencyModuleIds = _items.Select(x => x.DependsOnModuleId).ToList();
+
+            if (dependencyModuleIds.Any())
+            {
+                var modules = await repo.List<ModuleNameDisplay>(OrganizationId,
+                    q => q.Where(m => dependencyModuleIds.Contains(m.Id))
+                        .Select(m => new ModuleNameDisplay { Id = m.Id, Name = m.Name, NamespaceName = m.Namespace.Name })
+                );
+
+                _moduleNames = modules.ToDictionary(
+                    m => m.Id,
+                    m => $"{m.NamespaceName}.{m.Name}"
+                );
+            }
+            else
+            {
+                _moduleNames = new Dictionary<Guid, string>();
+            }
+        }
+    }
+
+    private string GetDependencyDisplayName(DependsOnModule dependency)
+    {
+        if (_moduleNames != null && _moduleNames.TryGetValue(dependency.DependsOnModuleId, out var name))
+        {
+            return name;
+        }
+
+        return $"Module ID: {dependency.DependsOnModuleId}";
+    }
+
+    private void StartCreate()
+    {
+        _newItem = new DependsOnModule { Id = Guid.NewGuid(), ModuleId = ModuleId, OrganizationId = OrganizationId };
+        _isCreating = true;
+        _newItemExpanded = true;
+        StateHasChanged();
+    }
+
+    private void OnNewItemExpandedChanged(bool expanded)
+    {
+        _newItemExpanded = expanded;
+        if (!expanded && _isCreating)
+        {
+            // Cancel creation when panel is collapsed
+            ResetAll();
+        }
+    }
+
+    private async void ResetAll()
+    {
+        _isCreating = false;
+        _newItemExpanded = false;
+        _newItem = null;
+        await ReloadItems();
+        StateHasChanged();
+    }
+
+    private async Task ReloadItems()
+    {
+        using var repo = DependsOnModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+        _items = await repo.ListByParentId(ModuleId, OrganizationId);
+        _moduleNames = null; // Reset module names so they get reloaded
+        await LoadModuleNames();
+    }
+
+    public async Task InitializeItems()
+    {
+        if (_items == null)
+        {
+            await ReloadItems();
+            StateHasChanged();
+        }
+    }
+
+    private class ModuleNameDisplay
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string NamespaceName { get; set; } = string.Empty;
+    }
+
+}

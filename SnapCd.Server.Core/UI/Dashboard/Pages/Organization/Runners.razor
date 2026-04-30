@@ -1,0 +1,340 @@
+﻿@page "/Runners"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+
+@* TODO, move this to Account/Pages/Manage and add to nav menu Account/Shared/ManageNavMenu.razor. For some reason when in that location the buttons do not work! *@
+
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject IOrganizationContext OrganizationContext
+
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Runner
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Runners
+@using SnapCd.Server.Core.UI.Dashboard.Components.RunnerAssignments
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+<PageTitle>Runners</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudText Typo="Typo.h4" GutterBottom="true">Runners</MudText>
+
+    @if (_showCreateRunner)
+    {
+        <MudItem Class="mb-2">
+            <CreateRunner OnCreated="HandleRunnerCreated"
+                              OnCancel="HandleCancelCreate"/>
+        </MudItem>
+    }
+
+    else
+    {
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="ShowCreateRunner"
+                   Class="mt-2 mb-2"
+        >
+            Create New
+        </MudButton>
+    }
+
+    @if (_runners == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var runner in _runners)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <MudText>@runner.Name</MudText>
+                                @if (runner.IsDisabled)
+                                {
+                                    <MudChip T="string" Color="Color.Error" Text="Disabled" Size="Size.Small"/>
+                                }
+                            </div>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @if (!runner.IsDisabled)
+                        {
+                            <MudTooltip Text="Runner is enabled, click to disable">
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayDisabled" Color="Color.Primary"
+                                               Size="Size.Small" OnClick="() => DeactivateRunner(runner)"/>
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Runner is disabled, click to enable">
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Secondary"
+                                               Size="Size.Small" OnClick="() => ActivateRunner(runner)"/>
+                            </MudTooltip>
+                        }
+
+                        <MudTooltip Text="Edit Runner">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="@GetColor(runner.Id, ShowingType.Edit)" Size="Size.Small"
+                                           OnClick="() => Edit(runner)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Where Runner can be used from">
+                            <MudIconButton Icon="@Icons.Material.Filled.Layers"
+                                           Color="@GetColor(runner.Id, ShowingType.Assignments)" Size="Size.Small"
+                                           OnClick="() => ManageAssignments(runner)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Roles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                           Color="@GetColor(runner.Id, ShowingType.Roles)" Size="Size.Small"
+                                           OnClick="() => ManageRoles(runner)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Delete Runner">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(runner)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(runner.Id, ShowingType.Edit))
+                        {
+                            <MudItem Class="mt-2">
+                                <EditRunner Runner="_selectedRunner"
+                                                OnSaved="HandleRunnerSaved"
+                                                OnCancel="HandleCancelEdit"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(runner.Id, ShowingType.Assignments))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageRunnerAssignments
+                                    RunnerId=runner.Id
+                                    OnClose="HandleAssignmentsClosed"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(runner.Id, ShowingType.Roles))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageRunnerRoles
+                                    RunnerId="runner.Id"
+                                    OnCancel="HandleRolesClosed"/>
+                            </MudItem>
+                        }
+
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+
+        </MudExpansionPanels>
+    }
+</CascadingValue>
+
+
+
+@code {
+    [Inject] private RunnerSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<Runner>? _runners;
+    private bool _showCreateRunner;
+    private Runner? _selectedRunner;
+    private ShowingType _showing;
+
+
+    private enum ShowingType
+    {
+        None,
+        Edit,
+        Assignments,
+        Roles
+    }
+
+    private Color GetColor(Guid runnerId, ShowingType showTypeToMatch)
+    {
+        if (_selectedRunner == null)
+            return Color.Primary;
+        if (runnerId == _selectedRunner.Id)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid runnerId, ShowingType showTypeToMatch)
+    {
+        if (_selectedRunner == null)
+            return false;
+        if (runnerId == _selectedRunner.Id && _showing == showTypeToMatch)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private void ShowCreateRunner()
+    {
+        _showCreateRunner = true;
+    }
+
+    private async Task HandleRunnerCreated(Guid runnerId)
+    {
+        _showCreateRunner = false;
+        await ReloadRunners();
+    }
+
+
+    private void HandleAssignmentsClosed()
+    {
+        _selectedRunner = null;
+        _showing = ShowingType.None;
+    }
+
+    private void HandleServicePrincipalAssignmentsClosed()
+    {
+        _selectedRunner = null;
+        _showing = ShowingType.None;
+    }
+
+    private void HandleCancelCreate()
+    {
+        _showCreateRunner = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure organizationId is in URL, redirect if missing
+        await ReloadRunners();
+    }
+
+    private async Task ReloadRunners()
+    {
+        using var repo = RepoFactory.Create();
+        _runners = await repo.List(OrganizationId);
+    }
+
+
+    private async Task Delete(Runner runner)
+    {
+        var parameters = new DialogParameters<DeleteRunnerDialog>
+        {
+            { x => x.Runner, runner },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteRunnerDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var runnerId);
+            Snackbar.Add($"Successfully deleted Runner \"{runnerId}\"", Severity.Success);
+
+            await ReloadRunners();
+        }
+    }
+
+    private async Task HandleRunnerSaved(Runner runner)
+    {
+        _selectedRunner = null;
+        _showing = ShowingType.None;
+        await ReloadRunners();
+    }
+
+    private void HandleCancelEdit()
+    {
+        _selectedRunner = null;
+        _showing = ShowingType.None;
+    }
+
+
+    private void ManageAssignments(Runner runner)
+    {
+        _selectedRunner = runner;
+        _showing = ShowingType.Assignments;
+    }
+
+    private void ManageRoles(Runner runner)
+    {
+        _selectedRunner = runner;
+        _showing = ShowingType.Roles;
+    }
+
+    private void HandleRolesClosed()
+    {
+        _selectedRunner = null;
+        _showing = ShowingType.None;
+    }
+
+    private void Edit(Runner runner)
+    {
+        _selectedRunner = runner;
+        _showing = ShowingType.Edit;
+    }
+
+
+    private async Task ActivateRunner(Runner runner)
+    {
+        var parameters = new DialogParameters<ActivateRunnerDialog>
+        {
+            { x => x.Runner, runner },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ActivateRunnerDialog>("Activate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var activatedRunnerId);
+            Snackbar.Add($"Successfully activated Runner \"{activatedRunnerId}\"", Severity.Success);
+            await ReloadRunners();
+        }
+    }
+
+    private async Task DeactivateRunner(Runner runner)
+    {
+        var parameters = new DialogParameters<DeactivateRunnerDialog>
+        {
+            { x => x.Runner, runner },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeactivateRunnerDialog>("Deactivate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deactivatedRunnerId);
+            Snackbar.Add($"Successfully deactivated Runner \"{deactivatedRunnerId}\"", Severity.Success);
+            await ReloadRunners();
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+
+
+}

@@ -1,0 +1,259 @@
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Dashboard
+
+@implements IDisposable
+
+@inject IHttpContextAccessor HttpContextAccessor
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject ThemeService ThemeService
+@inject IVersionService VersionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+
+
+<MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+<MudLayout>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Never" Elevation="2"
+               Style="display: flex; flex-direction: column; background-color: #000 !important; height: 100vh; top: 0;">
+        <div style="flex: 1; overflow-y: auto; background-color: #000;">
+            <NavMenu CurrentPageType="@PageType"/> @* See https://stackx48a overflow.com/a/63225118/141789*@
+        </div>
+        <MudPaper Class="pa-2" Style="margin: 8px; border-radius: 4px; background-color: #000 !important;"
+                  Elevation="0">
+            @if (RenderModeHelper.IsStaticServersideRendering(HttpContext, NavigationManager))
+            {
+                <form action="Theme/ToggleDarkMode" method="post">
+                    <AntiforgeryToken/>
+                    <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
+                        <MudStaticButton Style="box-shadow: none; min-width: unset; padding: 12px; width: 100%;"
+                                         Variant="Variant.Text" FormAction="FormAction.Submit">
+                            <MudIcon
+                                Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"/>
+                        </MudStaticButton>
+                    </MudTooltip>
+                </form>
+            }
+            else
+            {
+                <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
+                    <MudButton Style="box-shadow: none; width: 100%;"
+                               Variant="Variant.Text"
+                               OnClick="@(_ => ToggleDarkMode())">
+                        <MudIcon
+                            Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"/>
+                    </MudButton>
+                </MudTooltip>
+            }
+
+            <!-- Version Info -->
+            <div
+                style="text-align: left; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <MudText Typo="Typo.caption" Style="color: rgba(255, 255, 255, 0.5);">
+                    v@(VersionService.ShortVersion)
+                </MudText>
+            </div>
+        </MudPaper>
+    </MudDrawer>
+
+    <!-- Custom Drawer Toggle Button -->
+    <div class="drawer-toggle-button @(_drawerOpen ? "drawer-open" : "drawer-closed")" @onclick="DrawerToggle">
+        <MudIcon Icon="@(_drawerOpen ? Icons.Material.Filled.ChevronLeft : Icons.Material.Filled.ChevronRight)"
+                 Color="Color.Surface" Size="Size.Small"/>
+    </div>
+
+    <!-- Spacer to offset main content -->
+    <div
+        style="position: fixed; top: 0; left: 0; width: 18px; height: 100vh; z-index: 1000; pointer-events: none;"></div>
+
+    <MudMainContent Class="pa-4">
+        <div style="margin-left: 18px;">
+            @Body
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+<style>
+    .drawer-toggle-button {
+        position: fixed;
+        top: 32px; /* Align with the "Snap CD" title (16px padding + 16px to center with title) */
+        background-color: #000;
+        width: 18px; /* 25% less broad than 24px */
+        height: 36px; /* 50% taller than 24px */
+        border-radius: 0 4px 4px 0; /* Rounded right corners only */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1300;
+        transition: left 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .drawer-toggle-button .mud-icon {
+        color: white !important;
+    }
+
+    .drawer-toggle-button .mud-icon svg {
+        color: white !important;
+        fill: white !important;
+    }
+
+    /* Force white arrow in light mode */
+    .mud-theme-light .drawer-toggle-button .mud-icon {
+        color: white !important;
+    }
+
+    .mud-theme-light .drawer-toggle-button .mud-icon svg {
+        color: white !important;
+        fill: white !important;
+    }
+
+    /* Override any Material Icon specific styling */
+    .drawer-toggle-button .mud-icon-root {
+        color: white !important;
+    }
+
+    .drawer-toggle-button .mud-icon-root svg {
+        color: white !important;
+        fill: white !important;
+    }
+
+    .drawer-toggle-button.drawer-open {
+        left: 240px; /* Position on the outside right edge of the drawer when open */
+    }
+
+    .drawer-toggle-button.drawer-closed {
+        left: 0px; /* Position at the left edge when drawer is closed */
+    }
+
+    .drawer-toggle-button:hover {
+        background-color: #333;
+    }
+
+    /* Force all drawer content to be white regardless of theme */
+    .mud-drawer .mud-drawer-content {
+        background-color: #000 !important;
+    }
+
+    .mud-drawer .mud-drawer-content * {
+        color: white !important;
+    }
+
+    .mud-drawer .mud-drawer-content .mud-icon,
+    .mud-drawer .mud-drawer-content .mud-icon-root,
+    .mud-drawer .mud-drawer-content svg {
+        color: white !important;
+        fill: white !important;
+    }
+</style>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    private bool _isDarkMode;
+    private bool _drawerOpen = true;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        var themeCookie = HttpContextAccessor.HttpContext?.Request.Cookies["theme"];
+        ThemeService.Initialize(themeCookie == "dark");
+        _isDarkMode = ThemeService.IsDarkMode;
+        ThemeService.OnThemeChanged += ThemeChanged;
+    }
+
+
+    // TODO see https://github.com/SergeyDavidovich/MudBlazorDarkModeToggle/tree/bek-branch
+
+    private MudTheme _myCustomTheme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = Colors.Shades.Black,
+            TextPrimary = Colors.Shades.Black,
+            Secondary = "#27272f",
+            // Background = Colors.Shades.White,
+            AppbarBackground = Colors.Gray.Darken4,
+            // AppbarText = Colors.Shades.White,
+            // DrawerBackground = Colors.Gray.Darken4,
+            // DrawerText = Colors.Shades.White,
+            DrawerIcon = Colors.Shades.Black
+            // Surface = Colors.Gray.Lighten4,
+        },
+        PaletteDark = new PaletteDark
+        {
+            // Overrides on Pallete
+            Secondary = "#32333d", //Colors.Pink.Accent2;
+
+            // Override on PalletteDark
+            Primary = Colors.Shades.White, //"#776be7",
+            DrawerIcon = Colors.Shades.White, //"rgba(255,255,255, 0.50)",
+            Background = "27272f" //"#32333d",
+
+            // Info = "#3299ff",
+            // Success = "#0bba83",
+            // Warning = "#ffa800",
+            // Error = "#f64e62",
+            // Dark = "#27272f",
+            // TextPrimary = "rgba(255,255,255, 0.70)",
+            // TextSecondary = "rgba(255,255,255, 0.50)",
+            // TextDisabled = "rgba(255,255,255, 0.2)",
+            // ActionDefault = "#adadb1",
+            // ActionDisabled = "rgba(255,255,255, 0.26)",
+            // ActionDisabledBackground = "rgba(255,255,255, 0.12)",
+            // BackgroundGray = "#27272f",
+            // Surface = "#373740",
+            // DrawerBackground = "#27272f",
+            // DrawerText = "rgba(255,255,255, 0.50)",
+            // AppbarBackground = "#27272f",
+            // AppbarText = "rgba(255,255,255, 0.70)",
+            // LinesDefault = "rgba(255,255,255, 0.12)",
+            // LinesInputs = "rgba(255,255,255, 0.3)",
+            // TableLines = "rgba(255,255,255, 0.12)",
+            // TableStriped = "rgba(255,255,255, 0.2)",
+            // Divider = "rgba(255,255,255, 0.12)",
+            // DividerLight = "rgba(255,255,255, 0.06)",
+            // Skeleton = "rgba(255,255,255, 0.11)"
+        }
+    };
+
+    private async Task ToggleDarkMode()
+    {
+        await ThemeService.ToggleThemeAsync();
+    }
+
+    private void ThemeChanged()
+    {
+        _isDarkMode = ThemeService.IsDarkMode;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= ThemeChanged;
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    public Type? PageType { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        PageType = (Body!.Target as RouteView)?.RouteData.PageType;
+    }
+}

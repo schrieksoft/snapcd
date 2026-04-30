@@ -1,0 +1,50 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@inject RunnerSecuredRepositoryFactory RepoFactory
+@inject ILogger<ActivateRunnerDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Activate Runner</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to activate Runner "@Runner.Name" (ID "@Runner.Id")?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Activate">Activate</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [Parameter] public required Runner Runner { get; set; }
+
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Activate()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            Runner.IsDisabled = false;
+
+            await repo.Update(Runner);
+            MudDialog.Close(DialogResult.Ok(Runner.Id));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to activate Runner {RunnerId}", Runner.Id);
+            MudDialog.Cancel();
+        }
+    }
+
+}

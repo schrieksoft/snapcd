@@ -1,0 +1,421 @@
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
+@implements IDisposable
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudForm @ref="_form">
+        <MudGrid Class="pa-4">
+            <!-- Read-only IDs -->
+            <MudItem md="12">
+                <MudTextField Label="Namespace ID" @bind-Value="Namespace.Id" Variant="Variant.Outlined" ReadOnly
+                              Disabled="true"/>
+            </MudItem>
+            <MudItem md="12">
+                <MudTextField Label="Stack ID" @bind-Value="Namespace.StackId" Variant="Variant.Outlined" ReadOnly
+                              Disabled="true"/>
+            </MudItem>
+
+            <!-- Core Properties -->
+            <MudItem md="12">
+                <MudTextField Label="Name" @bind-Value="Namespace.Name"
+                              Variant="Variant.Outlined" Required RequiredError="Name is required"
+                              MaxLength="255" Counter="255"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSelect T="StateManagementEngine?" Label="Default Engine" @bind-Value="Namespace.DefaultEngine"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Default (OpenTofu)</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Terraform)">Terraform</MudSelectItem>
+                    @if (_pulumiEnabled)
+                    {
+                        <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Pulumi)">Pulumi</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <EeApprovalFieldsNamespace
+                DefaultApplyApprovalThreshold="@Namespace.DefaultApplyApprovalThreshold"
+                DefaultApplyApprovalThresholdChanged="@(v => Namespace.DefaultApplyApprovalThreshold = v)"
+                DefaultDestroyApprovalThreshold="@Namespace.DefaultDestroyApprovalThreshold"
+                DefaultDestroyApprovalThresholdChanged="@(v => Namespace.DefaultDestroyApprovalThreshold = v)"
+                DefaultApprovalTimeoutMinutes="@Namespace.DefaultApprovalTimeoutMinutes"
+                DefaultApprovalTimeoutMinutesChanged="@(v => Namespace.DefaultApprovalTimeoutMinutes = v)"/>
+
+            <!-- Default Auto-Upgrade Settings -->
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Auto Upgrade Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Namespace.DefaultAutoUpgradeEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Auto Reconfigure Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Namespace.DefaultAutoReconfigureEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Auto Migrate Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Namespace.DefaultAutoMigrateEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Clean Init Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Namespace.DefaultCleanInitEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Drift Check Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Namespace.DefaultDriftCheckEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField T="int?" Label="Default Drift Check Interval Minutes"
+                              @bind-Value="Namespace.DefaultDriftCheckIntervalMinutes"
+                              Variant="Variant.Outlined"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Backend Configs (Deprecated)"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _backendConfigsRef!.InitializeItems(); }">
+                        <EditNamespaceBackendConfigsList Title="Backend Configs"
+                                                         NamespaceId="Namespace.Id"
+                                                         PrincipalProvider="@PrincipalProvider"
+                                                         @ref="_backendConfigsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Terraform Flags -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Terraform Flags"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _terraformFlagsRef!.InitializeItems(); }">
+                        <EditNamespaceTerraformFlagsList Title="Terraform Flags"
+                                                         NamespaceId="Namespace.Id"
+                                                         PrincipalProvider="@PrincipalProvider"
+                                                         @ref="_terraformFlagsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Terraform Array Flags"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _terraformArrayFlagsRef!.InitializeItems(); }">
+                        <EditNamespaceTerraformArrayFlagsList Title="Terraform Array Flags"
+                                                              NamespaceId="Namespace.Id"
+                                                              PrincipalProvider="@PrincipalProvider"
+                                                              @ref="_terraformArrayFlagsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Pulumi Flags -->
+            @if (_pulumiEnabled)
+            {
+                <MudItem md="12">
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="Pulumi Flags"
+                                           ExpandedChanged="async (expanded) => { if (expanded) await _pulumiFlagsRef!.InitializeItems(); }">
+                            <EditNamespacePulumiFlagsList Title="Pulumi Flags"
+                                                          NamespaceId="Namespace.Id"
+                                                          PrincipalProvider="@PrincipalProvider"
+                                                          @ref="_pulumiFlagsRef"/>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+
+                <MudItem md="12">
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="Pulumi Array Flags"
+                                           ExpandedChanged="async (expanded) => { if (expanded) await _pulumiArrayFlagsRef!.InitializeItems(); }">
+                            <EditNamespacePulumiArrayFlagsList Title="Pulumi Array Flags"
+                                                               NamespaceId="Namespace.Id"
+                                                               PrincipalProvider="@PrincipalProvider"
+                                                               @ref="_pulumiArrayFlagsRef"/>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            }
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Extra Files"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _extraFilesRef!.InitializeItems(); }">
+                        <EditNamespaceExtraFilesList Title="Extra Files"
+                                                     NamespaceId="Namespace.Id"
+                                                     PrincipalProvider="@PrincipalProvider"
+                                                     @ref="_extraFilesRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Inputs Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Parameters"
+                                       ExpandedChanged="async (opened) => await ParamsExpanded(opened)">
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                            <EditNamespaceInputTab TEntity="NamespaceParamFromDefinition"
+                                                   TSecuredRepositoryFactory="NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="From Definition"
+                                                   SecuredRepositoryFactory="@NamespaceParamFromDefinitionSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_paramsDefRef"
+                                                   OnTabClick="async () => await _paramsDefRef!.InitializeItems()"/>
+
+                            <EditNamespaceInputTab TEntity="NamespaceParamFromLiteral"
+                                                   TSecuredRepositoryFactory="NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceParamFromLiteral>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="From Literal"
+                                                   SecuredRepositoryFactory="@NamespaceParamFromLiteralSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_paramsLiteralRef"
+                                                   OnTabClick="async () => await _paramsLiteralRef!.InitializeItems()"/>
+
+                            <EditNamespaceInputTab TEntity="NamespaceParamFromSecret"
+                                                   TSecuredRepositoryFactory="NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="From Secret"
+                                                   SecuredRepositoryFactory="@NamespaceParamFromSecretSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_paramsSecretRef"
+                                                   OnTabClick="async () => await _paramsSecretRef!.InitializeItems()"/>
+
+                        </MudTabs>
+                    </MudExpansionPanel>
+
+                    <!-- Environment Variables Section -->
+                    <MudExpansionPanel Text="Environment Variables"
+                                       ExpandedChanged="async (opened) => await EnvVarsExpanded(opened)">
+                        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                            <EditNamespaceInputTab TEntity="NamespaceEnvVarFromDefinition"
+                                                   TSecuredRepositoryFactory="NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceEnvVarFromDefinition>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="From Definition"
+                                                   SecuredRepositoryFactory="@NamespaceEnvVarFromDefinitionSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_envVarsDefRef"
+                                                   OnTabClick="async () => await _envVarsDefRef!.InitializeItems()"
+                            />
+
+                            <EditNamespaceInputTab TEntity="NamespaceEnvVarFromLiteral"
+                                                   TSecuredRepositoryFactory="NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceEnvVarFromLiteral>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="From Literal"
+                                                   SecuredRepositoryFactory="@NamespaceEnvVarFromLiteralSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_envVarsLiteralRef"
+                                                   OnTabClick="async () => await _envVarsLiteralRef!.InitializeItems()"
+                            />
+
+                            <EditNamespaceInputTab TEntity="NamespaceEnvVarFromSecret"
+                                                   TSecuredRepositoryFactory="NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceEnvVarFromSecret>"
+                                                   NamespaceId="Namespace.Id"
+                                                   StackId="Namespace.StackId"
+                                                   Title="From Secret"
+                                                   SecuredRepositoryFactory="@NamespaceEnvVarFromSecretSecuredRepositoryFactory"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_envVarsSecretRef"
+                                                   OnTabClick="async () => await _envVarsSecretRef!.InitializeItems()"
+                            />
+                        </MudTabs>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Hooks Section -->
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    @CreateHookPanel("Init Hooks",
+                        Namespace.DefaultInitBeforeHook,
+                        val => Namespace.DefaultInitBeforeHook = val,
+                        Namespace.DefaultInitAfterHook,
+                        val => Namespace.DefaultInitAfterHook = val)
+
+                    @CreateHookPanel("Validate Hooks",
+                        Namespace.DefaultValidateBeforeHook,
+                        val => Namespace.DefaultValidateBeforeHook = val,
+                        Namespace.DefaultValidateAfterHook,
+                        val => Namespace.DefaultValidateAfterHook = val)
+
+                    @CreateHookPanel("Plan Hooks",
+                        Namespace.DefaultPlanBeforeHook,
+                        val => Namespace.DefaultPlanBeforeHook = val,
+                        Namespace.DefaultPlanAfterHook,
+                        val => Namespace.DefaultPlanAfterHook = val)
+
+                    @CreateHookPanel("Apply Hooks",
+                        Namespace.DefaultApplyBeforeHook,
+                        val => Namespace.DefaultApplyBeforeHook = val,
+                        Namespace.DefaultApplyAfterHook,
+                        val => Namespace.DefaultApplyAfterHook = val)
+
+                    @CreateHookPanel("Plan Destroy Hooks",
+                        Namespace.DefaultPlanDestroyBeforeHook,
+                        val => Namespace.DefaultPlanDestroyBeforeHook = val,
+                        Namespace.DefaultPlanDestroyAfterHook,
+                        val => Namespace.DefaultPlanDestroyAfterHook = val)
+
+                    @CreateHookPanel("Destroy Hooks",
+                        Namespace.DefaultDestroyBeforeHook,
+                        val => Namespace.DefaultDestroyBeforeHook = val,
+                        Namespace.DefaultDestroyAfterHook,
+                        val => Namespace.DefaultDestroyAfterHook = val)
+
+                    @CreateHookPanel("Output Hooks",
+                        Namespace.DefaultOutputBeforeHook,
+                        val => Namespace.DefaultOutputBeforeHook = val,
+                        Namespace.DefaultOutputAfterHook,
+                        val => Namespace.DefaultOutputAfterHook = val)
+                </MudExpansionPanels>
+            </MudItem>
+
+
+            <!-- Action Buttons -->
+            <MudItem md="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveNamespace">Save</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel">Cancel</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required Namespace Namespace { get; set; }
+    [Parameter] public required EventCallback OnSaved { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    // Repository Factories
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
+    [Inject] private NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition> NamespaceParamFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceParamFromLiteral> NamespaceParamFromLiteralSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret> NamespaceParamFromSecretSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceEnvVarFromDefinition> NamespaceEnvVarFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceEnvVarFromLiteral> NamespaceEnvVarFromLiteralSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceEnvVarFromSecret> NamespaceEnvVarFromSecretSecuredRepositoryFactory { get; set; } = null!;
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    private MudForm? _form;
+
+    private EditNamespaceInputTab<NamespaceParamFromDefinition, NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition>>? _paramsDefRef;
+    private EditNamespaceInputTab<NamespaceParamFromLiteral, NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceParamFromLiteral>>? _paramsLiteralRef;
+    private EditNamespaceInputTab<NamespaceParamFromSecret, NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret>>? _paramsSecretRef;
+
+    private EditNamespaceInputTab<NamespaceEnvVarFromDefinition, NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceEnvVarFromDefinition>>? _envVarsDefRef;
+    private EditNamespaceInputTab<NamespaceEnvVarFromLiteral, NamespaceInputFromLiteralSecuredRepositoryFactory<NamespaceEnvVarFromLiteral>>? _envVarsLiteralRef;
+    private EditNamespaceInputTab<NamespaceEnvVarFromSecret, NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceEnvVarFromSecret>>? _envVarsSecretRef;
+
+    private EditNamespaceExtraFilesList? _extraFilesRef;
+    private EditNamespaceBackendConfigsList? _backendConfigsRef;
+    private EditNamespaceTerraformFlagsList? _terraformFlagsRef;
+    private EditNamespaceTerraformArrayFlagsList? _terraformArrayFlagsRef;
+    private EditNamespacePulumiFlagsList? _pulumiFlagsRef;
+    private EditNamespacePulumiArrayFlagsList? _pulumiArrayFlagsRef;
+    private bool _pulumiEnabled;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        _pulumiEnabled = await dbContext.PreviewFeatureAcceptances
+            .AnyAsync(p => p.OrganizationId == OrganizationId && p.PreviewFeature == PreviewFeature.Pulumi);
+    }
+
+    private RenderFragment CreateHookPanel(
+        string title,
+        string? beforeHookValue,
+        Action<string?> beforeHookValueChanged,
+        string? afterHookValue,
+        Action<string?> afterHookValueChanged) =>
+        @<MudExpansionPanel Text="@title">
+            <MudTextField Label="Before Hook"
+                          Value="@beforeHookValue"
+                          ValueChanged="@beforeHookValueChanged"
+                          Multiline Rows="3"/>
+            <MudTextField Label="After Hook"
+                          Value="@afterHookValue"
+                          ValueChanged="@afterHookValueChanged"
+                          Multiline Rows="3"/>
+        </MudExpansionPanel>;
+
+
+    private async Task SaveNamespace()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid)
+            {
+                Snackbar.Add("Please fix validation errors", Severity.Error);
+                return;
+            }
+        }
+        else throw new Exception("Form is null");
+
+        using var repo = NamespaceSecuredRepositoryFactory.Create(PrincipalProvider);
+        await repo.Update(Namespace);
+        Snackbar.Add("Namespace updated successfully", Severity.Success);
+        await OnSaved.InvokeAsync();
+    }
+
+    private async Task EnvVarsExpanded(bool isExpanded)
+    {
+        if (isExpanded)
+            await _envVarsDefRef!.InitializeItems();
+    }
+
+
+    private async Task ParamsExpanded(bool isExpanded)
+    {
+        if (isExpanded)
+            await _paramsDefRef!.InitializeItems();
+    }
+
+
+    public void Dispose()
+    {
+        // Add any necessary cleanup logic here
+    }
+
+}

@@ -1,0 +1,33 @@
+@using SnapCd.Server.Core.Licensing.Services
+@inject IServiceProvider ServiceProvider
+
+@if (_enabled)
+{
+    <script>
+        // Turnstile callbacks - must be defined BEFORE the Turnstile script loads
+        window.onTurnstileSuccess = function(token) {
+            console.log('Turnstile success, token length:', token ? token.length : 0);
+            document.querySelectorAll('input[name="cf-turnstile-response"]')
+                .forEach(function(el) { el.value = token; });
+        };
+        window.onTurnstileError = function(error) {
+            console.error('Turnstile error:', error);
+        };
+        window.onTurnstileExpired = function() {
+            console.log('Turnstile expired, resetting');
+            document.querySelectorAll('input[name="cf-turnstile-response"]')
+                .forEach(function(el) { el.value = ''; });
+            if (typeof turnstile !== 'undefined') { turnstile.reset(); }
+        };
+    </script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+}
+
+@code {
+    private bool _enabled;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _enabled = await TurnstileGatingService.ShouldEnableTurnstileAsync(ServiceProvider);
+    }
+}

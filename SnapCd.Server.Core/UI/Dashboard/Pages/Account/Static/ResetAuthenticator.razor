@@ -1,0 +1,108 @@
+@page "/Account/ResetAuthenticator"
+@layout AccountLayout
+
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject SignInManager<User> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<ResetAuthenticator> Logger
+
+<PageTitle>Reset authenticator key - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Reset authenticator key">
+    <StatusMessage Message="@_message"/>
+
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
+            Resetting your authenticator key
+        </MudText>
+        <MudText Typo="Typo.body1">
+            If you reset your authenticator key, your authenticator app will not work until you reconfigure it.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">
+            This process disables 2FA until you verify your authenticator app.
+            If you do not complete your authenticator app configuration you may lose access to your account.
+        </MudText>
+    </MudAlert>
+
+    <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
+        <AntiforgeryToken/>
+        <div class="complete-button-container">
+            <div class="divider-line"></div>
+            <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                             FormAction="FormAction.Submit" Class="complete-btn">
+                Reset authenticator key
+            </MudStaticButton>
+            <div class="divider-line"></div>
+        </div>
+    </form>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            <MudLink Typo="Typo.body2" Href="/Account/Manage/Profile">
+                Cancel
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+<style>
+    .complete-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin-top: 2rem;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .complete-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+        border-radius: 24px !important;
+    }
+
+    .complete-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .register-link {
+        margin-top: 1.5rem;
+    }
+</style>
+
+@code {
+    private string? _message;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    private async Task OnSubmitAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        await UserManager.SetTwoFactorEnabledAsync(user, false);
+        await UserManager.ResetAuthenticatorKeyAsync(user);
+        var userId = await UserManager.GetUserIdAsync(user);
+        Logger.LogInformation("User with ID '{UserId}' has reset their authentication app key.", userId);
+
+        await SignInManager.RefreshSignInAsync(user);
+
+        RedirectManager.RedirectToWithStatus(
+            "/Account/RegisterAuthenticator",
+            "Your authenticator app key has been reset, you will need to configure your authenticator app using the new key.",
+            HttpContext);
+    }
+
+}

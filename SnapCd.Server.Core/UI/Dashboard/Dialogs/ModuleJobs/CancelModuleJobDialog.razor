@@ -1,0 +1,83 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+@inject ISnackbar Snackbar
+@inject ILogger<CancelModuleJobDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Cancel Module Job</MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+        <MudSelect T="CancellationType" @bind-Value="_selectedCancellationType" Label="Cancellation Type" Dense="true"
+                   Margin="Margin.Dense">
+            <MudSelectItem Value="CancellationType.AfterCurrent">Cancel after current</MudSelectItem>
+            @* <MudSelectItem Value="CancellationType.ImmediateGraceful">Cancel current step gracefully</MudSelectItem> *@
+            <MudSelectItem Value="CancellationType.ImmediateKill">Kill current step</MudSelectItem>
+        </MudSelect>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Confirm">Confirm</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+    [Parameter] public required Guid JobId { get; set; }
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid NamespaceId { get; set; }
+
+    private CancellationType _selectedCancellationType = CancellationType.AfterCurrent;
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Confirm()
+    {
+        var service = SecuredJobServiceFactory.Create();
+        try
+        {
+            var task = service.Cancel(organizationId: OrganizationId, jobId: JobId, moduleId: ModuleId, namespaceId:NamespaceId, cancellationType: _selectedCancellationType);
+
+            MudDialog.Close(DialogResult.Ok(JobId));
+
+            _ = HandleTaskCompletionAsync(service, task);
+        }
+        catch (Exception ex)
+        {
+            service.Dispose();
+            Snackbar.Add($"Error cancelling job: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error cancelling Module job");
+        }
+    }
+
+    private async Task HandleTaskCompletionAsync(IDisposable service, Task task)
+    {
+        try
+        {
+            await task;
+            await InvokeAsync(() =>
+                Snackbar.Add("Job cancelled successfully.", Severity.Success));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling Module job");
+            await InvokeAsync(() =>
+                Snackbar.Add($"Unable to cancel job: {ex.Message}", Severity.Error));
+        }
+        finally
+        {
+            service.Dispose();
+        }
+    }
+
+}

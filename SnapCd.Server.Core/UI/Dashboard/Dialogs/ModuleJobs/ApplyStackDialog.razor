@@ -1,0 +1,308 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Contracts.Dto
+@using SnapCd.Server.Core.UI.Dashboard.Components.Stack
+@using MassTransit
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.Linq
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.DependencyGraph
+
+@inject ISnackbar Snackbar
+@inject ModuleJobSecuredRepositoryFactory ModuleJobSecuredRepositoryFactory
+@inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Apply All Modules in Stack</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <div class="text-center">
+                <MudText Typo="Typo.h6" Class="mb-4">Loading dependency graph...</MudText>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+            </div>
+        }
+        else if (_dependencyGraph != null)
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                Are you sure you want to apply all modules in this stack?
+            </MudText>
+
+            var modulesInStack = _dependencyGraph.NodeStates
+                .Select(n => n.DisplayName)
+                .ToList();
+
+            @if (modulesInStack.Any())
+            {
+                <div class="d-flex flex-column gap-1 mb-3">
+                    @foreach (var moduleNode in _dependencyGraph.NodeStates)
+                    {
+                        <div class="d-flex align-center gap-2">
+                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                     Size="Size.Medium">@moduleNode.DisplayName</MudChip>
+                            @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
+                            {
+                                <MudTooltip Text="You do not have permission to apply this module">
+                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                             Size="Size.Small"/>
+                                </MudTooltip>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            <MudText Typo="Typo.h6" Class="mb-3">Application Plan</MudText>
+            var filteredGraph = GetFilteredGraph();
+            var alreadyAppliedModules = GetAlreadyAppliedModules();
+            var modulesToApply = GetModulesToApply();
+
+            <MudText Typo="Typo.body2" Class="mb-4">
+                The following @(modulesToApply.Count) module(s) will be applied:
+            </MudText>
+
+            <div style="max-height: 400px; overflow-y: auto;">
+                <StackDependencyGraphExecutionFlow DependencyGraphWithStates="filteredGraph"/>
+            </div>
+        }
+        else if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error">
+                Error loading dependency graph: @_error
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_dependencyGraph != null)
+        {
+            var modulesToApply = GetModulesToApply();
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="ExecuteStackApplication"
+                       Disabled="@_isApplying">
+                @if (_isApplying)
+                {
+                    @:Applying Infrastructure...
+                }
+                else
+                {
+                    @:Apply All (@modulesToApply.Count modules)
+                }
+            </MudButton>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: black; color: white;"
+                   OnClick="Cancel"
+                   Disabled="@_isApplying">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private ApplyModuleGraphServiceFactory ApplyServiceFactory { get; set; } = null!;
+    [Inject] private IPublishEndpoint Publisher { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid StackId { get; set; }
+    [Parameter] public required string StackName { get; set; }
+
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+
+    private bool _isLoading = true;
+    private string? _error = null;
+    private StackDependencyGraphDto? _dependencyGraph = null;
+    private bool _isApplying;
+    private ApplyModuleGraphService? _applyService;
+    private Dictionary<Guid, bool> _modulePermissions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cacheKey = $"applyStackDialog_{StackId}";
+
+        _applyService = ApplyServiceFactory.Create();
+
+        await LoadDependencyGraph();
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedDialogData
+        //     {
+        //         DependencyGraph = _dependencyGraph,
+        //         IsLoading = _isLoading,
+        //         Error = _error,
+        //         IsApplying = _isApplying,
+        //         ModulePermissions = _modulePermissions
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedDialogData>(cacheKey, out var cachedData))
+        // {
+        //     _dependencyGraph = cachedData.DependencyGraph;
+        //     _isLoading = false;
+        //     _error = cachedData.Error;
+        //     _isApplying = cachedData.IsApplying;
+        //     _modulePermissions = cachedData.ModulePermissions ?? new Dictionary<Guid, bool>();
+        // }
+    }
+
+    private async Task LoadDependencyGraph()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            _dependencyGraph = await _applyService!.BuildStackApplyGraphAsync(StackId, StackName);
+
+            // Check permissions for all modules in the graph
+            await LoadModulePermissions();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private StackDependencyGraphDto GetFilteredGraph()
+    {
+        if (_dependencyGraph == null)
+        {
+            return null!;
+        }
+
+        // Always include all modules in the graph for display
+        return _dependencyGraph;
+    }
+
+    private List<DependencyGraphNodeStateDto> GetAlreadyAppliedModules()
+    {
+        if (_dependencyGraph == null) return new List<DependencyGraphNodeStateDto>();
+
+        return _dependencyGraph.NodeStates
+            .Where(n => n.LatestActualState == ActualStateHeadline.Applied)
+            .ToList();
+    }
+
+    private List<DependencyGraphNodeStateDto> GetModulesToApply()
+    {
+        if (_dependencyGraph == null) return new List<DependencyGraphNodeStateDto>();
+
+        // Only include modules that need to be applied (not already applied and not currently being applied)
+        return _dependencyGraph.NodeStates
+            .Where(n => n.LatestActualState != ActualStateHeadline.Applied &&
+                        (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Applied))
+            .ToList();
+    }
+
+    private async Task LoadModulePermissions()
+    {
+        if (_dependencyGraph == null) return;
+
+        var modulesToCheck = _dependencyGraph.NodeStates
+            .Select(n => new ModuleNamespaceIdTuple
+            {
+                ModuleId = n.ModuleId,
+                NamespaceId = n.NamespaceId
+            })
+            .ToList();
+
+        if (!modulesToCheck.Any()) return;
+
+        using var jobSecuredRepository = ModuleJobSecuredRepositoryFactory.Create();
+        var permissions = await jobSecuredRepository.ListHasRunJobPermission(modulesToCheck, OrganizationId);
+
+        _modulePermissions = permissions.ToDictionary(p => p.ModuleId, p => p.HasPermission);
+    }
+
+    private void Cancel()
+    {
+        if (!_isApplying)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task ExecuteStackApplication()
+    {
+        var filteredGraph = GetFilteredGraph();
+        if (filteredGraph == null)
+        {
+            Snackbar.Add("Apply graph not loaded", Severity.Error);
+            return;
+        }
+
+        // Categorize modules for the confirmation dialog - only modules that aren't already applied or being applied
+        var modulesToApply = GetModulesToApply();
+        var alreadyAppliedModules = GetAlreadyAppliedModules();
+
+        if (!modulesToApply.Any())
+        {
+            Snackbar.Add("All modules are already applied", Severity.Info);
+            MudDialog.Close(DialogResult.Ok(new List<Guid>()));
+            return;
+        }
+
+        // Open confirmation dialog
+        var parameters = new DialogParameters
+        {
+            { nameof(ApplyStackConfirmationDialog.StackId), StackId },
+            { nameof(ApplyStackConfirmationDialog.StackName), StackName },
+            { nameof(ApplyStackConfirmationDialog.ModulesToApply), modulesToApply },
+            { nameof(ApplyStackConfirmationDialog.AlreadyAppliedModules), alreadyAppliedModules },
+            { nameof(ApplyStackConfirmationDialog.ModulePermissions), _modulePermissions }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = false,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var confirmationDialog = await DialogService.ShowAsync<ApplyStackConfirmationDialog>(
+            "Confirm Application", parameters, options);
+
+        var result = await confirmationDialog.Result;
+
+        if (!result.Canceled && result.Data is List<Guid> appliedModuleIds)
+        {
+            // Close the original dialog with the result
+            MudDialog.Close(DialogResult.Ok(appliedModuleIds));
+        }
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+        _applyService?.Dispose();
+    }
+
+    private class CachedDialogData
+    {
+        public StackDependencyGraphDto? DependencyGraph { get; set; }
+        public bool IsLoading { get; set; }
+        public string? Error { get; set; }
+        public bool IsApplying { get; set; }
+        public Dictionary<Guid, bool>? ModulePermissions { get; set; }
+    }
+
+}

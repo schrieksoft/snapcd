@@ -1,0 +1,343 @@
+@inject PersistentComponentState ApplicationState
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Views
+@implements IDisposable
+
+@if (_namespaces == null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else
+{
+    <div class="namespace-list">
+        @foreach (var ns in _namespaces)
+        {
+            <MudExpansionPanel Class="custom-panel" @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)">
+                <TitleContent>
+                    @if (ShowCheckboxes)
+                    {
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <MudCheckBox T="bool"
+                                         Value="@_selectedNamespaces.Contains(ns.Id)"
+                                         ValueChanged="@(value => OnNamespaceSelectionChanged(ns.Id, value))"
+                                         Color="Color.Info"
+                                         Dense="true"
+                                         Style="margin: 0; padding: 0;"/>
+                            <MudTooltip Text="Namespace">
+                                <MudLink
+                                    Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+                            </MudTooltip>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudTooltip Text="Namespace">
+                            <MudLink
+                                Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+                        </MudTooltip>
+                    }
+                </TitleContent>
+                <ChildContent>
+                    <ListModules
+                        NamespaceId="@ns.Id"
+                        NamespaceName="@ns.Name"
+                        StackName="@StackName"
+                        SearchTerms="@SearchTerms"/>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </div>
+
+    @if (_totalPages > 1)
+    {
+        <Pagination CurrentPage="_currentPage"
+                    TotalPages="_totalPages"
+                    PageChanged="HandlePageChanged"/>
+    }
+}
+
+
+<style>
+    .custom-panel {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        border-bottom: 1px solid #e0e0e0 !important;
+    }
+
+    .custom-panel > .mud-expand-panel {
+        border-top: 1px solid #e0e0e0 !important;
+        border-bottom: 1px solid #e0e0e0 !important;
+    }
+
+    .custom-panel .mud-expand-panel-header {
+        min-height: 40px !important;
+        height: 40px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+
+    .search-highlight {
+        background-color: var(--mud-palette-info-lighten);
+        color: white;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid StackId { get; set; }
+    [Parameter] public string StackName { get; set; } = null!;
+    [Parameter] public List<string> SearchTerms { get; set; } = new();
+    [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
+    [Parameter] public bool SelectAll { get; set; }
+    [Parameter] public bool ShowCheckboxes { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    private List<TruncatedNamespace>? _namespaces;
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    private const int PageSize = 20;
+    private List<string> _previousSearchTerms = new();
+    private HashSet<Guid> _expandedNamespaces = new();
+    private HashSet<Guid> _selectedNamespaces = new();
+    private bool _previousSelectAll;
+
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Check if search terms have changed
+        if (!SearchTerms.SequenceEqual(_previousSearchTerms))
+        {
+            _previousSearchTerms = new List<string>(SearchTerms);
+            await LoadNamespaces();
+        }
+
+        // Handle select all parameter change
+        if (SelectAll != _previousSelectAll)
+        {
+            _previousSelectAll = SelectAll;
+            if (SelectAll && _namespaces != null)
+            {
+                // Select all current namespaces
+                _selectedNamespaces = new HashSet<Guid>(_namespaces.Select(n => n.Id));
+            }
+            else
+            {
+                // Clear selection
+                _selectedNamespaces.Clear();
+            }
+
+            if (OnSelectionChanged.HasDelegate)
+            {
+                await OnSelectionChanged.InvokeAsync(_selectedNamespaces);
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNamespaces();
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // var cacheKey = $"cachedNamespaces_{StackId}";
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedNamespacesData
+        //     {
+        //         Namespaces = _namespaces,
+        //         CurrentPage = _currentPage,
+        //         TotalPages = _totalPages,
+        //         StackId = StackId
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedNamespacesData>(cacheKey, out var cachedData))
+        // {
+        //     _namespaces = cachedData.Namespaces;
+        //     _currentPage = cachedData.CurrentPage;
+        //     _totalPages = cachedData.TotalPages;
+        // }
+    }
+
+    public async Task LoadNamespaces(bool resetPage = true)
+    {
+        using var namespaceRepository = NamespaceRepoFactory.Create();
+        using var moduleRepository = ModuleRepoFactory.Create();
+
+        if (resetPage)
+        {
+            _currentPage = 1; // Reset to first page when searching
+        }
+
+        _expandedNamespaces.Clear(); // Clear expanded state
+
+        if (SearchTerms.Any())
+        {
+            // When searching, we need to:
+            // 1. Find namespaces that match the search terms
+            // 2. Find modules that match the search terms across ALL namespaces
+            // 3. Combine and deduplicate the namespace results
+            // 4. Expand namespaces that contain matching modules
+
+            var namespacesMatchingDirectly = await namespaceRepository.List(
+                OrganizationId,
+                q => q
+                    .Where(ns => ns.StackId == StackId)
+                    .Where(ns => SearchTerms.All(term => ns.Name.Contains(term)))
+                    .Select(ns => new TruncatedNamespace
+                    {
+                        Id = ns.Id,
+                        Name = ns.Name,
+                        Modules = new List<TruncatedModule>()
+                    })
+            );
+
+            // Find all modules that match search terms across all namespaces in this stack
+            var modulesWithNamespaces = await moduleRepository.List(
+                OrganizationId,
+                q => q
+                    .Where(m => m.Namespace.StackId == StackId)
+                    .Where(m => SearchTerms.All(term => m.Name.Contains(term)))
+                    .Select(m => new
+                    {
+                        ModuleId = m.Id,
+                        ModuleName = m.Name,
+                        m.NamespaceId,
+                        NamespaceName = m.Namespace.Name
+                    })
+            );
+
+            // Get unique namespaces that contain matching modules
+            var namespacesWithMatchingModules = modulesWithNamespaces
+                .GroupBy(m => m.NamespaceId)
+                .Select(g => new TruncatedNamespace
+                {
+                    Id = g.Key,
+                    Name = g.First().NamespaceName,
+                    Modules = new List<TruncatedModule>()
+                })
+                .ToList();
+
+            // Auto-expand namespaces that contain matching modules
+            foreach (var ns in namespacesWithMatchingModules)
+            {
+                _expandedNamespaces.Add(ns.Id);
+            }
+
+            // Combine and deduplicate namespaces
+            var allMatchingNamespaces = namespacesMatchingDirectly
+                .Concat(namespacesWithMatchingModules)
+                .GroupBy(ns => ns.Id)
+                .Select(g => g.First())
+                .OrderBy(ns => ns.Name)
+                .ToList();
+
+            var totalCount = allMatchingNamespaces.Count;
+            _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+            // Apply pagination
+            _namespaces = allMatchingNamespaces
+                .Skip((_currentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToList();
+
+            // // Force UI update to reflect expansion changes
+            // StateHasChanged();
+        }
+        else
+        {
+            // No search terms, use normal pagination
+            var totalCount = await namespaceRepository.Count(OrganizationId, q => q.Where(x => x.StackId == StackId));
+            _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+            var namespaces = await namespaceRepository.List(
+                OrganizationId,
+                q => q
+                    .Where(ns => ns.StackId == StackId)
+                    .Select(ns => new TruncatedNamespace
+                    {
+                        Id = ns.Id,
+                        Name = ns.Name,
+                        Modules = new List<TruncatedModule>()
+                    }),
+                orderBy: q => q.OrderBy(ns => ns.Name),
+                pageNumber: _currentPage,
+                pageSize: PageSize
+            );
+            _namespaces = namespaces.OrderBy(ns => ns.Name).ToList();
+        }
+    }
+
+
+    public void TriggerStateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+    }
+
+    private async Task HandlePageChanged(int newPage)
+    {
+        _currentPage = newPage;
+        await LoadNamespaces(false);
+    }
+
+    private MarkupString GetHighlightedNamespaceName(string namespaceName)
+    {
+        if (!SearchTerms.Any())
+            return new MarkupString(System.Web.HttpUtility.HtmlEncode(namespaceName));
+
+        var highlightedName = System.Web.HttpUtility.HtmlEncode(namespaceName);
+
+        foreach (var term in SearchTerms.OrderByDescending(t => t.Length))
+        {
+            var escapedTerm = System.Text.RegularExpressions.Regex.Escape(term);
+            highlightedName = System.Text.RegularExpressions.Regex.Replace(
+                highlightedName,
+                escapedTerm,
+                match => $"<mark class=\"search-highlight\">{match.Value}</mark>",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        return new MarkupString(highlightedName);
+    }
+
+    private async Task OnNamespaceSelectionChanged(Guid namespaceId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedNamespaces.Add(namespaceId);
+        }
+        else
+        {
+            _selectedNamespaces.Remove(namespaceId);
+        }
+
+        if (OnSelectionChanged.HasDelegate)
+        {
+            await OnSelectionChanged.InvokeAsync(_selectedNamespaces);
+        }
+    }
+
+    public List<TruncatedNamespace> GetSelectedNamespaces()
+    {
+        return _namespaces?.Where(n => _selectedNamespaces.Contains(n.Id)).ToList() ?? new List<TruncatedNamespace>();
+    }
+
+    private class CachedNamespacesData
+    {
+        public Guid StackId { get; set; }
+        public List<TruncatedNamespace>? Namespaces { get; set; }
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+}

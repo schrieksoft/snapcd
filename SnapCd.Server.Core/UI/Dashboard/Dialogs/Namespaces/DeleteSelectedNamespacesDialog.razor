@@ -1,0 +1,490 @@
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Views
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Delete Selected Namespaces</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (!_dependencyCheckCompleted)
+        {
+            <div class="text-center">
+                <MudText Typo="Typo.h6" Class="mb-4">Checking dependencies on selected Namespaces</MudText>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+                <MudText Typo="Typo.body2" Class="mt-4">
+                    Analyzing @Namespaces.Count namespace(s) for dependencies...
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                Are you sure you want to delete @Namespaces.Count namespace(s) from stack "@StackName"?
+            </MudText>
+
+            @if (!_canDeleteAll)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-3">
+                    <strong>Cannot delete all selected namespaces!</strong> Some namespaces contain modules with
+                    external dependencies.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    <strong>Warning:</strong> This action cannot be reversed! All modules within these namespaces will
+                    also be deleted.
+                </MudAlert>
+            }
+
+            <div style="max-height: 450px; overflow-y: auto;">
+                @{
+                    var deletableNamespaces = _namespaceStatuses.Where(n => n.CanDelete).OrderBy(n => n.DeletionOrder).ToList();
+                    var nonDeletableNamespaces = _namespaceStatuses.Where(n => !n.CanDelete).ToList();
+                }
+
+                @if (deletableNamespaces.Any())
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Namespaces that will be deleted (in order):</MudText>
+                    <MudPaper Elevation="1" Class="pa-2 mb-3">
+                        @foreach (var namespaceStatus in deletableNamespaces)
+                        {
+                            <MudExpansionPanel Class="mb-1">
+                                <TitleContent>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                                 Size="Size.Small"/>
+                                        <MudText>@namespaceStatus.Namespace.Name</MudText>
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudList T="string" Dense="true">
+                                        @if (namespaceStatus.InternalDependencies.Any())
+                                        {
+                                            <MudListSubheader>Dependencies within deletion list:</MudListSubheader>
+                                            @foreach (var dep in namespaceStatus.InternalDependencies)
+                                            {
+                                                <MudListItem T="string" Icon="@Icons.Material.Filled.Link">
+                                                    <MudText Typo="Typo.body2" Color="Color.Success">@dep</MudText>
+                                                </MudListItem>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                                                <MudText Typo="Typo.body2" Color="Color.Success">No cross-namespace
+                                                    dependencies
+                                                </MudText>
+                                            </MudListItem>
+                                        }
+                                    </MudList>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        }
+                    </MudPaper>
+                }
+
+                @if (nonDeletableNamespaces.Any())
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Namespaces that cannot be deleted:</MudText>
+                    <MudPaper Elevation="1" Class="pa-2">
+                        @foreach (var namespaceStatus in nonDeletableNamespaces)
+                        {
+                            <MudExpansionPanel Class="mb-1">
+                                <TitleContent>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error"
+                                                 Size="Size.Small"/>
+                                        <MudText>@namespaceStatus.Namespace.Name</MudText>
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudList T="string" Dense="true">
+                                        <MudListSubheader>External Dependencies (blocking deletion):</MudListSubheader>
+                                        @foreach (var dep in namespaceStatus.ExternalDependencies)
+                                        {
+                                            <MudListItem T="string" Icon="@Icons.Material.Filled.Block">
+                                                <MudText Typo="Typo.body2" Color="Color.Error">@dep</MudText>
+                                            </MudListItem>
+                                        }
+                                    </MudList>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        }
+                    </MudPaper>
+                }
+            </div>
+
+            @if (_isDeleting)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="false" Value="@_progress" Class="mt-3">
+                    <MudText Typo="Typo.body2">
+                        Deleting namespace @(_currentIndex + 1) of @_namespaceStatuses.Count(n => n.CanDelete)...
+                    </MudText>
+                </MudProgressLinear>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   OnClick="Delete"
+                   Disabled="@(!_dependencyCheckCompleted || !_canDeleteAll || _isDeleting)"
+                   StartIcon="@Icons.Material.Filled.Delete">
+            @if (_isDeleting)
+            {
+                @:Deleting...
+            }
+            else if (!_dependencyCheckCompleted)
+            {
+                @:Delete All
+            }
+            else if (!_canDeleteAll)
+            {
+                @:Cannot Delete
+            }
+            else
+            {
+                @:Delete All
+            }
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="Cancel"
+                   Disabled="@_isDeleting">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetRepoFactory { get; set; } = null!;
+    [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleRepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required List<TruncatedNamespace> Namespaces { get; set; }
+    [Parameter] public required string StackName { get; set; }
+
+    private bool _isDeleting;
+    private bool _isCheckingDependencies;
+    private bool _dependencyCheckCompleted;
+    private bool _canDeleteAll;
+    private int _currentIndex;
+    private double _progress => _namespaceStatuses.Count(n => n.CanDelete) > 0 ? _currentIndex * 100.0 / _namespaceStatuses.Count(n => n.CanDelete) : 0;
+    private List<NamespaceStatus> _namespaceStatuses = new();
+
+    private class NamespaceStatus
+    {
+        public TruncatedNamespace Namespace { get; set; } = null!;
+        public bool CanDelete { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public int DeletionOrder { get; set; }
+        public List<Guid> Dependencies { get; set; } = new();
+        public List<string> ExternalDependencies { get; set; } = new();
+        public List<string> InternalDependencies { get; set; } = new();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Start dependency check immediately
+        await CheckDependencies();
+    }
+
+    private async Task CheckDependencies()
+    {
+        _isCheckingDependencies = true;
+        StateHasChanged();
+
+        try
+        {
+            _namespaceStatuses.Clear();
+            var namespaceIds = Namespaces.Select(n => n.Id).ToHashSet();
+
+            using var moduleRepo = ModuleRepoFactory.Create();
+            using var moduleParamFromOutputRepo = ModuleParamFromOutputRepoFactory.Create();
+            using var moduleEnvVarFromOutputRepo = ModuleEnvVarFromOutputRepoFactory.Create();
+            using var moduleParamFromOutputSetRepo = ModuleParamFromOutputSetRepoFactory.Create();
+            using var dependsOnModuleRepo = DependsOnModuleRepoFactory.Create();
+
+            // Get all modules in the namespaces to be deleted
+            var modulesInNamespaces = await moduleRepo.List(
+                queryModifier: q => q
+                    .Where(m => namespaceIds.Contains(m.NamespaceId))
+                    .Include(m => m.Namespace),
+                organizationId: OrganizationId
+            );
+            var moduleIds = modulesInNamespaces.Select(m => m.Id).ToHashSet();
+
+            // Build namespace-to-modules map for deletion order calculation
+            _namespaceToModulesMap.Clear();
+            foreach (var module in modulesInNamespaces)
+            {
+                if (!_namespaceToModulesMap.ContainsKey(module.NamespaceId))
+                {
+                    _namespaceToModulesMap[module.NamespaceId] = new HashSet<Guid>();
+                }
+
+                _namespaceToModulesMap[module.NamespaceId].Add(module.Id);
+            }
+
+            foreach (var ns in Namespaces)
+            {
+                var status = new NamespaceStatus { Namespace = ns };
+
+                // Get modules in this namespace
+                var modulesInThisNamespace = modulesInNamespaces
+                    .Where(m => m.NamespaceId == ns.Id)
+                    .Select(m => m.Id)
+                    .ToHashSet();
+
+                // Check if any module in this namespace is referenced by modules outside the deletion list
+
+                // Check ModuleParamFromOutput references
+                var paramOutputRefs = await moduleParamFromOutputRepo.List(
+                    queryModifier: q => q.Where(m => modulesInThisNamespace.Contains(m.OutputModuleId)),
+                    organizationId: OrganizationId
+                );
+
+                // Check ModuleEnvVarFromOutput references
+                var envVarOutputRefs = await moduleEnvVarFromOutputRepo.List(
+                    queryModifier: q => q.Where(m => modulesInThisNamespace.Contains(m.OutputModuleId)),
+                    organizationId: OrganizationId
+                );
+
+                // Check ModuleParamFromOutputSet references
+                var paramSetRefs = await moduleParamFromOutputSetRepo.List(
+                    queryModifier: q => q.Where(m => modulesInThisNamespace.Contains(m.OutputModuleId)),
+                    organizationId: OrganizationId
+                );
+
+                // Check DependsOnModule references
+                var dependencyRefs = await dependsOnModuleRepo.List(
+                    queryModifier: q => q.Where(d => modulesInThisNamespace.Contains(d.DependsOnModuleId)),
+                    organizationId: OrganizationId
+                );
+
+                // Process all references
+                foreach (var input in paramOutputRefs)
+                {
+                    if (!moduleIds.Contains(input.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: input.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        status.ExternalDependencies.Add($"ModuleParamFromOutput on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                    else if (!modulesInThisNamespace.Contains(input.ModuleId))
+                    {
+                        status.Dependencies.Add(input.ModuleId);
+                        var internalModule = modulesInNamespaces.First(m => m.Id == input.ModuleId);
+                        status.InternalDependencies.Add($"ModuleParamFromOutput on {internalModule.Namespace.Name}.{internalModule.Name}");
+                    }
+                }
+
+                foreach (var input in envVarOutputRefs)
+                {
+                    if (!moduleIds.Contains(input.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: input.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        status.ExternalDependencies.Add($"ModuleEnvVarFromOutput on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                    else if (!modulesInThisNamespace.Contains(input.ModuleId))
+                    {
+                        status.Dependencies.Add(input.ModuleId);
+                        var internalModule = modulesInNamespaces.First(m => m.Id == input.ModuleId);
+                        status.InternalDependencies.Add($"ModuleEnvVarFromOutput on {internalModule.Namespace.Name}.{internalModule.Name}");
+                    }
+                }
+
+                foreach (var set in paramSetRefs)
+                {
+                    if (!moduleIds.Contains(set.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: set.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        status.ExternalDependencies.Add($"ModuleParamFromOutputSet on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                    else if (!modulesInThisNamespace.Contains(set.ModuleId))
+                    {
+                        status.Dependencies.Add(set.ModuleId);
+                        var internalModule = modulesInNamespaces.First(m => m.Id == set.ModuleId);
+                        status.InternalDependencies.Add($"ModuleParamFromOutputSet on {internalModule.Namespace.Name}.{internalModule.Name}");
+                    }
+                }
+
+                foreach (var dep in dependencyRefs)
+                {
+                    if (!moduleIds.Contains(dep.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: dep.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        status.ExternalDependencies.Add($"DependsOnModule on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                    else if (!modulesInThisNamespace.Contains(dep.ModuleId))
+                    {
+                        status.Dependencies.Add(dep.ModuleId);
+                        var internalModule = modulesInNamespaces.First(m => m.Id == dep.ModuleId);
+                        status.InternalDependencies.Add($"DependsOnModule on {internalModule.Namespace.Name}.{internalModule.Name}");
+                    }
+                }
+
+                status.CanDelete = !status.ExternalDependencies.Any();
+                if (!status.CanDelete)
+                {
+                    status.Reason = $"Has {status.ExternalDependencies.Count} external dependencies";
+                }
+                else if (status.InternalDependencies.Any())
+                {
+                    status.Reason = $"Has {status.InternalDependencies.Count} cross-namespace dependencies within deletion list";
+                }
+                else
+                {
+                    status.Reason = "No external dependencies";
+                }
+
+                _namespaceStatuses.Add(status);
+            }
+
+            // Calculate deletion order based on dependencies
+            CalculateDeletionOrder();
+
+            _canDeleteAll = _namespaceStatuses.All(n => n.CanDelete);
+            _dependencyCheckCompleted = true;
+        }
+        finally
+        {
+            _isCheckingDependencies = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CalculateDeletionOrder()
+    {
+        var ordered = new List<NamespaceStatus>();
+        var remaining = _namespaceStatuses.ToList();
+        var order = 1;
+
+        while (remaining.Any())
+        {
+            // Find namespaces with no dependencies on other namespaces in the remaining list
+            var noDeps = remaining.Where(ns =>
+            {
+                // Get namespace IDs of remaining namespaces (excluding self)
+                var otherRemainingNamespaceIds = remaining
+                    .Where(r => r.Namespace.Id != ns.Namespace.Id)
+                    .Select(r => r.Namespace.Id)
+                    .ToHashSet();
+
+                // Check if any of this namespace's dependencies are in other remaining namespaces
+                return !ns.Dependencies.Any(moduleId =>
+                {
+                    // Find which namespace contains this dependent module
+                    var containingNamespaceId = _namespaceToModulesMap
+                        .FirstOrDefault(kvp => kvp.Value.Contains(moduleId)).Key;
+
+                    // If the containing namespace is in the remaining list (and not self), we have a dependency
+                    return otherRemainingNamespaceIds.Contains(containingNamespaceId);
+                });
+            }).ToList();
+
+            if (!noDeps.Any())
+            {
+                // Circular dependency or error - just add remaining
+                foreach (var ns in remaining)
+                {
+                    ns.DeletionOrder = order++;
+                }
+
+                break;
+            }
+
+            foreach (var ns in noDeps)
+            {
+                ns.DeletionOrder = order++;
+                ordered.Add(ns);
+                remaining.Remove(ns);
+            }
+        }
+    }
+
+    private Dictionary<Guid, HashSet<Guid>> _namespaceToModulesMap = new(); // Maps namespace ID to its module IDs
+
+    private async Task Delete()
+    {
+        _isDeleting = true;
+        StateHasChanged();
+
+        var deletedCount = 0;
+        var errors = new List<string>();
+
+        using var repo = NamespaceRepoFactory.Create();
+
+        // Delete only namespaces that can be deleted, in the calculated order
+        var namespacesToDelete = _namespaceStatuses.Where(n => n.CanDelete).OrderBy(n => n.DeletionOrder).ToList();
+
+        for (_currentIndex = 0; _currentIndex < namespacesToDelete.Count; _currentIndex++)
+        {
+            var namespaceStatus = namespacesToDelete[_currentIndex];
+            try
+            {
+                await repo.Delete(namespaceStatus.Namespace.Id, OrganizationId);
+                deletedCount++;
+                StateHasChanged();
+
+                // Small delay to show progress
+                await Task.Delay(100);
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Failed to delete namespace '{namespaceStatus.Namespace.Name}': {ex.Message}");
+            }
+        }
+
+        if (errors.Any())
+        {
+            foreach (var error in errors)
+            {
+                Snackbar.Add(error, Severity.Error);
+            }
+        }
+
+        if (deletedCount > 0)
+        {
+            MudDialog.Close(DialogResult.Ok(deletedCount));
+        }
+        else
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private void Cancel()
+    {
+        if (!_isDeleting)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+}

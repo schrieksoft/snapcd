@@ -1,0 +1,124 @@
+@page "/Account/Disable2fa"
+@layout AccountLayout
+
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<Disable2fa> Logger
+
+<PageTitle>Disable two-factor authentication - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Disable two-factor authentication">
+    <StatusMessage Message="@_message"/>
+
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
+            This action only disables 2FA
+        </MudText>
+        <MudText Typo="Typo.body1">
+            Disabling 2FA does not change the keys used in authenticator apps. If you wish to change the key
+            used in an authenticator app you should
+            <MudLink Href="/Account/ResetAuthenticator">reset your authenticator keys</MudLink>
+            .
+        </MudText>
+    </MudAlert>
+
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        <MudText Typo="Typo.body1">
+            Your account will be less secure without two-factor authentication. You can re-enable it at any time from
+            your profile.
+        </MudText>
+    </MudAlert>
+
+    <form @formname="disable-2fa" @onsubmit="OnSubmitAsync" method="post">
+        <AntiforgeryToken/>
+        <div class="complete-button-container">
+            <div class="divider-line"></div>
+            <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                             FormAction="FormAction.Submit" Class="complete-btn">
+                Disable 2FA
+            </MudStaticButton>
+            <div class="divider-line"></div>
+        </div>
+    </form>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            <MudLink Typo="Typo.body2" Href="/Account/Manage/Profile">
+                Cancel
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+<style>
+    .complete-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin-top: 2rem;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .complete-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+        border-radius: 24px !important;
+    }
+
+    .complete-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .register-link {
+        margin-top: 1.5rem;
+    }
+</style>
+
+@code {
+    private string? _message;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method) && !await UserManager.GetTwoFactorEnabledAsync(user))
+        {
+            throw new InvalidOperationException("Cannot disable 2FA for user as it's not currently enabled.");
+        }
+    }
+
+    private async Task OnSubmitAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        var disable2FaResult = await UserManager.SetTwoFactorEnabledAsync(user, false);
+        if (!disable2FaResult.Succeeded)
+        {
+            throw new InvalidOperationException("Unexpected error occurred disabling 2FA.");
+        }
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        Logger.LogInformation("User with ID '{UserId}' has disabled 2fa.", userId);
+        RedirectManager.RedirectToWithStatus(
+            "/Account/Manage/Profile",
+            "2fa has been disabled. You can re-enable 2fa when you setup an authenticator app",
+            HttpContext);
+    }
+
+}

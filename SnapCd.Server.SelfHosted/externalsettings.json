@@ -1,0 +1,33 @@
+{
+  "PeriodInSeconds": 300,
+  "DueTimeSeconds": 300,
+  "ReloadEnabled": true,
+  "Providers": [
+//    {
+//      "Loader": "AzureKeyVault",
+//      "Configuration": {
+//        "VaultUrl": "https://snapcdlocaltesting.vault.azure.net/"
+//      },
+//      "Data": {
+//        "This": {
+//          "Was": {
+//            "Set": "external-settings-test/80cab6a2e19344f7a2038d90ffd53b11"
+//          }
+//        }
+//      }
+//    },
+//    {
+//      "Loader": "AmazonSecretsManager",
+//      "Configuration": {
+//        "Region": "eu-north-1"
+//      },
+//      "Data": {
+//        "This": {
+//          "Was": {
+//            "Also": "external-settings-test/ba0908a8-e640-4d1b-a9fa-844da9519ad7"
+//          }
+//        }
+//      }
+//    }
+  ]
+}

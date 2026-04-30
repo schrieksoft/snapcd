@@ -1,0 +1,158 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Contracts.Dto
+@using SnapCd.Server.Core.UI.Dashboard.Components.Stack
+@using MassTransit
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.Linq
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Services.Crud.Jobs
+
+@inject ISnackbar Snackbar
+@inject ILogger<ApplyStackConfirmationDialog> Logger
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Confirm Stack Application</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (ModulesToApply.Any())
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                <strong>These modules will be applied:</strong>
+            </MudText>
+            <div class="d-flex flex-column gap-1 mb-3">
+                @foreach (var module in ModulesToApply)
+                {
+                    <div class="d-flex align-center gap-2">
+                        <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                 Size="Size.Medium">@module.DisplayName</MudChip>
+                        @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
+                        {
+                            <MudTooltip Text="You do not have permission to apply this module">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                            </MudTooltip>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (AlreadyAppliedModules.Any())
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                <strong>These modules are already applied:</strong>
+            </MudText>
+            <div class="d-flex flex-column gap-1 mb-3">
+                @foreach (var module in AlreadyAppliedModules)
+                {
+                    <div class="d-flex align-center gap-2">
+                        <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                 Size="Size.Medium">@module.DisplayName</MudChip>
+                        @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
+                        {
+                            <MudTooltip Text="You do not have permission to apply this module">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                            </MudTooltip>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="ConfirmApplication"
+                   Disabled="@_isApplying">
+            @if (_isApplying)
+            {
+                @:Applying...
+            }
+            else
+            {
+                @:Confirm
+            }
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: black; color: white;"
+                   OnClick="Cancel"
+                   Disabled="@_isApplying">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid StackId { get; set; }
+    [Parameter] public required string StackName { get; set; }
+    [Parameter] public required List<DependencyGraphNodeStateDto> ModulesToApply { get; set; }
+    [Parameter] public required List<DependencyGraphNodeStateDto> AlreadyAppliedModules { get; set; }
+    [Parameter] public required Dictionary<Guid, bool> ModulePermissions { get; set; }
+
+    private bool _isApplying = false;
+
+    private void Cancel()
+    {
+        if (!_isApplying)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task ConfirmApplication()
+    {
+        if (_isApplying)
+            return;
+
+        _isApplying = true;
+        StateHasChanged();
+
+        try
+        {
+            // Only apply modules that the user has permission to apply
+            var modulesToActuallyApply = ModulesToApply
+                .Where(m => ModulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (!modulesToActuallyApply.Any())
+            {
+                Snackbar.Add("No modules to apply - insufficient permissions", Severity.Warning);
+                MudDialog.Close(DialogResult.Ok(new List<Guid>()));
+                return;
+            }
+
+            var modulesWithoutPermission = ModulesToApply
+                .Where(m => !ModulePermissions.GetValueOrDefault(m.ModuleId, false))
+                .ToList();
+
+            if (modulesWithoutPermission.Any())
+            {
+                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
+            }
+
+            // Apply modules using SecuredJobService
+            foreach (var nodeState in modulesToActuallyApply)
+            {
+                using var securedJobService = SecuredJobServiceFactory.Create();
+                await securedJobService.Apply(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+            }
+
+            Snackbar.Add($"Apply initiated for {modulesToActuallyApply.Count} modules", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(modulesToActuallyApply.Select(n => n.ModuleId).ToList()));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initiate application: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Failed to initiate stack application");
+            _isApplying = false;
+            StateHasChanged();
+        }
+    }
+
+}

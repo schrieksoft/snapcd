@@ -1,0 +1,289 @@
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Delete Namespace</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (!_dependencyCheckCompleted)
+        {
+            <div class="text-center">
+                <MudText Typo="Typo.h6" Class="mb-4">Checking dependencies for namespace</MudText>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+                <MudText Typo="Typo.body2" Class="mt-4">
+                    Analyzing dependencies for "@Namespace.Name"...
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                Are you sure you want to delete namespace "@(Namespace.Name)"?
+            </MudText>
+
+            @if (!_canDelete)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-3">
+                    <strong>Cannot delete this namespace!</strong> Modules within this namespace have external
+                    dependencies.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    <strong>Warning:</strong> This action cannot be reversed! All modules within this namespace will
+                    also be deleted.
+                </MudAlert>
+            }
+
+            @if (_externalDependencies.Any() || _internalDependencies.Any())
+            {
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Dependency analysis:</MudText>
+                <MudPaper Elevation="1" Class="pa-3">
+                    @if (_externalDependencies.Any())
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">External Dependencies (blocking deletion):</MudText>
+                        <MudList T="string" Dense="true">
+                            @foreach (var dep in _externalDependencies)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Block">
+                                    <MudText Typo="Typo.body2" Color="Color.Error">@dep</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+
+                    @if (_internalDependencies.Any())
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mb-2 mt-3">Internal Dependencies (will be deleted):
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            @foreach (var dep in _internalDependencies)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Link">
+                                    <MudText Typo="Typo.body2" Color="Color.Success">@dep</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </MudPaper>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3">
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2" Color="Color.Success">No external dependencies found</MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudPaper>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   OnClick="Delete"
+                   Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
+                   StartIcon="@Icons.Material.Filled.Delete">
+            @if (_isDeleting)
+            {
+                @:Deleting...
+            }
+            else if (!_dependencyCheckCompleted)
+            {
+                @:Delete
+            }
+            else if (!_canDelete)
+            {
+                @:Cannot Delete
+            }
+            else
+            {
+                @:Delete
+            }
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="Cancel"
+                   Disabled="@_isDeleting">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetRepoFactory { get; set; } = null!;
+    [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleRepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Namespace Namespace { get; set; }
+
+    private bool _isDeleting;
+    private bool _dependencyCheckCompleted;
+    private bool _canDelete;
+    private List<string> _externalDependencies = new();
+    private List<string> _internalDependencies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Start dependency check immediately
+        await CheckDependencies();
+    }
+
+    private async Task CheckDependencies()
+    {
+        try
+        {
+            using var moduleRepo = ModuleRepoFactory.Create();
+            using var moduleParamFromOutputRepo = ModuleParamFromOutputRepoFactory.Create();
+            using var moduleEnvVarFromOutputRepo = ModuleEnvVarFromOutputRepoFactory.Create();
+            using var moduleParamFromOutputSetRepo = ModuleParamFromOutputSetRepoFactory.Create();
+            using var dependsOnModuleRepo = DependsOnModuleRepoFactory.Create();
+
+            // Get all modules in this namespace
+            var modulesInNamespace = await moduleRepo.List(
+                OrganizationId,
+                q => q.Where(m => m.NamespaceId == Namespace.Id)
+            );
+            var moduleIds = modulesInNamespace.Select(m => m.Id).ToHashSet();
+
+            if (modulesInNamespace.Any())
+            {
+                _internalDependencies.Add($"{modulesInNamespace.Count} module(s) will be deleted");
+            }
+
+            // Check if any module in this namespace is referenced by modules outside this namespace
+            foreach (var moduleId in moduleIds)
+            {
+                // Check ModuleParamFromOutput references
+                var paramOutputRefs = await moduleParamFromOutputRepo.List(
+                    queryModifier: q => q.Where(m => m.OutputModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+
+                foreach (var input in paramOutputRefs)
+                {
+                    if (!moduleIds.Contains(input.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: input.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        _externalDependencies.Add($"ModuleParamFromOutput on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+
+                // Check ModuleEnvVarFromOutput references
+                var envVarOutputRefs = await moduleEnvVarFromOutputRepo.List(
+                    queryModifier: q => q.Where(m => m.OutputModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+
+                foreach (var input in envVarOutputRefs)
+                {
+                    if (!moduleIds.Contains(input.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: input.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        _externalDependencies.Add($"ModuleEnvVarFromOutput on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+
+                // Check ModuleParamFromOutputSet references
+                var paramSetRefs = await moduleParamFromOutputSetRepo.List(
+                    queryModifier: q => q.Where(m => m.OutputModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+
+                foreach (var set in paramSetRefs)
+                {
+                    if (!moduleIds.Contains(set.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: set.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        _externalDependencies.Add($"ModuleParamFromOutputSet on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+
+                // Check DependsOnModule references
+                var dependencyRefs = await dependsOnModuleRepo.List(
+                    queryModifier: q => q.Where(d => d.DependsOnModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+
+                foreach (var dep in dependencyRefs)
+                {
+                    if (!moduleIds.Contains(dep.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: dep.ModuleId,
+                            organizationId: OrganizationId
+                        );
+                        _externalDependencies.Add($"DependsOnModule on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+            }
+
+            // Check for other internal dependencies
+            _internalDependencies.Add("Associated namespace configurations and secrets");
+
+            _canDelete = !_externalDependencies.Any();
+            _dependencyCheckCompleted = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error checking dependencies: {ex.Message}", Severity.Error);
+            _dependencyCheckCompleted = true;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        if (!_isDeleting)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task Delete()
+    {
+        _isDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            using var repo = NamespaceRepoFactory.Create();
+            await repo.Delete(Namespace.Id, OrganizationId);
+
+            MudDialog.Close(DialogResult.Ok(Namespace.Id));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete namespace: {ex.Message}", Severity.Error);
+            _isDeleting = false;
+            StateHasChanged();
+        }
+    }
+
+}

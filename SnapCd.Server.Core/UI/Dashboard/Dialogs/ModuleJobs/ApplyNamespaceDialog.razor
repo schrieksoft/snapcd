@@ -1,0 +1,464 @@
+@using Microsoft.Extensions.Logging
+@using SnapCd.Contracts.Dto
+@using SnapCd.Server.Core.UI.Dashboard.Components.Namespace
+@using MassTransit
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.Linq
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.DependencyGraph
+
+@inject ISnackbar Snackbar
+@inject ILogger<ApplyNamespaceDialog> Logger
+@inject ModuleJobSecuredRepositoryFactory ModuleJobSecuredRepositoryFactory
+@inject PersistentComponentState ApplicationState
+@inject IDialogService DialogService
+
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Apply All Modules in Namespace</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <div class="text-center">
+                <MudText Typo="Typo.h6" Class="mb-4">Loading dependency graph...</MudText>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+            </div>
+        }
+        else if (_dependencyGraph != null)
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">
+                Are you sure you want to apply these modules?
+            </MudText>
+
+            var modulesInNamespace = _dependencyGraph.NodeStates
+                .Where(n => n.NamespaceId == NamespaceId)
+                .Select(n => n.DisplayName)
+                .ToList();
+
+            // External modules that namespace modules depend on (must be applied first)
+            var externalReferencedModules = _dependencyGraph.NodeStates
+                .Where(n => n.NamespaceId != NamespaceId &&
+                            n.OutgoingEdges.Any(e =>
+                                _dependencyGraph.NodeStates.Any(ns => ns.ModuleId == e.ModuleId && ns.NamespaceId == NamespaceId)))
+                .ToList();
+
+            // External modules that depend on namespace modules (will be applied after)
+            var externalDependentModules = _dependencyGraph.NodeStates
+                .Where(n => n.NamespaceId != NamespaceId &&
+                            n.IncomingEdges.Any(e =>
+                                _dependencyGraph.NodeStates.Any(ns => ns.ModuleId == e.ModuleId && ns.NamespaceId == NamespaceId)))
+                .ToList();
+
+            @if (modulesInNamespace.Any())
+            {
+                <div class="d-flex flex-column gap-1 mb-3">
+                    @foreach (var moduleNode in _dependencyGraph.NodeStates.Where(n => n.NamespaceId == NamespaceId))
+                    {
+                        <div class="d-flex align-center gap-2">
+                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                     Size="Size.Medium">@moduleNode.DisplayName</MudChip>
+                            @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
+                            {
+                                <MudTooltip Text="You do not have permission to apply this module">
+                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                             Size="Size.Small"/>
+                                </MudTooltip>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (externalReferencedModules.Any())
+            {
+                <MudText Typo="Typo.body1" Class="mb-2">Modules outside this namespace that must be applied first
+                    (dependencies):
+                </MudText>
+
+                <MudCheckBox T="bool"
+                             Value="@_applyExternalModules"
+                             Label="Also apply these prerequisite modules"
+                             Color="Color.Info"
+                             Class="mb-3"
+                             Disabled="@_isApplying"
+                             ValueChanged="@OnApplyExternalModulesChanged"
+                />
+                <div class="d-flex flex-column gap-1 mb-3">
+                    @foreach (var moduleNode in externalReferencedModules)
+                    {
+                        <div class="d-flex align-center gap-2">
+                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                                     Size="Size.Medium">@moduleNode.DisplayName</MudChip>
+                            @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
+                            {
+                                <MudTooltip Text="You do not have permission to apply this module">
+                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                             Size="Size.Small"/>
+                                </MudTooltip>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    <strong>Note:</strong> @externalReferencedModules.Count module(s) outside this namespace are
+                    dependencies and must be applied first.
+                </MudAlert>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-3">
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                            <MudText Typo="Typo.body2" Color="Color.Success">No external dependencies required</MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudPaper>
+            }
+
+
+            <MudText Typo="Typo.h6" Class="mb-3">Application Plan</MudText>
+            var filteredGraph = GetFilteredGraph();
+            var uninvolvedModuleIds = GetUninvolvedModuleIds();
+            var uninvolvedNamespaceIds = GetUninvolvedNamespaceIds();
+
+            <MudText Typo="Typo.body2" Class="mb-4">
+                The following @(filteredGraph.NodeStates.Count - uninvolvedModuleIds.Count) module(s) will be applied:
+            </MudText>
+
+            <div style="max-height: 400px; overflow-y: auto;">
+                <NamespaceDependencyGraphExecutionFlow DependencyGraphWithStates="filteredGraph"
+                                                       UninvolvedModuleIds="uninvolvedModuleIds"
+                                                       PrimaryNamespaceId="NamespaceId"
+                                                       UninvolvedNamespaceIds="uninvolvedNamespaceIds"/>
+            </div>
+        }
+        else if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error">
+                Error loading dependency graph: @_error
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_dependencyGraph != null)
+        {
+            var filteredGraph = GetFilteredGraph();
+            var uninvolvedCount = GetUninvolvedModuleIds().Count;
+            var involvedCount = filteredGraph.NodeStates.Count - uninvolvedCount;
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="ExecuteNamespaceApplication"
+                       Disabled="@_isApplying">
+                @if (_isApplying)
+                {
+                    @:Applying Infrastructure...
+                }
+                else
+                {
+                    @:Apply All (@involvedCount modules)
+                }
+            </MudButton>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: black; color: white;"
+                   OnClick="Cancel"
+                   Disabled="@_isApplying">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private ApplyModuleGraphServiceFactory ApplyServiceFactory { get; set; } = null!;
+    [Inject] private IPublishEndpoint Publisher { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid NamespaceId { get; set; }
+    [Parameter] public required string NamespaceName { get; set; }
+
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+
+    private bool _isLoading = true;
+    private string? _error = null;
+    private NamespaceDependencyGraphDto? _dependencyGraph = null;
+    private bool _applyExternalModules = false;
+    private bool _isApplying;
+    private ApplyModuleGraphService? _applyService;
+    private Dictionary<Guid, bool> _modulePermissions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cacheKey = $"applyNamespaceDialog_{NamespaceId}";
+
+        _applyService = ApplyServiceFactory.Create();
+
+        await LoadDependencyGraph();
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedDialogData
+        //     {
+        //         DependencyGraph = _dependencyGraph,
+        //         IsLoading = _isLoading,
+        //         Error = _error,
+        //         ApplyExternalModules = _applyExternalModules,
+        //         IsApplying = _isApplying,
+        //         ModulePermissions = _modulePermissions
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedDialogData>(cacheKey, out var cachedData))
+        // {
+        //     _dependencyGraph = cachedData.DependencyGraph;
+        //     _isLoading = false;
+        //     _error = cachedData.Error;
+        //     _applyExternalModules = cachedData.ApplyExternalModules;
+        //     _isApplying = cachedData.IsApplying;
+        //     _modulePermissions = cachedData.ModulePermissions ?? new Dictionary<Guid, bool>();
+        // }
+    }
+
+    private async Task LoadDependencyGraph()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            _dependencyGraph = await _applyService!.BuildNamespaceApplyGraphAsync(NamespaceId, NamespaceName);
+
+            // Check permissions for all modules in the graph
+            await LoadModulePermissions();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private NamespaceDependencyGraphDto GetFilteredGraph()
+    {
+        if (_dependencyGraph == null)
+        {
+            return null!;
+        }
+
+        // Always include all modules in the graph for display
+        return _dependencyGraph;
+    }
+
+    private HashSet<Guid> GetUninvolvedModuleIds()
+    {
+        var uninvolvedIds = new HashSet<Guid>();
+
+        if (_dependencyGraph == null)
+        {
+            return uninvolvedIds;
+        }
+
+        // Find all external modules (not in this namespace)
+        var externalModules = _dependencyGraph.NodeStates
+            .Where(n => n.NamespaceId != NamespaceId)
+            .ToList();
+
+        foreach (var externalModule in externalModules)
+        {
+            // Check if this external module has namespace modules in its outgoing edges (external → namespace)
+            // This means namespace modules depend on this external module (it's a prerequisite)
+            var namespaceModulesDependOnThis = externalModule.OutgoingEdges
+                .Any(e => _dependencyGraph.NodeStates.Any(ns =>
+                    ns.ModuleId == e.ModuleId && ns.NamespaceId == NamespaceId));
+
+            // Check if any namespace module has this external module in its outgoing edges (namespace → external)
+            // This means this external module depends on namespace modules
+            var thisDependsOnNamespaceModules = _dependencyGraph.NodeStates
+                .Any(ns => ns.NamespaceId == NamespaceId &&
+                           ns.OutgoingEdges.Any(e => e.ModuleId == externalModule.ModuleId));
+
+            if (namespaceModulesDependOnThis)
+            {
+                // Namespace modules depend on this external module - it's a prerequisite
+                // Mark as uninvolved if we're NOT applying external modules
+                if (!_applyExternalModules)
+                {
+                    uninvolvedIds.Add(externalModule.ModuleId);
+                }
+                // If _applyExternalModules is true, this module should be involved (not added to uninvolvedIds)
+            }
+            else if (thisDependsOnNamespaceModules && !namespaceModulesDependOnThis)
+            {
+                // This external module depends on namespace modules but is not depended on by any
+                // These should be uninvolved (would be applied later, not as prerequisites)
+                uninvolvedIds.Add(externalModule.ModuleId);
+            }
+            else if (!namespaceModulesDependOnThis && !thisDependsOnNamespaceModules)
+            {
+                // This external module has no relationship with namespace modules - always uninvolved
+                uninvolvedIds.Add(externalModule.ModuleId);
+            }
+        }
+
+        return uninvolvedIds;
+    }
+
+    private HashSet<Guid> GetUninvolvedNamespaceIds()
+    {
+        var uninvolvedIds = new HashSet<Guid>();
+
+        if (_dependencyGraph == null)
+        {
+            return uninvolvedIds;
+        }
+
+        // Get namespaces that contain uninvolved modules
+        var uninvolvedModuleIds = GetUninvolvedModuleIds();
+        var uninvolvedNamespaces = _dependencyGraph.NodeStates
+            .Where(n => uninvolvedModuleIds.Contains(n.ModuleId))
+            .Select(n => n.NamespaceId)
+            .Distinct();
+
+        foreach (var namespaceId in uninvolvedNamespaces)
+        {
+            uninvolvedIds.Add(namespaceId);
+        }
+
+        return uninvolvedIds;
+    }
+
+    private async Task LoadModulePermissions()
+    {
+        if (_dependencyGraph == null) return;
+
+        var modulesToCheck = _dependencyGraph.NodeStates
+            .Select(n => new ModuleNamespaceIdTuple
+            {
+                ModuleId = n.ModuleId,
+                NamespaceId = n.NamespaceId
+            })
+            .ToList();
+
+        if (!modulesToCheck.Any()) return;
+
+        using var jobSecuredRepository = ModuleJobSecuredRepositoryFactory.Create();
+        var permissions = await jobSecuredRepository.ListHasRunJobPermission(modulesToCheck, OrganizationId);
+
+        _modulePermissions = permissions.ToDictionary(p => p.ModuleId, p => p.HasPermission);
+    }
+
+    private void OnApplyExternalModulesChanged(bool isChecked)
+    {
+        _applyExternalModules = isChecked;
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        if (!_isApplying)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task ExecuteNamespaceApplication()
+    {
+        var filteredGraph = GetFilteredGraph();
+        if (filteredGraph == null)
+        {
+            Snackbar.Add("Apply graph not loaded", Severity.Error);
+            return;
+        }
+
+        // Categorize modules for the confirmation dialog
+        var uninvolvedModuleIds = GetUninvolvedModuleIds();
+
+        // Only include modules that need to be applied (not already applied and not currently being applied)
+        var modulesToApply = filteredGraph.NodeStates
+            .Where(n => !uninvolvedModuleIds.Contains(n.ModuleId) &&
+                        n.LatestActualState != ActualStateHeadline.Applied &&
+                        (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Applied))
+            .ToList();
+
+        // Find modules that are already applied
+        var alreadyAppliedModules = filteredGraph.NodeStates
+            .Where(n => !uninvolvedModuleIds.Contains(n.ModuleId) &&
+                        n.LatestActualState == ActualStateHeadline.Applied)
+            .ToList();
+
+        if (!modulesToApply.Any())
+        {
+            Snackbar.Add("All modules are already applied", Severity.Info);
+            MudDialog.Close(DialogResult.Ok(new List<Guid>()));
+            return;
+        }
+
+        // We don't need prerequisite modules or remaining modules for a simplified dialog
+        // Just pass empty lists to maintain compatibility with the confirmation dialog
+        var prerequisiteModules = new List<DependencyGraphNodeStateDto>();
+        var remainingModules = new List<DependencyGraphNodeStateDto>();
+
+        // Open confirmation dialog
+        var parameters = new DialogParameters
+        {
+            { nameof(ApplyNamespaceConfirmationDialog.NamespaceId), NamespaceId },
+            { nameof(ApplyNamespaceConfirmationDialog.NamespaceName), NamespaceName },
+            { nameof(ApplyNamespaceConfirmationDialog.ModulesToApply), modulesToApply },
+            { nameof(ApplyNamespaceConfirmationDialog.PrerequisiteModules), prerequisiteModules },
+            { nameof(ApplyNamespaceConfirmationDialog.RemainingModules), remainingModules },
+            { nameof(ApplyNamespaceConfirmationDialog.AlreadyAppliedModules), alreadyAppliedModules },
+            { nameof(ApplyNamespaceConfirmationDialog.ModulePermissions), _modulePermissions }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = false,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var confirmationDialog = await DialogService.ShowAsync<ApplyNamespaceConfirmationDialog>(
+            "Confirm Application", parameters, options);
+
+        var result = await confirmationDialog.Result;
+
+        if (!result.Canceled && result.Data is List<Guid> appliedModuleIds)
+        {
+            // Close the original dialog with the result
+            MudDialog.Close(DialogResult.Ok(appliedModuleIds));
+        }
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+        _applyService?.Dispose();
+    }
+
+    private class CachedDialogData
+    {
+        public NamespaceDependencyGraphDto? DependencyGraph { get; set; }
+        public bool IsLoading { get; set; }
+        public string? Error { get; set; }
+        public bool ApplyExternalModules { get; set; }
+        public bool IsApplying { get; set; }
+        public Dictionary<Guid, bool>? ModulePermissions { get; set; }
+    }
+
+}

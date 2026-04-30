@@ -1,0 +1,1911 @@
+﻿@page "/Stacks/{stackName}/{namespaceName}/{moduleName}"
+@layout OrganizationMainLayout
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.IdentityModel.Tokens
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
+@using SnapCd.Server.Core.UI.Dashboard.Components.Module
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Queue
+@using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
+@using SnapCd.Contracts.Dto
+@using System.Threading
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Sagas
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Misc.Exceptions
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.DependencyGraph
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+
+@implements IDisposable
+
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject PersistentComponentState ApplicationState
+@inject ModuleSagaModifiedNotificationService ModuleSagaModifiedNotificationService
+@inject RunnerAvailabilityModifiedNotificationService RunnerAvailabilityModifiedNotificationService
+@inject DependencyGraphServiceFactory DependencyGraphServiceFactory
+@inject RunnerConnectionRepositoryFactory RunnerConnectionRepositoryFactory
+@inject IOrganizationContext OrganizationContext
+@inject ApplyModuleGraphServiceFactory ApplyModuleGraphServiceFactory
+@inject DestroyModuleGraphServiceFactory DestroyModuleGraphServiceFactory
+@inject SecuredJobServiceFactory SecuredJobServiceFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject ModuleJobSecuredRepositoryFactory ModuleJobSecuredRepositoryFactory
+
+
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+
+<PageTitle>Module: @ModuleName</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudBreadcrumbs Items="_breadCrumbs"></MudBreadcrumbs>
+
+    @if (_module != null)
+    {
+        @if (_runner != null && _runner.IsDisabled)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
+                The Runner "@_runner.Name" assigned to this module is currently inactive and will not process new
+                jobs.
+            </MudAlert>
+        }
+
+        <MudGrid>
+            <MudItem md="12">
+                <MudGrid>
+                    <MudItem md="2">
+                        <MudText Typo="Typo.h6">State</MudText>
+                        <MudPaper Elevation="1" Class="pa-4 mb-4">
+                            @if (_actualStateSummary != null)
+                            {
+                                <MudTooltip Text="@_actualStateSummary.Icon.Tooltip">
+                                    <MudGrid>
+                                        <MudItem md="1">
+                                            <MudIcon Icon="@_actualStateSummary.Icon.Name"
+                                                     Size="Size.Small"
+                                                     Color="@_actualStateSummary.Icon.Color"/>
+                                        </MudItem>
+                                        <MudItem md="9">
+                                            <MudText Typo="Typo.body1">@_actualStateSummary.State</MudText>
+                                        </MudItem>
+                                    </MudGrid>
+                                    <MudGrid>
+                                        <MudItem md="1">
+                                        </MudItem>
+                                        <MudItem md="9">
+                                            @if (_moduleSaga.ActualResourceCount.HasValue)
+                                            {
+                                                <MudText
+                                                    Typo="Typo.caption">@(_moduleSaga.ActualResourceCount.Value) @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources")</MudText>
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.caption">? resources</MudText>
+                                            }
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudTooltip>
+                            }
+                        </MudPaper>
+
+                    </MudItem>
+
+                    <MudItem md="2">
+                        <MudText Typo="Typo.h6">Queued</MudText>
+                        <MudPaper Elevation="1" Class="pa-4 mb-4">
+                            @* @if (_jobSummary != null) *@
+                            @* { *@
+                            @*     <MudGrid> *@
+                            @*         <MudItem md="1"> *@
+                            @*             <MudIcon Icon="@_jobSummary.Icon.Name" Size="Size.Small" *@
+                            @*                      Color="@_jobSummary.Icon.Color"/> *@
+                            @*         </MudItem> *@
+                            @*         <MudItem md="9"> *@
+                            @*             <MudText Typo="Typo.body1">@_jobSummary.Text</MudText> *@
+                            @*         </MudItem> *@
+                            @*     </MudGrid> *@
+                            @*      *@
+                            @* } *@
+                            @if (_queuedSummary != null)
+                            {
+                                <MudGrid>
+                                    <MudItem md="1">
+                                        <MudIcon Icon="@_queuedSummary.Icon.Name" Size="Size.Small"
+                                                 Color="@_queuedSummary.Icon.Color"/>
+                                    </MudItem>
+                                    <MudItem md="9">
+                                        @if (_moduleSaga.QueuedDesiredStateHeadline.HasValue && _moduleSaga.QueuedReason.HasValue)
+                                        {
+                                            <MudText
+                                                Typo="Typo.caption">@GetQueuedReasonText(_moduleSaga.QueuedReason.Value)</MudText>
+                                        }
+                                        <MudText Typo="Typo.body1">@_queuedSummary.Text</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                        </MudPaper>
+
+
+                        @if (_queuedSummary is { State: true })
+                        {
+                            <MudPaper Elevation="1" Class="pa-4 mb-4">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunQueueNow">Run
+                                    Now
+                                </MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ClearQueue">Clear
+                                </MudButton>
+                            </MudPaper>
+                        }
+                    </MudItem>
+
+
+                    <MudItem md="2">
+                        <MudText Typo="Typo.h6">Runners</MudText>
+                        <MudPaper Elevation="1" Class="pa-4 mb-4">
+                            @if (_runnerAvailabilitySummary != null)
+                            {
+                                <MudGrid>
+                                    <MudItem md="1">
+                                        <MudIcon Icon="@_runnerAvailabilitySummary.Icon.Name" Size="Size.Small"
+                                                 Color="@_runnerAvailabilitySummary.Icon.Color"/>
+                                    </MudItem>
+                                    <MudItem md="9">
+                                        <MudText Typo="Typo.body1">@_runnerAvailabilitySummary.Text</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                                <MudGrid>
+                                    <MudItem md="1">
+                                        <MudText Typo="Typo.body1"></MudText>
+                                    </MudItem>
+                                    <MudItem md="9">
+                                        <MudText Typo="Typo.body1"></MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem md="6">
+                        <MudText Typo="Typo.h6">Revision</MudText>
+                        <MudPaper Elevation="1" Class="pa-4 mb-4">
+                            @if (_revisionSummary != null)
+                            {
+                                <MudTooltip Text="@_revisionSummary.Icon.Tooltip">
+                                    <MudGrid>
+                                        <MudItem md="1">
+                                            <MudIcon Icon="@_revisionSummary.Icon.Name" Size="Size.Small"
+                                                     Color="@_revisionSummary.Icon.Color"/>
+                                        </MudItem>
+                                        <MudItem md="9">
+                                            <MudText Typo="Typo.body1">@_revisionSummary.State</MudText>
+                                        </MudItem>
+                                    </MudGrid>
+                                    <MudGrid>
+                                        <MudItem md="1">
+                                        </MudItem>
+                                        <MudItem md="9">
+                                            <MudText Typo="Typo.caption">@_revisionSummary.Subtext</MudText>
+                                        </MudItem>
+                                    </MudGrid>
+
+                                </MudTooltip>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+
+                </MudGrid>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudTooltip Text="Manage Jobs">
+                <MudIconButton Icon="@Icons.Material.Filled.RunCircle" Color="GetColor(ShowingType.Jobs)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Jobs)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Edit Module">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="GetColor(ShowingType.Edit)" Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Edit)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="View Dependencies">
+                <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.Dependencies)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Dependencies)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Manage Roles">
+                <MudIconButton Icon="@Icons.Material.Filled.Shield" Color="GetColor(ShowingType.Roles)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Roles)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Manage Secrets">
+                <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Secrets)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="View Variables">
+                <MudIconButton Icon="@Icons.Material.Filled.DataObject" Color="GetColor(ShowingType.Variables)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Variables)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="View Outputs">
+                <MudIconButton Icon="@Icons.Material.Filled.Output" Color="GetColor(ShowingType.Outputs)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Outputs)"/>
+            </MudTooltip>
+
+            <MudTooltip Text="Delete Module">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                               OnClick="() => { return Delete(_module); }"/>
+            </MudTooltip>
+        </MudPaper>
+
+        @if (_showing == ShowingType.Jobs)
+        {
+            <ManageModuleJobs Module="_module"/>
+        }
+
+        @if (_showing == ShowingType.Roles)
+        {
+            <ManageModuleRoles ModuleId="_module.Id"
+                               OnSaved="() => _showing = ShowingType.None"
+                               OnCancel="() => _showing = ShowingType.None"/>
+        }
+
+        @if (_showing == ShowingType.Edit)
+        {
+            <EditModule Module="_module"
+                        StackId="_stackId"
+                        PrincipalProvider="_literalPrincipalProvider"
+                        OnSaved="() => _showing = ShowingType.None"
+                        OnCancel="() => _showing = ShowingType.None"/>
+        }
+
+        @if (_showing == ShowingType.Outputs)
+        {
+            <ViewOutputs Module="_module" StackName="@StackName"/>
+        }
+
+        @if (_showing == ShowingType.Variables)
+        {
+            <ViewVariables Module="_module" StackName="@StackName"/>
+        }
+
+        @if (_showing == ShowingType.Secrets)
+        {
+            <ManageModuleSecrets
+                ModuleId="_module.Id"
+                NamespaceId="_module.NamespaceId"
+                StackId="_stackId"/>
+        }
+
+        @if (_showing == ShowingType.Dependencies)
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-4">
+
+                @if (!_showApplyComponent && !_showDestroyComponent)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="ShowApplyComponent">
+                        Apply Module
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="ShowDestroyComponent">
+                        Destroy Module
+                    </MudButton>
+                }
+
+                @if (_showApplyComponent)
+                {
+                    <MudText Typo="Typo.h6" Class="mb-3">Apply Module</MudText>
+
+                    @if (_moduleCanBeApplied)
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Module to be applied:</strong>
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-3">
+                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
+                            @if (!_hasApplyPermission)
+                            {
+                                <MudTooltip Text="You do not have permission to apply this module">
+                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                             Size="Size.Small"/>
+                                </MudTooltip>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Module that is already applied:</strong>
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-3">
+                            <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
+                            <MudTooltip Text="This module has already been applied">
+                                <MudIcon Icon="Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                         Size="Size.Small"/>
+                            </MudTooltip>
+                        </div>
+                    }
+
+                    @if (_prerequisiteModules.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Modules that must be applied first (dependencies):</strong>
+                        </MudText>
+
+                        <MudCheckBox T="bool"
+                                     @bind-Value="_applyPrerequisiteModules"
+                                     Label="Also apply these prerequisite modules"
+                                     Color="Color.Info"
+                                     Class="mb-3"/>
+
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _prerequisiteModules)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
+                                    {
+                                        <MudTooltip Text="You do not have permission to apply this module">
+                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                                     Size="Size.Small"/>
+                                        </MudTooltip>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (_alreadyAppliedPrerequisiteModules.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Prerequisite modules that are already applied:</strong>
+                        </MudText>
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _alreadyAppliedPrerequisiteModules)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudTooltip Text="This prerequisite module has already been applied">
+                                        <MudIcon Icon="Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                                 Size="Size.Small"/>
+                                    </MudTooltip>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <MudDivider Class="my-4"/>
+
+                    <MudStack Row>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="ExecuteApply"
+                                   Disabled="@(_isApplying || !CanExecuteApply())">
+                            @if (_isApplying)
+                            {
+                                @:Applying...
+                            }
+                            else
+                            {
+                                var involvedCount = GetApplyModuleCount();
+                                @:Apply (@involvedCount module(s))
+                            }
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text"
+                                   OnClick="CancelApply"
+                                   Disabled="@_isApplying">
+                            Cancel
+                        </MudButton>
+                    </MudStack>
+                }
+
+                @if (_showDestroyComponent)
+                {
+                    <MudText Typo="Typo.h6" Class="mb-3">Destroy Module</MudText>
+
+                    @if (_moduleCanBeDestroyed)
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Module to be destroyed:</strong>
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-3">
+                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
+                            @if (!_hasDestroyPermission)
+                            {
+                                <MudTooltip Text="You do not have permission to destroy this module">
+                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                             Size="Size.Small"/>
+                                </MudTooltip>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Module that is already destroyed:</strong>
+                        </MudText>
+                        <div class="d-flex align-center gap-2 mb-3">
+                            <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
+                            <MudTooltip Text="This module has already been destroyed">
+                                <MudIcon Icon="Icons.Material.Filled.StopCircle" Color="Color.Default"
+                                         Size="Size.Small"/>
+                            </MudTooltip>
+                        </div>
+                    }
+
+                    @if (_dependentModules.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Modules that depend on this module and must be destroyed first:</strong>
+                        </MudText>
+
+                        <MudCheckBox T="bool"
+                                     @bind-Value="_destroyDependentModules"
+                                     Label="Also destroy these dependent modules"
+                                     Color="Color.Info"
+                                     Class="mb-3"/>
+
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _dependentModules)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
+                                    {
+                                        <MudTooltip Text="You do not have permission to destroy this module">
+                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                                     Size="Size.Small"/>
+                                        </MudTooltip>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (_alreadyDestroyedDependentModules.Any())
+                    {
+                        <MudText Typo="Typo.body1" Class="mb-2">
+                            <strong>Dependent modules that are already destroyed:</strong>
+                        </MudText>
+                        <div class="d-flex flex-column gap-1 mb-3">
+                            @foreach (var module in _alreadyDestroyedDependentModules)
+                            {
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudTooltip Text="This dependent module has already been destroyed">
+                                        <MudIcon Icon="Icons.Material.Filled.StopCircle" Color="Color.Default"
+                                                 Size="Size.Small"/>
+                                    </MudTooltip>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <MudDivider Class="my-4"/>
+
+                    <MudText Typo="Typo.body1" Class="mb-3">
+                        Enter <strong>DESTROY</strong> in the box below to confirm:
+                    </MudText>
+
+                    <MudTextField T="string"
+                                  Value="_destroyConfirmationText"
+                                  ValueChanged="@((string value) =>
+                                                {
+                                                    _destroyConfirmationText = value;
+                                                    _destroyValidationError = null;
+                                                    StateHasChanged();
+                                                })"
+                                  Label="Confirmation"
+                                  Placeholder="Type DESTROY to confirm"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-3"
+                                  Disabled="@_isDestroying"/>
+
+                    @if (!string.IsNullOrEmpty(_destroyValidationError))
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-3">
+                            @_destroyValidationError
+                        </MudAlert>
+                    }
+
+                    <MudStack Row>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   OnClick="ExecuteDestroy"
+                                   Disabled="@(_isDestroying || !CanExecuteDestroy())">
+                            @if (_isDestroying)
+                            {
+                                @:Destroying...
+                            }
+                            else
+                            {
+                                var involvedCount = GetDestroyModuleCount();
+                                @:Destroy (@involvedCount module(s))
+                            }
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text"
+                                   OnClick="CancelDestroy"
+                                   Disabled="@_isDestroying">
+                            Cancel
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudPaper>
+
+            <MudPaper Elevation="1" Class="pa-4 mb-4" Style="overflow-x: auto;">
+                <MudText Typo="Typo.h5" Class="mb-4">
+                    Dependency Graph
+                </MudText>
+
+                <ModuleDependencyGraph ModuleId="@_module.Id"
+                                       ModuleName="@_module.Name"
+                                       Direction="@GetGraphDirection()"
+                                       UninvolvedModuleIds="@GetUninvolvedModuleIds()"
+                                       DisableDirectionToggle="@(_showApplyComponent || _showDestroyComponent)"/>
+            </MudPaper>
+        }
+    }
+</CascadingValue>
+
+@code {
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+    [Parameter] public required string StackName { get; set; }
+    [Parameter] public required string NamespaceName { get; set; }
+    [Parameter] public required string ModuleName { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+    [SupplyParameterFromQuery] public string? Search { get; set; }
+    [SupplyParameterFromQuery] public string? Direction { get; set; }
+    [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
+    [Inject] private ModuleJobSecuredRepositoryFactory JobRepoFactory { get; set; } = null!;
+    [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
+
+    private Module _module = null!;
+    private ModuleSaga _moduleSaga = null!;
+    private List<RunnerConnection> _activeRunners = new();
+    private Runner? _runner;
+    private string? _actualDefinitiveRevision;
+    private ActualStateHeadline? _actualStateHeadline;
+    private List<BreadcrumbItem> _breadCrumbs = [];
+
+    private ShowingType _showing = ShowingType.None;
+
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+    private Guid _stackId;
+
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+    private IPrincipalProvider _literalPrincipalProvider;
+
+
+    private RunnerAvailabilitySummary? _runnerAvailabilitySummary;
+    private RevisionSummary? _revisionSummary;
+    private QueuedSummary? _queuedSummary;
+    private JobSummary? _jobSummary;
+    private ActualStateSummary? _actualStateSummary;
+    private Timer? _runnerAvailabilityRefreshTimer;
+    private bool? _isWaitingOnDependencies = null;
+
+    private readonly int _runnerActiveCheckMinutes = 3;
+
+    // Inline action components state for Dependencies
+    private bool _showApplyComponent = false;
+    private bool _showDestroyComponent = false;
+    private bool _isApplying = false;
+    private bool _isDestroying = false;
+    private string _destroyConfirmationText = "";
+    private string? _destroyValidationError = null;
+    private bool _applyPrerequisiteModules = false;
+    private bool _destroyDependentModules = false;
+    private bool _showDestroyGraph = false;
+    private List<DependencyGraphNodeStateDto> _prerequisiteModules = new();
+    private List<DependencyGraphNodeStateDto> _alreadyAppliedPrerequisiteModules = new();
+    private List<DependencyGraphNodeStateDto> _dependentModules = new();
+    private List<DependencyGraphNodeStateDto> _alreadyDestroyedDependentModules = new();
+    private Dictionary<Guid, bool> _modulePermissions = new();
+    private bool _hasApplyPermission = false;
+    private bool _hasDestroyPermission = false;
+    private DependencyGraphNodeStateDto? _currentModuleNodeState = null;
+    private bool _moduleCanBeApplied = false;
+    private bool _moduleCanBeDestroyed = false;
+
+    private async Task RunQueueNow()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
+
+        var parameters = new DialogParameters<RunQueueNowDialog>
+        {
+            { x => x.ModuleId, _module.Id },
+            { x => x.NamespaceId, _module.NamespaceId },
+            { x => x.PrincipalProvider, new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]) },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<RunQueueNowDialog>("Run Queued Job Now", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add($"Successfully ran queued job");
+        }
+    }
+
+    private async Task ClearQueue()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<ClearQueueDialog>
+        {
+            { x => x.ModuleId, _module.Id },
+            { x => x.NamespaceId, _module.NamespaceId },
+            { x => x.PrincipalProvider, new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]) },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<ClearQueueDialog>("Clear Queued Job Now", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add($"Successfully cleared queued job");
+        }
+    }
+
+    public class Icon
+    {
+        public required string Name { get; set; }
+        public required Color Color { get; set; }
+        public required string Tooltip { get; set; }
+    }
+
+    public class RunnerAvailabilitySummary
+    {
+        public string Text { get; set; } = "Unknown";
+        public int ActiveCount { get; set; }
+        public bool State { get; set; }
+
+        public Icon Icon { get; set; } = new()
+        {
+            Color = Color.Default,
+            Name = Icons.Material.Filled.StopCircle,
+            Tooltip = "Unknown"
+        };
+    }
+
+    public class RevisionSummary
+    {
+        public string Subtext { get; set; } = "";
+        public RevisionState State { get; set; } = RevisionState.Unknown;
+
+        public Icon Icon { get; set; } = new()
+        {
+            Color = Color.Default,
+            Name = Icons.Material.Filled.StopCircle,
+            Tooltip = "Unknown"
+        };
+    }
+
+    public class QueuedSummary
+    {
+        public string Text { get; set; } = "";
+        public bool State { get; set; }
+
+        public Icon Icon { get; set; } = new()
+        {
+            Color = Color.Default,
+            Name = Icons.Material.Filled.StopCircle,
+            Tooltip = "Unknown"
+        };
+    }
+
+    public class JobSummary
+    {
+        public string Text { get; set; } = "";
+        public JobState State { get; set; } = JobState.Unknown;
+
+        public Icon Icon { get; set; } = new()
+        {
+            Color = Color.Default,
+            Name = Icons.Material.Filled.StopCircle,
+            Tooltip = "Unknown"
+        };
+    }
+
+    public class ActualStateSummary
+    {
+        public ActualStateHeadline State { get; set; } = ActualStateHeadline.None;
+
+        public Icon Icon { get; set; } = new()
+        {
+            Color = Color.Default,
+            Name = Icons.Material.Filled.StopCircle,
+            Tooltip = "Unknown"
+        };
+    }
+
+
+    private async Task ReloadModuleSaga(bool invokeAsync)
+    {
+        using var moduleSagaRepo = SagaRepoFactory.Create(
+            // when notification callback there is no HttpContext, so we have to persist the principal beforehand in _principalId and _principalDiscriminator, the create the secured repo with a permission service that uses a LiteralPrincipalProvider
+            new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])
+        );
+        _moduleSaga = await moduleSagaRepo.Get(_module.Id, OrganizationId);
+
+        // Load revision and state data from ModuleJob
+        using var jobRepo = JobRepoFactory.Create(
+            new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])
+        );
+        _actualDefinitiveRevision = await jobRepo.GetActualDefinitiveRevision(_module.Id, OrganizationId);
+        _actualStateHeadline = await jobRepo.GetCurrentActualStateHeadline(_module.Id, OrganizationId);
+
+        var revisionState = GetRevisionState();
+        _revisionSummary = new RevisionSummary
+        {
+            Subtext = GetRevisionSubtext(revisionState),
+            State = revisionState,
+            Icon = GetRevisionIcon(revisionState)
+        };
+
+        var queuedState = GetQueuedState();
+        _queuedSummary = new QueuedSummary
+        {
+            Text = GetQueuedStateText(queuedState),
+            State = queuedState,
+            Icon = GetQueuedStateIcon(queuedState)
+        };
+
+        var jobState = GetJobState();
+        _jobSummary = new JobSummary
+        {
+            Text = GetJobStateText(jobState),
+            State = jobState,
+            Icon = GetJobStateIcon(jobState)
+        };
+
+        var actualState = GetActualStateHeadline();
+        _actualStateSummary = new ActualStateSummary
+        {
+            State = actualState,
+            Icon = GetActualStateHeadlineIcon(actualState)
+        };
+
+        // Check if waiting on dependencies
+        _isWaitingOnDependencies = await IsWaitingOnDependencies();
+
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+
+    private async Task ReloadRunnerAvailability(bool invokeAsync)
+    {
+        // Query database for active runner connections
+        _activeRunners.Clear();
+
+        if (_runner != null)
+        {
+            using var connectionRepository = RunnerConnectionRepositoryFactory.Create();
+            _activeRunners = await connectionRepository.GetActiveConnectionsByRunnerId(_runner.Id, OrganizationId);
+        }
+
+        var count = _activeRunners.Count;
+        var state = count > 0;
+        _runnerAvailabilitySummary = new RunnerAvailabilitySummary
+        {
+            Text = GetRunnerAvailabilityStateText(count),
+            ActiveCount = count,
+            State = state,
+            Icon = GetRunnerAvailabilityStateIcon(state)
+        };
+
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+    #region runner availability
+
+    private string GetRunnerAvailabilityStateText(int count)
+    {
+        var pluralModifier = count == 1 ? "" : "s";
+
+        return $"{count} Active Runner{pluralModifier}";
+    }
+
+    private Icon GetRunnerAvailabilityStateIcon(bool state)
+    {
+        switch (state)
+        {
+            case false:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "No currently connected runners"
+                };
+
+            case true:
+                return new Icon
+                {
+                    Color = Color.Success,
+                    Name = Icons.Material.Filled.CheckCircle,
+                    Tooltip = "Runners currently connected"
+                };
+        }
+    }
+
+    # endregion
+
+    #region job
+
+    private string GetJobStateText(JobState jobState)
+    {
+        if (jobState == JobState.Unknown)
+            return nameof(JobState.Unknown);
+        if (jobState == JobState.Running)
+            return $"{nameof(JobState.Running)} ({FormatHeadline(_moduleSaga.DesiredStateHeadline)})";
+        if (jobState == JobState.Idle)
+            return $"{nameof(JobState.Idle)} ({FormatHeadline(_moduleSaga.DesiredStateHeadline)})";
+
+        return _moduleSaga.CurrentState;
+    }
+
+    private JobState GetJobState()
+    {
+        switch (_moduleSaga.CurrentState)
+        {
+            case "Running":
+                return JobState.Running;
+            case "PrimedForNextQueued":
+                return JobState.Running;
+            case "Idle":
+                return JobState.Idle;
+            default:
+                return JobState.Unknown;
+        }
+    }
+
+    private Icon GetJobStateIcon(JobState jobstate)
+    {
+        switch (jobstate)
+        {
+            case JobState.Idle:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "There are currently no running jobs."
+                };
+
+            case JobState.Running:
+                return new Icon
+                {
+                    Color = Color.Warning,
+                    Name = Icons.Material.Filled.RunCircle,
+                    Tooltip = "A job is currently running"
+                };
+
+            default:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "Unknown"
+                };
+        }
+    }
+
+    # endregion
+
+    # region queued
+
+    private string GetQueuedStateText(bool queuedState)
+    {
+        if (queuedState)
+            return $"{FormatHeadline(_moduleSaga.QueuedDesiredStateHeadline)}";
+
+        return "None";
+    }
+
+
+    private bool GetQueuedState()
+    {
+        if (!_moduleSaga.QueuedDesiredStateHeadline.HasValue)
+            return false;
+
+        return true;
+    }
+
+    private Icon GetQueuedStateIcon(bool queuedState)
+    {
+        switch (queuedState)
+        {
+            case true:
+                return new Icon
+                {
+                    Color = Color.Warning,
+                    Name = Icons.Material.Filled.AccessTimeFilled,
+                    Tooltip = "A job is currently queued"
+                };
+
+            case false:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "No jobs currently queued"
+                };
+        }
+    }
+
+
+    private string FormatHeadline(DesiredStateHeadline? headline)
+    {
+        switch (headline)
+        {
+            case DesiredStateHeadline.Applied:
+                return "Apply";
+            case DesiredStateHeadline.Destroyed:
+                return "Destroy";
+            default:
+                return "Unknown";
+        }
+    }
+
+    private string GetQueuedReasonText(QueuedReason reason)
+    {
+        return reason switch
+        {
+            QueuedReason.WaitingOnDependencies => "Waiting on dependencies",
+            QueuedReason.WaitingOnRunnerCheckin => "Waiting for active runner",
+            QueuedReason.WaitingOnRunningJob => "Waiting on current job",
+            _ => ""
+        };
+    }
+
+    # endregion
+
+    # region revision
+
+    private string GetRevisionSubtext(RevisionState revisionState)
+    {
+        if (revisionState == RevisionState.Synced)
+            return $"{_actualDefinitiveRevision}";
+
+        var currentState = "Unknown";
+        if (!string.IsNullOrEmpty(_actualDefinitiveRevision))
+            currentState = _actualDefinitiveRevision ?? string.Empty;
+
+        if (revisionState == RevisionState.OutOfSync)
+            return $"{currentState} (Desired {_moduleSaga.DesiredDefinitiveRevision})";
+
+        return "";
+    }
+
+
+    private RevisionState GetRevisionState()
+    {
+        if (_moduleSaga.DesiredDefinitiveRevision == null)
+            return RevisionState.Unknown;
+
+        if (_actualDefinitiveRevision == _moduleSaga.DesiredDefinitiveRevision)
+            return RevisionState.Synced;
+
+        return RevisionState.OutOfSync;
+    }
+
+    private Icon GetRevisionIcon(RevisionState state)
+    {
+        switch (state)
+        {
+            case RevisionState.Unknown:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "The revision state is unknown."
+                };
+
+            case RevisionState.Synced:
+                return new Icon
+                {
+                    Color = Color.Success,
+                    Name = Icons.Material.Filled.CheckCircle,
+                    Tooltip = "Synced"
+                };
+
+            case RevisionState.OutOfSync:
+                return new Icon
+                {
+                    Color = Color.Warning,
+                    Name = Icons.Material.Filled.ChangeCircle,
+                    Tooltip = "Out of sync"
+                };
+
+            default:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "The revision state is unknown."
+                };
+        }
+    }
+
+    # endregion
+
+    # region actual state
+
+    private ActualStateHeadline GetActualStateHeadline()
+    {
+        if (_actualStateHeadline == null)
+            return ActualStateHeadline.None;
+
+        return _actualStateHeadline.Value;
+    }
+
+    private Icon GetActualStateHeadlineIcon(ActualStateHeadline state)
+    {
+        switch (state)
+        {
+            case ActualStateHeadline.None:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "No jobs have been run yet"
+                };
+
+            case ActualStateHeadline.Applied:
+                return new Icon
+                {
+                    Color = Color.Success,
+                    Name = Icons.Material.Filled.CheckCircle,
+                    Tooltip = "Most recent job sucessfully applied the Module"
+                };
+
+            case ActualStateHeadline.Destroyed:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "Most recent job sucessfully destroyed the Module"
+                };
+
+            case ActualStateHeadline.ApplyFailed:
+                return new Icon
+                {
+                    Color = Color.Error,
+                    Name = Icons.Material.Filled.Error,
+                    Tooltip = "Most recent job failed to apply the Module"
+                };
+
+            case ActualStateHeadline.DestroyFailed:
+                return new Icon
+                {
+                    Color = Color.Error,
+                    Name = Icons.Material.Filled.Error,
+                    Tooltip = "Most recent job failed to destroy the Module"
+                };
+
+            case ActualStateHeadline.ApplyCancelled:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "Most recent job was cancelled."
+                };
+
+            case ActualStateHeadline.DestroyCancelled:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "Most recent job was cancelled."
+                };
+
+            default:
+                return new Icon
+                {
+                    Color = Color.Default,
+                    Name = Icons.Material.Filled.StopCircle,
+                    Tooltip = "No jobs have been run yet"
+                };
+        }
+    }
+
+    # endregion
+
+    private async Task<bool> IsWaitingOnDependencies()
+    {
+        // Only check if there's a queued desired state
+        if (!_moduleSaga.QueuedDesiredStateHeadline.HasValue)
+            return false;
+
+        var desiredState = _moduleSaga.QueuedDesiredStateHeadline.Value;
+
+        // Check if we should wait for dependencies based on module settings
+        var shouldCheckDependencies = desiredState switch
+        {
+            DesiredStateHeadline.Applied => ShouldCheckApplyDependencies(_module),
+            DesiredStateHeadline.Destroyed => ShouldCheckDestroyDependencies(_module),
+            _ => false
+        };
+
+        if (!shouldCheckDependencies)
+            return false;
+
+        // Check actual dependency states
+        return desiredState switch
+        {
+            DesiredStateHeadline.Applied => await CheckApplyDependenciesBlocked(),
+            DesiredStateHeadline.Destroyed => await CheckDestroyDependenciesBlocked(),
+            _ => false
+        };
+    }
+
+    private bool ShouldCheckApplyDependencies(Module module)
+    {
+        return module.WaitForApplyDependencies switch
+        {
+            WaitForApplyDependencies.Always => true,
+            WaitForApplyDependencies.Never => false,
+            WaitForApplyDependencies.OnFirstApply => IsFirstApplyAttempt(module),
+            _ => false
+        };
+    }
+
+    private bool ShouldCheckDestroyDependencies(Module module)
+    {
+        return module.WaitForDestroyDependencies switch
+        {
+            WaitForDestroyDependencies.Always => true,
+            WaitForDestroyDependencies.Never => false,
+            _ => false
+        };
+    }
+
+    private bool IsFirstApplyAttempt(Module module)
+    {
+        return !module.ModuleJobs.Any(j => j.ActualStateHeadline == ActualStateHeadline.Applied);
+    }
+
+    private async Task<bool> CheckApplyDependenciesBlocked()
+    {
+        using var dependencyService = DependencyGraphServiceFactory.Create();
+        // For Apply: this module (DefinedModule) depends on ReferencedModules
+        var dependencies = await dependencyService.ListForDefinedModule(_module.Id);
+
+        // Check if any ReferencedModule is not Applied (using the state from the view)
+        return dependencies.Any(d => d.ReferencedLatestActualState != ActualStateHeadline.Applied);
+    }
+
+    private async Task<bool> CheckDestroyDependenciesBlocked()
+    {
+        using var destroyService = DependencyGraphServiceFactory.Create();
+        // For Destroy: DefinedModules depend on this module (ReferencedModule)
+        var dependencies = await destroyService.ListForReferencedModule(_module.Id);
+
+        // Check if any DefinedModule is not Destroyed (using the state from the view)
+        return dependencies.Any(d => d.DefinedLatestActualState != ActualStateHeadline.Destroyed);
+    }
+
+    private string GetDependenciesLink()
+    {
+        var direction = _moduleSaga.QueuedDesiredStateHeadline switch
+        {
+            DesiredStateHeadline.Applied => "Apply",
+            DesiredStateHeadline.Destroyed => "Destroy",
+            _ => "Apply"
+        };
+
+        var queryParams = new List<string>
+        {
+            $"action=Dependencies",
+            $"direction={direction}"
+        };
+
+        if (!string.IsNullOrEmpty(Search))
+            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
+
+        var queryString = "?" + string.Join("&", queryParams);
+        return $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+        _literalPrincipalProvider = new LiteralPrincipalProvider(_principalId, _principalDiscriminator, new List<Guid> { OrganizationId });
+
+        var queryString = !string.IsNullOrEmpty(Search)
+            ? $"?search={Uri.EscapeDataString(Search)}"
+            : "";
+
+        _breadCrumbs =
+        [
+            new BreadcrumbItem("Stacks", $"/Stacks{queryString}"),
+            new BreadcrumbItem($"{StackName} (Stack)", $"/Stacks/{StackName}{queryString}"),
+            new BreadcrumbItem($"{NamespaceName} (Namespace)", $"/Stacks/{StackName}/{NamespaceName}{queryString}"),
+            new BreadcrumbItem($"{ModuleName} (Module)", $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}")
+        ];
+
+        var cacheKey = $"module_{StackName}_{NamespaceName}_{ModuleName}";
+
+        async Task Reload()
+        {
+            using var moduleRepo = RepoFactory.Create();
+
+            _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
+            _stackId = _module.Namespace.StackId;
+
+            // Load Runner to check if it's active
+            if (_module.RunnerId != Guid.Empty)
+            {
+                using var runnerRepo = RunnerRepoFactory.Create();
+                _runner = await runnerRepo.Get(_module.RunnerId, OrganizationId);
+            }
+
+            await ReloadRunnerAvailability(false);
+            await ReloadModuleSaga(false);
+        }
+
+        try
+        {
+            await Reload();
+        }
+        catch (EntityNotFoundException)
+        {
+            Snackbar.Add($"Module \"{StackName}/{NamespaceName}/{ModuleName}\" does not exist.", Severity.Error);
+            NavigationManager.NavigateTo("/Stacks", true);
+            return;
+        }
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson(cacheKey, new CachedModuleData
+        //     {
+        //         Module = _module,
+        //         ModuleSaga = _moduleSaga,
+        //         ShowingState = _showing,
+        //         StackId = _stackId,
+        //         ActiveRunners = _activeRunners,
+        //         Runner = _runner,
+        //         RevisionSummary = _revisionSummary,
+        //         ActualStateSummary = _actualStateSummary,
+        //         JobSummary = _jobSummary,
+        //         QueuedSummary = _queuedSummary,
+        //         RunnerAvailabilitySummary = _runnerAvailabilitySummary
+        //     });
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<CachedModuleData>(cacheKey, out var cachedData))
+        // {
+        //     _module = cachedData.Module;
+        //     _stackId = cachedData.StackId;
+        //     _showing = cachedData.ShowingState;
+        //     _moduleSaga = cachedData.ModuleSaga;
+        //     _activeRunners = cachedData.ActiveRunners;
+        //     _runner = cachedData.Runner;
+        //     _revisionSummary = cachedData.RevisionSummary;
+        //     _actualStateSummary = cachedData.ActualStateSummary;
+        //     _jobSummary = cachedData.JobSummary;
+        //     _queuedSummary = cachedData.QueuedSummary;
+        //     _runnerAvailabilitySummary = cachedData.RunnerAvailabilitySummary;
+        // }
+
+        // Set initial showing based on query parameter
+        _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Jobs;
+
+
+        RunnerAvailabilityModifiedNotificationService.Subscribe(_module.RunnerId, HandleRunnerAvailabilityModified);
+        ModuleSagaModifiedNotificationService.Subscribe(_module.Id, HandleModuleSagaModified);
+
+        // Start periodic refresh timer to catch expired cache entries (30 second interval)
+        _runnerAvailabilityRefreshTimer = new Timer(
+            _ => InvokeAsync(() => ReloadRunnerAvailability(false)),
+            null,
+            60000, // Initial delay: 30 seconds
+            60000 // Interval: 30 seconds
+        );
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Update showing state when URL parameters change
+        var newShowing = GetShowingTypeFromAction(Action) ?? ShowingType.Jobs;
+        if (_showing != newShowing)
+        {
+            _showing = newShowing;
+            StateHasChanged();
+        }
+
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task HandleRunnerAvailabilityModified(Guid runnerId, string runnerInstanceName)
+    {
+        if (runnerId != _module.RunnerId) return;
+
+        await ReloadRunnerAvailability(true);
+    }
+
+    private async Task HandleModuleSagaModified(Guid moduleId)
+    {
+        if (moduleId != _module.Id) return;
+
+        await ReloadModuleSaga(true);
+    }
+
+    private Color GetColor(ShowingType showTypeToMatch)
+    {
+        return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+    }
+
+    private async Task Delete(Module module)
+    {
+        var parameters = new DialogParameters<DeleteModuleDialog>
+        {
+            { x => x.Module, module },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteModuleDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deletedModuleId);
+            Snackbar.Add($"Successfully deleted module \"{deletedModuleId}\"");
+            NavigationManager.NavigateTo("/Stacks");
+        }
+    }
+
+    private void SwitchShowing(ShowingType newShowing)
+    {
+        var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
+        _showing = targetShowing;
+
+        // Update URL without reloading, preserving organizationId and search terms
+        var actionQuery = GetActionFromShowingType(targetShowing);
+        var queryParams = new List<string>();
+
+        if (actionQuery != null)
+            queryParams.Add($"action={actionQuery}");
+
+        if (!string.IsNullOrEmpty(Search))
+            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
+
+        var queryString = "?" + string.Join("&", queryParams);
+        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+        NavigationManager.NavigateTo(newUrl, false);
+    }
+
+    private enum ShowingType
+    {
+        None,
+        Jobs,
+        Edit,
+        Roles,
+        Secrets,
+        Outputs,
+        Variables,
+        Dependencies
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+        _runnerAvailabilityRefreshTimer?.Dispose();
+        if (_module != null)
+        {
+            RunnerAvailabilityModifiedNotificationService.Unsubscribe(_module.RunnerId, HandleRunnerAvailabilityModified);
+            ModuleSagaModifiedNotificationService.Unsubscribe(_module.Id, HandleModuleSagaModified);
+        }
+    }
+
+    private class CachedModuleData
+    {
+        public ModuleSaga ModuleSaga { get; set; } = null!;
+        public Module Module { get; set; } = null!;
+        public List<RunnerConnection> ActiveRunners { get; set; } = new();
+        public Runner? Runner { get; set; }
+        public ShowingType ShowingState { get; set; }
+        public Guid StackId { get; set; }
+
+        public JobSummary? JobSummary { get; set; }
+        public QueuedSummary? QueuedSummary { get; set; }
+        public ActualStateSummary? ActualStateSummary { get; set; }
+        public RevisionSummary? RevisionSummary { get; set; }
+        public RunnerAvailabilitySummary? RunnerAvailabilitySummary { get; set; }
+    }
+
+    private ShowingType? GetShowingTypeFromAction(string? action)
+    {
+        return action?.ToLower() switch
+        {
+            "edit" => ShowingType.Edit,
+            "secrets" => ShowingType.Secrets,
+            "roles" => ShowingType.Roles,
+            "jobs" => ShowingType.Jobs,
+            "outputs" => ShowingType.Outputs,
+            "variables" => ShowingType.Variables,
+            "dependencies" => ShowingType.Dependencies,
+            _ => null
+        };
+    }
+
+    private string? GetActionFromShowingType(ShowingType showingType)
+    {
+        return showingType switch
+        {
+            ShowingType.Edit => "Edit",
+            ShowingType.Secrets => "Secrets",
+            ShowingType.Roles => "Roles",
+            ShowingType.Jobs => "Jobs",
+            ShowingType.Outputs => "Outputs",
+            ShowingType.Variables => "Variables",
+            ShowingType.Dependencies => "Dependencies",
+            _ => null
+        };
+    }
+
+    // Dependencies page methods
+    private async Task ShowApplyComponent()
+    {
+        _showDestroyComponent = false;
+        _showApplyComponent = true;
+        _showDestroyGraph = false; // Force apply graph
+        _destroyConfirmationText = "";
+        _destroyValidationError = null;
+        StateHasChanged(); // Update UI immediately
+
+        await LoadApplyModules();
+        StateHasChanged();
+    }
+
+    private async Task ShowDestroyComponent()
+    {
+        _showApplyComponent = false;
+        _showDestroyComponent = true;
+        _showDestroyGraph = true; // Force destroy graph
+        _destroyConfirmationText = "";
+        _destroyValidationError = null;
+        StateHasChanged(); // Update UI immediately
+
+        await LoadDestroyModules();
+        StateHasChanged();
+    }
+
+    private void CancelApply()
+    {
+        _showApplyComponent = false;
+        _isApplying = false;
+        StateHasChanged();
+    }
+
+    private void CancelDestroy()
+    {
+        _showDestroyComponent = false;
+        _isDestroying = false;
+        _destroyConfirmationText = "";
+        _destroyValidationError = null;
+        StateHasChanged();
+    }
+
+    private async Task LoadApplyModules()
+    {
+        try
+        {
+            using var applyService = ApplyModuleGraphServiceFactory.Create();
+            var dependencyGraph = await applyService.BuildModuleApplyGraphAsync(_module.Id, _module.Name);
+
+            // Get the current module's node state
+            _currentModuleNodeState = dependencyGraph.NodeStates.FirstOrDefault(n => n.ModuleId == _module.Id);
+
+            // Check if this module can be applied (not already applied)
+            _moduleCanBeApplied = _currentModuleNodeState?.LatestActualState != ActualStateHeadline.Applied &&
+                                  (_currentModuleNodeState?.DesiredState == null || _currentModuleNodeState?.DesiredState != DesiredStateHeadline.Applied);
+
+            // Get all prerequisite modules (this module depends on them)
+            var allPrerequisiteModules = dependencyGraph.NodeStates
+                .Where(n => n.ModuleId == _module.Id)
+                .SelectMany(n => n.OutgoingEdges)
+                .Select(e => dependencyGraph.NodeStates.FirstOrDefault(ns => ns.ModuleId == e.ModuleId))
+                .Where(n => n != null)
+                .Select(n => n!)
+                .ToList();
+
+            // Categorize prerequisites based on their state
+            _prerequisiteModules = allPrerequisiteModules
+                .Where(n => n.LatestActualState != ActualStateHeadline.Applied &&
+                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Applied))
+                .ToList();
+
+            _alreadyAppliedPrerequisiteModules = allPrerequisiteModules
+                .Where(n => n.LatestActualState == ActualStateHeadline.Applied)
+                .ToList();
+
+            await LoadModulePermissions(dependencyGraph.NodeStates);
+
+            // Check permission for this module
+            _hasApplyPermission = await CheckModulePermission(_module.Id, _module.NamespaceId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load modules: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadDestroyModules()
+    {
+        try
+        {
+            using var destroyService = DestroyModuleGraphServiceFactory.Create();
+            var dependencyGraph = await destroyService.BuildModuleDestroyGraphAsync(_module.Id, _module.Name);
+
+            // Get the current module's node state
+            _currentModuleNodeState = dependencyGraph.NodeStates.FirstOrDefault(n => n.ModuleId == _module.Id);
+
+            // Check if this module can be destroyed (not already destroyed)
+            _moduleCanBeDestroyed = _currentModuleNodeState?.LatestActualState != ActualStateHeadline.Destroyed &&
+                                    (_currentModuleNodeState?.DesiredState == null || _currentModuleNodeState?.DesiredState != DesiredStateHeadline.Destroyed);
+
+            // Get all dependent modules (modules that depend on this one)
+            var allDependentModules = dependencyGraph.NodeStates
+                .Where(n => n.ModuleId == _module.Id)
+                .SelectMany(n => n.OutgoingEdges)
+                .Select(e => dependencyGraph.NodeStates.FirstOrDefault(ns => ns.ModuleId == e.ModuleId))
+                .Where(n => n != null)
+                .Select(n => n!)
+                .ToList();
+
+            // Categorize dependents based on their state
+            _dependentModules = allDependentModules
+                .Where(n => n.LatestActualState != ActualStateHeadline.Destroyed &&
+                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Destroyed))
+                .ToList();
+
+            _alreadyDestroyedDependentModules = allDependentModules
+                .Where(n => n.LatestActualState == ActualStateHeadline.Destroyed)
+                .ToList();
+
+            await LoadModulePermissions(dependencyGraph.NodeStates);
+
+            // Check permission for this module
+            _hasDestroyPermission = await CheckModulePermission(_module.Id, _module.NamespaceId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load modules: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadModulePermissions(List<DependencyGraphNodeStateDto> nodeStates)
+    {
+        var modulesToCheck = nodeStates
+            .Select(n => new ModuleNamespaceIdTuple
+            {
+                ModuleId = n.ModuleId,
+                NamespaceId = n.NamespaceId
+            })
+            .ToList();
+
+        if (!modulesToCheck.Any()) return;
+
+
+        using var jobSecuredRepository = ModuleJobSecuredRepositoryFactory.Create();
+        var permissions = await jobSecuredRepository.ListHasRunJobPermission(modulesToCheck, OrganizationId);
+
+        _modulePermissions = permissions.ToDictionary(p => p.ModuleId, p => p.HasPermission);
+    }
+
+    private async Task<bool> CheckModulePermission(Guid moduleId, Guid namespaceId)
+    {
+        using var jobSecuredRepository = ModuleJobSecuredRepositoryFactory.Create();
+        var permissions = await jobSecuredRepository.ListHasRunJobPermission(new List<ModuleNamespaceIdTuple> { new() { ModuleId = moduleId, NamespaceId = namespaceId } }, OrganizationId);
+
+        return permissions.FirstOrDefault()?.HasPermission ?? false;
+    }
+
+    private async Task ExecuteApply()
+    {
+        if (_isApplying) return;
+
+        _isApplying = true;
+        StateHasChanged();
+
+        try
+        {
+            var totalApplied = 0;
+            var skipped = 0;
+
+            // Apply this module only if it needs to be applied
+            if (_moduleCanBeApplied && _hasApplyPermission)
+            {
+                using var securedJobService = SecuredJobServiceFactory.Create();
+                await securedJobService.Apply(_module.Id, OrganizationId, Guid.NewGuid());
+                totalApplied++;
+            }
+            else if (_moduleCanBeApplied && !_hasApplyPermission)
+            {
+                skipped++;
+            }
+
+            // Apply prerequisites if selected - only those that need to be applied
+            if (_applyPrerequisiteModules)
+            {
+                var modulesToApply = _prerequisiteModules
+                    .Where(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false))
+                    .ToList();
+
+                foreach (var nodeState in modulesToApply)
+                {
+                    using var securedJobService = SecuredJobServiceFactory.Create();
+                    await securedJobService.Apply(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+                    totalApplied++;
+                }
+
+                skipped += _prerequisiteModules.Count - modulesToApply.Count;
+            }
+
+            if (totalApplied > 0)
+            {
+                Snackbar.Add($"Apply initiated successfully for {totalApplied} module(s)", Severity.Success);
+            }
+
+            if (skipped > 0)
+            {
+                Snackbar.Add($"Skipped {skipped} module(s) due to insufficient permissions", Severity.Warning);
+            }
+
+            if (totalApplied == 0 && skipped == 0)
+            {
+                Snackbar.Add("No modules needed to be applied", Severity.Info);
+            }
+
+            _showApplyComponent = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initiate apply: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isApplying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExecuteDestroy()
+    {
+        if (_isDestroying) return;
+
+        if (_destroyConfirmationText != "DESTROY")
+        {
+            _destroyValidationError = "You must type 'DESTROY' exactly to confirm destruction.";
+            StateHasChanged();
+            return;
+        }
+
+        _isDestroying = true;
+        StateHasChanged();
+
+        try
+        {
+            var totalDestroyed = 0;
+            var skipped = 0;
+
+            // Destroy dependent modules first if selected - only those that need to be destroyed
+            if (_destroyDependentModules)
+            {
+                var modulesToDestroy = _dependentModules
+                    .Where(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false))
+                    .ToList();
+
+                foreach (var nodeState in modulesToDestroy)
+                {
+                    using var securedJobService = SecuredJobServiceFactory.Create();
+                    await securedJobService.Destroy(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+                    totalDestroyed++;
+                }
+
+                skipped += _dependentModules.Count - modulesToDestroy.Count;
+            }
+
+            // Destroy this module only if it needs to be destroyed
+            if (_moduleCanBeDestroyed && _hasDestroyPermission)
+            {
+                using var securedJobService = SecuredJobServiceFactory.Create();
+                await securedJobService.Destroy(_module.Id, OrganizationId, Guid.NewGuid());
+                totalDestroyed++;
+            }
+            else if (_moduleCanBeDestroyed && !_hasDestroyPermission)
+            {
+                skipped++;
+            }
+
+            if (totalDestroyed > 0)
+            {
+                Snackbar.Add($"Destruction initiated successfully for {totalDestroyed} module(s)", Severity.Success);
+            }
+
+            if (skipped > 0)
+            {
+                Snackbar.Add($"Skipped {skipped} module(s) due to insufficient permissions", Severity.Warning);
+            }
+
+            if (totalDestroyed == 0 && skipped == 0)
+            {
+                Snackbar.Add("No modules needed to be destroyed", Severity.Info);
+            }
+
+            _showDestroyComponent = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initiate destruction: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isDestroying = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetGraphDirection()
+    {
+        // When inline components are active, they control the graph direction
+        if (_showDestroyComponent)
+        {
+            return "Destroy";
+        }
+        else if (_showApplyComponent)
+        {
+            return "Apply";
+        }
+
+        // Default to the query parameter or Apply
+        return Direction ?? "Apply";
+    }
+
+    private HashSet<Guid>? GetUninvolvedModuleIds()
+    {
+        // Only filter modules when inline components are active
+        if (!_showApplyComponent && !_showDestroyComponent)
+        {
+            return null;
+        }
+
+        var uninvolvedModuleIds = new HashSet<Guid>();
+
+        if (_showDestroyComponent)
+        {
+            // If not destroying dependent modules, mark them as uninvolved
+            if (!_destroyDependentModules && _dependentModules.Any())
+            {
+                foreach (var module in _dependentModules)
+                {
+                    uninvolvedModuleIds.Add(module.ModuleId);
+                }
+            }
+        }
+        else if (_showApplyComponent)
+        {
+            // If not applying prerequisite modules, mark them as uninvolved
+            if (!_applyPrerequisiteModules && _prerequisiteModules.Any())
+            {
+                foreach (var module in _prerequisiteModules)
+                {
+                    uninvolvedModuleIds.Add(module.ModuleId);
+                }
+            }
+        }
+
+        return uninvolvedModuleIds.Any() ? uninvolvedModuleIds : null;
+    }
+
+    private string GetCurrentModuleDisplayName()
+    {
+        // Try to use the display name from the node state first
+        if (_currentModuleNodeState?.DisplayName != null)
+        {
+            return _currentModuleNodeState.DisplayName;
+        }
+
+        // Fallback to constructing it manually, with null checks
+        try
+        {
+            if (_module?.Namespace?.Stack?.Name != null &&
+                _module?.Namespace?.Name != null &&
+                _module?.Name != null)
+            {
+                return $"{_module.Namespace.Stack.Name}/{_module.Namespace.Name}/{_module.Name}";
+            }
+        }
+        catch
+        {
+            // If anything fails, fall back to a safe default
+        }
+
+        // Final fallback
+        return _module?.Name ?? "Unknown Module";
+    }
+
+    private bool CanExecuteApply()
+    {
+        // Can execute if the main module can be applied OR there are prerequisite modules to apply
+        return _moduleCanBeApplied || (_applyPrerequisiteModules && _prerequisiteModules.Any());
+    }
+
+    private bool CanExecuteDestroy()
+    {
+        // Can execute if the main module can be destroyed OR there are dependent modules to destroy
+        return _moduleCanBeDestroyed || (_destroyDependentModules && _dependentModules.Any());
+    }
+
+    private int GetApplyModuleCount()
+    {
+        var count = 0;
+        if (_moduleCanBeApplied) count++;
+        if (_applyPrerequisiteModules) count += _prerequisiteModules.Count;
+        return count;
+    }
+
+    private int GetDestroyModuleCount()
+    {
+        var count = 0;
+        if (_moduleCanBeDestroyed) count++;
+        if (_destroyDependentModules) count += _dependentModules.Count;
+        return count;
+    }
+
+
+}

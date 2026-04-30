@@ -1,0 +1,23 @@
+@using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.Licensing.Services
+@inject LicenseService LicenseService
+
+@if (_showAlert)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        @Message
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public required string Message { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private bool _showAlert;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var licenseInfo = await LicenseService.GetLicenseInfoAsync(OrganizationId);
+        _showAlert = licenseInfo is not { Edition: Edition.EnterpriseEdition, IsValid: true };
+    }
+}

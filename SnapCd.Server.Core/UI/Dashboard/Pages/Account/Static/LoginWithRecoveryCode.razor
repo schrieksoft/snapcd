@@ -1,0 +1,107 @@
+﻿@page "/Account/LoginWithRecoveryCode"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<LoginWithRecoveryCode> Logger
+
+<PageTitle>Recovery Code Login - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Recovery code verification">
+
+    <StatusMessage Message="@message"/>
+
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        <MudText Typo="Typo.body1">
+            This login will not be remembered until you provide an authenticator app code at log in or disable 2FA and
+            log in again.
+        </MudText>
+    </MudAlert>
+
+    <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <DataAnnotationsValidator/>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.RecoveryCode)" @bind-Value="Input.RecoveryCode"
+                                    Label="Recovery Code" Placeholder="xxxxxx-xxxxxx"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "off" } })"/>
+            </MudItem>
+            <MudItem xs="12">
+                <div class="sign-in-container">
+                    <div class="divider-line"></div>
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                     FormAction="FormAction.Submit" Class="sign-in-btn">
+                        sign in
+                    </MudStaticButton>
+                    <div class="divider-line"></div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            <MudLink Typo="Typo.body2" Href="Account/Login">
+                Back to Sign in
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+@code {
+    private string? message;
+    private User user = default!;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure the user has gone through the username & password screen first
+        user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
+               throw new InvalidOperationException("Unable to load two-factor authentication user.");
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        var recoveryCode = Input.RecoveryCode.Replace(" ", string.Empty);
+
+        var result = await SignInManager.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
+
+        var userId = await UserManager.GetUserIdAsync(user);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User with ID '{UserId}' logged in with a recovery code.", userId);
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            Logger.LogWarning("Invalid recovery code entered for user with ID '{UserId}' ", userId);
+            message = "Error: Invalid recovery code entered.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [DataType(DataType.Text)]
+        [Display(Name = "Recovery Code")]
+        public string RecoveryCode { get; set; } = "";
+    }
+
+}

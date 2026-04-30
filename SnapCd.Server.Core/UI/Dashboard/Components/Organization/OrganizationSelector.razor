@@ -1,0 +1,124 @@
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject IOrganizationContext OrganizationContext
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using Organization = SnapCd.Server.Core.Entities.Definition.Organization
+
+@if (userOrganizations?.Any() == true)
+{
+    <div style="padding: 0 16px; margin-bottom: 16px; max-width: 100%; overflow: hidden;">
+        <MudSelect T="Organization"
+                   Value="selectedOrganization"
+                   Label="Organization"
+                   Variant="Variant.Outlined"
+                   Class="org-selector"
+                   ToStringFunc="@(org => org?.Name)"
+                   ValueChanged="OnOrganizationSelected"
+                   Dense="true"
+                   Placeholder="Select Organization...">
+            @foreach (var org in userOrganizations)
+            {
+                <MudSelectItem Value="@org">@org.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+}
+
+<style>
+    .org-selector .mud-input-label {
+        background-color: black !important;
+        color: white !important;
+        padding: 0 4px;
+    }
+</style>
+
+@code {
+    private IEnumerable<Organization>? userOrganizations;
+    private Organization? selectedOrganization;
+    private Guid? _currentUserId;
+
+    [Parameter] public Guid? CurrentOrganizationId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserOrganizations();
+        DetermineSelectedOrganization();
+    }
+
+    private async Task LoadUserOrganizations()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            var userId = UserManager.GetUserId(authState.User);
+            if (userId != null && Guid.TryParse(userId, out var userGuid))
+            {
+                _currentUserId = userGuid;
+                var orgService = OrganizationServiceFactory.Create().Service;
+                userOrganizations = await orgService.GetUserOrganizationsAsync(userGuid);
+            }
+        }
+    }
+
+    private void DetermineSelectedOrganization()
+    {
+        if (userOrganizations?.Any() != true) return;
+
+        // Get organization ID from the context (set by middleware from cookie)
+        var currentOrgId = OrganizationContext.CurrentOrganizationId;
+
+        if (currentOrgId.HasValue)
+        {
+            selectedOrganization = userOrganizations.FirstOrDefault(o => o.Id == currentOrgId.Value);
+        }
+        else
+        {
+            selectedOrganization = null;
+        }
+    }
+
+    private void OnOrganizationSelected(Organization? organization)
+    {
+        if (organization != null && organization != selectedOrganization)
+        {
+            // Get current path to determine where to return after switching
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            var path = uri.LocalPath;
+
+            // Determine target path based on current location
+            string targetPath;
+
+            if (path == "/" || path.StartsWith("/Organizations", StringComparison.OrdinalIgnoreCase))
+            {
+                // From home or organizations page, go to Stacks
+                targetPath = "/Stacks";
+            }
+            else if (path.StartsWith("/Organization/", StringComparison.OrdinalIgnoreCase))
+            {
+                // On an old organization-scoped URL, extract the page part and navigate to new URL format
+                var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Length >= 3)
+                {
+                    // Get the page name (e.g., "Stacks", "Users")
+                    targetPath = "/" + segments[2];
+                }
+                else
+                {
+                    targetPath = "/Stacks";
+                }
+            }
+            else
+            {
+                // Already on a non-organization page, stay there
+                targetPath = path;
+            }
+
+            // Navigate to the API endpoint which sets the cookie and redirects
+            NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl={Uri.EscapeDataString(targetPath)}", forceLoad: true);
+        }
+    }
+}

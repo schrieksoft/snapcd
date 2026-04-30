@@ -1,0 +1,46 @@
+@using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments
+<MudDialog>
+    <TitleContent>
+        <MudText>Delete User Organization Role Assignment</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText>Are you sure you want to delete the role assignment "@Assignment.RoleName" for user
+            "@GetUserDisplayName()"?
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Delete">Delete</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private UserOrganizationRoleAssignmentSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required UserOrganizationRoleAssignment Assignment { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Delete()
+    {
+        using var repo = RepoFactory.Create();
+        await repo.Delete(Assignment.Id, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(Assignment.Id));
+    }
+
+    private string GetUserDisplayName()
+    {
+        return Assignment.OrganizationUser?.User?.UserName ??
+               Assignment.OrganizationUser?.User?.Email ??
+               $"User {Assignment.UserId}";
+    }
+
+}

@@ -1,0 +1,41 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+<MudDialog>
+    <TitleContent>
+        <MudText>Delete Source Refresher Preselection</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to delete SourceRefresherPreselection for SourceUrl
+        "@SourceRefresherPreselection.SourceUrl" (ID "@SourceRefresherPreselection.Id")?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Delete">Delete</MudButton>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [Inject] private SourceRefresherPreselectionSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    [Parameter] public required SourceRefresherPreselection SourceRefresherPreselection { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Delete()
+    {
+        using var repo = RepoFactory.Create();
+        await repo.Delete(SourceRefresherPreselection.Id, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(SourceRefresherPreselection.Id));
+    }
+
+}

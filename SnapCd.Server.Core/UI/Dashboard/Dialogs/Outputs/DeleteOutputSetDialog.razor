@@ -1,0 +1,70 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs
+<MudDialog>
+    <TitleContent>
+        <MudText>Delete Output Set</MudText>
+    </TitleContent>
+    <DialogContent>
+        @{
+            var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(OutputSet.Timestamp).DateTime;
+        }
+        <MudText Typo="Typo.body1" Class="mb-2">
+            <strong>Output Set @dateTime.ToString("yyyy-MM-dd HH:mm:ss")</strong>
+        </MudText>
+        <MudAlert Severity="Severity.Warning" Class="mb-2">
+            Are you sure you want to delete this output set? This can have unintended consequences for how Snap CD resolves output-based triggers! This action cannot be undone.
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="Delete" Disabled="_isDeleting">
+            @if (_isDeleting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Delete
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private OutputSetSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required OutputSet OutputSet { get; set; }
+
+    private bool _isDeleting;
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            _isDeleting = true;
+            StateHasChanged();
+
+            using var repo = RepoFactory.Create();
+            await repo.Delete(OutputSet.Id, OrganizationId);
+
+            Snackbar.Add("Output set deleted successfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(OutputSet.Id));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting output set: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isDeleting = false;
+            StateHasChanged();
+        }
+    }
+
+}

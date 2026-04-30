@@ -1,0 +1,40 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+<MudDialog>
+    <TitleContent>
+        <MudText>Delete Runner</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to delete runner "@Runner.Name" (ID "@Runner.Id")?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Delete">Delete</MudButton>
+        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [Inject] private RunnerSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    [Parameter] public required Runner Runner { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Delete()
+    {
+        using var repo = RepoFactory.Create();
+        await repo.Delete(Runner.Id, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(Runner.Id));
+    }
+
+}

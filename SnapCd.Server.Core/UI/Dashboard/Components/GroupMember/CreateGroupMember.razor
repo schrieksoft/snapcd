@@ -1,0 +1,338 @@
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.GroupMembers.Base
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Crud
+@implements IDisposable
+
+<MudPaper Elevation="1" Class="pa-4 my-4">
+    <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="d-flex flex-column gap-4">
+            @if (GroupId.HasValue)
+            {
+                <!-- Group ID (Fixed) -->
+                <MudItem xs="12">
+                    <MudTextField Label="Group ID"
+                                  @bind-Value="Input.GroupId"
+                                  Disabled="true"/>
+                </MudItem>
+
+                <!-- Principal Type Selection -->
+                <MudItem xs="12" md="6">
+                    @if (Discriminator.HasValue)
+                    {
+                        <MudTextField Label="Principal Type"
+                                      @bind-Value="Input.GroupMemberDiscriminator"
+                                      Disabled="true"/>
+                    }
+                    else
+                    {
+                        <MudSelect Value="Input.GroupMemberDiscriminator"
+                                   Label="Principal Type *"
+                                   T="GroupMemberDiscriminator"
+                                   Required="true"
+                                   ValueChanged="OnPrincipalTypeChanged">
+                            @foreach (GroupMemberDiscriminator type in Enum.GetValues(typeof(GroupMemberDiscriminator)))
+                            {
+                                <MudSelectItem Value="@type">@type.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                </MudItem>
+
+                <!-- Principal Search -->
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="PrincipalDisplay?"
+                                     @bind-Value="_selectedPrincipal"
+                                     SearchFunc="@SearchPrincipals"
+                                     Label="@GetPrincipalLabel()"
+                                     ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                     ResetValueOnEmptyText="true"
+                                     Required="true"
+                                     DebounceInterval="300">
+                        <ItemTemplate Context="itemTemplateContext">
+                            <MudText>@itemTemplateContext?.Name</MudText>
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            @if (_isSearching)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                                <MudText>Searching...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>No matching principals found</MudText>
+                            }
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+            }
+            else if (PrincipalId.HasValue && Discriminator.HasValue)
+            {
+                <!-- Principal Info (Fixed) -->
+                <MudItem xs="12">
+                    <MudTextField Label="Principal ID"
+                                  @bind-Value="Input.PrincipalId"
+                                  Disabled="true"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="Principal Type"
+                                  @bind-Value="Input.GroupMemberDiscriminator"
+                                  Disabled="true"/>
+                </MudItem>
+
+                <!-- Group Search -->
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="GroupDisplay?"
+                                     @bind-Value="_selectedGroup"
+                                     SearchFunc="@SearchGroups"
+                                     Label="Select Group *"
+                                     ToStringFunc="@(g => g?.Name ?? string.Empty)"
+                                     ResetValueOnEmptyText="true"
+                                     Required="true"
+                                     DebounceInterval="300">
+                        <ItemTemplate Context="itemTemplateContext">
+                            <MudText>@itemTemplateContext?.Name</MudText>
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            @if (_isSearchingGroup)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                                <MudText>Searching...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>No matching groups found</MudText>
+                            }
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+            }
+
+            <!-- Action Buttons -->
+            <MudItem xs="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary">
+                    Add
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    private InputModel Input { get; set; } = new();
+    private PrincipalDisplay? _selectedPrincipal;
+    private GroupDisplay? _selectedGroup;
+    private bool _isSearching;
+    private bool _isSearchingGroup;
+
+    private class PrincipalDisplay
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private class GroupDisplay
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    [Parameter] public Guid? GroupId { get; set; }
+    [Parameter] public Guid? PrincipalId { get; set; }
+    [Parameter] public GroupMemberDiscriminator? Discriminator { get; set; }
+    [Parameter] public EventCallback OnCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private GroupSecuredRepositoryFactory GroupRepoFactory { get; set; } = null!;
+    [Inject] private OrganizationUserSecuredRepositoryFactory OrganizationUserRepoFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
+    [Inject] private GroupMemberServiceFactory GroupMemberServiceFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    protected override void OnParametersSet()
+    {
+        if (GroupId.HasValue)
+        {
+            Input.GroupId = GroupId.Value;
+            if (Discriminator.HasValue)
+            {
+                Input.GroupMemberDiscriminator = Discriminator.Value;
+            }
+        }
+
+        if (PrincipalId.HasValue && Discriminator.HasValue)
+        {
+            Input.PrincipalId = PrincipalId.Value;
+            Input.GroupMemberDiscriminator = Discriminator.Value;
+        }
+    }
+
+    private async Task<IEnumerable<PrincipalDisplay>> SearchPrincipals(string searchText, CancellationToken cancellationToken)
+    {
+        _isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            return Input.GroupMemberDiscriminator switch
+            {
+                GroupMemberDiscriminator.User => await SearchUsers(searchText, cancellationToken),
+                GroupMemberDiscriminator.ServicePrincipal => await SearchServicePrincipals(searchText, cancellationToken),
+                GroupMemberDiscriminator.Group => await SearchGroupsAsPrincipals(searchText, cancellationToken),
+                _ => Enumerable.Empty<PrincipalDisplay>()
+            };
+        }
+        finally
+        {
+            _isSearching = false;
+        }
+    }
+
+    private async Task<List<PrincipalDisplay>> SearchUsers(string searchText, CancellationToken _)
+    {
+        using var repo = OrganizationUserRepoFactory.Create();
+        return await repo.List<PrincipalDisplay>(OrganizationId,
+            q => q
+                .Include(x => x.User)
+                .Where(ou => ou.User.Email != null && ou.User.UserName != null &&
+                             (ou.User.Email.Contains(searchText) || ou.User.UserName.Contains(searchText)))
+                .Select(ou => new PrincipalDisplay { Id = ou.User.Id, Name = ou.User.UserName ?? string.Empty }),
+            q => q.OrderBy(u => u.Name)
+        );
+    }
+
+    private async Task<List<PrincipalDisplay>> SearchServicePrincipals(string searchText, CancellationToken _)
+    {
+        using var repo = ServicePrincipalRepoFactory.Create();
+        return await repo.List<PrincipalDisplay>(OrganizationId,
+            q => q
+                .Where(sp => sp.ClientId != null && sp.ClientId.Contains(searchText))
+                .Select(sp => new PrincipalDisplay { Id = sp.Id, Name = sp.ClientId ?? string.Empty }),
+            q => q.OrderBy(sp => sp.Name)
+        );
+    }
+
+    private async Task<List<PrincipalDisplay>> SearchGroupsAsPrincipals(string searchText, CancellationToken _)
+    {
+        using var repo = GroupRepoFactory.Create();
+        return await repo.List<PrincipalDisplay>(OrganizationId,
+            q => q
+                .Where(g => g.Name.Contains(searchText))
+                .Select(g => new PrincipalDisplay { Id = g.Id, Name = g.Name }),
+            q => q.OrderBy(g => g.Name)
+        );
+    }
+
+    private async Task<IEnumerable<GroupDisplay>> SearchGroups(string searchText, CancellationToken cancellationToken)
+    {
+        _isSearchingGroup = true;
+        StateHasChanged();
+
+        try
+        {
+            using var repo = GroupRepoFactory.Create();
+            return await repo.List<GroupDisplay>(OrganizationId,
+                q => q
+                    .Where(g => g.Name.Contains(searchText))
+                    .Select(g => new GroupDisplay { Id = g.Id, Name = g.Name }),
+                q => q.OrderBy(g => g.Name)
+            );
+        }
+        finally
+        {
+            _isSearchingGroup = false;
+        }
+    }
+
+    private async Task OnPrincipalTypeChanged(GroupMemberDiscriminator newType)
+    {
+        Input.GroupMemberDiscriminator = newType;
+        _selectedPrincipal = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (GroupId.HasValue && _selectedPrincipal == null)
+        {
+            Snackbar.Add("Please select a principal", Severity.Error);
+            return;
+        }
+
+        if (PrincipalId.HasValue && _selectedGroup == null)
+        {
+            Snackbar.Add("Please select a group", Severity.Error);
+            return;
+        }
+
+        if (GroupId.HasValue)
+        {
+            Input.PrincipalId = _selectedPrincipal?.Id ?? Guid.Empty;
+        }
+        else
+        {
+            Input.GroupId = _selectedGroup?.Id ?? Guid.Empty;
+        }
+
+        try
+        {
+            var groupMemberDto = new GroupMemberCreateDto
+            {
+                GroupId = Input.GroupId,
+                PrincipalId = Input.PrincipalId,
+                GroupMemberDiscriminator = Input.GroupMemberDiscriminator
+            };
+
+            using var service = GroupMemberServiceFactory.Create();
+            await service.Create(groupMemberDto, OrganizationId);
+            Snackbar.Add("Group member created successfully", Severity.Success);
+            await OnCreated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating group member: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private string GetPrincipalLabel()
+    {
+        return Input.GroupMemberDiscriminator switch
+        {
+            GroupMemberDiscriminator.User => "Select User *",
+            GroupMemberDiscriminator.ServicePrincipal => "Select Service Principal *",
+            GroupMemberDiscriminator.Group => "Select Group *",
+            _ => "Select Principal *"
+        };
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+
+    private sealed class InputModel
+    {
+        [Required] public Guid GroupId { get; set; }
+
+        [Required] public Guid PrincipalId { get; set; }
+
+        [Required] public GroupMemberDiscriminator GroupMemberDiscriminator { get; set; }
+    }
+
+}

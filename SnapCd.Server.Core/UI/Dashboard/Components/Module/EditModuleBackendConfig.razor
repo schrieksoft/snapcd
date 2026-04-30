@@ -1,0 +1,145 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@inherits ComponentBase
+
+<MudGrid>
+    <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="File Name"
+                          @bind-Value="Context.Name"
+                          Immediate="true"
+                          FullWidth="true"/>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="Value"
+                          @bind-Value="Context.Value"
+                          Immediate="true"
+                          Lines="15"
+                          FullWidth="true"/>
+        </MudItem>
+
+        <MudStack Row="true" Spacing="4" Class="mt-4">
+
+            @if (IsCreateMode)
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="CreateItem">
+                    Create
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           Disabled="@(!HasChanges)"
+                           OnClick="UpdateItem">
+                    Save
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteItem">
+                    Delete
+                </MudButton>
+            }
+        </MudStack>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public bool IsCreateMode { get; set; } = true;
+    [Parameter] public ModuleBackendConfig Context { get; set; } = default!;
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnUpdate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ModuleBackendConfigSecuredRepositoryFactory ModuleBackendConfigSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private ModuleBackendConfig _original = new();
+
+    protected override void OnInitialized()
+    {
+        SetOriginal();
+    }
+
+    private bool HasChanges =>
+        Context.Name != _original.Name ||
+        Context.Value != _original.Value;
+
+    private void SetOriginal()
+    {
+        _original = new ModuleBackendConfig
+        {
+            Name = Context.Name,
+            Value = Context.Value
+        };
+    }
+
+    private async Task DeleteItem()
+    {
+        try
+        {
+            using var repo = ModuleBackendConfigSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Delete(Context.Id, OrganizationId);
+
+            await OnDelete.InvokeAsync();
+            Snackbar.Add("Backend config deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting backend config");
+        }
+    }
+
+    private async Task CreateItem()
+    {
+        try
+        {
+            using var repo = ModuleBackendConfigSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Create(Context);
+            await OnCreate.InvokeAsync();
+            Snackbar.Add("Backend config created successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating backend config");
+        }
+    }
+
+    private async Task UpdateItem()
+    {
+        try
+        {
+            using var repo = ModuleBackendConfigSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Update(Context);
+            SetOriginal();
+            await OnUpdate.InvokeAsync();
+            Snackbar.Add("Backend config updated successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "updating backend config");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

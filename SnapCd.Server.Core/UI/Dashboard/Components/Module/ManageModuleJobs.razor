@@ -1,0 +1,485 @@
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Misc.Exceptions
+@using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.ModuleJobs
+@inject IDialogService DialogService
+@inject PersistentComponentState ApplicationState
+@inject JobCreatedNotificationService JobCreatedNotificationService
+@inject JobUpdatedNotificationService JobUpdatedNotificationService
+@inject LogReceivedNotificationService LogReceivedNotificationService
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject ModuleJobApprovalModifiedNotificationService ModuleJobApprovalModifiedNotificationService
+@inject ModuleApprovalThresholdModifiedNotificationService ModuleApprovalThresholdModifiedNotificationService
+
+@implements IDisposable
+
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply">Apply</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy">Destroy</MudButton>
+</MudPaper>
+
+
+@* <MudTooltip Text="Refresh"> *@
+@*     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium" *@
+@*                    OnClick="() => ReloadModuleJobs()"/> *@
+@* </MudTooltip> *@
+
+@if (_moduleJobs == null)
+{
+    <MudText Typo="Typo.body1"><em>Loading jobs...</em></MudText>
+}
+else if (!_moduleJobs.Any())
+{
+    <MudText Typo="Typo.body1">No jobs found for this module.</MudText>
+}
+else
+{
+    <MudExpansionPanels>
+        @foreach (var job in _moduleJobs.OrderByDescending(j => j.TimestampStart))
+        {
+            var iconColor = job.Status switch
+            {
+                ExecutionStatus.Running => Color.Warning,
+                ExecutionStatus.Completed => Color.Success,
+                ExecutionStatus.Failed => Color.Error,
+                ExecutionStatus.NotApproved => Color.Error,
+                //ExecutionStatus.Cancelled => Color.Default,
+                _ => Color.Default
+            };
+
+            var iconType = job.Status switch
+            {
+                ExecutionStatus.Running => Icons.Material.Filled.RunCircle,
+                ExecutionStatus.Completed => Icons.Material.Filled.CheckCircle,
+                ExecutionStatus.Failed => Icons.Material.Filled.Error,
+                ExecutionStatus.NotApproved => Icons.Material.Filled.ThumbDownAlt,
+                ExecutionStatus.Cancelled => Icons.Material.Filled.StopCircle,
+                _ => Icons.Material.Filled.RunCircle
+            };
+
+            var elapsedTime = DateTimeOffset.UtcNow - job.TimestampStart;
+            var elapsedDisplay = elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes} minutes ago"
+                : elapsedTime.TotalHours < 24 ? $"{(int)elapsedTime.TotalHours} hours ago"
+                : elapsedTime.TotalHours >= 24 && elapsedTime.TotalHours < 48 ? "yesterday"
+                : $"{(int)elapsedTime.TotalDays} days ago";
+
+
+            <MudExpansionPanel Class="mb-2" @key="job.Id"
+                               ExpandedChanged="@(async (isExpanded) => await OnPanelExpanded(isExpanded, job.Id))">
+                <TitleContent>
+                    <MudGrid>
+                        <MudItem md="1">
+                            <MudGrid>
+                                <MudItem md="6">
+                                    <MudTooltip Text="@job.Status.ToString()">
+                                        <MudIcon Icon="@iconType" Color="@iconColor"></MudIcon>
+                                    </MudTooltip>
+                                </MudItem>
+                                @if (job.Status == ExecutionStatus.Running)
+                                {
+                                    <MudItem md="6">
+                                        <MudTooltip Text="Cancel Job">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                                           Color="Color.Primary" Size="Size.Small"
+                                                           OnClick="() => CancelJob(job.Id)"/>
+                                        </MudTooltip>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </MudItem>
+                        <MudItem xs="3">
+                            <MudText Typo="Typo.body2">@elapsedDisplay</MudText>
+                        </MudItem>
+                        <MudItem xs="3">
+                            <MudText Typo="Typo.body2">@FormatJobType(job.JobType)</MudText>
+                        </MudItem>
+                    </MudGrid>
+                </TitleContent>
+                <ChildContent>
+                    @if (job.FailedOnServerSideStep != null)
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="ma-4 mb-0">
+                            <MudGrid>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.h6" Class="mb-2">Server-Side Error</MudText>
+                                    <MudText>@job.ServerSideErrorHeader</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">@job.ServerSideError</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudAlert>
+                    }
+                    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6"
+                             KeepPanelsAlive="true">
+                        <MudTabPanel Text="Logs" Style="text-transform: none">
+                            <ListLogs ModuleJobId="@job.Id" @ref="_listLogsRefs[job.Id]"/>
+                            @if (job.WaitingForApproval == true)
+                            {
+                                <MudAlert Severity="Severity.Info" Class="mt-4">
+                                    <MudIcon Icon="@Icons.Material.Filled.Approval" Class="mr-2"/>
+                                    This job is waiting for approval. Please review and approve in the Approvals tab.
+                                </MudAlert>
+                            }
+                        </MudTabPanel>
+                        <MudTabPanel Text="Approvals" Style="text-transform: none">
+                            <ListApprovals ModuleJobId="@job.Id" ModuleId="@Module.Id" JobSagaType="@job.JobType"
+                                           @ref="_listApprovalRefs[job.Id]"/>
+                        </MudTabPanel>
+                    </MudTabs>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+@if (_totalPages > 1)
+{
+    <Pagination CurrentPage="_currentPage"
+                TotalPages="_totalPages"
+                PageChanged="HandlePageChanged"/>
+}
+
+@code {
+    [Parameter] public required Module Module { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] ModuleJobRepositoryFactory JobRepoFactory { get; set; } = null!;
+    [Inject] ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    private const int PageSize = 10;
+    private int _currentPage = 1;
+    private int _totalJobs;
+    private int _totalPages;
+
+    private Timer? _timer;
+
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+
+    // private List<Guid> _recentlyCreatedJobIds = new();
+    private HashSet<Guid> _loadedLogs = new();
+    private HashSet<Guid> _openPanels = new();
+    private Dictionary<Guid, ListLogs> _listLogsRefs = new();
+    private Dictionary<Guid, ListApprovals> _listApprovalRefs = new();
+    private List<ModuleJobView>? _moduleJobs;
+
+    // private bool _hasRecentlyCreatedJobs;
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+
+    private record ModuleJobsState(List<ModuleJobView>? Jobs, int TotalJobs, int CurrentPage);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+
+        await ReloadModuleJobs();
+
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
+        // {
+        //     ApplicationState.PersistAsJson("module_jobs", new ModuleJobsState(_moduleJobs, _totalJobs, _currentPage));
+        //     return Task.CompletedTask;
+        // });
+        //
+        // if (ApplicationState.TryTakeFromJson<ModuleJobsState>("module_jobs", out var persistedData))
+        // {
+        //     _moduleJobs = persistedData.Jobs;
+        //     _totalJobs = persistedData.TotalJobs;
+        //     _currentPage = persistedData.CurrentPage;
+        //     _totalPages = (int)Math.Ceiling((double)_totalJobs / PageSize);
+        // }
+
+        JobCreatedNotificationService.Subscribe(Module.Id, HandleJobCreated);
+        JobUpdatedNotificationService.Subscribe(Module.Id, HandleJobUpdated);
+        LogReceivedNotificationService.Subscribe(Module.Id, HandleLogReceived);
+        ModuleJobApprovalModifiedNotificationService.Subscribe(Module.Id, HandleApprovalModified);
+        ModuleApprovalThresholdModifiedNotificationService.Subscribe(Module.Id, HandleApprovalThresholdModified);
+
+        _timer = new Timer(_ => InvokeAsync(StateHasChanged), null, 60000, 60000); // invoke StateHasChanged every 60 secs so that "x minutes ago" keeps ticking on
+    }
+
+
+    private async Task HandleJobCreated(Guid jobId, Guid moduleId)
+    {
+        if (moduleId != Module.Id) return;
+
+        ModuleJobView? newJob = null;
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                using var repo = JobRepoFactory.Create();
+                newJob = await repo.Get<ModuleJobView>(
+                    jobId, OrganizationId,
+                    q => q.Select(j => new ModuleJobView
+                    {
+                        Id = j.Id,
+                        TimestampStart = j.TimestampStart,
+                        Status = j.Status,
+                        JobType = j.JobType,
+                        FailedOnServerSideStep = j.FailedOnServerSideStep,
+                        ServerSideErrorHeader = j.ServerSideErrorHeader,
+                        ServerSideError = j.ServerSideError,
+                        WaitingForApproval = j.WaitingForApproval
+                    }));
+                break;
+            }
+            catch (EntityNotFoundException)
+            {
+                await Task.Delay(500);
+            }
+        }
+
+        if (newJob == null) return;
+
+        _moduleJobs ??= new List<ModuleJobView>();
+        _moduleJobs.Insert(0, newJob);
+
+        if (_moduleJobs.Count > PageSize)
+            _moduleJobs.RemoveAt(_moduleJobs.Count - 1);
+
+        _totalJobs++;
+        _totalPages = (int)Math.Ceiling((double)_totalJobs / PageSize);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleJobUpdated(Guid jobId, Guid moduleId, ExecutionStatus status)
+    {
+        if (moduleId != Module.Id) return;
+
+        var job = _moduleJobs?.FirstOrDefault(j => j.Id == jobId);
+        if (job != null)
+        {
+            ModuleJobView? updated = null;
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                try
+                {
+                    using var repo = JobRepoFactory.Create();
+                    updated = await repo.Get<ModuleJobView>(
+                        jobId, OrganizationId,
+                        q => q.Select(j => new ModuleJobView
+                        {
+                            Id = j.Id,
+                            TimestampStart = j.TimestampStart,
+                            Status = j.Status,
+                            JobType = j.JobType,
+                            FailedOnServerSideStep = j.FailedOnServerSideStep,
+                            ServerSideErrorHeader = j.ServerSideErrorHeader,
+                            ServerSideError = j.ServerSideError,
+                            WaitingForApproval = j.WaitingForApproval
+                        }));
+                    break;
+                }
+                catch (EntityNotFoundException)
+                {
+                    await Task.Delay(500);
+                }
+            }
+
+            if (updated != null)
+            {
+                job.Status = updated.Status;
+                job.WaitingForApproval = updated.WaitingForApproval;
+                job.FailedOnServerSideStep = updated.FailedOnServerSideStep;
+                job.ServerSideErrorHeader = updated.ServerSideErrorHeader;
+                job.ServerSideError = updated.ServerSideError;
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+
+        if (_openPanels.Contains(jobId))
+            if (_listApprovalRefs.TryGetValue(jobId, out var listApprovals))
+            {
+                await listApprovals.RefreshModuleJobStatus(true);
+            }
+    }
+
+    private async Task HandleApprovalThresholdModified(Guid moduleId)
+    {
+        if (moduleId != Module.Id) return;
+
+
+        foreach (var listApprovals in _listApprovalRefs.Values)
+        {
+            await listApprovals.RefreshApprovalThreshold(true);
+        }
+    }
+
+    private async Task HandleApprovalModified(Guid jobId, Guid moduleId)
+    {
+        if (moduleId != Module.Id) return;
+
+        if (_openPanels.Contains(jobId))
+            if (_listApprovalRefs.TryGetValue(jobId, out var listApprovals))
+            {
+                await listApprovals.RefreshAll(true);
+            }
+    }
+
+
+    private async Task HandleLogReceived(Guid jobId, Guid moduleId)
+    {
+        if (moduleId != Module.Id) return;
+
+        // Check if we have a ListLogs reference regardless of panel state tracking
+        // This fixes issues where inner expansion panels interfere with outer panel state
+        if (_listLogsRefs.TryGetValue(jobId, out var listLogs))
+        {
+            // Only refresh if the logs have been initialized (to avoid unnecessary API calls)
+            if (_loadedLogs.Contains(jobId))
+            {
+                await listLogs.RefreshLogs(true);
+            }
+        }
+    }
+
+    private async Task ReloadModuleJobs(bool invokeAsync = false)
+    {
+        // Verify user can read the parent Module (single EXISTS query)
+        using var moduleRepo = ModuleRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        if (!moduleRepo.CanRead(Module.Id, OrganizationId))
+            return;
+
+        // Use nonsecured repo for job listing — permission inherited from Module
+        using var repo = JobRepoFactory.Create();
+        _totalJobs = await repo.Count(OrganizationId, queryModifier: q => q.Where(x => x.ModuleId == Module.Id));
+        _totalPages = (int)Math.Ceiling((double)_totalJobs / PageSize);
+
+        _moduleJobs = await repo.ListByParentId<ModuleJobView>(
+            Module.Id,
+            OrganizationId,
+            projection: q => q.Select(j => new ModuleJobView
+            {
+                Id = j.Id,
+                TimestampStart = j.TimestampStart,
+                Status = j.Status,
+                JobType = j.JobType,
+                FailedOnServerSideStep = j.FailedOnServerSideStep,
+                ServerSideErrorHeader = j.ServerSideErrorHeader,
+                ServerSideError = j.ServerSideError,
+                WaitingForApproval = j.WaitingForApproval
+            }),
+            orderBy: x => x.OrderByDescending(j => j.TimestampStart),
+            pageNumber: _currentPage,
+            pageSize: PageSize);
+
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+
+    private async Task CancelJob(Guid jobId)
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<CancelModuleJobDialog>
+        {
+            { x => x.JobId, jobId },
+            { x => x.ModuleId, Module.Id },
+            { x => x.NamespaceId, Module.NamespaceId },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<CancelModuleJobDialog>("Cancel", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await ReloadModuleJobs();
+        }
+    }
+
+
+    private async Task OnPanelExpanded(bool isExpanded, Guid jobId)
+    {
+        if (isExpanded)
+        {
+            _openPanels.Add(jobId);
+            if (!_loadedLogs.Contains(jobId) && _listLogsRefs.TryGetValue(jobId, out var listLogs))
+            {
+                await listLogs.InitializeLogs();
+                _loadedLogs.Add(jobId);
+            }
+
+            if (_listApprovalRefs.TryGetValue(jobId, out var listApprovals))
+            {
+                await listApprovals.RefreshAll();
+            }
+        }
+        else
+        {
+            _openPanels.Remove(jobId);
+        }
+    }
+
+    private async Task RunApply()
+    {
+        var jobId = Guid.NewGuid();
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<CreateApplyJobDialog>
+        {
+            { x => x.ModuleId, Module.Id },
+            { x => x.NamespaceId, Module.NamespaceId },
+            { x => x.JobId, jobId },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateApplyJobDialog>("Create Job", parameters, options);
+        var _ = await dialog.Result;
+    }
+
+    private async Task RunDestroy()
+    {
+        var jobId = Guid.NewGuid();
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<CreateDestroyJobDialog>
+        {
+            { x => x.ModuleId, Module.Id },
+            { x => x.NamespaceId, Module.NamespaceId },
+            { x => x.JobId, jobId },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateDestroyJobDialog>("Create Job", parameters, options);
+        var _ = await dialog.Result;
+    }
+
+    private async Task HandlePageChanged(int newPage)
+    {
+        _currentPage = newPage;
+        await ReloadModuleJobs();
+    }
+
+    private static string FormatJobType(string jobType) => jobType switch
+    {
+        "ApplyJobSaga" => "Apply",
+        "DestroyJobSaga" => "Destroy",
+        _ => jobType
+    };
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+
+        JobCreatedNotificationService.Unsubscribe(Module.Id, HandleJobCreated);
+        JobUpdatedNotificationService.Unsubscribe(Module.Id, HandleJobUpdated);
+        LogReceivedNotificationService.Unsubscribe(Module.Id, HandleLogReceived);
+        ModuleJobApprovalModifiedNotificationService.Unsubscribe(Module.Id, HandleApprovalModified);
+        ModuleApprovalThresholdModifiedNotificationService.Unsubscribe(Module.Id, HandleApprovalThresholdModified);
+        _timer?.Dispose();
+    }
+
+
+}

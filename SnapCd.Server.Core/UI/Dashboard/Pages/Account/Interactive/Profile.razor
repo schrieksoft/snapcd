@@ -1,0 +1,945 @@
+﻿@page "/Account"
+@rendermode InteractiveServer
+@layout SnapCd.Server.Core.UI.Dashboard.Layout.AccountInteractiveLayout
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using MudBlazor
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Repositories.System.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.UI.Dashboard.Layout
+@implements IDisposable
+
+@inject UserManagerFactory<User, IdentityRole<Guid>, SnapCdDbContext> UserManagerFactory
+@inject IdentityUserAccessorFactory UserAccessorFactory
+@inject UserSecuredRepositoryFactory SecuredUserRepositoryFactory
+@inject UserLoginServiceFactory UserLoginServiceFactory
+@inject SignInManagerFactory SignInManagerFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Profile> Logger
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject PersistentComponentState ApplicationState
+@inject AccessTokenServiceFactory AccessTokenServiceFactory
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Account</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Account</MudText>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <MudAlert Severity="@_statusSeverity" Class="mb-4" ShowCloseIcon="true"
+              CloseIconClicked="() => ClearStatusMessage()">
+        @_statusMessage
+    </MudAlert>
+}
+
+<MudExpansionPanels MultiExpansion="true" Class="mb-4">
+    <!-- Basic Information Section -->
+    <MudExpansionPanel Text="Basic Information">
+        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+            Update your personal information and view your account details.
+        </MudText>
+
+        @if (!string.IsNullOrEmpty(_basicInfoStatusMessage))
+        {
+            <MudAlert Severity="@_basicInfoStatusSeverity" Class="mb-4">@_basicInfoStatusMessage</MudAlert>
+        }
+
+        <EditForm Model="BasicInfoInput" OnValidSubmit="OnValidBasicInfoSubmitAsync">
+            <DataAnnotationsValidator/>
+
+            <MudStack Spacing="4" Class="mt-4">
+                <MudTextField Value="@_username" Label="Email" Disabled="true"
+                              HelperText="Your email address is your username and cannot be changed."/>
+
+                <MudTextField For="@(() => BasicInfoInput.FirstName)" @bind-Value="BasicInfoInput.FirstName"
+                              Label="First Name" Placeholder="Enter your first name"
+                              HelperText="Your first name as it appears on your account."/>
+
+                <MudTextField For="@(() => BasicInfoInput.LastName)" @bind-Value="BasicInfoInput.LastName"
+                              Label="Last Name" Placeholder="Enter your last name"
+                              HelperText="Your last name as it appears on your account."/>
+
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" ButtonType="ButtonType.Submit">
+                        Save Changes
+                    </MudButton>
+                </div>
+            </MudStack>
+        </EditForm>
+    </MudExpansionPanel>
+
+    <!-- Password Section -->
+    <MudExpansionPanel Text="Password">
+        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+            Manage your password authentication settings.
+        </MudText>
+
+        @if (_hasPassword)
+        {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3 mb-3">
+                A password is currently set for your account.
+            </MudAlert>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3 mb-3">
+                No password currently set, only external logins supported.
+            </MudAlert>
+        }
+
+        <div class="button-group mt-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       OnClick="NavigateToResetPassword"
+                       Class="profile-btn">
+                Reset Password
+            </MudButton>
+
+            @if (_hasPassword)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="NavigateToRemovePassword"
+                           Class="profile-btn">
+                    Remove Password
+                </MudButton>
+            }
+        </div>
+    </MudExpansionPanel>
+
+    <!-- Two-Factor Authentication Section -->
+    <MudExpansionPanel Text="Two-Factor Authentication">
+        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+            Enhance your account security with two-factor authentication.
+        </MudText>
+
+        @if (_hasAuthenticator)
+        {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3 mb-3">
+                <div class="d-flex align-center justify-space-between">
+                    <span>Authenticator app is configured</span>
+                    @if (_is2FaEnabled)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Enabled</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">Disabled</MudChip>
+                    }
+                </div>
+            </MudAlert>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3 mb-3">
+                No authenticator app configured. Set one up to enable two-factor authentication.
+            </MudAlert>
+        }
+
+        @if (_recoveryCodesLeft >= 0 && _is2FaEnabled)
+        {
+            <MudAlert
+                Severity="@(_recoveryCodesLeft == 0 ? Severity.Error : _recoveryCodesLeft <= 3 ? Severity.Warning : Severity.Info)"
+                Dense="true" Class="mb-3">
+                @if (_recoveryCodesLeft == 0)
+                {
+                    <text>You have no recovery codes left! Generate new codes immediately.</text>
+                }
+                else if (_recoveryCodesLeft == 1)
+                {
+                    <text>You have 1 recovery code left.</text>
+                }
+                else if (_recoveryCodesLeft <= 3)
+                {
+                    <text>You have @_recoveryCodesLeft recovery codes left.</text>
+                }
+                else
+                {
+                    <text>You have @_recoveryCodesLeft recovery codes available.</text>
+                }
+            </MudAlert>
+        }
+
+        <div class="button-group mt-4">
+            @if (!_hasAuthenticator)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="NavigateToRegisterAuthenticator"
+                           Class="profile-btn">
+                    Add Authenticator
+                </MudButton>
+            }
+            else
+            {
+                @if (_is2FaEnabled)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="NavigateToDisable2fa"
+                               Class="profile-btn">
+                        Disable 2FA
+                    </MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="NavigateToEnable2fa"
+                               Class="profile-btn">
+                        Enable 2FA
+                    </MudButton>
+                }
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="NavigateToResetAuthenticator"
+                           Class="profile-btn">
+                    Reset Authenticator
+                </MudButton>
+            }
+
+            @if (_is2FaEnabled)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="NavigateToGenerateRecoveryCodes"
+                           Class="profile-btn">
+                    Generate Recovery Codes
+                </MudButton>
+            }
+        </div>
+    </MudExpansionPanel>
+
+    <!-- External Logins Section -->
+    <MudExpansionPanel Text="External Logins">
+        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+            Manage external login providers connected to your account
+        </MudText>
+
+        @if (_currentLogins?.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle1" GutterBottom="true" Class="mt-4 mb-2">Connected Logins</MudText>
+            <div class="connected-accounts-container">
+                <div class="connected-accounts-buttons">
+                    @foreach (var login in _currentLogins)
+                    {
+                        var (iconHtml, color) = GetProviderStyleInfo(login.LoginProvider);
+                        <div class="connected-account-item">
+                            <button type="button"
+                                    class="external-login-btn @($"provider-{login.LoginProvider.ToLower()}")"
+                                    style="background-color: @color;"
+                                    disabled
+                                    title="@login.ProviderDisplayName">
+                                <MudTooltip Text="@login.ProviderDisplayName" Placement="Placement.Top" Arrow="true">
+                                    <span class="provider-icon">@((MarkupString)iconHtml)</span>
+                                </MudTooltip>
+                            </button>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="() => NavigateToRemoveLogin(login.LoginProvider, login.ProviderKey)"
+                                           Title="Remove this login"
+                                           Class="remove-btn"/>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">You currently have no assigned external providers. Select
+                one below to add. You can only add an external login for which the email address matches your account
+                email.
+            </MudAlert>
+        }
+
+        @if (_otherLogins?.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle1" GutterBottom="true" Class="mt-4 mb-2">Add an External Login</MudText>
+            <div style="max-width: 50%; margin: 0;">
+                <div class="manage-external-login-buttons">
+                    @foreach (var provider in _otherLogins)
+                    {
+                        var (iconHtml, color) = GetProviderStyleInfo(provider.Name);
+                        <MudTooltip Text="@provider.DisplayName" Placement="Placement.Top" Arrow="true">
+                            <button type="button"
+                                    class="external-login-btn @($"provider-{provider.Name.ToLower()}")"
+                                    style="background-color: @color;"
+                                    title="@provider.DisplayName"
+                                    aria-label="@($"Add {provider.DisplayName} login")"
+                                    @onclick="() => NavigateToAddLogin(provider.Name)">
+                                <span class="provider-icon">@((MarkupString)iconHtml)</span>
+                            </button>
+                        </MudTooltip>
+                    }
+                </div>
+            </div>
+        }
+    </MudExpansionPanel>
+
+    <!-- Access Token Management Section -->
+    <MudExpansionPanel Text="Access Tokens">
+        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+            Generate and manage API access tokens for programmatic access to your account.
+        </MudText>
+
+        @if (GeneratedToken != null)
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-4 mt-4" Style="background-color: var(--mud-palette-success-lighten);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                    <MudText Typo="Typo.subtitle2" GutterBottom="true">Generated Token</MudText>
+                    <MudIconButton
+                        Icon="@Icons.Material.Filled.Close"
+                        OnClick="CloseTokenPanel"
+                        Color="Color.Inherit"
+                        Size="Size.Small"
+                        Class="ml-auto"/>
+                </MudStack>
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudTextField
+                        Value="@DisplayedToken"
+                        ReadOnly="true"
+                        InputType="@DisplayedTokenType"
+                        Style="width: 600px; margin-right: 1rem;"/>
+                    <MudButton Variant="Variant.Text" OnClick="ToggleShowToken">
+                        @ShowTokenText
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="CopyToken">
+                        Copy Token
+                    </MudButton>
+                </MudStack>
+
+                <MudText Typo="Typo.body1" GutterBottom="true" Style="font-style: italic; font-size: 0.875rem;">
+                    Make sure you save it - you won't be able to access it again!
+                </MudText>
+            </MudPaper>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="ToggleTokenForm"
+                   Class="profile-btn mt-4 mb-4">
+            Generate New Token
+        </MudButton>
+
+        @if (_showTokenForm)
+        {
+            <MudForm @ref="_tokenForm">
+                <MudStack Spacing="3" Class="mb-4">
+                    <MudTextField Label="Token Name" @bind-Value="TokenName" Required="true"
+                                  HelperText="Enter a token name."/>
+                    <MudDatePicker Label="Select Expiration Date" @bind-Date="SelectedDate" Required="true"
+                                   HelperText="Pick an expiration date."/>
+                    <MudTimePicker Label="Select Expiration Time" @bind-Time="SelectedTime" Required="true"
+                                   HelperText="Pick an expiration time."/>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="GenerateToken"
+                                Class="profile-btn mt-4 mb-4">
+                        Submit
+                    </MudButton>
+                </MudStack>
+            </MudForm>
+        }
+
+        <MudTable Items="@GetTokens()" Dense="true" Bordered="true" Hover="true" Class="mt-4">
+            <HeaderContent>
+                <MudTh>Token Name</MudTh>
+                <MudTh>Expiration</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Token Name">@context.Name</MudTd>
+                <MudTd DataLabel="Expiration">
+                    @if (context.ExpirationDate != null)
+                    {
+                        @ExpiresIn(new DateTimeOffset(context.ExpirationDate.Value))
+                    }
+                </MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudButton OnClick="() => RevokeToken(context.Id)" Variant="Variant.Text" Color="Color.Info">
+                        <MudIcon Icon="@Icons.Material.Filled.Delete"/>
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+<style>
+    /* Expansion panel header styling */
+    .mud-expand-panel-header .mud-expand-panel-text {
+        font-size: 1.25rem !important;
+        font-weight: 500 !important;
+    }
+
+    .connected-accounts-container {
+        margin-bottom: 1rem;
+    }
+
+    .connected-accounts-buttons {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .connected-account-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+    }
+
+    .connected-account-item .external-login-btn {
+        opacity: 0.7;
+        cursor: default;
+    }
+
+    .connected-account-item .external-login-btn:hover {
+        transform: none;
+        box-shadow: none;
+        opacity: 0.7;
+    }
+
+    .remove-btn {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+    }
+
+    .manage-external-login-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .external-login-btn {
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .external-login-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .external-login-btn:active {
+        transform: scale(0.95);
+    }
+
+    .mud-dark .external-login-btn:hover {
+        box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+    }
+
+    .provider-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .provider-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Provider-specific styles */
+    .provider-microsoft {
+        background: white !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-microsoft:hover {
+        background: #f5f5f5 !important;
+    }
+
+    .provider-google {
+        background: white !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-google:hover {
+        background: #f5f5f5 !important;
+    }
+
+    .provider-okta {
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0;
+    }
+
+    .provider-okta:hover {
+        background: #f5f5f5 !important;
+    }
+
+    .provider-github {
+        background: #24292e !important;
+    }
+
+    .provider-github:hover {
+        background: #1a1e22 !important;
+    }
+
+    .provider-github .provider-icon svg path {
+        fill: white !important;
+    }
+
+    .provider-auth0 {
+        background: #2d2d2d !important;
+    }
+
+    .provider-auth0:hover {
+        background: #1a1a1a !important;
+    }
+
+    /* Dark mode adjustments */
+    .mud-dark .provider-microsoft,
+    .mud-dark .provider-google {
+        background: white !important;
+    }
+
+    .mud-dark .provider-microsoft:hover,
+    .mud-dark .provider-google:hover {
+        background: #f5f5f5 !important;
+    }
+
+    /* Profile button styling */
+    .profile-btn {
+        min-width: auto !important;
+        width: auto !important;
+        flex: none !important;
+    }
+
+    /* Button group styling - left aligned, horizontal layout */
+    .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+</style>
+
+@code {
+    private User _user = default!;
+    private string? _username;
+    private bool _hasPassword;
+    private bool _hasAuthenticator;
+    private bool _is2FaEnabled;
+    private int _recoveryCodesLeft = -1;
+    private IList<UserLoginInfo>? _currentLogins;
+    private IList<AuthenticationScheme>? _otherLogins;
+    private string? _statusMessage;
+    private Severity _statusSeverity = Severity.Info;
+    private string? _basicInfoStatusMessage;
+    private Severity _basicInfoStatusSeverity = Severity.Info;
+    // private PersistingComponentStateSubscription _persistenceSubscription;
+
+    private BasicInfoInputModel BasicInfoInput { get; set; } = new();
+
+    // Access Token fields
+    private bool _showTokenForm;
+    private MudForm? _tokenForm;
+    private string TokenName { get; set; } = string.Empty;
+    private DateTime? SelectedDate { get; set; } = DateTime.UtcNow.Date.AddMonths(1);
+    private TimeSpan? SelectedTime { get; set; } = TimeSpan.FromHours(12);
+    private GeneratedToken? GeneratedToken { get; set; }
+    private string DisplayedToken => IsTokenVisible ? GeneratedToken?.TokenString ?? "" : "******************";
+    private InputType DisplayedTokenType => IsTokenVisible ? InputType.Text : InputType.Password;
+    private bool IsTokenVisible { get; set; }
+    private string ShowTokenText => IsTokenVisible ? "Hide Token" : "Show Token";
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Pre-rendering persistence - commented out since pre-rendering is disabled
+        // _persistenceSubscription = ApplicationState.RegisterOnPersisting(PersistData);
+        //
+        // if (ApplicationState.TryTakeFromJson<User>("current_user", out var persistedUser) && persistedUser != null)
+        // {
+        //     _user = persistedUser;
+        //     _username = persistedUser.Email;
+        //     BasicInfoInput.FirstName = persistedUser.FirstName ?? "";
+        //     BasicInfoInput.LastName = persistedUser.LastName ?? "";
+        // }
+
+        // Load user data from repository
+        try
+        {
+                using var userRepositoryScope = SecuredUserRepositoryFactory.Create();
+                using var userManagerScope = UserManagerFactory.Create();
+
+                _user = await userRepositoryScope.GetRequiredCurrentUser();
+                _username = _user.UserName;
+                _hasPassword = await userRepositoryScope.DoesCurrentUserHavePassword();
+
+                // Load 2FA status
+                _is2FaEnabled = await userManagerScope.UserManager.GetTwoFactorEnabledAsync(_user);
+                var authenticatorKey = await userManagerScope.UserManager.GetAuthenticatorKeyAsync(_user);
+                // Only consider authenticator configured if it has a key AND either 2FA is enabled or recovery codes exist
+                // This prevents showing "configured" just from visiting the setup page
+                _hasAuthenticator = !string.IsNullOrEmpty(authenticatorKey) &&
+                                    (_is2FaEnabled || await userManagerScope.UserManager.CountRecoveryCodesAsync(_user) > 0);
+                _recoveryCodesLeft = await userManagerScope.UserManager.CountRecoveryCodesAsync(_user);
+
+            // Load basic info into form
+            BasicInfoInput.FirstName = _user.FirstName ?? "";
+            BasicInfoInput.LastName = _user.LastName ?? "";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading user data");
+            ShowStatusMessage("Error loading user information.", Severity.Error);
+            return;
+        }
+
+        // Load external login data
+        try
+        {
+            using var userLoginRepositoryScope = UserLoginServiceFactory.Create();
+            _currentLogins = await userLoginRepositoryScope.Service.ListForCurrentUser();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading external login data");
+            ShowStatusMessage("Error loading external login information.", Severity.Error);
+            return;
+        }
+
+        // Always load other logins (available providers)
+        try
+        {
+            using var signInManagerScope = SignInManagerFactory.Create();
+            _otherLogins = (await signInManagerScope.SignInManager.GetExternalAuthenticationSchemesAsync())
+                .Where(auth => _currentLogins.All(ul => auth.Name != ul.LoginProvider))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading external authentication schemes");
+            ShowStatusMessage("Error loading available login providers.", Severity.Error);
+        }
+    }
+
+    private Task PersistData()
+    {
+        if (_user != null)
+        {
+            ApplicationState.PersistAsJson("current_user", _user);
+            ApplicationState.PersistAsJson("user_has_password", _hasPassword);
+            ApplicationState.PersistAsJson("user_has_authenticator", _hasAuthenticator);
+            ApplicationState.PersistAsJson("user_2fa_enabled", _is2FaEnabled);
+            ApplicationState.PersistAsJson("user_recovery_codes_left", _recoveryCodesLeft);
+        }
+
+        if (_currentLogins != null)
+        {
+            // Convert to List for JSON serialization
+            var currentLoginsList = _currentLogins.ToList();
+            ApplicationState.PersistAsJson("external_logins_current", currentLoginsList);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        // _persistenceSubscription.Dispose();
+    }
+
+
+    private (string iconHtml, string color) GetProviderStyleInfo(string providerName)
+    {
+        return providerName.ToLower() switch
+        {
+            "microsoft" => (GetMicrosoftSvgIcon(), "#ffffff"),
+            "google" => (GetGoogleSvgIcon(), "#ffffff"),
+            "okta" => (GetOktaSvgIcon(), "#ffffff"),
+            "github" => (GetGitHubSvgIcon(), "#24292e"),
+            "auth0" => (GetAuth0SvgIcon(), "#2d2d2d"),
+            "facebook" => (GetFacebookSvgIcon(), "#1877f2"),
+            "twitter" => (GetTwitterSvgIcon(), "#1da1f2"),
+            _ => (GetDefaultSvgIcon(), "#666666")
+        };
+    }
+
+    private string GetMicrosoftSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 21 21"" xmlns=""http://www.w3.org/2000/svg"">
+            <rect x=""1"" y=""1"" width=""9"" height=""9"" fill=""#f25022""/>
+            <rect x=""1"" y=""11"" width=""9"" height=""9"" fill=""#00a4ef""/>
+            <rect x=""11"" y=""1"" width=""9"" height=""9"" fill=""#7fba00""/>
+            <rect x=""11"" y=""11"" width=""9"" height=""9"" fill=""#ffb900""/>
+        </svg>";
+    }
+
+    private string GetGoogleSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"" fill=""#4285F4""/>
+            <path d=""M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"" fill=""#34A853""/>
+            <path d=""M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"" fill=""#FBBC05""/>
+            <path d=""M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"" fill=""#EA4335""/>
+        </svg>";
+    }
+
+    private string GetOktaSvgIcon()
+    {
+        return @"<img src=""/_content/SnapCd.Server.Core/okta.png"" alt=""Okta"" style=""width: 24px; height: 24px;"" />";
+    }
+
+    private string GetGitHubSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z""/>
+        </svg>";
+    }
+
+    private string GetAuth0SvgIcon()
+    {
+        return @"<img src=""/_content/SnapCd.Server.Core/auth0.png"" alt=""Auth0"" style=""width: 24px; height: 24px;"" />";
+    }
+
+    private string GetFacebookSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"" fill=""white""/>
+        </svg>";
+    }
+
+    private string GetTwitterSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"" fill=""white""/>
+        </svg>";
+    }
+
+    private string GetDefaultSvgIcon()
+    {
+        return @"<svg viewBox=""0 0 24 24"" xmlns=""http://www.w3.org/2000/svg"">
+            <path d=""M18,8H16V6A6,6 0 0,0 10,0H9A6,6 0 0,0 3,6V8H1A1,1 0 0,0 0,9V23A1,1 0 0,0 1,24H23A1,1 0 0,0 24,23V9A1,1 0 0,0 23,8M5,6A4,4 0 0,1 9,2H10A4,4 0 0,1 14,6V8H5V6Z"" fill=""#666666""/>
+        </svg>";
+    }
+
+    private void ShowStatusMessage(string message, Severity severity)
+    {
+        _statusMessage = message;
+        _statusSeverity = severity;
+        StateHasChanged();
+    }
+
+    private void ClearStatusMessage()
+    {
+        _statusMessage = null;
+        StateHasChanged();
+    }
+
+    private void NavigateToRemoveLogin(string loginProvider, string providerKey)
+    {
+        var url = $"/Account/RemoveExternalLogin?provider={Uri.EscapeDataString(loginProvider)}&providerKey={Uri.EscapeDataString(providerKey)}";
+        NavigationManager.NavigateTo(url);
+    }
+
+    private void NavigateToAddLogin(string provider)
+    {
+        var url = $"/Account/AssociateExternalLogin?provider={Uri.EscapeDataString(provider)}";
+        NavigationManager.NavigateTo(url);
+    }
+
+    private void NavigateToResetPassword()
+    {
+        // Navigate to ForgotPassword with email pre-filled
+        var url = $"/Account/ForgotPassword?email={Uri.EscapeDataString(_username ?? "")}";
+        NavigationManager.NavigateTo(url);
+    }
+
+    private void NavigateToRemovePassword()
+    {
+        NavigationManager.NavigateTo("/Account/RemovePassword");
+    }
+
+    private void NavigateToRegisterAuthenticator()
+    {
+        NavigationManager.NavigateTo("/Account/RegisterAuthenticator");
+    }
+
+    private void NavigateToEnable2fa()
+    {
+        NavigationManager.NavigateTo("/Account/Enable2fa");
+    }
+
+
+    private void NavigateToDisable2fa()
+    {
+        NavigationManager.NavigateTo("/Account/Disable2fa");
+    }
+
+    private void NavigateToResetAuthenticator()
+    {
+        NavigationManager.NavigateTo("/Account/ResetAuthenticator");
+    }
+
+    private void NavigateToGenerateRecoveryCodes()
+    {
+        NavigationManager.NavigateTo("/Account/GenerateRecoveryCodes");
+    }
+
+    private async Task OnValidBasicInfoSubmitAsync()
+    {
+        try
+        {
+            using var userManagerScope = UserManagerFactory.Create();
+
+            // Update user properties
+            _user.FirstName = BasicInfoInput.FirstName;
+            _user.LastName = BasicInfoInput.LastName;
+
+            var result = await userManagerScope.UserManager.UpdateAsync(_user);
+            if (!result.Succeeded)
+            {
+                _basicInfoStatusMessage = $"Error: {string.Join(", ", result.Errors.Select(error => error.Description))}";
+                _basicInfoStatusSeverity = Severity.Error;
+                return;
+            }
+
+            Logger.LogInformation("User updated their profile information successfully.");
+            _basicInfoStatusMessage = "Your profile has been updated successfully.";
+            _basicInfoStatusSeverity = Severity.Success;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating profile information");
+            _basicInfoStatusMessage = "An error occurred while updating your profile. Please try again.";
+            _basicInfoStatusSeverity = Severity.Error;
+        }
+    }
+
+    private sealed class BasicInfoInputModel
+    {
+        [Display(Name = "First Name")]
+        [StringLength(100, ErrorMessage = "The {0} must be at most {1} characters long.")]
+        public string FirstName { get; set; } = "";
+
+        [Display(Name = "Last Name")]
+        [StringLength(100, ErrorMessage = "The {0} must be at most {1} characters long.")]
+        public string LastName { get; set; } = "";
+    }
+
+    // Access Token Methods
+    private void CloseTokenPanel()
+    {
+        GeneratedToken = null;
+        IsTokenVisible = false;
+    }
+
+    private void ToggleTokenForm()
+    {
+        _showTokenForm = !_showTokenForm;
+    }
+
+    private async Task GenerateToken()
+    {
+        if (_tokenForm != null)
+        {
+            await _tokenForm.Validate();
+            if (!_tokenForm.IsValid)
+            {
+                return;
+            }
+        }
+        else throw new Exception("Form is null");
+
+        var expiration = SelectedDate!.Value.Add(SelectedTime!.Value).ToUniversalTime();
+
+        using var service = AccessTokenServiceFactory.Create();
+        GeneratedToken = service.GenerateToken(TokenName, expiration);
+
+        service.AddAccessToken(GeneratedToken.TokenEntity);
+
+        TokenName = string.Empty;
+        SelectedDate = DateTime.UtcNow.Date.AddMonths(1);
+        SelectedTime = TimeSpan.FromHours(12);
+        _showTokenForm = false;
+        StateHasChanged();
+    }
+
+    public List<Token> GetTokens()
+    {
+        using var service = AccessTokenServiceFactory.Create();
+        return service.Tokens;
+    }
+
+    private void ToggleShowToken()
+    {
+        IsTokenVisible = !IsTokenVisible;
+    }
+
+    private async Task CopyToken()
+    {
+        if (!string.IsNullOrEmpty(GeneratedToken?.TokenString))
+        {
+            await JsRuntime.InvokeVoidAsync("copyToClipboard", GeneratedToken.TokenString);
+        }
+    }
+
+    private void RevokeToken(Guid tokenId)
+    {
+        using var service = AccessTokenServiceFactory.Create();
+        service.RevokeAccessToken(tokenId);
+    }
+
+    private string ExpiresIn(DateTimeOffset expiration)
+    {
+        var timeToExpiry = expiration - DateTimeOffset.UtcNow;
+
+        if (timeToExpiry <= TimeSpan.Zero)
+        {
+            return "Expired";
+        }
+
+        if (timeToExpiry.TotalMinutes < 60)
+        {
+            return $"in {(int)timeToExpiry.TotalMinutes} minutes";
+        }
+
+        if (timeToExpiry.TotalHours < 24)
+        {
+            return $"in {(int)timeToExpiry.TotalHours} hours";
+        }
+
+        if (timeToExpiry.TotalHours < 48)
+        {
+            return "tomorrow";
+        }
+
+        return $"in {(int)timeToExpiry.TotalDays} days";
+    }
+
+}

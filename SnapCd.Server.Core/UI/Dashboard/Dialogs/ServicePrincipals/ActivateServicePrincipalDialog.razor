@@ -1,0 +1,57 @@
+@using SnapCd.Contracts.Dto.ServicePrincipals
+@using SnapCd.Server.Core.Services.Crud
+@inject ServicePrincipalServiceFactory ServiceFactory
+@inject ILogger<ActivateServicePrincipalDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Activate Service Principal</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to activate service principal "@ServicePrincipal.ClientId" (ID "@ServicePrincipal.Id")?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Activate">Activate</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [Parameter] public required ServicePrincipalReadDto ServicePrincipal { get; set; }
+
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Activate()
+    {
+        try
+        {
+            var service = ServiceFactory.Create();
+            var updateDto = new ServicePrincipalUpdateDto
+            {
+                Id = ServicePrincipal.Id,
+                ClientId = ServicePrincipal.ClientId,
+                ClientSecret = null, // Keep existing
+                IsDisabled = false,
+                Scopes = ServicePrincipal.Scopes
+            };
+
+            await service.Update(updateDto, ServicePrincipal.Id, OrganizationId);
+            MudDialog.Close(DialogResult.Ok(ServicePrincipal.Id));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to activate service principal {ServicePrincipalId}", ServicePrincipal.Id);
+            MudDialog.Cancel();
+        }
+    }
+
+}

@@ -1,0 +1,450 @@
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
+@implements IDisposable
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <EditForm Model="NewModule" OnValidSubmit="Create">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="pa-4">
+            <!-- Core Properties -->
+            <MudItem md="12">
+                <MudTextField Label="Name" @bind-Value="NewModule.Name"
+                              Variant="Variant.Outlined" Required RequiredError="Name is required"
+                              MaxLength="255" Counter="255"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Source Url" @bind-Value="NewModule.SourceUrl" Required
+                              RequiredError="Source Url is required"
+                              Variant="Variant.Outlined" MaxLength="800"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Source Relative Path" @bind-Value="NewModule.SourceSubdirectory"
+                              Variant="Variant.Outlined" MaxLength="800"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Source Revision" @bind-Value="NewModule.SourceRevision" Required
+                              RequiredError="Source Revision is required"
+                              Variant="Variant.Outlined" MaxLength="255"/>
+            </MudItem>
+
+
+            <MudItem md="12">
+                <MudSelect T="Guid" Label="Runner" @bind-Value="NewModule.RunnerId"
+                           Variant="Variant.Outlined" Required="true" RequiredError="Runner is required">
+                    @foreach (var runner in _availableRunners)
+                    {
+                        <MudSelectItem Value="@runner.Id">@runner.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField Label="Runner Instance Name" @bind-Value="NewModule.RunnerInstanceName"
+                              Variant="Variant.Outlined" MaxLength="255"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSelect T="StateManagementEngine?" Label="Engine" @bind-Value="NewModule.Engine"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Use Namespace Default</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Terraform)">Terraform</MudSelectItem>
+                    @if (_pulumiEnabled)
+                    {
+                        <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Pulumi)">Pulumi</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* *@
+            @* <MudItem md="12"> *@
+            @*     <MudAutocomplete T="SecretStoreDisplay?" *@
+            @*                      @bind-Value="_selectedSecretStore" *@
+            @*                      Label="Default Output Secret Store" *@
+            @*                      SearchFunc="@SearchSecretStores" *@
+            @*                      ToStringFunc="@(s => s?.FormattedName ?? string.Empty)" *@
+            @*                      ResetValueOnEmptyText="true" *@
+            @*                      Required="false" *@
+            @*                      DebounceInterval="300"> *@
+            @*         <ItemTemplate Context="itemTemplateContext"> *@
+            @*             <MudText>@itemTemplateContext?.FormattedName</MudText> *@
+            @*             <MudText Color="Color.Info" Typo="Typo.caption"> *@
+            @*                 @if (itemTemplateContext != null) *@
+            @*                 { *@
+            @*                     @itemTemplateContext.Id *@
+            @*                 } *@
+            @*             </MudText> *@
+            @*         </ItemTemplate> *@
+            @*         <NoItemsTemplate> *@
+            @*             @if (_isSearchingSecretStore) *@
+            @*             { *@
+            @*                 <div class="d-flex align-center gap-2"> *@
+            @*                     <MudProgressCircular Size="Size.Small" Indeterminate="true"/> *@
+            @*                     <MudText>Searching secret stores...</MudText> *@
+            @*                 </div> *@
+            @*             } *@
+            @*             else *@
+            @*             { *@
+            @*                 <MudText>@GetNoItemsMessage()</MudText> *@
+            @*             } *@
+            @*         </NoItemsTemplate> *@
+            @*     </MudAutocomplete> *@
+            @* </MudItem> *@
+
+
+            <EeApprovalFieldsModule
+                ApplyApprovalThreshold="@NewModule.ApplyApprovalThreshold"
+                ApplyApprovalThresholdChanged="@(v => NewModule.ApplyApprovalThreshold = v)"
+                DestroyApprovalThreshold="@NewModule.DestroyApprovalThreshold"
+                DestroyApprovalThresholdChanged="@(v => NewModule.DestroyApprovalThreshold = v)"
+                ApprovalTimeoutMinutes="@NewModule.ApprovalTimeoutMinutes"
+                ApprovalTimeoutMinutesChanged="@(v => NewModule.ApprovalTimeoutMinutes = v)"/>
+
+            <MudItem md="12">
+                <MudSelect T="WaitForApplyDependencies" Label="Wait For Apply Dependencies"
+                           @bind-Value="NewModule.WaitForApplyDependencies"
+                           Variant="Variant.Outlined" Required="true"
+                           RequiredError="Wait For Apply Dependencies is required">
+                    <MudSelectItem Value="WaitForApplyDependencies.Always">Always</MudSelectItem>
+                    <MudSelectItem Value="WaitForApplyDependencies.Never">Never</MudSelectItem>
+                    <MudSelectItem Value="WaitForApplyDependencies.OnFirstApply">On First Apply</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSelect T="WaitForDestroyDependencies" Label="Wait For Destroy Dependencies"
+                           @bind-Value="NewModule.WaitForDestroyDependencies"
+                           Variant="Variant.Outlined" Required="true"
+                           RequiredError="Wait For Destroy Dependencies is required">
+                    <MudSelectItem Value="WaitForDestroyDependencies.Always">Always</MudSelectItem>
+                    <MudSelectItem Value="WaitForDestroyDependencies.Never">Never</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnDefinitionChanged"
+                           Label="Trigger on Definition Changed" Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnUpstreamOutputChanged"
+                           Label="Trigger on Upstream Output Changed" Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnSourceChanged" Label="Trigger on Source Changed"
+                           Color="Color.Info"/>
+            </MudItem>
+
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnSourceChangedNotification"
+                           Label="Trigger on Source Changed Notification"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceBackendConfigs"
+                           Label="Ignore Namespace Backend Configs (Deprecated)"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceExtraFiles"
+                           Label="Ignore Namespace Extra Files"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceFlags"
+                           Label="Ignore Namespace Flags"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <!-- Auto-Upgrade Settings -->
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Auto Upgrade Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewModule.AutoUpgradeEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Auto Reconfigure Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewModule.AutoReconfigureEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Auto Migrate Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewModule.AutoMigrateEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Clean Init Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewModule.CleanInitEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Drift Check Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewModule.DriftCheckEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField T="int?" Label="Drift Check Interval Minutes" @bind-Value="NewModule.DriftCheckIntervalMinutes"
+                              Variant="Variant.Outlined"/>
+            </MudItem>
+
+            <!-- Backend Configuration Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Backend Configuration">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Module-specific backend configurations can be added after the module is created.
+                            These configurations override namespace defaults and are used during Terraform
+                            initialization.
+                        </MudAlert>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+
+            <!-- Engine Flags -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Terraform Flags">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Terraform flags can be added after the module is created. These flags allow you to
+                            customize Terraform command behavior for init, plan, apply, and destroy operations.
+                        </MudAlert>
+                    </MudExpansionPanel>
+                    <MudExpansionPanel Text="Terraform Array Flags">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Terraform array flags can be added after the module is created. These flags support
+                            multiple values such as targets, replacements, and variables.
+                        </MudAlert>
+                    </MudExpansionPanel>
+                    @if (_pulumiEnabled)
+                    {
+                        <MudExpansionPanel Text="Pulumi Flags">
+                            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                                Pulumi flags can be added after the module is created. These flags allow you to
+                                customize Pulumi command behavior for init, plan, apply, and destroy operations.
+                            </MudAlert>
+                        </MudExpansionPanel>
+                        <MudExpansionPanel Text="Pulumi Array Flags">
+                            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                                Pulumi array flags can be added after the module is created. These flags support
+                                multiple values such as targets, replacements, and policy packs.
+                            </MudAlert>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Information Panels -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Inputs (Parameters)">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Parameters can be configured after the module is created. Parameters allow you to pass
+                            dynamic values to your Terraform module from various sources including literal values,
+                            namespace inputs, outputs from other modules, and secrets.
+                        </MudAlert>
+                    </MudExpansionPanel>
+
+                    <MudExpansionPanel Text="Inputs (Environment Variables)">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Environment variables can be configured after the module is created. Environment variables
+                            allow you to set runtime environment values for your Terraform execution from various
+                            sources including literal values, namespace inputs, outputs from other modules, and secrets.
+                        </MudAlert>
+                    </MudExpansionPanel>
+
+                    <MudExpansionPanel Text="Extra Files">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Extra files can be configured after the module is created. Extra files allow you to provide
+                            additional configuration files, scripts, or other resources that your Terraform module may
+                            require during execution.
+                        </MudAlert>
+                    </MudExpansionPanel>
+
+                    <MudExpansionPanel Text="Depends on Modules">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Module dependencies can be configured after the module is created. Dependencies define which
+                            other modules must be executed before this module, allowing you to create ordered execution
+                            flows in your infrastructure deployments.
+                        </MudAlert>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Hooks Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    @CreateHookPanel("Init Hooks",
+                        NewModule.InitBeforeHook,
+                        val => NewModule.InitBeforeHook = val,
+                        NewModule.InitAfterHook,
+                        val => NewModule.InitAfterHook = val)
+
+                    @CreateHookPanel("Validate Hooks",
+                        NewModule.ValidateBeforeHook,
+                        val => NewModule.ValidateBeforeHook = val,
+                        NewModule.ValidateAfterHook,
+                        val => NewModule.ValidateAfterHook = val)
+
+                    @CreateHookPanel("Plan Hooks",
+                        NewModule.PlanBeforeHook,
+                        val => NewModule.PlanBeforeHook = val,
+                        NewModule.PlanAfterHook,
+                        val => NewModule.PlanAfterHook = val)
+                    
+                    @CreateHookPanel("Apply Hooks",
+                        NewModule.ApplyBeforeHook,
+                        val => NewModule.ApplyBeforeHook = val,
+                        NewModule.ApplyAfterHook,
+                        val => NewModule.ApplyAfterHook = val)
+
+                    @CreateHookPanel("Plan Destroy Hooks",
+                        NewModule.PlanDestroyBeforeHook,
+                        val => NewModule.PlanDestroyBeforeHook = val,
+                        NewModule.PlanDestroyAfterHook,
+                        val => NewModule.PlanDestroyAfterHook = val)
+
+                    @CreateHookPanel("Destroy Hooks",
+                        NewModule.DestroyBeforeHook,
+                        val => NewModule.DestroyBeforeHook = val,
+                        NewModule.DestroyAfterHook,
+                        val => NewModule.DestroyAfterHook = val)
+
+                    @CreateHookPanel("Output Hooks",
+                        NewModule.OutputBeforeHook,
+                        val => NewModule.OutputBeforeHook = val,
+                        NewModule.OutputAfterHook,
+                        val => NewModule.OutputAfterHook = val)
+                </MudExpansionPanels>
+            </MudItem>
+
+
+
+            <!-- Action Buttons -->
+            <MudItem md="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary">
+                    Create
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="OnCancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required EventCallback<Module> OnCreated { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [Parameter] public Guid NamespaceId { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    // Repository Factories
+    [Inject] private ModuleSecuredRepositoryFactory ModuleSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private RunnerSecuredRepositoryFactory RunnerSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private List<Runner> _availableRunners = new();
+    private bool _pulumiEnabled;
+
+    private Module NewModule { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        NewModule.Id = Guid.NewGuid();
+        NewModule.NamespaceId = NamespaceId;
+        NewModule.OrganizationId = OrganizationId;
+
+        using var runnerRepo = RunnerSecuredRepositoryFactory.Create(PrincipalProvider);
+        _availableRunners = await runnerRepo.ListAssignedToNamespace(NamespaceId, OrganizationId);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        _pulumiEnabled = await dbContext.PreviewFeatureAcceptances
+            .AnyAsync(p => p.OrganizationId == OrganizationId && p.PreviewFeature == PreviewFeature.Pulumi);
+    }
+
+    private RenderFragment CreateHookPanel(
+        string title,
+        string? beforeHookValue,
+        Action<string?> beforeHookValueChanged,
+        string? afterHookValue,
+        Action<string?> afterHookValueChanged) =>
+        @<MudExpansionPanel Text="@title">
+            <MudTextField Label="Before Hook"
+                          Value="@beforeHookValue"
+                          ValueChanged="@beforeHookValueChanged"
+                          Multiline Rows="3"/>
+            <MudTextField Label="After Hook"
+                          Value="@afterHookValue"
+                          ValueChanged="@afterHookValueChanged"
+                          Multiline Rows="3"/>
+        </MudExpansionPanel>;
+
+
+    private async Task Create()
+    {
+        try
+        {
+            using var repo = ModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+
+            var createdModule = await repo.Create(NewModule);
+
+            Snackbar.Add("Module created successfully", Severity.Success);
+            await OnCreated.InvokeAsync(createdModule);
+
+            // Reset form
+            NewModule = new Module { Id = Guid.NewGuid(), NamespaceId = NamespaceId, OrganizationId = OrganizationId };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating module: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+
+}

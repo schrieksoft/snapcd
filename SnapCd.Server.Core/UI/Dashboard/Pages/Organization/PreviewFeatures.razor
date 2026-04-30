@@ -1,0 +1,152 @@
+@page "/PreviewFeatures"
+@layout OrganizationMainLayout
+
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IOrganizationContext OrganizationContext
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Options
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Settings
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+
+<PageTitle>Preview Features</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Preview Features</MudText>
+
+<MudAlert Severity="Severity.Warning" Class="mb-4">
+    Preview features are experimental and may change or be removed in future releases. Once opted in, this cannot be undone.
+</MudAlert>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else if (!_activePreviews.Any())
+{
+    <MudAlert Severity="Severity.Info">
+        There are no preview features available at this time.
+    </MudAlert>
+}
+else
+{
+    <MudGrid>
+        @foreach (var feature in _activePreviews)
+        {
+            var isAccepted = _acceptedFeatures.Contains(feature);
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudStack>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.h6">@feature.ToString()</MudText>
+                            @if (isAccepted)
+                            {
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">Opted In</MudChip>
+                            }
+                        </MudStack>
+                        <MudText Typo="Typo.body2" Class="mb-2">@GetFeatureDescription(feature)</MudText>
+                        @if (!isAccepted)
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       OnClick="() => OptIn(feature)"
+                                       Class="mt-2 mb-2 align-self-start">
+                                Opt In
+                            </MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Inject] private PreviewFeatureAcceptanceSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private IOptions<PreviewFeatureSettings> PreviewFeatureSettingsOptions { get; set; } = null!;
+    [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+    private bool _loading = true;
+    private List<PreviewFeature> _activePreviews = [];
+    private HashSet<PreviewFeature> _acceptedFeatures = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+
+        // Parse active previews from settings
+        var settings = PreviewFeatureSettingsOptions.Value;
+        _activePreviews = settings.ActivePreviews
+            .Where(s => Enum.TryParse<PreviewFeature>(s, ignoreCase: true, out _))
+            .Select(s => Enum.Parse<PreviewFeature>(s, ignoreCase: true))
+            .ToList();
+
+        // Load accepted features from DB (bypassing secured repo to avoid permission issues for read)
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var accepted = await dbContext.PreviewFeatureAcceptances
+            .Where(p => p.OrganizationId == OrganizationId)
+            .Select(p => p.PreviewFeature)
+            .ToListAsync();
+        _acceptedFeatures = accepted.ToHashSet();
+
+        _loading = false;
+    }
+
+    private async Task OptIn(PreviewFeature feature)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, "This action cannot be undone. Once opted in, this preview feature will remain enabled for your organization." },
+            { x => x.ButtonText, "Opt In" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm Opt In", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            try
+            {
+                using var repo = RepoFactory.Create();
+                var entity = new PreviewFeatureAcceptance
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = OrganizationId,
+                    PreviewFeature = feature
+                };
+                await repo.Create(entity);
+                Snackbar.Add($"Successfully opted in to {feature} preview feature.", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to opt in: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private string GetFeatureDescription(PreviewFeature feature)
+    {
+        return feature switch
+        {
+            PreviewFeature.Pulumi => "Enable Pulumi as a state management engine for modules and namespaces.",
+            _ => "No description available."
+        };
+    }
+}

@@ -1,0 +1,89 @@
+using SnapCd.Server.Core.Settings.Repositories;
+
+namespace SnapCd.Server.Core.Startup;
+
+public static class RepositorySettings
+{
+    public static IServiceCollection AddSnapCdRepositorySettings(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<DependsOnModuleRepositorySettings>(configuration.GetSection("Repositories:DependsOnModule"));
+        services.Configure<GroupGroupMemberRepositorySettings>(configuration.GetSection("Repositories:GroupGroupMember"));
+        services.Configure<GroupMemberRepositorySettings>(configuration.GetSection("Repositories:GroupMember"));
+        services.Configure<GroupModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupModuleRoleAssignment"));
+        services.Configure<GroupNamespaceRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupNamespaceRoleAssignment"));
+        services.Configure<GroupOrganizationRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupOrganizationRoleAssignment"));
+        services.Configure<GroupRepositorySettings>(configuration.GetSection("Repositories:Group"));
+        services.Configure<GroupRunnerRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupRunnerRoleAssignment"));
+        services.Configure<GroupStackRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupStackRoleAssignment"));
+        services.Configure<ModuleBackendConfigRepositorySettings>(configuration.GetSection("Repositories:ModuleBackendConfig"));
+        services.Configure<ModulePulumiFlagRepositorySettings>(configuration.GetSection("Repositories:ModulePulumiFlag"));
+        services.Configure<ModulePulumiArrayFlagRepositorySettings>(configuration.GetSection("Repositories:ModulePulumiArrayFlag"));
+        services.Configure<ModuleTerraformFlagRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformFlag"));
+        services.Configure<ModuleTerraformArrayFlagRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformArrayFlag"));
+        services.Configure<ModuleHookRepositorySettings>(configuration.GetSection("Repositories:ModuleHook"));
+        services.Configure<ModuleExtraFileRepositorySettings>(configuration.GetSection("Repositories:ModuleExtraFile"));
+        services.Configure<ModuleInputFromDefinitionRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromDefinition"));
+        services.Configure<ModuleInputFromLiteralRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromLiteral"));
+        services.Configure<ModuleInputFromNamespaceRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromNamespace"));
+        services.Configure<ModuleInputFromOutputRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromOutput"));
+        services.Configure<ModuleInputFromOutputSetRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromOutputSet"));
+        services.Configure<ModuleInputFromSecretRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromSecret"));
+        services.Configure<ModuleInputRepositorySettings>(configuration.GetSection("Repositories:ModuleInput"));
+        services.Configure<ModuleJobApprovalRepositorySettings>(configuration.GetSection("Repositories:ModuleJobApproval"));
+        services.Configure<ModuleJobRepositorySettings>(configuration.GetSection("Repositories:ModuleJob"));
+        services.Configure<ModuleRepositorySettings>(configuration.GetSection("Repositories:Module"));
+        services.Configure<ModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ModuleRoleAssignment"));
+        services.Configure<ModuleSecretRepositorySettings>(configuration.GetSection("Repositories:ModuleSecret"));
+        services.Configure<NamespaceBackendConfigRepositorySettings>(configuration.GetSection("Repositories:NamespaceBackendConfig"));
+        services.Configure<NamespacePulumiFlagRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiFlag"));
+        services.Configure<NamespacePulumiArrayFlagRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiArrayFlag"));
+        services.Configure<NamespaceTerraformFlagRepositorySettings>(configuration.GetSection("Repositories:NamespaceTerraformFlag"));
+        services.Configure<NamespaceTerraformArrayFlagRepositorySettings>(configuration.GetSection("Repositories:NamespaceTerraformArrayFlag"));
+        services.Configure<NamespaceHookRepositorySettings>(configuration.GetSection("Repositories:NamespaceHook"));
+        services.Configure<NamespaceExtraFileRepositorySettings>(configuration.GetSection("Repositories:NamespaceExtraFile"));
+        services.Configure<NamespaceInputFromDefinitionRepositorySettings>(configuration.GetSection("Repositories:NamespaceInputFromDefinition"));
+        services.Configure<NamespaceInputFromLiteralRepositorySettings>(configuration.GetSection("Repositories:NamespaceInputFromLiteral"));
+        services.Configure<NamespaceInputFromSecretRepositorySettings>(configuration.GetSection("Repositories:NamespaceInputFromSecret"));
+        services.Configure<NamespaceInputRepositorySettings>(configuration.GetSection("Repositories:NamespaceInput"));
+        services.Configure<NamespaceRepositorySettings>(configuration.GetSection("Repositories:Namespace"));
+        services.Configure<NamespaceRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:NamespaceRoleAssignment"));
+        services.Configure<NamespaceSecretRepositorySettings>(configuration.GetSection("Repositories:NamespaceSecret"));
+        services.Configure<OrganizationRepositorySettings>(configuration.GetSection("Repositories:Organization"));
+        services.Configure<OrganizationRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:OrganizationRoleAssignment"));
+        services.Configure<OrganizationUserRepositorySettings>(configuration.GetSection("Repositories:OrganizationUser"));
+        services.Configure<PreviewFeatureAcceptanceRepositorySettings>(configuration.GetSection("Repositories:PreviewFeatureAcceptance"));
+        services.Configure<OutputRepositorySettings>(configuration.GetSection("Repositories:Output"));
+        services.Configure<OutputSetRepositorySettings>(configuration.GetSection("Repositories:OutputSet"));
+        services.Configure<RoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:RoleAssignment"));
+        services.Configure<RunnerConnectionJobRepositorySettings>(configuration.GetSection("Repositories:RunnerConnectionJob"));
+        services.Configure<RunnerConnectionRepositorySettings>(configuration.GetSection("Repositories:RunnerConnection"));
+        services.Configure<RunnerModuleAssignmentRepositorySettings>(configuration.GetSection("Repositories:RunnerModuleAssignment"));
+        services.Configure<RunnerNamespaceAssignmentRepositorySettings>(configuration.GetSection("Repositories:RunnerNamespaceAssignment"));
+        services.Configure<RunnerRepositorySettings>(configuration.GetSection("Repositories:Runner"));
+        services.Configure<RunnerRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:RunnerRoleAssignment"));
+        services.Configure<RunnerStackAssignmentRepositorySettings>(configuration.GetSection("Repositories:RunnerStackAssignment"));
+        services.Configure<SecretRepositorySettings>(configuration.GetSection("Repositories:Secret"));
+        services.Configure<ServicePrincipalGroupMemberRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalGroupMember"));
+        services.Configure<ServicePrincipalModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalModuleRoleAssignment"));
+        services.Configure<ServicePrincipalNamespaceRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalNamespaceRoleAssignment"));
+        services.Configure<ServicePrincipalOrganizationRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalOrganizationRoleAssignment"));
+        services.Configure<ServicePrincipalRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipal"));
+        services.Configure<ServicePrincipalRunnerRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalRunnerRoleAssignment"));
+        services.Configure<ServicePrincipalStackRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalStackRoleAssignment"));
+        services.Configure<SourceRefresherPreselectionRepositorySettings>(configuration.GetSection("Repositories:SourceRefresherPreselection"));
+        services.Configure<StackRepositorySettings>(configuration.GetSection("Repositories:Stack"));
+        services.Configure<StackRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:StackRoleAssignment"));
+        services.Configure<StackSecretRepositorySettings>(configuration.GetSection("Repositories:StackSecret"));
+        services.Configure<UserGroupMemberRepositorySettings>(configuration.GetSection("Repositories:UserGroupMember"));
+        services.Configure<UserModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserModuleRoleAssignment"));
+        services.Configure<UserNamespaceRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserNamespaceRoleAssignment"));
+        services.Configure<UserOrganizationRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserOrganizationRoleAssignment"));
+        services.Configure<UserRepositorySettings>(configuration.GetSection("Repositories:User"));
+        services.Configure<UserRunnerRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserRunnerRoleAssignment"));
+        services.Configure<UserStackRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserStackRoleAssignment"));
+        services.Configure<VariableRepositorySettings>(configuration.GetSection("Repositories:Variable"));
+        services.Configure<VariableSetRepositorySettings>(configuration.GetSection("Repositories:VariableSet"));
+
+        return services;
+    }
+}

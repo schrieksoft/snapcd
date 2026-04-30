@@ -1,0 +1,304 @@
+﻿@page "/ServicePrincipals"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject IOrganizationContext OrganizationContext
+
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Contracts.Dto.ServicePrincipals
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Crud
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.ServicePrincipals
+@using SnapCd.Server.Core.UI.Dashboard.Components.ServicePrincipals
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles.OrganizationRoles
+
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+<PageTitle>Manage Service Principals</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudText Typo="Typo.h4" GutterBottom="true">Manage Service Principals</MudText>
+
+    @if (_showCreate)
+    {
+        <MudItem Class="mb-2">
+            <CreateServicePrincipal OnCreated="HandleCreated" OnCancel="HandleCancelCreate"/>
+        </MudItem>
+    }
+
+    else
+    {
+        <MudButton
+            Variant="Variant.Filled"
+            Color="Color.Secondary"
+            Class="mt-2 mb-2"
+            OnClick="ShowCreate">
+            Create New
+        </MudButton>
+    }
+
+    @if (_servicePrincipals == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var servicePrincipal in _servicePrincipals)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <MudText>@servicePrincipal.ClientId</MudText>
+                            @if (servicePrincipal.IsDisabled)
+                            {
+                                <MudChip T="string" Color="Color.Error" Text="Disabled" Size="Size.Small"/>
+                            }
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @if (!servicePrincipal.IsDisabled)
+                        {
+                            <MudTooltip Text="Service principal is enabled, click to disable">
+                                <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="() => DeactivateServicePrincipal(servicePrincipal)"/>
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Service principal is disabled, click to enable">
+                                <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Secondary"
+                                               Size="Size.Small"
+                                               OnClick="() => ActivateServicePrincipal(servicePrincipal)"/>
+                            </MudTooltip>
+                        }
+
+                        <MudTooltip Text="Edit service principal">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="@GetColor(servicePrincipal.Id, ShowingType.Edit)" Size="Size.Small"
+                                           OnClick="() => Edit(servicePrincipal)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage service principals's roles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                           Color="@GetColor(servicePrincipal.Id, ShowingType.Roles)" Size="Size.Small"
+                                           OnClick="() => ManageRoles(servicePrincipal)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Delete service principal">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color=Color.Primary Size="Size.Small"
+                                           OnClick="() => Delete(servicePrincipal)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(servicePrincipal.Id, ShowingType.Edit))
+                        {
+                            <MudItem Class="mt-2">
+                                <EditServicePrincipal ServicePrincipal="_selectedServicePrincipal"
+                                                      OnSaved="HandleSaved"
+                                                      OnCancel="HandleCancelEdit"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(servicePrincipal.Id, ShowingType.Roles))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageServicePrincipalOrganizationRoles
+                                    ServicePrincipalId="servicePrincipal.Id"
+                                    OnSaved="HandleRoleAssignmentsClosed"
+                                    OnCancel="HandleRoleAssignmentsClosed"/>
+                            </MudItem>
+                        }
+
+
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+
+        </MudExpansionPanels>
+    }
+</CascadingValue>
+
+
+
+@code {
+
+    [Inject] private ServicePrincipalServiceFactory ServiceFactory { get; set; } = null!;
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<ServicePrincipalReadDto>? _servicePrincipals;
+    private bool _showCreate;
+
+    private ServicePrincipalReadDto? _selectedServicePrincipal;
+    private ShowingType _showing;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure organizationId is in URL, redirect if missing
+        await ReloadServicePrincipals();
+    }
+
+    private enum ShowingType
+    {
+        None,
+        Edit,
+        Roles
+    }
+
+    private Color GetColor(Guid servicePrincipalId, ShowingType showTypeToMatch)
+    {
+        if (_selectedServicePrincipal == null)
+            return Color.Primary;
+        if (servicePrincipalId == _selectedServicePrincipal.Id)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid servicePrincipalId, ShowingType showTypeToMatch)
+    {
+        if (_selectedServicePrincipal == null)
+            return false;
+        if (servicePrincipalId == _selectedServicePrincipal.Id && _showing == showTypeToMatch)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private void HandleRoleAssignmentsClosed()
+    {
+        _selectedServicePrincipal = null;
+        _showing = ShowingType.None;
+    }
+
+    private void ShowCreate()
+    {
+        _showCreate = true;
+    }
+
+    private void HandleCancelCreate()
+    {
+        _showCreate = false;
+    }
+
+
+    private void ManageRoles(ServicePrincipalReadDto sp)
+    {
+        _selectedServicePrincipal = sp;
+        _showing = ShowingType.Roles;
+    }
+
+    private void Edit(ServicePrincipalReadDto sp)
+    {
+        _selectedServicePrincipal = sp;
+        _showing = ShowingType.Edit;
+    }
+
+    private void HandleCancelEdit()
+    {
+        _selectedServicePrincipal = null;
+        _showing = ShowingType.None;
+    }
+
+    private async Task HandleCreated(Guid newId)
+    {
+        _showCreate = false;
+        await ReloadServicePrincipals();
+    }
+
+    private async Task HandleSaved(Guid updatedId)
+    {
+        _selectedServicePrincipal = null;
+        _showing = ShowingType.None;
+        await ReloadServicePrincipals();
+    }
+
+    private async Task Delete(ServicePrincipalReadDto servicePrincipal)
+    {
+        var parameters = new DialogParameters<DeleteServicePrincipalDialog>
+        {
+            { x => x.ServicePrincipal, servicePrincipal },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteServicePrincipalDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deletedUserId);
+            Snackbar.Add($"Successfully deleted user \"{deletedUserId}\"");
+            await ReloadServicePrincipals();
+        }
+    }
+
+    private async Task ReloadServicePrincipals()
+    {
+        var service = ServiceFactory.Create();
+        _servicePrincipals = await service.List(OrganizationId);
+    }
+
+    private async Task ActivateServicePrincipal(ServicePrincipalReadDto servicePrincipal)
+    {
+        var parameters = new DialogParameters<ActivateServicePrincipalDialog>
+        {
+            { x => x.ServicePrincipal, servicePrincipal },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ActivateServicePrincipalDialog>("Activate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var activatedServicePrincipalId);
+            Snackbar.Add($"Successfully activated service principal \"{activatedServicePrincipalId}\"", Severity.Success);
+            await ReloadServicePrincipals();
+        }
+    }
+
+    private async Task DeactivateServicePrincipal(ServicePrincipalReadDto servicePrincipal)
+    {
+        var parameters = new DialogParameters<DeactivateServicePrincipalDialog>
+        {
+            { x => x.ServicePrincipal, servicePrincipal },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeactivateServicePrincipalDialog>("Deactivate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deactivatedServicePrincipalId);
+            Snackbar.Add($"Successfully deactivated service principal \"{deactivatedServicePrincipalId}\"", Severity.Success);
+            await ReloadServicePrincipals();
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+
+
+}

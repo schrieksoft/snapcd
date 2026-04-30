@@ -1,0 +1,162 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@inherits ComponentBase
+
+<MudGrid>
+    <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="File Name"
+                          @bind-Value="Context.FileName"
+                          Immediate="true"
+                          FullWidth="true"/>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="Contents"
+                          @bind-Value="Context.Contents"
+                          Immediate="true"
+                          Lines="15"
+                          FullWidth="true"/>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudSwitch T="bool"
+                       Label="Overwrite"
+                       Color="Color.Info"
+                       Value="Context.Overwrite"
+                       ValueChanged="OverwriteChanged"
+            />
+        </MudItem>
+
+        <MudStack Row="true" Spacing="4" Class="mt-4">
+
+            @if (IsCreateMode)
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="CreateItem">
+                    Create
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           Disabled="@(!HasChanges)"
+                           OnClick="UpdateItem">
+                    Save
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteItem">
+                    Delete
+                </MudButton>
+            }
+        </MudStack>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public bool IsCreateMode { get; set; } = true;
+    [Parameter] public ModuleExtraFile Context { get; set; } = default!;
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnUpdate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ModuleExtraFileSecuredRepositoryFactory ModuleExtraFileSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private ModuleExtraFile _original = new();
+
+    protected override void OnInitialized()
+    {
+        SetOriginal();
+    }
+
+    private bool HasChanges =>
+        Context.FileName != _original.FileName ||
+        Context.Contents != _original.Contents ||
+        Context.Overwrite != _original.Overwrite;
+
+    private void OverwriteChanged()
+    {
+        Context.Overwrite = !Context.Overwrite;
+        StateHasChanged();
+    }
+
+    private void SetOriginal()
+    {
+        _original = new ModuleExtraFile
+        {
+            FileName = Context.FileName,
+            Contents = Context.Contents,
+            Overwrite = Context.Overwrite
+        };
+    }
+
+    private async Task DeleteItem()
+    {
+        try
+        {
+            using var repo = ModuleExtraFileSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Delete(Context.Id, OrganizationId);
+
+            await OnDelete.InvokeAsync();
+            Snackbar.Add("Extra file deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting extra file");
+        }
+    }
+
+    private async Task CreateItem()
+    {
+        try
+        {
+            using var repo = ModuleExtraFileSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Create(Context);
+            await OnCreate.InvokeAsync();
+            Snackbar.Add("Extra file created successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating extra file");
+        }
+    }
+
+    private async Task UpdateItem()
+    {
+        try
+        {
+            using var repo = ModuleExtraFileSecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Update(Context);
+            SetOriginal();
+            await OnUpdate.InvokeAsync();
+            Snackbar.Add("Extra file updated successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "updating extra file");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

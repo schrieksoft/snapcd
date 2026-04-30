@@ -1,0 +1,294 @@
+@page "/Account/RegisterAuthenticator"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject IdentityUserAccessor UserAccessor
+@inject UrlEncoder UrlEncoder
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<RegisterAuthenticator> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>Register authenticator app - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Register authenticator app">
+    @if (_recoveryCodes is not null)
+    {
+        <ShowRecoveryCodes RecoveryCodes="_recoveryCodes.ToArray()" StatusMessage="@_message"/>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">
+                @_message
+            </MudAlert>
+        }
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-2">Step 1: Download an authenticator app</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    Download a two-factor authenticator app like Microsoft Authenticator for
+                    <MudLink Target="_blank" Href="https://go.microsoft.com/fwlink/?Linkid=825072">Android</MudLink>
+                    and
+                    <MudLink Target="_blank" Href="https://go.microsoft.com/fwlink/?Linkid=825073">iOS</MudLink>
+                    or
+                    Google Authenticator for
+                    <MudLink Target="_blank"
+                             Href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&amp;hl=en">
+                        Android
+                    </MudLink>
+                    and
+                    <MudLink Target="_blank"
+                             Href="https://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8">iOS
+                    </MudLink>
+                    .
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-2">Step 2: Scan QR code or enter key</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    Scan the QR Code or enter this key into your two factor authenticator app. Spaces and casing do not
+                    matter:
+                </MudText>
+
+                <MudCard Elevation="0" Class="mb-3" Style="background-color: #f5f5f5;">
+                    <MudCardContent Class="d-flex flex-column align-center">
+                        @if (!string.IsNullOrEmpty(_qrCodeUrl))
+                        {
+                            <div class="qr-code-container mb-3"
+                                 style="background: white; padding: 16px; border-radius: 8px;">
+                                <img src="@_qrCodeUrl" alt="QR Code for 2FA Setup"
+                                     style="width: 200px; height: 200px;"/>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Scan with your authenticator app
+                            </MudText>
+                        }
+                        else
+                        {
+                            <div class="qr-code-container mb-3"
+                                 style="background: white; padding: 16px; border-radius: 8px; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    QR code loading...
+                                </MudText>
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+
+                <MudDivider Class="my-3"/>
+
+                <MudText Typo="Typo.body2" Class="mb-2">Or enter this key manually:</MudText>
+                <MudAlert Variant="Variant.Outlined" Severity="Severity.Info" Icon="@Icons.Material.Filled.Key"
+                          Class="mb-3">
+                    <div style="font-family: monospace; font-size: 1.1rem; letter-spacing: 0.1em;">@_sharedKey</div>
+                </MudAlert>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-2">Step 3: Enter verification code</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    Once you have scanned the QR code or input the key above, your two factor authentication app will
+                    provide you
+                    with a unique code. Enter the code in the confirmation box below.
+                </MudText>
+
+                <EditForm Model="Input" FormName="send-code" OnValidSubmit="OnValidSubmitAsync" method="post">
+                    <DataAnnotationsValidator/>
+                    <MudGrid>
+                        <MudItem xs="12">
+                            <MudStaticTextField @bind-Value="@Input.Code" For="@(() => Input.Code)"
+                                                Label="Verification Code"
+                                                HelperText="Please enter the 6-digit code from your authenticator app."
+                                                Variant="Variant.Outlined"/>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <div class="complete-button-container">
+                                <div class="divider-line"></div>
+                                <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                                 FormAction="FormAction.Submit" Class="complete-btn">
+                                    Verify
+                                </MudStaticButton>
+                                <div class="divider-line"></div>
+                            </div>
+                        </MudItem>
+                    </MudGrid>
+                </EditForm>
+            </MudItem>
+        </MudGrid>
+
+        <div class="register-link">
+            <MudText Align="Align.Center" Typo="Typo.body2">
+                <MudLink Typo="Typo.body2" Href="/Account/Manage/Profile">
+                    Back to Profile
+                </MudLink>
+            </MudText>
+        </div>
+    }
+</StaticAccountComponent>
+
+<style>
+    .complete-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .complete-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+        border-radius: 24px !important;
+    }
+
+    .complete-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .register-link {
+        margin-top: 1.5rem;
+    }
+</style>
+
+@code {
+    private const string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
+
+    private string? _message;
+    private User _user = null!;
+    private string? _sharedKey;
+    private string? _authenticatorUri;
+    private string? _qrCodeUrl;
+    private IEnumerable<string>? _recoveryCodes;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        await LoadSharedKeyAndQrCodeUriAsync(_user);
+        GenerateQrCode();
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        // Strip spaces and hyphens
+        var verificationCode = Input.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
+
+        var is2FaTokenValid = await UserManager.VerifyTwoFactorTokenAsync(
+            _user, UserManager.Options.Tokens.AuthenticatorTokenProvider, verificationCode);
+
+        if (!is2FaTokenValid)
+        {
+            _message = "Error: Verification code is invalid.";
+            return;
+        }
+
+        await UserManager.SetTwoFactorEnabledAsync(_user, true);
+        var userId = await UserManager.GetUserIdAsync(_user);
+        Logger.LogInformation("User with ID '{UserId}' has enabled 2FA with an authenticator app.", userId);
+
+        _message = "Your authenticator app has been verified.";
+
+        if (await UserManager.CountRecoveryCodesAsync(_user) == 0)
+        {
+            _recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(_user, 10);
+        }
+        else
+        {
+            RedirectManager.RedirectToWithStatus("/Account/Manage/Profile", _message, HttpContext);
+        }
+    }
+
+    private async ValueTask LoadSharedKeyAndQrCodeUriAsync(User user)
+    {
+        // Load the authenticator key & QR code URI to display on the form
+        var unformattedKey = await UserManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrEmpty(unformattedKey))
+        {
+            await UserManager.ResetAuthenticatorKeyAsync(user);
+            unformattedKey = await UserManager.GetAuthenticatorKeyAsync(user);
+        }
+
+        _sharedKey = FormatKey(unformattedKey!);
+
+        var email = await UserManager.GetEmailAsync(user);
+        _authenticatorUri = GenerateQrCodeUri(email!, unformattedKey!);
+    }
+
+    private string FormatKey(string unformattedKey)
+    {
+        var result = new StringBuilder();
+        var currentPosition = 0;
+        while (currentPosition + 4 < unformattedKey.Length)
+        {
+            result.Append(unformattedKey.AsSpan(currentPosition, 4)).Append(' ');
+            currentPosition += 4;
+        }
+
+        if (currentPosition < unformattedKey.Length)
+        {
+            result.Append(unformattedKey.AsSpan(currentPosition));
+        }
+
+        return result.ToString().ToLowerInvariant();
+    }
+
+    private string GenerateQrCodeUri(string email, string unformattedKey)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            AuthenticatorUriFormat,
+            "SnapCD Portal",
+            UrlEncoder.Encode(email),
+            unformattedKey);
+    }
+
+    private void GenerateQrCode()
+    {
+        if (!string.IsNullOrEmpty(_authenticatorUri))
+        {
+            try
+            {
+                // Use QRServer.com for QR code generation
+                var encodedUri = Uri.EscapeDataString(_authenticatorUri);
+                _qrCodeUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encodedUri}";
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to generate QR code URL");
+                _qrCodeUrl = null;
+            }
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Text)]
+        [Display(Name = "Verification Code")]
+        public string Code { get; set; } = "";
+    }
+
+}

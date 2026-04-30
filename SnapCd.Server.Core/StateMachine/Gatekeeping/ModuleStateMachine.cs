@@ -1,0 +1,154 @@
+using MassTransit;
+using SnapCd.Contracts;
+using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Events.Gatekeeping;
+using SnapCd.Server.Core.Events.Jobs.Module;
+using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
+
+namespace SnapCd.Server.Core.StateMachine.Gatekeeping;
+
+public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
+{
+    public required State Gatekeeping { get; set; }
+
+    // Events
+    public required Event<GatekeepingJobRequested> GatekeepingJobRequested { get; set; }
+    public required Event<RunQueueNowRequested> RunQueueNowRequested { get; set; }
+
+    public required Event<ClearQueueRequested> ClearQueueRequested { get; set; }
+
+    public required Event<ApplyModuleCompleted> ApplyModuleCompleted { get; set; }
+    public required Event<ApplyModuleCancelled> ApplyModuleCancelled { get; set; }
+    public required Event<ApplyModuleFailed> ApplyModuleFailed { get; set; }
+
+
+    public required Event<DestroyModuleCompleted> DestroyModuleCompleted { get; set; }
+    public required Event<DestroyModuleCancelled> DestroyModuleCancelled { get; set; }
+    public required Event<DestroyModuleFailed> DestroyModuleFailed { get; set; }
+
+    public required Event<ResourceCountRefreshedEvent> ResourceCountRefreshedEvent { get; set; }
+
+    public required Event<ModuleDependencyCheckRequested> ModuleDependencyCheckRequested { get; set; }
+
+    // Drift check schedule
+    public Schedule<ModuleSaga, DriftCheckScheduled> DriftCheckScheduled { get; set; } = null!;
+
+
+    public ModuleStateMachine()
+    {
+        InstanceState(x => x.CurrentState);
+
+        // Correlate events by ModuleId
+        Event(() => GatekeepingJobRequested, e => e.CorrelateById(x => x.Message.ModuleId));
+
+        Event(() => RunQueueNowRequested, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => ClearQueueRequested, e => e.CorrelateById(x => x.Message.ModuleId));
+
+        Event(() => ApplyModuleCompleted, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => ApplyModuleCancelled, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => ApplyModuleFailed, e => e.CorrelateById(x => x.Message.ModuleId));
+
+        Event(() => DestroyModuleCompleted, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => DestroyModuleCancelled, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => DestroyModuleFailed, e => e.CorrelateById(x => x.Message.ModuleId));
+
+        Event(() => ResourceCountRefreshedEvent, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => ModuleDependencyCheckRequested, e => e.CorrelateById(x => x.Message.ModuleId));
+
+        Schedule(() => DriftCheckScheduled, saga => saga.DriftCheckScheduleTokenId, config =>
+        {
+            config.Received = e => e.CorrelateById(context => context.Message.ModuleId);
+        });
+
+
+        // We don't have an "Initially" section. We create the Saga directly in Db from the "Create<Module>(Module entity)" method in the ModuleRepository class.
+        // Initially(...);
+
+        During(Gatekeeping,
+            When(GatekeepingJobRequested)
+                .Then(x => Console.WriteLine(
+                    $"Received GatekeepingJobRequested with ID {x.Message.ModuleId} in Gatekeeping state"))
+                .Unschedule(DriftCheckScheduled)
+                .Then(x =>
+                {
+                    if (x.Message.DefinitiveRevision != null)
+                        x.Saga.DesiredDefinitiveRevision = x.Message.DefinitiveRevision;
+                })
+                .Activity(x => x.OfType<TriggerModuleJobActivity<GatekeepingJobRequested>>())
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
+            When(RunQueueNowRequested)
+                .Activity(x => x.OfType<DequeueModuleJobActivity<ModuleSaga, RunQueueNowRequested>>())
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
+            When(ClearQueueRequested)
+                .Then(_ => Console.WriteLine("Clearing queue"))
+                .Then(y => { y.Saga.QueuedDesiredStateHeadline = null; })
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
+            When(ApplyModuleCompleted)
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<MaybeEmitModuleStateChangedToAppliedEvent<ApplyModuleCompleted>>())
+                .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<ApplyModuleCompleted>>())
+                .Activity(x => x.OfType<ScheduleDriftCheckActivity<ApplyModuleCompleted>>()),
+            When(ApplyModuleCancelled)
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<ApplyModuleCancelled>>())
+                .Activity(x => x.OfType<ScheduleDriftCheckActivity<ApplyModuleCancelled>>()),
+            When(ApplyModuleFailed)
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<ApplyModuleFailed>>())
+                .Activity(x => x.OfType<ScheduleDriftCheckActivity<ApplyModuleFailed>>()),
+            When(DestroyModuleCompleted)
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<MaybeEmitModuleStateChangedToDestroyedEvent<DestroyModuleCompleted>>())
+                .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<DestroyModuleCompleted>>())
+                .Unschedule(DriftCheckScheduled),
+            When(DestroyModuleCancelled)
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<DestroyModuleCancelled>>())
+                .Unschedule(DriftCheckScheduled),
+            When(DestroyModuleFailed)
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<DestroyModuleFailed>>())
+                .Unschedule(DriftCheckScheduled),
+            When(ResourceCountRefreshedEvent)
+                .Then(y =>
+                {
+                    var oldCount = y.Saga.ActualResourceCount;
+                    y.Saga.ActualResourceCount = y.Message.ActualResourceCount;
+
+                    // Only publish event if the count actually changed
+                    if (oldCount != y.Message.ActualResourceCount)
+                        y.Publish(new ModuleResourceCountUpdatedEvent
+                        {
+                            ModuleId = y.Saga.CorrelationId,
+                            OrganizationId = y.Saga.OrganizationId
+                        });
+                })
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
+            When(ModuleDependencyCheckRequested)
+                .Then(y => Console.WriteLine($"Checking dependencies for queued module {y.Message.ModuleId}"))
+                .Activity(y => y.OfType<DequeueIfDependenciesMetJobActivity<ModuleDependencyCheckRequested>>())
+                .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
+            When(DriftCheckScheduled.Received)
+                .Then(x => Console.WriteLine($"Drift check fired for module {x.Saga.CorrelationId}"))
+                .Publish(x => new GatekeepingJobRequested
+                {
+                    ModuleId = x.Saga.CorrelationId,
+                    OrganizationId = x.Saga.OrganizationId,
+                    DesiredStateHeadline = DesiredStateHeadline.Applied,
+                    SetNewDesiredState = false
+                })
+        );
+    }
+}

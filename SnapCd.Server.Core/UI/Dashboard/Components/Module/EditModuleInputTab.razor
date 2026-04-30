@@ -1,0 +1,128 @@
+@typeparam TEntity where TEntity : SnapCd.Server.Core.Entities.Definition.Base.ModuleInput, new()
+@typeparam TSecuredRepositoryFactory where TSecuredRepositoryFactory : class
+@using SnapCd.Server.Core.Services.PrincipalProvider
+
+<MudTabPanel Text="@Title" OnClick="@OnTabClick" Style="text-transform: none">
+    @if (_items == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var item in _items)
+            {
+                <MudExpansionPanel Text="@item.Name">
+                    <EditModuleInput TEntity="TEntity"
+                                     TSecuredRepositoryFactory="TSecuredRepositoryFactory"
+                                     RepositoryFactory="SecuredRepositoryFactory"
+                                     Context="@item"
+                                     PrincipalProvider="@PrincipalProvider"
+                                     ModuleId="ModuleId"
+                                     NamespaceId="NamespaceId"
+                                     StackId="StackId"
+                                     OnDelete="() => ResetAll()"
+                                     OnUpdate="() => ResetAll()"
+                                     OnCreate="() => ResetAll()"
+                                     OnCancel="() => ResetAll()"
+                                     IsCreateMode="false"/>
+                </MudExpansionPanel>
+            }
+
+            @if (_isCreating)
+            {
+                <MudExpansionPanel IsExpanded="_newItemExpanded" IsExpandedChanged="OnNewItemExpandedChanged">
+                    <EditModuleInput TEntity="TEntity"
+                                     TSecuredRepositoryFactory="TSecuredRepositoryFactory"
+                                     RepositoryFactory="SecuredRepositoryFactory"
+                                     Context="_newItem"
+                                     PrincipalProvider="@PrincipalProvider"
+                                     ModuleId="ModuleId"
+                                     NamespaceId="NamespaceId"
+                                     StackId="StackId"
+                                     IsCreateMode="true"
+                                     OnDelete="() => ResetAll()"
+                                     OnUpdate="() => ResetAll()"
+                                     OnCreate="() => ResetAll()"
+                                     OnCancel="() => ResetAll()"/>
+                </MudExpansionPanel>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="StartCreate"
+                           Class="mt-2">
+                    Add New
+                </MudButton>
+            }
+        </MudExpansionPanels>
+    }
+</MudTabPanel>
+
+@code {
+    [Parameter] public required string Title { get; set; } = null!;
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid NamespaceId { get; set; }
+    [Parameter] public required Guid StackId { get; set; }
+    [Parameter] public required TSecuredRepositoryFactory SecuredRepositoryFactory { get; set; }
+    [Parameter] public required EventCallback OnTabClick { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private bool _isCreating;
+    private bool _newItemExpanded;
+
+    private List<TEntity>? _items;
+    private TEntity? _newItem;
+
+    protected override Task OnInitializedAsync()
+    {
+        //await ReloadItems();
+        return Task.CompletedTask;
+    }
+
+    private void StartCreate()
+    {
+        _newItem = new TEntity { Id = Guid.NewGuid(), ModuleId = ModuleId, OrganizationId = OrganizationId };
+        _isCreating = true;
+        _newItemExpanded = true;
+        StateHasChanged();
+    }
+
+    private void OnNewItemExpandedChanged(bool expanded)
+    {
+        _newItemExpanded = expanded;
+        if (!expanded && _isCreating)
+        {
+            // Cancel creation when panel is collapsed
+            ResetAll();
+        }
+    }
+
+    private async void ResetAll()
+    {
+        _isCreating = false;
+        _newItemExpanded = false;
+        _newItem = null;
+        await ReloadItems();
+        StateHasChanged();
+    }
+
+    private async Task ReloadItems()
+    {
+        using var repository = ((dynamic)SecuredRepositoryFactory).Create(PrincipalProvider);
+        _items = await repository.ListByParentId(ModuleId, OrganizationId);
+    }
+
+    public async Task InitializeItems()
+    {
+        if (_items == null)
+        {
+            await ReloadItems();
+            StateHasChanged();
+        }
+    }
+
+}

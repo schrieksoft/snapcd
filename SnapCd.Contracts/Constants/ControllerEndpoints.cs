@@ -1,0 +1,52 @@
+namespace SnapCd.Contracts.Constants;
+
+public static class ControllerEndpoints
+{
+    public const string Runner = "api/{organizationId}/Runner";
+    public const string Namespace = "api/{organizationId}/Namespace";
+    public const string NamespaceInputFromLiteral = "api/{organizationId}/NamespaceInputFromLiteral";
+    public const string NamespaceInputFromSecret = "api/{organizationId}/NamespaceInputFromSecret";
+    public const string NamespaceInputFromDefinition = "api/{organizationId}/NamespaceInputFromDefinition";
+    public const string ModuleInputFromDefinition = "api/{organizationId}/ModuleInputFromDefinition";
+    public const string ModuleInputFromNamespace = "api/{organizationId}/ModuleInputFromNamespace";
+    public const string ModuleInputFromLiteral = "api/{organizationId}/ModuleInputFromLiteral";
+    public const string ModuleInputFromOutputSet = "api/{organizationId}/ModuleInputFromOutputSet";
+    public const string ModuleInputFromOutput = "api/{organizationId}/ModuleInputFromOutput";
+    public const string ModuleInputFromSecret = "api/{organizationId}/ModuleInputFromSecret";
+    public const string Stack = "api/{organizationId}/Stack";
+    public const string Module = "api/{organizationId}/Module";
+    public const string Logs = "api/{organizationId}/Logs";
+    public const string ServicePrincipal = "api/{organizationId}/ServicePrincipal";
+    public const string User = "api/{organizationId}/User";
+    public const string Group = "api/{organizationId}/Group";
+    public const string GroupMember = "api/{organizationId}/GroupMember";
+    public const string OrganizationRoleAssignment = "api/{organizationId}/OrganizationRoleAssignment";
+    public const string StackRoleAssignment = "api/{organizationId}/StackRoleAssignment";
+    public const string NamespaceRoleAssignment = "api/{organizationId}/NamespaceRoleAssignment";
+    public const string ModuleRoleAssignment = "api/{organizationId}/ModuleRoleAssignment";
+    public const string RunnerRoleAssignment = "api/{organizationId}/RunnerRoleAssignment";
+    public const string StackSecret = "api/{organizationId}/StackSecret";
+    public const string NamespaceSecret = "api/{organizationId}/NamespaceSecret";
+    public const string ModuleSecret = "api/{organizationId}/ModuleSecret";
+    public const string RunnerStackAssignment = "api/{organizationId}/RunnerStackAssignment";
+    public const string RunnerNamespaceAssignment = "api/{organizationId}/RunnerNamespaceAssignment";
+    public const string RunnerModuleAssignment = "api/{organizationId}/RunnerModuleAssignment";
+    public const string ModuleExtraFile = "api/{organizationId}/ModuleExtraFile";
+    public const string DependsOnModule = "api/{organizationId}/DependsOnModule";
+    public const string NamespaceExtraFile = "api/{organizationId}/NamespaceExtraFile";
+    public const string NamespaceBackendConfig = "api/{organizationId}/NamespaceBackendConfig";
+    public const string ModuleBackendConfig = "api/{organizationId}/ModuleBackendConfig";
+    public const string ModulePulumiFlag = "api/{organizationId}/ModulePulumiFlag";
+    public const string ModulePulumiArrayFlag = "api/{organizationId}/ModulePulumiArrayFlag";
+    public const string NamespacePulumiFlag = "api/{organizationId}/NamespacePulumiFlag";
+    public const string NamespacePulumiArrayFlag = "api/{organizationId}/NamespacePulumiArrayFlag";
+    public const string NamespaceTerraformFlag = "api/{organizationId}/NamespaceTerraformFlag";
+    public const string NamespaceTerraformArrayFlag = "api/{organizationId}/NamespaceTerraformArrayFlag";
+    public const string ModuleTerraformFlag = "api/{organizationId}/ModuleTerraformFlag";
+    public const string ModuleTerraformArrayFlag = "api/{organizationId}/ModuleTerraformArrayFlag";
+    public const string ModuleHook = "api/{organizationId}/ModuleHook";
+    public const string NamespaceHook = "api/{organizationId}/NamespaceHook";
+    public const string SourceChangedNotification = "api/{organizationId}/SourceChangedNotification";
+    public const string Jobs = "api/{organizationId}/Job";
+    public const string SourceRefresherPreselection = "api/{organizationId}/SourceRefresherPreselection";
+}

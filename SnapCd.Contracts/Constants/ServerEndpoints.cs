@@ -1,0 +1,55 @@
+namespace SnapCd.Contracts.Constants;
+
+public static class ServerEndpoints
+{
+    public const string GetDefinitiveRevisionCompleted = "GetDefinitiveRevisionCompleted";
+    public const string GetDefinitiveRevisionCancelled = "GetDefinitiveRevisionCancelled";
+    public const string GetDefinitiveRevisionFaulted = "GetDefinitiveRevisionFaulted";
+
+    public const string GetModuleCompleted = "GetModuleCompleted";
+    public const string GetModuleCancelled = "GetModuleCancelled";
+    public const string GetModuleFaulted = "GetModuleFaulted";
+    
+    public const string InitCompleted = "InitCompleted";
+    public const string InitCancelled = "InitCancelled";
+    public const string InitFaulted = "InitFaulted";
+    
+    public const string ValidateCompleted = "ValidateCompleted";
+    public const string ValidateCancelled = "ValidateCancelled";
+    public const string ValidateFaulted = "ValidateFaulted";
+    
+    public const string VariablesCompleted = "VariablesCompleted";
+    public const string VariablesCancelled = "VariablesCancelled";
+    public const string VariablesFaulted = "VariablesFaulted";
+
+    public const string PlanCompleted = "PlanCompleted";
+    public const string PlanCancelled = "PlanCancelled";
+    public const string PlanFaulted = "PlanFaulted";
+
+    public const string PlanDestroyCompleted = "PlanDestroyCompleted";
+    public const string PlanDestroyCancelled = "PlanDestroyCancelled";
+    public const string PlanDestroyFaulted = "PlanDestroyFaulted";
+
+    public const string ApplyFromPlanCompleted = "ApplyFromPlanCompleted";
+    public const string ApplyFromPlanCancelled = "ApplyFromPlanCancelled";
+    public const string ApplyFromPlanFaulted = "ApplyFromPlanFaulted";
+
+    public const string DestroyFromPlanCompleted = "DestroyFromPlanCompleted";
+    public const string DestroyFromPlanCancelled = "DestroyFromPlanCancelled";
+    public const string DestroyFromPlanFaulted = "DestroyFromPlanFaulted";
+
+    public const string OutputCompleted = "OutputCompleted";
+    public const string OutputCancelled = "OutputCancelled";
+    public const string OutputFaulted = "OutputFaulted";
+
+    public const string SourceRefreshCompleted = "SourceRefreshCompleted";
+    public const string SourceRefreshFaulted = "SourceRefreshFaulted";
+
+    public const string AddLogs = "AddLogs";
+
+    public const string ReportRunningTask = "ReportRunningTask";
+    
+    public const string CancelKillCompleted = "CancelKillCompleted";
+    public const string CancelGracefulCompleted = "CancelGracefulCompleted";
+    
+}

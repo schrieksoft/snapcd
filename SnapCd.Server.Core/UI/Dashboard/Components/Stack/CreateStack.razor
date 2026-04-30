@@ -1,0 +1,63 @@
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <EditForm Model="NewStack" OnValidSubmit="Create">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="pa-4">
+            <!-- Core Properties -->
+            <MudItem md="12">
+                <MudTextField Label="Name" @bind-Value="NewStack.Name"
+                              Variant="Variant.Outlined" Required RequiredError="Name is required"
+                              MaxLength="255" Counter="255"/>
+            </MudItem>
+
+            <!-- Action Buttons -->
+            <MudItem md="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary">
+                    Create
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="OnCancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required EventCallback OnCreated { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private Stack NewStack { get; set; } = new();
+
+
+    private async Task Create()
+    {
+        try
+        {
+            NewStack.Id = Guid.NewGuid();
+            NewStack.OrganizationId = OrganizationId;
+            using var repo = RepoFactory.Create();
+            var createdStack = await repo.Create(NewStack);
+
+            Snackbar.Add("Stack created successfully", Severity.Success);
+            await OnCreated.InvokeAsync(createdStack);
+
+            // Reset form
+            NewStack = new Stack { Id = Guid.NewGuid(), OrganizationId = OrganizationId };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating stack: {ex.Message}", Severity.Error);
+        }
+    }
+
+}

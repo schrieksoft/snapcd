@@ -1,0 +1,316 @@
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
+@implements IDisposable
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudForm @ref="_form">
+        <MudGrid Class="pa-4">
+            <!-- Core Properties -->
+            <MudItem md="12">
+                <MudTextField Label="Name" @bind-Value="NewNamespace.Name"
+                              Variant="Variant.Outlined" Required RequiredError="Name is required"
+                              MaxLength="255" Counter="255"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSelect T="StateManagementEngine?" Label="Default Engine" @bind-Value="NewNamespace.DefaultEngine"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Default (OpenTofu)</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Terraform)">Terraform</MudSelectItem>
+                    @if (_pulumiEnabled)
+                    {
+                        <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Pulumi)">Pulumi</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <EeApprovalFieldsNamespace
+                DefaultApplyApprovalThreshold="@NewNamespace.DefaultApplyApprovalThreshold"
+                DefaultApplyApprovalThresholdChanged="@(v => NewNamespace.DefaultApplyApprovalThreshold = v)"
+                DefaultDestroyApprovalThreshold="@NewNamespace.DefaultDestroyApprovalThreshold"
+                DefaultDestroyApprovalThresholdChanged="@(v => NewNamespace.DefaultDestroyApprovalThreshold = v)"
+                DefaultApprovalTimeoutMinutes="@NewNamespace.DefaultApprovalTimeoutMinutes"
+                DefaultApprovalTimeoutMinutesChanged="@(v => NewNamespace.DefaultApprovalTimeoutMinutes = v)"/>
+
+            <!-- Default Auto-Upgrade Settings -->
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Auto Upgrade Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultAutoUpgradeEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Auto Reconfigure Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultAutoReconfigureEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Auto Migrate Enabled (Deprecated)</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultAutoMigrateEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Clean Init Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultCleanInitEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Drift Check Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultDriftCheckEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudTextField T="int?" Label="Default Drift Check Interval Minutes"
+                              @bind-Value="NewNamespace.DefaultDriftCheckIntervalMinutes"
+                              Variant="Variant.Outlined"/>
+            </MudItem>
+
+            <!-- Backend Configuration Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Backend Configuration">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Default backend configurations for modules in this namespace can be added after the
+                            namespace is created.
+                            These configurations provide default values that modules inherit unless overridden.
+                        </MudAlert>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Engine Flags -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Terraform Flags">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Terraform flags can be added after the namespace is created. These flags allow you to
+                            customize default Terraform command behavior for modules in this namespace.
+                        </MudAlert>
+                    </MudExpansionPanel>
+                    <MudExpansionPanel Text="Terraform Array Flags">
+                        <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                            Terraform array flags can be added after the namespace is created. These flags support
+                            multiple values such as targets, replacements, and variables.
+                        </MudAlert>
+                    </MudExpansionPanel>
+                    @if (_pulumiEnabled)
+                    {
+                        <MudExpansionPanel Text="Pulumi Flags">
+                            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                                Pulumi flags can be added after the namespace is created. These flags allow you to
+                                customize default Pulumi command behavior for modules in this namespace.
+                            </MudAlert>
+                        </MudExpansionPanel>
+                        <MudExpansionPanel Text="Pulumi Array Flags">
+                            <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
+                                Pulumi array flags can be added after the namespace is created. These flags support
+                                multiple values such as targets, replacements, and policy packs.
+                            </MudAlert>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Inputs Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Extra Files">
+                        <MudAlert Severity="Severity.Info" Class="mb-4">
+                            <MudText><strong>Extra Files</strong> can be configured after the namespace is created by
+                                editing the namespace.
+                            </MudText>
+                            <MudText Typo="Typo.body2" Class="mt-2">Extra files allow you to include additional
+                                configuration files that will be available to modules within this namespace.
+                            </MudText>
+                        </MudAlert>
+                    </MudExpansionPanel>
+
+                    <MudExpansionPanel Text="Parameters">
+                        <MudAlert Severity="Severity.Info" Class="mb-4">
+                            <MudText><strong>Parameters</strong> can be configured after the namespace is created by
+                                editing the namespace.
+                            </MudText>
+                            <MudText Typo="Typo.body2" Class="mt-2">Parameters allow you to define reusable values that
+                                can be sourced from definitions, literals, or secrets.
+                            </MudText>
+                        </MudAlert>
+                    </MudExpansionPanel>
+
+                    <!-- Environment Variables Section -->
+                    <MudExpansionPanel Text="Environment Variables">
+                        <MudAlert Severity="Severity.Info" Class="mb-4">
+                            <MudText><strong>Environment Variables</strong> can be configured after the namespace is
+                                created by editing the namespace.
+                            </MudText>
+                            <MudText Typo="Typo.body2" Class="mt-2">Environment variables allow you to set values that
+                                will be available to modules within this namespace.
+                            </MudText>
+                        </MudAlert>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Hooks Section -->
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    @CreateHookPanel("Init Hooks",
+                        NewNamespace.DefaultInitBeforeHook,
+                        val => NewNamespace.DefaultInitBeforeHook = val,
+                        NewNamespace.DefaultInitAfterHook,
+                        val => NewNamespace.DefaultInitAfterHook = val)
+
+                    @CreateHookPanel("Validate Hooks",
+                        NewNamespace.DefaultValidateBeforeHook,
+                        val => NewNamespace.DefaultValidateBeforeHook = val,
+                        NewNamespace.DefaultValidateAfterHook,
+                        val => NewNamespace.DefaultValidateAfterHook = val)
+
+                    @CreateHookPanel("Plan Hooks",
+                        NewNamespace.DefaultPlanBeforeHook,
+                        val => NewNamespace.DefaultPlanBeforeHook = val,
+                        NewNamespace.DefaultPlanAfterHook,
+                        val => NewNamespace.DefaultPlanAfterHook = val)
+
+                    @CreateHookPanel("Apply Hooks",
+                        NewNamespace.DefaultApplyBeforeHook,
+                        val => NewNamespace.DefaultApplyBeforeHook = val,
+                        NewNamespace.DefaultApplyAfterHook,
+                        val => NewNamespace.DefaultApplyAfterHook = val)
+
+                    @CreateHookPanel("Plan Destroy Hooks",
+                        NewNamespace.DefaultPlanDestroyBeforeHook,
+                        val => NewNamespace.DefaultPlanDestroyBeforeHook = val,
+                        NewNamespace.DefaultPlanDestroyAfterHook,
+                        val => NewNamespace.DefaultPlanDestroyAfterHook = val)
+
+                    @CreateHookPanel("Destroy Hooks",
+                        NewNamespace.DefaultDestroyBeforeHook,
+                        val => NewNamespace.DefaultDestroyBeforeHook = val,
+                        NewNamespace.DefaultDestroyAfterHook,
+                        val => NewNamespace.DefaultDestroyAfterHook = val)
+
+                    @CreateHookPanel("Output Hooks",
+                        NewNamespace.DefaultOutputBeforeHook,
+                        val => NewNamespace.DefaultOutputBeforeHook = val,
+                        NewNamespace.DefaultOutputAfterHook,
+                        val => NewNamespace.DefaultOutputAfterHook = val)
+                </MudExpansionPanels>
+            </MudItem>
+
+            <!-- Action Buttons -->
+            <MudItem md="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnCreate">Create</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel">Cancel</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required EventCallback<Namespace> OnCreated { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [Parameter] public Guid StackId { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    // Repository Factories
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private MudForm? _form;
+    private bool _pulumiEnabled;
+    private Namespace NewNamespace { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        NewNamespace.Id = Guid.NewGuid();
+        NewNamespace.StackId = StackId;
+        NewNamespace.OrganizationId = OrganizationId;
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        _pulumiEnabled = await dbContext.PreviewFeatureAcceptances
+            .AnyAsync(p => p.OrganizationId == OrganizationId && p.PreviewFeature == PreviewFeature.Pulumi);
+    }
+
+    private RenderFragment CreateHookPanel(
+        string title,
+        string? beforeHookValue,
+        Action<string?> beforeHookValueChanged,
+        string? afterHookValue,
+        Action<string?> afterHookValueChanged) =>
+        @<MudExpansionPanel Text="@title">
+            <MudTextField Label="Before Hook"
+                          Value="@beforeHookValue"
+                          ValueChanged="@beforeHookValueChanged"
+                          Multiline Rows="3"/>
+            <MudTextField Label="After Hook"
+                          Value="@afterHookValue"
+                          ValueChanged="@afterHookValueChanged"
+                          Multiline Rows="3"/>
+        </MudExpansionPanel>;
+
+
+    private async Task OnCreate()
+    {
+        try
+        {
+            if (_form != null)
+            {
+                await _form.Validate();
+                if (!_form.IsValid)
+                {
+                    Snackbar.Add("Please fix validation errors", Severity.Error);
+                    return;
+                }
+            }
+            else throw new Exception("Form is null");
+
+            using var repo = NamespaceSecuredRepositoryFactory.Create(PrincipalProvider);
+            var createdNamespace = await repo.Create(NewNamespace);
+
+            Snackbar.Add("Namespace created successfully", Severity.Success);
+            await OnCreated.InvokeAsync(createdNamespace);
+
+            // Reset form
+            NewNamespace = new Namespace { Id = Guid.NewGuid(), StackId = StackId, OrganizationId = OrganizationId };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating namespace: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public void Dispose()
+    {
+        // Add any necessary cleanup logic here
+    }
+
+}

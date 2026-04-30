@@ -1,0 +1,25 @@
+<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Top face -->
+  <path d="M 50,0 100,25 50,50 0,25 Z" fill="#333333"/>
+  
+  <!-- Left face -->
+  <path d="m 0,25 50,25 v 50 L 0,75 Z" fill="#222222"/>
+  
+  <!-- S letter on left face - white lines -->
+  <!-- Top line -->
+  <path d="M 0,25 50,50 V 60 L 0,35 Z" fill="#ffffff"/>
+  <!-- Middle line -->
+  <path d="M 0,45 50,70 V 80 L 0,55 Z" fill="#ffffff"/>
+  <!-- Bottom line -->
+  <path d="m 0,65 50,25 v 10 L 0,75 Z" fill="#ffffff"/>
+  <!-- Left vertical connector -->
+  <path d="m 0,35 10,5 V 50 L 0,55 Z" fill="#ffffff"/>
+  <!-- Right vertical connector -->
+  <path d="m 40,75 10,5 v 10 l -10,5 z" fill="#ffffff"/>
+  
+  <!-- Right face -->
+  <path d="M 50,50 100,25 V 75 L 50,100 Z" fill="#111111"/>
+  
+  <!-- Top line on right face -->
+  <path d="M 50,50 100,25 V 35 L 50,60 Z" fill="#ffffff"/>
+</svg>

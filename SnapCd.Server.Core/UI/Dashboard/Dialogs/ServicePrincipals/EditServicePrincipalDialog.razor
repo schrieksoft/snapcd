@@ -1,0 +1,113 @@
+@inject IJSRuntime JsRuntime
+@using SnapCd.Contracts.Dto
+@using SnapCd.Contracts.Dto.ServicePrincipals
+@using SnapCd.Server.Core.Misc.Utils
+@using SnapCd.Server.Core.Services.Crud
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Edit Service Principal</MudText>
+    </TitleContent>
+    <DialogActions>
+        <MudForm @ref="_form">
+            <MudStack Spacing="3">
+                <MudTextField Label="Client Id" @bind-Value="ClientId" Required="true"
+                              HelperText="Set a unique Client Id for the Service Principal." Disabled="true"/>
+                <MudGrid>
+                    <MudItem xs="9">
+                        <MudTextField Label="Client Secret" @bind-Value="ClientSecret"
+                                      HelperText="Set a new Client Secret (leave blank to keep existing)"
+                                      InputType="InputType.Password"/>
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudTooltip Text="Generate a new random secret">
+                            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Secondary"
+                                           Size="Size.Small" OnClick="GenerateClientSecret"
+                                           Class="d-flex align-center justify-center mud-width-full py-8"/>
+                        </MudTooltip>
+                        <MudTooltip Text="Copy the secret">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Secondary"
+                                           Size="Size.Small" OnClick="CopyClientSecret"
+                                           Class="d-flex align-center justify-center mud-width-full py-8"/>
+                        </MudTooltip>
+                    </MudItem>
+                </MudGrid>
+
+                <MudSpacer/>
+
+                <MudItem md="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Save">Save</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+                </MudItem>
+
+            </MudStack>
+        </MudForm>
+
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+    [Inject] private ServicePrincipalService ServicePrincipalService { get; set; } = null!;
+    [Parameter] public required ServicePrincipalReadDto ServicePrincipal { get; set; }
+
+    private MudForm? _form;
+    private string ClientId { get; set; } = string.Empty;
+    private string ClientSecret { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        ClientId = ServicePrincipal.ClientId ?? string.Empty;
+        ClientSecret = string.Empty; // Leave blank to keep existing
+    }
+
+    private async Task CopyClientSecret()
+    {
+        if (!string.IsNullOrEmpty(ClientSecret))
+        {
+            await JsRuntime.InvokeVoidAsync("copyToClipboard", ClientSecret);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Save()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid)
+            {
+                // Handle validation feedback if needed
+                return;
+            }
+        }
+        else throw new Exception("Form is null");
+
+        var servicePrincipalDto = new ServicePrincipalUpdateDto
+        {
+            Id = ServicePrincipal.Id,
+            ClientId = ClientId,
+            ClientSecret = ClientSecret
+        };
+
+        await ServicePrincipalService.Update(servicePrincipalDto, ServicePrincipal.Id, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(ServicePrincipal.Id));
+    }
+
+    private async Task GenerateClientSecret()
+    {
+        ClientSecret = CredentialHelper.GenerateRandomPassword(32);
+        if (_form != null)
+        {
+            await _form.Validate();
+        }
+        else throw new Exception("Form is null");
+    }
+
+}

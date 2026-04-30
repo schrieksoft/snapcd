@@ -1,0 +1,40 @@
+@using Microsoft.AspNetCore.Components
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText>@ContentText</MudText>
+        @if (RequireConfirmation)
+        {
+            <MudTextField @bind-Value="userInput" Label="Type to confirm" Variant="Variant.Outlined" 
+                          Class="mt-4" FullWidth="true" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="Submit"
+                   Disabled="@(RequireConfirmation && userInput != ConfirmationText)">
+            @ButtonText
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public string ContentText { get; set; } = "";
+    [Parameter] public string ButtonText { get; set; } = "Confirm";
+    [Parameter] public bool RequireConfirmation { get; set; } = false;
+    [Parameter] public string ConfirmationText { get; set; } = "";
+    
+    private string userInput = "";
+
+    void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,10 @@
+using SnapCd.Contracts.Dto.RoleAssignments;
+using SnapCd.Server.Core.Events.Repository.Organization.Base;
+
+namespace SnapCd.Server.Core.Events.Repository.Organization;
+
+public class ServicePrincipalOrganizationRoleAssignmentCreatedEvent : CreatedEvent<ServicePrincipalOrganizationRoleAssignmentReadDto>;
+
+public class ServicePrincipalOrganizationRoleAssignmentUpdatedEvent : UpdatedEvent<ServicePrincipalOrganizationRoleAssignmentReadDto>;
+
+public class ServicePrincipalOrganizationRoleAssignmentDeletedEvent : DeletedEvent<ServicePrincipalOrganizationRoleAssignmentReadDto>;

@@ -1,0 +1,154 @@
+@page "/Account/Enable2fa"
+@layout AccountLayout
+
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<Enable2fa> Logger
+
+<PageTitle>Enable two-factor authentication - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Enable two-factor authentication">
+    <StatusMessage Message="@_message"/>
+
+    <MudAlert Severity="Severity.Success" Class="mb-4">
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Security" Class="mr-2"/>
+            Enable two-factor authentication
+        </MudText>
+        <MudText Typo="Typo.body1">
+            Your authenticator app is configured and ready. Enable two-factor authentication to add an extra layer of
+            security to your account. If you no longer have your authenticator app, use "reset authenticator" to
+            register a new one instead!
+        </MudText>
+    </MudAlert>
+
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        <MudText Typo="Typo.body1">
+            Once enabled, you'll need to enter a code from your authenticator app each time you sign in.
+        </MudText>
+    </MudAlert>
+
+    <form @formname="enable-2fa" @onsubmit="OnSubmitAsync" method="post">
+        <AntiforgeryToken/>
+        <div class="complete-button-container">
+            <div class="divider-line"></div>
+            <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                             FormAction="FormAction.Submit" Class="complete-btn">
+                Enable 2FA
+            </MudStaticButton>
+            <div class="divider-line"></div>
+        </div>
+    </form>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            <MudLink Typo="Typo.body2" Href="/Account/Manage/Profile">
+                Cancel
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+<style>
+    .complete-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin-top: 2rem;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .complete-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+        border-radius: 24px !important;
+    }
+
+    .complete-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .register-link {
+        margin-top: 1.5rem;
+    }
+</style>
+
+@code {
+    private string? _message;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        // Check if user has an authenticator key configured
+        var authenticatorKey = await UserManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrEmpty(authenticatorKey))
+        {
+            RedirectManager.RedirectToWithStatus(
+                "/Account/Manage/Profile",
+                "You must register an authenticator app before enabling 2FA.",
+                HttpContext);
+            return;
+        }
+
+        // Check if 2FA is already enabled
+        var is2FaEnabled = await UserManager.GetTwoFactorEnabledAsync(user);
+        if (is2FaEnabled)
+        {
+            RedirectManager.RedirectToWithStatus(
+                "/Account/Manage/Profile",
+                "Two-factor authentication is already enabled.",
+                HttpContext);
+        }
+    }
+
+    private async Task OnSubmitAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        var result = await UserManager.SetTwoFactorEnabledAsync(user, true);
+        if (!result.Succeeded)
+        {
+            _message = "Error: Unable to enable two-factor authentication.";
+            return;
+        }
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        Logger.LogInformation("User with ID '{UserId}' has enabled 2FA.", userId);
+
+        // Generate recovery codes if none exist
+        var recoveryCodesCount = await UserManager.CountRecoveryCodesAsync(user);
+        if (recoveryCodesCount == 0)
+        {
+            await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+            RedirectManager.RedirectToWithStatus(
+                "/Account/GenerateRecoveryCodes",
+                "Two-factor authentication has been enabled. Please save your recovery codes.",
+                HttpContext);
+        }
+        else
+        {
+            RedirectManager.RedirectToWithStatus(
+                "/Account/Manage/Profile",
+                "Two-factor authentication has been enabled.",
+                HttpContext);
+        }
+    }
+
+}

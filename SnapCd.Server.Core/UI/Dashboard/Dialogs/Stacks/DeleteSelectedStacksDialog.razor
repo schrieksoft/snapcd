@@ -1,0 +1,123 @@
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Views
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Delete Selected Stacks</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-2">
+            Are you sure you want to delete @Stacks.Count stack(s)?
+        </MudText>
+
+        <MudText Typo="Typo.body2" Color="Color.Error" Class="mb-3">
+            <strong>Warning:</strong> This action cannot be reversed! All namespaces and modules within these stacks
+            will also be deleted.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">The following stacks will be deleted:</MudText>
+
+        <MudPaper Elevation="1" Class="pa-2" Style="max-height: 200px; overflow-y: auto;">
+            <MudList T="string" Dense="true">
+                @foreach (var stack in Stacks)
+                {
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.FolderDelete">
+                        @stack.Name
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+
+        @if (_isDeleting)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="false" Value="@_progress" Class="mt-3">
+                <MudText Typo="Typo.body2">
+                    Deleting stack @(_currentIndex + 1) of @Stacks.Count...
+                </MudText>
+            </MudProgressLinear>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   OnClick="Delete"
+                   Disabled="@_isDeleting"
+                   StartIcon="@Icons.Material.Filled.Delete">
+            @(_isDeleting ? "Deleting..." : "Delete All")
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="Cancel"
+                   Disabled="@_isDeleting">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required List<TruncatedStack> Stacks { get; set; }
+
+    private bool _isDeleting;
+    private int _currentIndex;
+    private double _progress => Stacks.Count > 0 ? _currentIndex * 100.0 / Stacks.Count : 0;
+
+    private void Cancel()
+    {
+        if (!_isDeleting)
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+    private async Task Delete()
+    {
+        _isDeleting = true;
+        StateHasChanged();
+
+        var deletedCount = 0;
+        var errors = new List<string>();
+
+        using var repo = RepoFactory.Create();
+
+        for (_currentIndex = 0; _currentIndex < Stacks.Count; _currentIndex++)
+        {
+            var stack = Stacks[_currentIndex];
+            try
+            {
+                await repo.Delete(stack.Id, OrganizationId);
+                deletedCount++;
+                StateHasChanged();
+
+                // Small delay to show progress
+                await Task.Delay(100);
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Failed to delete stack '{stack.Name}': {ex.Message}");
+            }
+        }
+
+        if (errors.Any())
+        {
+            foreach (var error in errors)
+            {
+                Snackbar.Add(error, Severity.Error);
+            }
+        }
+
+        if (deletedCount > 0)
+        {
+            MudDialog.Close(DialogResult.Ok(deletedCount));
+        }
+        else
+        {
+            MudDialog.Cancel();
+        }
+    }
+
+}

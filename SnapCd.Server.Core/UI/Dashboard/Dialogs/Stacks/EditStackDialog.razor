@@ -1,0 +1,85 @@
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Edit Stack</MudText>
+    </TitleContent>
+    <DialogActions>
+        <EditForm Model="Input" method="post" OnValidSubmit="Update" FormName="register">
+            <DataAnnotationsValidator/>
+            <MudGrid Class="pa-4">
+                <MudItem md="12">
+                    <MudTextField For="@(() => Input.Name)" @bind-Value="Input.Name"
+                                  Label="Name"
+                                  UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "true" }, { "aria-required", "true" } })"/>
+                </MudItem>
+                <MudItem md="12">
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" FormAction="FormAction.Submit">
+                        Update
+                    </MudStaticButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+                </MudItem>
+
+                @if (NameChanged())
+                {
+                    <MudItem md="12">
+                        <MudAlert>Changing the StackId may have permission implications. The namespace will lose any
+                            permissions it inherits from its current Stack and will gain permissions from its new one
+                        </MudAlert>
+                    </MudItem>
+                }
+
+            </MudGrid>
+        </EditForm>
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    [Inject] private StackSecuredRepository StackSecuredRepository { get; set; } = null!;
+
+
+    [Parameter] public required Stack Stack { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    private sealed class InputModel
+    {
+        [Required] [Display(Name = "Name")] public string Name { get; set; } = null!;
+    }
+
+    protected override void OnInitialized()
+    {
+        Input.Name = Stack.Name;
+    }
+
+    private async Task Update()
+    {
+        Stack.Name = Input.Name;
+
+        await StackSecuredRepository.Update(Stack);
+
+
+        MudDialog.Close(DialogResult.Ok(Stack.Id));
+    }
+
+    private bool NameChanged()
+    {
+        return !Stack.Name.Equals(Input.Name);
+    }
+
+}

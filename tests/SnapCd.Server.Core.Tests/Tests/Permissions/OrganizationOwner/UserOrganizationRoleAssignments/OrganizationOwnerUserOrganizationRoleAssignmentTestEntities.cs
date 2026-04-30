@@ -1,0 +1,49 @@
+using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Tests.Infrastructure;
+
+namespace SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.UserOrganizationRoleAssignments;
+
+public static class OrganizationOwnerUserOrganizationRoleAssignmentTestEntities
+{
+    public static void Seed(Fixture fixture, SnapCdDbContext dbContext)
+    {
+        // Create test users for role assignment Update/Delete tests
+        var updateCanUser_User = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_User_Tests)}_UpdateCan", fixture.Organizations["0"].Id, dbContext);
+        var deleteCanUser_User = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_User_Tests)}_DeleteCan", fixture.Organizations["0"].Id, dbContext);
+
+        var updateCanUser_SP = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_ServicePrincipal_Tests)}_UpdateCan", fixture.Organizations["0"].Id, dbContext);
+        var deleteCanUser_SP = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_ServicePrincipal_Tests)}_DeleteCan", fixture.Organizations["0"].Id, dbContext);
+
+        var updateCanUser_Group = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_GroupMember_Tests)}_UpdateCan", fixture.Organizations["0"].Id, dbContext);
+        var deleteCanUser_Group = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_GroupMember_Tests)}_DeleteCan", fixture.Organizations["0"].Id, dbContext);
+
+        var updateCanUser_Nested = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_NestedGroupMember_Tests)}_UpdateCan", fixture.Organizations["0"].Id, dbContext);
+        var deleteCanUser_Nested = fixture.CreateTestUser($"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_NestedGroupMember_Tests)}_DeleteCan", fixture.Organizations["0"].Id, dbContext);
+
+        // Create UserOrganizationRoleAssignment entities for Update tests
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_User_Tests)}_UpdateCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(updateCanUser_User.Id, fixture.Organizations["0"].Id, dbContext);
+
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_ServicePrincipal_Tests)}_UpdateCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(updateCanUser_SP.Id, fixture.Organizations["0"].Id, dbContext);
+
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_GroupMember_Tests)}_UpdateCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(updateCanUser_Group.Id, fixture.Organizations["0"].Id, dbContext);
+
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_NestedGroupMember_Tests)}_UpdateCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(updateCanUser_Nested.Id, fixture.Organizations["0"].Id, dbContext);
+
+        // Create UserOrganizationRoleAssignment entities for Delete tests
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_User_Tests)}_DeleteCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(deleteCanUser_User.Id, fixture.Organizations["0"].Id, dbContext);
+
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_ServicePrincipal_Tests)}_DeleteCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(deleteCanUser_SP.Id, fixture.Organizations["0"].Id, dbContext);
+
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_GroupMember_Tests)}_DeleteCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(deleteCanUser_Group.Id, fixture.Organizations["0"].Id, dbContext);
+
+        fixture.UserOrganizationRoleAssignmentAdditionalTestEntities[$"{nameof(OrganizationOwner_UserOrganizationRoleAssignment_NestedGroupMember_Tests)}_DeleteCan"] =
+            fixture.CreateTestUserOrganizationRoleAssignment(deleteCanUser_Nested.Id, fixture.Organizations["0"].Id, dbContext);
+    }
+}

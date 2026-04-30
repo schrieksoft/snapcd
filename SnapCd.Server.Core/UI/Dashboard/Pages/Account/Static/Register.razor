@@ -1,0 +1,331 @@
+﻿@page "/Account/Register"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Http
+@using MassTransit
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Events.Repository.Organization
+@using SnapCd.Server.Core.Mappers
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Dashboard
+
+@inject UserManager<User> UserManager
+@inject IBus Bus
+@inject IUserStore<User> UserStore
+@inject SignInManager<User> SignInManager
+@inject IEmailSender<User> EmailSender
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject ITermsAcceptanceService TermsService
+@inject IHttpContextAccessor HttpContextAccessor
+@inject TurnstileVerificationService TurnstileService
+
+<PageTitle>Register - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="Create your account">
+
+    <StatusMessage Message="@Message"/>
+
+    <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser"
+              FormName="user-register">
+        <DataAnnotationsValidator/>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudStaticTextField For="@(() => Input.FirstName)" @bind-Value="Input.FirstName"
+                                    Label="First Name"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "given-name" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudStaticTextField For="@(() => Input.LastName)" @bind-Value="Input.LastName"
+                                    Label="Last Name"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "family-name" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                    Label="Email"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "email" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                    Label="Password" InputType="InputType.Password" Placeholder="password"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudStaticTextField For="@(() => Input.ConfirmPassword)" @bind-Value="Input.ConfirmPassword"
+                                    Label="Confirm Password" InputType="InputType.Password"
+                                    Placeholder="confirm password"
+                                    Variant="Variant.Outlined" FullWidth="true"
+                                    UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
+            </MudItem>
+            <MudItem xs="12" Class="mt-2">
+                <MudStaticCheckBox T="bool" @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                    <MudText Typo="Typo.body2">
+                        I agree to the
+                        <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
+                        and
+                        <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
+                    </MudText>
+                </MudStaticCheckBox>
+            </MudItem>
+            <MudItem xs="12">
+                <TurnstileWidget />
+            </MudItem>
+            <MudItem xs="12">
+                <div class="complete-button-container">
+                    <div class="divider-line"></div>
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                     FormAction="FormAction.Submit" Class="complete-btn">
+                        Create Account
+                    </MudStaticButton>
+                    <div class="divider-line"></div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    <div class="external-login-section">
+        <MudText Align="Align.Center" Typo="Typo.body2" Class="mb-2" Style="color: var(--mud-palette-text-secondary);">
+            or continue with
+        </MudText>
+        <ExternalLoginPicker IsRegistrationContext="true"/>
+    </div>
+
+    <div class="register-link">
+        <MudText Align="Align.Center" Typo="Typo.body2">
+            Already have an account?
+            <MudLink Typo="Typo.body2"
+                     Href="@(NavigationManager.GetUriWithQueryParameters("Account/Login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">
+                Sign in
+            </MudLink>
+        </MudText>
+    </div>
+</StaticAccountComponent>
+
+<style>
+    .complete-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+    .complete-btn {
+        flex-shrink: 0;
+        background-color: #000 !important;
+        color: white !important;
+    }
+
+    .complete-btn:hover {
+        background-color: #333 !important;
+        color: white !important;
+    }
+
+    .external-login-section {
+        margin-top: 2rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+@code {
+    private IEnumerable<IdentityError>? identityErrors;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+
+    public async Task RegisterUser(EditContext editContext)
+    {
+        // Verify Turnstile token
+        var turnstileHttpContext = HttpContextAccessor.HttpContext;
+        var turnstileToken = turnstileHttpContext?.Request.Form["cf-turnstile-response"].ToString();
+        var turnstileRemoteIp = turnstileHttpContext?.Connection.RemoteIpAddress?.ToString();
+        var turnstileResult = await TurnstileService.VerifyAsync(turnstileToken, turnstileRemoteIp);
+        if (!turnstileResult.IsSuccess)
+        {
+            identityErrors = new[] { new IdentityError { Description = turnstileResult.ErrorMessage ?? "Verification failed." } };
+            return;
+        }
+
+        User user;
+        IdentityResult result;
+        var isExistingIncompleteUser = false;
+
+        // Check if user already exists with IsRegistrationNotCompleted = true (invited user)
+        var existingUser = await UserManager.FindByEmailAsync(Input.Email);
+        if (existingUser != null && existingUser.IsRegistrationNotCompleted)
+        {
+            // Complete registration for invited user
+            user = existingUser;
+            isExistingIncompleteUser = true;
+
+            // Update user properties
+            user.FirstName = Input.FirstName;
+            user.LastName = Input.LastName;
+            user.IsRegistrationNotCompleted = false;
+
+            // Add password to existing user
+            result = await UserManager.AddPasswordAsync(user, Input.Password);
+            if (!result.Succeeded)
+            {
+                identityErrors = result.Errors;
+                return;
+            }
+
+            // Update the user with new properties
+            var updateResult = await UserManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                identityErrors = updateResult.Errors;
+                return;
+            }
+
+            Logger.LogInformation("User completed registration for pre-created account with email {Email}", Input.Email);
+        }
+        else if (existingUser != null)
+        {
+            // User already exists and is fully registered
+            identityErrors = new[] { new IdentityError { Description = "An account with this email address already exists." } };
+            return;
+        }
+        else
+        {
+            // Create new user (normal registration flow)
+            user = CreateUser();
+
+            // Set user properties
+            user.FirstName = Input.FirstName;
+            user.LastName = Input.LastName;
+            user.IsRegistrationNotCompleted = false;
+
+            await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+            var emailStore = GetEmailStore();
+            await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+            result = await UserManager.CreateAsync(user, Input.Password);
+
+            if (!result.Succeeded)
+            {
+                identityErrors = result.Errors;
+                return;
+            }
+
+            Logger.LogInformation("User created a new account with password.");
+
+            await Bus.Publish(new UserCreatedEvent
+            {
+                Data = UserMapper.ToDto(user),
+                CreatedDateTime = DateTime.UtcNow
+            });
+        }
+
+        // principal_discriminator is derived in CustomUserClaimsPrincipalFactory, not stored in database
+
+        // Record terms acceptance
+        var httpContext = HttpContextAccessor.HttpContext;
+        var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString();
+        var userAgent = httpContext?.Request.Headers["User-Agent"].ToString();
+        await TermsService.RecordAcceptanceAsync(
+            user.Id,
+            TermsAcceptanceContext.Registration,
+            ipAddress,
+            userAgent);
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+
+        // Redirect to email confirmation page - user must verify email before signing in
+        RedirectManager.RedirectTo(
+            "Account/ConfirmEmailNotCompleted",
+            new Dictionary<string, object?> { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+    }
+
+    private User CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<User>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(User)}'. " +
+                                                $"Ensure that '{nameof(User)}' is not an abstract class and has a parameterless constructor.");
+        }
+    }
+
+    private IUserEmailStore<User> GetEmailStore()
+    {
+        if (!UserManager.SupportsUserEmail)
+        {
+            throw new NotSupportedException("The default UI requires a user store with email support.");
+        }
+
+        return (IUserEmailStore<User>)UserStore;
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(50, ErrorMessage = "The {0} must be at most {1} characters long.")]
+        [Display(Name = "First Name")]
+        public string FirstName { get; set; } = "";
+
+        [Required]
+        [StringLength(50, ErrorMessage = "The {0} must be at most {1} characters long.")]
+        [Display(Name = "Last Name")]
+        public string LastName { get; set; } = "";
+
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Display(Name = "Accept Terms")]
+        public bool AcceptTerms { get; set; } = false;
+    }
+
+    private void ShowMailingListDialog()
+    {
+        // In a real implementation, this would open a dialog or redirect to a mailing list signup
+    }
+
+}

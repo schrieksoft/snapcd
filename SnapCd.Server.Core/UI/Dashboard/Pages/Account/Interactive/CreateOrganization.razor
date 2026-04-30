@@ -1,0 +1,160 @@
+@page "/Account/YourOrganization/Create"
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using System.ComponentModel.DataAnnotations
+@using EntityFramework.Exceptions.Common
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using MudBlazor
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Edition
+@using SnapCd.Server.Core.UI.Dashboard.Components.Account
+@inject UserManagerFactory<User, IdentityRole<Guid>, SnapCdDbContext> UserManagerFactory
+@inject ILogger<CreateOrganization> Logger
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject IOrganizationLimitPolicy OrganizationLimitPolicy
+@inject ISnackbar Snackbar
+
+<PageTitle>Create Organization - Snap CD</PageTitle>
+
+<InteractiveAccountComponent Subtitle="Create Your Organization">
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@_errorMessage</MudAlert>
+    }
+
+    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync">
+        <DataAnnotationsValidator/>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Input.Name"
+                              Label="Organization Name"
+                              Variant="Variant.Outlined" FullWidth="true"
+                              Required="true"
+                              MaxLength="100"
+                              For="@(() => Input.Name)"/>
+            </MudItem>
+            <MudItem xs="12">
+                <div class="sign-in-container">
+                    <div class="divider-line"></div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large"
+                               ButtonType="ButtonType.Submit" Class="sign-in-btn">
+                        Create Organization
+                    </MudButton>
+                    <div class="divider-line"></div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+</InteractiveAccountComponent>
+
+@code {
+    private string? _errorMessage;
+    private User? _currentUser;
+
+    [SupplyParameterFromQuery] private string? Tier { get; set; }
+
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!OrganizationLimitPolicy.AllowsOrganizationCreation)
+        {
+            NavigationManager.NavigateTo("/Account/SelectOrganization", forceLoad: true);
+            return;
+        }
+
+        // Auto-fill organization name with user's name
+        await SetDefaultOrganizationName();
+    }
+
+    private async Task SetDefaultOrganizationName()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            using var userManagerScope = UserManagerFactory.Create();
+            _currentUser = await userManagerScope.UserManager.GetUserAsync(authState.User);
+
+            if (_currentUser != null && !string.IsNullOrEmpty(_currentUser.FirstName))
+            {
+                Input.Name = $"{_currentUser.FirstName}'s Organization";
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (!authState.User.Identity?.IsAuthenticated == true)
+            {
+                _errorMessage = "Error: User not authenticated.";
+                return;
+            }
+
+            if (_currentUser == null)
+            {
+                using var userManagerScope = UserManagerFactory.Create();
+                _currentUser = await userManagerScope.UserManager.GetUserAsync(authState.User);
+            }
+
+            if (_currentUser == null)
+            {
+                _errorMessage = "Error: User not found.";
+                return;
+            }
+
+            // Create organization using OrganizationService
+            using var orgServiceScope = OrganizationServiceFactory.Create();
+            var organization = await orgServiceScope.Service.CreateOrganizationAsync(
+                Input.Name.Trim(),
+                _currentUser.Id);
+
+            Logger.LogInformation("Organization '{OrganizationName}' created for user {UserId}", Input.Name, _currentUser.Id);
+
+            Snackbar.Add($"Organization '{Input.Name}' created successfully!", Severity.Success);
+
+            // Navigate to specific organization dashboard via API endpoint which sets the cookie
+            // If tier=Paid, redirect to Subscription page after switching
+            if (string.Equals(Tier, "Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl=/Subscription", forceLoad: true);
+            }
+            else
+            {
+                NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}", forceLoad: true);
+            }
+        }
+        catch (UniqueConstraintException ex)
+        {
+            Logger.LogWarning(ex, "Organization name '{Name}' already exists", Input.Name);
+            _errorMessage = $"Error: An organization with this name already exists. Please choose a different name.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating organization");
+            _errorMessage = "Error: An error occurred while creating the organization. Please try again.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at most {1} characters long.")]
+        [Display(Name = "Organization Name")]
+        public string Name { get; set; } = "";
+    }
+
+}

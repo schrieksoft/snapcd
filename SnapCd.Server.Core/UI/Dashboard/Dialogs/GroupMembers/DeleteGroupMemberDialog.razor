@@ -1,0 +1,38 @@
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.GroupMembers
+<MudDialog>
+    <TitleContent>
+        <MudText>Delete Group Member</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to delete group member "@GroupMemberId"?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete">Delete</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [Inject] private GroupMemberSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    [Parameter] public required Guid GroupMemberId { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Delete()
+    {
+        using var repo = RepoFactory.Create();
+        await repo.Delete(GroupMemberId, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(GroupMemberId));
+    }
+
+}

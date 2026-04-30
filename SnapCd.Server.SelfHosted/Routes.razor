@@ -1,0 +1,13 @@
+@using SnapCd.Server.Core.UI.Dashboard.Components.Account
+@using SnapCd.Server.Core.UI.Layout
+<Router AppAssembly="typeof(SnapCd.Server.Core.Marker).Assembly"
+        AdditionalAssemblies="new[] { typeof(SnapCd.Server.SelfHosted.Marker).Assembly }">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(AppLayout)">
+            <NotAuthorized>
+                <RedirectToLogin/>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1"/>
+    </Found>
+</Router>

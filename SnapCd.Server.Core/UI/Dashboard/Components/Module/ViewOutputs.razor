@@ -1,0 +1,453 @@
+@using SnapCd.Contracts.Dto
+@using SnapCd.Contracts.Dto.Outputs
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.Outputs
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs
+@using SnapCd.Server.Core.Services.Crud
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Outputs
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JsRuntime
+
+
+@implements IDisposable
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudTooltip Text="Refresh">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium"
+                       OnClick="() => ReloadOutputSets()"/>
+    </MudTooltip>
+
+    @if (_outputSets == null)
+    {
+        <MudText Typo="Typo.body1"><em>Loading output sets...</em></MudText>
+    }
+    else if (!_outputSets.Any())
+    {
+        <MudText Typo="Typo.body1">No output sets found.</MudText>
+    }
+    else
+    {
+        @* <MudExpansionPanels MultiExpansion="true"> *@
+        @*     @foreach (var outputSet in _outputSets) *@
+        @*     { *@
+        <MudExpansionPanels MultiExpansion="true">
+            @foreach (var outputSet in _outputSets)
+            {
+                <MudExpansionPanel @key="outputSet.Id"
+                                   ExpandedChanged="@(async isExpanded => await OnOutputSetExpanded(isExpanded, outputSet))">
+                    <TitleContent>
+                        @{
+                            var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(outputSet.Timestamp).DateTime;
+                            <div class="d-flex align-center justify-space-between">
+                                <MudText>Output Set @dateTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                                <MudTooltip Text="Delete Output Set">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Dark"
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await ShowDeleteDialog(outputSet))"/>
+                                </MudTooltip>
+                            </div>
+                        }
+                    </TitleContent>
+                    <ChildContent>
+                        @if (!outputSet.Outputs.Any())
+                        {
+                            <MudText Typo="Typo.body2">No outputs found.</MudText>
+                        }
+                        else
+                        {
+                            var currentPage = _outputCurrentPages.GetValueOrDefault(outputSet.Id, 1);
+                            var totalPages = _outputTotalPages.GetValueOrDefault(outputSet.Id, 1);
+                            var totalCount = _outputTotalCounts.GetValueOrDefault(outputSet.Id, outputSet.Outputs.Count);
+                            var startIndex = (currentPage - 1) * OutputPageSize + 1;
+                            var endIndex = Math.Min(currentPage * OutputPageSize, totalCount);
+
+                            var sourceOutputs = outputSet.Outputs.Where(o => !o.FromExtraFile).ToList();
+                            var extraFileOutputs = outputSet.Outputs.Where(o => o.FromExtraFile).ToList();
+
+                            <MudText Typo="Typo.caption" Class="mb-2">
+                                @if (totalCount > OutputPageSize)
+                                {
+                                    @:Showing @startIndex-@endIndex of @totalCount outputs
+                                }
+                                else
+                                {
+                                    @:Showing @totalCount output@(totalCount == 1 ? "" : "s")
+                                }
+                                @if (sourceOutputs.Any() && extraFileOutputs.Any())
+                                {
+                                    @:(@sourceOutputs.Count from source, @extraFileOutputs.Count from extra files)
+                                }
+                            </MudText>
+
+                            @if (sourceOutputs.Any())
+                            {
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">Source Outputs</MudText>
+                                <div class="output-table-scrollable">
+                                    <MudTable Items="@sourceOutputs" Hover="true" Dense="true" Class="mb-4">
+                                        <HeaderContent>
+                                            <MudTh>Name</MudTh>
+                                            <MudTh>Value</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="Name">@context.Name</MudTd>
+                                            <MudTd DataLabel="Value">
+                                                @switch (context)
+                                                {
+                                                    case LiteralOutput literal:
+                                                        <div class="d-flex align-center gap-2">
+                                                            <span style="white-space: pre-wrap;">@literal.Value</span>
+                                                            <MudTooltip Text="Copy value">
+                                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                                               Size="Size.Small"
+                                                                               OnClick="@(async () => await CopyToClipboard(literal.Value))"/>
+                                                            </MudTooltip>
+                                                        </div>
+                                                        break;
+                                                    case SecretOutput secret:
+                                                        @RenderSecretOutput(secret)
+                                                        break;
+                                                }
+                                            </MudTd>
+                                        </RowTemplate>
+                                        <NoRecordsContent>
+                                            <MudText Typo="Typo.body2" Class="pa-4">No outputs found</MudText>
+                                        </NoRecordsContent>
+                                    </MudTable>
+                                </div>
+                            }
+
+                            @if (extraFileOutputs.Any())
+                            {
+                                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Extra File Outputs</MudText>
+                                <div class="output-table-scrollable">
+                                    <MudTable Items="@extraFileOutputs" Hover="true" Dense="true" Class="mb-4">
+                                        <HeaderContent>
+                                            <MudTh>Name</MudTh>
+                                            <MudTh>Value</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="Name">@context.Name</MudTd>
+                                            <MudTd DataLabel="Value">
+                                                @switch (context)
+                                                {
+                                                    case LiteralOutput literal:
+                                                        <div class="d-flex align-center gap-2">
+                                                            <span style="white-space: pre-wrap;">@literal.Value</span>
+                                                            <MudTooltip Text="Copy value">
+                                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                                               Size="Size.Small"
+                                                                               OnClick="@(async () => await CopyToClipboard(literal.Value))"/>
+                                                            </MudTooltip>
+                                                        </div>
+                                                        break;
+                                                    case SecretOutput secret:
+                                                        @RenderSecretOutput(secret)
+                                                        break;
+                                                }
+                                            </MudTd>
+                                        </RowTemplate>
+                                        <NoRecordsContent>
+                                            <MudText Typo="Typo.body2" Class="pa-4">No outputs found</MudText>
+                                        </NoRecordsContent>
+                                    </MudTable>
+                                </div>
+                            }
+
+                            <Pagination CurrentPage="@currentPage"
+                                        TotalPages="@totalPages"
+                                        PageChanged="@(page => SetOutputPage(outputSet, page))"/>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+        @*     } *@
+        @* </MudExpansionPanels> *@
+
+        <Pagination CurrentPage="@_currentOutputSetPage"
+                    TotalPages="@_totalOutputSetPages"
+                    PageChanged="@(page => SetOutputSetPage(page))"/>
+    }
+</MudPaper>
+
+<style>
+    .output-table-scrollable {
+        max-height: 600px;
+        overflow-y: auto;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+    }
+</style>
+
+@code {
+    [Parameter] public required Module Module { get; set; }
+    [Parameter] public required string StackName { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private const int OutputSetPageSize = 10;
+    private const int OutputPageSize = 25;
+
+    private readonly Dictionary<Guid, OutputReadDto> _revealedSecrets = new();
+    private readonly HashSet<Guid> _loadingSecrets = new();
+    private int _currentOutputSetPage = 1;
+    private int _totalOutputSetPages;
+    private List<OutputSet>? _outputSets;
+
+    // Pagination state for outputs within each OutputSet
+    private readonly Dictionary<Guid, int> _outputCurrentPages = new();
+    private readonly Dictionary<Guid, int> _outputTotalPages = new();
+    private readonly Dictionary<Guid, int> _outputTotalCounts = new();
+
+
+    [Inject] private OutputServiceFactory ServiceFactory { get; set; } = null!;
+    [Inject] private OutputSecuredRepositoryFactory OutputRepoFactory { get; set; } = null!;
+    [Inject] private OutputSetSecuredRepositoryFactory OutputSetRepoFactory { get; set; } = null!;
+
+    private readonly Dictionary<Guid, CancellationTokenSource> _hideTokens = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOutputSets();
+    }
+
+    private async Task RevealSecret(SecretOutput secret)
+    {
+        try
+        {
+            _loadingSecrets.Add(secret.Id);
+            StateHasChanged();
+
+            using var service = ServiceFactory.Create();
+            var dto = await service.Get(secret.Id, OrganizationId);
+            _revealedSecrets[secret.Id] = dto;
+
+            // Cancel previous auto-hide if exists
+            if (_hideTokens.TryGetValue(secret.Id, out var existingToken))
+            {
+                existingToken.Cancel();
+                existingToken.Dispose();
+                _hideTokens.Remove(secret.Id);
+            }
+
+            // Create new token source
+            var cts = new CancellationTokenSource();
+            _hideTokens[secret.Id] = cts;
+
+            // Capture the token before any potential disposal
+            var ct = cts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(30000, ct);
+                    if (!ct.IsCancellationRequested)
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            _revealedSecrets.Remove(secret.Id);
+                            StateHasChanged();
+                        });
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // Expected when hiding manually
+                }
+            }, ct); // Use the captured token here
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to reveal secret: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loadingSecrets.Remove(secret.Id);
+            StateHasChanged();
+        }
+    }
+
+    private void HideSecret(Guid secretId)
+    {
+        try
+        {
+            if (_hideTokens.TryGetValue(secretId, out var cts))
+            {
+                cts.Cancel();
+                cts.Dispose();
+                _hideTokens.Remove(secretId);
+            }
+
+            _revealedSecrets.Remove(secretId);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to hide secret: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadOutputSets()
+    {
+        _revealedSecrets.Clear();
+        try
+        {
+            using var repo = OutputSetRepoFactory.Create();
+            var count = await repo.Count(OrganizationId, q => q.Where(x => x.ModuleId == Module.Id));
+            _totalOutputSetPages = (int)Math.Ceiling(count / (double)OutputSetPageSize);
+
+            _outputSets = await repo.List<OutputSet>(OrganizationId,
+                q => q.Where(os => os.ModuleId == Module.Id),
+                pageNumber: _currentOutputSetPage,
+                pageSize: OutputSetPageSize,
+                orderBy: q => q.OrderByDescending(os => os.CreatedDateTime)
+            );
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading output sets: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnOutputSetExpanded(bool isExpanded, OutputSet outputSet)
+    {
+        if (isExpanded && !outputSet.Outputs.Any())
+        {
+            // Initialize pagination state for this OutputSet
+            _outputCurrentPages[outputSet.Id] = 1;
+            await LoadOutputs(outputSet, 1);
+        }
+    }
+
+    private async Task LoadOutputs(OutputSet outputSet, int page = 1)
+    {
+        try
+        {
+            using var repo = OutputRepoFactory.Create();
+
+            // Get total count for pagination
+            var totalCount = await repo.Count(OrganizationId,
+                q => q.Where(x => x.OutputSetId == outputSet.Id));
+
+            _outputTotalCounts[outputSet.Id] = totalCount;
+            _outputTotalPages[outputSet.Id] = (int)Math.Ceiling(totalCount / (double)OutputPageSize);
+            _outputCurrentPages[outputSet.Id] = page;
+
+            // Load paginated outputs
+            outputSet.Outputs = await repo.List<Output>(OrganizationId,
+                q => q.Where(x => x.OutputSetId == outputSet.Id),
+                q => q.OrderBy(o => o.Name),
+                pageNumber: page,
+                pageSize: OutputPageSize
+            );
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading outputs: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SetOutputPage(OutputSet outputSet, int page)
+    {
+        await LoadOutputs(outputSet, page);
+    }
+
+    private async Task SetOutputSetPage(int page)
+    {
+        _currentOutputSetPage = page;
+        await LoadOutputSets();
+    }
+
+
+    private async Task ReloadOutputSets()
+    {
+        _currentOutputSetPage = 1;
+        await LoadOutputSets();
+    }
+
+    public void Dispose()
+    {
+        // Cleanup all timers safely
+        foreach (var kvp in _hideTokens)
+        {
+            try
+            {
+                kvp.Value.Cancel();
+                kvp.Value.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed, ignore
+            }
+        }
+
+        _hideTokens.Clear();
+    }
+
+    private RenderFragment RenderSecretOutput(SecretOutput secret) => __builder =>
+    {
+        if (_loadingSecrets.Contains(secret.Id))
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+        }
+        else if (_revealedSecrets.TryGetValue(secret.Id, out var revealedDto))
+        {
+            <div class="d-flex align-center gap-2">
+                <span style="white-space: pre-wrap;">@revealedDto.Value</span>
+                <MudTooltip Text="Copy value">
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                   Size="Size.Small"
+                                   OnClick="@(async () => await CopyToClipboard(revealedDto.Value))" />
+                </MudTooltip>
+                <MudIconButton Icon="@Icons.Material.Filled.VisibilityOff"
+                               Size="Size.Small"
+                               OnClick="@(() => HideSecret(secret.Id))" />
+            </div>
+        }
+        else
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                           Size="Size.Small"
+                           OnClick="@(async () => await RevealSecret(secret))" />
+        }
+    };
+
+    private async Task CopyToClipboard(string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
+            await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", value);
+            Snackbar.Add("Copied to clipboard", Severity.Success);
+        }
+    }
+
+    private async Task ShowDeleteDialog(OutputSet outputSet)
+    {
+        var parameters = new DialogParameters<DeleteOutputSetDialog>
+        {
+            { x => x.OutputSet, outputSet },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteOutputSetDialog>("Delete Output Set", parameters);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: true })
+        {
+            // Remove from local list to update UI immediately
+            if (_outputSets != null)
+            {
+                _outputSets.Remove(outputSet);
+                StateHasChanged();
+            }
+
+            // Reload to ensure consistency
+            await LoadOutputSets();
+        }
+    }
+
+}

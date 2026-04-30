@@ -1,0 +1,22 @@
+<Project>
+  <!-- Common Assembly Metadata -->
+  <PropertyGroup>
+    <Company>Karl Schriek</Company>
+    <Authors>Karl Schriek</Authors>
+    <Copyright>Copyright © 2025-2026 Karl Schriek. All rights reserved.</Copyright>
+    <Product>SnapCD</Product>
+  </PropertyGroup>
+
+  <!-- Assembly Metadata Items -->
+  <ItemGroup>
+    <AssemblyMetadata Include="ProductWebsite" Value="https://snapcd.io" />
+  </ItemGroup>
+
+  <!-- Embed LICENSE.md in all assemblies -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)LICENSE.md" Condition="Exists('$(MSBuildThisFileDirectory)LICENSE.md')">
+      <LogicalName>LICENSE.md</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

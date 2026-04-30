@@ -1,0 +1,143 @@
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+
+<MudPaper Elevation="1" Class="pa-4 my-4">
+    <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="d-flex flex-column gap-4">
+            <MudItem xs="12">
+                <MudTextField Label="Runner Id"
+                              @bind-Value="Runner.Id"
+                              Disabled="true"/>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect T="Guid" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
+                           Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
+                    @foreach (var sp in _availableServicePrincipals)
+                    {
+                        <MudSelectItem Value="@sp.Id">@sp.DisplayName (@sp.DisplayClientId)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Label="Runner Name"
+                              @bind-Value="Input.Name"
+                              Required="true"
+                              UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" Value="Input.AllowMultipleInstances"
+                           ValueChanged="AllowMultipleInstancesChanged" Label="Allow Multiple Instances"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudSwitch T="bool" Value="Input.IsAssignedToAllModules"
+                           ValueChanged="IsAssignedToAllModulesChanged" Label="Is Assigned To All Modules"
+                           Color="Color.Info"/>
+            </MudItem>
+
+            <MudItem xs="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary">
+                    Save
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public required Runner Runner { get; set; }
+    [Parameter] public required EventCallback<Runner> OnSaved { get; set; }
+    [Parameter] public required EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private RunnerSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private InputModel Input { get; set; } = new();
+    private List<ServicePrincipal> _availableServicePrincipals = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var spRepo = ServicePrincipalRepoFactory.Create();
+        _availableServicePrincipals = await spRepo.List(OrganizationId);
+    }
+
+    protected override void OnParametersSet()
+    {
+        Input = new InputModel
+        {
+            ServicePrincipalId = Runner.ServicePrincipalId,
+            Name = Runner.Name,
+            AllowMultipleInstances = Runner.AllowMultipleInstances,
+            IsAssignedToAllModules = Runner.IsAssignedToAllModules
+        };
+    }
+
+    private sealed class InputModel
+    {
+        [Required] [Display(Name = "Service Principal")] public Guid ServicePrincipalId { get; set; }
+
+        [Required] [Display(Name = "Name")] public string Name { get; set; } = string.Empty;
+
+        [Required]
+        [Display(Name = "AllowMultipleInstances")]
+        public bool AllowMultipleInstances { get; set; }
+
+        [Required]
+        [Display(Name = "IsAssignedToAllModules")]
+        public bool IsAssignedToAllModules { get; set; }
+    }
+
+    private void AllowMultipleInstancesChanged()
+    {
+        Input.AllowMultipleInstances = !Input.AllowMultipleInstances;
+        StateHasChanged();
+    }
+
+    private void IsAssignedToAllModulesChanged()
+    {
+        Input.IsAssignedToAllModules = !Input.IsAssignedToAllModules;
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            Runner.ServicePrincipalId = Input.ServicePrincipalId;
+            Runner.Name = Input.Name;
+            Runner.AllowMultipleInstances = Input.AllowMultipleInstances;
+            Runner.IsAssignedToAllModules = Input.IsAssignedToAllModules;
+            // Note: IsDisabled is not updated here - use activate/deactivate buttons instead
+            await repo.Update(Runner);
+            Snackbar.Add("Runner updated successfully", Severity.Success);
+            await OnSaved.InvokeAsync(Runner);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "updating runner");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}
