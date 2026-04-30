@@ -23,7 +23,7 @@ public class QuotaGatingService(LicenseService licenseService) : IQuotaGatingSer
         {
             nameof(QuotaLimits.StackQuota) => 2,
             nameof(QuotaLimits.RunnerQuota) => 2,
-            nameof(QuotaLimits.ModuleQuota) => 10,
+            nameof(QuotaLimits.ModuleQuota) => 20,
             _ => null
         };
     }
@@ -46,7 +46,7 @@ public class QuotaGatingService(LicenseService licenseService) : IQuotaGatingSer
         {
             StackQuota = 2,
             RunnerQuota = 2,
-            ModuleQuota = 10
+            ModuleQuota = 20
         };
     }
 }
