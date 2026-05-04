@@ -107,7 +107,7 @@ public abstract class GenericSystemSecuredRepository<TEntity, TDto, TRepository,
 
     public virtual async Task<List<TEntity>> ListByParentId(
         Guid parentId,
-        Func<IQueryable<TEntity>, IQueryable<TEntity>> queryModifier = null,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null,
         Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
         int? pageNumber = null,
         int? pageSize = null

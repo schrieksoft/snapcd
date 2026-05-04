@@ -30,7 +30,7 @@ public class LiteralOutputRepository : OutputRepository
     {
     }
 
-    public Task<List<LiteralOutput>> ListByIds(List<Guid> ids, Guid organizationId)
+    public new Task<List<LiteralOutput>> ListByIds(List<Guid> ids, Guid organizationId)
     {
         var outputs = DbContext.Set<LiteralOutput>()
             .Include(x => x.Organization)

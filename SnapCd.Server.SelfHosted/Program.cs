@@ -18,7 +18,6 @@ using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Services.Edition;
-using SnapCd.Server.Core.Services.DataSeeder;
 using SnapCd.Server.Core.Startup;
 using SnapCd.Server.SelfHosted.Database;
 using SnapCd.Server.SelfHosted.Services;

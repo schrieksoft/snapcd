@@ -44,6 +44,8 @@ public class GroupService : GenericCrudService<
 
     public async Task<GroupReadDto> GetByName(string name, Guid organizationId)
     {
-        return await GetByCriteria(repo => repo.GetByName(name, organizationId));
+        return await GetByCriteria(async repo =>
+            await repo.GetByName(name, organizationId)
+            ?? throw new KeyNotFoundException($"Group '{name}' not found in organization {organizationId}."));
     }
 }

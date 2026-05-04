@@ -45,7 +45,14 @@
         MudDialog.Cancel();
     }
 
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    private InputModel? _input;
+
+    [SupplyParameterFromForm]
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     private sealed class InputModel
     {

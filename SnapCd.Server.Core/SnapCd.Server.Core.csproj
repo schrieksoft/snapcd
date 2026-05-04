@@ -5,6 +5,9 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>SnapCd.Server.Core</RootNamespace>
+        <!-- CS8669: Razor source generator emits nullable annotations in generated code without
+             a #nullable enable directive. Generated-code-only; not actionable in source. -->
+        <NoWarn>$(NoWarn);CS8669</NoWarn>
 
         <IsPackable>true</IsPackable>
         <PackageId>SnapCd.Server.Core</PackageId>
@@ -81,9 +84,6 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6"/>
         <PackageReference Include="YamlDotNet" Version="16.3.0"/>
         <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0"/>
-        <PackageReference Include="MudBlazor" Version="8.14.0"/>
-        <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="3.2.1"/>
-        <PackageReference Include="AnsiConsoleToHtml" Version="0.2.0"/>
         <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.6"/>
         <PackageReference Include="SendGrid" Version="9.29.3"/>
         <PackageReference Include="OpenIddict.AspNetCore" Version="7.0.0"/>

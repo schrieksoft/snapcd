@@ -14,8 +14,6 @@
 <PageTitle>Reset authenticator key - Snap CD</PageTitle>
 
 <StaticAccountComponent Subtitle="Reset authenticator key">
-    <StatusMessage Message="@_message"/>
-
     <MudAlert Severity="Severity.Warning" Class="mb-4">
         <MudText Typo="Typo.h6" Class="mb-2">
             <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
@@ -85,8 +83,6 @@
 </style>
 
 @code {
-    private string? _message;
-
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
     private async Task OnSubmitAsync()

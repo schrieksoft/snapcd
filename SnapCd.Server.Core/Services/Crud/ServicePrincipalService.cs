@@ -53,7 +53,8 @@ public class ServicePrincipalService : GenericCrudService<
 
     public async Task<ServicePrincipalReadDto> GetByClientId(string clientId, Guid organizationId)
     {
-        var entity = await SecuredRepository.GetByClientId(clientId, organizationId);
+        var entity = await SecuredRepository.GetByClientId(clientId, organizationId)
+            ?? throw new KeyNotFoundException($"Service principal with client ID '{clientId}' not found in organization {organizationId}.");
         return MapToDto(entity);
     }
 
@@ -75,7 +76,8 @@ public class ServicePrincipalService : GenericCrudService<
 
         if (string.IsNullOrEmpty(secretNotHashed))
         {
-            var sp = await SecuredRepository.GetByClientId(dto.ClientId, organizationId);
+            var sp = await SecuredRepository.GetByClientId(dto.ClientId, organizationId)
+                ?? throw new KeyNotFoundException($"Service principal with client ID '{dto.ClientId}' not found in organization {organizationId}.");
             dto.ClientSecret = sp.ClientSecret;
         }
         else

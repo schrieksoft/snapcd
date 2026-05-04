@@ -367,7 +367,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
             // Get stack and namespace information for the target
             var newNamespace = await DbContext.Namespaces
                 .Include(n => n.Stack)
-                .FirstOrDefaultAsync(n => n.Id == newNamespaceId);
+                .FirstOrDefaultAsync(n => n.Id == newNamespaceId)
+                ?? throw new InvalidOperationException($"Target namespace with ID {newNamespaceId} not found.");
 
             if (allCrossStackReferences.Any() || allCrossNamespaceReferences.Any())
             {

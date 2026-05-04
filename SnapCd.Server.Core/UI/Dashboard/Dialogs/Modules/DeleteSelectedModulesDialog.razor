@@ -172,7 +172,6 @@
     [Parameter] public required string NamespaceName { get; set; }
 
     private bool _isDeleting;
-    private bool _isCheckingDependencies;
     private bool _dependencyCheckCompleted;
     private bool _canDeleteAll;
     private int _currentIndex;
@@ -206,9 +205,6 @@
 
     private async Task CheckDependencies()
     {
-        _isCheckingDependencies = true;
-        StateHasChanged();
-
         try
         {
             _moduleStatuses.Clear();
@@ -377,7 +373,6 @@
         }
         finally
         {
-            _isCheckingDependencies = false;
             StateHasChanged();
         }
     }

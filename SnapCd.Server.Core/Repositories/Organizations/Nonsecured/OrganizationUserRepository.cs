@@ -307,24 +307,4 @@ public class OrganizationUserRepository : GenericOrganizationChildRepository<Org
         DbContext.OrganizationUsers.Remove(organizationUser);
         await DbContext.SaveChangesAsync();
     }
-
-    /// <summary>
-    /// Updates an organization user
-    /// </summary>
-    public async Task Update(OrganizationUser organizationUser)
-    {
-        DbContext.OrganizationUsers.Update(organizationUser);
-        await DbContext.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// Creates a new organization user
-    /// </summary>
-    public async Task<OrganizationUser> Create(OrganizationUser organizationUser)
-    {
-        organizationUser.JoinedAt = DateTime.UtcNow;
-        DbContext.OrganizationUsers.Add(organizationUser);
-        await DbContext.SaveChangesAsync();
-        return organizationUser;
-    }
 }

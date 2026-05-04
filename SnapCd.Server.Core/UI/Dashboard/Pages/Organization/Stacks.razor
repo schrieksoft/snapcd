@@ -528,7 +528,7 @@
         var dialog = await DialogService.ShowAsync<DeleteSelectedStacksDialog>("Delete Selected Stacks", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             // Clear selection
             _selectAllStacks = false;

@@ -26,7 +26,7 @@ else
 
         @if (_isCreating)
         {
-            <MudExpansionPanel IsExpanded="_newItemExpanded" IsExpandedChanged="OnNewItemExpandedChanged">
+            <MudExpansionPanel Expanded="_newItemExpanded" ExpandedChanged="OnNewItemExpandedChanged">
                 <EditNamespaceTerraformArrayFlag Context="_newItem"
                                                  PrincipalProvider="@PrincipalProvider"
                                                  OnDelete="() => ResetAll()"

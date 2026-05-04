@@ -181,7 +181,11 @@ public static class JobExtensionMethods
                                 return new Uri(endpointUri);
                             }
 
+                            // MassTransit's address-provider lambda allows null to mean "use default address",
+                            // even though the declared return type is non-nullable Uri.
+#pragma warning disable CS8603
                             return null;
+#pragma warning restore CS8603
                         },
                         context => new CancelKillRequested
                         {
@@ -221,7 +225,11 @@ public static class JobExtensionMethods
                                 return new Uri(endpointUri);
                             }
 
+                            // MassTransit's address-provider lambda allows null to mean "use default address",
+                            // even though the declared return type is non-nullable Uri.
+#pragma warning disable CS8603
                             return null;
+#pragma warning restore CS8603
                         },
                         context => new CancelGracefulRequested
                         {

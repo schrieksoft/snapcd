@@ -71,7 +71,7 @@
                                     UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
             </MudItem>
             <MudItem xs="12" Class="mt-2">
-                <MudStaticCheckBox T="bool" @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
                     <MudText Typo="Typo.body2">
                         I agree to the
                         <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
@@ -149,7 +149,14 @@
 @code {
     private IEnumerable<IdentityError>? identityErrors;
 
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    private InputModel? _input;
+
+    [SupplyParameterFromForm]
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
@@ -170,7 +177,6 @@
 
         User user;
         IdentityResult result;
-        var isExistingIncompleteUser = false;
 
         // Check if user already exists with IsRegistrationNotCompleted = true (invited user)
         var existingUser = await UserManager.FindByEmailAsync(Input.Email);
@@ -178,7 +184,6 @@
         {
             // Complete registration for invited user
             user = existingUser;
-            isExistingIncompleteUser = true;
 
             // Update user properties
             user.FirstName = Input.FirstName;

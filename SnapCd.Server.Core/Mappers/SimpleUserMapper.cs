@@ -10,7 +10,7 @@ public static class SimpleUserMapper
         return new UserViewDto
         {
             Id = user.Id,
-            UserName = user.Email
+            UserName = user.Email ?? string.Empty
         };
     }
 }

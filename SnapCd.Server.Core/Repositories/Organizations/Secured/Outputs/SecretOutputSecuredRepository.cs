@@ -47,7 +47,7 @@ public class SecretOutputSecuredRepository : OutputSecuredRepository
         return secret;
     }
 
-    public async Task<List<SecretOutput>> ListByIds(List<Guid> ids, Guid organizationId)
+    public new async Task<List<SecretOutput>> ListByIds(List<Guid> ids, Guid organizationId)
     {
         var secrets = await Repository.ListByIds(ids, organizationId);
 

@@ -87,8 +87,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 if (context.Message.SetNewDesiredState)
                     context.Saga.DesiredStateHeadline = context.Message.DesiredStateHeadline;
 
-                if (context.Message.DesiredStateHeadline == context.Saga.DesiredStateHeadline ||
-                    context.Message.DesiredStateHeadline == null) // desired state in message matches the saga's desired state, or desired state has not been set at all
+                if (context.Message.DesiredStateHeadline == context.Saga.DesiredStateHeadline)
                 {
                     var hasActiveRunner = await _executionService.CheckRunnerAvailabilityAsync(context.Message.ModuleId);
                     if (!hasActiveRunner)

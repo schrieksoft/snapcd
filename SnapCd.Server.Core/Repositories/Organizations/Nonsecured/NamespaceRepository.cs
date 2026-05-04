@@ -316,7 +316,8 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
             // Get target stack information
             var newStack = await DbContext.Stacks
-                .FirstOrDefaultAsync(s => s.Id == newStackId && s.OrganizationId == existingNamespace.OrganizationId);
+                .FirstOrDefaultAsync(s => s.Id == newStackId && s.OrganizationId == existingNamespace.OrganizationId)
+                ?? throw new InvalidOperationException($"Target stack with ID {newStackId} not found in organization {existingNamespace.OrganizationId}.");
 
             if (allCrossStackReferences.Any())
             {

@@ -195,7 +195,7 @@
     private string? _error = null;
     private NamespaceDependencyGraphDto? _dependencyGraph = null;
     private bool _destroyExternalModules = false;
-    private bool _isDestroying;
+    private bool _isDestroying = false;
     private DestroyModuleGraphService? _destroyService;
     private Dictionary<Guid, bool> _modulePermissions = new();
 
@@ -452,7 +452,7 @@
 
         var result = await confirmationDialog.Result;
 
-        if (!result.Canceled && result.Data is List<Guid> destroyedModuleIds)
+        if (result is { Canceled: false, Data: List<Guid> destroyedModuleIds })
         {
             // Close the original dialog with the result
             MudDialog.Close(DialogResult.Ok(destroyedModuleIds));

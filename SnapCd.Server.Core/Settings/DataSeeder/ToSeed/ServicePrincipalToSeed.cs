@@ -7,7 +7,7 @@ public class ServicePrincipalToSeed
     public string? ClientSecret { get; set; }
 
     public required string ClientType { get; set; }
-    public required string ConsentType { get; set; }
+    public required string? ConsentType { get; set; }
     public required string? DisplayName { get; set; }
     public required string? LoginRedirectUri { get; set; }
     public required string? LogoutRedirectUri { get; set; }

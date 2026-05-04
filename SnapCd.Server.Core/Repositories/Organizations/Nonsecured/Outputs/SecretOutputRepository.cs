@@ -49,7 +49,7 @@ public class SecretOutputRepository : OutputRepository
         return secret;
     }
 
-    public Task<List<SecretOutput>> ListByIds(List<Guid> ids, Guid organizationId)
+    public new Task<List<SecretOutput>> ListByIds(List<Guid> ids, Guid organizationId)
     {
         var secrets = DbContext.Set<SecretOutput>()
             .Include(x => x.Organization)

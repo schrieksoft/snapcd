@@ -390,7 +390,7 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
     public virtual async Task<List<TEntity>> ListByParentId(
         Guid parentId,
         Guid organizationId,
-        Func<IQueryable<TEntity>, IQueryable<TEntity>> queryModifier = null,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null,
         IQueryable<TEntity>? query = null,
         Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
         int? pageNumber = null,

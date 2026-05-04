@@ -614,7 +614,7 @@
 
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
-    private IPrincipalProvider _literalPrincipalProvider;
+    private IPrincipalProvider _literalPrincipalProvider = null!;
 
 
     private RunnerAvailabilitySummary? _runnerAvailabilitySummary;
@@ -625,8 +625,6 @@
     private Timer? _runnerAvailabilityRefreshTimer;
     private bool? _isWaitingOnDependencies = null;
 
-    private readonly int _runnerActiveCheckMinutes = 3;
-
     // Inline action components state for Dependencies
     private bool _showApplyComponent = false;
     private bool _showDestroyComponent = false;
@@ -636,7 +634,6 @@
     private string? _destroyValidationError = null;
     private bool _applyPrerequisiteModules = false;
     private bool _destroyDependentModules = false;
-    private bool _showDestroyGraph = false;
     private List<DependencyGraphNodeStateDto> _prerequisiteModules = new();
     private List<DependencyGraphNodeStateDto> _alreadyAppliedPrerequisiteModules = new();
     private List<DependencyGraphNodeStateDto> _dependentModules = new();
@@ -1502,7 +1499,6 @@
     {
         _showDestroyComponent = false;
         _showApplyComponent = true;
-        _showDestroyGraph = false; // Force apply graph
         _destroyConfirmationText = "";
         _destroyValidationError = null;
         StateHasChanged(); // Update UI immediately
@@ -1515,7 +1511,6 @@
     {
         _showApplyComponent = false;
         _showDestroyComponent = true;
-        _showDestroyGraph = true; // Force destroy graph
         _destroyConfirmationText = "";
         _destroyValidationError = null;
         StateHasChanged(); // Update UI immediately

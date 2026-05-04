@@ -438,7 +438,7 @@
     private bool _showCreate;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
-    private IPrincipalProvider _literalPrincipalProvider;
+    private IPrincipalProvider _literalPrincipalProvider = null!;
     private ListNamespaces? _listNamespacesComponent;
     private bool _showNamespaceSearch;
     private string _searchInput = string.Empty;
@@ -696,7 +696,7 @@
         var dialog = await DialogService.ShowAsync<DeleteSelectedNamespacesDialog>("Delete Selected Namespaces", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             // Clear selection
             _selectAllNamespaces = false;

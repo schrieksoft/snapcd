@@ -148,10 +148,11 @@ else
                             <MudText>@membership.Organization.Name</MudText>
                             <MudText Typo="Typo.caption" Style="font-family: monospace; color: var(--mud-palette-text-secondary);">@membership.OrganizationId</MudText>
                             <MudTooltip Text="Copy Organization ID">
-                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
-                                               Size="Size.Small"
-                                               OnClick:stopPropagation="true"
-                                               OnClick="() => CopyOrganizationId(membership.OrganizationId)"/>
+                                <span @onclick:stopPropagation="true">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                   Size="Size.Small"
+                                                   OnClick="() => CopyOrganizationId(membership.OrganizationId)"/>
+                                </span>
                             </MudTooltip>
                         </div>
                     </TitleContent>

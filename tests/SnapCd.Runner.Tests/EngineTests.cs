@@ -256,6 +256,7 @@ public class EngineTests : IDisposable
         Assert.Contains(afterHook, scriptContent);
     }
 
+    [Fact(Skip = "Manual integration test — requires terraform binary on PATH")]
     public async Task Plan_WithTerraformInstalled_ShouldExecuteSuccessfully()
     {
         // This test is skipped by default and can be run manually when terraform is available

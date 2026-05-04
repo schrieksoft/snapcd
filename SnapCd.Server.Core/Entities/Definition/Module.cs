@@ -88,8 +88,6 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public List<ModuleTerraformFlag> TerraformFlags { get; set; } = new();
     public List<ModuleTerraformArrayFlag> TerraformArrayFlags { get; set; } = new();
 
-    public DateTime CreatedDateTime { get; set; }
-
     public WaitForApplyDependencies WaitForApplyDependencies { get; set; } = WaitForApplyDependencies.OnFirstApply;
 
     public WaitForDestroyDependencies WaitForDestroyDependencies { get; set; } = WaitForDestroyDependencies.Always;

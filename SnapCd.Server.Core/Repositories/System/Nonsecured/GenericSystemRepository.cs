@@ -303,7 +303,7 @@ public abstract class GenericSystemRepository<TEntity, TDto, TCreateEvent, TUpda
 
     public virtual async Task<List<TEntity>> ListByParentId(
         Guid parentId,
-        Func<IQueryable<TEntity>, IQueryable<TEntity>> queryModifier = null,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null,
         IQueryable<TEntity>? query = null,
         Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
         int? pageNumber = null,

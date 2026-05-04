@@ -30,7 +30,6 @@ public class Stack : AuditBase, IEntity, IOrganizationChild, ICreationTrackable
     public virtual ICollection<GroupStackRoleAssignment> GroupStackRoleAssignments { get; set; } = new List<GroupStackRoleAssignment>();
 
     public StackTriggerBehaviour? TriggerBehaviourOnModified { get; set; } = StackTriggerBehaviour.DoNotTrigger;
-    public DateTime CreatedDateTime { get; set; }
 
     public virtual ICollection<StackRoleAssignment> StackRoleAssignments { get; set; } = new List<StackRoleAssignment>();
 

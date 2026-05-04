@@ -69,11 +69,11 @@ public class InitConsumer : IConsumer<InitRequested>
 
             var paramResolver = _paramResolverFactory.CreateForEnvVars(
                 taskContext,
-                msg.Declared.ModuleEnvVarFromDefinitions,
-                msg.Declared.ModuleEnvVarFromLiterals,
-                msg.Declared.ModuleEnvVarFromNamespaces,
-                msg.Declared.NamespaceEnvVarFromLiterals,
-                msg.Declared.NamespaceEnvVarFromDefinitions,
+                msg.Declared.ModuleEnvVarFromDefinitions ?? [],
+                msg.Declared.ModuleEnvVarFromLiterals ?? [],
+                msg.Declared.ModuleEnvVarFromNamespaces ?? [],
+                msg.Declared.NamespaceEnvVarFromLiterals ?? [],
+                msg.Declared.NamespaceEnvVarFromDefinitions ?? [],
                 msg.Declared.SelectedModuleEnvVarsFromSecrets,
                 msg.Declared.SelectedNamespaceEnvVarsFromSecrets,
                 msg.Declared.StackId,

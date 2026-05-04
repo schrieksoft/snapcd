@@ -104,7 +104,7 @@
                                         UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
                 </MudItem>
                 <MudItem xs="12" Class="mt-2">
-                    <MudStaticCheckBox T="bool" @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                    <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
                         <MudText Typo="Typo.body2">
                             I agree to the
                             <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
@@ -280,7 +280,14 @@
 
     [SupplyParameterFromQuery] private string? Error { get; set; }
 
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    private InputModel? _input;
+
+    [SupplyParameterFromForm]
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     private bool IsNewUser => _invitedUser?.IsRegistrationNotCompleted == true;
 

@@ -1,6 +1,4 @@
 using MassTransit;
-using Microsoft.EntityFrameworkCore;
-using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
@@ -11,7 +9,6 @@ namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 public class MaybeEmitModuleStateChangedToAppliedEvent<TMessage> :
     IStateMachineActivity<ModuleSaga, TMessage> where TMessage : class
 {
-    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ILogger<MaybeEmitModuleStateChangedToAppliedEvent<TMessage>> _logger;
     private readonly ModuleJobRepositoryFactory _repositoryFactory;
 

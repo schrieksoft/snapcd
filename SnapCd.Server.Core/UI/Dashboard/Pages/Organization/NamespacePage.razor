@@ -516,7 +516,7 @@
     private ShowingType _showing = ShowingType.None;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
-    private IPrincipalProvider _literalPrincipalProvider;
+    private IPrincipalProvider _literalPrincipalProvider = null!;
 
     private bool _showDestroyGraph = false;
 
@@ -1058,7 +1058,7 @@
         var dialog = await DialogService.ShowAsync<DeleteSelectedModulesDialog>("Delete Selected Modules", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             // Clear selection
             _selectAllModules = false;

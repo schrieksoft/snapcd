@@ -13,8 +13,6 @@
 <PageTitle>Disable two-factor authentication - Snap CD</PageTitle>
 
 <StaticAccountComponent Subtitle="Disable two-factor authentication">
-    <StatusMessage Message="@_message"/>
-
     <MudAlert Severity="Severity.Warning" Class="mb-4">
         <MudText Typo="Typo.h6" Class="mb-2">
             <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
@@ -90,8 +88,6 @@
 </style>
 
 @code {
-    private string? _message;
-
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()

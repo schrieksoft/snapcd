@@ -10,5 +10,5 @@ public class JobMetadata
     public required string NamespaceName { get; set; }
     public required string StackName { get; set; }
     public Guid ModuleId { get; set; }
-    public required string SourceSubdirectory { get; set; }
+    public required string? SourceSubdirectory { get; set; }
 }

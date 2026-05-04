@@ -98,7 +98,9 @@ public static class SecretHashingHelper
                     algorithm) switch
                 {
                     Rfc2898DeriveBytes result => result,
+#pragma warning disable SYSLIB0060
                     null => new Rfc2898DeriveBytes(secret, salt, iterations, algorithm),
+#pragma warning restore SYSLIB0060
                     var result => throw new CryptographicException(result.GetType().FullName)
                 };
 

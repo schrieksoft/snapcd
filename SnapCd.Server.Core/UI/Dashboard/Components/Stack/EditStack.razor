@@ -45,8 +45,6 @@
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
-    private bool _isSearchingSecretStore;
-
 
     protected override async Task OnParametersSetAsync()
     {

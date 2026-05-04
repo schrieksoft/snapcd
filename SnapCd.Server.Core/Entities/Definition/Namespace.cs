@@ -67,8 +67,6 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public bool? DefaultDriftCheckEnabled { get; set; }
     public int? DefaultDriftCheckIntervalMinutes { get; set; }
 
-    public DateTime CreatedDateTime { get; set; }
-
     public Guid ParentId()
     {
         return StackId;

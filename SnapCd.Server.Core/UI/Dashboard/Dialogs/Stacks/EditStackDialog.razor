@@ -12,7 +12,7 @@
             <DataAnnotationsValidator/>
             <MudGrid Class="pa-4">
                 <MudItem md="12">
-                    <MudTextField For="@(() => Input.Name)" @bind-Value="Input.Name"
+                    <MudTextField For="@(() => Input!.Name)" @bind-Value="Input!.Name"
                                   Label="Name"
                                   UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "true" }, { "aria-required", "true" } })"/>
                 </MudItem>
@@ -55,7 +55,14 @@
         MudDialog.Cancel();
     }
 
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    private InputModel? _input;
+
+    [SupplyParameterFromForm]
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     private sealed class InputModel
     {
@@ -64,7 +71,8 @@
 
     protected override void OnInitialized()
     {
-        Input.Name = Stack.Name;
+        // Pre-fill Name on initial GET; form post will have already populated _input.
+        _input ??= new() { Name = Stack.Name };
     }
 
     private async Task Update()

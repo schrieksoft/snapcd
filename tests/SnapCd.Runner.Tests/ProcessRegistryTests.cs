@@ -172,7 +172,7 @@ public class ProcessRegistryTests
     }
 
     [Fact]
-    public void Registry_ShouldBeThreadSafe()
+    public async Task Registry_ShouldBeThreadSafe()
     {
         // Arrange
         var registry = new ProcessRegistry();
@@ -189,7 +189,7 @@ public class ProcessRegistryTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
         tasks.Clear();
 
         // Cancel processes concurrently
@@ -201,7 +201,7 @@ public class ProcessRegistryTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // Assert - all processes should be removed
         foreach (var requestId in requestIds)

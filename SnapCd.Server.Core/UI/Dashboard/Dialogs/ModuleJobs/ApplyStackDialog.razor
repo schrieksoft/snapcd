@@ -124,7 +124,7 @@
     private bool _isLoading = true;
     private string? _error = null;
     private StackDependencyGraphDto? _dependencyGraph = null;
-    private bool _isApplying;
+    private bool _isApplying = false;
     private ApplyModuleGraphService? _applyService;
     private Dictionary<Guid, bool> _modulePermissions = new();
 
@@ -283,7 +283,7 @@
 
         var result = await confirmationDialog.Result;
 
-        if (!result.Canceled && result.Data is List<Guid> appliedModuleIds)
+        if (result is { Canceled: false, Data: List<Guid> appliedModuleIds })
         {
             // Close the original dialog with the result
             MudDialog.Close(DialogResult.Ok(appliedModuleIds));

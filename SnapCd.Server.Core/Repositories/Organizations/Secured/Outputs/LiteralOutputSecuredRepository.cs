@@ -51,7 +51,7 @@ public class LiteralOutputSecuredRepository : OutputSecuredRepository
         return false;
     }
 
-    public async Task<List<LiteralOutput>> ListByIds(List<Guid> ids, Guid organizationId)
+    public new async Task<List<LiteralOutput>> ListByIds(List<Guid> ids, Guid organizationId)
     {
         var outputs = await Repository.ListByIds(ids, organizationId);
 

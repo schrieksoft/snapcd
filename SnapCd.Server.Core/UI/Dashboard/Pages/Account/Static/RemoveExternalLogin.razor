@@ -297,7 +297,14 @@
 
     [SupplyParameterFromQuery] private string? ProviderKey { get; set; }
 
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    private InputModel? _input;
+
+    [SupplyParameterFromForm]
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 

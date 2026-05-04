@@ -42,7 +42,7 @@ else
     [Parameter] public Guid ModuleJobId { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    private Dictionary<string, string?>? _logs;
+    private Dictionary<string, string>? _logs;
     private Dictionary<string, string?> _htmlLogs = new();
 
     protected override void OnInitialized()
