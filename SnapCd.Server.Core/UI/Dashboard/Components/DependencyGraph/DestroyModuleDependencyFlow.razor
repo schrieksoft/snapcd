@@ -1,0 +1,223 @@
+@using SnapCd.Server.Core.Dtos
+@using SnapCd.Server.Core.Enums
+@inject NavigationManager Navigation
+
+<div class="dag-stages"
+     style="display: flex; gap: 24px; min-width: max-content; padding: 16px; overflow-x: auto; width: 100%;">
+    @{
+        // Group nodes by stage, lowest stage number first (Stage 1 = first to be destroyed).
+        var stagesList = DestroyGraph.NodeStates
+            .GroupBy(n => n.Stage)
+            .OrderBy(g => g.Key)
+            .ToList();
+    }
+
+    @foreach (var stage in stagesList)
+    {
+        <div class="stage-column" style="min-width: 280px; flex-shrink: 0;">
+            @{
+                var executionOrder = stagesList.IndexOf(stage) + 1;
+            }
+            <MudText Typo="Typo.h6" Class="mb-3" Align="Align.Center">
+                Stage @executionOrder
+            </MudText>
+            <MudText Typo="Typo.caption" Class="mb-3" Align="Align.Center">
+                Destroyed @(executionOrder == 1 ? "first" : $"after Stage {executionOrder - 1}")
+            </MudText>
+
+            <MudStack Spacing="2">
+                @{
+                    var namespaceGroups = stage
+                        .GroupBy(n => n.NamespaceName)
+                        .OrderBy(g => g.Key);
+                }
+
+                @foreach (var namespaceGroup in namespaceGroups)
+                {
+                    <MudCard Elevation="1" Class="mb-2">
+                        <MudCardHeader Class="pb-2">
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.body1" Class="font-weight-bold">
+                                    @namespaceGroup.Key
+                                </MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent Class="pt-0">
+                            <MudStack Spacing="1">
+                                @foreach (var node in namespaceGroup.OrderBy(n => n.ModuleName))
+                                {
+                                    var isRoot = node.ModuleId == DestroyGraph.RootModuleId;
+
+                                    <MudCard Elevation="0" Style="@GetModuleCardStyle(node, isRoot)">
+                                        <MudCardHeader Class="pb-2">
+                                            <CardHeaderContent>
+                                                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                                    <MudLink Href="@($"/Stacks/{node.DisplayName}")"
+                                                             Typo="Typo.body2"
+                                                             Class="font-weight-medium"
+                                                             Style="@(isRoot ? "color: white !important;" : "")">
+                                                        @node.ModuleName@(isRoot ? " (This module)" : "")
+                                                    </MudLink>
+                                                    <MudIcon Icon="@GetStateIcon(node)"
+                                                             Color="@GetStateColor(node)"
+                                                             Size="Size.Small" />
+                                                </MudStack>
+                                                <MudText Typo="Typo.caption"
+                                                         Style="@(isRoot ? "color: white;" : "")"
+                                                         Color="@(isRoot ? Color.Default : GetStateColor(node))">
+                                                    @GetStateText(node)
+                                                </MudText>
+                                            </CardHeaderContent>
+                                        </MudCardHeader>
+
+                                        @if (node.DependentModules.Any() || node.DependencyModules.Any())
+                                        {
+                                            <MudExpansionPanels Elevation="0" Class="ma-0">
+                                                <MudExpansionPanel Class="pa-2"
+                                                                   Style="@(isRoot ? "background-color: var(--mud-palette-black) !important; color: white !important;" : "")">
+                                                    <TitleContent>
+                                                        <div style="display: flex; align-items: center;">
+                                                            <MudIcon Icon="@Icons.Material.Filled.AccountTree" class="mr-3" />
+                                                            <MudText Typo="Typo.body2">Dependencies</MudText>
+                                                        </div>
+                                                    </TitleContent>
+                                                    <ChildContent>
+                                                        <MudStack Spacing="2" Class="pa-2">
+                                                            @if (node.DependentModules.Any())
+                                                            {
+                                                                <div>
+                                                                    <MudText Typo="Typo.caption" Class="font-weight-bold mb-1">
+                                                                        This module is depended on by (destroyed first):
+                                                                    </MudText>
+                                                                    <MudStack Spacing="1" Class="ml-3 mb-2" AlignItems="AlignItems.Start">
+                                                                        @foreach (var dep in node.DependentModules)
+                                                                        {
+                                                                            <MudChip T="string" Size="Size.Small"
+                                                                                     Color="Color.Info"
+                                                                                     Variant="Variant.Text"
+                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{dep}"))">
+                                                                                @dep
+                                                                            </MudChip>
+                                                                        }
+                                                                    </MudStack>
+                                                                </div>
+                                                            }
+
+                                                            @if (node.DependencyModules.Any())
+                                                            {
+                                                                @if (node.DependentModules.Any())
+                                                                {
+                                                                    <MudDivider />
+                                                                }
+                                                                <div>
+                                                                    <MudText Typo="Typo.caption" Class="font-weight-bold mb-1">
+                                                                        This module depends on (destroyed after):
+                                                                    </MudText>
+                                                                    <MudStack Spacing="1" Class="ml-3" AlignItems="AlignItems.Start">
+                                                                        @foreach (var trigger in node.DependencyModules)
+                                                                        {
+                                                                            <MudChip T="string" Size="Size.Small"
+                                                                                     Color="Color.Info"
+                                                                                     Variant="Variant.Text"
+                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{trigger}"))">
+                                                                                @trigger
+                                                                            </MudChip>
+                                                                        }
+                                                                    </MudStack>
+                                                                </div>
+                                                            }
+                                                        </MudStack>
+                                                    </ChildContent>
+                                                </MudExpansionPanel>
+                                            </MudExpansionPanels>
+                                        }
+                                    </MudCard>
+                                }
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </MudStack>
+        </div>
+
+        @if (stage != stagesList.Last())
+        {
+            <div class="stage-arrow"
+                 style="display: flex; align-items: center; justify-content: center; min-width: 40px; height: 100%;">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Large" Color="Color.Default" />
+            </div>
+        }
+    }
+</div>
+
+@if (!DestroyGraph.NodeStates.Any())
+{
+    <MudAlert Severity="Severity.Info">
+        Nothing to destroy — the graph is empty.
+    </MudAlert>
+}
+
+<style>
+    .stage-column {
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .stage-arrow {
+        opacity: 0.5;
+    }
+</style>
+
+@code {
+    [Parameter] public DestroyModuleGraphDto DestroyGraph { get; set; } = null!;
+
+    private static string GetModuleCardStyle(DestroyModuleNodeDto node, bool isRoot)
+    {
+        if (isRoot)
+        {
+            return "background-color: var(--mud-palette-black) !important; color: white !important; border: 2px solid var(--mud-palette-error);";
+        }
+        if (node.IsAlreadyDestroyed)
+        {
+            // Already destroyed — render as no-op so the user can see it's a passthrough.
+            return "background-color: #d0d0d0 !important; color: #616161 !important;";
+        }
+        if (node.CanBeDestroyed)
+        {
+            return "border: 1px solid var(--mud-palette-error);";
+        }
+        // Currently in some non-Applied, non-Destroyed state (failed, cancelled, etc.) — flag it.
+        return "border: 1px solid var(--mud-palette-warning);";
+    }
+
+    private static string GetStateIcon(DestroyModuleNodeDto node) => node.ActualState switch
+    {
+        ActualStateHeadline.Applied => Icons.Material.Filled.CheckCircle,
+        ActualStateHeadline.Destroyed => Icons.Material.Filled.RemoveCircleOutline,
+        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => Icons.Material.Filled.Error,
+        ActualStateHeadline.ApplyCancelled or ActualStateHeadline.DestroyCancelled => Icons.Material.Filled.Cancel,
+        ActualStateHeadline.ApplyTimeout or ActualStateHeadline.DestroyTimeout => Icons.Material.Filled.Schedule,
+        ActualStateHeadline.ApplyNotApproved or ActualStateHeadline.DestroyNotApproved => Icons.Material.Filled.Block,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private static Color GetStateColor(DestroyModuleNodeDto node) => node.ActualState switch
+    {
+        ActualStateHeadline.Applied => Color.Success,
+        ActualStateHeadline.Destroyed => Color.Default,
+        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => Color.Error,
+        ActualStateHeadline.ApplyCancelled or ActualStateHeadline.DestroyCancelled => Color.Warning,
+        ActualStateHeadline.ApplyTimeout or ActualStateHeadline.DestroyTimeout => Color.Warning,
+        ActualStateHeadline.ApplyNotApproved or ActualStateHeadline.DestroyNotApproved => Color.Warning,
+        _ => Color.Default
+    };
+
+    private static string GetStateText(DestroyModuleNodeDto node)
+    {
+        if (node.IsAlreadyDestroyed) return "Already destroyed — will be skipped";
+        if (node.CanBeDestroyed) return "Will be destroyed";
+        return node.ActualState?.ToString() ?? "Unknown state";
+    }
+}
