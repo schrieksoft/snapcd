@@ -62,10 +62,6 @@ jobs:
           -c Release -o out/snapcd-runner \
           -r linux-x64 --self-contained \
           /p:Version=$SEMVER
-        dotnet publish SnapCd.Runner/SnapCd.Runner.csproj \
-          -c Release -o out/snapcd-runner-azure \
-          -r linux-x64 --self-contained \
-          /p:Version=$SEMVER
 
     - name: Zip binaries
       env:

@@ -6,7 +6,7 @@ EXPOSE 443
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://*:80
 
-COPY out/snapcd-runner-azure/ ./
+COPY out/snapcd-runner/ ./
 RUN chmod +x /app/SnapCd.Runner
 
 ENTRYPOINT ["./SnapCd.Runner"]
