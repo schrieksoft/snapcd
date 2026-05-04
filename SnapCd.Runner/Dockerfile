@@ -1,11 +1,7 @@
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble
+FROM ghcr.io/schrieksoft/base-image-snapcd-runner:1.0.0
 
 EXPOSE 80
 EXPOSE 443
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git openssh-client wget curl && \
-    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://*:80
