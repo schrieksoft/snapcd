@@ -75,20 +75,15 @@ public class TerraformEngine : BaseEngine, IEngine
         string? beforeHook,
         string? afterHook,
         EngineBackendConfiguration backendConfig,
-        EngineFlags flags,
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
         EnvVars = resolvedEnvVars;
         SaveEnvVarsToFile();
 
-        // Determine effective flags by checking BOTH deprecated booleans and new flag entities
-        var upgradeRequested = flags.AutoUpgradeEnabled
-            || EngineFlags.Any(f => f.Flag == "-upgrade");
-        var reconfigureRequested = flags.AutoReconfigureEnabled
-            || EngineFlags.Any(f => f.Flag == "-reconfigure");
-        var migrateRequested = flags.AutoMigrateEnabled
-            || EngineFlags.Any(f => f.Flag == "-migrate-state");
+        var upgradeRequested = EngineFlags.Any(f => f.Flag == "-upgrade");
+        var reconfigureRequested = EngineFlags.Any(f => f.Flag == "-reconfigure");
+        var migrateRequested = EngineFlags.Any(f => f.Flag == "-migrate-state");
 
         // Remove init-managed flags from new flag lists to prevent duplication via AppendFlagArgs
         EngineFlags.RemoveAll(f => f.Flag is "-upgrade" or "-reconfigure" or "-migrate-state");
@@ -109,11 +104,10 @@ public class TerraformEngine : BaseEngine, IEngine
         else
             baseScript = initCommand;
 
-        var backendConfigArgs = BuildMergedBackendConfigArgs(backendConfig, backendConfigEntries);
+        var backendConfigArgs = BuildBackendConfigArgs(backendConfigEntries);
         if (!string.IsNullOrWhiteSpace(backendConfigArgs))
             baseScript += $" {backendConfigArgs}";
 
-        // Append remaining (non-init-specific) flags
         baseScript = AppendFlagArgs(baseScript);
 
         var script = await CreateScriptAsync(
@@ -127,22 +121,10 @@ public class TerraformEngine : BaseEngine, IEngine
         return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
     }
 
-    private string BuildMergedBackendConfigArgs(
-        EngineBackendConfiguration backend,
-        List<EngineArrayFlagEntry> backendConfigEntries)
+    private static string BuildBackendConfigArgs(List<EngineArrayFlagEntry> backendConfigEntries)
     {
         var backendConfigs = new Dictionary<string, string>();
 
-        // Old source: namespace configs (lowest priority)
-        if (!backend.IgnoreNamespaceBackendConfigs)
-            foreach (var config in backend.NamespaceBackendConfigs)
-                backendConfigs[config.Name] = config.Value;
-
-        // Old source: module configs (override namespace)
-        foreach (var config in backend.ModuleBackendConfigs)
-            backendConfigs[config.Name] = config.Value;
-
-        // New source: TerraformArrayFlag.BackendConfig entries (highest priority)
         foreach (var entry in backendConfigEntries)
         {
             var eqIndex = entry.Value.IndexOf('=');

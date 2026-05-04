@@ -1,3 +1,4 @@
+@using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
@@ -5,19 +6,30 @@
 @inherits ComponentBase
 
 <MudGrid>
-    <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
+    <MudItem xs="12" md="8" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="File Name"
-                          @bind-Value="Context.Name"
-                          Immediate="true"
-                          FullWidth="true"/>
+            <MudSelect T="HookTask" Label="Task" @bind-Value="Context.Task" Variant="Variant.Outlined" Immediate="true">
+                @foreach (var val in Enum.GetValues<HookTask>())
+                {
+                    <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
+                }
+            </MudSelect>
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Value"
-                          @bind-Value="Context.Value"
+            <MudSelect T="HookPhase" Label="Phase" @bind-Value="Context.Phase" Variant="Variant.Outlined" Immediate="true">
+                @foreach (var val in Enum.GetValues<HookPhase>())
+                {
+                    <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="Script"
+                          @bind-Value="Context.Script"
                           Immediate="true"
-                          Lines="15"
+                          Lines="6"
                           FullWidth="true"/>
         </MudItem>
 
@@ -59,7 +71,7 @@
 
 @code {
     [Parameter] public bool IsCreateMode { get; set; } = true;
-    [Parameter] public ModuleBackendConfig Context { get; set; } = default!;
+    [Parameter] public NamespaceHook Context { get; set; } = default!;
     [Parameter] public EventCallback OnDelete { get; set; }
     [Parameter] public EventCallback OnCreate { get; set; }
     [Parameter] public EventCallback OnUpdate { get; set; }
@@ -67,10 +79,10 @@
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    [Inject] private ModuleBackendConfigSecuredRepositoryFactory ModuleBackendConfigSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceHookSecuredRepositoryFactory NamespaceHookSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
-    private ModuleBackendConfig _original = new();
+    private NamespaceHook _original = new();
 
     protected override void OnInitialized()
     {
@@ -78,15 +90,17 @@
     }
 
     private bool HasChanges =>
-        Context.Name != _original.Name ||
-        Context.Value != _original.Value;
+        Context.Task != _original.Task ||
+        Context.Phase != _original.Phase ||
+        Context.Script != _original.Script;
 
     private void SetOriginal()
     {
-        _original = new ModuleBackendConfig
+        _original = new NamespaceHook
         {
-            Name = Context.Name,
-            Value = Context.Value
+            Task = Context.Task,
+            Phase = Context.Phase,
+            Script = Context.Script
         };
     }
 
@@ -94,15 +108,15 @@
     {
         try
         {
-            using var repo = ModuleBackendConfigSecuredRepositoryFactory.Create(PrincipalProvider);
+            using var repo = NamespaceHookSecuredRepositoryFactory.Create(PrincipalProvider);
             await repo.Delete(Context.Id, OrganizationId);
 
             await OnDelete.InvokeAsync();
-            Snackbar.Add("Backend config deleted successfully", Severity.Success);
+            Snackbar.Add("Hook deleted successfully", Severity.Success);
         }
         catch (Exception ex)
         {
-            ExceptionHandler.HandleException(Snackbar, ex, "deleting backend config");
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting hook");
         }
     }
 
@@ -110,14 +124,14 @@
     {
         try
         {
-            using var repo = ModuleBackendConfigSecuredRepositoryFactory.Create(PrincipalProvider);
+            using var repo = NamespaceHookSecuredRepositoryFactory.Create(PrincipalProvider);
             await repo.Create(Context);
             await OnCreate.InvokeAsync();
-            Snackbar.Add("Backend config created successfully", Severity.Success);
+            Snackbar.Add("Hook created successfully", Severity.Success);
         }
         catch (Exception ex)
         {
-            ExceptionHandler.HandleException(Snackbar, ex, "creating backend config");
+            ExceptionHandler.HandleException(Snackbar, ex, "creating hook");
         }
     }
 
@@ -125,15 +139,15 @@
     {
         try
         {
-            using var repo = ModuleBackendConfigSecuredRepositoryFactory.Create(PrincipalProvider);
+            using var repo = NamespaceHookSecuredRepositoryFactory.Create(PrincipalProvider);
             await repo.Update(Context);
             SetOriginal();
             await OnUpdate.InvokeAsync();
-            Snackbar.Add("Backend config updated successfully", Severity.Success);
+            Snackbar.Add("Hook updated successfully", Severity.Success);
         }
         catch (Exception ex)
         {
-            ExceptionHandler.HandleException(Snackbar, ex, "updating backend config");
+            ExceptionHandler.HandleException(Snackbar, ex, "updating hook");
         }
     }
 

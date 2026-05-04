@@ -119,9 +119,6 @@ public class InitConsumer : IConsumer<InitRequested>
                     InitAfterHook = msg.Declared.InitAfterHook,
                     BackendConfiguration = new EngineBackendConfiguration
                     {
-                        IgnoreNamespaceBackendConfigs = msg.Declared.IgnoreNamespaceBackendConfigs,
-                        NamespaceBackendConfigs = msg.Declared.NamespaceBackendConfigs,
-                        ModuleBackendConfigs = msg.Declared.ModuleBackendConfigs,
                         PulumiFlags = msg.Declared.PulumiFlags
                             .Where(f => f.Task == PulumiCommandTask.Init)
                             .ToList(),
@@ -134,12 +131,6 @@ public class InitConsumer : IConsumer<InitRequested>
                         TerraformArrayFlags = msg.Declared.TerraformArrayFlags
                             .Where(f => f.Task == TerraformCommandTask.Init)
                             .ToList()
-                    },
-                    Flags = new EngineFlags
-                    {
-                        AutoUpgradeEnabled = msg.Declared.AutoUpgradeEnabled,
-                        AutoReconfigureEnabled = msg.Declared.AutoReconfigureEnabled,
-                        AutoMigrateEnabled = msg.Declared.AutoMigrateEnabled
                     },
                     CleanInitEnabled = msg.Declared.CleanInitEnabled,
                     ResolvedEnvVars = resolvedEnvVars

@@ -61,8 +61,6 @@ public static class SecuredRepositories
         services.AddScoped<DependsOnModuleSecuredRepository>();
         services.AddScoped<ModuleExtraFileSecuredRepository>();
         services.AddScoped<NamespaceExtraFileSecuredRepository>();
-        services.AddScoped<ModuleBackendConfigSecuredRepository>();
-        services.AddScoped<NamespaceBackendConfigSecuredRepository>();
         services.AddScoped<ModulePulumiFlagSecuredRepository>();
         services.AddScoped<ModulePulumiArrayFlagSecuredRepository>();
         services.AddScoped<NamespacePulumiFlagSecuredRepository>();

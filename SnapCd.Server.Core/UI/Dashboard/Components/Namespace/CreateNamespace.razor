@@ -39,34 +39,6 @@
                 DefaultApprovalTimeoutMinutes="@NewNamespace.DefaultApprovalTimeoutMinutes"
                 DefaultApprovalTimeoutMinutesChanged="@(v => NewNamespace.DefaultApprovalTimeoutMinutes = v)"/>
 
-            <!-- Default Auto-Upgrade Settings -->
-            <MudItem md="12">
-                <MudText Typo="Typo.body1">Default Auto Upgrade Enabled (Deprecated)</MudText>
-                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultAutoUpgradeEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
-                </MudRadioGroup>
-            </MudItem>
-
-            <MudItem md="12">
-                <MudText Typo="Typo.body1">Default Auto Reconfigure Enabled (Deprecated)</MudText>
-                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultAutoReconfigureEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
-                </MudRadioGroup>
-            </MudItem>
-
-            <MudItem md="12">
-                <MudText Typo="Typo.body1">Default Auto Migrate Enabled (Deprecated)</MudText>
-                <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultAutoMigrateEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
-                </MudRadioGroup>
-            </MudItem>
-
             <MudItem md="12">
                 <MudText Typo="Typo.body1">Default Clean Init Enabled</MudText>
                 <MudRadioGroup T="bool?" @bind-Value="NewNamespace.DefaultCleanInitEnabled">
@@ -91,14 +63,14 @@
                               Variant="Variant.Outlined"/>
             </MudItem>
 
-            <!-- Backend Configuration Section -->
+            <!-- Hooks -->
             <MudItem md="12">
                 <MudExpansionPanels>
-                    <MudExpansionPanel Text="Backend Configuration">
+                    <MudExpansionPanel Text="Hooks">
                         <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
-                            Default backend configurations for modules in this namespace can be added after the
-                            namespace is created.
-                            These configurations provide default values that modules inherit unless overridden.
+                            Hooks can be added after the namespace is created. Hooks let you set default shell scripts
+                            to run before or after each Task (Init, Plan, PlanDestroy, Apply, Destroy, Output, Validate)
+                            for all modules in this namespace.
                         </MudAlert>
                     </MudExpansionPanel>
                 </MudExpansionPanels>
@@ -176,53 +148,6 @@
                 </MudExpansionPanels>
             </MudItem>
 
-            <!-- Hooks Section -->
-            <MudItem md="12">
-                <MudExpansionPanels>
-                    @CreateHookPanel("Init Hooks",
-                        NewNamespace.DefaultInitBeforeHook,
-                        val => NewNamespace.DefaultInitBeforeHook = val,
-                        NewNamespace.DefaultInitAfterHook,
-                        val => NewNamespace.DefaultInitAfterHook = val)
-
-                    @CreateHookPanel("Validate Hooks",
-                        NewNamespace.DefaultValidateBeforeHook,
-                        val => NewNamespace.DefaultValidateBeforeHook = val,
-                        NewNamespace.DefaultValidateAfterHook,
-                        val => NewNamespace.DefaultValidateAfterHook = val)
-
-                    @CreateHookPanel("Plan Hooks",
-                        NewNamespace.DefaultPlanBeforeHook,
-                        val => NewNamespace.DefaultPlanBeforeHook = val,
-                        NewNamespace.DefaultPlanAfterHook,
-                        val => NewNamespace.DefaultPlanAfterHook = val)
-
-                    @CreateHookPanel("Apply Hooks",
-                        NewNamespace.DefaultApplyBeforeHook,
-                        val => NewNamespace.DefaultApplyBeforeHook = val,
-                        NewNamespace.DefaultApplyAfterHook,
-                        val => NewNamespace.DefaultApplyAfterHook = val)
-
-                    @CreateHookPanel("Plan Destroy Hooks",
-                        NewNamespace.DefaultPlanDestroyBeforeHook,
-                        val => NewNamespace.DefaultPlanDestroyBeforeHook = val,
-                        NewNamespace.DefaultPlanDestroyAfterHook,
-                        val => NewNamespace.DefaultPlanDestroyAfterHook = val)
-
-                    @CreateHookPanel("Destroy Hooks",
-                        NewNamespace.DefaultDestroyBeforeHook,
-                        val => NewNamespace.DefaultDestroyBeforeHook = val,
-                        NewNamespace.DefaultDestroyAfterHook,
-                        val => NewNamespace.DefaultDestroyAfterHook = val)
-
-                    @CreateHookPanel("Output Hooks",
-                        NewNamespace.DefaultOutputBeforeHook,
-                        val => NewNamespace.DefaultOutputBeforeHook = val,
-                        NewNamespace.DefaultOutputAfterHook,
-                        val => NewNamespace.DefaultOutputAfterHook = val)
-                </MudExpansionPanels>
-            </MudItem>
-
             <!-- Action Buttons -->
             <MudItem md="12">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnCreate">Create</MudButton>
@@ -259,24 +184,6 @@
         _pulumiEnabled = await dbContext.PreviewFeatureAcceptances
             .AnyAsync(p => p.OrganizationId == OrganizationId && p.PreviewFeature == PreviewFeature.Pulumi);
     }
-
-    private RenderFragment CreateHookPanel(
-        string title,
-        string? beforeHookValue,
-        Action<string?> beforeHookValueChanged,
-        string? afterHookValue,
-        Action<string?> afterHookValueChanged) =>
-        @<MudExpansionPanel Text="@title">
-            <MudTextField Label="Before Hook"
-                          Value="@beforeHookValue"
-                          ValueChanged="@beforeHookValueChanged"
-                          Multiline Rows="3"/>
-            <MudTextField Label="After Hook"
-                          Value="@afterHookValue"
-                          ValueChanged="@afterHookValueChanged"
-                          Multiline Rows="3"/>
-        </MudExpansionPanel>;
-
 
     private async Task OnCreate()
     {

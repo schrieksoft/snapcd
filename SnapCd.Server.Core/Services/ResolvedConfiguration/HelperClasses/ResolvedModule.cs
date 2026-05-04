@@ -1,8 +1,6 @@
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Misc;
-using SnapCd.Contracts.Dto.ModuleBackendConfigs;
 using SnapCd.Contracts.Dto.ModuleInputs;
-using SnapCd.Contracts.Dto.NamespaceBackendConfigs;
 using SnapCd.Contracts.Dto.NamespaceInputs;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 
@@ -55,14 +53,8 @@ public class ResolvedModule
     public string? RunnerInstanceName { get; set; }
     public string? InitBeforeHook { get; set; }
     public string? InitAfterHook { get; set; }
-    public bool IgnoreNamespaceBackendConfigs { get; set; }
     public bool IgnoreNamespaceExtraFiles { get; set; }
-    public List<NamespaceBackendConfigReadDto> NamespaceBackendConfigs { get; set; } = new();
-    public List<ModuleBackendConfigReadDto> ModuleBackendConfigs { get; set; } = new();
 
-    public bool AutoUpgradeEnabled { get; set; }
-    public bool AutoReconfigureEnabled { get; set; }
-    public bool AutoMigrateEnabled { get; set; }
     public bool CleanInitEnabled { get; set; }
     public bool DriftCheckEnabled { get; set; }
     public int? DriftCheckIntervalMinutes { get; set; }

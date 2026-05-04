@@ -63,8 +63,6 @@ public static class Repositories
         services.AddScoped<DependsOnModuleRepository>();
         services.AddScoped<ModuleExtraFileRepository>();
         services.AddScoped<NamespaceExtraFileRepository>();
-        services.AddScoped<ModuleBackendConfigRepository>();
-        services.AddScoped<NamespaceBackendConfigRepository>();
         services.AddScoped<ModulePulumiFlagRepository>();
         services.AddScoped<ModulePulumiArrayFlagRepository>();
         services.AddScoped<NamespacePulumiFlagRepository>();

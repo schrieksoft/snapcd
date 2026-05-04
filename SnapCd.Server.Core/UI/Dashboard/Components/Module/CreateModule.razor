@@ -154,12 +154,6 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceBackendConfigs"
-                           Label="Ignore Namespace Backend Configs (Deprecated)"
-                           Color="Color.Info"/>
-            </MudItem>
-
-            <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceExtraFiles"
                            Label="Ignore Namespace Extra Files"
                            Color="Color.Info"/>
@@ -169,34 +163,6 @@
                 <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceFlags"
                            Label="Ignore Namespace Flags"
                            Color="Color.Info"/>
-            </MudItem>
-
-            <!-- Auto-Upgrade Settings -->
-            <MudItem md="12">
-                <MudText Typo="Typo.body1">Auto Upgrade Enabled (Deprecated)</MudText>
-                <MudRadioGroup T="bool?" @bind-Value="NewModule.AutoUpgradeEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
-                </MudRadioGroup>
-            </MudItem>
-
-            <MudItem md="12">
-                <MudText Typo="Typo.body1">Auto Reconfigure Enabled (Deprecated)</MudText>
-                <MudRadioGroup T="bool?" @bind-Value="NewModule.AutoReconfigureEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
-                </MudRadioGroup>
-            </MudItem>
-
-            <MudItem md="12">
-                <MudText Typo="Typo.body1">Auto Migrate Enabled (Deprecated)</MudText>
-                <MudRadioGroup T="bool?" @bind-Value="NewModule.AutoMigrateEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
-                </MudRadioGroup>
             </MudItem>
 
             <MudItem md="12">
@@ -222,19 +188,17 @@
                               Variant="Variant.Outlined"/>
             </MudItem>
 
-            <!-- Backend Configuration Section -->
+            <!-- Hooks -->
             <MudItem md="12">
                 <MudExpansionPanels>
-                    <MudExpansionPanel Text="Backend Configuration">
+                    <MudExpansionPanel Text="Hooks">
                         <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left">
-                            Module-specific backend configurations can be added after the module is created.
-                            These configurations override namespace defaults and are used during Terraform
-                            initialization.
+                            Hooks can be added after the module is created. Hooks let you run shell scripts before or
+                            after each Task (Init, Plan, PlanDestroy, Apply, Destroy, Output, Validate).
                         </MudAlert>
                     </MudExpansionPanel>
                 </MudExpansionPanels>
             </MudItem>
-
 
             <!-- Engine Flags -->
             <MudItem md="12">
@@ -306,55 +270,6 @@
                 </MudExpansionPanels>
             </MudItem>
 
-            <!-- Hooks Section -->
-            <MudItem md="12">
-                <MudExpansionPanels>
-                    @CreateHookPanel("Init Hooks",
-                        NewModule.InitBeforeHook,
-                        val => NewModule.InitBeforeHook = val,
-                        NewModule.InitAfterHook,
-                        val => NewModule.InitAfterHook = val)
-
-                    @CreateHookPanel("Validate Hooks",
-                        NewModule.ValidateBeforeHook,
-                        val => NewModule.ValidateBeforeHook = val,
-                        NewModule.ValidateAfterHook,
-                        val => NewModule.ValidateAfterHook = val)
-
-                    @CreateHookPanel("Plan Hooks",
-                        NewModule.PlanBeforeHook,
-                        val => NewModule.PlanBeforeHook = val,
-                        NewModule.PlanAfterHook,
-                        val => NewModule.PlanAfterHook = val)
-                    
-                    @CreateHookPanel("Apply Hooks",
-                        NewModule.ApplyBeforeHook,
-                        val => NewModule.ApplyBeforeHook = val,
-                        NewModule.ApplyAfterHook,
-                        val => NewModule.ApplyAfterHook = val)
-
-                    @CreateHookPanel("Plan Destroy Hooks",
-                        NewModule.PlanDestroyBeforeHook,
-                        val => NewModule.PlanDestroyBeforeHook = val,
-                        NewModule.PlanDestroyAfterHook,
-                        val => NewModule.PlanDestroyAfterHook = val)
-
-                    @CreateHookPanel("Destroy Hooks",
-                        NewModule.DestroyBeforeHook,
-                        val => NewModule.DestroyBeforeHook = val,
-                        NewModule.DestroyAfterHook,
-                        val => NewModule.DestroyAfterHook = val)
-
-                    @CreateHookPanel("Output Hooks",
-                        NewModule.OutputBeforeHook,
-                        val => NewModule.OutputBeforeHook = val,
-                        NewModule.OutputAfterHook,
-                        val => NewModule.OutputAfterHook = val)
-                </MudExpansionPanels>
-            </MudItem>
-
-
-
             <!-- Action Buttons -->
             <MudItem md="12" class="d-flex justify-end gap-2">
                 <MudButton ButtonType="ButtonType.Submit"
@@ -403,24 +318,6 @@
         _pulumiEnabled = await dbContext.PreviewFeatureAcceptances
             .AnyAsync(p => p.OrganizationId == OrganizationId && p.PreviewFeature == PreviewFeature.Pulumi);
     }
-
-    private RenderFragment CreateHookPanel(
-        string title,
-        string? beforeHookValue,
-        Action<string?> beforeHookValueChanged,
-        string? afterHookValue,
-        Action<string?> afterHookValueChanged) =>
-        @<MudExpansionPanel Text="@title">
-            <MudTextField Label="Before Hook"
-                          Value="@beforeHookValue"
-                          ValueChanged="@beforeHookValueChanged"
-                          Multiline Rows="3"/>
-            <MudTextField Label="After Hook"
-                          Value="@afterHookValue"
-                          ValueChanged="@afterHookValueChanged"
-                          Multiline Rows="3"/>
-        </MudExpansionPanel>;
-
 
     private async Task Create()
     {

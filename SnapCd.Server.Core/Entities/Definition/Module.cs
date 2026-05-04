@@ -71,55 +71,12 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public virtual ICollection<UserModuleRoleAssignment> UserModuleRoleAssignments { get; set; } = new List<UserModuleRoleAssignment>();
     public virtual ICollection<ServicePrincipalModuleRoleAssignment> ServicePrincipalModuleRoleAssignments { get; set; } = new List<ServicePrincipalModuleRoleAssignment>();
     public virtual ICollection<GroupModuleRoleAssignment> GroupModuleRoleAssignments { get; set; } = new List<GroupModuleRoleAssignment>();
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? InitBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? InitAfterHook { get; set; }
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool IgnoreNamespaceBackendConfigs { get; set; }
+
     public bool IgnoreNamespaceExtraFiles { get; set; }
     public bool IgnoreNamespaceFlags { get; set; }
     public bool IgnoreNamespaceHooks { get; set; }
 
-    public List<ModuleBackendConfig> BackendConfigs { get; set; } = new();
-
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? AutoUpgradeEnabled { get; set; }
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? AutoReconfigureEnabled { get; set; }
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? AutoMigrateEnabled { get; set; }
     public bool? CleanInitEnabled { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? PlanBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? PlanAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? PlanDestroyBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? PlanDestroyAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? ApplyBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? ApplyAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? OutputBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? OutputAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? DestroyBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? DestroyAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? ValidateBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    [MaxLength(8000)] public string? ValidateAfterHook { get; set; }
 
     public List<ModuleHook> Hooks { get; set; } = new();
 

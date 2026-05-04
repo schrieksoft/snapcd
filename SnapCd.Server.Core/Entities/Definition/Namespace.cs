@@ -41,48 +41,7 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     [JsonIgnore] // So that JSON Serialization does not create a loop
     public Stack Stack { get; set; } = null!;
 
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultInitBeforeHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultInitAfterHook { get; set; }
-    public List<NamespaceBackendConfig> BackendConfigs { get; set; } = new();
-
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? DefaultAutoUpgradeEnabled { get; set; }
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? DefaultAutoReconfigureEnabled { get; set; }
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? DefaultAutoMigrateEnabled { get; set; }
     public bool? DefaultCleanInitEnabled { get; set; }
-
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultPlanBeforeHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultPlanAfterHook { get; set; }
-
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultPlanDestroyBeforeHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultPlanDestroyAfterHook { get; set; }
-
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultApplyBeforeHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultApplyAfterHook { get; set; }
-
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultOutputBeforeHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultOutputAfterHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultDestroyBeforeHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultDestroyAfterHook { get; set; }
-
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultValidateBeforeHook { get; set; }
-    [Obsolete("Use NamespaceHook entities instead. If both are set on the same (Task, Phase), the NamespaceHook entity wins.")]
-    [MaxLength(8000)] public string? DefaultValidateAfterHook { get; set; }
 
     public List<NamespaceHook> Hooks { get; set; } = new();
 

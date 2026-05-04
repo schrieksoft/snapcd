@@ -2,8 +2,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using SnapCd.Contracts;
-using SnapCd.Contracts.Dto.ModuleBackendConfigs;
-using SnapCd.Contracts.Dto.NamespaceBackendConfigs;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Services;
@@ -275,23 +273,11 @@ public class EngineTests : IDisposable
 
         CopyDirectory(fixtureSource, _engine.GetInitDir());
 
-        // First init
         await _engine.Init(
             new Dictionary<string, string>(),
             null,
             null,
-            new EngineBackendConfiguration
-            {
-                IgnoreNamespaceBackendConfigs = true,
-                NamespaceBackendConfigs = new List<NamespaceBackendConfigReadDto>(),
-                ModuleBackendConfigs = new List<ModuleBackendConfigReadDto>()
-            },
-            new EngineFlags
-            {
-                AutoUpgradeEnabled = false,
-                AutoReconfigureEnabled = false,
-                AutoMigrateEnabled = false
-            });
+            new EngineBackendConfiguration());
 
         // Act
         var result = await _engine.Plan(parameters, null, null);
@@ -322,32 +308,14 @@ public class EngineTests : IDisposable
         return engine;
     }
 
-    private static EngineBackendConfiguration EmptyBackendConfig() => new()
-    {
-        IgnoreNamespaceBackendConfigs = true,
-        NamespaceBackendConfigs = new List<NamespaceBackendConfigReadDto>(),
-        ModuleBackendConfigs = new List<ModuleBackendConfigReadDto>()
-    };
-
-    private static EngineFlags NoFlags() => new()
-    {
-        AutoUpgradeEnabled = false,
-        AutoReconfigureEnabled = false,
-        AutoMigrateEnabled = false
-    };
-
-    private async Task<string> RunInitAndGetScript(
-        TerraformEngine engine,
-        EngineFlags flags,
-        EngineBackendConfiguration? backendConfig = null)
+    private async Task<string> RunInitAndGetScript(TerraformEngine engine)
     {
         try
         {
             await engine.Init(
                 new Dictionary<string, string>(),
                 null, null,
-                backendConfig ?? EmptyBackendConfig(),
-                flags);
+                new EngineBackendConfiguration());
         }
         catch
         {
@@ -359,51 +327,24 @@ public class EngineTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_WithOnlyDeprecatedUpgrade_ShouldAddUpgradeOnce()
-    {
-        var engine = CreateEngineWithFlags();
-        var flags = NoFlags();
-        flags.AutoUpgradeEnabled = true;
-
-        var script = await RunInitAndGetScript(engine, flags);
-
-        Assert.Contains("-upgrade", script);
-        Assert.Equal(1, CountOccurrences(script, "-upgrade"));
-    }
-
-    [Fact]
-    public async Task Init_WithOnlyNewUpgradeFlag_ShouldAddUpgradeOnce()
+    public async Task Init_WithUpgradeFlag_ShouldAddUpgradeOnce()
     {
         var engine = CreateEngineWithFlags(
             engineFlags: new List<EngineFlagEntry> { new() { Flag = "-upgrade", Value = null } });
 
-        var script = await RunInitAndGetScript(engine, NoFlags());
+        var script = await RunInitAndGetScript(engine);
 
         Assert.Contains("-upgrade", script);
         Assert.Equal(1, CountOccurrences(script, "-upgrade"));
     }
 
     [Fact]
-    public async Task Init_WithBothDeprecatedAndNewUpgrade_ShouldAddUpgradeOnce()
-    {
-        var engine = CreateEngineWithFlags(
-            engineFlags: new List<EngineFlagEntry> { new() { Flag = "-upgrade", Value = null } });
-        var flags = NoFlags();
-        flags.AutoUpgradeEnabled = true;
-
-        var script = await RunInitAndGetScript(engine, flags);
-
-        Assert.Contains("-upgrade", script);
-        Assert.Equal(1, CountOccurrences(script, "-upgrade"));
-    }
-
-    [Fact]
-    public async Task Init_WithNewMigrateFlag_ShouldApplyEchoPipe()
+    public async Task Init_WithMigrateFlag_ShouldApplyEchoPipe()
     {
         var engine = CreateEngineWithFlags(
             engineFlags: new List<EngineFlagEntry> { new() { Flag = "-migrate-state", Value = null } });
 
-        var script = await RunInitAndGetScript(engine, NoFlags());
+        var script = await RunInitAndGetScript(engine);
 
         Assert.Contains("echo \"yes\" |", script);
         Assert.Contains("-migrate-state", script);
@@ -411,12 +352,12 @@ public class EngineTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_WithNewReconfigureFlag_ShouldApplyEchoPipe()
+    public async Task Init_WithReconfigureFlag_ShouldApplyEchoPipe()
     {
         var engine = CreateEngineWithFlags(
             engineFlags: new List<EngineFlagEntry> { new() { Flag = "-reconfigure", Value = null } });
 
-        var script = await RunInitAndGetScript(engine, NoFlags());
+        var script = await RunInitAndGetScript(engine);
 
         Assert.Contains("echo \"no\" |", script);
         Assert.Contains("-reconfigure", script);
@@ -424,25 +365,11 @@ public class EngineTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_WithBothDeprecatedAndNewMigrate_ShouldAddOnceWithEchoPipe()
-    {
-        var engine = CreateEngineWithFlags(
-            engineFlags: new List<EngineFlagEntry> { new() { Flag = "-migrate-state", Value = null } });
-        var flags = NoFlags();
-        flags.AutoMigrateEnabled = true;
-
-        var script = await RunInitAndGetScript(engine, flags);
-
-        Assert.Contains("echo \"yes\" |", script);
-        Assert.Equal(1, CountOccurrences(script, "-migrate-state"));
-    }
-
-    [Fact]
     public async Task Init_WithNoFlags_ShouldNotAddEchoPipe()
     {
         var engine = CreateEngineWithFlags();
 
-        var script = await RunInitAndGetScript(engine, NoFlags());
+        var script = await RunInitAndGetScript(engine);
 
         Assert.DoesNotContain("echo \"yes\"", script);
         Assert.DoesNotContain("echo \"no\"", script);
@@ -452,59 +379,20 @@ public class EngineTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_BackendConfig_OldAndNewMerged()
+    public async Task Init_BackendConfig_FromArrayFlagEntries()
     {
         var engine = CreateEngineWithFlags(
             engineArrayFlags: new List<EngineArrayFlagEntry>
             {
-                new() { Flag = "-backend-config", Value = "key2=new_value2" }
+                new() { Flag = "-backend-config", Value = "key1=value1" },
+                new() { Flag = "-backend-config", Value = "key2=value2" }
             });
 
-        var backendConfig = new EngineBackendConfiguration
-        {
-            IgnoreNamespaceBackendConfigs = false,
-            NamespaceBackendConfigs = new List<NamespaceBackendConfigReadDto>
-            {
-                new() { Name = "key1", Value = "ns_value1" }
-            },
-            ModuleBackendConfigs = new List<ModuleBackendConfigReadDto>
-            {
-                new() { Name = "key2", Value = "old_value2" }
-            }
-        };
+        var script = await RunInitAndGetScript(engine);
 
-        var script = await RunInitAndGetScript(engine, NoFlags(), backendConfig);
-
-        // key1 from namespace should be present
-        Assert.Contains("key1=ns_value1", script);
-        // key2 should use new value (new flag entities override old)
-        Assert.Contains("key2=new_value2", script);
-        Assert.DoesNotContain("key2=old_value2", script);
-    }
-
-    [Fact]
-    public async Task Init_BackendConfig_NoDuplicateKeys()
-    {
-        var engine = CreateEngineWithFlags(
-            engineArrayFlags: new List<EngineArrayFlagEntry>
-            {
-                new() { Flag = "-backend-config", Value = "storage=new_account" }
-            });
-
-        var backendConfig = new EngineBackendConfiguration
-        {
-            IgnoreNamespaceBackendConfigs = true,
-            NamespaceBackendConfigs = new List<NamespaceBackendConfigReadDto>(),
-            ModuleBackendConfigs = new List<ModuleBackendConfigReadDto>
-            {
-                new() { Name = "storage", Value = "old_account" }
-            }
-        };
-
-        var script = await RunInitAndGetScript(engine, NoFlags(), backendConfig);
-
-        Assert.Equal(1, CountOccurrences(script, "-backend-config"));
-        Assert.Contains("storage=new_account", script);
+        Assert.Contains("key1=value1", script);
+        Assert.Contains("key2=value2", script);
+        Assert.Equal(2, CountOccurrences(script, "-backend-config"));
     }
 
     [Fact]
@@ -517,7 +405,7 @@ public class EngineTests : IDisposable
                 new() { Flag = "-lock-timeout", Value = "30s" }
             });
 
-        var script = await RunInitAndGetScript(engine, NoFlags());
+        var script = await RunInitAndGetScript(engine);
 
         Assert.Equal(1, CountOccurrences(script, "-upgrade"));
         Assert.Contains("-lock-timeout=30s", script);

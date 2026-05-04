@@ -32,53 +32,11 @@ public class ModuleCreateDto
     public Guid RunnerId { get; set; }
     public string? RunnerInstanceName { get; set; }
 
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? InitBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? InitAfterHook { get; set; }
-
-    [Obsolete("Use IgnoreNamespaceFlags instead.")]
-    public bool IgnoreNamespaceBackendConfigs { get; set; }
     public bool IgnoreNamespaceExtraFiles { get; set; }
     public bool IgnoreNamespaceFlags { get; set; }
     public bool IgnoreNamespaceHooks { get; set; }
 
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? AutoUpgradeEnabled { get; set; }
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? AutoReconfigureEnabled { get; set; }
-    [Obsolete("Use TerraformFlag entities instead.")]
-    public bool? AutoMigrateEnabled { get; set; }
     public bool? CleanInitEnabled { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? PlanBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? PlanAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? PlanDestroyBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? PlanDestroyAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? ApplyBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? ApplyAfterHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? DestroyBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? DestroyAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? OutputBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? OutputAfterHook { get; set; }
-
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? ValidateBeforeHook { get; set; }
-    [Obsolete("Use ModuleHook entities instead. If both are set on the same (Task, Phase), the ModuleHook entity wins.")]
-    public string? ValidateAfterHook { get; set; }
 
     public StateManagementEngine? Engine { get; set; }
 

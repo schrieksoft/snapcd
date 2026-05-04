@@ -60,7 +60,6 @@ public partial class Tasks
                 request.InitBeforeHook,
                 request.InitAfterHook,
                 request.BackendConfiguration,
-                request.Flags,
                 killCts.Token,
                 gracefulCts.Token);
 

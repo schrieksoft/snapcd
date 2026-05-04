@@ -15,7 +15,6 @@ public static class RepositorySettings
         services.Configure<GroupRepositorySettings>(configuration.GetSection("Repositories:Group"));
         services.Configure<GroupRunnerRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupRunnerRoleAssignment"));
         services.Configure<GroupStackRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupStackRoleAssignment"));
-        services.Configure<ModuleBackendConfigRepositorySettings>(configuration.GetSection("Repositories:ModuleBackendConfig"));
         services.Configure<ModulePulumiFlagRepositorySettings>(configuration.GetSection("Repositories:ModulePulumiFlag"));
         services.Configure<ModulePulumiArrayFlagRepositorySettings>(configuration.GetSection("Repositories:ModulePulumiArrayFlag"));
         services.Configure<ModuleTerraformFlagRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformFlag"));
@@ -34,7 +33,6 @@ public static class RepositorySettings
         services.Configure<ModuleRepositorySettings>(configuration.GetSection("Repositories:Module"));
         services.Configure<ModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ModuleRoleAssignment"));
         services.Configure<ModuleSecretRepositorySettings>(configuration.GetSection("Repositories:ModuleSecret"));
-        services.Configure<NamespaceBackendConfigRepositorySettings>(configuration.GetSection("Repositories:NamespaceBackendConfig"));
         services.Configure<NamespacePulumiFlagRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiFlag"));
         services.Configure<NamespacePulumiArrayFlagRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiArrayFlag"));
         services.Configure<NamespaceTerraformFlagRepositorySettings>(configuration.GetSection("Repositories:NamespaceTerraformFlag"));

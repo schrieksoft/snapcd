@@ -202,31 +202,25 @@ public class ResolvedConfigurationService : IDisposable
             NamespaceParamFromDefinitions = module.Namespace.NamespaceParamFromDefinitions.Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
             NamespaceEnvVarFromDefinitions = module.Namespace.NamespaceEnvVarFromDefinitions.Select(NamespaceInputFromDefinitionMapper.ToDto).ToList(),
 
-            InitBeforeHook = ResolveHook(HookTask.Init, HookPhase.Before, module.InitBeforeHook, module.Namespace.DefaultInitBeforeHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            InitAfterHook = ResolveHook(HookTask.Init, HookPhase.After, module.InitAfterHook, module.Namespace.DefaultInitAfterHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            IgnoreNamespaceBackendConfigs = module.IgnoreNamespaceBackendConfigs,
+            InitBeforeHook = ResolveHook(HookTask.Init, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            InitAfterHook = ResolveHook(HookTask.Init, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
             IgnoreNamespaceExtraFiles = module.IgnoreNamespaceExtraFiles,
-            NamespaceBackendConfigs = module.Namespace.BackendConfigs.Select(NamespaceBackendConfigMapper.ToDto).ToList(),
-            ModuleBackendConfigs = module.BackendConfigs.Select(ModuleBackendConfigMapper.ToDto).ToList(),
 
-            AutoUpgradeEnabled = module.AutoUpgradeEnabled ?? module.Namespace.DefaultAutoUpgradeEnabled ?? false,
-            AutoReconfigureEnabled = module.AutoReconfigureEnabled ?? module.Namespace.DefaultAutoReconfigureEnabled ?? false,
-            AutoMigrateEnabled = module.AutoMigrateEnabled ?? module.Namespace.DefaultAutoMigrateEnabled ?? false,
             CleanInitEnabled = module.CleanInitEnabled ?? module.Namespace.DefaultCleanInitEnabled ?? false,
             DriftCheckEnabled = module.DriftCheckEnabled ?? module.Namespace.DefaultDriftCheckEnabled ?? false,
             DriftCheckIntervalMinutes = module.DriftCheckIntervalMinutes ?? module.Namespace.DefaultDriftCheckIntervalMinutes,
-            PlanBeforeHook = ResolveHook(HookTask.Plan, HookPhase.Before, module.PlanBeforeHook, module.Namespace.DefaultPlanBeforeHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            PlanAfterHook = ResolveHook(HookTask.Plan, HookPhase.After, module.PlanAfterHook, module.Namespace.DefaultPlanAfterHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            PlanDestroyBeforeHook = ResolveHook(HookTask.PlanDestroy, HookPhase.Before, module.PlanDestroyBeforeHook, module.Namespace.DefaultPlanDestroyBeforeHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            PlanDestroyAfterHook = ResolveHook(HookTask.PlanDestroy, HookPhase.After, module.PlanDestroyAfterHook, module.Namespace.DefaultPlanDestroyAfterHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ApplyBeforeHook = ResolveHook(HookTask.Apply, HookPhase.Before, module.ApplyBeforeHook, module.Namespace.DefaultApplyBeforeHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ApplyAfterHook = ResolveHook(HookTask.Apply, HookPhase.After, module.ApplyAfterHook, module.Namespace.DefaultApplyAfterHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            DestroyBeforeHook = ResolveHook(HookTask.Destroy, HookPhase.Before, module.DestroyBeforeHook, module.Namespace.DefaultDestroyBeforeHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            DestroyAfterHook = ResolveHook(HookTask.Destroy, HookPhase.After, module.DestroyAfterHook, module.Namespace.DefaultDestroyAfterHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            OutputBeforeHook = ResolveHook(HookTask.Output, HookPhase.Before, module.OutputBeforeHook, module.Namespace.DefaultOutputBeforeHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            OutputAfterHook = ResolveHook(HookTask.Output, HookPhase.After, module.OutputAfterHook, module.Namespace.DefaultOutputAfterHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ValidateBeforeHook = ResolveHook(HookTask.Validate, HookPhase.Before, module.ValidateBeforeHook, module.Namespace.DefaultValidateBeforeHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
-            ValidateAfterHook = ResolveHook(HookTask.Validate, HookPhase.After, module.ValidateAfterHook, module.Namespace.DefaultValidateAfterHook, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            PlanBeforeHook = ResolveHook(HookTask.Plan, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            PlanAfterHook = ResolveHook(HookTask.Plan, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            PlanDestroyBeforeHook = ResolveHook(HookTask.PlanDestroy, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            PlanDestroyAfterHook = ResolveHook(HookTask.PlanDestroy, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            ApplyBeforeHook = ResolveHook(HookTask.Apply, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            ApplyAfterHook = ResolveHook(HookTask.Apply, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            DestroyBeforeHook = ResolveHook(HookTask.Destroy, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            DestroyAfterHook = ResolveHook(HookTask.Destroy, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            OutputBeforeHook = ResolveHook(HookTask.Output, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            OutputAfterHook = ResolveHook(HookTask.Output, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            ValidateBeforeHook = ResolveHook(HookTask.Validate, HookPhase.Before, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
+            ValidateAfterHook = ResolveHook(HookTask.Validate, HookPhase.After, module.Hooks, module.Namespace.Hooks, module.IgnoreNamespaceHooks),
             SourceRevision = module.SourceRevision,
             SourceUrl = module.SourceUrl,
 
@@ -320,13 +314,11 @@ public class ResolvedConfigurationService : IDisposable
             .Include(m => m.Namespace.NamespaceParamFromLiterals)
             .Include(m => m.Namespace.NamespaceParamFromSecrets)
             .ThenInclude(x => x.Secret)
-            .Include(m => m.BackendConfigs)
             .Include(m => m.PulumiFlags)
             .Include(m => m.PulumiArrayFlags)
             .Include(m => m.TerraformFlags)
             .Include(m => m.TerraformArrayFlags)
             .Include(m => m.Hooks)
-            .Include(m => m.Namespace.BackendConfigs)
             .Include(m => m.Namespace.PulumiFlags)
             .Include(m => m.Namespace.PulumiArrayFlags)
             .Include(m => m.Namespace.TerraformFlags)
@@ -602,17 +594,14 @@ public class ResolvedConfigurationService : IDisposable
 
     private static string? ResolveHook(
         HookTask task, HookPhase phase,
-        string? moduleScalar, string? namespaceScalar,
         List<ModuleHook> moduleHooks, List<NamespaceHook> namespaceHooks,
         bool ignoreNamespace)
     {
         var mh = moduleHooks.FirstOrDefault(h => h.Task == task && h.Phase == phase);
         if (mh != null) return mh.Script;
-        if (moduleScalar != null) return moduleScalar;
         if (ignoreNamespace) return null;
         var nh = namespaceHooks.FirstOrDefault(h => h.Task == task && h.Phase == phase);
-        if (nh != null) return nh.Script;
-        return namespaceScalar;
+        return nh?.Script;
     }
 
     /// <summary>

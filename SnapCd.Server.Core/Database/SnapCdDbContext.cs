@@ -146,8 +146,6 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<StackSecret> StackSecrets { get; set; }
 
     public DbSet<Secret> Secrets { get; set; }
-    public DbSet<NamespaceBackendConfig> NamespaceBackendConfigs { get; set; }
-    public DbSet<ModuleBackendConfig> ModuleBackendConfigs { get; set; }
     public DbSet<ModulePulumiFlag> ModulePulumiFlags { get; set; }
     public DbSet<ModulePulumiArrayFlag> ModulePulumiArrayFlags { get; set; }
     public DbSet<NamespacePulumiFlag> NamespacePulumiFlags { get; set; }
@@ -348,8 +346,6 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ModuleSecretClassMap());
         modelBuilder.ApplyConfiguration(new SecretOutputClassMap());
 
-        modelBuilder.ApplyConfiguration(new NamespaceBackendConfigClassMap());
-        modelBuilder.ApplyConfiguration(new ModuleBackendConfigClassMap());
         modelBuilder.ApplyConfiguration(new ModulePulumiFlagClassMap());
         modelBuilder.ApplyConfiguration(new ModulePulumiArrayFlagClassMap());
         modelBuilder.ApplyConfiguration(new NamespacePulumiFlagClassMap());

@@ -14,7 +14,6 @@ public interface IEngine
         string? beforeHook,
         string? afterHook,
         EngineBackendConfiguration backendConfig,
-        EngineFlags flags,
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
 

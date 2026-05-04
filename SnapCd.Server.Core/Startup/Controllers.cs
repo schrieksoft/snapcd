@@ -46,8 +46,6 @@ public static class Controllers
             typeof(SourceRefresherPreselectionController),
             typeof(NamespaceExtraFileController),
             typeof(ModuleExtraFileController),
-            typeof(NamespaceBackendConfigController),
-            typeof(ModuleBackendConfigController),
             typeof(DependsOnModuleController),
             typeof(NamespacePulumiFlagController),
             typeof(NamespacePulumiArrayFlagController),

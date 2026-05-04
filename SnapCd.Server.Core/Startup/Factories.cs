@@ -167,8 +167,6 @@ public static class Factories
         services.AddScoped<DependsOnModuleSecuredRepositoryFactory>();
         services.AddScoped<ModuleExtraFileSecuredRepositoryFactory>();
         services.AddScoped<NamespaceExtraFileSecuredRepositoryFactory>();
-        services.AddScoped<ModuleBackendConfigSecuredRepositoryFactory>();
-        services.AddScoped<NamespaceBackendConfigSecuredRepositoryFactory>();
         services.AddScoped<PreviewFeatureAcceptanceSecuredRepositoryFactory>();
         services.AddScoped<ModuleTerraformFlagSecuredRepositoryFactory>();
         services.AddScoped<ModuleTerraformArrayFlagSecuredRepositoryFactory>();

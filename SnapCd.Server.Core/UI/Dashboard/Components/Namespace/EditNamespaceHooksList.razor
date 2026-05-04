@@ -1,3 +1,4 @@
+@using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
@@ -12,27 +13,27 @@ else
 
         @foreach (var item in _items)
         {
-            <MudExpansionPanel Text="@item.Name">
-                <EditModuleBackendConfig Context="@item"
-                                         PrincipalProvider="@PrincipalProvider"
-                                         OnDelete="() => ResetAll()"
-                                         OnUpdate="() => ResetAll()"
-                                         OnCreate="() => ResetAll()"
-                                         OnCancel="() => ResetAll()"
-                                         IsCreateMode="false"/>
+            <MudExpansionPanel Text="@($"{item.Task} - {item.Phase}")">
+                <EditNamespaceHook Context="@item"
+                                   PrincipalProvider="@PrincipalProvider"
+                                   OnDelete="() => ResetAll()"
+                                   OnUpdate="() => ResetAll()"
+                                   OnCreate="() => ResetAll()"
+                                   OnCancel="() => ResetAll()"
+                                   IsCreateMode="false"/>
             </MudExpansionPanel>
         }
 
         @if (_isCreating)
         {
             <MudExpansionPanel IsExpanded="_newItemExpanded" IsExpandedChanged="OnNewItemExpandedChanged">
-                <EditModuleBackendConfig Context="_newItem"
-                                         PrincipalProvider="@PrincipalProvider"
-                                         OnDelete="() => ResetAll()"
-                                         OnUpdate="() => ResetAll()"
-                                         OnCreate="() => ResetAll()"
-                                         OnCancel="() => ResetAll()"
-                                         IsCreateMode="true"/>
+                <EditNamespaceHook Context="_newItem"
+                                   PrincipalProvider="@PrincipalProvider"
+                                   OnDelete="() => ResetAll()"
+                                   OnUpdate="() => ResetAll()"
+                                   OnCreate="() => ResetAll()"
+                                   OnCancel="() => ResetAll()"
+                                   IsCreateMode="true"/>
             </MudExpansionPanel>
         }
 
@@ -48,17 +49,17 @@ else
 
 @code {
     [Parameter] public string Title { get; set; } = null!;
-    [Parameter] public Guid ModuleId { get; set; }
+    [Parameter] public Guid NamespaceId { get; set; }
     [Parameter] public EventCallback OnTabClick { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    [Inject] private ModuleBackendConfigSecuredRepositoryFactory ModuleBackendConfigSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private NamespaceHookSecuredRepositoryFactory NamespaceHookSecuredRepositoryFactory { get; set; } = null!;
 
     private bool _isCreating;
     private bool _newItemExpanded;
-    private ModuleBackendConfig? _newItem;
-    private List<ModuleBackendConfig>? _items;
+    private NamespaceHook? _newItem;
+    private List<NamespaceHook>? _items;
 
     protected override Task OnInitializedAsync()
     {
@@ -67,7 +68,7 @@ else
 
     private void StartCreate()
     {
-        _newItem = new ModuleBackendConfig { Id = Guid.NewGuid(), ModuleId = ModuleId, OrganizationId = OrganizationId };
+        _newItem = new NamespaceHook { Id = Guid.NewGuid(), NamespaceId = NamespaceId, OrganizationId = OrganizationId, Script = string.Empty };
         _isCreating = true;
         _newItemExpanded = true;
         StateHasChanged();
@@ -78,7 +79,6 @@ else
         _newItemExpanded = expanded;
         if (!expanded && _isCreating)
         {
-            // Cancel creation when panel is collapsed
             ResetAll();
         }
     }
@@ -94,8 +94,8 @@ else
 
     private async Task ReloadItems()
     {
-        using var repo = ModuleBackendConfigSecuredRepositoryFactory.Create(PrincipalProvider);
-        _items = await repo.ListByParentId(ModuleId, OrganizationId);
+        using var repo = NamespaceHookSecuredRepositoryFactory.Create(PrincipalProvider);
+        _items = await repo.ListByParentId(NamespaceId, OrganizationId);
     }
 
     public async Task InitializeItems()

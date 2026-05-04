@@ -63,8 +63,6 @@ public static class CrudService
         services.AddScoped<DependsOnModuleService>();
         services.AddScoped<ModuleExtraFileService>();
         services.AddScoped<NamespaceExtraFileService>();
-        services.AddScoped<ModuleBackendConfigService>();
-        services.AddScoped<NamespaceBackendConfigService>();
         services.AddScoped<ModulePulumiFlagService>();
         services.AddScoped<ModulePulumiArrayFlagService>();
         services.AddScoped<NamespacePulumiFlagService>();
