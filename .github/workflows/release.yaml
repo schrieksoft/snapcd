@@ -160,3 +160,29 @@ jobs:
           --notes "Release ${{ steps.gitversion.outputs.SemVer }}" \
           -R https://github.com/schrieksoft/snapcd \
           release-assets/*.zip
+
+    - name: Notify downstream consumers
+      # Fires repository_dispatch on every repo that pins a snapcd-published
+      # NuGet package or container image. The downstream Renovate workflow
+      # listens on event_type=snapcd-released and opens a grouped bump PR.
+      # SNAPCD_DOWNSTREAM_DISPATCH_TOKEN is a fine-grained PAT scoped to the
+      # listed downstream repos with Contents: Read and write (the only
+      # permission required by POST /repos/{owner}/{repo}/dispatches).
+      if: github.ref == 'refs/heads/main'
+      env:
+        GH_TOKEN: ${{ secrets.SNAPCD_DOWNSTREAM_DISPATCH_TOKEN }}
+        SEMVER: ${{ steps.gitversion.outputs.SemVer }}
+      run: |
+        for repo in \
+            snapcd-saas \
+            snapcd-runner-deployment-docker \
+            snapcd-runner-deployment-local \
+            snapcd-runner-deployment-kubernetes \
+            snapcd-selfhosted-deployment-docker \
+            snapcd-selfhosted-deployment-kubernetes \
+            module-snapcd-runner-app; do
+          echo "Dispatching snapcd-released to schrieksoft/${repo}"
+          gh api "repos/schrieksoft/${repo}/dispatches" \
+            -f event_type=snapcd-released \
+            -f "client_payload[version]=${SEMVER}" || echo "  (dispatch failed; continuing)"
+        done
