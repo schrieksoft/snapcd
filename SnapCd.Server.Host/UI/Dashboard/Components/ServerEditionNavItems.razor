@@ -1,0 +1,43 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.OrganizationContext
+@inject OrganizationMembershipCacheService MembershipCache
+@inject IOrganizationContext OrganizationContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<User> UserManager
+
+@if (_isAllowed)
+{
+    <MudNavLink Href="/License" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.VpnKey">
+        License
+    </MudNavLink>
+}
+
+@code {
+    private static readonly OrganizationRole[] AllowedRoles =
+        { OrganizationRole.Owner, OrganizationRole.SubscriptionManager };
+
+    private bool _isAllowed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+        if (orgId == Guid.Empty)
+        {
+            _isAllowed = false;
+            return;
+        }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        if (user is null)
+        {
+            _isAllowed = false;
+            return;
+        }
+
+        _isAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, AllowedRoles);
+    }
+}

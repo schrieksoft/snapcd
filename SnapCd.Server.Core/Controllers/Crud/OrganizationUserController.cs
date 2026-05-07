@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Dtos;
+using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud;
@@ -16,6 +17,7 @@ public static class OrganizationUserCustomEndpointNames
 [Route(ControllerEndpoints.User)]
 [ApiController]
 [Authorize("BearerPolicy")]
+[OrganizationScopedIAM]
 public class OrganizationUserController : ControllerBase
 {
     protected readonly OrganizationUserService Service;

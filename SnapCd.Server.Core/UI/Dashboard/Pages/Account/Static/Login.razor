@@ -7,6 +7,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Edition
 
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
@@ -14,7 +15,9 @@
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject PostAuthRedirectResolver PostAuthRedirector
 @inject TurnstileVerificationService TurnstileService
+@inject ISelfRegistrationPolicy SelfRegistrationPolicy
 
 <PageTitle>Log in - Snap CD</PageTitle>
 
@@ -72,7 +75,7 @@
             <MudItem xs="12" Class="d-flex justify-space-between align-center">
                 <MudStaticCheckBox For="@(() => Input.RememberMe)" @bind-Value="Input.RememberMe">Remember me
                 </MudStaticCheckBox>
-                <MudLink Href="Account/ForgotPassword" Typo="Typo.body2">Forgot password?</MudLink>
+                <MudLink Href="@(NavigationManager.GetUriWithQueryParameters("Account/ForgotPassword", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" Typo="Typo.body2">Forgot password?</MudLink>
             </MudItem>
             <MudItem xs="12">
                 <TurnstileWidget />
@@ -97,15 +100,18 @@
         <ExternalLoginPicker/>
     </div>
 
-    <div class="register-link">
-        <MudText Align="Align.Center" Typo="Typo.body2">
-            Don't have an account?
-            <MudLink Typo="Typo.body2"
-                     Href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">
-                Sign up
-            </MudLink>
-        </MudText>
-    </div>
+    @if (SelfRegistrationPolicy.AllowsSelfRegistration)
+    {
+        <div class="register-link">
+            <MudText Align="Align.Center" Typo="Typo.body2">
+                Don't have an account?
+                <MudLink Typo="Typo.body2"
+                         Href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">
+                    Sign up
+                </MudLink>
+            </MudText>
+        </div>
+    }
 </StaticAccountComponent>
 
 
@@ -162,14 +168,8 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            if (!string.IsNullOrEmpty(ReturnUrl))
-            {
-                RedirectManager.RedirectTo(ReturnUrl);
-            }
-            else
-            {
-                RedirectManager.RedirectTo("/Stacks");
-            }
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+            await PostAuthRedirector.RedirectAfterAuthAsync(user?.Id ?? Guid.Empty, ReturnUrl);
         }
         else if (result.RequiresTwoFactor)
         {

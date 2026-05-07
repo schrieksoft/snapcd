@@ -1,0 +1,301 @@
+@page "/Account/CompleteInvitationExternalLogin"
+@layout AccountLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Edition
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject PostAuthRedirectResolver PostAuthRedirector
+@inject MemberService MemberService
+@inject ITermsAcceptanceService TermsService
+@inject IInvitationAutoAcceptPolicy InvitationAutoAcceptPolicy
+@inject IConsentRequirementPolicy ConsentPolicy
+@inject MemberServiceFactory MemberServiceFactory
+@inject ILogger<CompleteInvitationExternalLogin> Logger
+
+<PageTitle>Complete Invitation - Snap CD</PageTitle>
+
+<StaticAccountComponent Subtitle="@GetSubtitle()">
+
+    @if (externalLoginInfo == null)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudText Typo="Typo.body1">Loading external login information...</MudText>
+        </MudAlert>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@_errorMessage</MudAlert>
+
+        <div class="register-link">
+            <a href="/" class="login-btn-link">return to home</a>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudText Typo="Typo.body1">
+                You've successfully authenticated with <strong>@ProviderDisplayName</strong>.
+                Complete your registration to join <strong>@_invitation?.Organization.Name</strong>.
+            </MudText>
+        </MudAlert>
+
+        <EditForm Model="@Input" FormName="invitation-external-login" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator/>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField Value="@_invitedEmail"
+                                  Label="Email"
+                                  Variant="Variant.Outlined" FullWidth="true"
+                                  ReadOnly="true" Disabled="true"
+                                  HelperText="@($"Invited email — must match your {ProviderDisplayName} account")"/>
+                </MudItem>
+                @if (ConsentPolicy.RequiresTermsAcceptance)
+                {
+                    <MudItem xs="12" Class="mt-2">
+                        <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                            <MudText Typo="Typo.body2">
+                                I agree to the
+                                <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
+                                and
+                                <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
+                            </MudText>
+                        </MudStaticCheckBox>
+                    </MudItem>
+                }
+                <MudItem xs="12">
+                    <div class="sign-in-container">
+                        <div class="divider-line"></div>
+                        <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                                         Size="Size.Large" FormAction="FormAction.Submit" Class="sign-in-btn">
+                            Complete Registration
+                        </MudStaticButton>
+                        <div class="divider-line"></div>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    }
+</StaticAccountComponent>
+
+<style>
+    .login-btn-link {
+        color: #ffffff !important;
+        text-decoration: none !important;
+        background-color: #000000 !important;
+        border: 1px solid #000000;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        border-radius: 24px;
+        display: inline-block;
+    }
+
+    .register-link {
+        margin-top: 1rem;
+        text-align: center;
+    }
+</style>
+
+@code {
+    private string? _errorMessage;
+    private ExternalLoginInfo externalLoginInfo = default!;
+    private OrganizationUser? _invitation;
+    private string? _invitedEmail;
+
+    private InputModel? _input;
+
+    [SupplyParameterFromForm]
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
+
+    [SupplyParameterFromQuery] private string? Token { get; set; }
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery] private string? RemoteError { get; set; }
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    private string? ProviderDisplayName => externalLoginInfo?.ProviderDisplayName;
+
+    private string? GetSubtitle()
+    {
+        if (!string.IsNullOrEmpty(_errorMessage)) return "Invalid Invitation";
+        if (_invitation != null) return "Complete Registration";
+        return null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // No consent UI on this edition → satisfy the [Required]/[Range] annotations
+        // silently so the form posts without the (hidden) checkbox.
+        if (!ConsentPolicy.RequiresTermsAcceptance)
+        {
+            Input.AcceptTerms = true;
+        }
+
+        if (RemoteError is not null)
+        {
+            RedirectManager.RedirectToWithStatus("Account/Login", $"Error from external provider: {RemoteError}", HttpContext);
+        }
+
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            _errorMessage = "No invitation token provided.";
+            return;
+        }
+
+        var info = await SignInManager.GetExternalLoginInfoAsync();
+        if (info is null)
+        {
+            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information.", HttpContext);
+        }
+        externalLoginInfo = info;
+
+        await LoadInvitationAsync();
+    }
+
+    private async Task LoadInvitationAsync()
+    {
+        try
+        {
+            using var memberServiceScope = MemberServiceFactory.Create();
+            _invitation = await memberServiceScope.Service.GetInvitationByTokenAsync(Token!);
+
+            if (_invitation == null)
+            {
+                _errorMessage = "Invalid or expired invitation token.";
+                return;
+            }
+
+            if (_invitation.InvitationExpirationDateTime <= DateTime.UtcNow)
+            {
+                _errorMessage = "This invitation has expired. Please request a new invitation.";
+                return;
+            }
+
+            if (_invitation.InvitationCompleted)
+            {
+                _errorMessage = "This invitation has already been completed.";
+                return;
+            }
+
+            if (_invitation.User == null)
+            {
+                _errorMessage = "User not found for this invitation.";
+                return;
+            }
+
+            _invitedEmail = _invitation.User.Email;
+
+            // Verify the external account email matches the invited email — otherwise the user
+            // is hijacking someone else's invitation with their own external account.
+            var externalEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email);
+            if (!string.Equals(_invitedEmail, externalEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                _errorMessage = $"The {ProviderDisplayName} account email ({externalEmail}) does not match the invited email address ({_invitedEmail}).";
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading invitation");
+            _errorMessage = "An error occurred while processing the invitation.";
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        try
+        {
+            using var memberServiceScope = MemberServiceFactory.Create();
+            _invitation = await memberServiceScope.Service.GetInvitationByTokenAsync(Token!);
+
+            if (_invitation == null) { _errorMessage = "Invalid or expired invitation token."; return; }
+            if (_invitation.InvitationCompleted) { _errorMessage = "This invitation has already been completed."; return; }
+            if (_invitation.User == null) { _errorMessage = "User not found for this invitation."; return; }
+
+            var externalEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email);
+            if (!string.Equals(_invitation.User.Email, externalEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                _errorMessage = $"The {ProviderDisplayName} account email does not match the invited email address.";
+                return;
+            }
+
+            var invitedUser = await UserManager.FindByIdAsync(_invitation.User.Id.ToString());
+            if (invitedUser == null) { _errorMessage = "Invited user could not be loaded."; return; }
+
+            var addLoginResult = await UserManager.AddLoginAsync(invitedUser, externalLoginInfo);
+            if (!addLoginResult.Succeeded)
+            {
+                _errorMessage = $"Error linking external login: {string.Join(", ", addLoginResult.Errors.Select(e => e.Description))}";
+                return;
+            }
+
+            invitedUser.IsRegistrationNotCompleted = false;
+            var updateResult = await UserManager.UpdateAsync(invitedUser);
+            if (!updateResult.Succeeded)
+            {
+                _errorMessage = $"Error updating user: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}";
+                return;
+            }
+
+            // Receipt of the invitation token + matching external-account email implies the user
+            // controls the invited mailbox.
+            if (!invitedUser.EmailConfirmed)
+            {
+                var confirmToken = await UserManager.GenerateEmailConfirmationTokenAsync(invitedUser);
+                var confirmResult = await UserManager.ConfirmEmailAsync(invitedUser, confirmToken);
+                if (!confirmResult.Succeeded)
+                {
+                    _errorMessage = $"Error confirming email: {string.Join(", ", confirmResult.Errors.Select(e => e.Description))}";
+                    return;
+                }
+            }
+
+            await TermsService.RecordAcceptanceAsync(
+                invitedUser.Id,
+                TermsAcceptanceContext.InvitationRegistration,
+                HttpContext?.Connection.RemoteIpAddress?.ToString(),
+                HttpContext?.Request.Headers["User-Agent"].ToString());
+
+            if (InvitationAutoAcceptPolicy.AutoAcceptOnRegistration)
+            {
+                await memberServiceScope.Service.CompleteInvitationAsync(Token!);
+            }
+
+            Logger.LogInformation("User {UserId} completed invitation registration via {Provider}.",
+                invitedUser.Id, externalLoginInfo.LoginProvider);
+
+            await SignInManager.SignInAsync(invitedUser, isPersistent: false);
+            await PostAuthRedirector.RedirectAfterAuthAsync(invitedUser.Id, ReturnUrl);
+        }
+        catch (Exception ex) when (ex is not Microsoft.AspNetCore.Components.NavigationException)
+        {
+            Logger.LogError(ex, "Error completing invitation via external login");
+            _errorMessage = "An error occurred while processing the invitation.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Display(Name = "Accept Terms")]
+        public bool AcceptTerms { get; set; } = false;
+    }
+}

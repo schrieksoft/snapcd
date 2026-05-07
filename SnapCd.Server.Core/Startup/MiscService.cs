@@ -103,6 +103,7 @@ public static class MiscService
         // Identity Services
         services.AddScoped<IdentityUserAccessor>();
         services.AddScoped<IdentityRedirectManager>();
+        services.AddScoped<PostAuthRedirectResolver>();
         services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
         // Version service (singleton since version doesn't change during runtime)

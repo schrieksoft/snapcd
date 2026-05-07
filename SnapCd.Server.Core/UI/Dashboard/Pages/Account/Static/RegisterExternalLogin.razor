@@ -3,25 +3,24 @@
 
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
-@using System.Text
-@using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
-@using Microsoft.Extensions.Options
 @using MassTransit
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Events.Repository.Organization
 @using SnapCd.Server.Core.Mappers
+@using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Edition
 
 @inject SignInManager<User> SignInManager
 @inject IBus Bus
 @inject UserManager<User> UserManager
 @inject IUserStore<User> UserStore
-@inject IEmailSender<User> EmailSender
-@inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject PostAuthRedirectResolver PostAuthRedirector
 @inject ILogger<RegisterExternalLogin> Logger
+@inject ITermsAcceptanceService TermsService
+@inject IConsentRequirementPolicy ConsentPolicy
 
 <PageTitle>Complete Registration - Snap CD</PageTitle>
 
@@ -43,46 +42,51 @@
     }
     else
     {
-
         <MudAlert Severity="Severity.Info" Class="mb-4">
             <MudText Typo="Typo.body1">
                 You've successfully authenticated with <strong>@ProviderDisplayName</strong>.
-                @if (string.IsNullOrEmpty(_externalEmail))
-                {
-                    <text>Please confirm your email address to finish registration.</text>
-                }
-                else
-                {
-                    <text>Complete your registration with the email address from your
-                        <strong>@ProviderDisplayName</strong> account.</text>
-                }
+                Complete your registration to finish setting up your account.
             </MudText>
         </MudAlert>
 
-        <MudGrid>
-            <MudItem xs="12">
-                <MudTextField Value="@_externalEmail"
-                              Label="Email"
-                              Variant="Variant.Outlined" FullWidth="true"
-                              ReadOnly="true"
-                              Disabled="true"
-                              HelperText="@($"Email from your {ProviderDisplayName} account")"/>
-            </MudItem>
-            <MudItem xs="12">
-                <div class="sign-in-container">
-                    <div class="divider-line"></div>
-                    <form method="post" @formname="register-confirmation" style="display: inline;">
-                        <AntiforgeryToken/>
-                        <input type="hidden" name="Email" value="@_externalEmail"/>
-                        <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                                         FormAction="FormAction.Submit" Class="sign-in-btn">
+        <EditForm Model="@Input" FormName="register-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator/>
+            <input type="hidden" name="Email" value="@_externalEmail"/>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField Value="@_externalEmail"
+                                  Label="Email"
+                                  Variant="Variant.Outlined" FullWidth="true"
+                                  ReadOnly="true"
+                                  Disabled="true"
+                                  HelperText="@($"Email from your {ProviderDisplayName} account")"/>
+                </MudItem>
+                @if (ConsentPolicy.RequiresTermsAcceptance)
+                {
+                    <MudItem xs="12" Class="mt-2">
+                        <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                            <MudText Typo="Typo.body2">
+                                I agree to the
+                                <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
+                                and
+                                <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
+                            </MudText>
+                        </MudStaticCheckBox>
+                    </MudItem>
+                }
+                <MudItem xs="12">
+                    <div class="sign-in-container">
+                        <div class="divider-line"></div>
+                        <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                                         Size="Size.Large" FormAction="FormAction.Submit" Class="sign-in-btn">
                             Complete Registration
                         </MudStaticButton>
-                    </form>
-                    <div class="divider-line"></div>
-                </div>
-            </MudItem>
-        </MudGrid>
+                        <div class="divider-line"></div>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
 
         <div class="register-link">
             <MudText Align="Align.Center" Typo="Typo.body2">
@@ -99,6 +103,14 @@
     private ExternalLoginInfo externalLoginInfo = default!;
     private string? _externalEmail;
 
+    private InputModel? _input;
+
+    [SupplyParameterFromForm]
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [SupplyParameterFromQuery] private string? RemoteError { get; set; }
 
@@ -112,21 +124,32 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // No consent UI on this edition → satisfy the [Required]/[Range] annotations
+        // silently so the form posts without the (hidden) checkbox.
+        if (!ConsentPolicy.RequiresTermsAcceptance)
+        {
+            Input.AcceptTerms = true;
+        }
+
         if (RemoteError is not null)
         {
             RedirectManager.RedirectToWithStatus("Account/Register", $"Error from external provider: {RemoteError}", HttpContext);
         }
 
+        var info = await SignInManager.GetExternalLoginInfoAsync();
+        if (info is null)
+        {
+            RedirectManager.RedirectToWithStatus("Account/Register", "Error loading external login information.", HttpContext);
+        }
+        externalLoginInfo = info;
+
+        if (externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
+        {
+            _externalEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+        }
+
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            var info = await SignInManager.GetExternalLoginInfoAsync();
-            if (info is null)
-            {
-                RedirectManager.RedirectToWithStatus("Account/Register", "Error loading external login information.", HttpContext);
-            }
-
-            externalLoginInfo = info;
-
             if (Action == ExternalLoginConstants.RegisterCallbackAction)
             {
                 await OnRegisterCallbackAsync();
@@ -137,25 +160,9 @@
             // the register page if we get here some other way.
             RedirectManager.RedirectTo("Account/Register");
         }
-        else if (HttpMethods.IsPost(HttpContext.Request.Method))
-        {
-            // For POST requests, we need to get the external login info again
-            var info = await SignInManager.GetExternalLoginInfoAsync();
-            if (info is null)
-            {
-                RedirectManager.RedirectToWithStatus("Account/Register", "Error loading external login information during registration.", HttpContext);
-            }
-
-            externalLoginInfo = info;
-
-            // Set the external email for POST requests
-            if (externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
-            {
-                _externalEmail = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
-            }
-
-            await OnValidSubmitAsync();
-        }
+        // For POST: EditForm dispatches OnValidSubmitAsync only after DataAnnotationsValidator
+        // passes. Do NOT call it manually here — that bypasses validation (the original code
+        // had this bug, which is why "Complete Registration" worked without ticking terms).
     }
 
     private async Task OnRegisterCallbackAsync()
@@ -187,6 +194,11 @@
             return;
         }
 
+        await CreateNewUserWithExternalLoginAsync(emailToUse);
+    }
+
+    private async Task CreateNewUserWithExternalLoginAsync(string emailToUse)
+    {
         // Check if user already exists with this email
         var existingUser = await UserManager.FindByEmailAsync(emailToUse);
         if (existingUser != null)
@@ -216,18 +228,24 @@
                     CreatedDateTime = DateTime.UtcNow
                 });
 
-                var userId = await UserManager.GetUserIdAsync(user);
-                var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+                await TermsService.RecordAcceptanceAsync(
+                    user.Id,
+                    TermsAcceptanceContext.Registration,
+                    HttpContext?.Connection.RemoteIpAddress?.ToString(),
+                    HttpContext?.Request.Headers["User-Agent"].ToString());
 
-                var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-                    NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-                    new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
-                await EmailSender.SendConfirmationLinkAsync(user, emailToUse, HtmlEncoder.Default.Encode(callbackUrl));
+                // OAuth provider has already verified the email, so consume a confirmation
+                // token immediately rather than mailing a verification link the user doesn't need.
+                var confirmToken = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+                var confirmResult = await UserManager.ConfirmEmailAsync(user, confirmToken);
+                if (!confirmResult.Succeeded)
+                {
+                    message = $"Error: {string.Join(", ", confirmResult.Errors.Select(e => e.Description))}";
+                    return;
+                }
 
-                // Always show the registration confirmation for external login users
-                // They need to verify their email before they can log in
-                RedirectManager.RedirectTo("Account/RegisterConfirmation", new Dictionary<string, object?> { ["email"] = emailToUse });
+                await SignInManager.SignInAsync(user, isPersistent: false);
+                await PostAuthRedirector.RedirectAfterAuthAsync(user.Id, ReturnUrl);
             }
         }
 
@@ -262,4 +280,11 @@
         // In a real implementation, this would open a dialog or redirect to a mailing list signup
     }
 
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Terms of Service and Privacy Policy")]
+        [Display(Name = "Accept Terms")]
+        public bool AcceptTerms { get; set; } = false;
+    }
 }

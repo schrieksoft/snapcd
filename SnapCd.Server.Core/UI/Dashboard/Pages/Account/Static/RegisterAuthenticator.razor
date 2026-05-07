@@ -128,7 +128,7 @@
 
         <div class="register-link">
             <MudText Align="Align.Center" Typo="Typo.body2">
-                <MudLink Typo="Typo.body2" Href="/Account/Manage/Profile">
+                <MudLink Typo="Typo.body2" Href="/Account">
                     Back to Profile
                 </MudLink>
             </MudText>
@@ -223,7 +223,7 @@
         }
         else
         {
-            RedirectManager.RedirectToWithStatus("/Account/Manage/Profile", _message, HttpContext);
+            RedirectManager.RedirectToWithStatus("/Account", _message, HttpContext);
         }
     }
 

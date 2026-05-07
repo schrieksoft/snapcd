@@ -15,6 +15,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Entities.Sagas
 @using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Repositories.Custom.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
@@ -50,6 +51,7 @@
 
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
 
 <PageTitle>Module: @ModuleName</PageTitle>
 

@@ -12,7 +12,7 @@ using SnapCd.Runner.Settings;
 namespace SnapCd.Runner.Hub;
 
 /// <summary>
-/// SignalR client for bidirectional communication with SnapCD server.
+/// SignalR client for bidirectional communication with Snap CD Server.
 /// Handles connection, reconnection, and log sending with buffering.
 /// </summary>
 public class RunnerHubConnection : IAsyncDisposable

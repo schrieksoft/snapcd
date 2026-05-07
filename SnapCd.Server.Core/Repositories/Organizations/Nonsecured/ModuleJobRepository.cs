@@ -168,6 +168,26 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         await ExecuteUpdate(job); // Called from MassTransit state machine, transaction already running
     }
 
+    /// <summary>
+    /// Records a server-side error against a job without changing its status. Lets a
+    /// later Finalize call set the terminal status while keeping the user-visible error
+    /// text + failed step persisted (e.g. an approval-licensing failure that still needs
+    /// to route through the standard Declined → NotApproved finalisation path).
+    /// </summary>
+    public async Task SetServerSideError(
+        Guid id,
+        Guid organizationId,
+        ServerSideStep failedStep,
+        string errorHeader,
+        string errorMessage)
+    {
+        var job = await Get(id, organizationId);
+        job.FailedOnServerSideStep = failedStep;
+        job.ServerSideErrorHeader = Truncate(errorHeader, 255);
+        job.ServerSideError = Truncate(errorMessage, 16000);
+        await ExecuteUpdate(job); // Called from MassTransit state machine, transaction already running
+    }
+
     private static string? Truncate(string? value, int maxLength)
     {
         if (string.IsNullOrEmpty(value)) return value;

@@ -89,7 +89,14 @@ public static class DashboardRouteBuilderExtensions
             string redirectPath;
             string actionValue;
 
-            if (isRegistration)
+            if (isRegistration && !string.IsNullOrEmpty(token))
+            {
+                // Invitation-flow registration via external login — dedicated page that
+                // attaches the login to the pre-created invited User and finalizes the invitation.
+                redirectPath = "/Account/CompleteInvitationExternalLogin";
+                actionValue = ExternalLoginConstants.RegisterCallbackAction;
+            }
+            else if (isRegistration)
             {
                 redirectPath = "/Account/RegisterExternalLogin";
                 actionValue = ExternalLoginConstants.RegisterCallbackAction;

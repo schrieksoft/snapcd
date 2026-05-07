@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization.Base;
+using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
@@ -14,6 +15,7 @@ namespace SnapCd.Server.Core.Controllers.Crud.Generic;
 
 [ApiController]
 [Authorize("BearerPolicy")]
+[OrganizationScopedFeature]
 public abstract class GenericCrudController<TEntity, TCreateDto, TUpdateDto, TDto, TSecuredRepository, TRepository, TService, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : ControllerBase
     where TEntity : class, IEntity
     where TCreateDto : class

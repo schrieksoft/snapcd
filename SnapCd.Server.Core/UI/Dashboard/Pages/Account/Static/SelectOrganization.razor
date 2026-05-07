@@ -63,18 +63,31 @@
             You are not a member of any organizations.
         </MudAlert>
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   FullWidth="true"
-                   Href="/Account/YourOrganization/Create">
-            Create Organization
-        </MudButton>
+        <div class="sign-in-container">
+            <div class="divider-line"></div>
+            <MudButton Variant="Variant.Filled"
+                       Style="background-color: #000; color: #fff;"
+                       Size="Size.Large"
+                       Href="/Account/YourOrganization/Create"
+                       Class="sign-in-btn">
+                Create Organization
+            </MudButton>
+            <div class="divider-line"></div>
+        </div>
     }
     else
     {
         <MudAlert Severity="Severity.Error" Class="mb-4">
             No organization is available. Please contact your administrator.
         </MudAlert>
+    }
+
+    @if (!_loading && !_autoAssigned)
+    {
+        <form action="/Account/Logout" method="post" class="logout-form">
+            <AntiforgeryToken/>
+            <button type="submit" class="logout-link">sign out</button>
+        </form>
     }
 </StaticAccountComponent>
 
@@ -119,6 +132,25 @@
     .mud-theme-dark .select-container select {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23aaa' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
     }
+
+    .logout-form {
+        margin-top: 1.5rem;
+        text-align: center;
+    }
+
+    .logout-link {
+        background: none;
+        border: none;
+        padding: 0;
+        font: inherit;
+        color: var(--mud-palette-text-secondary);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .logout-link:hover {
+        color: var(--mud-palette-text-primary);
+    }
 </style>
 
 @code {
@@ -160,6 +192,19 @@
                          && !ou.IsDeactivated)
             .OrderBy(ou => ou.Organization.Name)
             .ToListAsync();
+
+        // Auto-pick when the user is in exactly one organization — both editions.
+        if (_organizations.Count == 1)
+        {
+            _autoAssigned = true;
+            var switchUrl = $"/api/organization/switch/{_organizations[0].OrganizationId}";
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                switchUrl += $"?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+            NavigationManager.NavigateTo(switchUrl, forceLoad: true);
+            return;
+        }
 
         // Pre-select first organization if available
         if (_organizations.Any() && Input.OrganizationId == Guid.Empty)

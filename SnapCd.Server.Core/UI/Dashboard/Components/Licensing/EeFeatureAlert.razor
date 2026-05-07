@@ -11,6 +11,7 @@
 
 @code {
     [Parameter] public required string Message { get; set; }
+    [Parameter] public required Feature Feature { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     private bool _showAlert;
@@ -18,6 +19,6 @@
     protected override async Task OnInitializedAsync()
     {
         var licenseInfo = await LicenseService.GetLicenseInfoAsync(OrganizationId);
-        _showAlert = licenseInfo is not { Edition: Edition.EnterpriseEdition, IsValid: true };
+        _showAlert = !licenseInfo.Includes(Feature);
     }
 }

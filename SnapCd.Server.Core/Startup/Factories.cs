@@ -152,10 +152,14 @@ public static class Factories
         services.AddScoped<ModuleSecretSecuredRepositoryFactory>();
         services.AddScoped<SecretRepositoryFactory>();
         services.AddScoped<SecretSecuredRepositoryFactory>();
+        // Concrete factories — kept ungated. SecretMigratorService injects these directly so
+        // it can move secrets across SQL <-> AKV boundaries even when the licence has rendered
+        // the configured premium backend "off-limits" for normal traffic.
         services.AddScoped<AzureVaultFactory>();
         services.AddScoped<SqlVaultFactory>();
-        // IVaultFactory selects the configured SecretStoreProvider at resolution time.
-        services.AddScoped<IVaultFactory>(sp =>
+        // Keyed "inner" registration: chooses the configured SecretStoreProvider. Consumed only
+        // by LicenseGatedVaultFactory (the public IVaultFactory) — not directly by callers.
+        services.AddKeyedScoped<IVaultFactory>(LicenseGatedVaultFactory.InnerKey, (sp, _) =>
         {
             var settings = sp.GetRequiredService<IOptions<SecretStoreSettings>>().Value;
             return settings.Provider switch
@@ -164,6 +168,9 @@ public static class Factories
                 _ => sp.GetRequiredService<AzureVaultFactory>(),
             };
         });
+        // Public IVaultFactory routes through the licence gate. Hosts register the
+        // IPremiumSecretStorePolicy impl that drives the gate decision.
+        services.AddScoped<IVaultFactory, LicenseGatedVaultFactory>();
         services.AddScoped<DependsOnModuleSecuredRepositoryFactory>();
         services.AddScoped<ModuleExtraFileSecuredRepositoryFactory>();
         services.AddScoped<NamespaceExtraFileSecuredRepositoryFactory>();

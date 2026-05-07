@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapCd.Server.SelfHosted", "SnapCd.Server.SelfHosted\SnapCd.Server.SelfHosted.csproj", "{AA8B593B-0144-4F56-9F0A-D9B657943470}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapCd.Server.Host", "SnapCd.Server.Host\SnapCd.Server.Host.csproj", "{AA8B593B-0144-4F56-9F0A-D9B657943470}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapCd.Server.Core.Tests", "tests\SnapCd.Server.Core.Tests\SnapCd.Server.Core.Tests.csproj", "{373762DB-B885-4C9E-9092-D6FF9F887719}"
 EndProject

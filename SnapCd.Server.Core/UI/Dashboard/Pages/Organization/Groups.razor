@@ -16,11 +16,11 @@
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Services.PrincipalProvider
-@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Groups
 @using SnapCd.Server.Core.UI.Dashboard.Components.Group
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
@@ -29,13 +29,12 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles.OrganizationRoles
 
 @attribute [Authorize]
-@attribute [AuthorizeOnNavigationPermission]
+@attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
+@attribute [OrganizationScopedIAM]
 <PageTitle>Manage Groups</PageTitle>
 
 <CascadingValue Value="OrganizationId">
     <MudText Typo="Typo.h4" GutterBottom="true">Manage Groups</MudText>
-
-    <EeFeatureAlert Message="Group management is an Enterprise Edition feature. Enter a valid license key on the License page to enable creating and modifying groups."/>
 
     @if (_showCreateGroup)
     {

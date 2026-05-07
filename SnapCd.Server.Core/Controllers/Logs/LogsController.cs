@@ -7,6 +7,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services;
@@ -16,6 +17,7 @@ namespace SnapCd.Server.Core.Controllers.Logs;
 [ApiController]
 [Authorize("BearerPolicy")]
 [Route(ControllerEndpoints.Logs)]
+[OrganizationScopedFeature]
 public class LogsController : ControllerBase
 {
     private readonly LogService _logService;

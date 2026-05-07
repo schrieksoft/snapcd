@@ -294,7 +294,7 @@
 
         @if (GeneratedToken != null)
         {
-            <MudPaper Elevation="1" Class="pa-4 mb-4 mt-4" Style="background-color: var(--mud-palette-success-lighten);">
+            <MudPaper Elevation="1" Class="pa-4 mb-4 mt-4">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
                     <MudText Typo="Typo.subtitle2" GutterBottom="true">Generated Token</MudText>
                     <MudIconButton
@@ -310,10 +310,16 @@
                         ReadOnly="true"
                         InputType="@DisplayedTokenType"
                         Style="width: 600px; margin-right: 1rem;"/>
-                    <MudButton Variant="Variant.Text" OnClick="ToggleShowToken">
+                    <MudButton Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;"
+                               Size="Size.Small"
+                               OnClick="ToggleShowToken">
                         @ShowTokenText
                     </MudButton>
-                    <MudButton Variant="Variant.Text" OnClick="CopyToken">
+                    <MudButton Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;"
+                               Size="Size.Small"
+                               OnClick="CopyToken">
                         Copy Token
                     </MudButton>
                 </MudStack>
@@ -341,13 +347,13 @@
                                    HelperText="Pick an expiration date."/>
                     <MudTimePicker Label="Select Expiration Time" @bind-Time="SelectedTime" Required="true"
                                    HelperText="Pick an expiration time."/>
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="GenerateToken"
-                                Class="profile-btn mt-4 mb-4">
-                        Submit
-                    </MudButton>
                 </MudStack>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="GenerateToken"
+                           Class="profile-btn mt-4 mb-4">
+                    Submit
+                </MudButton>
             </MudForm>
         }
 
@@ -775,9 +781,7 @@
 
     private void NavigateToResetPassword()
     {
-        // Navigate to ForgotPassword with email pre-filled
-        var url = $"/Account/ForgotPassword?email={Uri.EscapeDataString(_username ?? "")}";
-        NavigationManager.NavigateTo(url);
+        NavigationManager.NavigateTo("/Account/ForgotPassword");
     }
 
     private void NavigateToRemovePassword()

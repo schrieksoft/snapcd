@@ -7,6 +7,7 @@
 @using SnapCd.Server.Core.Dtos
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services
@@ -41,6 +42,7 @@
 
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
 
 <CascadingValue Value="OrganizationId">
     <MudBreadcrumbs Items="_breadCrumbs"></MudBreadcrumbs>

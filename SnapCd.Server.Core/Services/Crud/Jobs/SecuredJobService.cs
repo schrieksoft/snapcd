@@ -4,6 +4,9 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Gatekeeping;
+using SnapCd.Server.Core.Licensing;
+using SnapCd.Server.Core.Licensing.Models;
+using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
@@ -33,6 +36,7 @@ public class SecuredJobServiceFactory
     private readonly IOptions<ModuleRepositorySettings> _moduleOptions;
     private readonly IOptions<ModuleJobRepositorySettings> _moduleJobOptions;
     private readonly QuotaEnforcementService _quotaEnforcementService;
+    private readonly IPremiumMessageBrokerPolicy _messageBrokerPolicy;
 
 
     public SecuredJobServiceFactory(
@@ -41,7 +45,8 @@ public class SecuredJobServiceFactory
         IBus bus,
         IOptions<ModuleRepositorySettings> moduleOptions,
         IOptions<ModuleJobRepositorySettings> moduleJobOptions,
-        QuotaEnforcementService quotaEnforcementService)
+        QuotaEnforcementService quotaEnforcementService,
+        IPremiumMessageBrokerPolicy messageBrokerPolicy)
     {
         _jobServiceFactory = jobServiceFactory;
         _dbContextFactory = dbContextFactory;
@@ -49,6 +54,7 @@ public class SecuredJobServiceFactory
         _moduleOptions = moduleOptions;
         _moduleJobOptions = moduleJobOptions;
         _quotaEnforcementService = quotaEnforcementService;
+        _messageBrokerPolicy = messageBrokerPolicy;
     }
 
     public SecuredJobService Create(IPrincipalProvider? principalProvider = null)
@@ -64,7 +70,7 @@ public class SecuredJobServiceFactory
         var moduleJobRepository = new ModuleJobRepository(dbContext, principalProvider, _bus, _moduleJobOptions);
         var moduleJobSecuredRepository = new ModuleJobSecuredRepository(moduleJobRepository, principalProvider);
 
-        return new SecuredJobService(jobService, moduleRepository, moduleJobRepository, moduleJobSecuredRepository, _bus, _quotaEnforcementService);
+        return new SecuredJobService(jobService, moduleRepository, moduleJobRepository, moduleJobSecuredRepository, _bus, _quotaEnforcementService, _messageBrokerPolicy);
     }
 }
 
@@ -76,6 +82,7 @@ public class SecuredJobService : IDisposable
     private readonly ModuleJobSecuredRepository _moduleJobSecuredRepository;
     private readonly IBus _bus;
     private readonly QuotaEnforcementService _quotaEnforcementService;
+    private readonly IPremiumMessageBrokerPolicy _messageBrokerPolicy;
 
     public SecuredJobService(
         JobService jobService,
@@ -83,7 +90,8 @@ public class SecuredJobService : IDisposable
         ModuleJobRepository moduleJobRepository,
         ModuleJobSecuredRepository moduleJobSecuredRepository,
         IBus bus,
-        QuotaEnforcementService quotaEnforcementService)
+        QuotaEnforcementService quotaEnforcementService,
+        IPremiumMessageBrokerPolicy messageBrokerPolicy)
     {
         _jobService = jobService;
         _moduleJobRepository = moduleJobRepository;
@@ -91,6 +99,7 @@ public class SecuredJobService : IDisposable
         _moduleRepository = moduleRepository;
         _bus = bus;
         _quotaEnforcementService = quotaEnforcementService;
+        _messageBrokerPolicy = messageBrokerPolicy;
     }
 
     public async Task Apply(Guid moduleId, Guid organizationId, Guid jobId, string? runnerInstanceNameOverride = null)
@@ -102,6 +111,11 @@ public class SecuredJobService : IDisposable
         var (canCreate, reason) = await _quotaEnforcementService.CanCreateModuleJobAsync(organizationId);
         if (!canCreate)
             throw new QuotaExceededException("Module", 0, 0, reason!);
+
+        if (!await _messageBrokerPolicy.IsAllowedAsync())
+            throw new LicenceFeatureUnavailableException(Feature.PremiumMessageBroker,
+                "Cannot create new Apply jobs: configured message-broker backend requires the PremiumMessageBroker feature. " +
+                "Either set ServiceBus:BusType=SqlServer or upgrade to a Lite/Enterprise licence.");
 
         await _bus.Publish(new GatekeepingJobRequested
         {
@@ -123,6 +137,11 @@ public class SecuredJobService : IDisposable
         var (canCreate, reason) = await _quotaEnforcementService.CanCreateModuleJobAsync(organizationId);
         if (!canCreate)
             throw new QuotaExceededException("Module", 0, 0, reason!);
+
+        if (!await _messageBrokerPolicy.IsAllowedAsync())
+            throw new LicenceFeatureUnavailableException(Feature.PremiumMessageBroker,
+                "Cannot create new Destroy jobs: configured message-broker backend requires the PremiumMessageBroker feature. " +
+                "Either set ServiceBus:BusType=SqlServer or upgrade to a Lite/Enterprise licence.");
 
         await _bus.Publish(new GatekeepingJobRequested
         {

@@ -9,6 +9,7 @@
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManager RedirectManager
+@inject PostAuthRedirectResolver PostAuthRedirector
 @inject ILogger<LoginWithRecoveryCode> Logger
 
 <PageTitle>Recovery Code Login - Snap CD</PageTitle>
@@ -89,7 +90,7 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User with ID '{UserId}' logged in with a recovery code.", userId);
-            RedirectManager.RedirectTo(ReturnUrl);
+            await RedirectAfterSignInAsync();
         }
         else if (result.IsLockedOut)
         {
@@ -102,6 +103,9 @@
             message = "Error: Invalid recovery code entered.";
         }
     }
+
+    private Task RedirectAfterSignInAsync() =>
+        PostAuthRedirector.RedirectAfterAuthAsync(user.Id, ReturnUrl);
 
     private sealed class InputModel
     {

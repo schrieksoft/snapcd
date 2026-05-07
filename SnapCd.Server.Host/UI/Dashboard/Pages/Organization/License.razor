@@ -1,0 +1,358 @@
+@page "/License"
+@layout OrganizationMainLayout
+
+@inject ISnackbar Snackbar
+@inject IDbContextFactory<SnapCdDbContext> DbContextFactory
+@inject IOrganizationContext OrganizationContext
+@inject LicenseService LicenseService
+@inject ISaaSLicenseClient SaaSLicenseClient
+@inject IQuotaGatingService QuotaGatingService
+@inject IOptions<DebuggingOptions> DebuggingOptions
+@using System.Diagnostics
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Options
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.Licensing.Services
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Settings
+@using SnapCd.Server.Core.UI.Dashboard.Layout
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.SubscriptionManager)]
+
+<PageTitle>License</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">License</MudText>
+
+@if (_isUsingDebugLicense)
+{
+    <MudAlert Severity="Severity.Warning"
+              Variant="Variant.Filled"
+              Icon="@Icons.Material.Filled.BugReport"
+              Class="mb-4 pa-4"
+              Style="font-size: 1rem;">
+        <MudText Typo="Typo.h6" Style="font-weight: 700;">DEBUG ENTERPRISE LICENSE IN USE</MudText>
+        <MudText Typo="Typo.body1" Class="mt-2">
+            This server is running with a debugger attached and
+            <code>Debugging.ForceEnterpriseLicenseWhenDebuggerAttached = true</code>.
+            All Enterprise Edition features are unlocked by a synthetic license that bypasses the
+            real licensing service. <strong>This is licensed for Active Development Work only</strong>
+            (see LICENSE.md). Using this server for any production, staging, demo, customer-facing,
+            multi-user, internal-shared, hosted, or otherwise non-development purpose is a violation
+            of the Snap CD Source-Available License — regardless of where the deployment runs.
+        </MudText>
+    </MudAlert>
+}
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else
+{
+    <MudPaper Elevation="1" Class="pa-6 mt-4">
+        @if (_busy)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
+                <MudText>@_busyMessage</MudText>
+            </MudStack>
+        }
+        else
+        {
+            @if (_licenseInfo is { IsValid: true } && _licenseInfo.Tier != Tier.Community)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-4" Icon="@Icons.Material.Filled.CheckCircle">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width: 100%;">
+                        <div>
+                            <strong>@TierLabel(_licenseInfo.Tier) tier</strong>
+                            <MudText Typo="Typo.body2">License valid until @_licenseInfo.ExpiryDate?.ToString("yyyy-MM-dd")</MudText>
+                        </div>
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Text="Active"/>
+                    </MudStack>
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    <strong>Community tier</strong>
+                    <MudText Typo="Typo.body2">Limited to @LicenseInfo.CommunityModuleCap modules. Enter a license key to unlock more modules and additional features.</MudText>
+                </MudAlert>
+            }
+
+            @if (!string.IsNullOrEmpty(_licenseInfo?.ValidationError))
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-4">
+                    @_licenseInfo.ValidationError
+                </MudAlert>
+            }
+
+            <MudSimpleTable Dense="true" Class="mb-4" Style="max-width: 500px;">
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 600;">Tier</td>
+                        <td>@(_licenseInfo is null ? "—" : TierLabel(_licenseInfo.Tier))</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Module Limit</td>
+                        <td>@(_moduleQuota?.ToString() ?? "Unlimited")</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Current Modules</td>
+                        <td>@_currentModuleCount</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Expiry</td>
+                        <td>@(_licenseInfo?.ExpiryDate?.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+        }
+
+        @if (!_busy && _hasStoredKey && !_replaceMode)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                <MudText Typo="Typo.body1" Style="font-weight: 600;">License Key:</MudText>
+                <MudChip T="string" Color="Color.Default" Size="Size.Medium" Variant="Variant.Outlined">
+                    @_licenseKeyPreview
+                </MudChip>
+            </MudStack>
+        }
+
+        @if (!_busy && (!_hasStoredKey || _replaceMode))
+        {
+            <MudTextField @bind-Value="_newLicenseKey"
+                          Immediate="true"
+                          Label="License Key"
+                          Variant="Variant.Outlined"
+                          Placeholder="shsk_..."
+                          HelperText="Paste the license key from your SnapCd SaaS self-hosted subscription."
+                          Class="mb-4"/>
+        }
+
+        @if (!_busy)
+        {
+            <div class="d-flex gap-2">
+                @if (!_hasStoredKey || _replaceMode)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SaveLicenseKey"
+                               Disabled="@(string.IsNullOrWhiteSpace(_newLicenseKey))"
+                               Class="mt-2 mb-2">
+                        Save License Key
+                    </MudButton>
+
+                    @if (_replaceMode)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   OnClick="CancelReplace"
+                                   Class="mt-2 mb-2">
+                            Cancel
+                        </MudButton>
+                    }
+                }
+
+                @if (_hasStoredKey && !_replaceMode)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="BeginReplace"
+                               Class="mt-2 mb-2">
+                        Replace License Key
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="RefreshLicense"
+                               Class="mt-2 mb-2">
+                        Refresh License
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               OnClick="RemoveLicenseKey"
+                               Class="mt-2 mb-2">
+                        Remove License Key
+                    </MudButton>
+                }
+            </div>
+        }
+    </MudPaper>
+}
+
+@code {
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private LicenseInfo? _licenseInfo;
+    private bool _loading = true;
+    private bool _busy;
+    private string _busyMessage = "";
+    private int _currentModuleCount;
+    private int? _moduleQuota;
+    private string? _newLicenseKey;
+    private string? _licenseKeyPreview;
+    private bool _hasStoredKey;
+    private bool _replaceMode;
+    private bool _isUsingDebugLicense;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isUsingDebugLicense = Debugger.IsAttached
+            && DebuggingOptions.Value.ForceEnterpriseLicenseWhenDebuggerAttached;
+        await LoadLicenseDataAsync();
+    }
+
+    private async Task LoadLicenseDataAsync()
+    {
+        _loading = true;
+
+        try
+        {
+            _licenseInfo = await LicenseService.GetLicenseInfoAsync(OrganizationId);
+            _moduleQuota = _licenseInfo.MaxModules;
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            _currentModuleCount = await dbContext.Modules
+                .CountAsync(m => m.OrganizationId == OrganizationId);
+
+            var storedKey = await dbContext.Set<SelfHostedOrganizationLicense>()
+                .Where(l => l.OrganizationId == OrganizationId)
+                .Select(l => l.SelfHostedLicenseKey)
+                .FirstOrDefaultAsync();
+
+            _hasStoredKey = !string.IsNullOrWhiteSpace(storedKey);
+            _licenseKeyPreview = _hasStoredKey ? BuildPreview(storedKey!) : null;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading license data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string BuildPreview(string key)
+    {
+        // Typical format: "shsk_" + base64url(32 bytes). Show the prefix + first 4 chars of payload.
+        const int visible = 9; // "shsk_" + 4 chars
+        if (key.Length <= visible) return key;
+        return key.Substring(0, visible) + new string('*', 8);
+    }
+
+    private static string TierLabel(Tier tier) => tier switch
+    {
+        Tier.Community => "Community",
+        Tier.Lite => "Lite",
+        Tier.Enterprise => "Enterprise",
+        _ => tier.ToString()
+    };
+
+    private void BeginReplace()
+    {
+        _replaceMode = true;
+        _newLicenseKey = null;
+    }
+
+    private void CancelReplace()
+    {
+        _replaceMode = false;
+        _newLicenseKey = null;
+    }
+
+    private async Task SaveLicenseKey()
+    {
+        if (string.IsNullOrWhiteSpace(_newLicenseKey))
+            return;
+
+        _busy = true;
+        _busyMessage = "Saving license key…";
+
+        try
+        {
+            var opaqueKey = _newLicenseKey.Trim();
+            var issued = await SaaSLicenseClient.IssueAsync(opaqueKey);
+
+            if (issued is null || string.IsNullOrWhiteSpace(issued.Token))
+            {
+                Snackbar.Add("SaaS did not return a license token. Check the key and try again.", Severity.Error);
+                return;
+            }
+
+            var result = await LicenseService.SaveIssuedLicenseAsync(OrganizationId, opaqueKey, issued.Token);
+
+            if (result.IsValid)
+            {
+                // Chain a refresh so the stored state matches a full round-trip through
+                // SaaS's /refresh endpoint (exercises the same path the Hangfire job uses).
+                var refreshed = await LicenseService.RefreshFromSaaSAsync(OrganizationId);
+                _licenseInfo = refreshed.IsValid ? refreshed : result;
+                _newLicenseKey = null;
+                _replaceMode = false;
+                Snackbar.Add("License key saved.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Invalid license: {result.ValidationError}", Severity.Error);
+                _licenseInfo = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving license key: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+            await LoadLicenseDataAsync();
+        }
+    }
+
+    private async Task RefreshLicense()
+    {
+        _busy = true;
+        _busyMessage = "Refreshing license…";
+
+        try
+        {
+            var refreshed = await LicenseService.RefreshFromSaaSAsync(OrganizationId);
+            if (refreshed.IsValid)
+                Snackbar.Add("License refreshed.", Severity.Success);
+            else
+                Snackbar.Add($"Refresh failed: {refreshed.ValidationError}", Severity.Warning);
+            _licenseInfo = refreshed;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error refreshing license: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+            await LoadLicenseDataAsync();
+        }
+    }
+
+    private async Task RemoveLicenseKey()
+    {
+        try
+        {
+            await LicenseService.RemoveLicenseKeyAsync(OrganizationId);
+            Snackbar.Add("License key removed.", Severity.Success);
+            _newLicenseKey = null;
+            _replaceMode = false;
+            await LoadLicenseDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error removing license key: {ex.Message}", Severity.Error);
+        }
+    }
+}

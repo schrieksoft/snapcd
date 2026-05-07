@@ -47,7 +47,7 @@
 
     <div class="register-link">
         <MudText Align="Align.Center" Typo="Typo.body2">
-            <MudLink Typo="Typo.body2" Href="/Account/Manage/Profile">
+            <MudLink Typo="Typo.body2" Href="/Account">
                 Cancel
             </MudLink>
         </MudText>
@@ -112,7 +112,7 @@
         var userId = await UserManager.GetUserIdAsync(user);
         Logger.LogInformation("User with ID '{UserId}' has disabled 2fa.", userId);
         RedirectManager.RedirectToWithStatus(
-            "/Account/Manage/Profile",
+            "/Account",
             "2fa has been disabled. You can re-enable 2fa when you setup an authenticator app",
             HttpContext);
     }

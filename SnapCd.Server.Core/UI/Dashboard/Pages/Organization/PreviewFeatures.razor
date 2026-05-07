@@ -8,16 +8,19 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Options
+@using SnapCd.Contracts
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Settings
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
 @attribute [Authorize]
-@attribute [AuthorizeOnNavigationPermission]
+@attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner)]
+@attribute [OrganizationScopedFeature]
 
 <PageTitle>Preview Features</PageTitle>
 

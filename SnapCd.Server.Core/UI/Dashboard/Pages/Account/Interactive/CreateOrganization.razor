@@ -130,7 +130,7 @@
             // If tier=Paid, redirect to Subscription page after switching
             if (string.Equals(Tier, "Paid", StringComparison.OrdinalIgnoreCase))
             {
-                NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl=/Subscription", forceLoad: true);
+                NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl=/CloudSubscription", forceLoad: true);
             }
             else
             {

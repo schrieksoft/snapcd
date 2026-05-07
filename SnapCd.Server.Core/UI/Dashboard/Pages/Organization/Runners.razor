@@ -16,6 +16,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.OrganizationContext
@@ -27,6 +28,7 @@
 
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
 <PageTitle>Runners</PageTitle>
 
 <CascadingValue Value="OrganizationId">

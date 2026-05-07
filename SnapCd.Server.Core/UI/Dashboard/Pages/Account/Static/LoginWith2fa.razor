@@ -9,6 +9,7 @@
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManager RedirectManager
+@inject PostAuthRedirectResolver PostAuthRedirector
 @inject ILogger<LoginWith2fa> Logger
 
 <PageTitle>Two-Factor Authentication - Snap CD</PageTitle>
@@ -90,7 +91,7 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User with ID '{UserId}' logged in with 2fa.", userId);
-            RedirectManager.RedirectTo(ReturnUrl);
+            await RedirectAfterSignInAsync();
         }
         else if (result.IsLockedOut)
         {
@@ -103,6 +104,9 @@
             message = "Error: Invalid authenticator code.";
         }
     }
+
+    private Task RedirectAfterSignInAsync() =>
+        PostAuthRedirector.RedirectAfterAuthAsync(user.Id, ReturnUrl);
 
     private sealed class InputModel
     {

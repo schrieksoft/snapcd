@@ -1,16 +1,14 @@
-﻿@page "/Account/RegisterConfirmation"
+@page "/Account/RegisterConfirmation"
 @layout AccountLayout
 
-@using System.Text
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Services.Dashboard
 @using SnapCd.Server.Core.Services.Email
+@using SnapCd.Server.Core.UI.Dashboard.Components.Email
 
 @inject UserManager<User> UserManager
-@inject IEmailSender<User> EmailSender
-@inject NavigationManager NavigationManager
+@inject ISnapCdEmailSender EmailSender
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Registration Confirmation - Snap CD</PageTitle>
@@ -19,22 +17,11 @@
 
     <StatusMessage Message="@statusMessage"/>
 
-    @if (emailConfirmationLink is not null)
+    @if (_isDeliveryActive == false)
     {
-        <MudAlert Severity="Severity.Warning" Class="mb-4">
-            <MudText Typo="Typo.body1" Class="mb-3">
-                This app does not currently have a real email sender registered, see
-                <MudLink Href="https://aka.ms/aspaccountconf" Target="_blank">these docs</MudLink>
-                for how to configure a real email sender.
-            </MudText>
-
-            <MudText Typo="Typo.body1">
-                Normally this would be emailed:
-                <MudLink Href="@emailConfirmationLink">Click here to confirm your account</MudLink>
-            </MudText>
-        </MudAlert>
+        <EmailNotConfiguredNotice Reason="to confirm your account" />
     }
-    else
+    else if (_isDeliveryActive == true)
     {
         <MudAlert Severity="Severity.Success" Class="mb-4">
             <MudText Typo="Typo.body1">
@@ -47,7 +34,7 @@
     <div class="register-link">
         <div class="login-button-container">
             <div class="divider-line"></div>
-            <a href="/Account/Login" class="login-btn-link">
+            <a href="@LoginUrl" class="login-btn-link">
                 go to login
             </a>
             <div class="divider-line"></div>
@@ -56,14 +43,18 @@
 </StaticAccountComponent>
 
 @code {
-    private string? emailConfirmationLink;
     private string? statusMessage;
+    private bool? _isDeliveryActive;
 
     [SupplyParameterFromQuery] private string? Email { get; set; }
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    private string LoginUrl => string.IsNullOrEmpty(ReturnUrl)
+        ? "/Account/Login"
+        : $"/Account/Login?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,17 +68,10 @@
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
             statusMessage = "Error finding user for unspecified email";
+            return;
         }
-        else if (EmailSender is IdentityNoOpEmailSender)
-        {
-            // Once you add a real email sender, you should remove this code that lets you confirm the account
-            var userId = await UserManager.GetUserIdAsync(user);
-            var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            emailConfirmationLink = NavigationManager.GetUriWithQueryParameters(
-                NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-                new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
-        }
+
+        _isDeliveryActive = await EmailSender.IsDeliveryActiveAsync();
     }
 
 }

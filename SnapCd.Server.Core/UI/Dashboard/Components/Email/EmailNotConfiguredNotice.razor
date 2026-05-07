@@ -1,0 +1,19 @@
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    <MudText Typo="Typo.body1" Class="mb-2">
+        <strong>Email delivery is not configured on this server.</strong>
+    </MudText>
+    <MudText Typo="Typo.body2">
+        @if (!string.IsNullOrEmpty(Reason))
+        {
+            <text>An administrator needs to take action @Reason. Please contact your administrator.</text>
+        }
+        else
+        {
+            <text>An administrator must complete this action manually. Please contact your administrator.</text>
+        }
+    </MudText>
+</MudAlert>
+
+@code {
+    [Parameter] public string? Reason { get; set; }
+}

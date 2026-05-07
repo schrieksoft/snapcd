@@ -1,6 +1,6 @@
 // using System.Text.Json;
 //
-// namespace SnapCd.Server.SelfHosted.Services.ResolvedConfiguration.HelperClasses;
+// namespace SnapCd.Server.Host.Services.ResolvedConfiguration.HelperClasses;
 //
 // public class Diff
 // {

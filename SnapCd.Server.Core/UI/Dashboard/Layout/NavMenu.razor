@@ -18,6 +18,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IOrganizationContext OrganizationContext
 @inject IOptions<SecretStoreSettings> SecretStoreSettings
+@inject IOrganizationActivationService OrganizationActivation
+@inject OrganizationMembershipCacheService MembershipCache
+@inject UserManager<User> UserManager
 
 <MudNavMenu Style="background-color: #000; color: white; padding-top: 16px; width: 100%; overflow-x: hidden;">
 
@@ -36,8 +39,8 @@
             <!-- Organization Selector -->
             <OrganizationSelector CurrentOrganizationId="_currentOrganizationId"/>
 
-            <!-- General Section -->
-            @if (_generalIsAllowedToNavigateMap.Any(entry => entry.Value))
+            <!-- General Section (gated by Cloud subscription status on SaaS) -->
+            @if (_organizationActivated && _generalIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
                 @foreach (var link in _generalNavLinks)
                 {
@@ -49,8 +52,8 @@
                 }
             }
 
-            <!-- System Section -->
-            @if (_systemIsAllowedToNavigateMap.Any(entry => entry.Value))
+            <!-- System Section (gated by Cloud subscription status on SaaS) -->
+            @if (_organizationActivated && _systemIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
                 <MudNavGroup Title="System" Icon="@Icons.Material.Filled.Settings" Expanded="false">
                     @foreach (var link in _systemNavLinks)
@@ -110,8 +113,8 @@
                 @EditionAccountNavItems
             }
 
-            <!-- Swagger -->
-            @if (_swaggerIsAllowedToNavigate)
+            <!-- Swagger (gated by Cloud subscription status on SaaS) -->
+            @if (_organizationActivated && _swaggerIsAllowedToNavigate)
             {
                 <MudNavLink Href="@GetNavigationUrl("Swagger")" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Api">Swagger
                 </MudNavLink>
@@ -269,10 +272,13 @@
     private RenderFragment? EditionNavItems => EditionNavProvider.EditionNavItems;
     private RenderFragment? EditionAccountNavItems => EditionNavProvider.EditionAccountNavItems;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+
+        var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+        _organizationActivated = await OrganizationActivation.IsActivatedAsync(orgId);
 
         if (SecretStoreSettings.Value.EnableMigrator)
         {
@@ -282,31 +288,21 @@
                 typeof(SecretMigrator)));
         }
 
-        _generalIsAllowedToNavigateMap = _generalNavLinks
-            .ToDictionary(
-                link => link.PageType,
-                link => IsAllowedToNavigate(link.PageType)
-            );
+        _generalIsAllowedToNavigateMap = await BuildAllowedMapAsync(_generalNavLinks, orgId);
+        _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
+        _accountIsAllowedToNavigateMap = await BuildAllowedMapAsync(_accountNavLinks, orgId);
+        _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
+        _swaggerIsAllowedToNavigate = await IsAllowedToNavigateAsync(typeof(Swagger), orgId);
+    }
 
-        _identityAccessIsAllowedToNavigateMap = _identityAccessNavLinks
-            .ToDictionary(
-                link => link.PageType,
-                link => IsAllowedToNavigate(link.PageType)
-            );
-
-        _accountIsAllowedToNavigateMap = _accountNavLinks
-            .ToDictionary(
-                link => link.PageType,
-                link => IsAllowedToNavigate(link.PageType)
-            );
-
-        _systemIsAllowedToNavigateMap = _systemNavLinks
-            .ToDictionary(
-                link => link.PageType,
-                link => IsAllowedToNavigate(link.PageType)
-            );
-
-        _swaggerIsAllowedToNavigate = IsAllowedToNavigate(typeof(Swagger));
+    private async Task<Dictionary<Type, bool>> BuildAllowedMapAsync(IEnumerable<NavLinkItem> links, Guid orgId)
+    {
+        var map = new Dictionary<Type, bool>();
+        foreach (var link in links)
+        {
+            map[link.PageType] = await IsAllowedToNavigateAsync(link.PageType, orgId);
+        }
+        return map;
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -367,19 +363,24 @@
     private Dictionary<Type, bool> _identityAccessIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _accountIsAllowedToNavigateMap = new();
     private bool _swaggerIsAllowedToNavigate;
+    private bool _organizationActivated;
 
-    private bool IsAllowedToNavigate(Type pageType)
+    private async Task<bool> IsAllowedToNavigateAsync(Type pageType, Guid orgId)
     {
-        // Check if the page has the [AuthorizeOnNavigationPermission] attribute
-        var requiresPermissionCheck = pageType.GetCustomAttributes(typeof(AuthorizeOnNavigationPermission), true).Any();
+        var attr = pageType
+            .GetCustomAttributes(typeof(AuthorizeOnNavigationPermission), inherit: true)
+            .OfType<AuthorizeOnNavigationPermission>()
+            .FirstOrDefault();
 
-        if (!requiresPermissionCheck)
-        {
-            return true; // Allow access if the attribute is not present
-        }
+        if (attr is null) return true;
+        if (attr.AnyOf.Length == 0) return true;
+        if (orgId == Guid.Empty) return true;
 
-        // Use PageAuthorizationService to determine access
-        return true;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        if (user is null) return false;
+
+        return await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, attr.AnyOf);
     }
 
 

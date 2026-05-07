@@ -2,11 +2,11 @@
 @using SnapCd.Server.Core.Licensing.Services
 @inject LicenseService LicenseService
 
-@if (_isCommunityEdition)
+@if (_disabled)
 {
     <MudItem md="12">
         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-            Approval workflows are an Enterprise Edition feature. These settings will have no effect without a valid Enterprise license.
+            Approval workflows are not included in your current tier. These settings will have no effect.
         </MudAlert>
     </MudItem>
 }
@@ -16,7 +16,7 @@
                   Value="@DefaultApplyApprovalThreshold"
                   ValueChanged="@DefaultApplyApprovalThresholdChanged"
                   Variant="Variant.Outlined"
-                  Disabled="@_isCommunityEdition"/>
+                  Disabled="@_disabled"/>
 </MudItem>
 
 <MudItem md="12">
@@ -24,7 +24,7 @@
                   Value="@DefaultDestroyApprovalThreshold"
                   ValueChanged="@DefaultDestroyApprovalThresholdChanged"
                   Variant="Variant.Outlined"
-                  Disabled="@_isCommunityEdition"/>
+                  Disabled="@_disabled"/>
 </MudItem>
 
 <MudItem md="12">
@@ -32,7 +32,7 @@
                   Value="@DefaultApprovalTimeoutMinutes"
                   ValueChanged="@DefaultApprovalTimeoutMinutesChanged"
                   Variant="Variant.Outlined"
-                  Disabled="@_isCommunityEdition"/>
+                  Disabled="@_disabled"/>
 </MudItem>
 
 @code {
@@ -47,11 +47,11 @@
 
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    private bool _isCommunityEdition;
+    private bool _disabled;
 
     protected override async Task OnInitializedAsync()
     {
         var licenseInfo = await LicenseService.GetLicenseInfoAsync(OrganizationId);
-        _isCommunityEdition = licenseInfo is not { Edition: Edition.EnterpriseEdition, IsValid: true };
+        _disabled = !licenseInfo.Includes(Feature.ApprovalWorkflows);
     }
 }

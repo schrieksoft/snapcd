@@ -23,11 +23,11 @@
     </ItemGroup>
 
     <!-- Version Configuration -->
+    <!-- Version / AssemblyVersion / FileVersion / InformationalVersion are intentionally
+         unset so they are supplied at publish time (CI passes /p:Version=$SEMVER) and fall
+         back to git-describe in Debug via Directory.Build.targets at the repo root. -->
     <PropertyGroup>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-        <AssemblyVersion>0.0.0</AssemblyVersion>
-        <FileVersion>0.0.0</FileVersion>
-        <InformationalVersion>0.0.0</InformationalVersion>
     </PropertyGroup>
 
 </Project>

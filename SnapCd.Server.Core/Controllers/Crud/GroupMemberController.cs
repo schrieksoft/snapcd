@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.GroupMembers.Base;
-using SnapCd.Server.Core.Licensing.Attributes;
+using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud;
@@ -18,6 +18,7 @@ public static class GroupMemberCustomEndpointNames
 [Route(ControllerEndpoints.GroupMember)]
 [ApiController]
 [Authorize("BearerPolicy")]
+[OrganizationScopedIAM]
 public class GroupMemberController : ControllerBase
 {
     protected readonly GroupMemberService Service;
@@ -28,7 +29,6 @@ public class GroupMemberController : ControllerBase
     }
 
     [HttpPost]
-    [VerifyLicense("GroupRbac")]
     public virtual async Task<ActionResult<GroupMemberReadDto>> Create(Guid organizationId, GroupMemberReadDto dto)
     {
         try
@@ -91,7 +91,6 @@ public class GroupMemberController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [VerifyLicense("GroupRbac")]
     public virtual async Task<ActionResult<GroupMemberReadDto>> Update(Guid organizationId, GroupMemberUpdateDto dto, Guid id)
     {
         try

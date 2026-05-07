@@ -18,7 +18,7 @@ public class MemberServiceFactory
     private readonly UserManagerFactory<User, IdentityRole<Guid>, SnapCdDbContext> _userManagerFactory;
     private readonly IQuotaUsageForInvitationServiceFactory _quotaServiceFactory;
     private readonly IOptions<InvitationSettings> _settings;
-    private readonly IEmailSenderWrapper _emailSender;
+    private readonly ISnapCdEmailSender _emailSender;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IBus _bus;
     private readonly ILogger<MemberService> _logger;
@@ -29,7 +29,7 @@ public class MemberServiceFactory
         UserManagerFactory<User, IdentityRole<Guid>, SnapCdDbContext> userManagerFactory,
         IQuotaUsageForInvitationServiceFactory quotaServiceFactory,
         IOptions<InvitationSettings> settings,
-        IEmailSenderWrapper emailSender,
+        ISnapCdEmailSender emailSender,
         IHttpContextAccessor httpContextAccessor,
         IBus bus,
         ILogger<MemberService> logger)

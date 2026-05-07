@@ -66,5 +66,6 @@ public enum ServerSideStep
     Plan,
     ApplyFromPlan,
     DestroyFromPlan,
-    Output
+    Output,
+    Approval
 }

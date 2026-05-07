@@ -15,6 +15,7 @@
 @using SnapCd.Server.Core.Mappers
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Edition
 
 @inject UserManager<User> UserManager
 @inject IBus Bus
@@ -27,6 +28,8 @@
 @inject ITermsAcceptanceService TermsService
 @inject IHttpContextAccessor HttpContextAccessor
 @inject TurnstileVerificationService TurnstileService
+@inject ISelfRegistrationPolicy SelfRegistrationPolicy
+@inject IConsentRequirementPolicy ConsentPolicy
 
 <PageTitle>Register - Snap CD</PageTitle>
 
@@ -70,16 +73,19 @@
                                     Variant="Variant.Outlined" FullWidth="true"
                                     UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
             </MudItem>
-            <MudItem xs="12" Class="mt-2">
-                <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
-                    <MudText Typo="Typo.body2">
-                        I agree to the
-                        <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
-                        and
-                        <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
-                    </MudText>
-                </MudStaticCheckBox>
-            </MudItem>
+            @if (ConsentPolicy.RequiresTermsAcceptance)
+            {
+                <MudItem xs="12" Class="mt-2">
+                    <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                        <MudText Typo="Typo.body2">
+                            I agree to the
+                            <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
+                            and
+                            <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
+                        </MudText>
+                    </MudStaticCheckBox>
+                </MudItem>
+            }
             <MudItem xs="12">
                 <TurnstileWidget />
             </MudItem>
@@ -162,8 +168,31 @@
 
     private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
 
+    protected override void OnInitialized()
+    {
+        // Self-Hosted disables open self-registration — admins invite members instead.
+        // Defence in depth: the "Sign up" link in Login.razor is also hidden via the same
+        // policy, but block direct navigation here too.
+        if (!SelfRegistrationPolicy.AllowsSelfRegistration)
+        {
+            RedirectManager.RedirectTo("Account/Login");
+        }
+
+        // No consent UI on this edition → satisfy the [Required]/[Range] annotations
+        // silently so the form posts without the (hidden) checkbox.
+        if (!ConsentPolicy.RequiresTermsAcceptance)
+        {
+            Input.AcceptTerms = true;
+        }
+    }
+
     public async Task RegisterUser(EditContext editContext)
     {
+        if (!SelfRegistrationPolicy.AllowsSelfRegistration)
+        {
+            RedirectManager.RedirectTo("Account/Login");
+        }
+
         // Verify Turnstile token
         var turnstileHttpContext = HttpContextAccessor.HttpContext;
         var turnstileToken = turnstileHttpContext?.Request.Form["cf-turnstile-response"].ToString();

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 
@@ -11,6 +12,7 @@ namespace SnapCd.Server.Core.Controllers.Jobs;
 [Route(ControllerEndpoints.Jobs)]
 [ApiController]
 [Authorize("BearerPolicy")]
+[OrganizationScopedFeature]
 public class JobController : ControllerBase
 {
     private readonly SecuredJobServiceFactory _securedJobServiceFactory;

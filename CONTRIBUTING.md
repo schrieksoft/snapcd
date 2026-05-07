@@ -1,10 +1,10 @@
-# Contributing to SnapCD
+# Contributing to Snap CD
 
 Thanks for your interest in contributing.
 
 ## License
 
-SnapCD is licensed under the **Snap CD Source-Available License 1.0** (see
+Snap CD is licensed under the **Snap CD Source-Available License 1.0** (see
 `LICENSE.md`), a license derived from the Elastic License 2.0. It is not the
 Elastic License 2.0 and is not endorsed by Elastic N.V.
 
@@ -15,7 +15,7 @@ Before we can merge your first pull request, you will be asked to sign our
 your PR). The CLA grants us a broad license to your contribution, including the
 right to relicense.
 
-Please note: SnapCD is an open-core product — some features are gated behind
+Please note: Snap CD is an open-core product — some features are gated behind
 a paid Enterprise Edition license key. While contributions are generally
 accepted into the open-source code paths and we do not set out to pull
 community contributions into the commercial Enterprise Edition, **the CLA

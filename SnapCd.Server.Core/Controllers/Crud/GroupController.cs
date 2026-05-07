@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Groups;
 using SnapCd.Server.Core.Controllers.Crud.Generic;
-using SnapCd.Server.Core.Licensing.Attributes;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -20,6 +20,7 @@ public static class GroupCustomEndpointNames
 }
 
 [Route(ControllerEndpoints.Group)]
+[OrganizationScopedIAM]
 public class GroupController : GenericCrudController<
     Group,
     GroupCreateDto,
@@ -35,18 +36,6 @@ public class GroupController : GenericCrudController<
 {
     public GroupController(GroupService service) : base(service)
     {
-    }
-
-    [VerifyLicense("GroupRbac")]
-    public override Task<ActionResult<GroupReadDto>> Create(Guid organizationId, GroupCreateDto dto)
-    {
-        return base.Create(organizationId, dto);
-    }
-
-    [VerifyLicense("GroupRbac")]
-    public override Task<ActionResult<GroupReadDto>> Update(Guid organizationId, GroupUpdateDto dto, Guid id)
-    {
-        return base.Update(organizationId, dto, id);
     }
 
     [HttpGet($"{GroupCustomEndpointNames.GetByName}/{{name}}")]

@@ -2,9 +2,11 @@
 @layout AccountLayout
 
 @using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Services.Dashboard
 
-@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
 @inject ILogger<AcceptInvitation> Logger
 
 <PageTitle>Accept Invitation - Snap CD</PageTitle>
@@ -97,6 +99,8 @@
 
     [SupplyParameterFromQuery] private string? Token { get; set; }
 
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
     private string? GetSubtitle()
@@ -113,48 +117,54 @@
             return;
         }
 
+        // Resolve the invitation and decide where to redirect. RedirectManager throws a
+        // NavigationException to trigger the server-side redirect, so the redirect calls
+        // must NOT be inside the try/catch (or the catch would swallow them).
+        OrganizationUser? invitation;
         try
         {
             using var memberServiceScope = MemberServiceFactory.Create();
-            var invitation = await memberServiceScope.Service.GetInvitationByTokenAsync(Token);
-
-            if (invitation == null)
-            {
-                _errorMessage = "Invalid or expired invitation token.";
-                return;
-            }
-
-            // Check if invitation has expired
-            if (invitation.InvitationExpirationDateTime <= DateTime.UtcNow)
-            {
-                _errorMessage = "This invitation has expired. Please request a new invitation.";
-                return;
-            }
-
-            // Check if invitation is already completed
-            if (invitation.InvitationCompleted)
-            {
-                _errorMessage = "This invitation has already been completed.";
-                return;
-            }
-
-            // Route based on user status
-            if (invitation.User.IsRegistrationNotCompleted)
-            {
-                // New user - send to registration page
-                NavigationManager.NavigateTo($"/Account/CompleteInvitation?token={Token}", forceLoad: true);
-            }
-            else
-            {
-                // Existing user - send to login, then to organization invitation page
-                var returnUrl = Uri.EscapeDataString($"/Account/CompleteOrganizationInvitation?token={Token}");
-                NavigationManager.NavigateTo($"/Account/Login?returnUrl={returnUrl}", forceLoad: true);
-            }
+            invitation = await memberServiceScope.Service.GetInvitationByTokenAsync(Token);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing invitation");
+            Logger.LogError(ex, "Error loading invitation token {Token}", Token);
             _errorMessage = "An error occurred while processing the invitation.";
+            return;
+        }
+
+        if (invitation == null)
+        {
+            _errorMessage = "Invalid or expired invitation token.";
+            return;
+        }
+        if (invitation.InvitationExpirationDateTime <= DateTime.UtcNow)
+        {
+            _errorMessage = "This invitation has expired. Please request a new invitation.";
+            return;
+        }
+        if (invitation.InvitationCompleted)
+        {
+            _errorMessage = "This invitation has already been completed.";
+            return;
+        }
+
+        if (invitation.User.IsRegistrationNotCompleted)
+        {
+            // New user - send to registration page
+            RedirectManager.RedirectTo("Account/CompleteInvitation",
+                new Dictionary<string, object?> { ["token"] = Token, ["returnUrl"] = ReturnUrl });
+        }
+        else
+        {
+            // Existing user - send to login, then to organization invitation page,
+            // carrying the caller's ReturnUrl through so the user lands at their original target.
+            var orgInvitationUrl = $"/Account/CompleteOrganizationInvitation?token={Uri.EscapeDataString(Token)}";
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                orgInvitationUrl += $"&returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+            RedirectManager.RedirectTo("Account/Login", new Dictionary<string, object?> { ["returnUrl"] = orgInvitationUrl });
         }
     }
 }

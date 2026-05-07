@@ -25,30 +25,7 @@
         <div class="register-link">
             <div class="login-button-container">
                 <div class="divider-line"></div>
-                <a href="/Account/Organizations" class="login-btn-link">
-                    view organizations
-                </a>
-                <div class="divider-line"></div>
-            </div>
-        </div>
-    }
-    else if (_actionCompleted)
-    {
-        <MudAlert Severity="@(_accepted ? Severity.Success : Severity.Info)" Class="mb-4">
-            @if (_accepted)
-            {
-                <text>You have successfully joined <strong>@_organizationName</strong>!</text>
-            }
-            else
-            {
-                <text>You have declined the invitation to join <strong>@_organizationName</strong>.</text>
-            }
-        </MudAlert>
-
-        <div class="register-link">
-            <div class="login-button-container">
-                <div class="divider-line"></div>
-                <a href="/Account/Organizations" class="login-btn-link">
+                <a href="/Organizations" class="login-btn-link">
                     view organizations
                 </a>
                 <div class="divider-line"></div>
@@ -60,7 +37,7 @@
         <div class="invitation-info">
             <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
                 <MudText Typo="Typo.body2">
-                    You've been invited to join <strong>@_invitation.Organization.Name</strong> on SnapCD.
+                    You've been invited to join <strong>@_invitation.Organization.Name</strong> on Snap CD.
                 </MudText>
             </MudAlert>
         </div>
@@ -70,27 +47,21 @@
         </MudText>
 
         <div class="button-container">
-            <form method="post" @formname="accept-invitation">
-                <AntiforgeryToken />
-                <input type="hidden" name="Token" value="@Token" />
-                <input type="hidden" name="Action" value="accept" />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                           ButtonType="ButtonType.Submit" Class="action-btn accept-btn">
+            <EditForm Model="@_emptyModel" FormName="accept-invitation" OnValidSubmit="OnAcceptAsync" method="post">
+                <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" Size="Size.Large"
+                                 FormAction="FormAction.Submit" Class="action-btn">
                     Accept Invitation
-                </MudButton>
-            </form>
+                </MudStaticButton>
+            </EditForm>
         </div>
 
         <div class="button-container mt-3">
-            <form method="post" @formname="decline-invitation">
-                <AntiforgeryToken />
-                <input type="hidden" name="Token" value="@Token" />
-                <input type="hidden" name="Action" value="decline" />
-                <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Medium"
-                           ButtonType="ButtonType.Submit" Class="action-btn decline-btn">
+            <EditForm Model="@_emptyModel" FormName="decline-invitation" OnValidSubmit="OnDeclineAsync" method="post">
+                <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" Size="Size.Medium"
+                                 FormAction="FormAction.Submit" Class="action-btn">
                     Decline
-                </MudButton>
-            </form>
+                </MudStaticButton>
+            </EditForm>
         </div>
     }
 </StaticAccountComponent>
@@ -104,34 +75,6 @@
 
     .action-btn {
         min-width: 200px;
-    }
-
-    .accept-btn {
-        background-color: #000 !important;
-        color: white !important;
-    }
-
-    .accept-btn:hover {
-        background-color: #333 !important;
-        color: white !important;
-    }
-
-    .decline-btn {
-        border-color: #666 !important;
-        color: #666 !important;
-    }
-
-    .decline-btn:hover {
-        background-color: #f5f5f5 !important;
-    }
-
-    .mud-dark .decline-btn {
-        border-color: #999 !important;
-        color: #999 !important;
-    }
-
-    .mud-dark .decline-btn:hover {
-        background-color: #333 !important;
     }
 
     .login-button-container {
@@ -155,18 +98,6 @@
     .login-btn-link:hover {
         background-color: #333333 !important;
         color: #ffffff !important;
-        text-decoration: none !important;
-    }
-
-    .mud-dark .login-btn-link {
-        color: #000000 !important;
-        background-color: #ffffff !important;
-        border: 1px solid #ffffff;
-    }
-
-    .mud-dark .login-btn-link:hover {
-        background-color: #e0e0e0 !important;
-        color: #000000 !important;
         text-decoration: none !important;
     }
 
@@ -194,21 +125,18 @@
     [Inject] private MemberServiceFactory MemberServiceFactory { get; set; } = null!;
 
     private string? _errorMessage;
-    private string? _organizationName;
     private OrganizationUser? _invitation;
-    private bool _actionCompleted;
-    private bool _accepted;
+    private readonly object _emptyModel = new();
 
     [SupplyParameterFromQuery] private string? Token { get; set; }
 
-    [SupplyParameterFromForm] private string? Action { get; set; }
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
     private string? GetSubtitle()
     {
         if (!string.IsNullOrEmpty(_errorMessage)) return "Invalid Invitation";
-        if (_actionCompleted) return _accepted ? "Welcome!" : "Invitation Declined";
         if (_invitation != null) return "Organization Invitation";
         return null;
     }
@@ -221,14 +149,6 @@
             return;
         }
 
-        // Handle form submission
-        if (HttpMethods.IsPost(HttpContext.Request.Method) && !string.IsNullOrEmpty(Action))
-        {
-            await HandleFormSubmissionAsync();
-            return;
-        }
-
-        // Load invitation details
         await LoadInvitationAsync();
     }
 
@@ -245,29 +165,24 @@
                 return;
             }
 
-            // Check if invitation has expired
             if (_invitation.InvitationExpirationDateTime <= DateTime.UtcNow)
             {
                 _errorMessage = "This invitation has expired. Please request a new invitation.";
                 return;
             }
 
-            // Check if invitation is already completed
             if (_invitation.InvitationCompleted)
             {
                 _errorMessage = "This invitation has already been completed.";
                 return;
             }
 
-            // Verify the current user matches the invitation
             var currentUser = await UserManager.GetUserAsync(HttpContext.User);
             if (currentUser == null || currentUser.Id != _invitation.UserId)
             {
                 _errorMessage = "This invitation is for a different user account.";
                 return;
             }
-
-            _organizationName = _invitation.Organization.Name;
         }
         catch (Exception ex)
         {
@@ -276,64 +191,87 @@
         }
     }
 
-    private async Task HandleFormSubmissionAsync()
+    private async Task OnAcceptAsync()
+    {
+        Guid? orgId = await ProcessInvitationActionAsync(accept: true);
+        if (orgId is { } id)
+        {
+            var target = string.IsNullOrEmpty(ReturnUrl) ? "/Home" : ReturnUrl;
+            RedirectManager.RedirectTo($"/api/organization/switch/{id}?returnUrl={Uri.EscapeDataString(target)}");
+        }
+    }
+
+    private async Task OnDeclineAsync()
+    {
+        var declined = await ProcessInvitationActionAsync(accept: false);
+        if (declined is not null)
+        {
+            if (string.IsNullOrEmpty(ReturnUrl))
+            {
+                RedirectManager.RedirectTo("/Account/SelectOrganization");
+            }
+            else
+            {
+                RedirectManager.RedirectTo(
+                    "/Account/SelectOrganization",
+                    new Dictionary<string, object?> { ["returnUrl"] = ReturnUrl });
+            }
+        }
+    }
+
+    private async Task<Guid?> ProcessInvitationActionAsync(bool accept)
     {
         try
         {
             using var memberServiceScope = MemberServiceFactory.Create();
 
-            // Re-validate the invitation
             _invitation = await memberServiceScope.Service.GetInvitationByTokenAsync(Token!);
 
             if (_invitation == null)
             {
                 _errorMessage = "Invalid or expired invitation token.";
-                return;
+                return null;
             }
 
             if (_invitation.InvitationExpirationDateTime <= DateTime.UtcNow)
             {
                 _errorMessage = "This invitation has expired.";
-                return;
+                return null;
             }
 
             if (_invitation.InvitationCompleted)
             {
                 _errorMessage = "This invitation has already been completed.";
-                return;
+                return null;
             }
 
-            // Verify the current user matches the invitation
             var currentUser = await UserManager.GetUserAsync(HttpContext.User);
             if (currentUser == null || currentUser.Id != _invitation.UserId)
             {
                 _errorMessage = "This invitation is for a different user account.";
-                return;
+                return null;
             }
 
-            _organizationName = _invitation.Organization.Name;
-
-            if (Action == "accept")
+            if (accept)
             {
                 await memberServiceScope.Service.CompleteInvitationAsync(Token!);
-                _accepted = true;
-                _actionCompleted = true;
                 Logger.LogInformation("User {UserId} accepted invitation to organization {OrgId}",
                     currentUser.Id, _invitation.OrganizationId);
             }
-            else if (Action == "decline")
+            else
             {
                 await memberServiceScope.Service.DeclineInvitationAsync(Token!);
-                _accepted = false;
-                _actionCompleted = true;
                 Logger.LogInformation("User {UserId} declined invitation to organization {OrgId}",
                     currentUser.Id, _invitation.OrganizationId);
             }
+
+            return _invitation.OrganizationId;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error processing invitation action");
             _errorMessage = "An error occurred while processing your request.";
+            return null;
         }
     }
 }

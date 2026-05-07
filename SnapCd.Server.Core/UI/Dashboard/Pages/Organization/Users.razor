@@ -8,12 +8,16 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IOrganizationContext OrganizationContext
+@inject IOrganizationMemberAdminActionsProvider AdminActionsProvider
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Admin
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.UI.Dashboard.Components.Users
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
@@ -21,7 +25,8 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles.OrganizationRoles
 
 @attribute [Authorize]
-@attribute [AuthorizeOnNavigationPermission]
+@attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
+@attribute [OrganizationScopedIAM]
 
 <PageTitle>Manage Users</PageTitle>
 
@@ -117,6 +122,8 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => RemoveUser(orgUser)"/>
                         </MudTooltip>
+
+                        @AdminActionsProvider.RenderRowActions(orgUser, OrganizationId, EventCallback.Factory.Create(this, ReloadUsers))
 
                         @if (IsShowing(orgUser.Id, ShowingType.Roles))
                         {

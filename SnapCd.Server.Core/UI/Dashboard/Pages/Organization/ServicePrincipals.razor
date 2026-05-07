@@ -14,8 +14,10 @@
 @inject IOrganizationContext OrganizationContext
 
 @using Microsoft.AspNetCore.Authorization
+@using SnapCd.Contracts
 @using SnapCd.Contracts.Dto.ServicePrincipals
 @using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Crud
 @using SnapCd.Server.Core.Services.OrganizationContext
@@ -27,7 +29,8 @@
 
 
 @attribute [Authorize]
-@attribute [AuthorizeOnNavigationPermission]
+@attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
+@attribute [OrganizationScopedIAM]
 <PageTitle>Manage Service Principals</PageTitle>
 
 <CascadingValue Value="OrganizationId">

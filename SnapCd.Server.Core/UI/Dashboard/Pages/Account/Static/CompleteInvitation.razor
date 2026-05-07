@@ -7,6 +7,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Edition
 
 @inject UserManager<User> UserManager
 @inject SignInManager<User> SignInManager
@@ -15,6 +16,8 @@
 @inject MemberService MemberService
 @inject ILogger<CompleteInvitation> Logger
 @inject ITermsAcceptanceService TermsService
+@inject IInvitationAutoAcceptPolicy InvitationAutoAcceptPolicy
+@inject IConsentRequirementPolicy ConsentPolicy
 
 <PageTitle>Complete Registration - Snap CD</PageTitle>
 
@@ -36,13 +39,20 @@
     else if (_registrationSuccessful)
     {
         <MudAlert Severity="Severity.Success" Class="mb-4">
-            Your registration is complete! Please check your email to verify your account, then log in to accept or decline the organization invitation.
+            @if (InvitationAutoAcceptPolicy.AutoAcceptOnRegistration)
+            {
+                <text>Your registration is complete! Log in to continue.</text>
+            }
+            else
+            {
+                <text>Your registration is complete! Log in to accept or decline the organization invitation.</text>
+            }
         </MudAlert>
 
         <div class="register-link">
             <div class="login-button-container">
                 <div class="divider-line"></div>
-                <a href="/Account/Login" class="login-btn-link">
+                <a href="@LoginAfterRegistrationUrl" class="login-btn-link">
                     go to login
                 </a>
                 <div class="divider-line"></div>
@@ -59,7 +69,7 @@
         <div class="invitation-info">
             <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
                 <MudText Typo="Typo.body2">
-                    You've been invited to join <strong>@_invitation.Organization.Name</strong> on SnapCD.
+                    You've been invited to join <strong>@_invitation.Organization.Name</strong> on Snap CD.
                     Complete your registration below, then verify your email and log in to accept the invitation.
                 </MudText>
             </MudAlert>
@@ -103,16 +113,19 @@
                                         Variant="Variant.Outlined" FullWidth="true"
                                         UserAttributes="@(new Dictionary<string, object?> { { "autocomplete", "new-password" }, { "aria-required", "true" } })"/>
                 </MudItem>
-                <MudItem xs="12" Class="mt-2">
-                    <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
-                        <MudText Typo="Typo.body2">
-                            I agree to the
-                            <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
-                            and
-                            <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
-                        </MudText>
-                    </MudStaticCheckBox>
-                </MudItem>
+                @if (ConsentPolicy.RequiresTermsAcceptance)
+                {
+                    <MudItem xs="12" Class="mt-2">
+                        <MudStaticCheckBox @bind-Value="Input.AcceptTerms" For="@(() => Input.AcceptTerms)">
+                            <MudText Typo="Typo.body2">
+                                I agree to the
+                                <MudLink Href="@TermsService.TermsUrl" Target="_blank" Typo="Typo.body2">Terms of Service</MudLink>
+                                and
+                                <MudLink Href="@TermsService.PrivacyUrl" Target="_blank" Typo="Typo.body2">Privacy Policy</MudLink>
+                            </MudText>
+                        </MudStaticCheckBox>
+                    </MudItem>
+                }
                 <MudItem xs="12">
                     <div class="complete-button-container">
                         <div class="divider-line"></div>
@@ -130,7 +143,7 @@
             <MudText Align="Align.Center" Typo="Typo.body2" Class="mb-2"
                      Style="color: var(--mud-palette-text-secondary);">or continue with
             </MudText>
-            <ExternalLoginPicker Token="@Token"/>
+            <ExternalLoginPicker Token="@Token" IsRegistrationContext="true"/>
         </div>
     }
     else if (_invitation != null && !IsNewUser)
@@ -143,7 +156,7 @@
         <div class="register-link">
             <div class="login-button-container">
                 <div class="divider-line"></div>
-                <a href="/Account/Login?returnUrl=/Account/PendingInvitations" class="login-btn-link">
+                <a href="@LoginAfterRegistrationUrl" class="login-btn-link">
                     go to login
                 </a>
                 <div class="divider-line"></div>
@@ -278,6 +291,8 @@
 
     [SupplyParameterFromQuery] private string? Token { get; set; }
 
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
     [SupplyParameterFromQuery] private string? Error { get; set; }
 
     private InputModel? _input;
@@ -290,6 +305,29 @@
     }
 
     private bool IsNewUser => _invitedUser?.IsRegistrationNotCompleted == true;
+
+    private string LoginAfterRegistrationUrl
+    {
+        get
+        {
+            // SH auto-accepts on registration: post-login resolver lands at ReturnUrl (or /Home).
+            if (InvitationAutoAcceptPolicy.AutoAcceptOnRegistration)
+            {
+                return string.IsNullOrEmpty(ReturnUrl)
+                    ? "/Account/Login"
+                    : $"/Account/Login?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+
+            // SaaS: still pending an explicit accept/decline — funnel through CompleteOrganizationInvitation,
+            // which itself forwards ReturnUrl into the org-switch redirect after Accept.
+            var orgInvitationUrl = $"/Account/CompleteOrganizationInvitation?token={Uri.EscapeDataString(_token!)}";
+            if (!string.IsNullOrEmpty(ReturnUrl))
+            {
+                orgInvitationUrl += $"&returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+            }
+            return $"/Account/Login?returnUrl={Uri.EscapeDataString(orgInvitationUrl)}";
+        }
+    }
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
@@ -304,6 +342,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // No consent UI on this edition → satisfy the [Required]/[Range] annotations
+        // silently so the form posts without the (hidden) checkbox.
+        if (!ConsentPolicy.RequiresTermsAcceptance)
+        {
+            Input.AcceptTerms = true;
+        }
+
         // Get error message from query parameter
         errorMessage = Error;
 
@@ -349,12 +394,23 @@
                 return;
             }
 
-            // Initialize form model for new users
             if (IsNewUser)
             {
+                // Email is server-determined (from the invitation token), not user-editable.
+                // The form input is Disabled, so browsers don't submit it — Input.Email arrives
+                // empty on POST and the [Required]/[EmailAddress] validators would fail. Always
+                // populate it server-side from the invited user.
                 Input.Email = _invitedUser.Email ?? "";
-                Input.FirstName = _invitedUser.FirstName ?? "";
-                Input.LastName = _invitedUser.LastName ?? "";
+
+                // FirstName/LastName ARE user-editable. On POST [SupplyParameterFromForm] has
+                // already bound the submitted values into Input — overwriting them here would
+                // wipe whatever the user just typed and the validator would complain. Only
+                // populate defaults on the initial GET.
+                if (HttpContext != null && HttpMethods.IsGet(HttpContext.Request.Method))
+                {
+                    Input.FirstName = _invitedUser.FirstName ?? "";
+                    Input.LastName = _invitedUser.LastName ?? "";
+                }
             }
         }
         catch (Exception ex)
@@ -376,7 +432,6 @@
                 return;
             }
 
-            // Update user profile
             userToUpdate.FirstName = Input.FirstName;
             userToUpdate.LastName = Input.LastName;
             userToUpdate.IsRegistrationNotCompleted = false;
@@ -397,6 +452,24 @@
                 var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
                 RedirectManager.RedirectToCurrentPageWithStatus($"Error updating user: {errors}", HttpContext);
                 return;
+            }
+
+            // Receipt of the invitation token implies the user controls the invited mailbox.
+            if (!userToUpdate.EmailConfirmed)
+            {
+                var confirmToken = await UserManager.GenerateEmailConfirmationTokenAsync(userToUpdate);
+                var confirmResult = await UserManager.ConfirmEmailAsync(userToUpdate, confirmToken);
+                if (!confirmResult.Succeeded)
+                {
+                    var errors = string.Join(", ", confirmResult.Errors.Select(e => e.Description));
+                    RedirectManager.RedirectToCurrentPageWithStatus($"Error confirming email: {errors}", HttpContext);
+                    return;
+                }
+            }
+
+            if (InvitationAutoAcceptPolicy.AutoAcceptOnRegistration)
+            {
+                await MemberService.CompleteInvitationAsync(_token!);
             }
 
             // Record terms acceptance

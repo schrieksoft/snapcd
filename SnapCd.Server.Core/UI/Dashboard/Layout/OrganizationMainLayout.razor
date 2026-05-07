@@ -1,15 +1,24 @@
 ﻿@implements IDisposable
 
 @inject IHttpContextAccessor HttpContextAccessor
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Edition
 @using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.UI
 @inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 @inject ThemeService ThemeService
 @inject IVersionService VersionService
 @inject OrganizationServiceFactory OrganizationServiceFactory
 @inject IOrganizationContext OrganizationContext
+@inject IOrganizationActivationService OrganizationActivation
+@inject OrganizationMembershipCacheService MembershipCache
+@inject UserManager<User> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 
 <MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
@@ -181,6 +190,30 @@
         ThemeService.OnThemeChanged += ThemeChanged;
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        PageType = (Body!.Target as RouteView)?.RouteData.PageType;
+        await EnforceCloudSubscriptionGateAsync();
+        await EvaluatePageRoleGateAsync();
+    }
+
+    private async Task EnforceCloudSubscriptionGateAsync()
+    {
+        if (OrganizationId == Guid.Empty) return;
+        if (PageType is null) return;
+
+        var billable = PageType
+            .GetCustomAttributes(typeof(OrganizationScopedFeatureAttribute), inherit: true)
+            .Any();
+        if (!billable) return;
+
+        var activated = await OrganizationActivation.IsActivatedAsync(OrganizationId);
+        if (!activated)
+        {
+            NavigationManager.NavigateTo("/CloudSubscription", forceLoad: false, replace: true);
+        }
+    }
+
 
     // TODO see https://github.com/SergeyDavidovich/MudBlazorDarkModeToggle/tree/bek-branch
 
@@ -259,30 +292,44 @@
 
     public Type? PageType { get; set; }
 
-    protected override void OnParametersSet()
-    {
-        PageType = (Body!.Target as RouteView)?.RouteData.PageType;
-    }
+    private bool _pageRoleAllowed = true;
 
-    private bool IsAllowedToNavigate()
+    private bool IsAllowedToNavigate() => _pageRoleAllowed;
+
+    private async Task EvaluatePageRoleGateAsync()
     {
-        if (PageType == null)
+        if (PageType is null)
         {
-            return true; // Allow access if no page type is resolved
+            _pageRoleAllowed = true;
+            return;
         }
 
-        // Check if the page has the [AuthorizeOnNavigationPermission] attribute
-        var requiresPermissionCheck = PageType.GetCustomAttributes(typeof(AuthorizeOnNavigationPermission), true).Any();
+        var attr = PageType
+            .GetCustomAttributes(typeof(AuthorizeOnNavigationPermission), inherit: true)
+            .OfType<AuthorizeOnNavigationPermission>()
+            .FirstOrDefault();
 
-        if (!requiresPermissionCheck)
+        if (attr is null || attr.AnyOf.Length == 0)
         {
-            return true; // Allow access if the attribute is not present
+            _pageRoleAllowed = true;
+            return;
         }
 
         if (OrganizationId == Guid.Empty)
-            return true;
+        {
+            _pageRoleAllowed = true;
+            return;
+        }
 
-        return true;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        if (user is null)
+        {
+            _pageRoleAllowed = false;
+            return;
+        }
+
+        _pageRoleAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, OrganizationId, attr.AnyOf);
     }
 
 }

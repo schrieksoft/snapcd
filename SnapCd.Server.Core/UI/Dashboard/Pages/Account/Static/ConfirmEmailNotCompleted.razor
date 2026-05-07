@@ -2,8 +2,11 @@
 @layout AccountLayout
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Email
+@using SnapCd.Server.Core.UI.Dashboard.Components.Email
 
 @inject EmailConfirmationService EmailConfirmationService
+@inject ISnapCdEmailSender EmailSender
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ConfirmEmailNotCompleted> Logger
@@ -17,40 +20,47 @@
         <MudAlert Severity="@_statusSeverity" Class="mb-4">@_statusMessage</MudAlert>
     }
 
-    <MudAlert Severity="Severity.Info" Class="mb-4">
-        <MudText Typo="Typo.body1" Class="mb-3">
-            <strong>Please check your email to confirm your account.</strong>
-        </MudText>
-        <MudText Typo="Typo.body2">
-            @if (_hasResent)
-            {
-                <text>We've just resent a confirmation link to <strong>@Email</strong>.</text>
-            }
-            else
-            {
-                <text>We've sent a confirmation link to <strong>@Email</strong>.</text>
-            }
-            Click the link in the email to verify your account and continue.
-        </MudText>
-        <MudText Typo="Typo.body2" Class="mt-2">
-            If you don't see the email in your inbox, check your spam folder.
-        </MudText>
-    </MudAlert>
-
-    @if (!_hasResent)
+    @if (_isDeliveryActive == false)
     {
-        <EditForm Model="@(Input ?? new InputModel())" FormName="resend-confirmation" OnValidSubmit="ResendConfirmationEmail" method="post">
-            <div class="register-link">
-                <div class="login-button-container">
-                    <div class="divider-line"></div>
-                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                                     FormAction="FormAction.Submit" Class="sign-in-btn">
-                        resend confirmation email
-                    </MudStaticButton>
-                    <div class="divider-line"></div>
+        <EmailNotConfiguredNotice Reason="to confirm your account" />
+    }
+    else if (_isDeliveryActive == true)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudText Typo="Typo.body1" Class="mb-3">
+                <strong>Please check your email to confirm your account.</strong>
+            </MudText>
+            <MudText Typo="Typo.body2">
+                @if (_hasResent)
+                {
+                    <text>We've just resent a confirmation link to <strong>@Email</strong>.</text>
+                }
+                else
+                {
+                    <text>We've sent a confirmation link to <strong>@Email</strong>.</text>
+                }
+                Click the link in the email to verify your account and continue.
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mt-2">
+                If you don't see the email in your inbox, check your spam folder.
+            </MudText>
+        </MudAlert>
+
+        @if (!_hasResent)
+        {
+            <EditForm Model="@(Input ?? new InputModel())" FormName="resend-confirmation" OnValidSubmit="ResendConfirmationEmail" method="post">
+                <div class="register-link">
+                    <div class="login-button-container">
+                        <div class="divider-line"></div>
+                        <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                         FormAction="FormAction.Submit" Class="sign-in-btn">
+                            resend confirmation email
+                        </MudStaticButton>
+                        <div class="divider-line"></div>
+                    </div>
                 </div>
-            </div>
-        </EditForm>
+            </EditForm>
+        }
     }
 
     <div class="register-link">
@@ -101,6 +111,7 @@
     private string? _statusMessage;
     private Severity _statusSeverity = Severity.Info;
     private bool _hasResent;
+    private bool? _isDeliveryActive;
 
     [SupplyParameterFromForm(FormName = "resend-confirmation")]
     private InputModel? Input { get; set; }
@@ -114,13 +125,15 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = null!;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         // Redirect to home if no email provided
         if (string.IsNullOrWhiteSpace(Email))
         {
             RedirectManager.RedirectTo("");
         }
+
+        _isDeliveryActive = await EmailSender.IsDeliveryActiveAsync();
     }
 
     private async Task ResendConfirmationEmail()

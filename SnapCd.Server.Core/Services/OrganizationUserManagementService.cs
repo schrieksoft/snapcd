@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using MassTransit;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -21,7 +22,7 @@ public class MemberService : IDisposable
     private readonly UserManager<User> _userManager;
     private readonly IQuotaUsageForInvitationService _rateLimitService;
     private readonly IOptions<InvitationSettings> _settings;
-    private readonly IEmailSenderWrapper _emailSender;
+    private readonly ISnapCdEmailSender _emailSender;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IBus _bus;
     private readonly ILogger<MemberService> _logger;
@@ -32,7 +33,7 @@ public class MemberService : IDisposable
         UserManager<User> userManager,
         IQuotaUsageForInvitationService rateLimitService,
         IOptions<InvitationSettings> settings,
-        IEmailSenderWrapper emailSender,
+        ISnapCdEmailSender emailSender,
         IHttpContextAccessor httpContextAccessor,
         IBus bus,
         ILogger<MemberService> logger)
@@ -58,7 +59,7 @@ public class MemberService : IDisposable
         return await _orgUserRepo.Get(organizationId, userId);
     }
 
-    public async Task<OrganizationUser> InviteMemberAsync(Guid organizationId, string email, Guid invitingUserId, int? expirationDays = null)
+    public async Task<(OrganizationUser OrgUser, string InvitationLink, bool EmailSent)> InviteMemberAsync(Guid organizationId, string email, Guid invitingUserId, int? expirationDays = null)
     {
         // Get expiration days from settings if not provided
         var expirationDaysToUse = expirationDays ?? _settings.Value.ExpirationDays;
@@ -169,7 +170,7 @@ public class MemberService : IDisposable
             : "https://localhost";
         var invitationLink = $"{baseUrl}/Account/AcceptInvitation?token={token}";
 
-        await _emailSender.SendOrganizationInvitationAsync(
+        var emailSent = await _emailSender.SendOrganizationInvitationAsync(
             email,
             organizationName,
             inviterName,
@@ -178,10 +179,10 @@ public class MemberService : IDisposable
             expirationDaysToUse);
 
         _logger.LogInformation(
-            "Invitation created and email sent for {Email} to organization {OrgId} by user {InviterId}",
-            email, organizationId, invitingUserId);
+            "Invitation created for {Email} to organization {OrgId} by user {InviterId} (email delivered: {EmailSent})",
+            email, organizationId, invitingUserId, emailSent);
 
-        return organizationUser;
+        return (organizationUser, invitationLink, emailSent);
     }
 
     public async Task<OrganizationUser?> GetInvitationByTokenAsync(string token)
@@ -191,6 +192,19 @@ public class MemberService : IDisposable
 
         // Find the OrganizationUser by invitation token
         return await _orgUserRepo.GetByInvitationTokenIncludingAll(token);
+    }
+
+    public async Task<string?> GetPendingInvitationTokenForUserAsync(Guid userId)
+    {
+        var now = DateTime.UtcNow;
+        return await _dbContext.OrganizationUsers
+            .Where(ou => ou.UserId == userId
+                         && !ou.InvitationCompleted
+                         && ou.InvitationToken != null
+                         && (ou.InvitationExpirationDateTime == null || ou.InvitationExpirationDateTime > now))
+            .OrderByDescending(ou => ou.InvitationSentDateTime)
+            .Select(ou => ou.InvitationToken)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<OrganizationUser> CompleteInvitationAsync(string token)
@@ -227,7 +241,14 @@ public class MemberService : IDisposable
 
     public async Task CancelInvitationAsync(Guid organizationUserId, Guid organizationId)
     {
-        var organizationUser = await _orgUserRepo.Get(organizationId, organizationUserId);
+        // Query directly: the repo's Get(orgId, userId) overload takes a UserId (not an
+        // OrganizationUser.Id) AND filters by !IsDeactivated. Pending invitations are
+        // intentionally created with IsDeactivated=true (see InviteMemberAsync), so they're
+        // invisible to that path. Look them up by their primary key + OrganizationId scope.
+        var organizationUser = await _dbContext.OrganizationUsers
+            .Include(ou => ou.User)
+            .FirstOrDefaultAsync(ou => ou.Id == organizationUserId
+                                       && ou.OrganizationId == organizationId);
 
         if (organizationUser == null)
             throw new InvalidOperationException("OrganizationUser not found");
@@ -238,12 +259,7 @@ public class MemberService : IDisposable
         if (organizationUser.User == null)
             throw new InvalidOperationException("No user associated with this OrganizationUser");
 
-        // Clear invitation data from the user
-        organizationUser.InvitationToken = null;
-        organizationUser.InvitationExpirationDateTime = null;
-        organizationUser.InvitationCompleted = false;
-
-        // Remove the OrganizationUser since the invitation is cancelled
+        // Remove the OrganizationUser row entirely — there is no "cancelled" state to keep.
         await _orgUserRepo.Delete(organizationUser);
     }
 

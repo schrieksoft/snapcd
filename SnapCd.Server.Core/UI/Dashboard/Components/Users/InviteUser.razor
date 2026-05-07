@@ -1,41 +1,66 @@
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.JSInterop
 @using SnapCd.Server.Core.Factories
 
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
 
 <MudPaper Elevation="1" Class="pa-4">
     <MudText Typo="Typo.h6" Class="mb-4">Invite User</MudText>
 
-    <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
-        <DataAnnotationsValidator/>
+    @if (_noOpInvitationLink is null)
+    {
+        <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator/>
 
-        <MudTextField @bind-Value="_model.Email"
-                      Label="Email Address"
-                      For="@(() => _model.Email)"
-                      Variant="Variant.Outlined"
-                      Class="mb-3"
-                      HelperText="Enter the email address of the user to invite"/>
+            <MudTextField @bind-Value="_model.Email"
+                          Label="Email Address"
+                          For="@(() => _model.Email)"
+                          Variant="Variant.Outlined"
+                          Class="mb-3"
+                          HelperText="Enter the email address of the user to invite"/>
 
+            <MudStack Row Class="mt-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Style="background-color: #000; color: #fff;"
+                           Disabled="@_isSubmitting">
+                    @if (_isSubmitting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                    }
+                    Send Invitation
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Style="background-color: #000; color: #fff;"
+                           OnClick="HandleCancel"
+                           Disabled="@_isSubmitting">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </EditForm>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-3">
+            <MudText Typo="Typo.body2" Class="mb-2">
+                <strong>Email delivery is not configured on this server.</strong>
+                Send the invitation link below to the user manually (Slack, SMS, in person, etc.).
+            </MudText>
+        </MudAlert>
+        <MudTextField @bind-Value="_noOpInvitationLink" ReadOnly="true" Variant="Variant.Outlined"
+                      Label="Invitation link" Class="mb-2" />
         <MudStack Row Class="mt-2">
-            <MudButton ButtonType="ButtonType.Submit"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Disabled="@_isSubmitting">
-                @if (_isSubmitting)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                }
-                Send Invitation
+            <MudButton OnClick="CopyLink" Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                       StartIcon="@Icons.Material.Filled.ContentCopy">
+                Copy link
             </MudButton>
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Secondary"
-                       OnClick="HandleCancel"
-                       Disabled="@_isSubmitting">
-                Cancel
+            <MudButton OnClick="DismissAfterNoOp" Variant="Variant.Filled" Style="background-color: #000; color: #fff;">
+                Done
             </MudButton>
         </MudStack>
-    </EditForm>
+    }
 </MudPaper>
 
 @code {
@@ -48,6 +73,8 @@
 
     private InviteUserModel _model = new();
     private bool _isSubmitting;
+    private Guid? _invitedOrgUserId;
+    private string? _noOpInvitationLink;
 
     private async Task HandleSubmit()
     {
@@ -59,12 +86,22 @@
             var currentUser = await userAccessor.UserAccessor.GetRequiredUserAsync(authState);
 
             using var memberService = MemberServiceFactory.Create();
-            var orgUser = await memberService.Service.InviteMemberAsync(
+            var (orgUser, invitationLink, emailSent) = await memberService.Service.InviteMemberAsync(
                 OrganizationId,
                 _model.Email!,
                 currentUser.Id);
 
-            await OnInvited.InvokeAsync(orgUser.Id);
+            if (emailSent)
+            {
+                await OnInvited.InvokeAsync(orgUser.Id);
+            }
+            else
+            {
+                // Email was no-op'd (NoOp transport, or licence gate downgraded). Surface the link
+                // inline so the admin can relay it manually.
+                _invitedOrgUserId = orgUser.Id;
+                _noOpInvitationLink = invitationLink;
+            }
         }
         catch (Exception ex)
         {
@@ -73,6 +110,21 @@
         finally
         {
             _isSubmitting = false;
+        }
+    }
+
+    private async Task CopyLink()
+    {
+        if (_noOpInvitationLink is null) return;
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _noOpInvitationLink);
+        Snackbar.Add("Link copied to clipboard", Severity.Success);
+    }
+
+    private async Task DismissAfterNoOp()
+    {
+        if (_invitedOrgUserId is { } id)
+        {
+            await OnInvited.InvokeAsync(id);
         }
     }
 

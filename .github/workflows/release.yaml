@@ -54,14 +54,20 @@ jobs:
     - name: Publish binaries
       env:
         SEMVER: ${{ steps.gitversion.outputs.SemVer }}
+        SHORT_SHA: ${{ steps.gitversion.outputs.ShortSha }}
       run: |
-        dotnet publish SnapCd.Server.SelfHosted/SnapCd.Server.SelfHosted.csproj \
+        # InformationalVersion gets a +sha suffix so deployed images can be traced
+        # back to the exact commit. AssemblyVersion / FileVersion are derived from
+        # /p:Version automatically (must stay 4-part numeric).
+        dotnet publish SnapCd.Server.Host/SnapCd.Server.Host.csproj \
           -c Release -o out/snapcd-server \
-          /p:Version=$SEMVER
+          /p:Version=$SEMVER \
+          /p:InformationalVersion=$SEMVER+$SHORT_SHA
         dotnet publish SnapCd.Runner/SnapCd.Runner.csproj \
           -c Release -o out/snapcd-runner \
           -r linux-x64 --self-contained \
-          /p:Version=$SEMVER
+          /p:Version=$SEMVER \
+          /p:InformationalVersion=$SEMVER+$SHORT_SHA
 
     - name: Zip binaries
       env:
@@ -124,7 +130,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: "SnapCd.Server.SelfHosted/Dockerfile"
+        file: "SnapCd.Server.Host/Dockerfile"
         push: true
         tags: "ghcr.io/schrieksoft/snapcd/snapcd-server:${{ steps.gitversion.outputs.SemVer }}"
         labels: ${{ steps.meta-server.outputs.labels }}

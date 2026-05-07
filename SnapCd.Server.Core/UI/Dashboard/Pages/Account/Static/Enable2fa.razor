@@ -47,7 +47,7 @@
 
     <div class="register-link">
         <MudText Align="Align.Center" Typo="Typo.body2">
-            <MudLink Typo="Typo.body2" Href="/Account/Manage/Profile">
+            <MudLink Typo="Typo.body2" Href="/Account">
                 Cancel
             </MudLink>
         </MudText>
@@ -101,7 +101,7 @@
         if (string.IsNullOrEmpty(authenticatorKey))
         {
             RedirectManager.RedirectToWithStatus(
-                "/Account/Manage/Profile",
+                "/Account",
                 "You must register an authenticator app before enabling 2FA.",
                 HttpContext);
             return;
@@ -112,7 +112,7 @@
         if (is2FaEnabled)
         {
             RedirectManager.RedirectToWithStatus(
-                "/Account/Manage/Profile",
+                "/Account",
                 "Two-factor authentication is already enabled.",
                 HttpContext);
         }
@@ -145,7 +145,7 @@
         else
         {
             RedirectManager.RedirectToWithStatus(
-                "/Account/Manage/Profile",
+                "/Account",
                 "Two-factor authentication has been enabled.",
                 HttpContext);
         }

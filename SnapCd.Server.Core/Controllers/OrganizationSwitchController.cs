@@ -51,7 +51,7 @@ public class OrganizationSwitchController : ControllerBase
             user.Id, organizationId);
 
         // Redirect to the destination
-        var redirectTo = string.IsNullOrEmpty(returnUrl) ? "/Stacks" : returnUrl;
+        var redirectTo = string.IsNullOrEmpty(returnUrl) ? "/Home" : returnUrl;
 
         return Redirect(redirectTo);
     }

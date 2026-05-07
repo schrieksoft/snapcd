@@ -1,12 +1,12 @@
-# SnapCD
+# Snap CD
 
-SnapCD is a CI/CD platform for infrastructure. It drives Terraform and Pulumi
+Snap CD is a CI/CD platform for infrastructure. It drives Terraform and Pulumi
 engines to plan and apply changes across modules, stacks, and namespaces, with
 approval flows, audit trails, and access controls.
 
 ## Components
 
-- **SnapCd.Server.SelfHosted** — main HTTP + Blazor application. Hosts the dashboard,
+- **SnapCd.Server.Host** — main HTTP + Blazor application. Hosts the dashboard,
   API, and admin UI; orchestrates engine runs.
 - **SnapCd.Runner** — worker process that executes engine operations on
   behalf of the server. Deployed per-environment; connects back over SignalR.

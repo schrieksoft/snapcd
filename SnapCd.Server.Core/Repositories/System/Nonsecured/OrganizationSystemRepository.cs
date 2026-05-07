@@ -136,7 +136,7 @@ public class OrganizationSystemRepository : GenericSystemRepository<Organization
             var hasExistingMemberships = await DbContext.Set<OrganizationUser>()
                 .AnyAsync(m => m.UserId == createdByUserId && !m.IsDeactivated);
 
-            // Create Organization with audit fields (starts on free tier - no subscription)
+            // Create Organization with audit fields (no subscription yet — paid Cloud subscription required to use)
             var organization = new Organization
             {
                 Id = Guid.NewGuid(),

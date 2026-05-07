@@ -4,6 +4,7 @@ using SnapCd.Contracts.Dto.ServicePrincipals;
 using SnapCd.Server.Core.Controllers.Crud.Generic;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Filters;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -20,6 +21,7 @@ public static class ServicePrincipalCustomEndpointNames
 }
 
 [Route(ControllerEndpoints.ServicePrincipal)]
+[OrganizationScopedIAM]
 public class ServicePrincipalController : GenericCrudController<
     ServicePrincipal,
     ServicePrincipalCreateDto,

@@ -1,9 +1,12 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 
@@ -14,11 +17,19 @@ public class NeedsApprovalJobActivity<TSaga, TMessage> :
 {
     private readonly SnapCdDbContext _dbContext;
     private readonly IApprovalPolicy _approvalPolicy;
+    private readonly ModuleJobRepository _moduleJobRepository;
+    private readonly ILogger<NeedsApprovalJobActivity<TSaga, TMessage>> _logger;
 
-    public NeedsApprovalJobActivity(SnapCdDbContext dbContext, IApprovalPolicy approvalPolicy)
+    public NeedsApprovalJobActivity(
+        SnapCdDbContext dbContext,
+        IApprovalPolicy approvalPolicy,
+        ModuleJobRepository moduleJobRepository,
+        ILogger<NeedsApprovalJobActivity<TSaga, TMessage>> logger)
     {
         _dbContext = dbContext;
         _approvalPolicy = approvalPolicy;
+        _moduleJobRepository = moduleJobRepository;
+        _logger = logger;
     }
 
     private int GetThreshold(TSaga saga, Thresholds thresholds)
@@ -44,15 +55,6 @@ public class NeedsApprovalJobActivity<TSaga, TMessage> :
         BehaviorContext<TSaga, TMessage> context,
         IBehavior<TSaga, TMessage> next)
     {
-        // CE: auto-approve, skip approval workflow
-        if (await _approvalPolicy.ShouldAutoApproveAsync(context.Saga.OrganizationId))
-        {
-            context.Saga.IsApproved = true;
-            context.Saga.IsDeclined = false;
-            await next.Execute(context).ConfigureAwait(false);
-            return;
-        }
-
         var thresholds = _dbContext.Modules
             .Include(x => x.Namespace)
             .Where(x => x.Id == context.Saga.ModuleId && x.OrganizationId == context.Saga.OrganizationId)
@@ -64,6 +66,38 @@ public class NeedsApprovalJobActivity<TSaga, TMessage> :
             .Single();
 
         var threshold = GetThreshold(context.Saga, thresholds);
+
+        if (!await _approvalPolicy.SupportsApprovalWorkflowsAsync(context.Saga.OrganizationId))
+        {
+            // The org's tier does not include the ApprovalWorkflows feature. If a non-zero
+            // approval threshold is configured we must NOT silently bypass it — fail the
+            // job (route through the Declined branch → ExecutionStatus.NotApproved) so the
+            // misconfiguration is visible instead of being treated as auto-approved.
+            if (threshold > 0)
+            {
+                _logger.LogWarning(
+                    "Approval threshold ({Threshold}) is configured on module {ModuleId} but the organization's licence tier does not include ApprovalWorkflows; failing job {CorrelationId} with NotApproved.",
+                    threshold, context.Saga.ModuleId, context.Saga.CorrelationId);
+
+                await _moduleJobRepository.SetServerSideError(
+                    context.Saga.CorrelationId,
+                    context.Saga.OrganizationId,
+                    ServerSideStep.Approval,
+                    "Approval workflows not licenced",
+                    $"This module has an approval threshold of {threshold} configured, but the organization's licence tier does not include the ApprovalWorkflows feature. Either remove the approval threshold from the module/namespace, or upgrade to a tier that includes approval workflows.");
+
+                context.Saga.IsApproved = false;
+                context.Saga.IsDeclined = true;
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
+            // No approval threshold configured — auto-approve and skip the approval workflow.
+            context.Saga.IsApproved = true;
+            context.Saga.IsDeclined = false;
+            await next.Execute(context).ConfigureAwait(false);
+            return;
+        }
 
         var approvals = _dbContext.ModuleJobApprovals
             .Where(x => x.ModuleJobId == context.Saga.CorrelationId)

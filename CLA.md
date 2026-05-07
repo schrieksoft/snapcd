@@ -1,6 +1,6 @@
-# SnapCD Individual Contributor License Agreement
+# Snap CD Individual Contributor License Agreement
 
-Thank you for your interest in contributing to SnapCD ("the Project"), maintained by Karl Schriek (Schrieksoft) ("we", "us", "our").
+Thank you for your interest in contributing to Snap CD ("the Project"), maintained by Karl Schriek (Schrieksoft) ("we", "us", "our").
 
 To clarify the intellectual property license granted with Contributions from any person or entity, we must have a Contributor License Agreement ("CLA") on file that has been signed by each Contributor, indicating agreement to the terms below.
 

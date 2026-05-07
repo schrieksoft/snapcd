@@ -14,6 +14,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.OrganizationContext
@@ -23,6 +24,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Stacks
 
 @attribute [Authorize]
+@attribute [OrganizationScopedFeature]
 @attribute [AuthorizeOnNavigationPermission]
 
 <PageTitle>Stacks</PageTitle>

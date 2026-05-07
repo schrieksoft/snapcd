@@ -10,14 +10,18 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Email
+@using SnapCd.Server.Core.UI.Dashboard.Components.Email
 
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
 @inject IUserStore<User> UserStore
 @inject IEmailSender<User> EmailSender
+@inject ISnapCdEmailSender SnapCdEmailSender
 @inject EmailConfirmationService EmailConfirmationService
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject PostAuthRedirectResolver PostAuthRedirector
 @inject ILogger<ExternalLogin> Logger
 
 <PageTitle>External Login - Snap CD</PageTitle>
@@ -30,23 +34,32 @@
             <div>@message</div>
             @if (!string.IsNullOrEmpty(unconfirmedEmail))
             {
-                <div class="mt-3">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               Size="Size.Small"
-                               OnClick="ResendConfirmationEmail"
-                               Disabled="@_isResending">
-                        @if (_isResending)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                            <span>Sending...</span>
-                        }
-                        else
-                        {
-                            <span>Resend Confirmation Email</span>
-                        }
-                    </MudButton>
-                </div>
+                @if (_isDeliveryActive == false)
+                {
+                    <div class="mt-3">
+                        <EmailNotConfiguredNotice Reason="to verify your account" />
+                    </div>
+                }
+                else if (_isDeliveryActive == true)
+                {
+                    <div class="mt-3">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="ResendConfirmationEmail"
+                                   Disabled="@_isResending">
+                            @if (_isResending)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                                <span>Sending...</span>
+                            }
+                            else
+                            {
+                                <span>Resend Confirmation Email</span>
+                            }
+                        </MudButton>
+                    </div>
+                }
             }
         </MudAlert>
 
@@ -111,6 +124,7 @@
     private bool _isResending;
     private string? _resendMessage;
     private bool _resendSuccess;
+    private bool? _isDeliveryActive;
 
     [SupplyParameterFromQuery] private string? RemoteError { get; set; }
 
@@ -124,6 +138,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _isDeliveryActive = await SnapCdEmailSender.IsDeliveryActiveAsync();
+
         if (RemoteError is not null)
         {
             RedirectManager.RedirectToWithStatus("Account/Login", $"Error from external provider: {RemoteError}", HttpContext);
@@ -177,14 +193,7 @@
                 "{Name} logged in with {LoginProvider} provider.",
                 externalLoginInfo.Principal.Identity?.Name,
                 externalLoginInfo.LoginProvider);
-            if (!string.IsNullOrEmpty(ReturnUrl))
-            {
-                RedirectManager.RedirectTo(ReturnUrl);
-            }
-            else
-            {
-                RedirectManager.RedirectTo("/Stacks");
-            }
+            await PostAuthRedirector.RedirectAfterAuthAsync(existingUser.Id, ReturnUrl);
         }
         else if (result.IsLockedOut)
         {

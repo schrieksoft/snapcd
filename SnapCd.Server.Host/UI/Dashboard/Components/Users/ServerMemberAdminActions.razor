@@ -1,0 +1,68 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Host.UI.Dashboard.Dialogs.Users
+
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IdentityUserAccessorFactory UserAccessorFactory
+
+@if (_currentUserId is not null && OrgUser.UserId != _currentUserId)
+{
+    <MudTooltip Text="Reset password">
+        <MudIconButton Icon="@Icons.Material.Filled.LockReset"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       OnClick="OpenResetDialog" />
+    </MudTooltip>
+}
+
+@if (OrgUser.User is not null && !OrgUser.User.EmailConfirmed)
+{
+    <MudTooltip Text="Mark email confirmed">
+        <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       OnClick="OpenConfirmDialog" />
+    </MudTooltip>
+}
+
+@code {
+    [Parameter, EditorRequired] public required OrganizationUser OrgUser { get; set; }
+    [Parameter, EditorRequired] public required Guid OrganizationId { get; set; }
+    [Parameter] public EventCallback OnActionCompleted { get; set; }
+
+    private Guid? _currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var accessor = UserAccessorFactory.Create();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var current = await accessor.UserAccessor.GetUserAsync(authState);
+        _currentUserId = current?.Id;
+    }
+
+    private async Task OpenResetDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["TargetUser"] = OrgUser.User,
+            ["OrganizationId"] = OrganizationId,
+        };
+        var dialog = await DialogService.ShowAsync<ResetMemberPasswordDialog>("Reset password", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await OnActionCompleted.InvokeAsync();
+    }
+
+    private async Task OpenConfirmDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["TargetUser"] = OrgUser.User,
+            ["OrganizationId"] = OrganizationId,
+        };
+        var dialog = await DialogService.ShowAsync<ForceConfirmEmailDialog>("Mark email confirmed", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await OnActionCompleted.InvokeAsync();
+    }
+}

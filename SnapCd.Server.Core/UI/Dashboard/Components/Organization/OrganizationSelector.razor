@@ -85,40 +85,9 @@
     {
         if (organization != null && organization != selectedOrganization)
         {
-            // Get current path to determine where to return after switching
-            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-            var path = uri.LocalPath;
-
-            // Determine target path based on current location
-            string targetPath;
-
-            if (path == "/" || path.StartsWith("/Organizations", StringComparison.OrdinalIgnoreCase))
-            {
-                // From home or organizations page, go to Stacks
-                targetPath = "/Stacks";
-            }
-            else if (path.StartsWith("/Organization/", StringComparison.OrdinalIgnoreCase))
-            {
-                // On an old organization-scoped URL, extract the page part and navigate to new URL format
-                var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                if (segments.Length >= 3)
-                {
-                    // Get the page name (e.g., "Stacks", "Users")
-                    targetPath = "/" + segments[2];
-                }
-                else
-                {
-                    targetPath = "/Stacks";
-                }
-            }
-            else
-            {
-                // Already on a non-organization page, stay there
-                targetPath = path;
-            }
-
-            // Navigate to the API endpoint which sets the cookie and redirects
-            NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl={Uri.EscapeDataString(targetPath)}", forceLoad: true);
+            // Switching orgs always lands on /Home — staying on the current page would
+            // typically show the previous org's data (stack/module/etc. ids in the URL).
+            NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl=/Home", forceLoad: true);
         }
     }
 }

@@ -38,10 +38,10 @@ public class VerifyLicenseActionFilter(
 
         var licenseInfo = await licenseService.GetLicenseInfoAsync(organizationId);
 
-        if (licenseInfo is not { Edition: Edition.EnterpriseEdition, IsValid: true })
+        if (!licenseInfo.Includes(verifyAttr.Feature))
         {
             context.Result = new ObjectResult(
-                $"This feature ({verifyAttr.LimitCategory}) requires an active Enterprise Edition license.")
+                $"This feature ({verifyAttr.Feature}) is not included in your current tier.")
                 { StatusCode = StatusCodes.Status403Forbidden };
             return;
         }

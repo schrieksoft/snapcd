@@ -29,7 +29,7 @@ public class LicenseService(
         {
             return new LicenseInfo
             {
-                Edition = Edition.EnterpriseEdition,
+                Tier = Tier.Enterprise,
                 IsValid = true,
                 MaxModules = null,
                 ExpiryDate = DateTime.UtcNow.AddYears(1),
@@ -72,12 +72,7 @@ public class LicenseService(
 
         if (!orgExists)
         {
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false,
-                ValidationError = "Organization not found."
-            };
+            return LicenseInfo.Unlicensed("Organization not found.");
         }
 
         await UpsertLicenseAsync(dbContext, organizationId, license =>
@@ -102,12 +97,7 @@ public class LicenseService(
 
         if (!orgExists)
         {
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false,
-                ValidationError = "Organization not found."
-            };
+            return LicenseInfo.Unlicensed("Organization not found.");
         }
 
         await UpsertLicenseAsync(dbContext, organizationId, license =>
@@ -131,23 +121,13 @@ public class LicenseService(
 
         if (row is null || string.IsNullOrEmpty(row.SelfHostedLicenseKey))
         {
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false,
-                ValidationError = "No license key on file to refresh."
-            };
+            return LicenseInfo.Unlicensed("No license key on file to refresh.");
         }
 
         var refreshed = await saaSLicenseClient.RefreshAsync(row.SelfHostedLicenseKey, row.LicenseToken);
         if (refreshed is null || string.IsNullOrWhiteSpace(refreshed.Token))
         {
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false,
-                ValidationError = "SaaS did not return a refreshed token."
-            };
+            return LicenseInfo.Unlicensed("SaaS did not return a refreshed token.");
         }
 
         return await ValidateAndSaveLicenseKeyAsync(organizationId, refreshed.Token);
@@ -193,11 +173,7 @@ public class LicenseService(
     {
         if (string.IsNullOrWhiteSpace(licenseToken))
         {
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false
-            };
+            return LicenseInfo.Unlicensed();
         }
 
         var pem = await publicKeyService.GetAsync();
@@ -216,12 +192,7 @@ public class LicenseService(
             }
         }
 
-        return new LicenseInfo
-        {
-            Edition = Edition.CommunityEdition,
-            IsValid = false,
-            ValidationError = "License key is invalid."
-        };
+        return LicenseInfo.Unlicensed("License key is invalid.");
     }
 
     private LicenseInfo? TryValidate(string licenseToken, string? pem, out bool signatureFailure)
@@ -231,12 +202,7 @@ public class LicenseService(
         if (string.IsNullOrWhiteSpace(pem))
         {
             logger.LogWarning("License verification public key is not available");
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false,
-                ValidationError = "License verification public key is not available."
-            };
+            return LicenseInfo.Unlicensed("License verification public key is not available.");
         }
 
         try
@@ -263,19 +229,21 @@ public class LicenseService(
             var subClaim = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             if (!Guid.TryParse(subClaim, out var subscriptionId))
             {
-                return new LicenseInfo
-                {
-                    Edition = Edition.CommunityEdition,
-                    IsValid = false,
-                    ValidationError = "License key is missing a valid subject claim."
-                };
+                return LicenseInfo.Unlicensed("License key is missing a valid subject claim.");
+            }
+
+            var tierClaim = jwt.Claims.FirstOrDefault(c => c.Type == "tier")?.Value;
+            var tier = TierExtensions.FromClaimValue(tierClaim);
+            if (tier is null)
+            {
+                return LicenseInfo.Unlicensed("License key is missing a valid tier claim.");
             }
 
             var maxModulesClaim = jwt.Claims.FirstOrDefault(c => c.Type == "max_modules")?.Value;
             int? maxModules = null;
-            if (int.TryParse(maxModulesClaim, out var parsed))
+            if (int.TryParse(maxModulesClaim, out var parsedModules))
             {
-                maxModules = parsed;
+                maxModules = parsedModules;
             }
 
             var licensePeriodEndClaim = jwt.Claims.FirstOrDefault(c => c.Type == "license_period_end")?.Value;
@@ -287,7 +255,7 @@ public class LicenseService(
 
             return new LicenseInfo
             {
-                Edition = Edition.EnterpriseEdition,
+                Tier = tier.Value,
                 IsValid = true,
                 MaxModules = maxModules,
                 ExpiryDate = jwt.ValidTo,
@@ -297,12 +265,7 @@ public class LicenseService(
         }
         catch (SecurityTokenExpiredException)
         {
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false,
-                ValidationError = "License key has expired."
-            };
+            return LicenseInfo.Unlicensed("License key has expired.");
         }
         catch (SecurityTokenSignatureKeyNotFoundException)
         {
@@ -317,12 +280,7 @@ public class LicenseService(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "License key validation failed");
-            return new LicenseInfo
-            {
-                Edition = Edition.CommunityEdition,
-                IsValid = false,
-                ValidationError = "License key is invalid."
-            };
+            return LicenseInfo.Unlicensed("License key is invalid.");
         }
     }
 }

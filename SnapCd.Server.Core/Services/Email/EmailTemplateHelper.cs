@@ -50,7 +50,7 @@ public static class EmailTemplateHelper
             "You've Been Invited",
             $@"
                 <p style='margin: 0 0 16px 0;'>
-                    <strong>{inviterName}</strong> ({inviterEmail}) has invited you to join <strong>{organizationName}</strong> on SnapCD.
+                    <strong>{inviterName}</strong> ({inviterEmail}) has invited you to join <strong>{organizationName}</strong> on Snap CD.
                 </p>
                 <p style='margin: 0 0 16px 0;'>
                     Click the button below to accept or decline this invitation.
@@ -215,6 +215,19 @@ public static class EmailTemplateHelper
         sb.AppendLine("© " + DateTime.UtcNow.Year + " Snap CD. All rights reserved.");
 
         return sb.ToString();
+    }
+
+    public static string GeneratePasswordResetCodeEmail(string resetCode)
+    {
+        return $@"
+            <p>A password reset has been requested for your Snap CD account.</p>
+            <p>Your password reset code is: <strong style='font-size: 18px; color: #000;'>{resetCode}</strong></p>
+            <p>Please enter this code to reset your password.</p>";
+    }
+
+    public static string GetPasswordResetCodePlainText(string resetCode)
+    {
+        return $"A password reset has been requested for your Snap CD account.\n\nYour password reset code is: {resetCode}\n\nPlease enter this code to reset your password.";
     }
 
     public static string GetContactFormSubject(string fromName, string subject)

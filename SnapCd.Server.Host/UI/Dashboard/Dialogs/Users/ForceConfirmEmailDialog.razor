@@ -1,0 +1,60 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Services.Admin
+
+@inject IMemberAdminService MemberAdminService
+@inject ISnackbar Snackbar
+@inject IdentityUserAccessorFactory UserAccessorFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudDialog>
+    <DialogContent>
+        <MudText>
+            Mark <strong>@TargetUser.Email</strong> as email-confirmed?
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            This bypasses the normal verification flow — use only when the user has lost
+            access to their inbox or when the server is configured without an email backend.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Filled" Style="background-color: #000; color: #fff;">Cancel</MudButton>
+        <MudButton OnClick="Confirm" Variant="Variant.Filled" Style="background-color: #000; color: #fff;" Disabled="@_isSubmitting">
+            @(_isSubmitting ? "Confirming…" : "Confirm")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter, EditorRequired] public required User TargetUser { get; set; }
+    [Parameter, EditorRequired] public required Guid OrganizationId { get; set; }
+
+    private bool _isSubmitting;
+
+    private async Task Confirm()
+    {
+        _isSubmitting = true;
+        try
+        {
+            using var accessor = UserAccessorFactory.Create();
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var actingUser = await accessor.UserAccessor.GetRequiredUserAsync(authState);
+
+            await MemberAdminService.ForceConfirmEmailAsync(OrganizationId, TargetUser.Id, actingUser.Id);
+            Snackbar.Add($"Email marked as confirmed for {TargetUser.Email}", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to mark email confirmed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
