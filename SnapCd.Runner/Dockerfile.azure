@@ -1,4 +1,4 @@
-FROM ghcr.io/schrieksoft/base-image-snapcd-runner:1.0.1-azure
+FROM ghcr.io/schrieksoft/base-image-snapcd-runner:1.0.2-azure
 
 EXPOSE 80
 EXPOSE 443
