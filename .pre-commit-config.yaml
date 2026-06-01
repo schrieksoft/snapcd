@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: license-header
+        name: License header (.cs / .razor / .py / .sql)
+        entry: scripts/check-license-header.sh --apply
+        language: system
+        files: \.(cs|razor|py|sql)$
+        exclude: |
+          (?x)^(
+              .*/(bin|obj)/.*
+            | .*\.Designer\.cs
+            | .*\.g\.cs
+            | .*\.generated\.cs
+            | .*GlobalUsings\.g\.cs
+          )$
