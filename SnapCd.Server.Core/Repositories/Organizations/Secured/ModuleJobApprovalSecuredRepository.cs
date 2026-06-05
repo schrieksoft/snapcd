@@ -91,7 +91,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         // Users can create approvals on modules where they have Contributor+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
             [StackRole.Owner, StackRole.Contributor],
             [NamespaceRole.Owner, NamespaceRole.Contributor],
             [ModuleRole.Owner, ModuleRole.Contributor]);
@@ -102,7 +102,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         // Users can read approvals on modules where they have Reader+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
             [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
             [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
             [ModuleRole.Owner, ModuleRole.Contributor, ModuleRole.Reader]);
@@ -113,7 +113,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         // Users can update approvals on modules where they have Contributor+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
             [StackRole.Owner, StackRole.Contributor],
             [NamespaceRole.Owner, NamespaceRole.Contributor],
             [ModuleRole.Owner, ModuleRole.Contributor]);
@@ -124,7 +124,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         // Users can delete approvals on modules where they have Contributor+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
             [StackRole.Owner, StackRole.Contributor],
             [NamespaceRole.Owner, NamespaceRole.Contributor],
             [ModuleRole.Owner, ModuleRole.Contributor]);

@@ -40,8 +40,8 @@ public class SignalRLogSink : IBatchedLogEventSink
                 ? LogMessageHelper.TrimQuotes(Regex.Unescape(messageValue.ToString()))
                 : string.Empty;
 
-            if (LogMessageHelper.GetGuidProperty(logEvent, nameof(LogEntryDto.ModuleId)) == Guid.Empty)
-                continue;
+            // No ModuleId filter: this sink is a private detail of HubJobLogStream, which is
+            // the only writer. Every event we see is a job log by construction.
 
             var logEntry = new LogEntryDto
             {

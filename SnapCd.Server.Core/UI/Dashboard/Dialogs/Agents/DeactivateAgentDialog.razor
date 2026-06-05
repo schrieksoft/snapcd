@@ -1,0 +1,49 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@inject AgentSecuredRepositoryFactory RepoFactory
+@inject ILogger<DeactivateAgentDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Deactivate Agent</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to deactivate Agent "@Agent.Name" (ID "@Agent.Id")?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="Deactivate">Deactivate</MudButton>
+        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public required Agent Agent { get; set; }
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Deactivate()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            Agent.IsDisabled = true;
+            await repo.Update(Agent);
+            MudDialog.Close(DialogResult.Ok(Agent.Id));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to deactivate Agent {AgentId}", Agent.Id);
+            MudDialog.Cancel();
+        }
+    }
+}

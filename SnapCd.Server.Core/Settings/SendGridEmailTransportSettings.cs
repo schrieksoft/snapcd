@@ -8,10 +8,18 @@
 
 namespace SnapCd.Server.Core.Settings;
 
+/// <summary>
+/// SendGrid transport credentials and sender identity. Used when
+/// <c>EmailSender.EmailProvider</c> is <c>"SendGrid"</c>; otherwise ignored.
+/// </summary>
 public class SendGridEmailTransportSettings
 {
+    /// <summary>SendGrid API key. Sensitive — source via the External Settings provider in production.</summary>
     public string ApiKey { get; set; } = null!;
+
+    /// <summary>"From" address every Server-sent email is delivered as. Must be verified in SendGrid.</summary>
     public string FromEmail { get; set; } = null!;
 
+    /// <summary>Display name shown alongside <see cref="FromEmail"/> in clients.</summary>
     public string FromName { get; set; } = null!;
 }

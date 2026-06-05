@@ -10,7 +10,9 @@ using System.ComponentModel.DataAnnotations;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
+using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
+using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
 using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
@@ -29,6 +31,10 @@ public class Stack : AuditBase, IEntity, IOrganizationChild, ICreationTrackable
     public List<Namespace> Namespaces { get; set; } = null!;
 
     public List<RunnerStackAssignment>? RunnerStackAssignments { get; set; } = new();
+
+    public List<AgentStackAssignment>? AgentStackAssignments { get; set; } = new();
+
+    public virtual ICollection<StackMission> StackMissions { get; set; } = new List<StackMission>();
 
     public List<StackSecret> SecretsScopedToStack { get; set; } = null!;
 

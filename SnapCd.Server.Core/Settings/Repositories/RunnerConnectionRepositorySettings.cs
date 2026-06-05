@@ -16,8 +16,12 @@ namespace SnapCd.Server.Core.Settings.Repositories;
 /// </summary>
 public class RunnerConnectionRepositorySettings : IEntitySettings
 {
+    /// <summary>When true (default), publish a CreatedEvent on the bus when a RunnerConnection is created.</summary>
     public bool EmitCreateEvents { get; set; } = false;
+    /// <summary>When true (default), publish an UpdatedEvent on the bus when a RunnerConnection is updated.</summary>
     public bool EmitUpdateEvents { get; set; } = false;
+    /// <summary>When true (default), publish a DeletedEvent on the bus when a RunnerConnection is deleted.</summary>
     public bool EmitDeleteEvents { get; set; } = false;
+    /// <summary>Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities whose downstream consumers might be offline long enough to miss the default window.</summary>
     public TimeSpan EventTtl { get; set; } = TimeSpan.FromMinutes(30);
 }

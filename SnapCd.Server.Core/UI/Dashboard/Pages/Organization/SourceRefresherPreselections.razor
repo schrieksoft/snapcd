@@ -69,7 +69,8 @@
         <MudExpansionPanels>
             @foreach (var sourceRefresherPreselection in _sourceRefresherPreselections)
             {
-                <MudExpansionPanel>
+                <MudExpansionPanel Expanded="@(sourceRefresherPreselection.Id == _expandedId)"
+                                   ExpandedChanged="@(e => HandleExpansionChanged(sourceRefresherPreselection.Id, e))">
                     <TitleContent>
                         <MudText>@sourceRefresherPreselection.SourceUrl</MudText>
                     </TitleContent>
@@ -109,11 +110,15 @@
     [Inject] private SourceRefresherPreselectionSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
+    [SupplyParameterFromQuery] public string? Preselection { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
     private List<SourceRefresherPreselection>? _sourceRefresherPreselections;
     private bool _showCreateSourceRefresherPreselection;
     private SourceRefresherPreselection? _selectedSourceRefresherPreselection;
+    private Guid? _expandedId;
     private ShowingType _showing;
 
 
@@ -167,6 +172,69 @@
         await ReloadSourceRefresherPreselections();
     }
 
+    protected override void OnParametersSet()
+    {
+        if (_sourceRefresherPreselections is null) return;
+        if (Guid.TryParse(Preselection, out var id))
+        {
+            var match = _sourceRefresherPreselections.FirstOrDefault(p => p.Id == id);
+            if (match is not null)
+            {
+                _expandedId = id;
+                if (!string.IsNullOrEmpty(Action)
+                    && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsed)
+                    && parsed != ShowingType.None)
+                {
+                    _selectedSourceRefresherPreselection = match;
+                    _showing = parsed;
+                }
+            }
+        }
+    }
+
+    private void HandleExpansionChanged(Guid id, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedId = id;
+        }
+        else if (_expandedId == id)
+        {
+            _expandedId = null;
+            if (_selectedSourceRefresherPreselection?.Id == id)
+            {
+                _selectedSourceRefresherPreselection = null;
+                _showing = ShowingType.None;
+            }
+        }
+        UpdateUrl();
+    }
+
+    private void UpdateUrl()
+    {
+        var query = new Dictionary<string, object?>();
+        if (_expandedId is { } eid) query["preselection"] = eid.ToString();
+        if (_selectedSourceRefresherPreselection is not null && _showing != ShowingType.None)
+            query["action"] = _showing.ToString().ToLowerInvariant();
+        var url = NavigationManager.GetUriWithQueryParameters("/SourceRefresherPreselections", query);
+        NavigationManager.NavigateTo(url, forceLoad: false, replace: true);
+    }
+
+    private void Select(SourceRefresherPreselection entity, ShowingType action)
+    {
+        _selectedSourceRefresherPreselection = entity;
+        _expandedId = entity.Id;
+        _showing = action;
+        UpdateUrl();
+    }
+
+    private void ClearSelection()
+    {
+        _selectedSourceRefresherPreselection = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
+    }
+
     private async Task ReloadSourceRefresherPreselections()
     {
         using var repo = RepoFactory.Create();
@@ -199,22 +267,14 @@
 
     private async Task HandleSourceRefresherPreselectionSaved(SourceRefresherPreselection sourceRefresherPreselection)
     {
-        _selectedSourceRefresherPreselection = null;
-        _showing = ShowingType.None;
+        ClearSelection();
         await ReloadSourceRefresherPreselections();
     }
 
-    private void HandleCancelEdit()
-    {
-        _selectedSourceRefresherPreselection = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleCancelEdit() => ClearSelection();
 
-    private void Edit(SourceRefresherPreselection sourceRefresherPreselection)
-    {
-        _selectedSourceRefresherPreselection = sourceRefresherPreselection;
-        _showing = ShowingType.Edit;
-    }
+    private void Edit(SourceRefresherPreselection sourceRefresherPreselection) =>
+        Select(sourceRefresherPreselection, ShowingType.Edit);
 
 
     public void Dispose()

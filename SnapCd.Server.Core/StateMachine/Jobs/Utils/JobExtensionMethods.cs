@@ -32,6 +32,7 @@ public static class JobExtensionMethods
             .Publish(context => new TResponseCancelled
             {
                 ModuleId = context.Saga.ModuleId,
+                OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
             .Activity(x => x.OfType<CancelOnTimeoutModuleJobActivity<TSaga, TRequestMessage>>())
@@ -50,6 +51,7 @@ public static class JobExtensionMethods
             .Publish(context => new TResponseFailed
             {
                 ModuleId = context.Saga.ModuleId,
+                OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
             .Activity(x => x.OfType<FailModuleJobRequestActivity<TSaga, TRequestMessage>>())
@@ -68,6 +70,7 @@ public static class JobExtensionMethods
             .Publish(context => new TResponseFailed
             {
                 ModuleId = context.Saga.ModuleId,
+                OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
             .Activity(x => x.OfType<FailModuleJobActivity<TSaga, TFaultedMessage>>())
@@ -85,6 +88,7 @@ public static class JobExtensionMethods
             .Publish(context => new TResponseCancelled
             {
                 ModuleId = context.Saga.ModuleId,
+                OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
             .TransitionTo(cancelled)

@@ -36,7 +36,7 @@ public class RunnerStackAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class RunnerStackAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class RunnerStackAssignmentSecuredRepository : GenericRunnerChildSecuredRepository<
     RunnerStackAssignment,
     RunnerStackAssignmentReadDto,
     RunnerStackAssignmentRepository,

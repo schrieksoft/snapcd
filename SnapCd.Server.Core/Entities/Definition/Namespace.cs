@@ -11,7 +11,9 @@ using System.Text.Json.Serialization;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
+using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
+using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
 using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
@@ -36,6 +38,10 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public List<NamespaceEnvVarFromSecret> NamespaceEnvVarFromSecrets { get; set; } = new();
 
     public List<RunnerNamespaceAssignment> RunnerNamespaceAssignments { get; set; } = new();
+
+    public List<AgentNamespaceAssignment> AgentNamespaceAssignments { get; set; } = new();
+
+    public virtual ICollection<NamespaceMission> NamespaceMissions { get; set; } = new List<NamespaceMission>();
     public List<NamespaceExtraFile> NamespaceExtraFiles { get; set; } = new();
 
     // NEW Role Assignment navigation properties

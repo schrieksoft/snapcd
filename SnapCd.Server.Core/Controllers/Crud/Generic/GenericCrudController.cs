@@ -9,6 +9,7 @@
 using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SnapCd.Contracts.Mcp;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization.Base;
 using SnapCd.Server.Core.Filters;
@@ -46,7 +47,11 @@ public abstract class GenericCrudController<TEntity, TCreateDto, TUpdateDto, TDt
     }
 
 
+    /// <summary>Create a new {Entity}.</summary>
+    /// <param name="organizationId">Organization ID</param>
+    /// <param name="dto">The {Entity} to create</param>
     [HttpPost]
+    [ExposeAsMcpTool]
     public virtual async Task<ActionResult<TDto>> Create(Guid organizationId, TCreateDto dto)
     {
         try
@@ -68,7 +73,10 @@ public abstract class GenericCrudController<TEntity, TCreateDto, TUpdateDto, TDt
         }
     }
 
+    /// <summary>List all {entities} in the organization.</summary>
+    /// <param name="organizationId">Organization ID</param>
     [HttpGet]
+    [ExposeAsMcpTool]
     public virtual async Task<ActionResult<List<TDto>>> List(Guid organizationId)
     {
         try
@@ -86,7 +94,11 @@ public abstract class GenericCrudController<TEntity, TCreateDto, TUpdateDto, TDt
         }
     }
 
+    /// <summary>Get a single {Entity} by ID.</summary>
+    /// <param name="organizationId">Organization ID</param>
+    /// <param name="id">{Entity} ID</param>
     [HttpGet("{id}")]
+    [ExposeAsMcpTool]
     public virtual async Task<ActionResult<TDto>> Get(Guid organizationId, Guid id)
     {
         try
@@ -108,7 +120,12 @@ public abstract class GenericCrudController<TEntity, TCreateDto, TUpdateDto, TDt
         }
     }
 
+    /// <summary>Update an existing {Entity}.</summary>
+    /// <param name="organizationId">Organization ID</param>
+    /// <param name="dto">The new {Entity} values</param>
+    /// <param name="id">{Entity} ID</param>
     [HttpPut("{id}")]
+    [ExposeAsMcpTool]
     public virtual async Task<ActionResult<TDto>> Update(Guid organizationId, TUpdateDto dto, Guid id)
     {
         try
@@ -134,7 +151,11 @@ public abstract class GenericCrudController<TEntity, TCreateDto, TUpdateDto, TDt
         }
     }
 
+    /// <summary>Delete the {Entity}.</summary>
+    /// <param name="organizationId">Organization ID</param>
+    /// <param name="id">{Entity} ID</param>
     [HttpDelete("{id}")]
+    [ExposeAsMcpTool]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)
     {
         try

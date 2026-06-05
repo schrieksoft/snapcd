@@ -6,18 +6,15 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.Reflection;
 using Microsoft.Extensions.Options;
 using Quartz;
-using Serilog;
-using Serilog.Sinks.PeriodicBatching;
+using SnapCd.Runner.Configuration;
 using SnapCd.Runner.Factories;
 using SnapCd.Runner.Hub;
 using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 using SnapCd.Runner.Settings;
-using SnapCd.Runner.Configuration;
 using SnapCd.Runner.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +34,7 @@ builder.Services.Configure<WorkingDirectorySettings>(builder.Configuration.GetSe
 builder.Services.Configure<RunnerSettings>(builder.Configuration.GetSection("Runner"));
 builder.Services.Configure<HooksPreapprovalSettings>(builder.Configuration.GetSection("HooksPreapproval"));
 builder.Services.Configure<EngineSettings>(builder.Configuration.GetSection("Engine"));
+builder.Services.Configure<JobLogStreamSettings>(builder.Configuration.GetSection("JobLogStream"));
 
 builder.Services.AddMemoryCache();
 
@@ -54,8 +52,12 @@ builder.Services.AddSingleton<IModuleSourceRefresherFactory, ModuleSourceRefresh
 
 builder.Services.AddSingleton<ProcessRegistry>();
 
-// Register unified task handler
+// Register unified task handler. Also expose as Lazy<Tasks> to let RunnerHubConnection break
+// the DI cycle: Tasks -> IJobLogStream -> HubJobLogStream -> RunnerHubConnection -> Tasks.
+// The hub only dereferences Tasks inside .On<>() handlers fired after StartAsync, by which
+// time the graph is fully built.
 builder.Services.AddSingleton<Tasks>();
+builder.Services.AddSingleton<Lazy<Tasks>>(sp => new Lazy<Tasks>(() => sp.GetRequiredService<Tasks>()));
 
 // Register SignalR runner hub connection
 builder.Services.AddSingleton<RunnerHubConnection>();
@@ -86,20 +88,18 @@ builder.Services.AddQuartz(q =>
 
 # region Logging
 
-builder.Host.UseSerilog();
+// Terminal logging — vanilla MEL via the host default (Console + Debug providers configured from
+// the standard "Logging" section in appsettings.json). Matches SnapCd.Server.Host + SnapCd.Agent.
 
-builder.Services.Configure<RunnerSettings>(builder.Configuration.GetSection("Runner"));
-builder.Services.AddSingleton<AccessTokenCacheService>();
-builder.Services.AddSingleton<IBatchedLogEventSink, SignalRLogSink>();
+// Server-shipping — IJobLogStream is the explicit "this log ships" producer surface. HubJobLogStream
+// owns a private Serilog logger + PeriodicBatchingSink + SignalRLogSink. Serilog is scoped to
+// HubJobLogStream only; the rest of the runner is on MEL.
+builder.Services.AddSingleton<IJobLogStream, HubJobLogStream>();
+
 builder.Services.AddHttpClient<ServicePrincipalTokenService>();
-
 builder.Services.AddSingleton<TokenInitializationService>();
 
-// Note: ILogEmitter (RunnerHubConnection) must be registered by the consuming application
-
 # endregion
-
-var loggingSettings = builder.Configuration.GetSection("Logging").Get<LoggingSettings>() ?? new LoggingSettings();
 
 var app = builder.Build();
 
@@ -112,27 +112,8 @@ await tokenInitializer.InitializeAsync();
 var versionService = app.Services.GetRequiredService<IVersionService>();
 var serverSettings = app.Services.GetRequiredService<IOptions<ServerSettings>>().Value;
 
-// Retrieve IBatchedLogEventSink from DI
-var sink = app.Services.GetRequiredService<IBatchedLogEventSink>();
-
-var loggerConfig = new LoggerConfiguration()
-    .MinimumLevel.Is(loggingSettings.SystemDefaultLogLevel)
-    .MinimumLevel.Override("SnapCd", loggingSettings.SnapCdDefaultLogLevel);
-foreach (var obj in loggingSettings.LogLevelOverrides) loggerConfig.MinimumLevel.Override(obj.Key, obj.Value);
-
-var batchOptions = new PeriodicBatchingSinkOptions
-{
-    BatchSizeLimit = loggingSettings.BatchSizeLimit,
-    Period = TimeSpan.FromSeconds(loggingSettings.PeriodSeconds),
-    EagerlyEmitFirstEvent = loggingSettings.EarlyEmitFirstEvent
-};
-
-var batchingSink = new PeriodicBatchingSink(sink, batchOptions);
-loggerConfig.WriteTo.Sink(batchingSink);
-loggerConfig.WriteTo.CustomConsole();
-
-Log.Logger = loggerConfig.CreateLogger();
-
-Console.WriteLine($"Starting SnapCD Runner v{versionService.Version}. Connecting to {serverSettings.Url}");
+app.Logger.LogInformation(
+    "Starting SnapCD Runner v{Version}. Connecting to {ServerUrl}",
+    versionService.Version, serverSettings.Url);
 
 await app.RunAsync();

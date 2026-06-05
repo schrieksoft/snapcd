@@ -17,12 +17,19 @@ public interface IModuleSourceRefresherFactory
 
 public class ModuleSourceRefresherFactory : IModuleSourceRefresherFactory
 {
+    private readonly ILoggerFactory _loggerFactory;
+
+    public ModuleSourceRefresherFactory(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory;
+    }
+
     public IModuleSourceRefresher Create(SourceType sourceType)
     {
         switch (sourceType)
         {
             case SourceType.Git:
-                return new GitModuleSourceResolver();
+                return new GitModuleSourceResolver(_loggerFactory.CreateLogger<GitModuleSourceResolver>());
             default:
                 throw new NotImplementedException($"Source refresher for module of type \"{sourceType.ToString()}\" is not implemented.");
         }

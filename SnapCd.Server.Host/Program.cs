@@ -10,12 +10,10 @@ using System.Diagnostics;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using Serilog;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Middleware;
 using SnapCd.Server.Core.Misc.Configuration;
-using SnapCd.Server.Core.Misc.Logging;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Dashboard;
 using SnapCd.Server.Core.Services.DataSeeder;
@@ -24,7 +22,10 @@ using SnapCd.Server.Core.Services.QuotaUsage;
 using SnapCd.Server.Core.Services.ViewManagement;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
+using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Host.Licensing.Filters;
+using SnapCd.Server.Host.Licensing.Services;
 using SnapCd.Server.Core.Services.Admin;
 using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Server.Core.Startup;
@@ -44,22 +45,18 @@ builder.Configuration
     .AddExternalConfiguration() // Service-specific (sensitive) overrides, e.g. loaded directly from AKV
     .AddPredefined(); // Predefined values generated at startup
 
-builder.Host.UseSerilog();
-
 builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("Server"));
-builder.Services.Configure<SqlOutputStoreSettings>(builder.Configuration.GetSection("SqlOutputStore"));
 builder.Services.Configure<ServiceBusSettings>(builder.Configuration.GetSection("ServiceBus"));
-builder.Services.Configure<DashboardSettings>(builder.Configuration.GetSection("Dashboard"));
 builder.Services.Configure<ProductionDataSeederSettings>(builder.Configuration.GetSection("ProductionDataSeeder"));
 builder.Services.Configure<DebugDataSeederSettings>(builder.Configuration.GetSection("DebugDataSeeder"));
 builder.Services.Configure<SecretStoreSettings>(builder.Configuration.GetSection("SecretStore"));
 builder.Services.Configure<SourceRefreshSettings>(builder.Configuration.GetSection("SourceRefresh"));
-builder.Services.Configure<PreviewFeatureSettings>(builder.Configuration.GetSection("PreviewFeatures"));
 builder.Services.AddSnapCdRepositorySettings(builder.Configuration);
 builder.Services.Configure<InvitationSettings>(builder.Configuration.GetSection("InvitationSettings"));
 builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.GetSection("OrphanedJobCleanup"));
 builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("License"));
 builder.Services.Configure<DebuggingOptions>(builder.Configuration.GetSection("Debugging"));
+builder.Services.Configure<OpenIdConnectSettings>(builder.Configuration.GetSection("OpenIdConnect"));
 // In non-debug runs, force LicenseServerBaseUrl to snapcd.io regardless of appsettings.
 // Debug runs keep whatever was bound from appsettings (e.g. Development overrides to a local license server).
 if (!Debugger.IsAttached)
@@ -69,7 +66,6 @@ if (!Debugger.IsAttached)
 
 
 var sourceRefreshSettings = builder.Configuration.GetSection("SourceRefresh").Get<SourceRefreshSettings>() ?? new SourceRefreshSettings();
-var loggingSettings = builder.Configuration.GetSection("Logging").Get<LoggingSettings>() ?? new LoggingSettings();
 var allowHttp = builder.Configuration.GetSection("AllowHttp").Get<bool>();
 var connectionString = builder.Configuration["ConnectionString"] ?? throw new Exception("Connection string not found.");
 
@@ -84,9 +80,21 @@ builder.Services.AddSnapCdTaskHandlers();
 builder.Services.AddSnapCdMiscServices(builder.Configuration, builder.Environment.IsDevelopment());
 
 
+// Self-Hosted licensing services (moved out of Server.Core because they query the
+// SelfHostedOrganizationLicense entity that only the self-hosted DbContext registers).
+builder.Services.AddScoped<LicenseService>();
+builder.Services.AddScoped<LicenseRefreshJob>();
+builder.Services.AddScoped<LicensePublicKeyRefreshJob>();
+builder.Services.AddSingleton<ILicensePublicKeyService, LicensePublicKeyService>();
+builder.Services.AddScoped<IRemoteLicenseClient, RemoteLicenseClient>();
+builder.Services.AddScoped<VerifyLicenseActionFilter>();
+builder.Services.PostConfigure<Microsoft.AspNetCore.Mvc.MvcOptions>(o =>
+    o.Filters.AddService<VerifyLicenseActionFilter>());
+
 // Edition policies (self-hosted; must be after AddSnapCdMiscServices, before AddSnapCdAuthConfiguration)
 builder.Services.AddScoped<IOrganizationLimitPolicy, SelfHostedOrganizationLimitPolicy>();
 builder.Services.AddScoped<ILicenseVerificationPolicy, SelfHostedLicenseVerificationPolicy>();
+builder.Services.AddScoped<ILicenseInfoProvider>(sp => sp.GetRequiredService<LicenseService>());
 builder.Services.AddScoped<ISsoPolicy, SelfHostedSsoPolicy>();
 builder.Services.AddScoped<ITurnstilePolicy, SelfHostedTurnstilePolicy>();
 builder.Services.AddScoped<IApprovalPolicy, SelfHostedApprovalPolicy>();
@@ -108,6 +116,7 @@ builder.Services.AddSnapCdSwaggerConfiguration(builder.Configuration);
 builder.Services.AddSnapCdCorsConfiguration();
 builder.Services.AddSnapCdMassTransitConfiguration(builder.Configuration);
 builder.Services.AddSnapCdRunnerHub();
+builder.Services.AddSnapCdMcpServer();
 builder.Services.AddSnapCdHeaderForwardingConfiguration();
     
 builder.Services.AddEndpointsApiExplorer();
@@ -125,18 +134,6 @@ builder.Services.AddScoped<IMemberAdminService, SelfHostedMemberAdminService>();
 builder.Services.AddScoped<IOrganizationMemberAdminActionsProvider, ServerOrganizationMemberAdminActionsProvider>();
 
 var app = builder.Build();
-
-var loggerConfig = new LoggerConfiguration()
-    .MinimumLevel.Is(loggingSettings.SystemDefaultLogLevel)
-    .MinimumLevel.Override("SnapCd", loggingSettings.SnapCdDefaultLogLevel);
-foreach (var obj in loggingSettings.LogLevelOverrides) loggerConfig.MinimumLevel.Override(obj.Key, obj.Value);
-// .Filter.ByIncludingOnly(logEvent =>
-//     logEvent.Properties.TryGetValue("SourceContext", out var source) &&
-//     source.ToString().StartsWith("\"SnapCd"));
-
-loggerConfig.WriteTo.CustomConsole();
-
-Log.Logger = loggerConfig.CreateLogger();
 
 app.UseForwardedHeaders();
 
@@ -168,7 +165,7 @@ using (var scope = app.Services.CreateScope())
 
             Then restart the server.
             """;
-        Log.Fatal(message);
+        Console.Error.WriteLine(message);
         throw new InvalidOperationException(message);
     }
 }
@@ -249,6 +246,7 @@ app.MapAdditionalFormEndpoints();
 app.UseRouting();
 app.UseCors("AllowAnyOriginCorsPolicy");
 app.UseAuthentication();
+app.UseMiddleware<SnapCd.Server.Core.Auth.AgentClaimAuditMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<OrganizationValidationMiddleware>();
 app.UseAntiforgery();
@@ -257,9 +255,50 @@ app.MapControllers();
 app.MapRazorPages();
 app.MapHealthChecks("/health");
 app.MapHub<RunnerHub>("/runnerhub");
+app.MapHub<SnapCd.Server.Core.Hubs.AgentHub>("/agenthub");
+app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/mcp"),
+    branch => branch.Use(async (ctx, next) =>
+    {
+        var orgClaim = ctx.User.FindFirst(SnapCd.Server.Core.Misc.Constants.ClaimTypeConstants.OrganizationClaimType)?.Value;
+        var firstOrg = orgClaim?.Split(',').FirstOrDefault();
+        if (!Guid.TryParse(firstOrg, out var orgId))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+        var licenseInfoProvider = ctx.RequestServices.GetRequiredService<SnapCd.Server.Core.Licensing.Services.ILicenseInfoProvider>();
+        var info = await licenseInfoProvider.GetLicenseInfoAsync(orgId);
+        if (!info.Includes(SnapCd.Server.Core.Licensing.Models.Feature.AiAgents))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await ctx.Response.WriteAsync("AI Agents are not licensed for this organization. Upgrade to Enterprise to use the MCP server.");
+            return;
+        }
+        await next();
+    }));
+app.MapMcp("/mcp").RequireAuthorization("BearerPolicy");
+
+// Dev-only mission wiring harness: publish a synthetic ApplyModuleFailed for an existing ModuleJob,
+// so the agent dispatch path (Layer 1 → ModuleJobMission → orchestrator → sidecar) can be exercised
+// without a real failing terraform apply. The moduleId/jobId must reference existing rows
+// (ModuleJobMission FKs to ModuleJob); organizationId defaults to the preseeded default org.
+if (app.Environment.IsDevelopment())
+{
+    app.MapPost("/dev/agent/synthesize-apply-failed",
+        async (Guid moduleId, Guid jobId, Guid? organizationId, MassTransit.IBus bus) =>
+        {
+            var orgId = organizationId ?? SnapCd.Server.Core.Settings.DataSeeder.PreseededSettings.DefaultId;
+            await bus.Publish(new SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleFailed
+            {
+                ModuleId = moduleId,
+                OrganizationId = orgId,
+                ModuleJobId = jobId
+            });
+            return Results.Ok(new { published = "ApplyModuleFailed", moduleId, jobId, organizationId = orgId });
+        });
+}
 
 var versionService = app.Services.GetRequiredService<IVersionService>();
-Console.WriteLine($"Starting Snap CD Server v{versionService.Version}");
-Log.Information("Starting Snap CD Server v{Version}", versionService.Version);
+app.Logger.LogInformation("Starting Snap CD Server v{Version}", versionService.Version);
 
 app.Run();

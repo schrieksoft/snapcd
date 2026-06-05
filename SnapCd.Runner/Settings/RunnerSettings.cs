@@ -8,20 +8,53 @@
 
 namespace SnapCd.Runner.Settings;
 
+/// <summary>
+/// Identity, organisation and credentials that bind this Runner process to a Runner record on
+/// the Server. All four fields are required for the Runner to authenticate and connect.
+/// </summary>
 public class RunnerSettings
 {
+    /// <summary>
+    /// Identifier of the Organization this Runner belongs to. Must match the Organization the
+    /// Runner record below was created in.
+    /// </summary>
     public Guid OrganizationId { get; set; }
 
+    /// <summary>
+    /// Name this Runner reports when it connects, used to distinguish replicas when
+    /// allow_multiple_instances is set on the Runner record. Visible in the Dashboard's
+    /// Runners page next to the parent record.
+    /// </summary>
     public string Instance { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Identifier of the Runner record on the Server this process binds to.
+    /// </summary>
     public Guid Id { get; set; }
 
+    /// <summary>
+    /// Service Principal credentials the Runner authenticates with. The Service Principal
+    /// referenced here must be the one bound to the Runner record via
+    /// service_principal_id.
+    /// </summary>
     public Credentials Credentials { get; set; } = new() { ClientId = string.Empty, ClientSecret = string.Empty };
 }
 
+/// <summary>
+/// OAuth2 client_credentials grant credentials for a Service Principal.
+/// </summary>
 public class Credentials
 {
+    /// <summary>
+    /// The Service Principal's client identifier, prefixed with the Organization ID at the
+    /// token endpoint (the prefix is added automatically by the Runner; supply only the raw
+    /// client ID here).
+    /// </summary>
     public required string ClientId { get; set; }
 
+    /// <summary>
+    /// The Service Principal's client secret. Sensitive — production deployments should source
+    /// this via the External Settings provider rather than committing it to appsettings.json.
+    /// </summary>
     public required string ClientSecret { get; set; }
 }

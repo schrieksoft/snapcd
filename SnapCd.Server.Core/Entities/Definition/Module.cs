@@ -11,7 +11,9 @@ using System.Text.Json.Serialization;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
+using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
+using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
 using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
@@ -72,6 +74,10 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     [JsonIgnore] public Runner Runner { get; set; } = null!;
 
     public List<RunnerModuleAssignment>? RunnerModuleAssignments { get; set; } = new();
+
+    public List<AgentModuleAssignment>? AgentModuleAssignments { get; set; } = new();
+
+    public virtual ICollection<ModuleMission> ModuleMissions { get; set; } = new List<ModuleMission>();
 
     public List<ModuleSecret>? SecretsScopedToModule { get; set; } = new();
 

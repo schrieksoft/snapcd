@@ -12,9 +12,9 @@ using SnapCd.Server.Core.Controllers;
 using SnapCd.Server.Core.Controllers.Crud;
 using SnapCd.Server.Core.Controllers.Crud.Secrets;
 using SnapCd.Server.Core.Controllers.Hooks;
+using SnapCd.Server.Core.Controllers.Jobs;
 using SnapCd.Server.Core.Controllers.Logs;
 using SnapCd.Server.Core.Controllers.OpenIddict;
-using SnapCd.Server.Core.Licensing.Filters;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -25,6 +25,7 @@ public static class Controllers
         var controllers = new List<Type>();
         controllers.AddRange(new[]
         {
+            typeof(MissionRunController),
             typeof(StackController),
             typeof(NamespaceController),
             typeof(ModuleController),
@@ -39,6 +40,7 @@ public static class Controllers
             typeof(NamespaceInputFromSecretController),
             typeof(LogsController),
             typeof(RunnerController),
+            typeof(AgentController),
             typeof(ServicePrincipalController),
             typeof(GroupController),
             typeof(GroupMemberController),
@@ -48,9 +50,17 @@ public static class Controllers
             typeof(NamespaceRoleAssignmentController),
             typeof(ModuleRoleAssignmentController),
             typeof(RunnerRoleAssignmentController),
+            typeof(AgentRoleAssignmentController),
             typeof(RunnerStackAssignmentController),
             typeof(RunnerNamespaceAssignmentController),
             typeof(RunnerModuleAssignmentController),
+            typeof(AgentStackAssignmentController),
+            typeof(AgentNamespaceAssignmentController),
+            typeof(AgentModuleAssignmentController),
+            typeof(OrganizationMissionController),
+            typeof(StackMissionController),
+            typeof(NamespaceMissionController),
+            typeof(ModuleMissionController),
             typeof(SourceRefresherPreselectionController),
             typeof(NamespaceExtraFileController),
             typeof(ModuleExtraFileController),
@@ -88,7 +98,6 @@ public static class Controllers
 
         services.AddControllers(options =>
             {
-                options.Filters.AddService<VerifyLicenseActionFilter>();
             })
             .ConfigureApplicationPartManager(manager =>
             {

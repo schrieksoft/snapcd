@@ -13,6 +13,7 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleGetter;
 using SnapCd.Runner.Settings;
@@ -50,7 +51,7 @@ public class ModuleGetterExtraFilesTests : IDisposable
 
         var mockLogger = new Mock<ILogger<ModuleGetter>>();
         var realLogger = new Mock<ILogger>().Object;
-        var context = new RunnerTaskContext(Guid.NewGuid(), "Test", realLogger, metadata);
+        var context = new RunnerTaskContext(Guid.NewGuid(), "Test", realLogger, new NullJobLogStream(), metadata);
 
         var mockDirectoryService = new Mock<ModuleDirectoryService>(
             metadata,

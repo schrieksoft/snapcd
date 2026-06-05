@@ -80,7 +80,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
             [StackRole.Owner, StackRole.Contributor],
             []
         );
@@ -90,7 +90,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         var baseQuery = RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
             [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
             [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
         );
@@ -109,7 +109,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
             [StackRole.Owner, StackRole.Contributor],
             [NamespaceRole.Owner]
         );
@@ -119,7 +119,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
+            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
             [StackRole.Owner, StackRole.Contributor],
             [NamespaceRole.Owner]
         );

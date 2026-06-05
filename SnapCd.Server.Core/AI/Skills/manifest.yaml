@@ -1,0 +1,42 @@
+skills:
+  - name: auto_diagnose
+    file: auto_diagnose.md
+    description: Diagnose a failed module job from its redacted logs and plan output.
+    arguments:
+      - name: organizationId
+        description: The organization the job belongs to (for org-scoped MCP resource URIs).
+        required: true
+      - name: jobId
+        description: The failed ModuleJob ID.
+        required: true
+      - name: moduleId
+        description: The owning Module ID (for added context).
+        required: false
+
+  - name: approval_recommend
+    file: approval_recommend.md
+    description: Summarise a plan output and assess risk for human approval.
+    arguments:
+      - name: organizationId
+        description: The organization the job belongs to (for org-scoped MCP resource URIs).
+        required: true
+      - name: jobId
+        description: The ApprovalRequired ModuleJob ID.
+        required: true
+      - name: moduleId
+        description: The owning Module ID (for added context).
+        required: true
+
+  - name: summarize_job
+    file: summarize_job.md
+    description: Write an audit-quality summary of a completed module job — what changed, who approved, what was anomalous.
+    arguments:
+      - name: organizationId
+        description: The organization the job belongs to (for org-scoped MCP resource URIs).
+        required: true
+      - name: jobId
+        description: The completed ModuleJob ID.
+        required: true
+      - name: moduleId
+        description: The owning Module ID.
+        required: true

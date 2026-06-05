@@ -87,6 +87,12 @@ public partial class JobStateMachine<
                         ///////////////////////////////////////////////////
                         z => z
                             .Then(_ => { _logger.LogInformation($"Declined, continuing to Finalize"); })
+                            .Publish(context => new TResponseCancelled
+                            {
+                                ModuleId = context.Saga.ModuleId,
+                                OrganizationId = context.Saga.OrganizationId,
+                                ModuleJobId = context.Saga.CorrelationId
+                            })
                             .Activity(z1 => z1.OfType<ApprovalDeclinedModuleJobActivity<TSaga, TMessage>>())
                             .TransitionTo(Declined)
                             .Finalize()

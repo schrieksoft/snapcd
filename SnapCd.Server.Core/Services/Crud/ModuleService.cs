@@ -6,10 +6,13 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts.Dto.Modules;
+using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Mappers;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
@@ -19,10 +22,14 @@ namespace SnapCd.Server.Core.Services.Crud;
 
 public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleUpdateDto, ModuleReadDto, ModuleSecuredRepository, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
 {
+    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+
     public ModuleService(
-        ModuleSecuredRepository securedRepository
+        ModuleSecuredRepository securedRepository,
+        IDbContextFactory<SnapCdDbContext> dbContextFactory
     ) : base(securedRepository)
     {
+        _dbContextFactory = dbContextFactory;
     }
 
     protected override Module MapToEntity(ModuleCreateDto dto, Guid organizationId)
@@ -50,5 +57,67 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
     {
         var module = await GetByCriteria(repo => repo.Get(stackName, namespaceName, moduleName, organizationId));
         return module;
+    }
+
+    public async Task<ModuleSourceDto> GetSource(Guid moduleId, Guid organizationId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var dto = await dbContext.Modules
+            .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
+            .Select(m => new ModuleSourceDto
+            {
+                Id = m.Id,
+                Name = m.Name,
+                NamespaceId = m.NamespaceId,
+                SourceType = m.SourceType,
+                SourceUrl = m.SourceUrl,
+                SourceRevision = m.SourceRevision,
+                SourceRevisionType = m.SourceRevisionType,
+                SourceSubdirectory = m.SourceSubdirectory,
+                Engine = m.Engine
+            })
+            .FirstOrDefaultAsync();
+
+        if (dto is null) throw new EntityNotFoundException($"Module '{moduleId}' not found");
+        return dto;
+    }
+
+    public async Task<ModuleStateDto> GetState(Guid moduleId, Guid organizationId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var moduleHeader = await dbContext.Modules
+            .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
+            .Select(m => new { m.Id, m.Name, m.NamespaceId })
+            .FirstOrDefaultAsync();
+
+        if (moduleHeader is null) throw new EntityNotFoundException($"Module '{moduleId}' not found");
+
+        var lastJob = await dbContext.ModuleJobs
+            .Where(j => j.ModuleId == moduleId && j.OrganizationId == organizationId)
+            .OrderByDescending(j => j.Id)
+            .Select(j => new
+            {
+                j.Id,
+                j.JobType,
+                ActualStateHeadline = j.ActualStateHeadline != null ? j.ActualStateHeadline.ToString() : null,
+                j.IsCurrent,
+                j.WaitingForApproval,
+                j.ServerSideErrorHeader
+            })
+            .FirstOrDefaultAsync();
+
+        return new ModuleStateDto
+        {
+            Id = moduleHeader.Id,
+            Name = moduleHeader.Name,
+            NamespaceId = moduleHeader.NamespaceId,
+            LastJobId = lastJob?.Id,
+            LastJobType = lastJob?.JobType,
+            LastActualStateHeadline = lastJob?.ActualStateHeadline,
+            LastIsCurrent = lastJob?.IsCurrent,
+            LastWaitingForApproval = lastJob?.WaitingForApproval,
+            LastServerSideErrorHeader = lastJob?.ServerSideErrorHeader
+        };
     }
 }

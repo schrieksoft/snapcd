@@ -217,4 +217,11 @@ public class HttpContextPrincipalProvider : IPrincipalProvider
 
         return null;
     }
+
+    public Guid? GetAgentId()
+    {
+        if (_claimsIdentity is null) return null;
+        var stringClaim = _claimsIdentity.Claims.SingleOrDefault(c => c.Type == ClaimTypeConstants.AgentClaimType)?.Value;
+        return Guid.TryParse(stringClaim, out var agentId) ? agentId : null;
+    }
 }

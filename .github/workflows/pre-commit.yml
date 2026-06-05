@@ -1,0 +1,24 @@
+name: pre-commit
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Required by the mcp-surface hook, which invokes `dotnet run --project SnapCd.Mcp.Generator`
+      # to verify Mcp/Generated/*.cs matches the controller annotations.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: preview
+      - uses: pre-commit/action@v3.0.1

@@ -60,7 +60,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
                 if (actualStateHeadline == ActualStateHeadline.Destroyed)
                 {
-                    Console.WriteLine($"Module {context.Saga.CorrelationId} already destroyed, skipping");
+                    _logger.LogInformation(
+                        "Module {ModuleId} already destroyed, skipping",
+                        context.Saga.CorrelationId);
                     await next.Execute(context).ConfigureAwait(false);
                     return;
                 }
@@ -85,7 +87,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                     context.Saga.QueuedReason = QueuedReason.WaitingOnDependencies;
                 }
 
-                Console.WriteLine($"Module {context.Message.ModuleId} waiting on depedencies, queuing request");
+                _logger.LogInformation(
+                    "Module {ModuleId} waiting on dependencies, queuing request",
+                    context.Message.ModuleId);
 
                 // Proceed to the next activity
                 await next.Execute(context).ConfigureAwait(false);
@@ -107,7 +111,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                             context.Saga.QueuedReason = QueuedReason.WaitingOnRunnerCheckin;
                         }
 
-                        Console.WriteLine($"No active runners available for module {context.Message.ModuleId}, queuing request");
+                        _logger.LogInformation(
+                            "No active runners available for module {ModuleId}, queuing request",
+                            context.Message.ModuleId);
                         await next.Execute(context).ConfigureAwait(false);
                         return;
                     }
@@ -117,11 +123,15 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                         // No current job, trigger a new one
                         case DesiredStateHeadline.Applied:
                             await _executionService.Apply(context.Message.ModuleId, context.Message.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
-                            Console.WriteLine($"Running Apply with ID {context.Message.ModuleId} from TriggerModuleJobActivity - no current job");
+                            _logger.LogInformation(
+                                "Running Apply for module {ModuleId} (no current job)",
+                                context.Message.ModuleId);
                             break;
                         case DesiredStateHeadline.Destroyed:
                             await _executionService.Destroy(context.Message.ModuleId, context.Message.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
-                            Console.WriteLine($"Running Destroy with ID {context.Message.ModuleId} from TriggerModuleJobActivity - no current job");
+                            _logger.LogInformation(
+                                "Running Destroy for module {ModuleId} (no current job)",
+                                context.Message.ModuleId);
                             break;
                     }
 
@@ -129,7 +139,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 }
                 else
                 {
-                    Console.WriteLine($"SKIPPING: Message requested state {context.Message.DesiredStateHeadline} but saga currently set to state {context.Saga.DesiredStateHeadline}");
+                    _logger.LogWarning(
+                        "Skipping: message requested state {RequestedState} but saga is currently set to state {SagaState}",
+                        context.Message.DesiredStateHeadline, context.Saga.DesiredStateHeadline);
                     await next.Execute(context).ConfigureAwait(false);
                 }
             }
@@ -140,7 +152,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                     var hasActiveRunner = await _executionService.CheckRunnerAvailabilityAsync(context.Saga.CorrelationId);
                     if (!hasActiveRunner)
                     {
-                        Console.WriteLine($"No active runners available for module {context.Saga.CorrelationId}, keeping queued");
+                        _logger.LogInformation(
+                            "No active runners available for module {ModuleId}, keeping queued",
+                            context.Saga.CorrelationId);
                     }
                     else
                     {
@@ -152,18 +166,24 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                         if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Applied)
                         {
                             await _executionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
-                            Console.WriteLine($"Dependencies met and runner available, dequeued and running Apply for module {context.Saga.CorrelationId}");
+                            _logger.LogInformation(
+                                "Dependencies met and runner available, dequeued and running Apply for module {ModuleId}",
+                                context.Saga.CorrelationId);
                         }
                         else if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Destroyed)
                         {
                             await _executionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
-                            Console.WriteLine($"Dependencies met and runner available, dequeued and running Destroy for module {context.Saga.CorrelationId}");
+                            _logger.LogInformation(
+                                "Dependencies met and runner available, dequeued and running Destroy for module {ModuleId}",
+                                context.Saga.CorrelationId);
                         }
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"Dependencies not yet met for module {context.Saga.CorrelationId}, keeping queued");
+                    _logger.LogInformation(
+                        "Dependencies not yet met for module {ModuleId}, keeping queued",
+                        context.Saga.CorrelationId);
                 }
             }
             else
@@ -173,7 +193,9 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                     : context.Saga.DesiredStateHeadline;
                 context.Saga.QueuedReason = QueuedReason.WaitingOnRunningJob;
 
-                Console.WriteLine($"Job already running for module {context.Message.ModuleId}, queuing request");
+                _logger.LogInformation(
+                    "Job already running for module {ModuleId}, queuing request",
+                    context.Message.ModuleId);
 
                 // Proceed to the next activity
                 await next.Execute(context).ConfigureAwait(false);
@@ -181,7 +203,10 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error executing TriggerModuleJobActivity for {context.Message.ModuleId}. Error: {ex.Message}");
+            _logger.LogError(
+                ex,
+                "Error executing TriggerModuleJobActivity for module {ModuleId}",
+                context.Message.ModuleId);
         }
     }
 

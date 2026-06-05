@@ -18,6 +18,8 @@ public class ClaimTypeConstants
 
     public const string OrganizationClaimType = "organizations";
 
+    public const string AgentClaimType = "agent_id";
+
     public const string
         NameClaimType =
             "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";

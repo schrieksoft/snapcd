@@ -10,17 +10,29 @@ using SnapCd.Runner.Utils;
 
 namespace SnapCd.Runner.Settings;
 
+/// <summary>
+/// Filesystem locations the Runner uses for fetched Module source and ephemeral state. Both paths
+/// support leading ~ expansion to the host user's home directory.
+/// </summary>
 public class WorkingDirectorySettings
 {
     private string _workingDirectory = string.Empty;
     private string _tempDirectory = string.Empty;
 
+    /// <summary>
+    /// Root directory under which the Runner persists fetched Module source, engine state and
+    /// per-Job outputs. Must be writable by the Runner process. Typically ~/.snapcd/runner.
+    /// </summary>
     public string WorkingDirectory
     {
         get => _workingDirectory;
         set => _workingDirectory = PathUtils.ExpandTilde(value);
     }
 
+    /// <summary>
+    /// Directory for ephemeral per-Job scratch space. Cleaned between Jobs. Typically
+    /// ~/.snapcd/runner/.temp.
+    /// </summary>
     public string TempDirectory
     {
         get => _tempDirectory;

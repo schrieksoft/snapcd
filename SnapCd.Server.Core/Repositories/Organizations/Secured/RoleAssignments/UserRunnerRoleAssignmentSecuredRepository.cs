@@ -38,7 +38,7 @@ public class UserRunnerRoleAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class UserRunnerRoleAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class UserRunnerRoleAssignmentSecuredRepository : GenericRunnerChildSecuredRepository<
     UserRunnerRoleAssignment,
     UserRunnerRoleAssignmentReadDto,
     UserRunnerRoleAssignmentRepository,
@@ -56,22 +56,26 @@ public class UserRunnerRoleAssignmentSecuredRepository : GenericOrganizationChil
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public async Task<List<UserRunnerRoleAssignment>> ListByUser(Guid userId, Guid organizationId)

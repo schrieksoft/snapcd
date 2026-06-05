@@ -16,6 +16,7 @@ using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Logging;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services;
@@ -32,19 +33,22 @@ public class LogsController : ControllerBase
     private readonly IBus _bus;
     private readonly SnapCdDbContext _dbContext;
     private readonly ModuleJobSecuredRepository _moduleJobSecuredRepository;
+    private readonly ILogRedactor _logRedactor;
 
 
     public LogsController(
         LogService logService,
         IBus bus,
         SnapCdDbContext dbContext,
-        ModuleJobSecuredRepository moduleJobSecuredRepository
+        ModuleJobSecuredRepository moduleJobSecuredRepository,
+        ILogRedactor logRedactor
     )
     {
         _logService = logService;
         _bus = bus;
         _dbContext = dbContext;
         _moduleJobSecuredRepository = moduleJobSecuredRepository;
+        _logRedactor = logRedactor;
     }
 
     [HttpPost]
@@ -132,7 +136,16 @@ public class LogsController : ControllerBase
                 $"Principal does not have permission to read logs for ModuleJob '{correlationId}'"
             );
 
-        return await _logService.GetLogEntries(correlationId);
+        var entries = await _logService.GetLogEntries(correlationId);
+        // Redact each entry's Message before returning. Single chokepoint shared with
+        // the MCP redacted-logs Resource (Phase 6) — identical scrub policy regardless
+        // of caller surface.
+        foreach (var entry in entries)
+        {
+            if (!string.IsNullOrEmpty(entry.Message))
+                entry.Message = _logRedactor.Redact(entry.Message);
+        }
+        return entries;
     }
 
     [HttpGet("string/{correlationId}")]
@@ -151,7 +164,8 @@ public class LogsController : ControllerBase
                 $"Principal does not have permission to read logs for ModuleJob '{correlationId}'"
             );
 
-        return await _logService.GetLogString(correlationId);
+        var logString = await _logService.GetLogString(correlationId);
+        return _logRedactor.Redact(logString);
     }
 
 }

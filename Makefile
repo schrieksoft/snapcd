@@ -1,3 +1,12 @@
+install-hooks:
+	pre-commit install
+
+check-license-headers:
+	./scripts/check-license-header.sh
+
+apply-license-headers:
+	./scripts/check-license-header.sh --apply
+
 network-up:
 	-docker network create snapcd-localdev-network
 

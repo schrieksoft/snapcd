@@ -23,6 +23,11 @@ public static class CrudService
         services.AddScoped<ModuleService>();
         services.AddScoped<NamespaceService>();
         services.AddScoped<RunnerService>();
+        services.AddScoped<AgentService>();
+        services.AddScoped<OrganizationMissionService>();
+        services.AddScoped<StackMissionService>();
+        services.AddScoped<NamespaceMissionService>();
+        services.AddScoped<ModuleMissionService>();
         services.AddScoped<SourceRefresherPreselectionService>();
         services.AddScoped<ModuleInputFromDefinitionBaseService>();
         services.AddScoped<ModuleInputFromLiteralBaseService>();
@@ -61,9 +66,13 @@ public static class CrudService
         services.AddScoped<NamespaceRoleAssignmentService>();
         services.AddScoped<ModuleRoleAssignmentService>();
         services.AddScoped<RunnerRoleAssignmentService>();
+        services.AddScoped<AgentRoleAssignmentService>();
         services.AddScoped<RunnerStackAssignmentService>();
         services.AddScoped<RunnerNamespaceAssignmentService>();
         services.AddScoped<RunnerModuleAssignmentService>();
+        services.AddScoped<AgentStackAssignmentService>();
+        services.AddScoped<AgentNamespaceAssignmentService>();
+        services.AddScoped<AgentModuleAssignmentService>();
         services.AddScoped<SecretService>();
         services.AddScoped<StackSecretService>();
         services.AddScoped<NamespaceSecretService>();

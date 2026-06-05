@@ -9,16 +9,19 @@
 using System.ComponentModel.DataAnnotations;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
+using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Runner.Base;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base;
+using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
 using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
 using SnapCd.Server.Core.Entities.Interfaces;
 
 namespace SnapCd.Server.Core.Entities.Definition;
 
-public class Organization : AuditBase, ISystemEntity
+public class Organization : AuditBase, ISystemEntity, ICreationTrackable
 {
     public Guid Id { get; set; }
 
@@ -42,6 +45,11 @@ public class Organization : AuditBase, ISystemEntity
     public virtual ICollection<Module> Modules { get; set; } = new List<Module>();
 
     public virtual ICollection<Runner> Runners { get; set; } = new List<Runner>();
+    public virtual ICollection<Agent> Agents { get; set; } = new List<Agent>();
+    public virtual ICollection<OrganizationMission> OrganizationMissions { get; set; } = new List<OrganizationMission>();
+    public virtual ICollection<StackMission> StackMissions { get; set; } = new List<StackMission>();
+    public virtual ICollection<NamespaceMission> NamespaceMissions { get; set; } = new List<NamespaceMission>();
+    public virtual ICollection<ModuleMission> ModuleMissions { get; set; } = new List<ModuleMission>();
     public virtual ICollection<SourceRefresherPreselection> SourceRefresherPreselections { get; set; } = new List<SourceRefresherPreselection>();
     public virtual ICollection<Secret> Secrets { get; set; } = new List<Secret>();
 
@@ -52,6 +60,8 @@ public class Organization : AuditBase, ISystemEntity
 
     public virtual ICollection<ModuleJob> ModuleJobs { get; set; } = new List<ModuleJob>();
     public virtual ICollection<ModuleJobApproval> ModuleJobApprovals { get; set; } = new List<ModuleJobApproval>();
+    public virtual ICollection<ModuleJobMission> ModuleJobMissions { get; set; } = new List<ModuleJobMission>();
+    public virtual ICollection<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; } = new List<ModuleJobMissionRun>();
     public virtual ICollection<ModuleExtraFile> ModuleExtraFiles { get; set; } = new List<ModuleExtraFile>();
     public virtual ICollection<NamespaceExtraFile> NamespaceExtraFiles { get; set; } = new List<NamespaceExtraFile>();
 
@@ -81,10 +91,15 @@ public class Organization : AuditBase, ISystemEntity
     public virtual ICollection<GroupModuleRoleAssignment> GroupModuleRoleAssignments { get; set; } = new List<GroupModuleRoleAssignment>();
 
     public virtual ICollection<RunnerRoleAssignment> RunnerRoleAssignments { get; set; } = new List<RunnerRoleAssignment>();
+    public virtual ICollection<AgentRoleAssignment> AgentRoleAssignments { get; set; } = new List<AgentRoleAssignment>();
 
     public virtual ICollection<RunnerModuleAssignment> RunnerModuleAssignments { get; set; } = new List<RunnerModuleAssignment>();
     public virtual ICollection<RunnerNamespaceAssignment> RunnerNamespaceAssignments { get; set; } = new List<RunnerNamespaceAssignment>();
     public virtual ICollection<RunnerStackAssignment> RunnerStackAssignments { get; set; } = new List<RunnerStackAssignment>();
+
+    public virtual ICollection<AgentModuleAssignment> AgentModuleAssignments { get; set; } = new List<AgentModuleAssignment>();
+    public virtual ICollection<AgentNamespaceAssignment> AgentNamespaceAssignments { get; set; } = new List<AgentNamespaceAssignment>();
+    public virtual ICollection<AgentStackAssignment> AgentStackAssignments { get; set; } = new List<AgentStackAssignment>();
     public virtual ICollection<DependsOnModule> DependsOnModules { get; set; } = new List<DependsOnModule>();
 }
 

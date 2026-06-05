@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.Extensions.Logging.Abstractions;
 using SnapCd.Runner.Services;
 
 namespace SnapCd.Runner.Tests;
@@ -22,7 +23,7 @@ public class TerraformVariableDiscoveryServiceTests
 
     public TerraformVariableDiscoveryServiceTests()
     {
-        _service = new TerraformVariableDiscoveryService();
+        _service = new TerraformVariableDiscoveryService(NullLogger<TerraformVariableDiscoveryService>.Instance);
         _testDataBasePath = Path.Combine(AppContext.BaseDirectory, "TestData", "Terraform");
     }
 

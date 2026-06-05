@@ -12,6 +12,7 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.GroupMembers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.AgentAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
@@ -63,6 +64,9 @@ public static class Repositories
         services.AddScoped<RunnerStackAssignmentRepository>();
         services.AddScoped<RunnerNamespaceAssignmentRepository>();
         services.AddScoped<RunnerModuleAssignmentRepository>();
+        services.AddScoped<AgentStackAssignmentRepository>();
+        services.AddScoped<AgentNamespaceAssignmentRepository>();
+        services.AddScoped<AgentModuleAssignmentRepository>();
         services.AddScoped<StackSecretRepository>();
         services.AddScoped<NamespaceSecretRepository>();
         services.AddScoped<ModuleSecretRepository>();
@@ -115,6 +119,22 @@ public static class Repositories
         services.AddScoped<GroupNamespaceRoleAssignmentRepository>();
         services.AddScoped<GroupModuleRoleAssignmentRepository>();
         services.AddScoped<GroupRunnerRoleAssignmentRepository>();
+
+        // Agent + AgentConnection
+        services.AddScoped<AgentRepository>();
+        services.AddScoped<AgentConnectionRepository>();
+
+        // Mission family (4 scopes, raw)
+        services.AddScoped<OrganizationMissionRepository>();
+        services.AddScoped<StackMissionRepository>();
+        services.AddScoped<NamespaceMissionRepository>();
+        services.AddScoped<ModuleMissionRepository>();
+
+        // AgentRoleAssignment family (TPH base + 3 subclasses)
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.Base.AgentRoleAssignmentRepository>();
+        services.AddScoped<UserAgentRoleAssignmentRepository>();
+        services.AddScoped<ServicePrincipalAgentRoleAssignmentRepository>();
+        services.AddScoped<GroupAgentRoleAssignmentRepository>();
 
         return services;
     }

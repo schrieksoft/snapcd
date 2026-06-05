@@ -109,7 +109,10 @@ public class ServicePrincipalTokenServiceTests
         Assert.NotNull(capturedFormContent);
         Assert.Contains("grant_type=client_credentials", capturedFormContent);
         Assert.Contains("scope=snapcd_scope", capturedFormContent);
-        Assert.Contains($"client_id={TestClientId}", capturedFormContent);
+        // The service prefixes the client_id with the organization id ("{orgId}:{clientId}") so
+        // the multi-tenant auth server can route the request. The colon is URL-encoded in the form body.
+        var expectedClientId = Uri.EscapeDataString($"{TestOrganizationId}:{TestClientId}");
+        Assert.Contains($"client_id={expectedClientId}", capturedFormContent);
         Assert.Contains($"client_secret={TestClientSecret}", capturedFormContent);
     }
 
@@ -137,7 +140,9 @@ public class ServicePrincipalTokenServiceTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret));
 
-        Assert.Contains($"Unexpected status code: {statusCode}", exception.Message);
+        // Service formats as "Token request failed. Status: {code}, URL: ..., Response: ...".
+        // Match just on the status code substring so future message tweaks don't re-break this.
+        Assert.Contains($"Status: {statusCode}", exception.Message);
     }
 
     [Fact]

@@ -52,6 +52,7 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild
     [MaxLength(4000)] public string? OutputsRecreateList { get; set; }
 
     public List<ModuleJobApproval> ModuleJobApprovals { get; set; } = null!;
+    public List<ModuleJobMission> ModuleJobMissions { get; set; } = null!;
 
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;

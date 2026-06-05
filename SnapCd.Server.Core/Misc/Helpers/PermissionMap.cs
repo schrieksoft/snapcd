@@ -16,4 +16,6 @@ public class PermissionMap
     public List<StackRole> StackRoles { get; set; } = new();
     public List<NamespaceRole> NamespaceRoles { get; set; } = new();
     public List<ModuleRole> ModuleRoles { get; set; } = new();
+    public List<AgentRole> AgentRoles { get; set; } = new();
+    public List<RunnerRole> RunnerRoles { get; set; } = new();
 }

@@ -59,7 +59,7 @@ public class VariableSecuredRepository : GenericSecuredRepository<
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
         ModuleRoles = [ModuleRole.Owner, ModuleRole.Reader],
@@ -83,7 +83,7 @@ public class VariableSecuredRepository : GenericSecuredRepository<
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
         ModuleRoles = [ModuleRole.Owner],

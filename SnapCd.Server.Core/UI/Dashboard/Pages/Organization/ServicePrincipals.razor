@@ -71,7 +71,8 @@
         <MudExpansionPanels>
             @foreach (var servicePrincipal in _servicePrincipals)
             {
-                <MudExpansionPanel>
+                <MudExpansionPanel Expanded="@(servicePrincipal.Id == _expandedId)"
+                                   ExpandedChanged="@(e => HandleExpansionChanged(servicePrincipal.Id, e))">
                     <TitleContent>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <MudText>@servicePrincipal.ClientId</MudText>
@@ -150,12 +151,16 @@
 
     [Inject] private ServicePrincipalServiceFactory ServiceFactory { get; set; } = null!;
 
+    [SupplyParameterFromQuery] public string? Sp { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
     private List<ServicePrincipalReadDto>? _servicePrincipals;
     private bool _showCreate;
 
     private ServicePrincipalReadDto? _selectedServicePrincipal;
+    private Guid? _expandedId;
     private ShowingType _showing;
 
 
@@ -163,6 +168,69 @@
     {
         // Ensure organizationId is in URL, redirect if missing
         await ReloadServicePrincipals();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_servicePrincipals is null) return;
+        if (Guid.TryParse(Sp, out var id))
+        {
+            var match = _servicePrincipals.FirstOrDefault(p => p.Id == id);
+            if (match is not null)
+            {
+                _expandedId = id;
+                if (!string.IsNullOrEmpty(Action)
+                    && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsed)
+                    && parsed != ShowingType.None)
+                {
+                    _selectedServicePrincipal = match;
+                    _showing = parsed;
+                }
+            }
+        }
+    }
+
+    private void HandleExpansionChanged(Guid id, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedId = id;
+        }
+        else if (_expandedId == id)
+        {
+            _expandedId = null;
+            if (_selectedServicePrincipal?.Id == id)
+            {
+                _selectedServicePrincipal = null;
+                _showing = ShowingType.None;
+            }
+        }
+        UpdateUrl();
+    }
+
+    private void UpdateUrl()
+    {
+        var query = new Dictionary<string, object?>();
+        if (_expandedId is { } eid) query["sp"] = eid.ToString();
+        if (_selectedServicePrincipal is not null && _showing != ShowingType.None)
+            query["action"] = _showing.ToString().ToLowerInvariant();
+        var url = NavigationManager.GetUriWithQueryParameters("/ServicePrincipals", query);
+        NavigationManager.NavigateTo(url, forceLoad: false, replace: true);
+    }
+
+    private void Select(ServicePrincipalReadDto entity, ShowingType action)
+    {
+        _selectedServicePrincipal = entity;
+        _expandedId = entity.Id;
+        _showing = action;
+        UpdateUrl();
+    }
+
+    private void ClearSelection()
+    {
+        _selectedServicePrincipal = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
     }
 
     private enum ShowingType
@@ -193,11 +261,7 @@
         return false;
     }
 
-    private void HandleRoleAssignmentsClosed()
-    {
-        _selectedServicePrincipal = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleRoleAssignmentsClosed() => ClearSelection();
 
     private void ShowCreate()
     {
@@ -210,23 +274,11 @@
     }
 
 
-    private void ManageRoles(ServicePrincipalReadDto sp)
-    {
-        _selectedServicePrincipal = sp;
-        _showing = ShowingType.Roles;
-    }
+    private void ManageRoles(ServicePrincipalReadDto sp) => Select(sp, ShowingType.Roles);
 
-    private void Edit(ServicePrincipalReadDto sp)
-    {
-        _selectedServicePrincipal = sp;
-        _showing = ShowingType.Edit;
-    }
+    private void Edit(ServicePrincipalReadDto sp) => Select(sp, ShowingType.Edit);
 
-    private void HandleCancelEdit()
-    {
-        _selectedServicePrincipal = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleCancelEdit() => ClearSelection();
 
     private async Task HandleCreated(Guid newId)
     {
@@ -236,8 +288,7 @@
 
     private async Task HandleSaved(Guid updatedId)
     {
-        _selectedServicePrincipal = null;
-        _showing = ShowingType.None;
+        ClearSelection();
         await ReloadServicePrincipals();
     }
 

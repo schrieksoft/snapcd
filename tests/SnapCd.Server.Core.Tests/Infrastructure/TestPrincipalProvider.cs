@@ -16,12 +16,14 @@ public class TestPrincipalProvider : IPrincipalProvider
     private readonly Guid _principalId;
     private readonly PrincipalDiscriminator _discriminator;
     private readonly Guid _organizationId;
+    private readonly Guid? _agentId;
 
-    public TestPrincipalProvider(Guid principalId, PrincipalDiscriminator discriminator, Guid organizationId)
+    public TestPrincipalProvider(Guid principalId, PrincipalDiscriminator discriminator, Guid organizationId, Guid? agentId = null)
     {
         _principalId = principalId;
         _discriminator = discriminator;
         _organizationId = organizationId;
+        _agentId = agentId;
     }
 
     public Guid GetSystemSubject()
@@ -65,5 +67,10 @@ public class TestPrincipalProvider : IPrincipalProvider
     public PrincipalDiscriminator? GetPrincipalDiscriminatorOrDefault()
     {
         return _discriminator;
+    }
+
+    public Guid? GetAgentId()
+    {
+        return _agentId;
     }
 }

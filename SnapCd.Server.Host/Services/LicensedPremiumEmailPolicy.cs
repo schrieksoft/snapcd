@@ -8,6 +8,7 @@
 
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Host.Licensing.Services;
 using SnapCd.Server.Core.Settings.DataSeeder;
 
 namespace SnapCd.Server.Host.Services;

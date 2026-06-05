@@ -15,7 +15,6 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.Extensions.Options
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
@@ -23,7 +22,6 @@
 @using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.OrganizationContext
-@using SnapCd.Server.Core.Settings
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
 @attribute [Authorize]
@@ -83,12 +81,11 @@ else
 
 @code {
     [Inject] private PreviewFeatureAcceptanceSecuredRepositoryFactory RepoFactory { get; set; } = null!;
-    [Inject] private IOptions<PreviewFeatureSettings> PreviewFeatureSettingsOptions { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
 
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     private bool _loading = true;
-    private List<PreviewFeature> _activePreviews = [];
+    private List<PreviewFeature> _activePreviews = Enum.GetValues<PreviewFeature>().ToList();
     private HashSet<PreviewFeature> _acceptedFeatures = [];
 
     protected override async Task OnInitializedAsync()
@@ -99,13 +96,6 @@ else
     private async Task LoadData()
     {
         _loading = true;
-
-        // Parse active previews from settings
-        var settings = PreviewFeatureSettingsOptions.Value;
-        _activePreviews = settings.ActivePreviews
-            .Where(s => Enum.TryParse<PreviewFeature>(s, ignoreCase: true, out _))
-            .Select(s => Enum.Parse<PreviewFeature>(s, ignoreCase: true))
-            .ToList();
 
         // Load accepted features from DB (bypassing secured repo to avoid permission issues for read)
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();

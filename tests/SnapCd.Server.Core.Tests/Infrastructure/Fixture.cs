@@ -19,11 +19,13 @@ using SnapCd.Contracts;
 using Microsoft.Extensions.Caching.Memory;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Host.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
+using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
@@ -33,23 +35,6 @@ using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 using SnapCd.Server.Core.StateMachine;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.ModuleInput;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Modules.AdditionalSeeding;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.ModuleSecrets;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.NamespaceInputs;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Namespaces;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.NamespaceSecrets;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Outputs;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.OutputSets;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Runners;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Stacks;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.StackSecrets;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.UserModuleRoleAssignments;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.UserNamespaceRoleAssignments;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.UserOrganizationRoleAssignments;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.UserStackRoleAssignments;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.Variables;
-using SnapCd.Server.Core.Tests.Tests.Permissions.OrganizationOwner.VariableSets;
 using Testcontainers.MsSql;
 using Group = SnapCd.Server.Core.Entities.Definition.Group;
 using Module = SnapCd.Server.Core.Entities.Definition.Module;
@@ -131,6 +116,23 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, ModuleParamFromSecret> ModuleInputFromSecrets { get; } = new();
     public Dictionary<string, NamespaceParamFromSecret> NamespaceInputFromSecrets { get; } = new();
     public Dictionary<string, ModuleJob> ModuleJobs { get; } = new();
+    // Tier A (Smoke) — dedicated per-test-class Update/Delete entities. Keyed by
+    // "{TestClassName}_UpdateCan" or "{TestClassName}_DeleteCan". Each entity is mutated/deleted
+    // by exactly one test, so they're cheap to allocate one-per-test-class up front.
+    public Dictionary<string, Stack> SmokeStacks { get; } = new();
+    public Dictionary<string, Namespace> SmokeNamespaces { get; } = new();
+    public Dictionary<string, Module> SmokeModules { get; } = new();
+    public Dictionary<string, ModuleHook> SmokeModuleHooks { get; } = new();
+    public Dictionary<string, AgentModuleAssignment> SmokeAgentAssignments { get; } = new();
+    public Dictionary<string, RunnerModuleAssignment> SmokeRunnerAssignments { get; } = new();
+
+    public Dictionary<string, Agent> Agents { get; } = new();
+    public Dictionary<string, AgentModuleAssignment> AgentModuleAssignments { get; } = new();
+    public Dictionary<string, RunnerModuleAssignment> RunnerModuleAssignments { get; } = new();
+    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.OrganizationMission> OrganizationMissions { get; } = new();
+    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.StackMission> StackMissions { get; } = new();
+    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.NamespaceMission> NamespaceMissions { get; } = new();
+    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission> ModuleMissions { get; } = new();
     public Dictionary<string, UserOrganizationRoleAssignment> UserOrganizationRoleAssignments { get; } = new();
     public Dictionary<string, UserStackRoleAssignment> UserStackRoleAssignments { get; } = new();
     public Dictionary<string, UserNamespaceRoleAssignment> UserNamespaceRoleAssignments { get; } = new();
@@ -139,6 +141,12 @@ public class Fixture : IAsyncLifetime
     // Role-based principal lookups - [org-path][role] => principals
     public Dictionary<string, Dictionary<OrganizationRole, RolePrincipals>> OrganizationPrincipals { get; } = new();
     public Dictionary<string, Dictionary<RunnerRole, RolePrincipals>> RunnerPrincipals { get; } = new();
+
+    // Tier B (RoleResolution) — direct-User principals seeded per scope-role per scope row.
+    // Only "Reader" of each scope-role is seeded; Tier B asserts visibility, which the minimal
+    // sufficient role grants. Keyed by Tier B test naming convention:
+    //   "Stack00.Reader" / "Stack01.Reader" / "Namespace000.Reader" / "Module0000.Reader" / etc.
+    public Dictionary<string, SnapCd.Server.Core.Entities.Definition.User> ScopeReaderUsers { get; } = new();
 
     // Test-specific entities for Update/Delete operations (not shared, will be modified/deleted)
     public Dictionary<string, Stack> StackAdditionalTestEntities { get; } = new();
@@ -182,14 +190,21 @@ public class Fixture : IAsyncLifetime
 
         // Configure services
         var services = new ServiceCollection();
-        services.AddDbContext<SnapCdDbContext>(options =>
+        // Migrations target SelfHostedSnapCdDbContext (subclass of SnapCdDbContext) and live in
+        // SnapCd.Server.Host. Register the subclass so MigrateAsync() finds and applies them, then
+        // expose SnapCdDbContext as the same scoped instance so existing test code can resolve it.
+        services.AddDbContext<SelfHostedSnapCdDbContext>(options =>
         {
-            options.UseSqlServer(_connectionString, sqlServerOptions => { });
+            options.UseSqlServer(_connectionString, sqlServerOptions =>
+            {
+                sqlServerOptions.MigrationsAssembly("SnapCd.Server.Host");
+            });
             options.EnableSensitiveDataLogging();
             options.EnableDetailedErrors();
             options.ConfigureWarnings(w =>
                 w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
+        services.AddScoped<SnapCdDbContext>(sp => sp.GetRequiredService<SelfHostedSnapCdDbContext>());
 
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
 
@@ -198,9 +213,10 @@ public class Fixture : IAsyncLifetime
 
         _serviceProvider = services.BuildServiceProvider();
 
-        // Run migrations
+        // Run migrations against the SelfHosted subclass — that's the DbContext type the
+        // migrations are tied to (see *.Designer.cs files in SnapCd.Server.Host/Database/Migrations).
         using var scope = _serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SelfHostedSnapCdDbContext>();
         await dbContext.Database.MigrateAsync();
 
         // Apply database views after migrations
@@ -499,24 +515,18 @@ public class Fixture : IAsyncLifetime
         // Systematically create principals for Runner "0" roles
         await CreateRunnerRolePrincipals_Org0(dbContext);
 
-        // Seed test-specific entities for Update/Delete tests
-        OrganizationOwnerStackTestEntities.Seed(this, dbContext);
-        OrganizationOwnerNamespaceTestEntities.Seed(this, dbContext);
-        OrganizationOwnerRunnerTestEntities.Seed(this, dbContext);
-        OrganizationOwnerModuleTestEntities.Seed(this, dbContext);
-        OrganizationOwnerModuleInputTestEntities.Seed(this, dbContext);
-        OrganizationOwnerNamespaceInputTestEntities.Seed(this, dbContext);
-        OrganizationOwnerOutputTestEntities.Seed(this, dbContext);
-        OrganizationOwnerOutputSetTestEntities.Seed(this, dbContext);
-        OrganizationOwnerInputTestEntities.Seed(this, dbContext);
-        OrganizationOwnerVariableSetTestEntities.Seed(this, dbContext);
-        OrganizationOwnerStackSecretTestEntities.Seed(this, dbContext);
-        OrganizationOwnerNamespaceSecretTestEntities.Seed(this, dbContext);
-        OrganizationOwnerModuleSecretTestEntities.Seed(this, dbContext);
-        OrganizationOwnerUserOrganizationRoleAssignmentTestEntities.Seed(this, dbContext);
-        OrganizationOwnerUserStackRoleAssignmentTestEntities.Seed(this, dbContext);
-        OrganizationOwnerUserNamespaceRoleAssignmentTestEntities.Seed(this, dbContext);
-        OrganizationOwnerUserModuleRoleAssignmentTestEntities.Seed(this, dbContext);
+        // Tier B scope-role Reader principals — one direct-User per scope row.
+        CreateScopeReaderPrincipals_Org0(dbContext);
+
+        // Tier B Agent + RunnerModuleAssignment seed: Agent0 + Agent0Sibling in Org0, Agent1 in Org1,
+        // AgentModuleAssignment0 + AgentModuleAssignment0Sibling, plus RunnerModuleAssignment0Sibling
+        // so the runner-chain tests have a sibling row to test isolation against. Includes AgentReader
+        // and RunnerReaderSibling Users.
+        CreateAgentRunnerScopeEntities(dbContext);
+
+        // Tier A dedicated per-test-class Update/Delete entities — one positive Update + one Delete
+        // per smoke class. Each test mutates its own row; no cross-test contention.
+        CreateSmokeTestEntities(dbContext);
 
         // Seed orphaned job cleanup test data
         SeedOrphanedJobTestData(dbContext);
@@ -883,6 +893,362 @@ public class Fixture : IAsyncLifetime
         });
 
         return (nestedUser, nestedSp);
+    }
+
+    /// <summary>
+    /// Tier B (RoleResolution) seed — creates one direct-User per scope-role-Reader per scope row
+    /// in Org "0". Only Reader is seeded; Tier B tests visibility, which the minimal sufficient
+    /// role grants. The scope tree mirrors the binary-tree hierarchy:
+    ///   Stack00 / Stack01 (sibling) → Namespace000 / Namespace001 (sibling) → Module0000 / Module0001 (sibling).
+    /// </summary>
+    private void CreateScopeReaderPrincipals_Org0(SnapCdDbContext dbContext)
+    {
+        var org = Organizations["0"];
+
+        // StackReader on Stack00 + Stack01
+        SeedStackReader(dbContext, org.Id, Stacks["00"].Id, "Stack00.Reader");
+        SeedStackReader(dbContext, org.Id, Stacks["01"].Id, "Stack01.Reader");
+
+        // NamespaceReader on Namespace000 + Namespace001 (siblings under Stack00)
+        SeedNamespaceReader(dbContext, org.Id, Namespaces["000"].Id, "Namespace000.Reader");
+        SeedNamespaceReader(dbContext, org.Id, Namespaces["001"].Id, "Namespace001.Reader");
+
+        // ModuleReader on Module0000 + Module0001 (siblings under Namespace000)
+        SeedModuleReader(dbContext, org.Id, Modules["0000"].Id, "Module0000.Reader");
+        SeedModuleReader(dbContext, org.Id, Modules["0001"].Id, "Module0001.Reader");
+    }
+
+    private void SeedStackReader(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserStackRoleAssignments.Add(new UserStackRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            StackId = stackId,
+            UserId = user.Id,
+            RoleName = StackRole.Reader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedNamespaceReader(SnapCdDbContext dbContext, Guid orgId, Guid namespaceId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserNamespaceRoleAssignments.Add(new UserNamespaceRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            NamespaceId = namespaceId,
+            UserId = user.Id,
+            RoleName = NamespaceRole.Reader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedModuleReader(SnapCdDbContext dbContext, Guid orgId, Guid moduleId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserModuleRoleAssignments.Add(new UserModuleRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            ModuleId = moduleId,
+            UserId = user.Id,
+            RoleName = ModuleRole.Reader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    /// <summary>
+    /// Tier B (RoleResolution) seed for Agent / Runner chains. Creates:
+    ///   Org0 — Agent0 + Agent0Sibling + their AgentModuleAssignments + RunnerModuleAssignment0Sibling
+    ///         (on Module0001 via Runner0).
+    ///   Org1 — Agent1 (for cross-org sweep tests).
+    ///   AgentRole.Reader and Sibling Users on each Agent and Runner so the visibility-by-scope tests
+    ///   have all the principals they need.
+    /// Keyed entries:
+    ///   Agents["0"], Agents["0Sibling"], Agents["1"]
+    ///   AgentModuleAssignments["0"] (Agent0 → Module0000), AgentModuleAssignments["0Sibling"] (Agent0Sibling → Module0001)
+    ///   RunnerModuleAssignments["0Sibling"] (Runner0 → Module0001)
+    ///   ScopeReaderUsers["Agent0.Reader"], ["Agent0Sibling.Reader"], ["Runner0Sibling.Reader"]
+    /// </summary>
+    private void CreateAgentRunnerScopeEntities(SnapCdDbContext dbContext)
+    {
+        var org0 = Organizations["0"];
+        var org1 = Organizations["1"];
+
+        // ---- Agent0 + ServicePrincipal ----
+        var agent0Sp = CreateServicePrincipal("agent0-sp", org0.Id);
+        dbContext.ServicePrincipals.Add(agent0Sp);
+        Agents["0"] = new Agent
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            ServicePrincipalId = agent0Sp.Id,
+            Name = "Agent0",
+            IsDisabled = false,
+            AllowMultipleInstances = false,
+            IsAssignedToAllModules = false,
+        };
+        dbContext.Agents.Add(Agents["0"]);
+
+        // ---- Agent0Sibling ----
+        var agent0SiblingSp = CreateServicePrincipal("agent0sibling-sp", org0.Id);
+        dbContext.ServicePrincipals.Add(agent0SiblingSp);
+        Agents["0Sibling"] = new Agent
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            ServicePrincipalId = agent0SiblingSp.Id,
+            Name = "Agent0Sibling",
+            IsDisabled = false,
+            AllowMultipleInstances = false,
+            IsAssignedToAllModules = false,
+        };
+        dbContext.Agents.Add(Agents["0Sibling"]);
+
+        // ---- Agent1 (cross-org) ----
+        var agent1Sp = CreateServicePrincipal("agent1-sp", org1.Id);
+        dbContext.ServicePrincipals.Add(agent1Sp);
+        Agents["1"] = new Agent
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org1.Id,
+            ServicePrincipalId = agent1Sp.Id,
+            Name = "Agent1",
+            IsDisabled = false,
+            AllowMultipleInstances = false,
+            IsAssignedToAllModules = false,
+        };
+        dbContext.Agents.Add(Agents["1"]);
+
+        // ---- AgentModuleAssignment0 (Agent0 → Module0000) ----
+        AgentModuleAssignments["0"] = new AgentModuleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0"].Id,
+            ModuleId = Modules["0000"].Id,
+        };
+        dbContext.AgentModuleAssignments.Add(AgentModuleAssignments["0"]);
+
+        // ---- AgentModuleAssignment0Sibling (Agent0Sibling → Module0001) ----
+        AgentModuleAssignments["0Sibling"] = new AgentModuleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0Sibling"].Id,
+            ModuleId = Modules["0001"].Id,
+        };
+        dbContext.AgentModuleAssignments.Add(AgentModuleAssignments["0Sibling"]);
+
+        // ---- Runner0Sibling + assignment + Reader principal ----
+        // The base seed at CreateRunnerRolePrincipals_Org0 creates Runner0 + assignment to Module0000.
+        // Add a sibling runner with its own assignment so RunnerChain tests can verify isolation
+        // (Runner0.Reader sees Runner0's assignment but not Runner0Sibling's).
+        var runner0SiblingSp = CreateServicePrincipal("runner0sibling-sp", org0.Id);
+        dbContext.ServicePrincipals.Add(runner0SiblingSp);
+        var runner0Sibling = CreateRunner("Runner0Sibling", org0.Id, runner0SiblingSp.Id);
+        Runners["0Sibling"] = runner0Sibling;
+        dbContext.Runners.Add(runner0Sibling);
+
+        RunnerModuleAssignments["0Sibling"] = new RunnerModuleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            RunnerId = runner0Sibling.Id,
+            ModuleId = Modules["0001"].Id,
+        };
+        dbContext.RunnerModuleAssignments.Add(RunnerModuleAssignments["0Sibling"]);
+
+        SeedRunnerReader(dbContext, org0.Id, runner0Sibling.Id, "Runner0Sibling.Reader");
+
+        // ---- AgentReader on Agent0 ----
+        SeedAgentReader(dbContext, org0.Id, Agents["0"].Id, "Agent0.Reader");
+        // ---- AgentReaderSibling on Agent0Sibling ----
+        SeedAgentReader(dbContext, org0.Id, Agents["0Sibling"].Id, "Agent0Sibling.Reader");
+
+        // ---- Missions at each scope, owned by Agent0 ----
+        // Used by MissionCrossScope_RoleResolutionTests to verify both scope-side and agent-side
+        // visibility on the bespoke ReadQuery overrides.
+        OrganizationMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.OrganizationMission
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0"].Id,
+            MissionType = MissionType.AutoDiagnose,
+            IsDisabled = false,
+        };
+        dbContext.OrganizationMissions.Add(OrganizationMissions["0"]);
+
+        StackMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.StackMission
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0"].Id,
+            StackId = Stacks["00"].Id,
+            MissionType = MissionType.AutoDiagnose,
+            IsDisabled = false,
+        };
+        dbContext.StackMissions.Add(StackMissions["0"]);
+
+        NamespaceMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.NamespaceMission
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0"].Id,
+            NamespaceId = Namespaces["000"].Id,
+            MissionType = MissionType.AutoDiagnose,
+            IsDisabled = false,
+        };
+        dbContext.NamespaceMissions.Add(NamespaceMissions["0"]);
+
+        ModuleMissions["0"] = new SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0"].Id,
+            ModuleId = Modules["0000"].Id,
+            MissionType = MissionType.AutoDiagnose,
+            IsDisabled = false,
+        };
+        dbContext.ModuleMissions.Add(ModuleMissions["0"]);
+
+        // Sibling mission rows owned by Agent0Sibling — for cross-agent isolation assertions.
+        ModuleMissions["0Sibling"] = new SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0Sibling"].Id,
+            ModuleId = Modules["0001"].Id,
+            MissionType = MissionType.AutoDiagnose,
+            IsDisabled = false,
+        };
+        dbContext.ModuleMissions.Add(ModuleMissions["0Sibling"]);
+    }
+
+    private void SeedAgentReader(SnapCdDbContext dbContext, Guid orgId, Guid agentId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserAgentRoleAssignments.Add(new UserAgentRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            AgentId = agentId,
+            UserId = user.Id,
+            RoleName = AgentRole.Reader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedRunnerReader(SnapCdDbContext dbContext, Guid orgId, Guid runnerId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserRunnerRoleAssignments.Add(new UserRunnerRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            RunnerId = runnerId,
+            UserId = user.Id,
+            RoleName = RunnerRole.Reader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void CreateSmokeTestEntities(SnapCdDbContext dbContext)
+    {
+        var org0 = Organizations["0"];
+
+        // Stack_SmokeTests: dedicated Update + Delete Stack rows in Org0.
+        SmokeStacks["Stack_SmokeTests_UpdateCan"] = CreateTestStack("Stack_SmokeTests_UpdateCan", org0.Id, dbContext);
+        SmokeStacks["Stack_SmokeTests_DeleteCan"] = CreateTestStack("Stack_SmokeTests_DeleteCan", org0.Id, dbContext);
+
+        // Namespace_SmokeTests: dedicated under Stack00.
+        SmokeNamespaces["Namespace_SmokeTests_UpdateCan"] = CreateTestNamespace("Namespace_SmokeTests_UpdateCan", "00", dbContext);
+        SmokeNamespaces["Namespace_SmokeTests_DeleteCan"] = CreateTestNamespace("Namespace_SmokeTests_DeleteCan", "00", dbContext);
+
+        // Module_SmokeTests: dedicated under Namespace000, using Runner0.
+        var updateModule = CreateModule("Module_SmokeTests_UpdateCan", Namespaces["000"].Id, Runners["0"].Id, org0.Id);
+        var deleteModule = CreateModule("Module_SmokeTests_DeleteCan", Namespaces["000"].Id, Runners["0"].Id, org0.Id);
+        dbContext.Modules.Add(updateModule);
+        dbContext.Modules.Add(deleteModule);
+        SmokeModules["Module_SmokeTests_UpdateCan"] = updateModule;
+        SmokeModules["Module_SmokeTests_DeleteCan"] = deleteModule;
+
+        // ModuleHook_SmokeTests: dedicated under Module0000. There's a unique index on
+        // (ModuleId, Task, Phase), so vary Phase between the two seeded rows.
+        SmokeModuleHooks["ModuleHook_SmokeTests_UpdateCan"] =
+            CreateAndAddModuleHook(dbContext, org0.Id, Modules["0000"].Id, HookTask.Apply, HookPhase.Before, "Update");
+        SmokeModuleHooks["ModuleHook_SmokeTests_DeleteCan"] =
+            CreateAndAddModuleHook(dbContext, org0.Id, Modules["0000"].Id, HookTask.Apply, HookPhase.After, "Delete");
+
+        // AgentModuleAssignment_SmokeTests: dedicated under Agent0Sibling.
+        // Use Modules 0002 + 0003 (created by the orphaned-job seed elsewhere) to avoid
+        // duplicate-assignment conflicts with the Tier B seed.
+        var agentUpdate = new AgentModuleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0Sibling"].Id,
+            ModuleId = Modules["0002"].Id,
+        };
+        var agentDelete = new AgentModuleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            AgentId = Agents["0Sibling"].Id,
+            ModuleId = Modules["0003"].Id,
+        };
+        dbContext.AgentModuleAssignments.Add(agentUpdate);
+        dbContext.AgentModuleAssignments.Add(agentDelete);
+        SmokeAgentAssignments["AgentModuleAssignment_SmokeTests_UpdateCan"] = agentUpdate;
+        SmokeAgentAssignments["AgentModuleAssignment_SmokeTests_DeleteCan"] = agentDelete;
+
+        // RunnerModuleAssignment_SmokeTests: dedicated under Runner0Sibling.
+        var runnerUpdate = new RunnerModuleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            RunnerId = Runners["0Sibling"].Id,
+            ModuleId = Modules["0002"].Id,
+        };
+        var runnerDelete = new RunnerModuleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            RunnerId = Runners["0Sibling"].Id,
+            ModuleId = Modules["0003"].Id,
+        };
+        dbContext.RunnerModuleAssignments.Add(runnerUpdate);
+        dbContext.RunnerModuleAssignments.Add(runnerDelete);
+        SmokeRunnerAssignments["RunnerModuleAssignment_SmokeTests_UpdateCan"] = runnerUpdate;
+        SmokeRunnerAssignments["RunnerModuleAssignment_SmokeTests_DeleteCan"] = runnerDelete;
+    }
+
+    private static ModuleHook CreateAndAddModuleHook(SnapCdDbContext dbContext, Guid orgId, Guid moduleId, HookTask task, HookPhase phase, string nameSuffix)
+    {
+        var hook = new ModuleHook
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            ModuleId = moduleId,
+            Task = task,
+            Phase = phase,
+            Script = $"echo 'hook-{nameSuffix}'",
+        };
+        dbContext.ModuleHooks.Add(hook);
+        return hook;
     }
 
     #region Helper Methods
@@ -1495,14 +1861,8 @@ public class Fixture : IAsyncLifetime
 
     public QuotaService CreateMockQuotaService()
     {
-        var mockDbContextFactory = new Mock<IDbContextFactory<SnapCdDbContext>>();
-        var mockMemoryCache = new MemoryCache(new MemoryCacheOptions());
-        var mockLogger = new Mock<ILogger<LicenseService>>();
-        var mockSaaSLicenseClient = new Mock<ISaaSLicenseClient>();
-        var mockPublicKeyService = new Mock<ILicensePublicKeyService>();
-        var debuggingOptions = Options.Create(new DebuggingOptions());
-        var licenseService = new LicenseService(mockDbContextFactory.Object, mockMemoryCache, mockSaaSLicenseClient.Object, mockPublicKeyService.Object, debuggingOptions, mockLogger.Object);
-        var quotaGatingService = new QuotaGatingService(licenseService);
+        var mockLicenseInfoProvider = new Mock<ILicenseInfoProvider>();
+        var quotaGatingService = new QuotaGatingService(mockLicenseInfoProvider.Object);
         return new QuotaService(quotaGatingService);
     }
 

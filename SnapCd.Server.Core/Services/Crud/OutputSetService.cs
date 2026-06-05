@@ -221,9 +221,11 @@ public class
             OrganizationId = organizationId,
             CreatedBy = outputSet.CreatedBy,
             CreatedByPrincipalDiscriminator = outputSet.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = outputSet.CreatedByAgentId,
             CreatedDateTime = outputSet.CreatedDateTime,
             ModifiedBy = outputSet.ModifiedBy,
             ModifiedByPrincipalDiscriminator = outputSet.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = outputSet.ModifiedByAgentId,
             ModifiedDateTime = outputSet.ModifiedDateTime
         };
 

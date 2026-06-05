@@ -39,6 +39,7 @@ public class OrganizationUser : AuditBase, IEntity, IOrganizationChild
     [JsonIgnore] public virtual ICollection<UserNamespaceRoleAssignment> UserNamespaceRoleAssignments { get; set; } = new List<UserNamespaceRoleAssignment>();
     [JsonIgnore] public virtual ICollection<UserModuleRoleAssignment> UserModuleRoleAssignments { get; set; } = new List<UserModuleRoleAssignment>();
     [JsonIgnore] public virtual ICollection<UserRunnerRoleAssignment> UserRunnerRoleAssignments { get; set; } = new List<UserRunnerRoleAssignment>();
+    [JsonIgnore] public virtual ICollection<UserAgentRoleAssignment> UserAgentRoleAssignments { get; set; } = new List<UserAgentRoleAssignment>();
 
     // Group organizationUser navigation property
     [JsonIgnore] public virtual ICollection<UserGroupMember> UserGroupMembers { get; set; } = new List<UserGroupMember>();

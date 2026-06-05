@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -54,6 +55,26 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
         : base(repository, principalProvider)
     {
     }
+
+    public override PermissionMap ReadPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.RunnerContributor, OrganizationRole.RunnerReader]
+    };
+
+    public override PermissionMap UpdatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.RunnerContributor]
+    };
+
+    public override PermissionMap CreatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.RunnerContributor, OrganizationRole.RunnerCreator]
+    };
+
+    public override PermissionMap DeletePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.RunnerContributor]
+    };
 
     public async Task<Runner> GetByName(string name, Guid organizationId)
     {

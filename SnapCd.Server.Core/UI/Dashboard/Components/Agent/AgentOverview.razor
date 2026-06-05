@@ -1,0 +1,370 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.AgentAssignments
+@using SnapCd.Server.Core.Entities.Definition.Missions
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentAssignments
+@using SnapCd.Server.Core.Services.Ai.Missions
+
+@inject ISnackbar Snackbar
+@inject AgentSupplyResolver AgentSupply
+
+<MudPaper Elevation="1" Class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Small"/>
+        <MudText Typo="Typo.body2" Class="ml-2 d-inline">Loading overview…</MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.h6" GutterBottom="true">Supply &mdash; where this Agent can be invoked</MudText>
+
+        @if (_agent?.IsAssignedToAllModules == true)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3" Icon="@Icons.Material.Filled.AllInclusive">
+                <strong>Assigned to all modules in this organization.</strong>
+                Every <code>{Scope}Mission</code> referencing this Agent will be supplied at dispatch regardless of per-scope assignment rows.
+            </MudAlert>
+        }
+        else
+        {
+            <div class="mb-2">
+                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Layers">
+                    Stacks: @_stackAssignments.Count
+                </MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.FolderOpen">
+                    Namespaces: @_namespaceAssignments.Count
+                </MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Inventory2">
+                    Modules: @_moduleAssignments.Count
+                </MudChip>
+            </div>
+
+            @if (_stackAssignments.Count + _namespaceAssignments.Count + _moduleAssignments.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3" Dense="true">
+                    No assignments configured. Until the Agent owner adds an assignment (or sets <code>IsAssignedToAllModules</code>),
+                    every mission referencing this Agent will park as <code>BlockedAgentNotAssigned</code> on the next dispatch.
+                </MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Class="mb-3" Style="max-width: 720px;">
+                    <thead>
+                        <tr>
+                            <th>Scope</th>
+                            <th>Target</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in _stackAssignments)
+                        {
+                            <tr>
+                                <td>Stack</td>
+                                <td>@LookupStackName(a.StackId)</td>
+                            </tr>
+                        }
+                        @foreach (var a in _namespaceAssignments)
+                        {
+                            <tr>
+                                <td>Namespace</td>
+                                <td>@LookupNamespaceName(a.NamespaceId)</td>
+                            </tr>
+                        }
+                        @foreach (var a in _moduleAssignments)
+                        {
+                            <tr>
+                                <td>Module</td>
+                                <td>@LookupModuleName(a.ModuleId)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+
+        <MudDivider Class="my-4"/>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">Demand &mdash; missions referencing this Agent</MudText>
+
+        @if (_rows.Count == 0)
+        {
+            <MudText Typo="Typo.body2">No missions reference this Agent.</MudText>
+        }
+        else
+        {
+            var blockedCount = _rows.Count(r => !r.Supplied);
+            if (blockedCount > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3" Dense="true">
+                    <strong>@blockedCount of @_rows.Count missions</strong> are not currently supplied to their target scope.
+                    Each will park <code>BlockedAgentNotAssigned</code> on dispatch until the Agent owner resolves the supply gap.
+                </MudAlert>
+            }
+
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Scope</th>
+                        <th>Target</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _rows.OrderBy(r => r.Supplied).ThenBy(r => r.Scope).ThenBy(r => r.ScopeTargetLabel).ThenBy(r => r.MissionType))
+                    {
+                        <tr style="@(row.Supplied ? "" : "background-color: rgba(255, 152, 0, 0.08);")">
+                            <td>
+                                @if (row.Supplied)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/>
+                                }
+                                else
+                                {
+                                    <MudTooltip Text="@row.ResolutionHint">
+                                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                                    </MudTooltip>
+                                }
+                            </td>
+                            <td>@row.Scope</td>
+                            <td>@row.ScopeTargetLabel</td>
+                            <td>@row.MissionType</td>
+                            <td>
+                                @if (row.IsDisabled)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">disabled</MudChip>
+                                }
+                                else if (!row.Supplied)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning">Blocked: no supply</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">ready</MudChip>
+                                }
+                            </td>
+                        </tr>
+                        @if (!row.Supplied && !string.IsNullOrEmpty(row.ResolutionHint))
+                        {
+                            <tr style="background-color: rgba(255, 152, 0, 0.04);">
+                                <td></td>
+                                <td colspan="4">
+                                    <MudText Typo="Typo.caption" Style="white-space: pre-wrap;">@row.ResolutionHint</MudText>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+
+    <div class="d-flex justify-end mt-3">
+        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="Close">Close</MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter] public required Guid AgentId { get; set; }
+    [Parameter] public required EventCallback OnClose { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
+    [Inject] private AgentStackAssignmentSecuredRepositoryFactory StackAssignRepoFactory { get; set; } = null!;
+    [Inject] private AgentNamespaceAssignmentSecuredRepositoryFactory NsAssignRepoFactory { get; set; } = null!;
+    [Inject] private AgentModuleAssignmentSecuredRepositoryFactory ModAssignRepoFactory { get; set; } = null!;
+    [Inject] private OrganizationMissionSecuredRepositoryFactory OrgMissionRepoFactory { get; set; } = null!;
+    [Inject] private StackMissionSecuredRepositoryFactory StackMissionRepoFactory { get; set; } = null!;
+    [Inject] private NamespaceMissionSecuredRepositoryFactory NsMissionRepoFactory { get; set; } = null!;
+    [Inject] private ModuleMissionSecuredRepositoryFactory ModMissionRepoFactory { get; set; } = null!;
+    [Inject] private StackSecuredRepositoryFactory StackRepoFactory { get; set; } = null!;
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    private bool _loading = true;
+    private Agent? _agent;
+    private List<AgentStackAssignment> _stackAssignments = new();
+    private List<AgentNamespaceAssignment> _namespaceAssignments = new();
+    private List<AgentModuleAssignment> _moduleAssignments = new();
+    private List<Stack> _stacks = new();
+    private List<Namespace> _namespaces = new();
+    private List<Module> _modules = new();
+    private List<MissionRow> _rows = new();
+
+    private sealed class MissionRow
+    {
+        public Guid Id { get; set; }
+        public string Scope { get; set; } = string.Empty;
+        public string ScopeTargetLabel { get; set; } = string.Empty;
+        public MissionType MissionType { get; set; }
+        public bool IsDisabled { get; set; }
+        public bool Supplied { get; set; }
+        public string ResolutionHint { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            using (var agentRepo = AgentRepoFactory.Create())
+                _agent = await agentRepo.Get(AgentId, OrganizationId);
+
+            using (var sRepo = StackRepoFactory.Create())
+                _stacks = await sRepo.List(OrganizationId);
+            using (var nRepo = NamespaceRepoFactory.Create())
+                _namespaces = await nRepo.List(OrganizationId);
+            using (var mRepo = ModuleRepoFactory.Create())
+                _modules = await mRepo.List(OrganizationId);
+
+            using (var r = StackAssignRepoFactory.Create())
+                _stackAssignments = await r.ListByAgent(AgentId, OrganizationId);
+            using (var r = NsAssignRepoFactory.Create())
+                _namespaceAssignments = await r.ListByAgent(AgentId, OrganizationId);
+            using (var r = ModAssignRepoFactory.Create())
+                _moduleAssignments = await r.ListByAgent(AgentId, OrganizationId);
+
+            await ReloadMissionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load Agent overview: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadMissionsAsync()
+    {
+        var rows = new List<MissionRow>();
+
+        using (var repo = OrgMissionRepoFactory.Create())
+        {
+            foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
+            {
+                var supplied = await AgentSupply.IsAgentSuppliedOrgWide(AgentId, OrganizationId);
+                rows.Add(new MissionRow
+                {
+                    Id = m.Id,
+                    Scope = "Organization",
+                    ScopeTargetLabel = "(organization-wide)",
+                    MissionType = m.MissionType,
+                    IsDisabled = m.IsDisabled,
+                    Supplied = supplied,
+                    ResolutionHint = supplied ? string.Empty : OrgResolutionHint()
+                });
+            }
+        }
+
+        using (var repo = StackMissionRepoFactory.Create())
+        {
+            foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
+            {
+                var supplied = await AgentSupply.IsAgentSuppliedToStack(AgentId, m.StackId, OrganizationId);
+                rows.Add(new MissionRow
+                {
+                    Id = m.Id,
+                    Scope = "Stack",
+                    ScopeTargetLabel = LookupStackName(m.StackId),
+                    MissionType = m.MissionType,
+                    IsDisabled = m.IsDisabled,
+                    Supplied = supplied,
+                    ResolutionHint = supplied ? string.Empty : StackResolutionHint(m.StackId)
+                });
+            }
+        }
+
+        using (var repo = NsMissionRepoFactory.Create())
+        {
+            foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
+            {
+                var supplied = await AgentSupply.IsAgentSuppliedToNamespace(AgentId, m.NamespaceId, OrganizationId);
+                rows.Add(new MissionRow
+                {
+                    Id = m.Id,
+                    Scope = "Namespace",
+                    ScopeTargetLabel = LookupNamespaceName(m.NamespaceId),
+                    MissionType = m.MissionType,
+                    IsDisabled = m.IsDisabled,
+                    Supplied = supplied,
+                    ResolutionHint = supplied ? string.Empty : NamespaceResolutionHint(m.NamespaceId)
+                });
+            }
+        }
+
+        using (var repo = ModMissionRepoFactory.Create())
+        {
+            foreach (var m in await repo.ListByAgent(AgentId, OrganizationId))
+            {
+                var supplied = await AgentSupply.IsAgentSuppliedToModule(AgentId, m.ModuleId, OrganizationId);
+                rows.Add(new MissionRow
+                {
+                    Id = m.Id,
+                    Scope = "Module",
+                    ScopeTargetLabel = LookupModuleName(m.ModuleId),
+                    MissionType = m.MissionType,
+                    IsDisabled = m.IsDisabled,
+                    Supplied = supplied,
+                    ResolutionHint = supplied ? string.Empty : ModuleResolutionHint(m.ModuleId)
+                });
+            }
+        }
+
+        _rows = rows;
+    }
+
+    private string LookupStackName(Guid id) =>
+        _stacks.FirstOrDefault(s => s.Id == id)?.Name ?? id.ToString();
+    private string LookupNamespaceName(Guid id) =>
+        _namespaces.FirstOrDefault(n => n.Id == id)?.Name ?? id.ToString();
+    private string LookupModuleName(Guid id) =>
+        _modules.FirstOrDefault(m => m.Id == id)?.Name ?? id.ToString();
+
+    private static string OrgResolutionHint() =>
+        "Resolve by setting IsAssignedToAllModules=true on this Agent. " +
+        "Org-wide missions require org-wide supply; per-scope assignments don't cover them.";
+
+    private string StackResolutionHint(Guid stackId)
+    {
+        var stack = LookupStackName(stackId);
+        return $"Resolve by adding an AgentStackAssignment for stack '{stack}', " +
+               $"or by setting IsAssignedToAllModules on this Agent.";
+    }
+
+    private string NamespaceResolutionHint(Guid nsId)
+    {
+        var ns = _namespaces.FirstOrDefault(n => n.Id == nsId);
+        var nsName = ns?.Name ?? nsId.ToString();
+        var stackName = ns is null ? "?" : LookupStackName(ns.StackId);
+        return $"Resolve by adding an AgentNamespaceAssignment for namespace '{nsName}', " +
+               $"or an AgentStackAssignment for its parent stack '{stackName}', " +
+               $"or by setting IsAssignedToAllModules on this Agent.";
+    }
+
+    private string ModuleResolutionHint(Guid moduleId)
+    {
+        var module = _modules.FirstOrDefault(m => m.Id == moduleId);
+        var moduleName = module?.Name ?? moduleId.ToString();
+        var ns = module is null ? null : _namespaces.FirstOrDefault(n => n.Id == module.NamespaceId);
+        var nsName = ns?.Name ?? "?";
+        var stackName = ns is null ? "?" : LookupStackName(ns.StackId);
+        return $"Resolve by adding an AgentModuleAssignment for module '{moduleName}', " +
+               $"or an AgentNamespaceAssignment for namespace '{nsName}', " +
+               $"or an AgentStackAssignment for stack '{stackName}', " +
+               $"or by setting IsAssignedToAllModules on this Agent.";
+    }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+}

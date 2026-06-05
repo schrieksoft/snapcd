@@ -30,7 +30,10 @@ public class RunnerHubConnection : IAsyncDisposable
     private readonly ServerSettings _serverSettings;
     private readonly IMemoryCache _memoryCache;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly Tasks.Tasks _tasks;
+    // Lazy because the DI graph has a cycle: Tasks -> IJobLogStream -> RunnerHubConnection -> Tasks.
+    // Tasks is only dereferenced inside the .On<>() handlers registered in StartAsync, by which
+    // time the graph is fully built — so deferring resolution to first access is safe.
+    private readonly Lazy<Tasks.Tasks> _tasks;
 
     private HubConnection? _connection;
     private bool _isDisposing;
@@ -49,7 +52,7 @@ public class RunnerHubConnection : IAsyncDisposable
         ILoggerFactory loggerFactory,
         IMemoryCache memoryCache,
         ProcessRegistry processRegistry,
-        Tasks.Tasks tasks)
+        Lazy<Tasks.Tasks> tasks)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
@@ -121,12 +124,15 @@ public class RunnerHubConnection : IAsyncDisposable
 
         _connection.Closed += async error =>
         {
-            Console.WriteLine("closed");
             if (!_isDisposing)
             {
                 var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
                 logger.LogError(error, "SignalR connection closed unexpectedly");
                 // Connection will auto-reconnect via WithAutomaticReconnect
+            }
+            else
+            {
+                _logger.LogDebug("SignalR connection closed (disposing)");
             }
 
             await Task.CompletedTask;
@@ -135,7 +141,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for GetDefinitiveRevision
         _connection.On<GetDefinitiveRevisionRequest>(RunnerEndpoints.GetDefinitiveRevision, (request) =>
             {
-                Task.Run(async () => { await _tasks.GetDefinitiveRevision(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.GetDefinitiveRevision(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -143,7 +149,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for GetModule
         _connection.On<GetModuleRequestBase>(RunnerEndpoints.GetModule, (request) =>
             {
-                Task.Run(async () => { await _tasks.GetModule(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.GetModule(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -151,7 +157,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for Init
         _connection.On<InitRequestBase>(RunnerEndpoints.Init, (request) =>
             {
-                Task.Run(async () => { await _tasks.Init(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Init(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -159,7 +165,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for Validate
         _connection.On<ValidateRequestBase>(RunnerEndpoints.Validate, (request) =>
             {
-                Task.Run(async () => { await _tasks.Validate(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Validate(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -167,7 +173,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for Input
         _connection.On<VariablesRequestBase>(RunnerEndpoints.Variables, (request) =>
             {
-                Task.Run(async () => { await _tasks.Variables(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Variables(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -175,7 +181,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for Plan
         _connection.On<PlanRequestBase>(RunnerEndpoints.Plan, (request) =>
             {
-                Task.Run(async () => { await _tasks.Plan(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Plan(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -183,7 +189,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for PlanDestroy
         _connection.On<PlanDestroyRequestBase>(RunnerEndpoints.PlanDestroy, (request) =>
             {
-                Task.Run(async () => { await _tasks.PlanDestroy(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.PlanDestroy(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -191,7 +197,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for ApplyFromPlan
         _connection.On<ApplyFromPlanRequestBase>(RunnerEndpoints.ApplyFromPlan, (request) =>
             {
-                Task.Run(async () => { await _tasks.ApplyFromPlan(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.ApplyFromPlan(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -199,7 +205,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for DestroyFromPlan
         _connection.On<DestroyFromPlanRequestBase>(RunnerEndpoints.DestroyFromPlan, (request) =>
             {
-                Task.Run(async () => { await _tasks.DestroyFromPlan(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.DestroyFromPlan(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -207,7 +213,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for Output
         _connection.On<OutputRequestBase>(RunnerEndpoints.Output, (request) =>
             {
-                Task.Run(async () => { await _tasks.Output(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Output(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -215,7 +221,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for SourceRefresh (stateless operation)
         _connection.On<SourceRefreshRequest>(RunnerEndpoints.SourceRefresh, (request) =>
             {
-                Task.Run(async () => { await _tasks.SourceRefresh(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SourceRefresh(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -223,7 +229,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for CancelKill
         _connection.On<CancelKillRequest>(RunnerEndpoints.CancelKill, (request) =>
             {
-                Task.Run(async () => { await _tasks.CancelKill(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.CancelKill(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -231,7 +237,7 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for CancelGraceful
         _connection.On<CancelGracefulRequest>(RunnerEndpoints.CancelGraceful, (request) =>
             {
-                Task.Run(async () => { await _tasks.CancelGraceful(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.CancelGraceful(request, _connection); });
                 return Task.CompletedTask;
             }
         );

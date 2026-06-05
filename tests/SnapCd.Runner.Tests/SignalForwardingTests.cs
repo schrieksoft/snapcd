@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using SnapCd.Contracts;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Settings;
 
@@ -48,6 +49,7 @@ public class SignalForwardingTests : IDisposable
             Guid.NewGuid(),
             "SignalForwardingTests",
             mockTaskLogger.Object,
+            new NullJobLogStream(),
             metadata
         );
 

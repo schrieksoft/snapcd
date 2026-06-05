@@ -16,13 +16,15 @@ public class LiteralPrincipalProvider : IPrincipalProvider
     private readonly Guid _principalId;
     private readonly PrincipalDiscriminator _principalDiscriminator;
     private readonly List<Guid> _organizations;
+    private readonly Guid? _agentId;
 
 
-    public LiteralPrincipalProvider(Guid principalId, PrincipalDiscriminator principalDiscriminator, List<Guid> organizations)
+    public LiteralPrincipalProvider(Guid principalId, PrincipalDiscriminator principalDiscriminator, List<Guid> organizations, Guid? agentId = null)
     {
         _principalId = principalId;
         _principalDiscriminator = principalDiscriminator;
         _organizations = organizations;
+        _agentId = agentId;
     }
 
 
@@ -78,5 +80,10 @@ public class LiteralPrincipalProvider : IPrincipalProvider
     {
         // For LiteralPrincipalProvider, we always have a principal, so this returns the actual discriminator
         return _principalDiscriminator;
+    }
+
+    public Guid? GetAgentId()
+    {
+        return _agentId;
     }
 }

@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.Extensions.Logging.Abstractions;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 
 namespace SnapCd.Runner.Tests;
@@ -17,7 +18,7 @@ public class GitModuleSourceResolverTests
 
     public GitModuleSourceResolverTests()
     {
-        _resolver = new GitModuleSourceResolver();
+        _resolver = new GitModuleSourceResolver(NullLogger<GitModuleSourceResolver>.Instance);
     }
 
     [Theory]

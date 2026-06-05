@@ -1,0 +1,25 @@
+# Sample local mission rows, used only when Agent.MissionsSource == "local".
+# These are the BINDINGS (which named mission is active, for which scope). The behaviour
+# (eventType / skillName / parameters / sessionMode) comes from the definition catalog,
+# keyed by missionType — see SnapCd.Agent/Missions/catalog.yaml.
+#
+# missionType must be one of: AutoDiagnose, ApprovalRecommend, ProposeFix, GenerateDocs, SplitMonolithicState
+# scope must be one of: Organization, Stack, Namespace, Module
+# scopeEntityId is required for Stack/Namespace/Module scopes; omit for Organization.
+missions:
+  - name: "diagnose-failures-org-wide"
+    missionType: "AutoDiagnose"
+    scope: "Organization"
+    isDisabled: false
+
+  - name: "recommend-approvals-prod-namespace"
+    missionType: "ApprovalRecommend"
+    scope: "Namespace"
+    scopeEntityId: "00000000-0000-0000-0000-000000000000"
+    isDisabled: false
+
+  - name: "propose-fix-experimental-module"
+    missionType: "ProposeFix"
+    scope: "Module"
+    scopeEntityId: "00000000-0000-0000-0000-000000000000"
+    isDisabled: false

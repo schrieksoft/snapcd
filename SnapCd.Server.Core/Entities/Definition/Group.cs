@@ -34,6 +34,7 @@ public class Group : AuditBase, IEntity, IOrganizationChild
     public virtual ICollection<GroupNamespaceRoleAssignment> GroupNamespaceRoleAssignments { get; set; } = new List<GroupNamespaceRoleAssignment>();
     public virtual ICollection<GroupModuleRoleAssignment> GroupModuleRoleAssignments { get; set; } = new List<GroupModuleRoleAssignment>();
     public virtual ICollection<GroupRunnerRoleAssignment> GroupRunnerRoleAssignments { get; set; } = new List<GroupRunnerRoleAssignment>();
+    public virtual ICollection<GroupAgentRoleAssignment> GroupAgentRoleAssignments { get; set; } = new List<GroupAgentRoleAssignment>();
 
     public virtual Organization Organization { get; set; } = null!;
 

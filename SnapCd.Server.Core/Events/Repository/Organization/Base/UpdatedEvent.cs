@@ -42,6 +42,12 @@ public class UpdatedEvent<TDto>
     public AuditPrincipalDiscriminator CreatedByPrincipalDiscriminator { get; set; }
 
     /// <summary>
+    /// AgentId of the Agent that created this entity (acting via the underlying ServicePrincipal),
+    /// or null if the creator was not an Agent.
+    /// </summary>
+    public Guid? CreatedByAgentId { get; set; }
+
+    /// <summary>
     /// UTC timestamp when this entity was created
     /// </summary>
     public DateTime CreatedDateTime { get; set; }
@@ -57,6 +63,12 @@ public class UpdatedEvent<TDto>
     public AuditPrincipalDiscriminator ModifiedByPrincipalDiscriminator { get; set; }
 
     /// <summary>
+    /// AgentId of the Agent that last modified this entity (current state, acting via the
+    /// underlying ServicePrincipal), or null if the modifier was not an Agent.
+    /// </summary>
+    public Guid? ModifiedByAgentId { get; set; }
+
+    /// <summary>
     /// UTC timestamp when this entity was last modified (current state)
     /// </summary>
     public DateTime ModifiedDateTime { get; set; }
@@ -70,6 +82,12 @@ public class UpdatedEvent<TDto>
     /// Type of principal that last modified this entity (previous state)
     /// </summary>
     public AuditPrincipalDiscriminator PreviousModifiedByPrincipalDiscriminator { get; set; }
+
+    /// <summary>
+    /// AgentId of the Agent that last modified this entity in the previous state (acting via the
+    /// underlying ServicePrincipal), or null if no Agent was involved.
+    /// </summary>
+    public Guid? PreviousModifiedByAgentId { get; set; }
 
     /// <summary>
     /// UTC timestamp when this entity was last modified (previous state)

@@ -107,6 +107,7 @@ public partial class JobStateMachine<
                 .Publish(context => new TResponseCompleted
                 {
                     ModuleId = context.Saga.ModuleId,
+                    OrganizationId = context.Saga.OrganizationId,
                     ModuleJobId = context.Saga.CorrelationId
                 })
                 .Activity(x => x.OfType<CompleteModuleJobActivity<TSaga, OutputCompleted>>())

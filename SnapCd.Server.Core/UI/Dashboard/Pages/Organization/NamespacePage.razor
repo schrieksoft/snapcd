@@ -103,6 +103,12 @@
                                OnClick="() => SwitchShowing(ShowingType.Roles)"/>
             </MudTooltip>
 
+            <MudTooltip Text="Manage Missions">
+                <MudIconButton Icon="material-symbols-outlined/automation"
+                               Color="GetColor(ShowingType.Missions)" Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Missions)"/>
+            </MudTooltip>
+
             <MudTooltip Text="Manage Secrets">
                 <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
                                Size="Size.Small"
@@ -212,6 +218,12 @@
             <ManageNamespaceRoles NamespaceId="_namespace.Id"
                                   OnSaved="() => _showing = ShowingType.None"
                                   OnCancel="() => _showing = ShowingType.None"/>
+        }
+
+        @if (_showing == ShowingType.Missions)
+        {
+            <ManageNamespaceMissions NamespaceId="_namespace.Id" StackId="_namespace.StackId"
+                                     StackName="@StackName"/>
         }
 
         @if (_showing == ShowingType.Secrets)
@@ -658,6 +670,7 @@
         Modules,
         Edit,
         Roles,
+        Missions,
         Secrets,
         DependencyGraph
     }
@@ -1097,6 +1110,7 @@
             "edit" => ShowingType.Edit,
             "secrets" => ShowingType.Secrets,
             "roles" => ShowingType.Roles,
+            "missions" => ShowingType.Missions,
             "modules" => ShowingType.Modules,
             "dependencygraph" => ShowingType.DependencyGraph,
             _ => null
@@ -1110,6 +1124,7 @@
             ShowingType.Edit => "Edit",
             ShowingType.Secrets => "Secrets",
             ShowingType.Roles => "Roles",
+            ShowingType.Missions => "Missions",
             ShowingType.Modules => "Modules",
             ShowingType.DependencyGraph => "DependencyGraph",
             _ => null

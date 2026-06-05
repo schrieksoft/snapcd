@@ -10,11 +10,11 @@ using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Licensing.Services;
 
-public class QuotaGatingService(LicenseService licenseService) : IQuotaGatingService
+public class QuotaGatingService(ILicenseInfoProvider licenseInfoProvider) : IQuotaGatingService
 {
     public async Task<int?> GetQuotaAsync(Guid organizationId, string quotaName)
     {
-        var licenseInfo = await licenseService.GetLicenseInfoAsync(organizationId);
+        var licenseInfo = await licenseInfoProvider.GetLicenseInfoAsync(organizationId);
 
         // Modules are the only resource gated by license tier today;
         // every other quota is unlimited regardless of tier.
@@ -28,7 +28,7 @@ public class QuotaGatingService(LicenseService licenseService) : IQuotaGatingSer
 
     public async Task<QuotaLimits?> GetQuotaLimitsAsync(Guid organizationId)
     {
-        var licenseInfo = await licenseService.GetLicenseInfoAsync(organizationId);
+        var licenseInfo = await licenseInfoProvider.GetLicenseInfoAsync(organizationId);
 
         return new QuotaLimits
         {

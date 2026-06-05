@@ -8,10 +8,28 @@
 
 namespace SnapCd.Server.Core.Settings.DataSeeder.ToSeed;
 
+/// <summary>
+/// One User to materialise via the debug data seeder. Only honoured in Development; never used
+/// in production-flow seeds.
+/// </summary>
 public class UserToSeed
 {
+    /// <summary>Optional fixed ID. When null, a fresh GUID is generated.</summary>
     public Guid? Id { get; set; }
+
+    /// <summary>Email address — doubles as the sign-in identifier.</summary>
     public required string Email { get; set; }
+
+    /// <summary>
+    /// Initial password. Sensitive — even in Development, prefer setting via the External Settings
+    /// provider so the value doesn't end up in checked-in appsettings files.
+    /// </summary>
     public required string Password { get; set; }
+
+    /// <summary>
+    /// When true, the seeded User is granted system-administrator role on creation. Useful for
+    /// developer workstations that need an admin without going through the Dashboard's first-User
+    /// promotion flow.
+    /// </summary>
     public bool IsSystemAdministrator { get; set; }
 }

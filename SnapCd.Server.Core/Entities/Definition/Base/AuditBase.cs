@@ -17,10 +17,25 @@ public class AuditBase
 
     public AuditPrincipalDiscriminator CreatedByPrincipalDiscriminator { get; set; }
 
+    /// <summary>
+    /// AgentId of the Agent that created this row (acting via its underlying ServicePrincipal),
+    /// or <c>null</c> if the creator was not an Agent. The auth identity itself
+    /// (<see cref="CreatedBy"/>, <see cref="CreatedByPrincipalDiscriminator"/>) is always the
+    /// underlying User or ServicePrincipal — a non-null AgentId here is the sole signal that an
+    /// Agent was responsible for the action.
+    /// </summary>
+    public Guid? CreatedByAgentId { get; set; }
+
     public DateTime CreatedDateTime { get; set; }
     public Guid ModifiedBy { get; set; }
 
     public AuditPrincipalDiscriminator ModifiedByPrincipalDiscriminator { get; set; }
+
+    /// <summary>
+    /// AgentId of the Agent that last modified this row (acting via its underlying ServicePrincipal).
+    /// See <see cref="CreatedByAgentId"/>.
+    /// </summary>
+    public Guid? ModifiedByAgentId { get; set; }
 
     public DateTime ModifiedDateTime { get; set; }
 }

@@ -20,22 +20,25 @@ public class AccessTokenCacheQuartzJob : IJob
     private readonly RunnerSettings _runnerSettings;
     private readonly ServerSettings _serverSettings;
     private readonly ServicePrincipalTokenService _tokenService;
+    private readonly ILogger<AccessTokenCacheQuartzJob> _logger;
 
     public AccessTokenCacheQuartzJob(
         IMemoryCache cache,
         IOptions<RunnerSettings> runnerSettings,
         IOptions<ServerSettings> serverSettings,
-        ServicePrincipalTokenService tokenService)
+        ServicePrincipalTokenService tokenService,
+        ILogger<AccessTokenCacheQuartzJob> logger)
     {
         _cache = cache;
         _runnerSettings = runnerSettings.Value;
         _serverSettings = serverSettings.Value;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
     public async Task Execute(IJobExecutionContext context)
     {
-        Console.WriteLine("Refreshing token...");
+        _logger.LogInformation("Refreshing token");
 
         try
         {
@@ -51,36 +54,36 @@ public class AccessTokenCacheQuartzJob : IJob
                     _cache.Set(MemoryCacheConstants.AccessTokenCacheKey, result.AccessToken, timeUntilExpiration);
                     _cache.Set(MemoryCacheConstants.AccessTokenExpiryCacheKey, expirationTime);
 
-                    Console.WriteLine($"Token refreshed. Expires at: {expirationTime}");
+                    _logger.LogInformation("Token refreshed. Expires at {ExpirationTime}", expirationTime);
 
                     // Schedule the next execution 5 minutes before the expiration
                     var triggerTime = expirationTime.AddMinutes(-5);
 
                     if (triggerTime > DateTime.UtcNow)
                     {
-                        Console.WriteLine($"Next token refresh scheduled for: {triggerTime}");
+                        _logger.LogInformation("Next token refresh scheduled for {TriggerTime}", triggerTime);
                         await ScheduleNextExecution(context, triggerTime);
                     }
                     else
                     {
-                        Console.WriteLine("Trigger time is in the past. Immediate re-run scheduled.");
+                        _logger.LogInformation("Trigger time is in the past. Immediate re-run scheduled.");
                         await context.Scheduler.TriggerJob(context.JobDetail.Key);
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Token already expired or invalid expiration time.");
+                    _logger.LogWarning("Token already expired or invalid expiration time");
                 }
             }
             else
             {
-                Console.WriteLine("Token refresh failed. Scheduling retry in 30 seconds.");
+                _logger.LogWarning("Token refresh failed. Scheduling retry in 30 seconds");
                 await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30));
             }
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine("Token refresh failed. Scheduling retry in 30 seconds.");
+            _logger.LogError(ex, "Token refresh failed. Scheduling retry in 30 seconds");
             await ScheduleNextExecution(context, DateTimeOffset.UtcNow.AddSeconds(30));
         }
     }

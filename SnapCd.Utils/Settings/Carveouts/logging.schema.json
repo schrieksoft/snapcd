@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "description": "Standard .NET Logging configuration. See https://learn.microsoft.com/dotnet/core/extensions/logging-configuration for the full reference. Provider-specific sub-blocks (Console, Debug, EventSource, etc.) are accepted but not enumerated here.",
+  "properties": {
+    "LogLevel": {
+      "type": "object",
+      "description": "Map of log category names (or category prefixes) to minimum log levels. 'Default' applies when no more-specific category matches; longer keys override shorter ones (Microsoft.AspNetCore beats Microsoft beats Default).",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["Trace", "Debug", "Information", "Warning", "Error", "Critical", "None"]
+      }
+    }
+  },
+  "additionalProperties": true
+}

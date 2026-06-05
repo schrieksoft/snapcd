@@ -20,22 +20,25 @@ public class TokenInitializationService
     private readonly RunnerSettings _runnerSettings;
     private readonly ServerSettings _serverSettings;
     private readonly ServicePrincipalTokenService _tokenService;
+    private readonly ILogger<TokenInitializationService> _logger;
 
     public TokenInitializationService(
         IMemoryCache cache,
         IOptions<RunnerSettings> runnerSettings,
         IOptions<ServerSettings> serverSettings,
-        ServicePrincipalTokenService tokenService)
+        ServicePrincipalTokenService tokenService,
+        ILogger<TokenInitializationService> logger)
     {
         _cache = cache;
         _runnerSettings = runnerSettings.Value;
         _serverSettings = serverSettings.Value;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        Console.WriteLine("Starting token initialization. The app will not start up until this has succeeded.");
+        _logger.LogInformation("Starting token initialization. The app will not start up until this has succeeded.");
 
         var tokenObtained = false;
         while (!tokenObtained && !cancellationToken.IsCancellationRequested)
@@ -59,13 +62,13 @@ public class TokenInitializationService
                         _cache.Set(MemoryCacheConstants.AccessTokenCacheKey, result.AccessToken, timeUntilExpiration);
                         _cache.Set(MemoryCacheConstants.AccessTokenExpiryCacheKey, expirationTime);
                         tokenObtained = true;
-                        Console.WriteLine($"Initial token obtained. Expires at: {expirationTime}");
+                        _logger.LogInformation("Initial token obtained. Expires at {ExpirationTime}", expirationTime);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Initial token acquisition failed: {ex.Message}");
+                _logger.LogError(ex, "Initial token acquisition failed");
             }
 
             if (!tokenObtained) await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);

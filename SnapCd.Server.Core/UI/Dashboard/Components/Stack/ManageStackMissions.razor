@@ -1,0 +1,270 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.Missions
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Components.Agent
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+
+@inject ISnackbar Snackbar
+
+<MudPaper Elevation="1" Class="pa-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Missions</MudText>
+
+    <MudTabs Outlined="true" Rounded="true" Border="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+        <MudTabPanel Text="Stack" Style="text-transform: none">
+            @if (!_showCreateForm && _editing is null)
+            {
+                <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                           OnClick="ShowCreate" Class="mb-3">
+                    Add Mission
+                </MudButton>
+            }
+
+            @if (_showCreateForm || _editing is not null)
+            {
+                <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+                    <DataAnnotationsValidator/>
+                    <MudGrid Class="d-flex flex-column gap-3">
+                        <MudItem xs="12">
+                            <MudSelect T="Guid?" @bind-Value="Input.AgentId"
+                                       Label="Agent" Variant="Variant.Outlined" Required="true">
+                                @foreach (var agent in _agents)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@agent.Id">@agent.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSelect T="MissionType" @bind-Value="Input.MissionType"
+                                       Label="Mission Type" Variant="Variant.Outlined" Required="true">
+                                @foreach (var type in Enum.GetValues<MissionType>())
+                                {
+                                    <MudSelectItem Value="@type">@type.ToString()</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField Label="Sidecar (optional)" @bind-Value="Input.SidecarName"
+                                          Variant="Variant.Outlined" MaxLength="64"/>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="Input.IsDisabled" Label="Disabled" Color="Color.Info"/>
+                        </MudItem>
+
+                        <MudItem xs="12" Class="d-flex justify-end gap-2">
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                       Style="background-color: #000; color: #fff;">
+                                @(_editing is null ? "Create" : "Save")
+                            </MudButton>
+                            <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                                       OnClick="CancelEdit">
+                                Cancel
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </EditForm>
+            }
+
+            @if (_stackRows.Count == 0)
+            {
+                <MudText Typo="Typo.body2">No missions configured directly on this Stack.</MudText>
+            }
+            else
+            {
+                <AgentGroupedMissions TRow="StackMission"
+                                      Rows="_stackRows"
+                                      AgentIdSelector="@(r => r.AgentId)"
+                                      MissionTypeSelector="@(r => r.MissionType.ToString())"
+                                      IsDisabledSelector="@(r => r.IsDisabled)"
+                                      SidecarNameSelector="@(r => r.SidecarName)"
+                                      AgentNameLookup="@LookupAgentName"
+                                      OrganizationId="OrganizationId"
+                                      Scope="AgentAssignmentBadge.AssignmentScope.Stack"
+                                      ScopeId="StackId"
+                                      OnEdit="BeginEdit"
+                                      OnDelete="DeleteRow"/>
+            }
+        </MudTabPanel>
+
+        @if (_orgRows.Count > 0)
+        {
+            <MudTabPanel Text="Inherited from Organization" Style="text-transform: none">
+                <div style="opacity: 0.6;">
+                    <MudText Typo="Typo.caption" Class="mb-2">
+                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="/Agents?action=missions">here</MudLink>.
+                    </MudText>
+                    <MudDivider Class="mb-3"/>
+                    <AgentGroupedMissions TRow="OrganizationMission"
+                                          Rows="_orgRows"
+                                          AgentIdSelector="@(r => r.AgentId)"
+                                          MissionTypeSelector="@(r => r.MissionType.ToString())"
+                                          IsDisabledSelector="@(r => r.IsDisabled)"
+                                          SidecarNameSelector="@(r => r.SidecarName)"
+                                          AgentNameLookup="@LookupAgentName"
+                                          OrganizationId="OrganizationId"
+                                          Scope="AgentAssignmentBadge.AssignmentScope.Organization"/>
+                </div>
+            </MudTabPanel>
+        }
+    </MudTabs>
+</MudPaper>
+
+@code {
+    [Parameter] public required Guid StackId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private StackMissionSecuredRepositoryFactory StackMissionRepoFactory { get; set; } = null!;
+    [Inject] private OrganizationMissionSecuredRepositoryFactory OrgMissionRepoFactory { get; set; } = null!;
+    [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
+
+    private sealed class InputModel
+    {
+        public Guid? AgentId { get; set; }
+        public MissionType MissionType { get; set; } = MissionType.AutoDiagnose;
+        [MaxLength(64)] public string? SidecarName { get; set; }
+        public bool IsDisabled { get; set; }
+    }
+
+    private InputModel Input { get; set; } = new();
+    private StackMission? _editing;
+    private bool _showCreateForm;
+    private List<StackMission> _stackRows = new();
+    private List<OrganizationMission> _orgRows = new();
+    private List<Agent> _agents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadDependencies();
+        await ReloadRows();
+    }
+
+    private async Task ReloadDependencies()
+    {
+        using var agentRepo = AgentRepoFactory.Create();
+        _agents = await agentRepo.List(OrganizationId);
+    }
+
+    private async Task ReloadRows()
+    {
+        using (var repo = StackMissionRepoFactory.Create())
+            _stackRows = (await repo.ListByStack(StackId, OrganizationId))
+                .OrderBy(m => m.AgentId).ThenBy(m => m.MissionType).ToList();
+
+        using (var repo = OrgMissionRepoFactory.Create())
+            _orgRows = (await repo.List(OrganizationId))
+                .OrderBy(m => m.AgentId).ThenBy(m => m.MissionType).ToList();
+    }
+
+    private void ShowCreate()
+    {
+        _showCreateForm = true;
+        _editing = null;
+        Input = new InputModel();
+    }
+
+    private void BeginEdit(StackMission row)
+    {
+        _editing = row;
+        _showCreateForm = false;
+        Input = new InputModel
+        {
+            AgentId = row.AgentId,
+            MissionType = row.MissionType,
+            SidecarName = row.SidecarName,
+            IsDisabled = row.IsDisabled
+        };
+    }
+
+    private void CancelEdit()
+    {
+        _showCreateForm = false;
+        _editing = null;
+        Input = new InputModel();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            EnsureAgentSelected();
+
+            if (_editing is null)
+                await CreateNew();
+            else
+                await UpdateExisting(_editing);
+
+            _editing = null;
+            _showCreateForm = false;
+            Input = new InputModel();
+            await ReloadRows();
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, _editing is null ? "creating mission" : "updating mission");
+        }
+    }
+
+    private async Task CreateNew()
+    {
+        using var repo = StackMissionRepoFactory.Create();
+        await repo.Create(new StackMission
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = OrganizationId,
+            AgentId = Input.AgentId!.Value,
+            StackId = StackId,
+            MissionType = Input.MissionType,
+            SidecarName = string.IsNullOrWhiteSpace(Input.SidecarName) ? null : Input.SidecarName,
+            IsDisabled = Input.IsDisabled
+        });
+        Snackbar.Add("Mission created", Severity.Success);
+    }
+
+    private async Task UpdateExisting(StackMission row)
+    {
+        using var repo = StackMissionRepoFactory.Create();
+        var existing = await repo.Get(row.Id, OrganizationId);
+        existing.AgentId = Input.AgentId!.Value;
+        existing.MissionType = Input.MissionType;
+        existing.SidecarName = string.IsNullOrWhiteSpace(Input.SidecarName) ? null : Input.SidecarName;
+        existing.IsDisabled = Input.IsDisabled;
+        await repo.Update(existing);
+        Snackbar.Add("Mission updated", Severity.Success);
+    }
+
+    private void EnsureAgentSelected()
+    {
+        if (Input.AgentId is null || Input.AgentId == Guid.Empty)
+            throw new ValidationException("Agent must be selected.");
+    }
+
+    private async Task DeleteRow(StackMission row)
+    {
+        try
+        {
+            using var repo = StackMissionRepoFactory.Create();
+            await repo.Delete(row.Id, OrganizationId);
+            Snackbar.Add("Mission deleted", Severity.Success);
+            await ReloadRows();
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting mission");
+        }
+    }
+
+    private string LookupAgentName(Guid agentId) =>
+        _agents.FirstOrDefault(a => a.Id == agentId)?.Name ?? agentId.ToString();
+}

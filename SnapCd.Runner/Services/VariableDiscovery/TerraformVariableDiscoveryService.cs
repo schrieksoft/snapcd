@@ -24,6 +24,13 @@ namespace SnapCd.Runner.Services;
 /// </summary>
 public class TerraformVariableDiscoveryService : IVariableDiscoveryService
 {
+    private readonly ILogger<TerraformVariableDiscoveryService> _logger;
+
+    public TerraformVariableDiscoveryService(ILogger<TerraformVariableDiscoveryService> logger)
+    {
+        _logger = logger;
+    }
+
     /// <summary>
     /// Discovers all Terraform variables in a directory by scanning .tf and .tf.json files.
     /// </summary>
@@ -53,9 +60,7 @@ public class TerraformVariableDiscoveryService : IVariableDiscoveryService
             catch (VariableParseException ex)
             {
                 if (throwOnError) throw;
-
-                // Log warning but continue (in production, use ILogger)
-                Console.WriteLine($"Warning: {ex.Message}");
+                _logger.LogWarning(ex, "Failed to parse Terraform variable file {File}", file);
             }
 
         // Scan *.tf.json files
@@ -71,7 +76,7 @@ public class TerraformVariableDiscoveryService : IVariableDiscoveryService
             catch (Exception ex)
             {
                 if (throwOnError) throw new VariableParseException($"Failed to parse {file}", ex, file);
-                Console.WriteLine($"Warning: Failed to parse {file}: {ex.Message}");
+                _logger.LogWarning(ex, "Failed to parse Terraform JSON file {File}", file);
             }
 
         return allVariables;

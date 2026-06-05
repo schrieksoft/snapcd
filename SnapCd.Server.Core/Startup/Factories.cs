@@ -24,6 +24,7 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.GroupMembers;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
@@ -152,6 +153,9 @@ public static class Factories
         services.AddScoped<RunnerStackAssignmentSecuredRepositoryFactory>();
         services.AddScoped<RunnerNamespaceAssignmentSecuredRepositoryFactory>();
         services.AddScoped<RunnerModuleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<AgentStackAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<AgentNamespaceAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<AgentModuleAssignmentSecuredRepositoryFactory>();
         services.AddScoped<StackSecretRepositoryFactory>();
         services.AddScoped<NamespaceSecretRepositoryFactory>();
         services.AddScoped<ModuleSecretRepositoryFactory>();
@@ -234,7 +238,33 @@ public static class Factories
         services.AddScoped<SecretParamResolverFactory>();
         services.AddScoped<RunnerConnectionRepositoryFactory>();
         services.AddScoped<RunnerConnectionJobRepositoryFactory>();
-        
+
+        // Agent + AgentConnection
+        services.AddScoped<AgentRepositoryFactory>();
+        services.AddScoped<AgentSecuredRepositoryFactory>();
+        services.AddScoped<AgentConnectionRepositoryFactory>();
+
+        // Mission family (4 scopes, raw + secured)
+        services.AddScoped<OrganizationMissionRepositoryFactory>();
+        services.AddScoped<OrganizationMissionSecuredRepositoryFactory>();
+        services.AddScoped<StackMissionRepositoryFactory>();
+        services.AddScoped<StackMissionSecuredRepositoryFactory>();
+        services.AddScoped<NamespaceMissionRepositoryFactory>();
+        services.AddScoped<NamespaceMissionSecuredRepositoryFactory>();
+        services.AddScoped<ModuleMissionRepositoryFactory>();
+        services.AddScoped<ModuleMissionSecuredRepositoryFactory>();
+
+        // AgentRoleAssignment family (TPH base + 3 subclasses, raw + secured)
+        services.AddScoped<AgentRoleAssignmentRepositoryFactory>();
+        services.AddScoped<AgentRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<UserAgentRoleAssignmentRepositoryFactory>();
+        services.AddScoped<UserAgentRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<ServicePrincipalAgentRoleAssignmentRepositoryFactory>();
+        services.AddScoped<ServicePrincipalAgentRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<GroupAgentRoleAssignmentRepositoryFactory>();
+        services.AddScoped<GroupAgentRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<AgentRoleAssignmentServiceFactory>();
+
         return services;
     }
 }

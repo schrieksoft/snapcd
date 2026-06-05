@@ -36,4 +36,19 @@ public interface IPrincipalProvider
     /// Returns null to indicate system/automated operations.
     /// </summary>
     public PrincipalDiscriminator? GetPrincipalDiscriminatorOrDefault();
+
+    /// <summary>
+    /// Gets the AgentId from the active <c>agent_id</c> claim, or <c>null</c> if the current
+    /// request is not being made by an Agent. The auth identity is always the underlying User or
+    /// ServicePrincipal — a non-null AgentId indicates that an Agent is acting via that
+    /// ServicePrincipal for this request.
+    /// </summary>
+    public Guid? GetAgentId();
+
+    /// <summary>
+    /// True when an Agent is making the current request (via its underlying ServicePrincipal).
+    /// Convenience over <c>GetAgentId() is not null</c> so caller sites don't reimplement the
+    /// null-check inconsistently.
+    /// </summary>
+    public bool IsAgent() => GetAgentId() is not null;
 }

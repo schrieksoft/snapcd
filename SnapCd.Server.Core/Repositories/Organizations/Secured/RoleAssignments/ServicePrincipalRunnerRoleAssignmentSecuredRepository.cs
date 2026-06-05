@@ -38,7 +38,7 @@ public class ServicePrincipalRunnerRoleAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class ServicePrincipalRunnerRoleAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class ServicePrincipalRunnerRoleAssignmentSecuredRepository : GenericRunnerChildSecuredRepository<
     ServicePrincipalRunnerRoleAssignment,
     ServicePrincipalRunnerRoleAssignmentReadDto,
     ServicePrincipalRunnerRoleAssignmentRepository,
@@ -56,22 +56,26 @@ public class ServicePrincipalRunnerRoleAssignmentSecuredRepository : GenericOrga
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public async Task<List<ServicePrincipalRunnerRoleAssignment>> ListByServicePrincipal(Guid servicePrincipalId, Guid organizationId)

@@ -231,12 +231,15 @@ public class OrganizationUserRepository : GenericOrganizationChildRepository<Org
             OrganizationId = organizationUser.OrganizationId,
             CreatedBy = organizationUser.CreatedBy,
             CreatedByPrincipalDiscriminator = organizationUser.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = organizationUser.CreatedByAgentId,
             CreatedDateTime = organizationUser.CreatedDateTime,
             ModifiedBy = organizationUser.ModifiedBy,
             ModifiedByPrincipalDiscriminator = organizationUser.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = organizationUser.ModifiedByAgentId,
             ModifiedDateTime = organizationUser.ModifiedDateTime,
             PreviousModifiedBy = organizationUser.ModifiedBy,
             PreviousModifiedByPrincipalDiscriminator = organizationUser.ModifiedByPrincipalDiscriminator,
+            PreviousModifiedByAgentId = organizationUser.ModifiedByAgentId,
             PreviousModifiedDateTime = organizationUser.ModifiedDateTime,
         };
 

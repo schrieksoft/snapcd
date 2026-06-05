@@ -12,12 +12,16 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Licensing.Models;
+using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Utils.Helpers;
 using SnapCd.Server.Core.Misc.ViewModels.Authorization;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -34,6 +38,7 @@ public class AuthorizationController : Controller
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
     private readonly SnapCdDbContext _dbContext;
+    private readonly ILicenseInfoProvider _licenseInfoProvider;
 
     public AuthorizationController(
         IOpenIddictApplicationManager applicationManager,
@@ -41,7 +46,8 @@ public class AuthorizationController : Controller
         IOpenIddictScopeManager scopeManager,
         SignInManager<User> signInManager,
         UserManager<User> userManager,
-        SnapCdDbContext dbContext
+        SnapCdDbContext dbContext,
+        ILicenseInfoProvider licenseInfoProvider
     )
     {
         _applicationManager = applicationManager;
@@ -50,6 +56,7 @@ public class AuthorizationController : Controller
         _signInManager = signInManager;
         _userManager = userManager;
         _dbContext = dbContext;
+        _licenseInfoProvider = licenseInfoProvider;
     }
 
     [HttpGet("~/connect/authorize")]
@@ -414,6 +421,26 @@ public class AuthorizationController : Controller
             if (application == null)
                 throw new InvalidOperationException("The application details cannot be found in the database.");
 
+            // Optional agent_id parameter: when present, the issued token will carry an
+            // agent_id claim identifying the SP as currently acting as that Agent.
+            // Without this parameter, a plain SP token is issued (existing behaviour).
+            Guid? agentId = null;
+            var agentIdParam = (string?)request.GetParameter("agent_id");
+            if (!string.IsNullOrEmpty(agentIdParam))
+            {
+                if (!Guid.TryParse(agentIdParam, out var parsedAgentId))
+                    return InvalidAgentIdRequest("agent_id must be a valid GUID.");
+                agentId = parsedAgentId;
+
+                var clientId = await _applicationManager.GetClientIdAsync(application);
+                var sp = await _dbContext.ServicePrincipals.FirstOrDefaultAsync(s => s.ClientId == clientId);
+                if (sp is null)
+                    return InvalidAgentIdRequest("ServicePrincipal not found for client.");
+                var licenseInfo = await _licenseInfoProvider.GetLicenseInfoAsync(sp.OrganizationId);
+                if (!licenseInfo.Includes(Feature.AiAgents))
+                    return InvalidAgentIdRequest("AI Agents are not licensed for this organization. Upgrade to Enterprise to use this feature.");
+            }
+
             // Create the claims-based identity that will be used by OpenIddict to generate tokens.
             var identity = new ClaimsIdentity(
                 TokenValidationParameters.DefaultAuthenticationType,
@@ -421,7 +448,14 @@ public class AuthorizationController : Controller
                 Claims.Role);
 
             // Add the claims that will be persisted in the tokens (use the client_id as the subject identifier).
-            await identity.SetDefaultClientCredentialGrantClaims(_applicationManager, application, _dbContext);
+            try
+            {
+                await identity.SetDefaultClientCredentialGrantClaims(_applicationManager, application, _dbContext, agentId);
+            }
+            catch (AgentIdValidationException ex)
+            {
+                return InvalidAgentIdRequest(ex.Message);
+            }
 
             // Note: In the original OAuth 2.0 specification, the client credentials grant
             // doesn't return an identity token, which is an OpenID Connect concept.
@@ -444,6 +478,17 @@ public class AuthorizationController : Controller
         }
 
         throw new InvalidOperationException("The specified grant type is not supported.");
+    }
+
+    private IActionResult InvalidAgentIdRequest(string description)
+    {
+        return Forbid(
+            authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+            properties: new AuthenticationProperties(new Dictionary<string, string?>
+            {
+                [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidRequest,
+                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = description
+            }));
     }
 
     private static IEnumerable<string> GetDestinations(Claim claim)
@@ -490,6 +535,12 @@ public class AuthorizationController : Controller
                 yield break;
 
             case "organizations":
+                yield return Destinations.IdentityToken;
+                yield return Destinations.AccessToken;
+
+                yield break;
+
+            case "agent_id":
                 yield return Destinations.IdentityToken;
                 yield return Destinations.AccessToken;
 
