@@ -38,6 +38,7 @@ public partial class Tasks
             request.JobId,
             nameof(GetModule),
             logger,
+            _jobLogStream,
             request.Metadata
         );
 

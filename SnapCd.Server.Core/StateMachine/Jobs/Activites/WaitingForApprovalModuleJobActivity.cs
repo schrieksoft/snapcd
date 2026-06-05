@@ -8,6 +8,7 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
@@ -32,6 +33,16 @@ public class WaitingForApprovalModuleJobActivity<TSaga, TMessage> :
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
             true);
+
+        // Publish so the Layer-1 ApprovalRequestedCompetingConsumer can fire the ApprovalRecommend
+        // mission. Carries the saga's CorrelationId (= ModuleJobId) and ModuleId so the consumer can
+        // resolve scope and dispatch via MissionDispatcher.
+        await context.Publish(new ModuleJobAwaitingApprovalEvent
+        {
+            ModuleJobId = context.Saga.CorrelationId,
+            ModuleId = context.Saga.ModuleId,
+            OrganizationId = context.Saga.OrganizationId
+        });
 
         // Proceed to the next activity
         await next.Execute(context).ConfigureAwait(false);

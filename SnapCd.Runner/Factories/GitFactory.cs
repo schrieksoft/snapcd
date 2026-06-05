@@ -32,7 +32,7 @@ public class GitFactory
         return new Git(
             logger,
             context,
-            new GitModuleSourceResolver()
+            new GitModuleSourceResolver(_loggerFactory.CreateLogger<GitModuleSourceResolver>())
         );
     }
 }

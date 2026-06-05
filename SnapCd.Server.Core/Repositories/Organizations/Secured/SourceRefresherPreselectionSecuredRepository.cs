@@ -9,11 +9,13 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.SourceRefresherPreselections;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -52,6 +54,32 @@ public class SourceRefresherPreselectionSecuredRepository : GenericOrganizationC
         : base(repository, principalProvider)
     {
     }
+
+    public override PermissionMap ReadPermissionMap => new()
+    {
+        OrganizationRoles = [
+            OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader,
+            OrganizationRole.SourceRefresherPreselectionContributor, OrganizationRole.SourceRefresherPreselectionReader
+        ]
+    };
+
+    public override PermissionMap UpdatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.SourceRefresherPreselectionContributor]
+    };
+
+    public override PermissionMap CreatePermissionMap => new()
+    {
+        OrganizationRoles = [
+            OrganizationRole.Owner, OrganizationRole.Contributor,
+            OrganizationRole.SourceRefresherPreselectionContributor, OrganizationRole.SourceRefresherPreselectionCreator
+        ]
+    };
+
+    public override PermissionMap DeletePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.SourceRefresherPreselectionContributor]
+    };
 
 
     public async Task<SourceRefresherPreselection> GetBySourceUrl(string sourceUrl, Guid organizationId)

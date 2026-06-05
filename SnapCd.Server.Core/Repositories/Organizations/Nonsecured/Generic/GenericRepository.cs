@@ -193,16 +193,19 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         var principalId = PrincipalProvider.GetSubjectOrDefault(entity.OrganizationId);
         var principalDiscriminator = PrincipalProvider.GetPrincipalDiscriminatorOrDefault();
         var auditDiscriminator = ConvertToAuditPrincipalDiscriminator(principalDiscriminator);
+        var agentId = PrincipalProvider.GetAgentId();
 
         // Set audit fields
-        
+
         var now = DateTime.UtcNow;
-        
+
         entity.CreatedBy = principalId;
         entity.CreatedByPrincipalDiscriminator = auditDiscriminator;
+        entity.CreatedByAgentId = agentId;
         entity.CreatedDateTime = now;
         entity.ModifiedBy = principalId;
         entity.ModifiedByPrincipalDiscriminator = auditDiscriminator;
+        entity.ModifiedByAgentId = agentId;
         entity.ModifiedDateTime = now;
 
         DbContext.Set<TEntity>().Add(entity);
@@ -267,15 +270,18 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         var principalId = PrincipalProvider.GetSubjectOrDefault(entity.OrganizationId);
         var principalDiscriminator = PrincipalProvider.GetPrincipalDiscriminatorOrDefault();
         var auditDiscriminator = ConvertToAuditPrincipalDiscriminator(principalDiscriminator);
+        var agentId = PrincipalProvider.GetAgentId();
 
         // Preserve creation audit fields
         entity.CreatedBy = existingEntity.CreatedBy;
         entity.CreatedByPrincipalDiscriminator = existingEntity.CreatedByPrincipalDiscriminator;
+        entity.CreatedByAgentId = existingEntity.CreatedByAgentId;
         entity.CreatedDateTime = existingEntity.CreatedDateTime;
 
         // Update modification audit fields
         entity.ModifiedBy = principalId;
         entity.ModifiedByPrincipalDiscriminator = auditDiscriminator;
+        entity.ModifiedByAgentId = agentId;
         entity.ModifiedDateTime = DateTime.UtcNow;
 
         // Update the existing tracked entity

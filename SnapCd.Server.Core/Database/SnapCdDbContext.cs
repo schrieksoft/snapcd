@@ -22,10 +22,13 @@ using SnapCd.Server.Core.Database.SagaClassMaps;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
+using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Runner.Base;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base;
+using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
 using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
@@ -122,6 +125,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<ModuleJob> ModuleJobs { get; set; }
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
+    public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
+    public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
     public DbSet<OutputSet> OutputSets { get; set; }
     public DbSet<Output> Outputs { get; set; }
     public DbSet<LiteralOutput> LiteralOutputs { get; set; }
@@ -138,6 +143,16 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<RunnerStackAssignment> RunnerStackAssignments { get; set; }
     public DbSet<RunnerNamespaceAssignment> RunnerNamespaceAssignments { get; set; }
     public DbSet<RunnerModuleAssignment> RunnerModuleAssignments { get; set; }
+
+    public DbSet<Agent> Agents { get; set; }
+    public DbSet<AgentConnection> AgentConnections { get; set; }
+    public DbSet<AgentStackAssignment> AgentStackAssignments { get; set; }
+    public DbSet<AgentNamespaceAssignment> AgentNamespaceAssignments { get; set; }
+    public DbSet<AgentModuleAssignment> AgentModuleAssignments { get; set; }
+    public DbSet<OrganizationMission> OrganizationMissions { get; set; }
+    public DbSet<StackMission> StackMissions { get; set; }
+    public DbSet<NamespaceMission> NamespaceMissions { get; set; }
+    public DbSet<ModuleMission> ModuleMissions { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<PreviewFeatureAcceptance> PreviewFeatureAcceptances { get; set; }
 
@@ -207,6 +222,14 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ServicePrincipalRunnerRoleAssignment> ServicePrincipalRunnerRoleAssignments { get; set; }
 
     public DbSet<GroupRunnerRoleAssignment> GroupRunnerRoleAssignments { get; set; }
+
+    public DbSet<AgentRoleAssignment> AgentRoleAssignments { get; set; }
+
+    public DbSet<UserAgentRoleAssignment> UserAgentRoleAssignments { get; set; }
+
+    public DbSet<ServicePrincipalAgentRoleAssignment> ServicePrincipalAgentRoleAssignments { get; set; }
+
+    public DbSet<GroupAgentRoleAssignment> GroupAgentRoleAssignments { get; set; }
 
     // Implement the Configurations property
     protected IEnumerable<ISagaClassMap> SagaClassMaps
@@ -330,6 +353,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new VariableClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleJobMissionClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleJobMissionRunClassMap());
         modelBuilder.ApplyConfiguration(new RunnerClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionJobClassMap());
@@ -338,6 +363,15 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new RunnerStackAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new RunnerNamespaceAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new RunnerModuleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new AgentClassMap());
+        modelBuilder.ApplyConfiguration(new AgentConnectionClassMap());
+        modelBuilder.ApplyConfiguration(new AgentStackAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new AgentNamespaceAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new AgentModuleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new OrganizationMissionClassMap());
+        modelBuilder.ApplyConfiguration(new StackMissionClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceMissionClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleMissionClassMap());
         modelBuilder.ApplyConfiguration(new ServicePrincipalClassMap());
         modelBuilder.ApplyConfiguration(new GroupClassMap());
         modelBuilder.ApplyConfiguration(new GroupMemberClassMap());
@@ -371,6 +405,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new NamespaceRoleAssignmentClassMap()); // Base TPH configuration
         modelBuilder.ApplyConfiguration(new ModuleRoleAssignmentClassMap()); // Base TPH configuration
         modelBuilder.ApplyConfiguration(new RunnerRoleAssignmentClassMap()); // Base TPH configuration
+        modelBuilder.ApplyConfiguration(new AgentRoleAssignmentClassMap()); // Base TPH configuration
 
         modelBuilder.ApplyConfiguration(new UserOrganizationRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new UserStackRoleAssignmentClassMap());
@@ -387,6 +422,9 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new UserRunnerRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new ServicePrincipalRunnerRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new GroupRunnerRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new UserAgentRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new ServicePrincipalAgentRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new GroupAgentRoleAssignmentClassMap());
 
         // System Role Assignment ClassMaps
         modelBuilder.ApplyConfiguration(new UserSystemRoleAssignmentClassMap());

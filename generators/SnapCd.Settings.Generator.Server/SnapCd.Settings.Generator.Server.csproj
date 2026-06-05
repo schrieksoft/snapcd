@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>SnapCd.Settings.Generator.Server</RootNamespace>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Internal codegen tool, not a NuGet artifact. -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\SnapCd.Utils\SnapCd.Utils.csproj" />
+        <ProjectReference Include="..\..\SnapCd.Server.Core\SnapCd.Server.Core.csproj" />
+    </ItemGroup>
+
+</Project>

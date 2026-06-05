@@ -15,12 +15,16 @@
 @using Microsoft.EntityFrameworkCore
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.Licensing.Services
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Services.Edition
 @using SnapCd.Server.Core.Settings
 @using SnapCd.Server.Core.UI.Dashboard.Pages.SystemAdmin
+@using Microsoft.Extensions.Hosting
 @using Microsoft.Extensions.Options
 @inject NavigationManager NavigationManager
+@inject IHostEnvironment HostEnvironment
 @inject IEditionNavProvider EditionNavProvider
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -29,6 +33,7 @@
 @inject IOrganizationActivationService OrganizationActivation
 @inject OrganizationMembershipCacheService MembershipCache
 @inject UserManager<User> UserManager
+@inject ILicenseInfoProvider LicenseInfoProvider
 
 <MudNavMenu Style="background-color: #000; color: white; padding-top: 16px; width: 100%; overflow-x: hidden;">
 
@@ -60,22 +65,6 @@
                 }
             }
 
-            <!-- System Section (gated by Cloud subscription status on SaaS) -->
-            @if (_organizationActivated && _systemIsAllowedToNavigateMap.Any(entry => entry.Value))
-            {
-                <MudNavGroup Title="System" Icon="@Icons.Material.Filled.Settings" Expanded="false">
-                    @foreach (var link in _systemNavLinks)
-                    {
-                        @if (_systemIsAllowedToNavigateMap[link.PageType])
-                        {
-                            <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
-                                @link.Text
-                            </MudNavLink>
-                        }
-                    }
-                </MudNavGroup>
-            }
-
             <!-- Identity Access Section -->
             @if (_identityAccessIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
@@ -93,7 +82,61 @@
                 </MudNavGroup>
             }
 
-            <!-- Edition-specific nav items (License, Subscription, etc.) -->
+            <!-- Automation Section (gated by Cloud subscription status on SaaS) -->
+            @if (_organizationActivated && _automationIsAllowedToNavigateMap.Any(entry => entry.Value))
+            {
+                <MudNavGroup Title="Automation" Icon="material-symbols-outlined/automation" Expanded="false">
+                    @foreach (var link in _automationNavLinks)
+                    {
+                        @if (_automationIsAllowedToNavigateMap[link.PageType])
+                        {
+                            <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
+                                @link.Text
+                            </MudNavLink>
+                        }
+                    }
+                </MudNavGroup>
+            }
+
+            <!-- System Section (gated by Cloud subscription status on SaaS) -->
+            @if (_organizationActivated && _systemIsAllowedToNavigateMap.Any(entry => entry.Value))
+            {
+                <MudNavGroup Title="System" Icon="@Icons.Material.Filled.Settings" Expanded="false">
+                    @foreach (var link in _systemNavLinks)
+                    {
+                        @if (_systemIsAllowedToNavigateMap[link.PageType])
+                        {
+                            <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
+                                @link.Text
+                            </MudNavLink>
+                        }
+                    }
+
+                    <!-- Edition-specific items that belong inside System (self-hosted License). -->
+                    @if (EditionSystemNavItems != null)
+                    {
+                        @EditionSystemNavItems
+                    }
+                </MudNavGroup>
+            }
+
+            <!-- Tests Section (dev only — surfaces dev-mode test harnesses like AgentHarness). -->
+            @if (HostEnvironment.IsDevelopment() && _testsIsAllowedToNavigateMap.Any(entry => entry.Value))
+            {
+                <MudNavGroup Title="Tests" Icon="@Icons.Material.Filled.Science" Expanded="false">
+                    @foreach (var link in _testsNavLinks)
+                    {
+                        @if (_testsIsAllowedToNavigateMap[link.PageType])
+                        {
+                            <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
+                                @link.Text
+                            </MudNavLink>
+                        }
+                    }
+                </MudNavGroup>
+            }
+
+            <!-- Edition-specific standalone nav items, after System (SaaS Subscriptions group). -->
             @if (EditionNavItems != null)
             {
                 @EditionNavItems
@@ -277,6 +320,7 @@
     private string? _currentUrl;
     private Guid? _currentOrganizationId => OrganizationContext.CurrentOrganizationId;
     [Parameter] public required Type CurrentPageType { get; set; }
+    private RenderFragment? EditionSystemNavItems => EditionNavProvider.EditionSystemNavItems;
     private RenderFragment? EditionNavItems => EditionNavProvider.EditionNavItems;
     private RenderFragment? EditionAccountNavItems => EditionNavProvider.EditionAccountNavItems;
 
@@ -300,7 +344,18 @@
         _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
         _accountIsAllowedToNavigateMap = await BuildAllowedMapAsync(_accountNavLinks, orgId);
         _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
+        _automationIsAllowedToNavigateMap = await BuildAllowedMapAsync(_automationNavLinks, orgId);
+        if (HostEnvironment.IsDevelopment())
+            _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
         _swaggerIsAllowedToNavigate = await IsAllowedToNavigateAsync(typeof(Swagger), orgId);
+
+        var licenseInfo = await LicenseInfoProvider.GetLicenseInfoAsync(orgId);
+        if (!licenseInfo.Includes(Feature.AiAgents))
+        {
+            _automationIsAllowedToNavigateMap[typeof(Agents)] = false;
+            if (_testsIsAllowedToNavigateMap.ContainsKey(typeof(AgentHarness)))
+                _testsIsAllowedToNavigateMap[typeof(AgentHarness)] = false;
+        }
     }
 
     private async Task<Dictionary<Type, bool>> BuildAllowedMapAsync(IEnumerable<NavLinkItem> links, Guid orgId)
@@ -344,17 +399,29 @@
     // System Section - collapsible group
     private List<NavLinkItem> _systemNavLinks = new()
     {
-        new NavLinkItem("Runners", NavLinkMatch.All, "material-symbols-outlined/manufacturing", "Runners", typeof(Runners)),
-        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, "material-symbols-outlined/code", "Source Refreshers", typeof(SourceRefresherPreselections)),
         new NavLinkItem("PreviewFeatures", NavLinkMatch.All, Icons.Material.Filled.Science, "Preview Features", typeof(PreviewFeatures))
+    };
+
+    // Automation Section - collapsible group
+    private List<NavLinkItem> _automationNavLinks = new()
+    {
+        new NavLinkItem("Runners", NavLinkMatch.All, "material-symbols-outlined/manufacturing", "Runners", typeof(Runners)),
+        new NavLinkItem("Agents", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agents", typeof(Agents)),
+        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, "material-symbols-outlined/code", "Source Refreshers", typeof(SourceRefresherPreselections))
+    };
+
+    // Tests Section - collapsible group, dev only
+    private List<NavLinkItem> _testsNavLinks = new()
+    {
+        new NavLinkItem("AgentHarness", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agent", typeof(AgentHarness))
     };
 
     // Identity Access Section - collapsible group
     private List<NavLinkItem> _identityAccessNavLinks = new()
     {
-        new NavLinkItem("Users", NavLinkMatch.All, Icons.Material.Filled.People, "Users", typeof(Users)),
-        new NavLinkItem("ServicePrincipals", NavLinkMatch.All, Icons.Material.Filled.PrecisionManufacturing, "Service Principals", typeof(ServicePrincipals)),
-        new NavLinkItem("Groups", NavLinkMatch.All, @Icons.Material.Filled.Group, "Groups", typeof(Groups))
+        new NavLinkItem("Users", NavLinkMatch.All, Icons.Material.Filled.Person, "Users", typeof(Users)),
+        new NavLinkItem("Groups", NavLinkMatch.All, @Icons.Material.Filled.Group, "Groups", typeof(Groups)),
+        new NavLinkItem("ServicePrincipals", NavLinkMatch.All, Icons.Material.Filled.Terminal, "Service Principals", typeof(ServicePrincipals))
     };
 
 
@@ -368,6 +435,8 @@
 
     private Dictionary<Type, bool> _generalIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _systemIsAllowedToNavigateMap = new();
+    private Dictionary<Type, bool> _automationIsAllowedToNavigateMap = new();
+    private Dictionary<Type, bool> _testsIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _identityAccessIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _accountIsAllowedToNavigateMap = new();
     private bool _swaggerIsAllowedToNavigate;

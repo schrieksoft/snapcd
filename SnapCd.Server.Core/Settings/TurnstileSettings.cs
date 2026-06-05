@@ -8,6 +8,11 @@
 
 namespace SnapCd.Server.Core.Settings;
 
+/// <summary>
+/// Cloudflare Turnstile (bot-protection challenge) configuration for the Dashboard's public
+/// sign-up and password-reset flows. Paid feature on Self-Hosted — gated by license tier and
+/// silently no-ops on tiers that don't include it.
+/// </summary>
 public class TurnstileSettings
 {
     public const string SectionName = "Turnstile";

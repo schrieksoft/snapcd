@@ -14,6 +14,13 @@ namespace SnapCd.Runner.Services.ModuleSourceRefresher;
 
 public class GitModuleSourceResolver : IModuleSourceRefresher
 {
+    private readonly ILogger<GitModuleSourceResolver> _logger;
+
+    public GitModuleSourceResolver(ILogger<GitModuleSourceResolver> logger)
+    {
+        _logger = logger;
+    }
+
     public string GetRemoteSemverRangeResolvedTag(string sourceUrl, string sourceRevision)
     {
         // Check if the sourceRevision is an exact version (no wildcards)
@@ -239,7 +246,7 @@ public class GitModuleSourceResolver : IModuleSourceRefresher
             if (process.ExitCode != 0)
             {
                 // Handle error (e.g., remote not found)
-                Console.WriteLine($"Error: {error}");
+                _logger.LogError("git ls-remote failed for {TargetRepoUrl}: {Error}", targetRepoUrl, error);
             }
             else
             {

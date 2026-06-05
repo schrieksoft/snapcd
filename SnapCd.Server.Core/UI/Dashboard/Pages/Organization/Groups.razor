@@ -71,7 +71,8 @@
         <MudExpansionPanels>
             @foreach (var group in _groups)
             {
-                <MudExpansionPanel>
+                <MudExpansionPanel Expanded="@(group.Id == _expandedId)"
+                                   ExpandedChanged="@(e => HandleExpansionChanged(group.Id, e))">
                     <TitleContent>
                         <MudText>@group.Name</MudText>
                     </TitleContent>
@@ -140,11 +141,15 @@
     [Inject] private GroupSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
+    [SupplyParameterFromQuery] public string? Group { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
     private List<Group>? _groups;
     private bool _showCreateGroup;
     private Group? _selectedGroup;
+    private Guid? _expandedId;
     private ShowingType _showing;
 
 
@@ -189,17 +194,9 @@
         await ReloadGroups();
     }
 
-    private void HandleGroupMembersClosed()
-    {
-        _selectedGroup = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleGroupMembersClosed() => ClearSelection();
 
-    private void HandleRoleAssignmentsClosed()
-    {
-        _selectedGroup = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleRoleAssignmentsClosed() => ClearSelection();
 
     private void HandleCancelCreate()
     {
@@ -209,6 +206,69 @@
     protected override async Task OnInitializedAsync()
     {
         await ReloadGroups();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_groups is null) return;
+        if (Guid.TryParse(Group, out var id))
+        {
+            var match = _groups.FirstOrDefault(g => g.Id == id);
+            if (match is not null)
+            {
+                _expandedId = id;
+                if (!string.IsNullOrEmpty(Action)
+                    && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsed)
+                    && parsed != ShowingType.None)
+                {
+                    _selectedGroup = match;
+                    _showing = parsed;
+                }
+            }
+        }
+    }
+
+    private void HandleExpansionChanged(Guid id, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedId = id;
+        }
+        else if (_expandedId == id)
+        {
+            _expandedId = null;
+            if (_selectedGroup?.Id == id)
+            {
+                _selectedGroup = null;
+                _showing = ShowingType.None;
+            }
+        }
+        UpdateUrl();
+    }
+
+    private void UpdateUrl()
+    {
+        var query = new Dictionary<string, object?>();
+        if (_expandedId is { } eid) query["group"] = eid.ToString();
+        if (_selectedGroup is not null && _showing != ShowingType.None)
+            query["action"] = _showing.ToString().ToLowerInvariant();
+        var url = NavigationManager.GetUriWithQueryParameters("/Groups", query);
+        NavigationManager.NavigateTo(url, forceLoad: false, replace: true);
+    }
+
+    private void Select(Group entity, ShowingType action)
+    {
+        _selectedGroup = entity;
+        _expandedId = entity.Id;
+        _showing = action;
+        UpdateUrl();
+    }
+
+    private void ClearSelection()
+    {
+        _selectedGroup = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
     }
 
     private async Task ReloadGroups()
@@ -240,36 +300,18 @@
 
     private async Task HandleGroupSaved(Group group)
     {
-        _selectedGroup = null;
-        _showing = ShowingType.None;
+        ClearSelection();
         Snackbar.Add($"Successfully updated group {group.Name}", Severity.Success);
         await ReloadGroups();
     }
 
-    private void HandleCancelEdit()
-    {
-        _selectedGroup = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleCancelEdit() => ClearSelection();
 
+    private void ManageRoles(Group group) => Select(group, ShowingType.Roles);
 
-    private void ManageRoles(Group group)
-    {
-        _selectedGroup = group;
-        _showing = ShowingType.Roles;
-    }
+    private void ManageMembers(Group group) => Select(group, ShowingType.Members);
 
-    private void ManageMembers(Group group)
-    {
-        _selectedGroup = group;
-        _showing = ShowingType.Members;
-    }
-
-    private void Edit(Group group)
-    {
-        _selectedGroup = group;
-        _showing = ShowingType.Edit;
-    }
+    private void Edit(Group group) => Select(group, ShowingType.Edit);
 
 
     public void Dispose()

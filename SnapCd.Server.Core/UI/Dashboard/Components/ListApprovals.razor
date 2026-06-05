@@ -15,6 +15,7 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using Color = MudBlazor.Color
+@using AgentEntity = SnapCd.Server.Core.Entities.Definition.Agent
 
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -40,6 +41,7 @@ else
                 var iconType = approval.ModuleJobApproval.Declined ? Icons.Material.Filled.Error : Icons.Material.Filled.CheckCircle;
                 var iconTooltip = approval.ModuleJobApproval.Declined ? "Declined" : "Approved";
                 var isUsersApproval = _principalId == approval.ModuleJobApproval.PrincipalId;
+                var hasReason = !string.IsNullOrEmpty(approval.ModuleJobApproval.Reason);
 
                 var elapsedTime = DateTime.UtcNow - approval.ModuleJobApproval.DecisionDateTime;
                 var elapsedDisplay = elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes} minutes ago"
@@ -47,8 +49,8 @@ else
                     : elapsedTime.TotalHours >= 24 && elapsedTime.TotalHours < 48 ? "yesterday"
                     : $"{(int)elapsedTime.TotalDays} days ago";
 
-                <MudExpansionPanel Class="custom-panel" @key="approval.ModuleJobApproval.Id" Disabled="true"
-                                   HideIcon="true">
+                <MudExpansionPanel Class="custom-panel" @key="approval.ModuleJobApproval.Id" Disabled="@(!hasReason)"
+                                   HideIcon="@(!hasReason)">
                     <TitleContent>
                         <MudGrid>
                             <MudItem md="3">
@@ -82,6 +84,12 @@ else
                         </MudGrid>
                     </TitleContent>
                     <ChildContent>
+                        @if (!string.IsNullOrEmpty(approval.ModuleJobApproval.Reason))
+                        {
+                            <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">
+                                <strong>Reason:</strong> @approval.ModuleJobApproval.Reason
+                            </MudText>
+                        }
                     </ChildContent>
                 </MudExpansionPanel>
             }
@@ -118,10 +126,11 @@ else
     [Inject] private ModuleJobApprovalSecuredRepositoryFactory ModuleJobApprovalRepoFactory { get; set; } = null!;
     [Inject] private OrganizationUserSecuredRepositoryFactory OrganizationUserSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
+    [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
 
     private List<Approval>? _approvals;
     private int _approvalCount;
-    private int _approvalThreshold;
+    private int? _approvalThreshold;
     private bool _isWaitingForApproval;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
@@ -182,7 +191,9 @@ else
 
     private string GetApprovalCountText()
     {
-        return $"{_approvalCount} of {_approvalThreshold} Approvals";
+        return _approvalThreshold is { } t
+            ? $"{_approvalCount} of {t} Approvals"
+            : $"{_approvalCount} Approvals (threshold unknown)";
     }
 
 
@@ -311,7 +322,9 @@ else
             _approvalThreshold = module.DestroyApprovalThreshold ?? module.Namespace.DefaultDestroyApprovalThreshold ?? 0;
         }
         else
-            throw new NotImplementedException($"Not implemented for JobSagaType {JobSagaType}");
+        {
+            _approvalThreshold = null;
+        }
     }
 
     public async Task ReloadApprovals()
@@ -344,32 +357,55 @@ else
                     .Include(x => x.User)
             );
 
+        var agentIds = moduleJobApprovals
+            .Where(x => x.AgentId.HasValue)
+            .Select(x => x.AgentId!.Value)
+            .Distinct()
+            .ToList();
+
+        using var agentRepo = AgentRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        var agents = agentIds.Count == 0
+            ? new List<AgentEntity>()
+            : await agentRepo.List(OrganizationId, x => x.Where(y => agentIds.Contains(y.Id)));
+
         var approvals = new List<Approval>();
 
         foreach (var moduleJobApproval in moduleJobApprovals)
         {
             string principalName;
 
-            switch (moduleJobApproval.PrincipalDiscriminator)
+            if (moduleJobApproval.AgentId is { } agentId)
             {
-                case PrincipalDiscriminator.ServicePrincipal:
+                var agentName = agents.FirstOrDefault(a => a.Id == agentId)?.Name ?? agentId.ToString();
+                var spName = servicePrincipals
+                    .Where(x => x.Id == moduleJobApproval.PrincipalId)
+                    .Select(x => x.ClientId)
+                    .SingleOrDefault() ?? moduleJobApproval.PrincipalId.ToString();
+                principalName = $"Agent \"{agentName}\" operating as ServicePrincipal \"{spName}\"";
+            }
+            else
+            {
+                switch (moduleJobApproval.PrincipalDiscriminator)
                 {
-                    principalName = servicePrincipals
-                        .Where(x => x.Id == moduleJobApproval.PrincipalId)
-                        .Select(x => x.ClientId)
-                        .SingleOrDefault() ?? string.Empty;
-                    break;
+                    case PrincipalDiscriminator.ServicePrincipal:
+                    {
+                        principalName = servicePrincipals
+                            .Where(x => x.Id == moduleJobApproval.PrincipalId)
+                            .Select(x => x.ClientId)
+                            .SingleOrDefault() ?? string.Empty;
+                        break;
+                    }
+                    case PrincipalDiscriminator.User:
+                    {
+                        principalName = users
+                            .Where(x => x.UserId == moduleJobApproval.PrincipalId)
+                            .Select(x => x.User.UserName)
+                            .SingleOrDefault() ?? string.Empty;
+                        break;
+                    }
+                    default:
+                        throw new NotImplementedException($"Not implemented for PrincipalDiscriminator {nameof(moduleJobApproval.PrincipalDiscriminator)}");
                 }
-                case PrincipalDiscriminator.User:
-                {
-                    principalName = users
-                        .Where(x => x.UserId == moduleJobApproval.PrincipalId)
-                        .Select(x => x.User.UserName)
-                        .SingleOrDefault() ?? string.Empty;
-                    break;
-                }
-                default:
-                    throw new NotImplementedException($"Not implemented for PrincipalDiscriminator {nameof(moduleJobApproval.PrincipalDiscriminator)}");
             }
 
             var approval = new Approval

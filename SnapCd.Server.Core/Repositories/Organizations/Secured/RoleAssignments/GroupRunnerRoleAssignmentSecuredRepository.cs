@@ -38,7 +38,7 @@ public class GroupRunnerRoleAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class GroupRunnerRoleAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class GroupRunnerRoleAssignmentSecuredRepository : GenericRunnerChildSecuredRepository<
     GroupRunnerRoleAssignment,
     GroupRunnerRoleAssignmentReadDto,
     GroupRunnerRoleAssignmentRepository,
@@ -56,22 +56,26 @@ public class GroupRunnerRoleAssignmentSecuredRepository : GenericOrganizationChi
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
     };
 
     public async Task<List<GroupRunnerRoleAssignment>> ListByGroup(Guid groupId, Guid organizationId)

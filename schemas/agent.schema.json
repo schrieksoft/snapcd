@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.snapcd.io/schemas/agent/latest/appsettings-schema.json",
+  "title": "SnapCD agent settings",
+  "type": "object",
+  "properties": {
+    "Server": {
+      "type": "object",
+      "properties": {
+        "Url": {
+          "type": "string",
+          "description": "Base URL of the Snap CD Server, including scheme and port. The Agent opens its SignalR connection to {Url}/agenthub, fetches the MCP surface from {Url}/mcp, and obtains JWTs from {Url}/connect/token."
+        }
+      },
+      "description": "Coordinates of the Snap CD Server the Agent connects to. Bound from the Server section of appsettings.json."
+    },
+    "Agent": {
+      "type": "object",
+      "properties": {
+        "OrganizationId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identifier of the Organization this Agent belongs to. Must match the Organization the Agent record below was created in."
+        },
+        "AgentId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identifier of the Agent record on the Server this process binds to. The Service Principal referenced via ClientId / ClientSecret must be the one bound to this Agent record."
+        },
+        "InstanceName": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Name this Agent reports when it connects, used to distinguish replicas when allow_multiple_instances is set on the Agent record. Visible in the Dashboard\u0027s Agents page next to the parent record. When blank, defaults server-side to the Agent record name."
+        },
+        "ClientId": {
+          "type": "string",
+          "description": "The Agent\u0027s Service Principal client identifier. The Agent prefixes this with the Organization ID when calling the token endpoint, so supply only the raw client ID here."
+        },
+        "ClientSecret": {
+          "type": "string",
+          "description": "The Agent\u0027s Service Principal client secret. Sensitive \u2014 production deployments should source this via the External Settings provider rather than committing it to appsettings.json."
+        },
+        "Sidecars": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "Unique name for this Sidecar within the Agent. Matched against the sidecar_name field on Mission resources to route each Mission to the right Sidecar. When sidecar_name is unset on a Mission, the Agent\u0027s single configured Sidecar handles it."
+              },
+              "BaseUrl": {
+                "type": "string",
+                "description": "Base URL of the Sidecar\u0027s HTTP endpoint, e.g. http://claude-sidecar:8080. The Agent posts per-Mission dispatches to {BaseUrl}/invoke and polls {BaseUrl}/health."
+              }
+            },
+            "description": "A single registered Sidecar. The Agent supervises the Sidecar process out-of-band (Docker / Kubernetes / systemd) and communicates with it over localhost HTTP at the URL given here."
+          },
+          "description": "Registered Sidecar processes the Agent supervises and dispatches Missions to. Each entry binds a sidecar name (used as the value of a Mission\u0027s sidecar_name field) to the base URL the Agent posts /invoke calls against. An Agent with no Sidecars connects to the Server but receives no Mission dispatches."
+        }
+      },
+      "description": "Orchestrator configuration, bound from the \u0022Agent\u0022 section of appsettings.json (overridable by appsettings.{Environment}.json and Agent__* environment variables)."
+    },
+    "Logging": {
+      "type": "object",
+      "description": "Standard .NET Logging configuration. See https://learn.microsoft.com/dotnet/core/extensions/logging-configuration for the full reference. Provider-specific sub-blocks (Console, Debug, EventSource, etc.) are accepted but not enumerated here.",
+      "properties": {
+        "LogLevel": {
+          "type": "object",
+          "description": "Map of log category names (or category prefixes) to minimum log levels. \u0027Default\u0027 applies when no more-specific category matches; longer keys override shorter ones (Microsoft.AspNetCore beats Microsoft beats Default).",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "Trace",
+              "Debug",
+              "Information",
+              "Warning",
+              "Error",
+              "Critical",
+              "None"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

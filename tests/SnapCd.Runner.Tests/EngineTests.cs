@@ -12,6 +12,7 @@ using Moq;
 using SnapCd.Contracts;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Settings;
 
@@ -52,6 +53,7 @@ public class EngineTests : IDisposable
             Guid.NewGuid(),
             "EngineTests",
             mockTaskLogger.Object,
+            new NullJobLogStream(),
             metadata
         );
 

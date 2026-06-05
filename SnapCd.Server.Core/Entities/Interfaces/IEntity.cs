@@ -17,9 +17,11 @@ public interface IEntity
     // Audit fields
     public Guid CreatedBy { get; set; }
     public AuditPrincipalDiscriminator CreatedByPrincipalDiscriminator { get; set; }
+    public Guid? CreatedByAgentId { get; set; }
     public DateTime CreatedDateTime { get; set; }
     public Guid ModifiedBy { get; set; }
     public AuditPrincipalDiscriminator ModifiedByPrincipalDiscriminator { get; set; }
+    public Guid? ModifiedByAgentId { get; set; }
     public DateTime ModifiedDateTime { get; set; }
     public Guid Id { get; set; }
     public Guid ParentId();

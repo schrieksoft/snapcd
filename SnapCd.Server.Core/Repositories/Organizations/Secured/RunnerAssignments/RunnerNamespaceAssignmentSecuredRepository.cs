@@ -36,7 +36,7 @@ public class RunnerNamespaceAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class RunnerNamespaceAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class RunnerNamespaceAssignmentSecuredRepository : GenericRunnerChildSecuredRepository<
     RunnerNamespaceAssignment,
     RunnerNamespaceAssignmentReadDto,
     RunnerNamespaceAssignmentRepository,

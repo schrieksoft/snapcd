@@ -10,6 +10,7 @@ namespace SnapCd.Contracts.Constants;
 
 public static class ControllerEndpoints
 {
+    public const string MissionRun = "api/{organizationId}/MissionRun";
     public const string Runner = "api/{organizationId}/Runner";
     public const string Namespace = "api/{organizationId}/Namespace";
     public const string NamespaceInputFromLiteral = "api/{organizationId}/NamespaceInputFromLiteral";
@@ -39,6 +40,9 @@ public static class ControllerEndpoints
     public const string RunnerStackAssignment = "api/{organizationId}/RunnerStackAssignment";
     public const string RunnerNamespaceAssignment = "api/{organizationId}/RunnerNamespaceAssignment";
     public const string RunnerModuleAssignment = "api/{organizationId}/RunnerModuleAssignment";
+    public const string AgentStackAssignment = "api/{organizationId}/AgentStackAssignment";
+    public const string AgentNamespaceAssignment = "api/{organizationId}/AgentNamespaceAssignment";
+    public const string AgentModuleAssignment = "api/{organizationId}/AgentModuleAssignment";
     public const string ModuleExtraFile = "api/{organizationId}/ModuleExtraFile";
     public const string DependsOnModule = "api/{organizationId}/DependsOnModule";
     public const string NamespaceExtraFile = "api/{organizationId}/NamespaceExtraFile";
@@ -57,4 +61,10 @@ public static class ControllerEndpoints
     public const string SourceChangedNotification = "api/{organizationId}/SourceChangedNotification";
     public const string Jobs = "api/{organizationId}/Job";
     public const string SourceRefresherPreselection = "api/{organizationId}/SourceRefresherPreselection";
+    public const string Agent = "api/{organizationId}/Agent";
+    public const string OrganizationMission = "api/{organizationId}/OrganizationMission";
+    public const string StackMission = "api/{organizationId}/StackMission";
+    public const string NamespaceMission = "api/{organizationId}/NamespaceMission";
+    public const string ModuleMission = "api/{organizationId}/ModuleMission";
+    public const string AgentRoleAssignment = "api/{organizationId}/AgentRoleAssignment";
 }

@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.snapcd.io/schemas/runner/latest/appsettings-schema.json",
+  "title": "SnapCD runner settings",
+  "type": "object",
+  "properties": {
+    "Server": {
+      "type": "object",
+      "properties": {
+        "Url": {
+          "type": "string",
+          "description": "Base URL of the Snap CD Server, including scheme and port. The Runner opens its SignalR connection to {Url}/runnerhub and obtains JWTs from {Url}/connect/token."
+        }
+      },
+      "description": "Coordinates of the Snap CD Server the Runner connects to."
+    },
+    "WorkingDirectory": {
+      "type": "object",
+      "properties": {
+        "WorkingDirectory": {
+          "type": "string",
+          "description": "Root directory under which the Runner persists fetched Module source, engine state and per-Job outputs. Must be writable by the Runner process. Typically ~/.snapcd/runner."
+        },
+        "TempDirectory": {
+          "type": "string",
+          "description": "Directory for ephemeral per-Job scratch space. Cleaned between Jobs. Typically ~/.snapcd/runner/.temp."
+        }
+      },
+      "description": "Filesystem locations the Runner uses for fetched Module source and ephemeral state. Both paths support leading ~ expansion to the host user\u0027s home directory."
+    },
+    "Runner": {
+      "type": "object",
+      "properties": {
+        "OrganizationId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identifier of the Organization this Runner belongs to. Must match the Organization the Runner record below was created in."
+        },
+        "Instance": {
+          "type": "string",
+          "description": "Name this Runner reports when it connects, used to distinguish replicas when allow_multiple_instances is set on the Runner record. Visible in the Dashboard\u0027s Runners page next to the parent record."
+        },
+        "Id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identifier of the Runner record on the Server this process binds to."
+        },
+        "Credentials": {
+          "type": "object",
+          "properties": {
+            "ClientId": {
+              "type": "string",
+              "description": "The Service Principal\u0027s client identifier, prefixed with the Organization ID at the token endpoint (the prefix is added automatically by the Runner; supply only the raw client ID here)."
+            },
+            "ClientSecret": {
+              "type": "string",
+              "description": "The Service Principal\u0027s client secret. Sensitive \u2014 production deployments should source this via the External Settings provider rather than committing it to appsettings.json."
+            }
+          },
+          "required": [
+            "ClientId",
+            "ClientSecret"
+          ],
+          "description": "Service Principal credentials the Runner authenticates with. The Service Principal referenced here must be the one bound to the Runner record via service_principal_id."
+        }
+      },
+      "description": "Identity, organisation and credentials that bind this Runner process to a Runner record on the Server. All four fields are required for the Runner to authenticate and connect."
+    },
+    "HooksPreapproval": {
+      "type": "object",
+      "properties": {
+        "Enabled": {
+          "type": "boolean",
+          "description": "Enable or disable hook pre-approval validation. When enabled, all incoming hooks must match a pre-approved hook from the PreapprovedHooksDirectory."
+        },
+        "PreapprovedHooksDirectory": {
+          "type": "string",
+          "description": "Directory containing pre-approved hook scripts. Each file in this directory is considered a pre-approved hook. File names don\u0027t matter - only file content is used for validation."
+        }
+      },
+      "description": "Optional content-based allowlist for Hook scripts the Runner is permitted to execute. When enabled, every Hook a Job tries to run must match (by SHA256) a file in the allowlist directory or it is refused. Intended for security-sensitive deployments where the set of shippable Hooks must be reviewed out-of-band."
+    },
+    "Engine": {
+      "type": "object",
+      "properties": {
+        "AdditionalBinaryPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra directories prepended to the Runner\u0027s binary-search path. Supports leading ~ expansion. Useful when an engine ships in a non-standard location \u2014 for example ~/.pulumi/bin for a per-user Pulumi install."
+        }
+      },
+      "description": "Discovery hints for the engine binaries (terraform, tofu, pulumi) the Runner invokes per Job. The Runner looks for binaries on PATH first; entries here extend that search."
+    },
+    "JobLogStream": {
+      "type": "object",
+      "properties": {
+        "BatchSizeLimit": {
+          "type": "integer",
+          "description": "Maximum number of log events to ship in a single batch. The PeriodicBatchingSink will flush early when this size is reached even before PeriodSeconds elapses.",
+          "default": 50
+        },
+        "PeriodSeconds": {
+          "type": "integer",
+          "description": "Maximum wall-clock interval, in seconds, between batch flushes. A batch ships whenever either BatchSizeLimit or this period is reached.",
+          "default": 5
+        },
+        "EagerlyEmitFirstEvent": {
+          "type": "boolean",
+          "description": "When true, the first event in a fresh batch is emitted immediately rather than waiting for the period or size threshold. Keeps initial job output responsive.",
+          "default": true
+        }
+      },
+      "description": "Tunables for the per-Job log shipping pipeline that streams engine output back to the Server over SignalR. Defaults are sensible for typical workloads; tune BatchSizeLimit and PeriodSeconds together if you need lower per-log latency at the cost of more frequent network round-trips."
+    },
+    "Logging": {
+      "type": "object",
+      "description": "Standard .NET Logging configuration. See https://learn.microsoft.com/dotnet/core/extensions/logging-configuration for the full reference. Provider-specific sub-blocks (Console, Debug, EventSource, etc.) are accepted but not enumerated here.",
+      "properties": {
+        "LogLevel": {
+          "type": "object",
+          "description": "Map of log category names (or category prefixes) to minimum log levels. \u0027Default\u0027 applies when no more-specific category matches; longer keys override shorter ones (Microsoft.AspNetCore beats Microsoft beats Default).",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "Trace",
+              "Debug",
+              "Information",
+              "Warning",
+              "Error",
+              "Critical",
+              "None"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

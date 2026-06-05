@@ -13,6 +13,7 @@ using OpenIddict.Abstractions;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Constants;
+using SnapCd.Server.Core.Misc.Exceptions;
 
 namespace SnapCd.Server.Core.Misc.Utils.Helpers;
 
@@ -62,7 +63,8 @@ public static class ClaimsIdentityExtensions
         this ClaimsIdentity identity,
         IOpenIddictApplicationManager applicationManager,
         object application,
-        SnapCdDbContext dbContext)
+        SnapCdDbContext dbContext,
+        Guid? agentId = null)
     {
         var clientId = await applicationManager.GetClientIdAsync(application);
 
@@ -80,6 +82,24 @@ public static class ClaimsIdentityExtensions
 
         // Add organization claim for ServicePrincipal (single organization)
         identity.SetClaim(ClaimTypeConstants.OrganizationClaimType, servicePrincipal.OrganizationId.ToString());
+
+        // Optional agent identity: when the token request includes a valid agent_id parameter
+        // and that Agent is bound to this ServicePrincipal, emit the agent_id claim so the
+        // caller's calls are attributable to the Agent identity (not just the underlying SP).
+        if (agentId.HasValue)
+        {
+            var agent = await dbContext.Agents.FirstOrDefaultAsync(a =>
+                a.Id == agentId.Value &&
+                a.OrganizationId == servicePrincipal.OrganizationId &&
+                a.ServicePrincipalId == servicePrincipal.Id &&
+                !a.IsDisabled);
+
+            if (agent == null)
+                throw new AgentIdValidationException(
+                    $"agent_id {agentId.Value} does not match an enabled Agent for ServicePrincipal {servicePrincipal.Id}");
+
+            identity.SetClaim("agent_id", agent.Id.ToString());
+        }
 
         return identity;
     }

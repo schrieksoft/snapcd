@@ -14,4 +14,9 @@ public static class MassTransitHelpers
     {
         return $"queue:runner--{serverInstanceId.ToString("N")}--{messageTypeName.ToLower()}";
     }
+
+    public static string GetAgentConsumerEndpoint(Guid serverInstanceId, string messageTypeName)
+    {
+        return $"queue:agent--{serverInstanceId.ToString("N")}--{messageTypeName.ToLower()}";
+    }
 }

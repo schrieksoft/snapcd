@@ -12,6 +12,7 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.GroupMembers;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
@@ -61,6 +62,9 @@ public static class SecuredRepositories
         services.AddScoped<RunnerStackAssignmentSecuredRepository>();
         services.AddScoped<RunnerNamespaceAssignmentSecuredRepository>();
         services.AddScoped<RunnerModuleAssignmentSecuredRepository>();
+        services.AddScoped<AgentStackAssignmentSecuredRepository>();
+        services.AddScoped<AgentNamespaceAssignmentSecuredRepository>();
+        services.AddScoped<AgentModuleAssignmentSecuredRepository>();
         services.AddScoped<StackSecretSecuredRepository>();
         services.AddScoped<NamespaceSecretSecuredRepository>();
         services.AddScoped<ModuleSecretSecuredRepository>();
@@ -111,6 +115,21 @@ public static class SecuredRepositories
         services.AddScoped<GroupNamespaceRoleAssignmentSecuredRepository>();
         services.AddScoped<GroupModuleRoleAssignmentSecuredRepository>();
         services.AddScoped<GroupRunnerRoleAssignmentSecuredRepository>();
+
+        // Agent + AgentConnection: secured Agent + (no secured AgentConnection — internal only)
+        services.AddScoped<AgentSecuredRepository>();
+
+        // Mission family secured (4 scopes)
+        services.AddScoped<OrganizationMissionSecuredRepository>();
+        services.AddScoped<StackMissionSecuredRepository>();
+        services.AddScoped<NamespaceMissionSecuredRepository>();
+        services.AddScoped<ModuleMissionSecuredRepository>();
+
+        // AgentRoleAssignment family secured (TPH base + 3 subclasses)
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base.AgentRoleAssignmentSecuredRepository>();
+        services.AddScoped<UserAgentRoleAssignmentSecuredRepository>();
+        services.AddScoped<ServicePrincipalAgentRoleAssignmentSecuredRepository>();
+        services.AddScoped<GroupAgentRoleAssignmentSecuredRepository>();
 
         return services;
     }

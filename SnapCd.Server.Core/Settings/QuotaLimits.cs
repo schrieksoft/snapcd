@@ -56,6 +56,11 @@ public class QuotaLimits
     public int? RunnerNamespaceAssignmentQuota { get; set; }
     public int? RunnerModuleAssignmentQuota { get; set; }
 
+    // Agent assignments
+    public int? AgentStackAssignmentQuota { get; set; }
+    public int? AgentNamespaceAssignmentQuota { get; set; }
+    public int? AgentModuleAssignmentQuota { get; set; }
+
     // Group members
     public int? UserGroupMemberQuota { get; set; }
     public int? ServicePrincipalGroupMemberQuota { get; set; }
@@ -122,6 +127,17 @@ public class QuotaLimits
     // Runner connections (concurrent runner instances)
     public int? RunnerConnectionQuota { get; set; }
     public int? RunnerConnectionJobQuota { get; set; }
+
+    // Agent + missions + role assignments
+    public int? AgentQuota { get; set; }
+    public int? AgentConnectionQuota { get; set; }
+    public int? OrganizationMissionQuota { get; set; }
+    public int? StackMissionQuota { get; set; }
+    public int? NamespaceMissionQuota { get; set; }
+    public int? ModuleMissionQuota { get; set; }
+    public int? UserAgentRoleAssignmentQuota { get; set; }
+    public int? ServicePrincipalAgentRoleAssignmentQuota { get; set; }
+    public int? GroupAgentRoleAssignmentQuota { get; set; }
 
     /// <summary>
     /// Get a specific quota by name using reflection.

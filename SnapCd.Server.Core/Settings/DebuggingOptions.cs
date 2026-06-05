@@ -8,6 +8,11 @@
 
 namespace SnapCd.Server.Core.Settings;
 
+/// <summary>
+/// Debugger-only escape hatches. Never set the flags here to <c>true</c> in any deployment that
+/// is not a developer's local workstation — they are documented in the schema so operators can
+/// see they exist, not because any production deployment should ever use them.
+/// </summary>
 public class DebuggingOptions
 {
     /// <summary>

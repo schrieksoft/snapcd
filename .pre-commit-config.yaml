@@ -14,3 +14,33 @@ repos:
             | .*\.generated\.cs
             | .*GlobalUsings\.g\.cs
           )$
+      - id: mcp-surface
+        name: MCP generated surface is up-to-date
+        entry: scripts/check-mcp-surface.sh
+        language: system
+        pass_filenames: false
+        # Only run when something that could affect the generated output changes:
+        # controller annotations, Mcp attribute definitions, the emitter itself, or csprojs.
+        files: |
+          (?x)^(
+              SnapCd\.Server\.Core/Controllers/.*\.cs
+            | SnapCd\.Contracts/Mcp/.*\.cs
+            | generators/SnapCd\.Mcp\.Generator/.*\.(cs|csproj)
+            | SnapCd\.Server\.Core/AI/Mcp/Generated/.*\.cs
+          )$
+      - id: settings-schemas
+        name: Settings schemas are up-to-date
+        entry: scripts/check-settings-schemas.sh
+        language: system
+        pass_filenames: false
+        # Run when any settings POCO, generator source, shared emitter, or committed schema
+        # file changes — anything that could affect the per-component schema output.
+        files: |
+          (?x)^(
+              SnapCd\.Runner/Settings/.*\.cs
+            | SnapCd\.Agent/Configuration/.*\.cs
+            | SnapCd\.Server\.Core/Settings/.*\.cs
+            | SnapCd\.Utils/Settings/.*\.cs
+            | generators/SnapCd\.Settings\.Generator\..+/.*\.(cs|csproj)
+            | schemas/.*\.schema\.json
+          )$

@@ -67,6 +67,58 @@ coverage.cobertura.xml
 *-debug
 
 ##############################################################################
+# Python
+##############################################################################
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+sdist/
+*.egg-info/
+.eggs/
+*.egg
+wheels/
+share/python-wheels/
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pyre/
+.pytype/
+.tox/
+.nox/
+.hypothesis/
+cython_debug/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+
+# Installers / packaging
+pip-log.txt
+pip-delete-this-directory.txt
+*.manifest
+*.spec
+
+##############################################################################
 # App secrets / local config
 ##############################################################################
 appsettings.dev.json
@@ -122,8 +174,6 @@ terraform.rc
 ##############################################################################
 # Misc
 ##############################################################################
-*.pyc
-
 # Prevent contributors from committing any local AI coding assistant rules
 .claude/
 CLAUDE.md

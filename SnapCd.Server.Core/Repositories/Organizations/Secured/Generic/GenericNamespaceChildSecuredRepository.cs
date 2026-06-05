@@ -60,28 +60,28 @@ public abstract class
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
         StackRoles = [StackRole.Owner, StackRole.Contributor],
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor]
     };

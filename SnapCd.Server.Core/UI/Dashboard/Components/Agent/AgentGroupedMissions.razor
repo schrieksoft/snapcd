@@ -1,0 +1,77 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@typeparam TRow
+
+@foreach (var group in Rows
+    .GroupBy(AgentIdSelector)
+    .OrderBy(g => AgentNameLookup(g.Key), StringComparer.OrdinalIgnoreCase))
+{
+    <div class="mb-3">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
+            <MudText Typo="Typo.body1"><strong>Agent: @AgentNameLookup(group.Key)</strong></MudText>
+            <AgentOnlineBadge AgentId="group.Key" OrganizationId="OrganizationId" />
+            @if (Scope == AgentAssignmentBadge.AssignmentScope.Organization)
+            {
+                <AgentAssignmentBadge AgentId="group.Key" OrganizationId="OrganizationId"
+                                      Scope="AgentAssignmentBadge.AssignmentScope.Organization" />
+            }
+            else if (ScopeId is { } sid)
+            {
+                <AgentAssignmentBadge AgentId="group.Key" OrganizationId="OrganizationId"
+                                      Scope="Scope" ScopeId="sid" />
+            }
+        </div>
+        <MudTable Items="group.OrderBy(MissionTypeSelector).ToList()" Dense="true" Hover="true">
+            <HeaderContent>
+                <MudTh>Mission Type</MudTh>
+                <MudTh>Sidecar</MudTh>
+                <MudTh>Disabled</MudTh>
+                @if (OnEdit.HasDelegate || OnDelete.HasDelegate)
+                {
+                    <MudTh></MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@MissionTypeSelector(context)</MudTd>
+                <MudTd>@(SidecarNameSelector?.Invoke(context) ?? string.Empty)</MudTd>
+                <MudTd>@(IsDisabledSelector(context) ? "yes" : "no")</MudTd>
+                @if (OnEdit.HasDelegate || OnDelete.HasDelegate)
+                {
+                    <MudTd>
+                        @if (OnEdit.HasDelegate)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           OnClick="@(() => OnEdit.InvokeAsync(context))"/>
+                        }
+                        @if (OnDelete.HasDelegate)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => OnDelete.InvokeAsync(context))"/>
+                        }
+                    </MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IEnumerable<TRow> Rows { get; set; } = Array.Empty<TRow>();
+    [Parameter, EditorRequired] public Func<TRow, Guid> AgentIdSelector { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<TRow, string> MissionTypeSelector { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<TRow, bool> IsDisabledSelector { get; set; } = null!;
+    [Parameter] public Func<TRow, string?>? SidecarNameSelector { get; set; }
+    [Parameter, EditorRequired] public Func<Guid, string> AgentNameLookup { get; set; } = null!;
+    [Parameter, EditorRequired] public Guid OrganizationId { get; set; }
+    [Parameter, EditorRequired] public AgentAssignmentBadge.AssignmentScope Scope { get; set; }
+    /// <summary>Required for Stack/Namespace/Module scopes; ignored for Organization scope.</summary>
+    [Parameter] public Guid? ScopeId { get; set; }
+    [Parameter] public EventCallback<TRow> OnEdit { get; set; }
+    [Parameter] public EventCallback<TRow> OnDelete { get; set; }
+}

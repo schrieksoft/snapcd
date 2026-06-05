@@ -8,7 +8,14 @@
 
 namespace SnapCd.Runner.Settings;
 
+/// <summary>
+/// Coordinates of the Snap CD Server the Runner connects to.
+/// </summary>
 public class ServerSettings
 {
+    /// <summary>
+    /// Base URL of the Snap CD Server, including scheme and port. The Runner opens its SignalR
+    /// connection to {Url}/runnerhub and obtains JWTs from {Url}/connect/token.
+    /// </summary>
     public string Url { get; set; } = string.Empty;
 }

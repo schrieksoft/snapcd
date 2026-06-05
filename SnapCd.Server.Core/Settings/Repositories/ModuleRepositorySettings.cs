@@ -10,10 +10,17 @@ using SnapCd.Server.Core.Settings.Interfaces;
 
 namespace SnapCd.Server.Core.Settings.Repositories;
 
+/// <summary>
+/// Per-Module repository tuning. Almost always left at defaults — operators override only when they need to opt out of bus events or change the event TTL for the Module entity specifically.
+/// </summary>
 public class ModuleRepositorySettings : IEntitySettings
 {
+    /// <summary>When true (default), publish a CreatedEvent on the bus when a Module is created.</summary>
     public bool EmitCreateEvents { get; set; } = true;
+    /// <summary>When true (default), publish an UpdatedEvent on the bus when a Module is updated.</summary>
     public bool EmitUpdateEvents { get; set; } = true;
+    /// <summary>When true (default), publish a DeletedEvent on the bus when a Module is deleted.</summary>
     public bool EmitDeleteEvents { get; set; } = true;
+    /// <summary>Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities whose downstream consumers might be offline long enough to miss the default window.</summary>
     public TimeSpan EventTtl { get; set; } = TimeSpan.FromMinutes(30);
 }

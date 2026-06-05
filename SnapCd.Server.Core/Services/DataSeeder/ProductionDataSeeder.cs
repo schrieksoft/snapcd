@@ -14,6 +14,7 @@ using OpenIddict.Abstractions;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
 using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
@@ -295,13 +296,19 @@ public class ProductionDataSeeder : IDataSeeder
         }
     }
 
-    private async Task SeedPreseededEntities(AsyncServiceScope asyncServiceScope)
+    protected virtual async Task SeedPreseededEntities(AsyncServiceScope asyncServiceScope)
     {
         var preseeded = _settings.Preseeded;
         // Organization is already created unconditionally in SeedAsync.
         var organizationId = preseeded.Organization.Id ?? PreseededSettings.DefaultId;
 
-        // 1. User (linked to organization, given Owner role, optionally SystemAdmin)
+        await SeedPreseededUserAsync(asyncServiceScope, preseeded, organizationId);
+        await SeedPreseededRunnerAsync(asyncServiceScope, preseeded, organizationId);
+        await SeedPreseededAgentAsync(asyncServiceScope, preseeded, organizationId);
+    }
+
+    protected virtual async Task SeedPreseededUserAsync(AsyncServiceScope asyncServiceScope, PreseededSettings preseeded, Guid organizationId)
+    {
         var userToSeed = new UserToPreseed
         {
             Id = preseeded.User.Id,
@@ -313,14 +320,16 @@ public class ProductionDataSeeder : IDataSeeder
 
         var userManager = asyncServiceScope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var user = await userManager.FindByNameAsync(preseeded.User.Email);
-        if (user != null)
-        {
-            await SyncOrganizationRoles(user.Id, organizationId, [OrganizationRole.Owner]);
-            if (preseeded.User.IsSystemAdministrator)
-                await GrantSystemAdminRole(user.Id);
-        }
+        if (user is null)
+            return;
 
-        // 3. Runner — service principal + runner (scoped, not assigned to all modules)
+        await SyncOrganizationRoles(user.Id, organizationId, [OrganizationRole.Owner]);
+        if (preseeded.User.IsSystemAdministrator)
+            await GrantSystemAdminRole(user.Id);
+    }
+
+    protected virtual async Task SeedPreseededRunnerAsync(AsyncServiceScope asyncServiceScope, PreseededSettings preseeded, Guid organizationId)
+    {
         var spId = preseeded.Runner.ServicePrincipalId ?? Guid.NewGuid();
         await CreateOrUpdateApplication(new ServicePrincipalToSeed
         {
@@ -341,13 +350,93 @@ public class ProductionDataSeeder : IDataSeeder
         var runnerId = preseeded.Runner.Id ?? Guid.NewGuid();
         await CreatePreseededRunner(runnerId, preseeded.Runner.Name, organizationId, spId);
 
-        // 4. Stack + StackSecret + assign the runner to this stack
         var stackId = preseeded.Stack.Id ?? Guid.NewGuid();
         await CreatePreseededStack(stackId, preseeded.Stack.Name, organizationId);
         await AssignRunnerToStack(runnerId, stackId, organizationId);
         var secretId = preseeded.Stack.SampleSecretId ?? Guid.NewGuid();
         await CreatePreseededStackSecret(
             asyncServiceScope, secretId, preseeded.Stack.SampleSecretName, preseeded.Stack.SampleSecretValue, stackId, organizationId);
+    }
+
+    protected virtual async Task SeedPreseededAgentAsync(AsyncServiceScope asyncServiceScope, PreseededSettings preseeded, Guid organizationId)
+    {
+        // Agent's Service Principal is distinct from the Runner's (they share the ServicePrincipals
+        // primary key space, so they can't reuse the same id). The SnapCd.Agent orchestrator connects
+        // as this Agent.
+        var agentSpId = preseeded.Agent.ServicePrincipalId ?? Guid.NewGuid();
+        await CreateOrUpdateApplication(new ServicePrincipalToSeed
+        {
+            Id = agentSpId,
+            ClientId = preseeded.Agent.ServicePrincipalClientId,
+            ClientSecret = preseeded.Agent.ServicePrincipalClientSecret,
+            ClientType = "confidential",
+            DisplayName = preseeded.Agent.ServicePrincipalClientId,
+            Scopes = ["snapcd_scope"],
+            ConsentType = null,
+            LoginRedirectUri = null,
+            LogoutRedirectUri = null,
+            OrganizationId = organizationId,
+            IsServicePrincipal = true
+        });
+        await SyncServicePrincipalOrganizationRoles(agentSpId, organizationId, [OrganizationRole.Owner]);
+
+        var agentId = preseeded.Agent.Id ?? Guid.NewGuid();
+        await CreatePreseededAgent(agentId, preseeded.Agent.Name, organizationId, agentSpId);
+        await CreatePreseededOrganizationMissions(agentId, organizationId, preseeded.Agent.Missions);
+    }
+
+    protected async Task CreatePreseededAgent(Guid agentId, string name, Guid organizationId, Guid servicePrincipalId)
+    {
+        var existing = await _dbContext.Agents.FirstOrDefaultAsync(a => a.Id == agentId);
+        if (existing != null)
+        {
+            existing.Name = name;
+            existing.ServicePrincipalId = servicePrincipalId;
+            // Single-instance default so the orchestrator can connect without supplying an instance name.
+            existing.AllowMultipleInstances = false;
+            existing.IsAssignedToAllModules = true;
+            existing.IsDisabled = false;
+        }
+        else
+        {
+            _dbContext.Agents.Add(new Agent
+            {
+                Id = agentId,
+                OrganizationId = organizationId,
+                ServicePrincipalId = servicePrincipalId,
+                Name = name,
+                AllowMultipleInstances = false,
+                IsAssignedToAllModules = true,
+                IsDisabled = false
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    protected async Task CreatePreseededOrganizationMissions(Guid agentId, Guid organizationId, List<string> missionTypeNames)
+    {
+        foreach (var missionTypeName in missionTypeNames)
+        {
+            if (!Enum.TryParse<MissionType>(missionTypeName, ignoreCase: true, out var missionType))
+                continue;
+
+            var existing = await _dbContext.OrganizationMissions.FirstOrDefaultAsync(m =>
+                m.AgentId == agentId && m.OrganizationId == organizationId && m.MissionType == missionType);
+            if (existing != null)
+                continue;
+
+            _dbContext.OrganizationMissions.Add(new OrganizationMission
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                AgentId = agentId,
+                MissionType = missionType,
+                IsDisabled = false
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
     }
 
     protected async Task CreatePreseededRunner(Guid runnerId, string name, Guid organizationId, Guid servicePrincipalId)

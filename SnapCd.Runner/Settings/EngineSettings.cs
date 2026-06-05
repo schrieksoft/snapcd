@@ -10,10 +10,20 @@ using SnapCd.Runner.Utils;
 
 namespace SnapCd.Runner.Settings;
 
+/// <summary>
+/// Discovery hints for the engine binaries (terraform, tofu, pulumi) the
+/// Runner invokes per Job. The Runner looks for binaries on PATH first; entries here
+/// extend that search.
+/// </summary>
 public class EngineSettings
 {
     private List<string> _additionalBinaryPaths = new();
 
+    /// <summary>
+    /// Extra directories prepended to the Runner's binary-search path. Supports leading ~
+    /// expansion. Useful when an engine ships in a non-standard location — for example
+    /// ~/.pulumi/bin for a per-user Pulumi install.
+    /// </summary>
     public List<string> AdditionalBinaryPaths
     {
         get => _additionalBinaryPaths;

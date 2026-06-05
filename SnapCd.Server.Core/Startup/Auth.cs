@@ -26,9 +26,12 @@ namespace SnapCd.Server.Core.Startup;
 
 public static class Auth
 {
+    public const string BearerAuthLogCategory = "SnapCd.Authentication.Bearer";
+
     public static IServiceCollection AddSnapCdAuthConfiguration(this IServiceCollection services, ConfigurationManager configuration, bool allowHttp)
     {
-        var externalLoginProviderSettings = configuration.GetSection("OpenIdConnect:ExternalLoginProviders").Get<ExternalLoginProviderSettings>() ?? new ExternalLoginProviderSettings();
+        var openIdConnectSettings = configuration.GetSection("OpenIdConnect").Get<OpenIdConnectSettings>() ?? new OpenIdConnectSettings();
+        var externalLoginProviderSettings = openIdConnectSettings.ExternalLoginProviders;
 
         // EE: only register SSO providers if the organization has a valid EE license
         var ssoEnabled = SsoGatingService.ShouldEnableSsoAsync(services.BuildServiceProvider()).GetAwaiter().GetResult();
@@ -43,17 +46,18 @@ public static class Auth
                                               externalLoginProviderSettings.Google.Enabled ||
                                               externalLoginProviderSettings.GitHub.Enabled;
 
-        var symmetricKeyString = configuration["OpenIdConnect:TokenEncryption:SymmetricKey"] ??
-                                 throw new Exception("No value found for setting 'OpenIdConnect:TokenEncryption:SymmetricKey'. Snap CD Server requires a valid symmetric key here.");
+        if (string.IsNullOrEmpty(openIdConnectSettings.TokenEncryption.SymmetricKey))
+            throw new Exception("No value found for setting 'OpenIdConnect:TokenEncryption:SymmetricKey'. Snap CD Server requires a valid symmetric key here.");
+
+        var symmetricKeyString = openIdConnectSettings.TokenEncryption.SymmetricKey;
 
         services.Configure<SecurityKeySettings>(c =>
         {
             var rsaPrivateKey = RSA.Create();
-            rsaPrivateKey.ImportFromPem(configuration["OpenIdConnect:TokenSigning:RsaPrivateKey"]);
+            rsaPrivateKey.ImportFromPem(openIdConnectSettings.TokenSigning.RsaPrivateKey);
 
             var rsaPublicKey = RSA.Create();
-            rsaPublicKey.ImportFromPem(configuration["OpenIdConnect:TokenSigning:RsaPublicKey"]);
-            //publicKey.ImportFromPem(privateKey.ExportRSAPublicKeyPem());
+            rsaPublicKey.ImportFromPem(openIdConnectSettings.TokenSigning.RsaPublicKey);
 
             var symmetricKey = Convert.FromBase64String(SymmetricKeyUtils.ExtractBase64FromPem(symmetricKeyString));
 
@@ -94,10 +98,38 @@ public static class Auth
                         var accessToken = context.Request.Query["access_token"];
                         var path = context.HttpContext.Request.Path;
 
-                        if (!string.IsNullOrEmpty(accessToken) &&
-                            path.StartsWithSegments("/runnerhub"))
+                        var isHubPath = path.StartsWithSegments("/runnerhub") || path.StartsWithSegments("/agenthub");
+                        if (!string.IsNullOrEmpty(accessToken) && isHubPath)
                             context.Token = accessToken;
 
+                        if (isHubPath)
+                        {
+                            var logger = context.HttpContext.RequestServices
+                                .GetRequiredService<ILoggerFactory>().CreateLogger(BearerAuthLogCategory);
+                            logger.LogDebug(
+                                "Hub bearer auth on {Path}: authHeader={HasAuthHeader} queryToken={HasQueryToken}",
+                                path,
+                                context.Request.Headers.ContainsKey("Authorization"),
+                                !string.IsNullOrEmpty(accessToken));
+                        }
+
+                        return Task.CompletedTask;
+                    },
+                    OnAuthenticationFailed = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>().CreateLogger(BearerAuthLogCategory);
+                        logger.LogWarning(context.Exception,
+                            "Bearer authentication failed for {Path}", context.HttpContext.Request.Path);
+                        return Task.CompletedTask;
+                    },
+                    OnChallenge = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>().CreateLogger(BearerAuthLogCategory);
+                        logger.LogDebug(
+                            "Bearer challenge for {Path}: error={Error} description={Description}",
+                            context.HttpContext.Request.Path, context.Error, context.ErrorDescription);
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = async context =>

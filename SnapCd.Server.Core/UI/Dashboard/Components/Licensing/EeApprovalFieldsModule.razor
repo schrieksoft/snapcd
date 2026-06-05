@@ -8,7 +8,7 @@
 
 @using SnapCd.Server.Core.Licensing.Models
 @using SnapCd.Server.Core.Licensing.Services
-@inject LicenseService LicenseService
+@inject ILicenseInfoProvider LicenseInfoProvider
 
 @if (_disabled)
 {
@@ -59,7 +59,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var licenseInfo = await LicenseService.GetLicenseInfoAsync(OrganizationId);
+        var licenseInfo = await LicenseInfoProvider.GetLicenseInfoAsync(OrganizationId);
         _disabled = !licenseInfo.Includes(Feature.ApprovalWorkflows);
     }
 }

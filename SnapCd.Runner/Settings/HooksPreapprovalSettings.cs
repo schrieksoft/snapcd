@@ -10,6 +10,12 @@ using SnapCd.Runner.Utils;
 
 namespace SnapCd.Runner.Settings;
 
+/// <summary>
+/// Optional content-based allowlist for Hook scripts the Runner is permitted to execute. When
+/// enabled, every Hook a Job tries to run must match (by SHA256) a file in the allowlist
+/// directory or it is refused. Intended for security-sensitive deployments where the set of
+/// shippable Hooks must be reviewed out-of-band.
+/// </summary>
 public class HooksPreapprovalSettings
 {
     private string _preapprovedHooksDirectory = string.Empty;

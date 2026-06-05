@@ -8,8 +8,24 @@
 
 namespace SnapCd.Server.Core.Settings;
 
+/// <summary>
+/// Settings describing the Server's own runtime identity — its public URL and the unique
+/// per-process instance ID used to disambiguate replicas on the message bus.
+/// </summary>
 public class ServerSettings
 {
+    /// <summary>
+    /// Public base URL of the Server (scheme + host + optional port), used for token issuance
+    /// (set as the OpenIddict issuer claim), email link generation, and self-referential redirects.
+    /// Required. Must be reachable from Runners, Agents and the Dashboard.
+    /// </summary>
     public required string Host { get; set; }
+
+    /// <summary>
+    /// Unique identifier for this Server process. Generated automatically at startup (a fresh GUID
+    /// per process) by the predefined configuration provider — operators should not set this in
+    /// appsettings.json. Used to distinguish per-process MassTransit consumer endpoints when
+    /// multiple Server replicas share one bus.
+    /// </summary>
     public Guid InstanceId { get; set; }
 }

@@ -1,0 +1,698 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/AgentHarness"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+@using System.Text.Json
+@using MassTransit
+@using Markdig
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Hosting
+@using SnapCd.Contracts.Dto.Misc
+@using SnapCd.Server.Core.Entities.Sagas
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Events.Jobs.Module
+@using SnapCd.Server.Core.Events.Missions
+@using SnapCd.Server.Core.Filters
+@using SnapCd.Server.Core.Misc.Helpers
+@using SnapCd.Server.Core.Services.Ai.Missions
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.OrganizationContext
+
+@inject IDbContextFactory<SnapCdDbContext> DbContextFactory
+@inject IBus Bus
+@inject MissionDispatcher Dispatcher
+@inject IOrganizationContext OrganizationContext
+@inject IHostEnvironment HostEnvironment
+@inject AgentAvailabilityModifiedNotificationService AvailabilityNotifications
+@inject ISnackbar Snackbar
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
+
+<PageTitle>Agent harness</PageTitle>
+
+<style>
+    .agent-markdown { font-size: 13px; line-height: 1.5; }
+    .agent-markdown h1, .agent-markdown h2, .agent-markdown h3, .agent-markdown h4 {
+        margin: 12px 0 6px 0; line-height: 1.25; font-weight: 600;
+    }
+    .agent-markdown h1 { font-size: 18px; }
+    .agent-markdown h2 { font-size: 16px; }
+    .agent-markdown h3 { font-size: 14px; }
+    .agent-markdown h4 { font-size: 13px; }
+    .agent-markdown p { margin: 6px 0; }
+    .agent-markdown ul, .agent-markdown ol { margin: 6px 0 6px 20px; padding: 0; }
+    .agent-markdown li { margin: 2px 0; }
+    .agent-markdown code {
+        background-color: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 3px;
+        font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+    }
+    .agent-markdown pre {
+        background-color: rgba(0,0,0,0.06); padding: 8px 10px; border-radius: 4px;
+        font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+        overflow-x: auto; margin: 8px 0;
+    }
+    .agent-markdown pre code { background: none; padding: 0; }
+    .agent-markdown blockquote {
+        border-left: 3px solid rgba(0,0,0,0.2); padding-left: 10px; margin: 8px 0;
+        color: rgba(0,0,0,0.7);
+    }
+    .agent-markdown table { border-collapse: collapse; margin: 8px 0; }
+    .agent-markdown th, .agent-markdown td {
+        border: 1px solid rgba(0,0,0,0.15); padding: 4px 8px; font-size: 12px;
+    }
+    .agent-markdown th { background-color: rgba(0,0,0,0.05); font-weight: 600; }
+</style>
+
+<MudGrid Class="mb-2" AlignItems="Center.Center">
+    <MudItem>
+        <MudText Typo="Typo.h4">Agent harness (dev)</MudText>
+    </MudItem>
+    <MudItem>
+        <MudChip T="string" Variant="Variant.Outlined">
+            <MudIcon Icon="@(_connectedAgents > 0 ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Class="mr-1" />
+            @_connectedAgents agent@(_connectedAgents == 1 ? "" : "s") connected
+        </MudChip>
+    </MudItem>
+</MudGrid>
+
+@if (!HostEnvironment.IsDevelopment())
+{
+    <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Lock" Class="mr-2" />
+        Agent harness is only available when the host runs in the Development environment.
+    </MudAlert>
+}
+else
+{
+    <MudText Class="mb-4">
+        Short-circuit a failed Plan: insert a synthetic <code>ModuleJob</code> with a canned terraform
+        error and publish <code>ApplyModuleFailed</code>. The agent mission dispatch (Phase 14) kicks
+        in normally — runs appear below as they progress.
+        <strong>No runner is involved; no <code>ApplyJobSaga</code> is started.</strong>
+    </MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true">Trigger a failed job</MudText>
+
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                        <MudText Typo="Typo.body2">
+                            Target: <code>debug</code> / <code>debug</code> / <code>debug</code> —
+                            the stack / namespace / module seeded by <code>DebugDataSeeder</code>.
+                            Triggering creates a synthetic <code>ModuleJob</code> against this module so
+                            results are reproducible across runs.
+                        </MudText>
+                        @if (_debugModuleExists is false)
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" />
+                                The debug module isn't seeded in this org. Restart the server in Development
+                                so <code>DebugDataSeeder</code> runs.
+                            </MudText>
+                        }
+                    </MudAlert>
+
+                    <MudSelect T="TriggerType" Value="_selectedTriggerType" ValueChanged="OnTriggerTypeChanged"
+                               Label="Trigger" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem T="TriggerType" Value="TriggerType.ApplyFailed">Apply failed (→ AutoDiagnose)</MudSelectItem>
+                        <MudSelectItem T="TriggerType" Value="TriggerType.ApplyDeclined">Apply declined (→ AutoDiagnose)</MudSelectItem>
+                        <MudSelectItem T="TriggerType" Value="TriggerType.ApplySucceeded">Apply succeeded (→ SummarizeJob)</MudSelectItem>
+                        <MudSelectItem T="TriggerType" Value="TriggerType.AwaitingApproval">Awaiting approval (→ ApprovalRecommend)</MudSelectItem>
+                    </MudSelect>
+
+                    <MudSelect T="int" @bind-Value="_selectedScenarioIndex" Label="Scenario" Variant="Variant.Outlined" Class="mb-3">
+                        @for (var i = 0; i < CurrentScenarios.Length; i++)
+                        {
+                            var idx = i;
+                            <MudSelectItem T="int" Value="@idx">@CurrentScenarios[idx].Title</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudExpansionPanels Class="mb-3">
+                        <MudExpansionPanel Text="Preview scenario">
+                            <MudText Typo="Typo.subtitle2">@CurrentScenarios[_selectedScenarioIndex].Header</MudText>
+                            <pre style="white-space: pre-wrap; font-size: 11px; max-height: 200px; overflow: auto;">@AgentHarnessScenarios.Preview(CurrentScenarios[_selectedScenarioIndex])</pre>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+
+                    <MudButton Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;"
+                               Disabled="_debugModuleExists is not true || _triggering"
+                               OnClick="TriggerJob">
+                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-2" />
+                        Trigger
+                    </MudButton>
+
+                    @if (_lastTriggeredJobId is not null)
+                    {
+                        <MudText Class="mt-3" Typo="Typo.caption">
+                            Last trigger: job <code>@_lastTriggeredJobId</code>
+                        </MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true">
+                        Recent runs
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="RefreshRunsAsync" />
+                    </MudText>
+
+                    @if (_recentRuns.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2">No runs yet. Trigger one on the left.</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var run in _recentRuns)
+                        {
+                            <MudPaper Class="pa-3 mb-3" Outlined="true">
+                                <!-- Header: status + mission type + ids -->
+                                <div class="d-flex align-center mb-2" style="gap: 8px;">
+                                    <MudIcon Icon="@StatusIcon(run.Status)" Size="Size.Medium" />
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600; margin: 0;">
+                                        @run.MissionType
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Style="opacity: 0.8;">@run.Status</MudText>
+                                    <MudSpacer />
+                                    <MudText Typo="Typo.caption" Style="opacity: 0.7;">
+                                        run <code>@(run.Id.ToString().Substring(0, 8))</code>
+                                        · job <code>@(run.ModuleJobId.ToString().Substring(0, 8))</code>
+                                    </MudText>
+                                </div>
+
+                                <!-- Metadata chips -->
+                                <div class="d-flex flex-wrap mb-2" style="gap: 6px;">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                        <MudIcon Icon="@Icons.Material.Filled.Repeat" Size="Size.Small" Class="mr-1" />
+                                        attempt @run.AttemptNumber
+                                    </MudChip>
+                                    @if (run.DurationSeconds is { } secs)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                            <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="mr-1" />
+                                            @secs.ToString("0.0")s
+                                        </MudChip>
+                                    }
+                                    @if (TokensTotal(run.TokensJson) is { } toks)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                            <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" Class="mr-1" />
+                                            @toks.ToString("N0") tokens
+                                        </MudChip>
+                                    }
+                                    @if (ToolCallsCount(run.ToolCallsJson) is { } tc)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                            <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Class="mr-1" />
+                                            @tc tool call@(tc == 1 ? "" : "s")
+                                        </MudChip>
+                                    }
+                                    @if (run.DiagnosisCategory is { } dc)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                            <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" Class="mr-1" />
+                                            @dc
+                                        </MudChip>
+                                    }
+                                </div>
+
+                                <!-- Timing -->
+                                <MudText Typo="Typo.caption" Class="mb-2" Style="opacity: 0.7; display: block;">
+                                    deadline @TimeRelative(run.DeadlineAt)
+                                    · last event @TimeRelative(run.LastEventAt)
+                                    · started @TimeRelative(run.StartedAt)
+                                    · completed @TimeRelative(run.CompletedAt)
+                                </MudText>
+
+                                <!-- Error (callout) -->
+                                @if (!string.IsNullOrEmpty(run.Error))
+                                {
+                                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-2" Dense="true">
+                                        <MudText Typo="Typo.body2">@run.Error</MudText>
+                                    </MudAlert>
+                                }
+
+                                <!-- Diagnosis: rendered markdown -->
+                                @if (!string.IsNullOrEmpty(run.ResultSummary))
+                                {
+                                    <MudPaper Class="pa-3 mb-2" Elevation="0"
+                                              Style="background-color: rgba(0,0,0,0.03); border-left: 3px solid #000;">
+                                        <MudText Typo="Typo.overline" Class="mb-1" Style="opacity: 0.7;">Diagnosis</MudText>
+                                        <div class="agent-markdown">@RenderMarkdown(run.ResultSummary)</div>
+                                    </MudPaper>
+                                }
+
+                                <!-- Detail panels -->
+                                <MudExpansionPanels Dense="true" Class="mb-2">
+                                    @if (!string.IsNullOrEmpty(run.Logs))
+                                    {
+                                        <MudExpansionPanel Text="@($"Logs ({run.Logs.Length:N0} chars · showing tail)")">
+                                            <pre style="white-space: pre-wrap; font-size: 11px; max-height: 240px; overflow: auto; margin: 0; font-family: ui-monospace, Menlo, monospace;">@TailLogs(run.Logs)</pre>
+                                        </MudExpansionPanel>
+                                    }
+                                    @if (!string.IsNullOrEmpty(run.ToolCallsJson))
+                                    {
+                                        <MudExpansionPanel Text="Tool calls">
+                                            <pre style="white-space: pre-wrap; font-size: 11px; max-height: 320px; overflow: auto; margin: 0; font-family: ui-monospace, Menlo, monospace;">@PrettyJson(run.ToolCallsJson)</pre>
+                                        </MudExpansionPanel>
+                                    }
+                                    @if (!string.IsNullOrEmpty(run.TokensJson))
+                                    {
+                                        <MudExpansionPanel Text="Token usage">
+                                            <pre style="white-space: pre-wrap; font-size: 11px; max-height: 200px; overflow: auto; margin: 0; font-family: ui-monospace, Menlo, monospace;">@PrettyJson(run.TokensJson)</pre>
+                                        </MudExpansionPanel>
+                                    }
+                                </MudExpansionPanels>
+
+                                <!-- Actions -->
+                                <div>
+                                    @if (IsActive(run))
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                                   Style="background-color: #000; color: #fff;"
+                                                   OnClick="@(() => CancelRun(run))" Class="mr-1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Stop" Class="mr-1" />
+                                            Cancel
+                                        </MudButton>
+                                    }
+                                    else
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                                   Style="background-color: #000; color: #fff;"
+                                                   OnClick="@(() => RerunMission(run.ModuleJobMissionId))" Class="mr-1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Replay" Class="mr-1" />
+                                            Rerun
+                                        </MudButton>
+                                    }
+                                </div>
+                            </MudPaper>
+                        }
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private const int LogTailChars = 4000;
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
+
+    // The harness runs exclusively against the debug stack/namespace/module seeded by DebugDataSeeder.
+    // The id is the well-known DebugEntityId (DebugDataSeeder.cs:28); the names are all "debug".
+    private static readonly Guid DebugModuleId = new("99999999-9999-9999-9999-999999999999");
+    private const string DebugModuleName = "debug";
+
+    private List<ModuleJobMissionRun> _recentRuns = new();
+    private bool? _debugModuleExists;
+    private TriggerType _selectedTriggerType = TriggerType.ApplyFailed;
+    private int _selectedScenarioIndex;
+    private Guid? _lastTriggeredJobId;
+    private bool _triggering;
+    private Timer? _pollTimer;
+    private int _connectedAgents;
+    private Func<Guid, string, Task>? _availabilityHandler;
+
+    private AgentHarnessScenarios.Scenario[] CurrentScenarios => _selectedTriggerType switch
+    {
+        TriggerType.ApplyFailed => AgentHarnessScenarios.Failed,
+        TriggerType.ApplyDeclined => AgentHarnessScenarios.Declined,
+        TriggerType.ApplySucceeded => AgentHarnessScenarios.Succeeded,
+        TriggerType.AwaitingApproval => AgentHarnessScenarios.AwaitingApproval,
+        _ => AgentHarnessScenarios.Failed
+    };
+
+    private void OnTriggerTypeChanged(TriggerType t)
+    {
+        _selectedTriggerType = t;
+        _selectedScenarioIndex = 0;
+    }
+
+    public enum TriggerType { ApplyFailed, ApplyDeclined, ApplySucceeded, AwaitingApproval }
+
+    // Stable fake principal ids for seeded approval rows. Real principal resolution will come once
+    // the snapcd://…/approvals MCP resource is wired up; for the harness these are just identifiable.
+    private static readonly Guid HarnessApprover = new("AA000000-0000-0000-0000-000000000001");
+    private static readonly Guid HarnessDecliner = new("AA000000-0000-0000-0000-000000000002");
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!HostEnvironment.IsDevelopment()) return;
+        await CheckDebugModuleAsync();
+        await RefreshRunsAsync();
+        await RefreshConnectedAgentsAsync();
+
+        // Live updates from the fanout consumer — any agent connect/disconnect refreshes the count.
+        _availabilityHandler = async (_, _) =>
+        {
+            await RefreshConnectedAgentsAsync();
+        };
+        AvailabilityNotifications.SubscribeAny(_availabilityHandler);
+
+        _pollTimer = new Timer(async _ => await SafePoll(), null, PollInterval, PollInterval);
+    }
+
+    private async Task RefreshConnectedAgentsAsync()
+    {
+        var orgId = CurrentOrgId;
+        if (orgId == Guid.Empty) return;
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        _connectedAgents = await db.AgentConnections.CountAsync(c => c.OrganizationId == orgId);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SafePoll()
+    {
+        try { await RefreshRunsAsync(); }
+        catch { /* swallow — polling is best-effort */ }
+    }
+
+    private Guid CurrentOrgId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private async Task CheckDebugModuleAsync()
+    {
+        var orgId = CurrentOrgId;
+        if (orgId == Guid.Empty) { _debugModuleExists = false; return; }
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        _debugModuleExists = await db.Modules
+            .AnyAsync(m => m.Id == DebugModuleId && m.OrganizationId == orgId);
+    }
+
+    private async Task RefreshRunsAsync()
+    {
+        var orgId = CurrentOrgId;
+        if (orgId == Guid.Empty) return;
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        _recentRuns = await db.ModuleJobMissionRuns
+            .Where(r => r.OrganizationId == orgId)
+            .OrderByDescending(r => r.DeadlineAt) // recent activity, since CreatedAt isn't always set on create
+            .Take(20)
+            .ToListAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task TriggerJob()
+    {
+        if (!HostEnvironment.IsDevelopment() || _debugModuleExists is not true) return;
+        _triggering = true;
+        try
+        {
+            var orgId = CurrentOrgId;
+            var moduleId = DebugModuleId;
+            var moduleName = DebugModuleName;
+            var scenario = CurrentScenarios[_selectedScenarioIndex];
+            var now = DateTimeOffset.UtcNow;
+
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+            var jobId = NewId.NextGuid();
+
+            // Production shape: ModuleJob.Logs = JsonSerializer.Serialize(List<LogEntryDto>), sorted by
+            // Timestamp. The harness builds the per-phase entries via AgentHarnessScenarios and serialises
+            // them so ListLogs renders correctly and the MCP logs resource serves the right shape.
+            var logEntries = AgentHarnessScenarios.BuildEntries(scenario, jobId, moduleId, moduleName, now.AddSeconds(-30));
+            var logsJson = JsonSerializer.Serialize(logEntries);
+
+            var (job, evt, approvals, label) = _selectedTriggerType switch
+            {
+                TriggerType.ApplyFailed => (
+                    (object)new ModuleJob
+                    {
+                        Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
+                        TimestampStart = now, TimestampEnd = now,
+                        Status = ExecutionStatus.Failed, JobType = nameof(ApplyJobSaga),
+                        Logs = logsJson,
+                        ServerSideErrorHeader = scenario.Header,
+                        ServerSideError = scenario.ErrorText
+                    },
+                    (object)new ApplyModuleFailed { OrganizationId = orgId, ModuleId = moduleId, ModuleJobId = jobId },
+                    // Realistic: the job was approved, then failed at apply.
+                    new[] { (HarnessApprover, false) },
+                    "failed apply (→ AutoDiagnose)"),
+                TriggerType.ApplyDeclined => (
+                    (object)new ModuleJob
+                    {
+                        Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
+                        TimestampStart = now, TimestampEnd = now,
+                        Status = ExecutionStatus.Cancelled, JobType = nameof(ApplyJobSaga),
+                        Logs = logsJson
+                    },
+                    (object)new ApplyModuleCancelled { OrganizationId = orgId, ModuleId = moduleId, ModuleJobId = jobId },
+                    new[] { (HarnessDecliner, true) },
+                    "declined apply (→ AutoDiagnose)"),
+                TriggerType.ApplySucceeded => (
+                    (object)new ModuleJob
+                    {
+                        Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
+                        TimestampStart = now, TimestampEnd = now,
+                        Status = ExecutionStatus.Completed, JobType = nameof(ApplyJobSaga),
+                        Logs = logsJson
+                    },
+                    (object)new ApplyModuleCompleted { OrganizationId = orgId, ModuleId = moduleId, ModuleJobId = jobId },
+                    new[] { (HarnessApprover, false) },
+                    "successful apply (→ SummarizeJob)"),
+                TriggerType.AwaitingApproval => (
+                    (object)new ModuleJob
+                    {
+                        Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
+                        TimestampStart = now, TimestampEnd = null,
+                        Status = ExecutionStatus.Running, JobType = nameof(ApplyJobSaga),
+                        Logs = logsJson,
+                        WaitingForApproval = true
+                    },
+                    (object)new ModuleJobAwaitingApprovalEvent { OrganizationId = orgId, ModuleId = moduleId, ModuleJobId = jobId },
+                    // Awaiting → no decisions yet.
+                    Array.Empty<(Guid, bool)>(),
+                    "awaiting-approval (→ ApprovalRecommend)"),
+                _ => throw new InvalidOperationException()
+            };
+
+            db.ModuleJobs.Add((ModuleJob)job);
+            foreach (var (principalId, declined) in approvals)
+            {
+                db.ModuleJobApprovals.Add(new ModuleJobApproval
+                {
+                    Id = NewId.NextGuid(),
+                    OrganizationId = orgId,
+                    ModuleJobId = jobId,
+                    PrincipalId = principalId,
+                    PrincipalDiscriminator = PrincipalDiscriminator.User,
+                    DecisionDateTime = now.UtcDateTime,
+                    Declined = declined
+                });
+            }
+            await db.SaveChangesAsync();
+            await Bus.Publish(evt);
+
+            _lastTriggeredJobId = jobId;
+            Snackbar.Add($"Triggered {label} — mission dispatch in flight.", Severity.Success);
+            await RefreshRunsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Trigger failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _triggering = false;
+        }
+    }
+
+    private async Task CancelRun(ModuleJobMissionRun run)
+    {
+        try
+        {
+            if (run.ServerInstanceId is null || run.SignalRConnectionId is null)
+            {
+                Snackbar.Add("Run has no owning connection to cancel.", Severity.Warning);
+                return;
+            }
+
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+            var fresh = await db.ModuleJobMissionRuns
+                .FirstOrDefaultAsync(r => r.Id == run.Id && r.OrganizationId == run.OrganizationId);
+            if (fresh is null) return;
+            fresh.CancelRequestedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
+            var uri = MassTransitHelpers.GetAgentConsumerEndpoint(run.ServerInstanceId.Value, nameof(CancelMissionRunRequested));
+            var endpoint = await Bus.GetSendEndpoint(new Uri(uri));
+            await endpoint.Send(new CancelMissionRunRequested
+            {
+                RunId = run.Id,
+                OrganizationId = run.OrganizationId,
+                InvocationId = run.InvocationId,
+                AgentConnectionId = run.SignalRConnectionId
+            });
+            Snackbar.Add($"Cancellation requested for run {run.Id.ToString().Substring(0, 8)}.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Cancel failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RerunMission(Guid missionId)
+    {
+        try
+        {
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+            var mission = await db.ModuleJobMissions
+                .FirstOrDefaultAsync(m => m.Id == missionId && m.OrganizationId == CurrentOrgId);
+            if (mission is null) return;
+
+            var maxAttempt = await db.ModuleJobMissionRuns
+                .Where(r => r.ModuleJobMissionId == missionId && r.OrganizationId == mission.OrganizationId)
+                .Select(r => (int?)r.AttemptNumber).MaxAsync() ?? 0;
+
+            var outcome = await Dispatcher.DispatchAsync(db, mission, mission.AgentId, maxAttempt + 1, CancellationToken.None);
+            Snackbar.Add(outcome switch
+            {
+                MissionDispatchOutcome.Dispatched => $"Rerun started (attempt {maxAttempt + 1}).",
+                MissionDispatchOutcome.AlreadyActive => "Mission already has an active run.",
+                MissionDispatchOutcome.NoLiveConnection => "Agent has no live connection.",
+                _ => "Rerun outcome unknown."
+            }, outcome == MissionDispatchOutcome.Dispatched ? Severity.Success : Severity.Warning);
+            await RefreshRunsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Rerun failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private static bool IsActive(ModuleJobMissionRun r) =>
+        r.Status is MissionStatus.Pending or MissionStatus.Running or MissionStatus.AwaitingReconnect;
+
+    private static string StatusIcon(MissionStatus s) => s switch
+    {
+        MissionStatus.Pending => Icons.Material.Filled.HourglassEmpty,
+        MissionStatus.WaitingForAgent => Icons.Material.Filled.SignalWifiOff,
+        MissionStatus.Running => Icons.Material.Filled.PlayCircle,
+        MissionStatus.AwaitingReconnect => Icons.Material.Filled.CloudOff,
+        MissionStatus.Succeeded => Icons.Material.Filled.CheckCircle,
+        MissionStatus.Failed => Icons.Material.Filled.Error,
+        MissionStatus.Cancelled => Icons.Material.Filled.Cancel,
+        MissionStatus.TimedOut => Icons.Material.Filled.AlarmOff,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private static string TimeRelative(DateTime? t)
+    {
+        if (t is null) return "—";
+        var delta = t.Value - DateTime.UtcNow;
+        var abs = delta.Duration();
+        var unit = abs.TotalSeconds < 90 ? $"{(int)abs.TotalSeconds}s" :
+                   abs.TotalMinutes < 90 ? $"{(int)abs.TotalMinutes}m" :
+                   $"{(int)abs.TotalHours}h";
+        return delta.Ticks >= 0 ? $"in {unit}" : $"{unit} ago";
+    }
+
+    private static string TruncateForDisplay(string? s, int max) =>
+        string.IsNullOrEmpty(s) ? "" : s.Length <= max ? s : s.Substring(0, max) + "…";
+
+    private static string TailLogs(string? logs) =>
+        string.IsNullOrEmpty(logs) ? "" : logs.Length <= LogTailChars ? logs : "…\n" + logs.Substring(logs.Length - LogTailChars);
+
+    private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    /// <summary>Render the agent's markdown output to HTML. Output is from our own sidecar (trusted),
+    /// so HTML inside markdown is allowed — this is a dev-only page.</summary>
+    private static MarkupString RenderMarkdown(string? text) =>
+        string.IsNullOrEmpty(text) ? default : (MarkupString)Markdown.ToHtml(text, MarkdownPipeline);
+
+    private static string PrettyJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return "";
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(doc.RootElement, _prettyJsonOpts);
+        }
+        catch
+        {
+            return json; // not valid JSON — show raw
+        }
+    }
+
+    private static readonly JsonSerializerOptions _prettyJsonOpts = new() { WriteIndented = true };
+
+    /// <summary>Best-effort: sum all numeric values whose key contains "token" in the TokensJson blob.</summary>
+    private static long? TokensTotal(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            long sum = 0;
+            var found = false;
+            Walk(doc.RootElement, ref sum, ref found);
+            return found ? sum : null;
+        }
+        catch { return null; }
+
+        static void Walk(JsonElement el, ref long sum, ref bool found)
+        {
+            if (el.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in el.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Number
+                        && prop.Name.Contains("token", StringComparison.OrdinalIgnoreCase)
+                        && prop.Value.TryGetInt64(out var n))
+                    { sum += n; found = true; }
+                    else Walk(prop.Value, ref sum, ref found);
+                }
+            }
+            else if (el.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in el.EnumerateArray()) Walk(item, ref sum, ref found);
+            }
+        }
+    }
+
+    /// <summary>Best-effort: top-level array length, or count of items with a "name"/"tool" key.</summary>
+    private static int? ToolCallsCount(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.ValueKind == JsonValueKind.Array
+                ? doc.RootElement.GetArrayLength()
+                : null;
+        }
+        catch { return null; }
+    }
+
+    public void Dispose()
+    {
+        _pollTimer?.Dispose();
+        if (_availabilityHandler is not null)
+            AvailabilityNotifications.UnsubscribeAny(_availabilityHandler);
+    }
+
+}

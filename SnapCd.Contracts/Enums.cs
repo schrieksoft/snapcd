@@ -254,6 +254,17 @@ public enum OrganizationRole
     JobManager,
     SourceChangeNotifier,
     SubscriptionManager,
+    StackContributor,
+    StackReader,
+    RunnerCreator,
+    RunnerContributor,
+    RunnerReader,
+    AgentCreator,
+    AgentContributor,
+    AgentReader,
+    SourceRefresherPreselectionCreator,
+    SourceRefresherPreselectionContributor,
+    SourceRefresherPreselectionReader,
 }
 
 public enum StackRole
@@ -294,6 +305,63 @@ public enum RunnerRole
     Contributor,
     Reader,
     IdentityAccessManager
+}
+
+public enum AgentRole
+{
+    Owner,
+    Contributor,
+    Reader,
+    IdentityAccessManager
+}
+
+public enum MissionType
+{
+    AutoDiagnose,
+    ApprovalRecommend,
+    SummarizeJob
+}
+
+/// <summary>
+/// What kind of thing AutoDiagnose / AutoFix concluded about an unsuccessful run. Wire-stable string
+/// values (enum is stored via HasConversion&lt;string&gt; and round-tripped from the sidecar's
+/// <c>report_diagnosis_category</c> MCP tool); add values at the end, never rename. The agent picks
+/// exactly one before terminating; <see cref="Unknown"/> is the fallback when nothing else fits.
+/// </summary>
+public enum DiagnosisCategory
+{
+    Unknown,
+    ProviderTransient,
+    ProviderAuth,
+    ModuleCode,
+    Configuration,
+    StateDrift,
+    Dependency,
+    Quota,
+    DeclinedApproval,
+    ExternalMutation
+}
+
+public enum MissionStatus
+{
+    Pending,
+    /// <summary>Mission-level only: no live agent matched at dispatch time; parked until an agent
+    /// covering the mission's scope reconnects (mirrors the runner's <c>XWaitingForRunner</c>).</summary>
+    WaitingForAgent,
+    /// <summary>Mission-level only: the referenced Agent has a live connection but is not assigned
+    /// to the target scope (no covering <c>Agent{Stack,Namespace,Module}Assignment</c> row and
+    /// <c>Agent.IsAssignedToAllModules</c> is false). Parked until the Agent owner adds an assignment;
+    /// a status distinct from <see cref="WaitingForAgent"/> so the operator can see "this mission is
+    /// blocked on configuration, not on the agent being offline". The wake path that picks this up is
+    /// <c>AgentAssignmentCreatedMissionWakeConsumer</c> — it consumes the assignment-created events and
+    /// the <c>Agent</c> update event for <c>IsAssignedToAllModules</c> flips, and re-attempts dispatch.</summary>
+    BlockedAgentNotAssigned,
+    Running,
+    AwaitingReconnect,
+    Succeeded,
+    Failed,
+    Cancelled,
+    TimedOut
 }
 
 

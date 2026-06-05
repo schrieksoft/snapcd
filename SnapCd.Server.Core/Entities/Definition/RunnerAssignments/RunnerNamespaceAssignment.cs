@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Entities.Interfaces;
 
 namespace SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
 
-public class RunnerNamespaceAssignment : AuditBase, IEntity, IOrganizationChild
+public class RunnerNamespaceAssignment : AuditBase, IEntity, IOrganizationChild, IRunnerChild
 {
     public Guid Id { get; set; }
 

@@ -68,6 +68,11 @@ jobs:
             -r linux-x64 --self-contained \
             /p:Version=$SEMVER \
             /p:InformationalVersion=$SEMVER+$SHORT_SHA
+          dotnet publish SnapCd.Agent/SnapCd.Agent.csproj \
+            -c Release -o out/snapcd-agent \
+            -r linux-x64 --self-contained \
+            /p:Version=$SEMVER \
+            /p:InformationalVersion=$SEMVER+$SHORT_SHA
 
       - name: Zip binaries
         env:
@@ -127,6 +132,18 @@ jobs:
         with:
           images: "ghcr.io/schrieksoft/snapcd/snapcd-runner-azure"
 
+      - name: Extract metadata for Docker (Agent)
+        id: meta-agent
+        uses: docker/metadata-action@v5
+        with:
+          images: "ghcr.io/schrieksoft/snapcd/snapcd-agent"
+
+      - name: Extract metadata for Docker (Agent Sidecar Claude)
+        id: meta-agent-sidecar-claude
+        uses: docker/metadata-action@v5
+        with:
+          images: "ghcr.io/schrieksoft/snapcd/snapcd-agent-sidecar-claude"
+
       - name: Build and push Docker image (Server)
         uses: docker/build-push-action@v5
         with:
@@ -154,6 +171,26 @@ jobs:
           tags: "ghcr.io/schrieksoft/snapcd/snapcd-runner-azure:${{ steps.gitversion.outputs.SemVer }}"
           labels: ${{ steps.meta-runner-azure.outputs.labels }}
 
+      - name: Build and push Docker image (Agent)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: "SnapCd.Agent/Dockerfile"
+          push: true
+          tags: "ghcr.io/schrieksoft/snapcd/snapcd-agent:${{ steps.gitversion.outputs.SemVer }}"
+          labels: ${{ steps.meta-agent.outputs.labels }}
+
+      - name: Build and push Docker image (Agent Sidecar Claude)
+        uses: docker/build-push-action@v5
+        with:
+          # Sidecar Dockerfile expects pyproject.toml at the build context root, so the
+          # context is the sidecar dir itself rather than the snapcd repo root.
+          context: "SnapCd.Agent/Sidecars/Claude"
+          file: "SnapCd.Agent/Sidecars/Claude/Dockerfile"
+          push: true
+          tags: "ghcr.io/schrieksoft/snapcd/snapcd-agent-sidecar-claude:${{ steps.gitversion.outputs.SemVer }}"
+          labels: ${{ steps.meta-agent-sidecar-claude.outputs.labels }}
+
       - name: Release
         if: github.ref == 'refs/heads/main'
         env:
@@ -178,11 +215,9 @@ jobs:
         run: |
           for repo in \
               snapcd-saas \
-              snapcd-runner-deployment-docker \
-              snapcd-runner-deployment-local \
-              snapcd-runner-deployment-kubernetes \
-              snapcd-selfhosted-deployment-docker \
-              snapcd-selfhosted-deployment-kubernetes \
+              snapcd-deployment-docker \
+              snapcd-deployment-kubernetes \
+              snapcd-deployment-local \
               module-snapcd-runner-app; do
             echo "Dispatching snapcd-released to schrieksoft/${repo}"
             gh api "repos/schrieksoft/${repo}/dispatches" \

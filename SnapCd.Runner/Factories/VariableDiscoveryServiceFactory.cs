@@ -12,11 +12,19 @@ namespace SnapCd.Runner.Factories;
 
 public class VariableDiscoveryServiceFactory
 {
+    private readonly ILoggerFactory _loggerFactory;
+
+    public VariableDiscoveryServiceFactory(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory;
+    }
+
     public IVariableDiscoveryService Create(string engine)
     {
         return engine switch
         {
-            "terraform" or "tofu" => new TerraformVariableDiscoveryService(),
+            "terraform" or "tofu" => new TerraformVariableDiscoveryService(
+                _loggerFactory.CreateLogger<TerraformVariableDiscoveryService>()),
             "pulumi" => new PulumiVariableDiscoveryService(),
             _ => throw new NotSupportedException($"Engine '{engine}' is not supported for variable discovery")
         };

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>SnapCd.Utils</RootNamespace>
+        <!-- Internal shared library, consumed by codegen tools and tests; not a NuGet artifact. -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Carve-out schema fragments for settings that don't fit the POCO-driven path:
+             .NET-standard sections (Logging) and bare top-level scalars (ConnectionString,
+             AllowHttp). Loaded by StandardSchemaFragments via Assembly.GetManifestResourceStream. -->
+        <EmbeddedResource Include="Settings/Carveouts/*.json" />
+    </ItemGroup>
+
+</Project>

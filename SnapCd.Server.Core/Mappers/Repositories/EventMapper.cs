@@ -38,9 +38,11 @@ public static class EventMapper
             OrganizationId = organizationId,
             CreatedBy = entity.CreatedBy,
             CreatedByPrincipalDiscriminator = entity.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = entity.CreatedByAgentId,
             CreatedDateTime = entity.CreatedDateTime,
             ModifiedBy = entity.ModifiedBy,
             ModifiedByPrincipalDiscriminator = entity.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = entity.ModifiedByAgentId,
             ModifiedDateTime = entity.ModifiedDateTime
         };
     }
@@ -67,12 +69,15 @@ public static class EventMapper
             OrganizationId = organizationId,
             CreatedBy = currentEntity.CreatedBy,
             CreatedByPrincipalDiscriminator = currentEntity.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = currentEntity.CreatedByAgentId,
             CreatedDateTime = currentEntity.CreatedDateTime,
             ModifiedBy = currentEntity.ModifiedBy,
             ModifiedByPrincipalDiscriminator = currentEntity.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = currentEntity.ModifiedByAgentId,
             ModifiedDateTime = currentEntity.ModifiedDateTime,
             PreviousModifiedBy = previousEntity.ModifiedBy,
             PreviousModifiedByPrincipalDiscriminator = previousEntity.ModifiedByPrincipalDiscriminator,
+            PreviousModifiedByAgentId = previousEntity.ModifiedByAgentId,
             PreviousModifiedDateTime = previousEntity.ModifiedDateTime
         };
     }
@@ -97,9 +102,11 @@ public static class EventMapper
             OrganizationId = organizationId,
             CreatedBy = entity.CreatedBy,
             CreatedByPrincipalDiscriminator = entity.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = entity.CreatedByAgentId,
             CreatedDateTime = entity.CreatedDateTime,
             ModifiedBy = entity.ModifiedBy,
             ModifiedByPrincipalDiscriminator = entity.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = entity.ModifiedByAgentId,
             ModifiedDateTime = entity.ModifiedDateTime
         };
     }
@@ -122,9 +129,11 @@ public static class EventMapper
             Data = dtoMapper(entity),
             CreatedBy = entity.CreatedBy,
             CreatedByPrincipalDiscriminator = entity.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = entity.CreatedByAgentId,
             CreatedDateTime = entity.CreatedDateTime,
             ModifiedBy = entity.ModifiedBy,
             ModifiedByPrincipalDiscriminator = entity.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = entity.ModifiedByAgentId,
             ModifiedDateTime = entity.ModifiedDateTime
         };
     }
@@ -149,12 +158,15 @@ public static class EventMapper
             Data = dtoMapper(currentEntity),
             CreatedBy = currentEntity.CreatedBy,
             CreatedByPrincipalDiscriminator = currentEntity.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = currentEntity.CreatedByAgentId,
             CreatedDateTime = currentEntity.CreatedDateTime,
             ModifiedBy = currentEntity.ModifiedBy,
             ModifiedByPrincipalDiscriminator = currentEntity.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = currentEntity.ModifiedByAgentId,
             ModifiedDateTime = currentEntity.ModifiedDateTime,
             PreviousModifiedBy = previousEntity.ModifiedBy,
             PreviousModifiedByPrincipalDiscriminator = previousEntity.ModifiedByPrincipalDiscriminator,
+            PreviousModifiedByAgentId = previousEntity.ModifiedByAgentId,
             PreviousModifiedDateTime = previousEntity.ModifiedDateTime
         };
     }
@@ -177,9 +189,11 @@ public static class EventMapper
             Data = dtoMapper(entity),
             CreatedBy = entity.CreatedBy,
             CreatedByPrincipalDiscriminator = entity.CreatedByPrincipalDiscriminator,
+            CreatedByAgentId = entity.CreatedByAgentId,
             CreatedDateTime = entity.CreatedDateTime,
             ModifiedBy = entity.ModifiedBy,
             ModifiedByPrincipalDiscriminator = entity.ModifiedByPrincipalDiscriminator,
+            ModifiedByAgentId = entity.ModifiedByAgentId,
             ModifiedDateTime = entity.ModifiedDateTime
         };
     }

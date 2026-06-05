@@ -68,6 +68,9 @@ public static class RepositorySettings
         services.Configure<RunnerRepositorySettings>(configuration.GetSection("Repositories:Runner"));
         services.Configure<RunnerRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:RunnerRoleAssignment"));
         services.Configure<RunnerStackAssignmentRepositorySettings>(configuration.GetSection("Repositories:RunnerStackAssignment"));
+        services.Configure<AgentModuleAssignmentRepositorySettings>(configuration.GetSection("Repositories:AgentModuleAssignment"));
+        services.Configure<AgentNamespaceAssignmentRepositorySettings>(configuration.GetSection("Repositories:AgentNamespaceAssignment"));
+        services.Configure<AgentStackAssignmentRepositorySettings>(configuration.GetSection("Repositories:AgentStackAssignment"));
         services.Configure<SecretRepositorySettings>(configuration.GetSection("Repositories:Secret"));
         services.Configure<ServicePrincipalGroupMemberRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalGroupMember"));
         services.Configure<ServicePrincipalModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalModuleRoleAssignment"));
@@ -89,6 +92,22 @@ public static class RepositorySettings
         services.Configure<UserStackRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserStackRoleAssignment"));
         services.Configure<VariableRepositorySettings>(configuration.GetSection("Repositories:Variable"));
         services.Configure<VariableSetRepositorySettings>(configuration.GetSection("Repositories:VariableSet"));
+
+        // Agent + AgentConnection
+        services.Configure<AgentRepositorySettings>(configuration.GetSection("Repositories:Agent"));
+        services.Configure<AgentConnectionRepositorySettings>(configuration.GetSection("Repositories:AgentConnection"));
+
+        // Mission family (4 scopes)
+        services.Configure<OrganizationMissionRepositorySettings>(configuration.GetSection("Repositories:OrganizationMission"));
+        services.Configure<StackMissionRepositorySettings>(configuration.GetSection("Repositories:StackMission"));
+        services.Configure<NamespaceMissionRepositorySettings>(configuration.GetSection("Repositories:NamespaceMission"));
+        services.Configure<ModuleMissionRepositorySettings>(configuration.GetSection("Repositories:ModuleMission"));
+
+        // AgentRoleAssignment family (TPH base + 3 subclasses)
+        services.Configure<AgentRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:AgentRoleAssignment"));
+        services.Configure<UserAgentRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserAgentRoleAssignment"));
+        services.Configure<ServicePrincipalAgentRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalAgentRoleAssignment"));
+        services.Configure<GroupAgentRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupAgentRoleAssignment"));
 
         return services;
     }

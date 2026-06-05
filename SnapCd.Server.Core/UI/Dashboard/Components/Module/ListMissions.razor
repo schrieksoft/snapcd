@@ -1,0 +1,417 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using System.Text.Json
+@using MassTransit
+@using Markdig
+@using Microsoft.AspNetCore.Components
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Contracts.AgentResults
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Events.Missions
+@using SnapCd.Server.Core.Misc.Helpers
+@using SnapCd.Server.Core.Services.Ai.Missions
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.UI.Dashboard.Components.Agent
+
+@inject IDbContextFactory<SnapCdDbContext> DbContextFactory
+@inject IBus Bus
+@inject MissionDispatcher Dispatcher
+@inject MissionRunModifiedNotificationService Notifications
+@inject ISnackbar Snackbar
+
+@implements IDisposable
+
+<style>
+    .mission-panel-header { display: flex; align-items: center; gap: 10px; width: 100%; }
+    .mission-panel-header-title { font-weight: 600; font-size: 14px; line-height: 1; }
+    .mission-panel-header-status { font-size: 12px; opacity: 0.7; }
+    .mission-panel-header-chips { display: flex; gap: 6px; margin-left: auto; align-items: center; }
+    .mission-panel-header-ids { font-size: 11px; opacity: 0.55; font-family: ui-monospace, Menlo, monospace; }
+    .mission-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .mission-card-timing { font-size: 11px; opacity: 0.6; margin-bottom: 10px; }
+    .diagnosis-box { background: rgba(0,0,0,0.025); border-left: 3px solid #000; padding: 12px 14px; border-radius: 0 4px 4px 0; margin-bottom: 10px; }
+    .mission-actions { display: flex; gap: 6px; margin-top: 12px; margin-bottom: 8px; }
+    .mission-markdown { font-size: 13px; line-height: 1.5; }
+    .mission-markdown h1, .mission-markdown h2, .mission-markdown h3, .mission-markdown h4 { margin: 10px 0 4px; line-height: 1.25; font-weight: 600; }
+    .mission-markdown h1 { font-size: 17px; }
+    .mission-markdown h2 { font-size: 15px; }
+    .mission-markdown h3 { font-size: 14px; }
+    .mission-markdown h4 { font-size: 13px; }
+    .mission-markdown p { margin: 6px 0; }
+    .mission-markdown ul, .mission-markdown ol { margin: 6px 0 6px 20px; padding: 0; }
+    .mission-markdown li { margin: 2px 0; }
+    .mission-markdown code { background: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 3px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    .mission-markdown pre { background: rgba(0,0,0,0.06); padding: 8px 10px; border-radius: 4px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; overflow-x: auto; margin: 6px 0; }
+    .mission-markdown pre code { background: none; padding: 0; }
+    .mission-markdown blockquote { border-left: 3px solid rgba(0,0,0,0.2); padding-left: 10px; margin: 6px 0; color: rgba(0,0,0,0.7); }
+</style>
+
+@if (_runs is null)
+{
+    <MudText Typo="Typo.body2"><em>Loading missions…</em></MudText>
+}
+else if (_runs.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="pa-4" Style="opacity: 0.6;">
+        No missions have run against this job.
+    </MudText>
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true" Dense="true">
+        @foreach (var run in _runs)
+        {
+            <MudExpansionPanel @key="run.Id">
+                <TitleContent>
+                    <div class="mission-panel-header">
+                        <MudIcon Icon="@StatusIcon(run.Status)" Size="Size.Medium" />
+                        <div>
+                            <div class="mission-panel-header-title">@run.MissionType</div>
+                            <div class="mission-panel-header-status">@run.Status</div>
+                        </div>
+                        <div class="mission-panel-header-chips">
+                            @if (run.AgentId != Guid.Empty)
+                            {
+                                <AgentOnlineBadge AgentId="run.AgentId" OrganizationId="OrganizationId" />
+                            }
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                <MudIcon Icon="@Icons.Material.Filled.Repeat" Size="Size.Small" Class="mr-1" />
+                                attempt @run.AttemptNumber
+                            </MudChip>
+                            @if (run.DurationSeconds is { } secs)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                    <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="mr-1" />
+                                    @secs.ToString("0.0")s
+                                </MudChip>
+                            }
+                            <span class="mission-panel-header-ids">
+                                @TimeRelative(run.LastEventAt ?? run.StartedAt ?? run.DeadlineAt)
+                            </span>
+                        </div>
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    <div class="mission-card-meta">
+                        @if (TokensTotal(run.TokensJson) is { } toks)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" Class="mr-1" />
+                                @toks.ToString("N0") tokens
+                            </MudChip>
+                        }
+                        @if (ToolCallsCount(run.ToolCallsJson) is { } tc)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Class="mr-1" />
+                                @tc tool call@(tc == 1 ? "" : "s")
+                            </MudChip>
+                        }
+                    </div>
+
+                    <div class="mission-card-timing">
+                        started @TimeRelative(run.StartedAt)
+                        @if (run.CompletedAt is not null)
+                        {
+                            <text> · completed @TimeRelative(run.CompletedAt)</text>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(run.Error))
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-2" Dense="true">
+                            <MudText Typo="Typo.body2">@run.Error</MudText>
+                        </MudAlert>
+                    }
+
+                    @if (!string.IsNullOrEmpty(run.ResultSummary) || run.DiagnosisCategory is not null)
+                    {
+                        <div class="diagnosis-box">
+                            <div class="mission-markdown">
+                                @if (run.DiagnosisCategory is { } dc)
+                                {
+                                    <ul><li><strong>Category:</strong> @dc</li></ul>
+                                }
+                                @RenderMarkdown(run.ResultSummary)
+                            </div>
+                        </div>
+                    }
+
+                    <MudExpansionPanels Dense="true" Class="mb-2">
+                        @if (!string.IsNullOrEmpty(run.Logs))
+                        {
+                            <MudExpansionPanel Text="@($"Agent log ({run.Logs.Length:N0} chars · showing tail)")">
+                                <pre style="white-space: pre-wrap; font-size: 11px; max-height: 240px; overflow: auto; margin: 0; font-family: ui-monospace, Menlo, monospace;">@TailLogs(run.Logs)</pre>
+                            </MudExpansionPanel>
+                        }
+                        @if (!string.IsNullOrEmpty(run.ToolCallsJson))
+                        {
+                            <MudExpansionPanel Text="Tool calls">
+                                <pre style="white-space: pre-wrap; font-size: 11px; max-height: 320px; overflow: auto; margin: 0; font-family: ui-monospace, Menlo, monospace;">@PrettyJson(run.ToolCallsJson)</pre>
+                            </MudExpansionPanel>
+                        }
+                        @if (!string.IsNullOrEmpty(run.TokensJson))
+                        {
+                            <MudExpansionPanel Text="Token usage">
+                                <pre style="white-space: pre-wrap; font-size: 11px; max-height: 200px; overflow: auto; margin: 0; font-family: ui-monospace, Menlo, monospace;">@PrettyJson(run.TokensJson)</pre>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+
+                    <div class="mission-actions">
+                        @if (IsActive(run))
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                       Style="background-color: #000; color: #fff;"
+                                       OnClick="@(() => CancelRun(run))">
+                                Cancel
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                       Style="background-color: #000; color: #fff;"
+                                       OnClick="@(() => RerunMission(run.ModuleJobMissionId))">
+                                Rerun
+                            </MudButton>
+                        }
+                    </div>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter] public required Guid ModuleJobId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private const int LogTailChars = 4000;
+    private List<ModuleJobMissionRun>? _runs;
+    private Func<Guid, Task>? _handler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        _handler = async _ => await RefreshAsync();
+        Notifications.Subscribe(ModuleJobId, _handler);
+    }
+
+    public async Task RefreshAsync()
+    {
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        _runs = await db.ModuleJobMissionRuns
+            .Where(r => r.ModuleJobId == ModuleJobId && r.OrganizationId == OrganizationId)
+            .OrderByDescending(r => r.StartedAt ?? r.DeadlineAt)
+            .ToListAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CancelRun(ModuleJobMissionRun run)
+    {
+        try
+        {
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+            var fresh = await db.ModuleJobMissionRuns
+                .FirstOrDefaultAsync(r => r.Id == run.Id && r.OrganizationId == run.OrganizationId);
+            if (fresh is null)
+            {
+                Snackbar.Add("Run no longer exists.", Severity.Warning);
+                return;
+            }
+
+            if (fresh.Status is MissionStatus.Succeeded or MissionStatus.Failed
+                or MissionStatus.Cancelled or MissionStatus.TimedOut)
+            {
+                Snackbar.Add($"Run already {fresh.Status}.", Severity.Info);
+                await RefreshAsync();
+                return;
+            }
+
+            fresh.CancelRequestedAt = DateTime.UtcNow;
+
+            var canReachAgent = fresh.ServerInstanceId is not null
+                && fresh.SignalRConnectionId is not null
+                && fresh.Status is MissionStatus.Running or MissionStatus.AwaitingReconnect;
+
+            if (!canReachAgent)
+            {
+                // Not yet dispatched, or no live connection to deliver the cancel — terminate locally
+                // so the run is visibly Cancelled instead of stuck Pending forever.
+                fresh.Status = MissionStatus.Cancelled;
+                fresh.CompletedAt = DateTime.UtcNow;
+                var mission = await db.ModuleJobMissions
+                    .FirstOrDefaultAsync(m => m.Id == fresh.ModuleJobMissionId && m.OrganizationId == fresh.OrganizationId);
+                if (mission is not null)
+                {
+                    mission.Status = fresh.Status;
+                    mission.CompletedAt = fresh.CompletedAt;
+                }
+                await db.SaveChangesAsync();
+                await Bus.Publish(new MissionRunModifiedEvent
+                {
+                    OrganizationId = fresh.OrganizationId,
+                    ModuleJobId = fresh.ModuleJobId,
+                    RunId = fresh.Id
+                });
+                Snackbar.Add("Cancelled.", Severity.Success);
+                await RefreshAsync();
+                return;
+            }
+
+            await db.SaveChangesAsync();
+            await Bus.Publish(new MissionRunModifiedEvent
+            {
+                OrganizationId = fresh.OrganizationId,
+                ModuleJobId = fresh.ModuleJobId,
+                RunId = fresh.Id
+            });
+
+            var uri = MassTransitHelpers.GetAgentConsumerEndpoint(fresh.ServerInstanceId!.Value, nameof(CancelMissionRunRequested));
+            var endpoint = await Bus.GetSendEndpoint(new Uri(uri));
+            await endpoint.Send(new CancelMissionRunRequested
+            {
+                RunId = fresh.Id,
+                OrganizationId = fresh.OrganizationId,
+                InvocationId = fresh.InvocationId,
+                AgentConnectionId = fresh.SignalRConnectionId!
+            });
+            Snackbar.Add("Cancellation requested.", Severity.Info);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Cancel failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RerunMission(Guid missionId)
+    {
+        try
+        {
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+            var mission = await db.ModuleJobMissions
+                .FirstOrDefaultAsync(m => m.Id == missionId && m.OrganizationId == OrganizationId);
+            if (mission is null) return;
+
+            var maxAttempt = await db.ModuleJobMissionRuns
+                .Where(r => r.ModuleJobMissionId == missionId && r.OrganizationId == mission.OrganizationId)
+                .Select(r => (int?)r.AttemptNumber).MaxAsync() ?? 0;
+
+            var outcome = await Dispatcher.DispatchAsync(db, mission, mission.AgentId, maxAttempt + 1, CancellationToken.None);
+            Snackbar.Add(outcome switch
+            {
+                MissionDispatchOutcome.Dispatched => $"Rerun started (attempt {maxAttempt + 1}).",
+                MissionDispatchOutcome.AlreadyActive => "Mission already has an active run.",
+                MissionDispatchOutcome.NoLiveConnection => "Agent has no live connection.",
+                _ => "Rerun outcome unknown."
+            }, outcome == MissionDispatchOutcome.Dispatched ? Severity.Success : Severity.Warning);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Rerun failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private static bool IsActive(ModuleJobMissionRun r) =>
+        r.Status is MissionStatus.Pending or MissionStatus.Running or MissionStatus.AwaitingReconnect;
+
+    private static string StatusIcon(MissionStatus s) => s switch
+    {
+        MissionStatus.Pending => Icons.Material.Filled.HourglassEmpty,
+        MissionStatus.WaitingForAgent => Icons.Material.Filled.SignalWifiOff,
+        MissionStatus.Running => Icons.Material.Filled.PlayCircle,
+        MissionStatus.AwaitingReconnect => Icons.Material.Filled.CloudOff,
+        MissionStatus.Succeeded => Icons.Material.Filled.CheckCircle,
+        MissionStatus.Failed => Icons.Material.Filled.Error,
+        MissionStatus.Cancelled => Icons.Material.Filled.Cancel,
+        MissionStatus.TimedOut => Icons.Material.Filled.AlarmOff,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private static string TimeRelative(DateTime? t)
+    {
+        if (t is null) return "—";
+        var delta = t.Value - DateTime.UtcNow;
+        var abs = delta.Duration();
+        var unit = abs.TotalSeconds < 90 ? $"{(int)abs.TotalSeconds}s" :
+                   abs.TotalMinutes < 90 ? $"{(int)abs.TotalMinutes}m" :
+                   $"{(int)abs.TotalHours}h";
+        return delta.Ticks >= 0 ? $"in {unit}" : $"{unit} ago";
+    }
+
+    private static string TailLogs(string? logs) =>
+        string.IsNullOrEmpty(logs) ? "" : logs.Length <= LogTailChars ? logs : "…\n" + logs.Substring(logs.Length - LogTailChars);
+
+    private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+    private static MarkupString RenderMarkdown(string? text) =>
+        string.IsNullOrEmpty(text) ? default : (MarkupString)Markdown.ToHtml(text, MarkdownPipeline);
+
+    private static readonly JsonSerializerOptions _prettyJsonOpts = new() { WriteIndented = true };
+    private static string PrettyJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return "";
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(doc.RootElement, _prettyJsonOpts);
+        }
+        catch { return json; }
+    }
+
+    private static long? TokensTotal(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            long sum = 0;
+            var found = false;
+            Walk(doc.RootElement, ref sum, ref found);
+            return found ? sum : null;
+        }
+        catch { return null; }
+
+        static void Walk(JsonElement el, ref long sum, ref bool found)
+        {
+            switch (el.ValueKind)
+            {
+                case JsonValueKind.Number:
+                    if (el.TryGetInt64(out var n)) { sum += n; found = true; }
+                    break;
+                case JsonValueKind.Object:
+                    foreach (var prop in el.EnumerateObject()) Walk(prop.Value, ref sum, ref found);
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var item in el.EnumerateArray()) Walk(item, ref sum, ref found);
+                    break;
+            }
+        }
+    }
+
+    private static int? ToolCallsCount(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.ValueKind == JsonValueKind.Array ? doc.RootElement.GetArrayLength() : null;
+        }
+        catch { return null; }
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null)
+            Notifications.Unsubscribe(ModuleJobId, _handler);
+    }
+}

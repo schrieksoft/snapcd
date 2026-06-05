@@ -29,10 +29,14 @@ public class ServicePrincipal : OpenIddictEntityFrameworkCoreApplication<Guid, A
     public virtual ICollection<ServicePrincipalNamespaceRoleAssignment> ServicePrincipalNamespaceRoleAssignments { get; set; } = new List<ServicePrincipalNamespaceRoleAssignment>();
     public virtual ICollection<ServicePrincipalModuleRoleAssignment> ServicePrincipalModuleRoleAssignments { get; set; } = new List<ServicePrincipalModuleRoleAssignment>();
     public virtual ICollection<ServicePrincipalRunnerRoleAssignment> ServicePrincipalRunnerRoleAssignments { get; set; } = new List<ServicePrincipalRunnerRoleAssignment>();
+    public virtual ICollection<ServicePrincipalAgentRoleAssignment> ServicePrincipalAgentRoleAssignments { get; set; } = new List<ServicePrincipalAgentRoleAssignment>();
     public virtual ICollection<ServicePrincipalSystemRoleAssignment> ServicePrincipalSystemRoleAssignments { get; set; } = new List<ServicePrincipalSystemRoleAssignment>();
 
     // Runners directly assigned to this ServicePrincipal
     public virtual ICollection<Runner> Runners { get; set; } = new List<Runner>();
+
+    // Agents directly assigned to this ServicePrincipal
+    public virtual ICollection<Agent> Agents { get; set; } = new List<Agent>();
 
     // Group organizationUser navigation property
     public virtual ICollection<ServicePrincipalGroupMember> ServicePrincipalGroupMembers { get; set; } = new List<ServicePrincipalGroupMember>();
@@ -63,9 +67,11 @@ public class ServicePrincipal : OpenIddictEntityFrameworkCoreApplication<Guid, A
     // Audit fields
     public Guid CreatedBy { get; set; }
     public AuditPrincipalDiscriminator CreatedByPrincipalDiscriminator { get; set; }
+    public Guid? CreatedByAgentId { get; set; }
     public DateTime CreatedDateTime { get; set; }
     public Guid ModifiedBy { get; set; }
     public AuditPrincipalDiscriminator ModifiedByPrincipalDiscriminator { get; set; }
+    public Guid? ModifiedByAgentId { get; set; }
     public DateTime ModifiedDateTime { get; set; }
 
     public Guid ParentId()

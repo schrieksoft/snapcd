@@ -11,6 +11,7 @@
 @using AnsiConsoleToHtml
 @using SnapCd.Server.Core.Services
 @inject LogService LogService
+@inject NavigationManager NavigationManager
 
 
 
@@ -30,7 +31,9 @@ else
 
         @foreach (var kvp in _htmlLogs)
         {
-            <MudExpansionPanel @key="kvp.Key">
+            <MudExpansionPanel @key="kvp.Key"
+                               Expanded="@(kvp.Key == _expandedTask)"
+                               ExpandedChanged="@(isExpanded => OnTaskPanelExpanded(isExpanded, kvp.Key))">
                 <TitleContent>
                     <MudText>@kvp.Key</MudText>
                 </TitleContent>
@@ -48,13 +51,44 @@ else
 
 @code {
     [Parameter] public Guid ModuleJobId { get; set; }
+    [Parameter] public string? InitialTask { get; set; }
+    [Parameter] public EventCallback<string?> OnTaskChanged { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     private Dictionary<string, string>? _logs;
     private Dictionary<string, string?> _htmlLogs = new();
+    private string? _expandedTask;
+    private string? _previousInitialTask;
 
     protected override void OnInitialized()
     {
+        _expandedTask = InitialTask;
+        _previousInitialTask = InitialTask;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (InitialTask != _previousInitialTask)
+        {
+            _previousInitialTask = InitialTask;
+            _expandedTask = InitialTask;
+        }
+    }
+
+    private async Task OnTaskPanelExpanded(bool isExpanded, string taskKey)
+    {
+        if (isExpanded)
+        {
+            if (_expandedTask == taskKey) return;
+            _expandedTask = taskKey;
+            await OnTaskChanged.InvokeAsync(taskKey);
+        }
+        else
+        {
+            if (_expandedTask != taskKey) return;
+            _expandedTask = null;
+            await OnTaskChanged.InvokeAsync(null);
+        }
     }
 
     private string ConvertToWrappedHtml(string ansiText)

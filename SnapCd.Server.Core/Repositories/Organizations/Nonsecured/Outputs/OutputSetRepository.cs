@@ -120,33 +120,38 @@ public class OutputSetRepository : GenericModuleChildRepository<
         var principalId = PrincipalProvider.GetSubjectOrDefault(outputSet.OrganizationId);
         var principalDiscriminator = PrincipalProvider.GetPrincipalDiscriminatorOrDefault();
         var auditDiscriminator = ConvertToAuditPrincipalDiscriminator(principalDiscriminator);
-        
+        var agentId = PrincipalProvider.GetAgentId();
+
         var now = DateTime.UtcNow;
-        
+
         outputSet.CreatedBy = principalId;
         outputSet.CreatedByPrincipalDiscriminator = auditDiscriminator;
+        outputSet.CreatedByAgentId = agentId;
         outputSet.CreatedDateTime = now;
         outputSet.ModifiedBy = principalId;
         outputSet.ModifiedByPrincipalDiscriminator = auditDiscriminator;
+        outputSet.ModifiedByAgentId = agentId;
         outputSet.ModifiedDateTime = now;
-        
-        
+
+
         foreach (var output in outputSet.Outputs)
         {
-            
+
             if (output.Id == Guid.Empty)
                 throw new IdIsEmptyException($"{typeof(Output)} ID cannot be empty.");
-            
+
             output.OutputSetId = outputSet.Id;
             output.OrganizationId = organizationId;
-                
+
             output.CreatedBy = principalId;
             output.CreatedByPrincipalDiscriminator = auditDiscriminator;
+            output.CreatedByAgentId = agentId;
             output.CreatedDateTime = now;
             output.ModifiedBy = principalId;
             output.ModifiedByPrincipalDiscriminator = auditDiscriminator;
+            output.ModifiedByAgentId = agentId;
             output.ModifiedDateTime = now;
-            
+
         }
 
         var mostRecentChecksum = DbContext.OutputSets

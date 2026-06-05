@@ -8,59 +8,63 @@
 
 using Microsoft.Extensions.Logging;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Logging;
 
 namespace SnapCd.Runner;
 
+/// <summary>
+/// Job-progress logging surface. Each call fans out to (a) the MEL logger for terminal echo and
+/// (b) <see cref="IJobLogStream"/> for shipping to the server. Holding a
+/// <see cref="RunnerTaskContext"/> at the call site is the type-level signal that "this log ships".
+/// Code with only an <c>ILogger&lt;T&gt;</c> in scope writes terminal-only.
+/// </summary>
 public class RunnerTaskContext
 {
     private readonly Guid _jobId;
     private readonly string _taskName;
     private readonly ILogger _logger;
+    private readonly IJobLogStream _shipper;
     private readonly JobMetadata _metadata;
 
 
-    public RunnerTaskContext(Guid jobId, string taskName, ILogger logger, JobMetadata metadata)
+    public RunnerTaskContext(Guid jobId, string taskName, ILogger logger, IJobLogStream shipper, JobMetadata metadata)
     {
         _jobId = jobId;
         _taskName = taskName;
         _logger = logger;
+        _shipper = shipper;
         _metadata = metadata;
     }
 
     public void LogInformation(string message, string subContext = "")
-    {
-        LogSomething((log, msg, args) => log.LogInformation(msg, args), message, subContext);
-    }
+        => Emit(LogLevel.Information, message, subContext);
 
     public void LogWarning(string message, string subContext = "")
-    {
-        LogSomething((log, msg, args) => log.LogWarning(msg, args), message, subContext);
-    }
+        => Emit(LogLevel.Warning, message, subContext);
 
     public void LogError(string message, string subContext = "")
+        => Emit(LogLevel.Error, message, subContext);
+
+    private void Emit(LogLevel level, string message, string subContext)
     {
-        LogSomething((log, msg, args) => log.LogError(msg, args), message, subContext);
-    }
+        var taskName = string.Join(".", _taskName, subContext).Trim('.');
 
+        // Terminal — drop JobId/ModuleId GUIDs from the rendered line (they're noise in the
+        // console; the shipper envelope below still carries them for the server).
+        _logger.Log(level,
+            "[{TaskName}] [{StackName}.{NamespaceName}.{ModuleName}] {Message}",
+            taskName, _metadata.StackName, _metadata.NamespaceName, _metadata.ModuleName, message);
 
-    public void LogSomething(
-        Action<ILogger, string, object[]> logAction, // Delegate for logging action
-        string message,
-        string subContext = ""
-    )
-    {
-        var logMessage = "[{JobId}] [{TaskName}] [{StackName}.{NamespaceName}.{ModuleName}] | {ModuleId} | {Message}";
-        var args = new object[]
-        {
-            _jobId,
-            string.Join(".", _taskName, subContext).Trim('.'),
-            _metadata.StackName,
-            _metadata.NamespaceName,
-            _metadata.ModuleName,
-            _metadata.ModuleId,
-            message
-        };
-
-        logAction(_logger, logMessage, args);
+        // Ship — IJobLogStream gets the explicit envelope. HubJobLogStream returns CompletedTask
+        // synchronously after enqueueing into the Serilog batching pipeline.
+        var envelope = new JobLogEnvelope(
+            JobId: _jobId,
+            ModuleId: _metadata.ModuleId,
+            TaskName: taskName,
+            StackName: _metadata.StackName,
+            NamespaceName: _metadata.NamespaceName,
+            ModuleName: _metadata.ModuleName,
+            Level: level);
+        _ = _shipper.EmitAsync(envelope, message);
     }
 }

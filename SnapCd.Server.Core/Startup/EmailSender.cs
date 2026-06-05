@@ -24,7 +24,7 @@ public static class EmailSender
         {
             // Premium configured: layer the licence gate over [premium, noop] keyed transports.
             // Lifetime must be Scoped because IPremiumEmailPolicy depends transitively on
-            // scoped services (e.g. SaaSLicenseClient / DbContext on Self-Hosted).
+            // scoped services (e.g. RemoteLicenseClient / DbContext on Self-Hosted).
             services.AddKeyedScoped<IEmailTransport, NoOpEmailTransport>(LicenseGatedEmailTransport.NoOpKey);
             services.AddScoped<IEmailTransport, LicenseGatedEmailTransport>();
         }

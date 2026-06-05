@@ -8,6 +8,7 @@
 
 using MassTransit;
 using MassTransit.SqlTransport;
+using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
 using SnapCd.Server.Core.Consumers.Tasks;
@@ -20,6 +21,7 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Misc.Utils;
+using SnapCd.Server.Core.Services.Ai.Missions;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 using SnapCd.Server.Core.StateMachine.Jobs;
@@ -44,7 +46,7 @@ public static class MassTransit
         if (serviceBusSettings.BusType == BusType.SqlServer)
         {
             var sqlOptions = serviceBusSettings.TransportOptions.SqlServer
-                ?? new SqlServerTransportOptions();
+                ?? new SqlTransportOptions();
             var sqlConnectionString = sqlOptions.ConnectionString
                 ?? configuration["ConnectionString"]
                 ?? throw new Exception("SqlServer bus requires either ServiceBus:TransportOptions:SqlServer:ConnectionString or the app's top-level ConnectionString");
@@ -56,6 +58,10 @@ public static class MassTransit
             });
             services.AddSqlServerMigrationHostedService(create: true, delete: false);
         }
+
+        services.AddScoped<MissionDispatcher>();
+        services.AddScoped<MissionMatcher>();
+        services.AddScoped<AgentSupplyResolver>();
 
         services.AddMassTransit(x =>
         {
@@ -97,6 +103,18 @@ public static class MassTransit
                             });
                         }
 
+                        // Agent mission (Layer 2) consumer endpoints — instance-specific, like runners
+                        foreach (var consumerType in AgentConsumerTypes)
+                        {
+                            var queueName = $"agent--{instanceId}--{GetMessageName(consumerType).ToLower()}";
+                            cfg.ReceiveEndpoint(queueName, e =>
+                            {
+                                e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
+                                e.DefaultMessageTimeToLive = TimeSpan.FromMinutes(10); // needed since otherwise AutoDeleteOnIdle might never trigger
+                                e.ConfigureConsumer(context, consumerType);
+                            });
+                        }
+
                         // Configure fanout consumer endpoints with auto-delete settings
                         foreach (var consumerType in ServerFanoutConsumerTypes)
                         {
@@ -130,6 +148,17 @@ public static class MassTransit
                         foreach (var consumerType in RunnerConsumerTypes)
                         {
                             var queueName = $"runner--{instanceId}--{GetMessageName(consumerType).ToLower()}";
+                            cfg.ReceiveEndpoint(queueName, e =>
+                            {
+                                e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
+                                e.ConfigureConsumer(context, consumerType);
+                            });
+                        }
+
+                        // Agent mission (Layer 2) consumer endpoints — instance-specific, like runners.
+                        foreach (var consumerType in AgentConsumerTypes)
+                        {
+                            var queueName = $"agent--{instanceId}--{GetMessageName(consumerType).ToLower()}";
                             cfg.ReceiveEndpoint(queueName, e =>
                             {
                                 e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
@@ -180,10 +209,36 @@ public static class MassTransit
         typeof(HeartbeatConsumer)
     ];
 
+    // Agent mission (Layer 2) dispatch consumers - instance-specific endpoints for targeted sends, like runners
+    private static readonly Type[] AgentConsumerTypes =
+    [
+        typeof(AutoDiagnoseMissionConsumer),
+        typeof(ApprovalRecommendMissionConsumer),
+        typeof(SummarizeJobMissionConsumer),
+        typeof(CancelMissionConsumer),
+    ];
+
     private static readonly Type[] ServerCompetingConsumerTypes =
     [
         // System consumers
         typeof(SelectRunnerInstanceConsumer),
+
+        // Agent mission Layer-1 (match) consumers
+        typeof(ApplyJobFailedCompetingConsumer),
+        typeof(ApplyJobCancelledCompetingConsumer),
+        typeof(JobSucceededCompetingConsumer),
+        typeof(ApprovalRequestedCompetingConsumer),
+
+        // Agent mission run watchdog (fired by the scheduled MissionRunDeadlineCheck)
+        typeof(MissionRunDeadlineCheckConsumer),
+
+        // Wakes parked missions (Status=WaitingForAgent) when a covering agent reconnects
+        typeof(AgentReconnectedMissionWakeConsumer),
+
+        // Wakes parked missions (Status=BlockedAgentNotAssigned) when a new Agent{Scope}Assignment is
+        // created for the bound agent, or when the agent's IsAssignedToAllModules flag flips on
+        typeof(AgentAssignmentCreatedMissionWakeConsumer),
+
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
         typeof(ModuleModifiedCompetingConsumer),
         typeof(NamespaceModifiedCompetingConsumer),
@@ -213,12 +268,15 @@ public static class MassTransit
         typeof(JobUpdatedFanoutConsumer),
         typeof(LogReceivedFanoutConsumer),
         typeof(RunnerAvailabilityModifiedFanoutConsumer),
+        typeof(AgentAvailabilityModifiedFanoutConsumer),
+        typeof(MissionRunModifiedFanoutConsumer),
         typeof(ModuleSagaModifiedFanoutConsumer),
         typeof(ModuleStateModifiedFanoutConsumer),
         typeof(ModuleJobApprovalModifiedFanoutConsumer),
         typeof(ModuleApprovalThresholdModifiedFanoutConsumer),
         typeof(ModuleResourceCountUpdatedFanoutConsumer),
-        typeof(ServerHeartbeatConsumer)
+        typeof(ServerHeartbeatConsumer),
+        typeof(AgentHeartbeatConsumer)
     ];
 
 
@@ -292,6 +350,10 @@ public static class MassTransit
     {
         // Runner consumers - endpoints configured manually per transport
         foreach (var consumerType in RunnerConsumerTypes)
+            configurator.AddConsumer(consumerType);
+
+        // Agent mission (Layer 2) consumers - endpoints configured manually per transport
+        foreach (var consumerType in AgentConsumerTypes)
             configurator.AddConsumer(consumerType);
 
         // System competing consumers share queues across all servers

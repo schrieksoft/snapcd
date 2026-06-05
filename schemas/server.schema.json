@@ -1,0 +1,3483 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.snapcd.io/schemas/server/latest/appsettings-schema.json",
+  "title": "SnapCD server settings",
+  "type": "object",
+  "properties": {
+    "Server": {
+      "type": "object",
+      "properties": {
+        "Host": {
+          "type": "string",
+          "description": "Public base URL of the Server (scheme \u002B host \u002B optional port), used for token issuance (set as the OpenIddict issuer claim), email link generation, and self-referential redirects. Required. Must be reachable from Runners, Agents and the Dashboard."
+        },
+        "InstanceId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique identifier for this Server process. Generated automatically at startup (a fresh GUID per process) by the predefined configuration provider \u2014 operators should not set this in appsettings.json. Used to distinguish per-process MassTransit consumer endpoints when multiple Server replicas share one bus."
+        }
+      },
+      "required": [
+        "Host"
+      ],
+      "description": "Settings describing the Server\u0027s own runtime identity \u2014 its public URL and the unique per-process instance ID used to disambiguate replicas on the message bus."
+    },
+    "ServiceBus": {
+      "type": "object",
+      "properties": {
+        "EndpointsPrefix": {
+          "type": "string",
+          "description": "Prefix prepended to every consumer queue name. Useful for sharing one bus across multiple Snap CD deployments (each with a distinct prefix) without queue-name collisions."
+        },
+        "EndpointsPrefixIncludeNameSpace": {
+          "type": "boolean",
+          "description": "When true, the consumer\u0027s .NET namespace is included in the generated queue name in addition to EndpointsPrefix. Defaults to false."
+        },
+        "BusType": {
+          "enum": [
+            "AzureServiceBus",
+            "SqlServer"
+          ],
+          "description": "Which transport carries internal events. SqlServer is the default; AzureServiceBus is the alternative for higher-throughput deployments.",
+          "default": "SqlServer"
+        },
+        "SagaConcurrencyLimit": {
+          "type": "integer",
+          "description": "Maximum number of concurrent messages processed by saga endpoints. Higher values can improve throughput but increase database load.",
+          "default": 20
+        },
+        "TransportOptions": {
+          "type": "object",
+          "description": "Per-transport configuration. The block matching BusType is the only one consumed; the other is ignored. Both transports\u0027 option types come straight from MassTransit (AzureServiceBusTransportOptions / SqlTransportOptions) so the full MassTransit-side surface remains available to operators \u2014 the generated JSON Schema documents the operator-relevant fields via hand-authored fragments.",
+          "properties": {
+            "AzureServiceBus": {
+              "type": "object",
+              "description": "Azure Service Bus transport configuration. Required when ServiceBus.BusType is AzureServiceBus. Property type at runtime is MassTransit.AzureServiceBusTransportOptions; the schema below covers the operator-settable surface (a single ConnectionString as of MassTransit 8.x).",
+              "properties": {
+                "ConnectionString": {
+                  "type": "string",
+                  "description": "Azure Service Bus namespace connection string. Accepts either the URI form (sb://{namespace}.servicebus.windows.net \u2014 uses managed identity via DefaultAzureCredential) or the standard SAS form (Endpoint=sb://...;SharedAccessKeyName=...;SharedAccessKey=...). Sensitive \u2014 production deployments should source this via the External Settings provider."
+                }
+              }
+            },
+            "SqlServer": {
+              "type": "object",
+              "description": "SQL Server transport configuration. Required when ServiceBus.BusType is SqlServer. Property type at runtime is MassTransit.SqlTransport.SqlTransportOptions; the schema below covers its full declared surface.",
+              "properties": {
+                "ConnectionString": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Connection string for the SQL Server hosting the transport tables. When null (the default), the app\u0027s top-level ConnectionString is reused so transport tables live in the same database as application data."
+                },
+                "Host": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "SQL Server host. Ignored when ConnectionString is set."
+                },
+                "Port": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "SQL Server port. Ignored when ConnectionString is set."
+                },
+                "Database": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Database name. Ignored when ConnectionString is set."
+                },
+                "Username": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "SQL login the transport runs as. Ignored when ConnectionString is set."
+                },
+                "Password": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Password for the SQL login. Sensitive \u2014 source via the External Settings provider in production. Ignored when ConnectionString is set."
+                },
+                "AdminUsername": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "SQL login MassTransit uses during transport maintenance (schema migrations, queue creation). Falls back to Username when null."
+                },
+                "AdminPassword": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Password for AdminUsername. Sensitive \u2014 source via the External Settings provider."
+                },
+                "Schema": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "SQL schema for transport tables. Defaults to \u0022transport\u0022."
+                },
+                "Role": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Optional SQL role MassTransit assumes when running maintenance operations."
+                },
+                "ConnectionLimit": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Maximum number of concurrent SQL connections the transport opens. Null lets MassTransit pick a default based on the configured concurrency."
+                },
+                "DisableMaintenance": {
+                  "type": "boolean",
+                  "description": "When true, the Server skips running MassTransit\u0027s transport-maintenance hosted service. Use when maintenance is performed out-of-band (e.g. by a dedicated ops process) and the Server should only consume / produce.",
+                  "default": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Configuration for the MassTransit service bus that carries internal events between Server components (saga endpoints, runner / agent dispatch, log fanout, etc.). Two transports are supported, selected by BusType: SqlServer \u2014 the default. Routes events through SQL Server tables sharing the application database. Suitable for single-region deployments up to moderate scale; requires no additional infrastructure. AzureServiceBus \u2014 routes events through an Azure Service Bus namespace. Suitable for higher-throughput deployments and any topology that wants the bus on managed infrastructure separate from SQL Server."
+    },
+    "ProductionDataSeeder": {
+      "type": "object",
+      "properties": {
+        "Preseeded": {
+          "type": "object",
+          "properties": {
+            "Enabled": {
+              "type": "boolean",
+              "description": "When true, the preseed runs on first start. Defaults to false so the seeder is opt-in \u2014 typical for Self-Hosted appsettings.json, which enables it for first-time setup and then leaves it enabled because the seed is idempotent."
+            },
+            "Organization": {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "Organization ID. Defaults to DefaultId so external IaC can reference it by literal."
+                },
+                "Name": {
+                  "type": "string",
+                  "description": "Organization display name. Defaults to \u0022default\u0022.",
+                  "default": "default"
+                }
+              },
+              "description": "Default Organization identity and name."
+            },
+            "User": {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "User ID. Defaults to DefaultId."
+                },
+                "Email": {
+                  "type": "string",
+                  "description": "Admin email \u2014 doubles as the sign-in identifier. Defaults to admin@preseeded.io; operators typically change this to a real address so password resets and notifications work end-to-end.",
+                  "default": "admin@preseeded.io"
+                },
+                "Password": {
+                  "type": "string",
+                  "description": "Initial admin password. Defaults to a publicly-known placeholder; operators MUST change this before first start of any deployment exposed to traffic. Sensitive \u2014 source via the External Settings provider in production.",
+                  "default": "Admin#123"
+                },
+                "IsSystemAdministrator": {
+                  "type": "boolean",
+                  "description": "When true (default), the preseeded User is granted system-administrator role. Required for the Dashboard\u0027s first-login flow to succeed.",
+                  "default": true
+                }
+              },
+              "description": "Default admin User identity, email, and initial password."
+            },
+            "Runner": {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "Runner ID. Defaults to DefaultId."
+                },
+                "Name": {
+                  "type": "string",
+                  "description": "Runner display name. Defaults to \u0022default\u0022.",
+                  "default": "default"
+                },
+                "ServicePrincipalId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "Bound Service Principal ID. Defaults to DefaultId."
+                },
+                "ServicePrincipalClientId": {
+                  "type": "string",
+                  "description": "Service Principal client ID the Runner authenticates with. Defaults to \u0022default\u0022.",
+                  "default": "default"
+                },
+                "ServicePrincipalClientSecret": {
+                  "type": "string",
+                  "description": "Service Principal client secret. Defaults to \u0022default\u0022 \u2014 replace before exposing the Server to traffic. Sensitive \u2014 source via the External Settings provider in production.",
+                  "default": "default"
+                }
+              },
+              "description": "Default Runner identity and bound Service Principal credentials."
+            },
+            "Stack": {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "Stack ID. Defaults to DefaultId."
+                },
+                "Name": {
+                  "type": "string",
+                  "description": "Stack display name. Defaults to \u0022default\u0022.",
+                  "default": "default"
+                },
+                "SampleSecretId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "Sample Stack Secret ID. Defaults to DefaultId."
+                },
+                "SampleSecretName": {
+                  "type": "string",
+                  "description": "Sample Stack Secret name. Defaults to \u0022sample\u0022.",
+                  "default": "sample"
+                },
+                "SampleSecretValue": {
+                  "type": "string",
+                  "description": "Sample Stack Secret value. Defaults to the placeholder \u0022sample\u0022 \u2014 replace for any deployment that will see real traffic. Sensitive \u2014 source via the External Settings provider in production.",
+                  "default": "sample"
+                }
+              },
+              "description": "Default Stack identity and sample Secret seeded under it."
+            },
+            "Agent": {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "Agent ID. Defaults to DefaultAgentId."
+                },
+                "Name": {
+                  "type": "string",
+                  "description": "Agent display name. Defaults to \u0022default\u0022.",
+                  "default": "default"
+                },
+                "ServicePrincipalId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "Bound Service Principal ID. Defaults to DefaultAgentId."
+                },
+                "ServicePrincipalClientId": {
+                  "type": "string",
+                  "description": "Service Principal client ID the Agent authenticates with. Defaults to \u0022defaultAgent\u0022.",
+                  "default": "defaultAgent"
+                },
+                "ServicePrincipalClientSecret": {
+                  "type": "string",
+                  "description": "Service Principal client secret. Defaults to \u0022defaultAgent\u0022 \u2014 replace before exposing. Sensitive \u2014 source via the External Settings provider in production.",
+                  "default": "defaultAgent"
+                },
+                "Missions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "MissionType values seeded as organization-wide missions for the default Agent."
+                }
+              },
+              "description": "Default Agent identity, bound Service Principal credentials, and the set of Mission types to seed as organization-wide Missions targeting that Agent."
+            }
+          },
+          "description": "The single nested block that controls preseeding behaviour and identities."
+        }
+      },
+      "description": "Production-time data seeding configuration. Drives what the Server inserts on first start so that a fresh deployment comes up with a working Organization, an admin User, a default Runner \u002B Service Principal, and (on Enterprise) a default Agent \u002B Mission set. Operators rarely change these from the defaults; the typical override is bumping the admin User\u0027s password."
+    },
+    "DebugDataSeeder": {
+      "type": "object",
+      "properties": {
+        "ServicePrincipals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "Optional fixed ID. When null, a fresh GUID is generated."
+              },
+              "ClientId": {
+                "type": "string",
+                "description": "OAuth2 client identifier the SP authenticates with."
+              },
+              "ClientSecret": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "OAuth2 client secret. Sensitive \u2014 source via the External Settings provider in production. Null is permitted only for SPs that authenticate by other means (e.g. introspection-based)."
+              },
+              "ClientType": {
+                "type": "string",
+                "description": "OpenIddict client type \u2014 typically confidential for server-to-server SPs."
+              },
+              "ConsentType": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "OpenIddict consent type (e.g. implicit, explicit, external )."
+              },
+              "DisplayName": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Human-readable display name shown in the Dashboard\u0027s SP list."
+              },
+              "LoginRedirectUri": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "OAuth2 login redirect URI registered against the SP."
+              },
+              "LogoutRedirectUri": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "OAuth2 post-logout redirect URI registered against the SP."
+              },
+              "IsServicePrincipal": {
+                "type": "boolean",
+                "description": "When true (default), the SP is created as a regular Service Principal. When false, the row is treated as a non-SP OAuth client (rare; intended for system applications).",
+                "default": true
+              },
+              "Scopes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "OAuth2 scopes the SP is permitted to request."
+              },
+              "OrganizationId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Organization the SP belongs to. Empty (the default) maps to the system / null organization \u2014 for SPs that aren\u0027t tied to a single tenant."
+              }
+            },
+            "required": [
+              "ClientId",
+              "ClientType",
+              "ConsentType",
+              "DisplayName",
+              "LoginRedirectUri",
+              "LogoutRedirectUri"
+            ],
+            "description": "One Service Principal to materialise via the data seeder on Server startup. Used both by the production-time preseed (e.g. the default Runner SP) and the debug-time seeder (extra SPs for developer workstations)."
+          },
+          "description": "Service Principals to seed alongside the default preseeded ones. Useful for developer workstations that need extra SPs for testing per-SP authorization paths."
+        },
+        "Users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "Optional fixed ID. When null, a fresh GUID is generated."
+              },
+              "Email": {
+                "type": "string",
+                "description": "Email address \u2014 doubles as the sign-in identifier."
+              },
+              "Password": {
+                "type": "string",
+                "description": "Initial password. Sensitive \u2014 even in Development, prefer setting via the External Settings provider so the value doesn\u0027t end up in checked-in appsettings files."
+              },
+              "IsSystemAdministrator": {
+                "type": "boolean",
+                "description": "When true, the seeded User is granted system-administrator role on creation. Useful for developer workstations that need an admin without going through the Dashboard\u0027s first-User promotion flow."
+              }
+            },
+            "required": [
+              "Email",
+              "Password"
+            ],
+            "description": "One User to materialise via the debug data seeder. Only honoured in Development; never used in production-flow seeds."
+          },
+          "description": "Additional Users to seed alongside the preseeded admin. Useful for developer workstations that need multiple Users for testing role-assignment flows."
+        },
+        "SeedLicenseToken": {
+          "type": "boolean",
+          "description": "When true, seeds a debug-signed Enterprise license token onto the preseeded organization so debug runs can skip the paste-opaque-key flow. Defaults to false."
+        }
+      },
+      "description": "Debug-time data seeder for the Server. Runs on startup only when the Server is built with the Development environment; lets a developer pre-populate a fresh database with Service Principals, Users, Stacks, Runners, and an Enterprise license token without going through the Dashboard\u0027s usual setup flow. Never runs in non-Development environments."
+    },
+    "SecretStore": {
+      "type": "object",
+      "properties": {
+        "Provider": {
+          "enum": [
+            "AzureKeyVault",
+            "SqlServer"
+          ],
+          "description": "Backing store for Secret values. Defaults to AzureKeyVault; on Self-Hosted Community the License Service force-substitutes SqlServer at runtime since AKV is a paid feature.",
+          "default": "AzureKeyVault"
+        },
+        "AzureKeyVault": {
+          "type": "object",
+          "properties": {
+            "UseExplicitCredentials": {
+              "type": "boolean",
+              "description": "When true, bypass DefaultAzureCredential and use the client-credentials flow against ExplicitCredentials instead. Use when the host can\u0027t run as a managed identity and the credential chain doesn\u0027t resolve."
+            },
+            "ExplicitCredentials": {
+              "type": "object",
+              "properties": {
+                "ClientId": {
+                  "type": "string",
+                  "description": "The Azure AD application\u0027s client ID."
+                },
+                "ClientSecret": {
+                  "type": "string",
+                  "description": "The Azure AD application\u0027s client secret. Sensitive \u2014 source via the External Settings provider."
+                },
+                "TenantId": {
+                  "type": "string",
+                  "description": "Azure AD tenant ID hosting the application."
+                }
+              },
+              "description": "Explicit client_id / client_secret / tenant_id credentials. Required when UseExplicitCredentials is true. Sensitive \u2014 source via the External Settings provider in production."
+            },
+            "DefaultInputKeyVaultUrl": {
+              "type": "string",
+              "description": "Default Key Vault URL used when fetching a Secret value at runtime. Per-Secret overrides are possible via metadata; this is the fallback."
+            },
+            "DefaultOutputKeyVaultUrl": {
+              "type": "string",
+              "description": "Default Key Vault URL used when writing a Secret value (including sensitive Module outputs). Often the same as DefaultInputKeyVaultUrl; split when read- and write-paths need different vaults for compliance or geo-replication reasons."
+            },
+            "CredentialOptions": {
+              "type": "object",
+              "description": "Configures how the Azure Key Vault secret store authenticates. Property type at runtime is Azure.Identity.DefaultAzureCredentialOptions; the schema below covers the operator-relevant subset of its surface. Defaults follow Azure.Identity \u2014 most credential types are tried in order unless explicitly excluded.",
+              "properties": {
+                "ExcludeEnvironmentCredential": {
+                  "type": "boolean",
+                  "description": "Skip the environment-variable-based credential (AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_CLIENT_SECRET, etc.) when probing for an Azure identity."
+                },
+                "ExcludeWorkloadIdentityCredential": {
+                  "type": "boolean",
+                  "description": "Skip the Workload Identity Federation credential. Set true when not running on AKS with workload identity configured."
+                },
+                "ExcludeManagedIdentityCredential": {
+                  "type": "boolean",
+                  "description": "Skip the Managed Identity credential. Set true when not running on Azure-hosted compute (App Service, AKS with MI, Azure VMs, etc.)."
+                },
+                "ExcludeSharedTokenCacheCredential": {
+                  "type": "boolean",
+                  "description": "Skip the developer shared-token-cache credential. Recommended true outside of developer machines."
+                },
+                "ExcludeVisualStudioCredential": {
+                  "type": "boolean",
+                  "description": "Skip the Visual Studio credential. Recommended true outside of developer machines."
+                },
+                "ExcludeVisualStudioCodeCredential": {
+                  "type": "boolean",
+                  "description": "Skip the VS Code credential. Recommended true outside of developer machines."
+                },
+                "ExcludeAzureCliCredential": {
+                  "type": "boolean",
+                  "description": "Skip the Azure CLI credential. Recommended true on production hosts where no az login session exists."
+                },
+                "ExcludeAzurePowerShellCredential": {
+                  "type": "boolean",
+                  "description": "Skip the Azure PowerShell credential. Recommended true outside of developer machines."
+                },
+                "ExcludeAzureDeveloperCliCredential": {
+                  "type": "boolean",
+                  "description": "Skip the Azure Developer CLI (azd) credential. Recommended true outside of developer machines."
+                },
+                "ExcludeInteractiveBrowserCredential": {
+                  "type": "boolean",
+                  "description": "Skip the interactive browser credential. Almost always true on server-class hosts \u2014 interactive sign-in won\u0027t work without a desktop session."
+                },
+                "ExcludeBrokerCredential": {
+                  "type": "boolean",
+                  "description": "Skip the broker (WAM) credential. Almost always true on non-Windows hosts and on Windows hosts without the WAM broker installed."
+                },
+                "TenantId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Optional fallback tenant ID applied to credential types that don\u0027t have a more-specific tenant override (e.g. InteractiveBrowserTenantId). Leave null to let each credential resolve its own tenant."
+                },
+                "AdditionallyAllowedTenants": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Tenant IDs (or the wildcard \u0022*\u0022) this credential is allowed to acquire tokens for in addition to TenantId. Required for multi-tenant scenarios."
+                },
+                "AuthorityHost": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Azure AD authority URL. Override for sovereign clouds \u2014 e.g. https://login.microsoftonline.us for US Government, https://login.partner.microsoftonline.cn for China. Defaults to the public cloud authority."
+                },
+                "ManagedIdentityClientId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Client ID of a user-assigned managed identity. Set when the host has multiple user-assigned MIs attached and Snap CD should use a specific one. Leave null to use the system-assigned MI."
+                },
+                "WorkloadIdentityClientId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Client ID of the Azure AD application federated to the AKS workload identity. Required when ExcludeWorkloadIdentityCredential is false and the host\u0027s Service Account token federates to a specific app registration."
+                },
+                "DisableInstanceDiscovery": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "When true, disables Azure AD instance discovery. Required for disconnected / air-gapped environments where login.microsoftonline.com is unreachable; also useful when running against ADFS rather than Azure AD."
+                }
+              }
+            }
+          },
+          "description": "Settings specific to the AzureKeyVault provider."
+        },
+        "SqlServer": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "SymmetricKey": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Base64-encoded 32-byte (AES-256) symmetric key used to encrypt secret values at rest."
+            }
+          },
+          "description": "Settings specific to the SqlServer provider."
+        },
+        "EnableMigrator": {
+          "type": "boolean",
+          "description": "When true, exposes the Secret Migrator utility (under System nav) for privileged users to copy secrets between the SQL and Azure Key Vault stores. Keep false by default."
+        },
+        "Migrator": {
+          "type": "object",
+          "properties": {
+            "MaxParallelism": {
+              "type": "integer",
+              "description": "Max concurrent Azure Key Vault calls during planning (existence probes) and execution (copies). AKV\u0027s default throttle is ~2000 ops / 10 s per vault \u2014 8\u201316 is comfortable, 32 is an aggressive upper bound.",
+              "default": 8
+            }
+          },
+          "description": "Tuning knobs for the Secret Migrator utility. Ignored unless EnableMigrator is true."
+        }
+      },
+      "description": "Selects and configures the backing store for Snap CD Secret resources \u2014 the encrypted store where Stack, Namespace, and Module Secret values, plus sensitive Output Sets, live at rest. The block matching Provider is the only one read; the other is ignored. The Migrator utility moves secrets between stores in-place when an operator changes Provider."
+    },
+    "SourceRefresh": {
+      "type": "object",
+      "properties": {
+        "RefreshIntervalCronExpression": {
+          "type": "string",
+          "description": "Quartz cron expression for the source-refresh job. Defaults to every 5 minutes \u2014 fast enough that operators see new commits reflected quickly, slow enough not to hammer the SCM provider\u0027s rate limits.",
+          "default": "*/5 * * * *"
+        },
+        "TimeoutSeconds": {
+          "type": "integer",
+          "description": "Per-repository timeout for the refresh job, in seconds. Defaults to 120 \u2014 generous for a healthy clone but short enough that one wedged repository can\u0027t stall the rest of the run.",
+          "default": 120
+        }
+      },
+      "description": "Cadence and timeout for the background job that polls Module source repositories for new commits. Defaults are tuned for a moderate-sized organization with a handful of source repositories; large fleets with many Modules per repository may want to lengthen the interval to reduce SCM-API load."
+    },
+    "InvitationSettings": {
+      "type": "object",
+      "properties": {
+        "ExpirationDays": {
+          "type": "integer",
+          "description": "How many days an invitation link remains valid before expiring. Defaults to 30.",
+          "default": 30
+        },
+        "AutoDeleteIncompleteUsers": {
+          "type": "boolean",
+          "description": "When true (default), the cleanup job deletes Identity rows for invitees who never completed sign-up after their invitation expired. Set false to retain expired-but-incomplete rows (useful for audit trails that must record every invitation attempt).",
+          "default": true
+        },
+        "RequireEmailVerification": {
+          "type": "boolean",
+          "description": "When true (default), the invited User must confirm their email address before the account is enabled. Set false only in environments where email delivery is unreliable and the alternative-verification flow has been arranged out-of-band.",
+          "default": true
+        },
+        "CleanupJobCron": {
+          "type": "string",
+          "description": "Quartz cron expression for the invitation-cleanup background job. Defaults to 00:00 daily.",
+          "default": "0 0 * * *"
+        }
+      },
+      "description": "Lifecycle settings for User invitations \u2014 how long invitations remain valid, whether auto-cleanup runs for incomplete sign-ups, and whether email verification is required for the invited account to become active."
+    },
+    "OrphanedJobCleanup": {
+      "type": "object",
+      "properties": {
+        "CleanupCronExpression": {
+          "type": "string",
+          "description": "Quartz cron expression for the cleanup job. Defaults to every 10 minutes \u2014 frequent enough that operators see a wedged Job get marked failed within a reasonable window, infrequent enough to keep the DB-scan overhead negligible.",
+          "default": "*/10 * * * *"
+        }
+      },
+      "description": "Cadence for the background job that reconciles Module Jobs whose owning Runner / Agent has disappeared (process crash, container kill, etc.) so that they don\u0027t linger as \u0022running\u0022 forever. The reconciler marks orphaned Jobs as failed and frees any locks they held."
+    },
+    "License": {
+      "type": "object",
+      "properties": {
+        "LicenseServerBaseUrl": {
+          "type": "string",
+          "description": "Base URL of the Snap CD Licensing Service. Defaults to the public Cloud endpoint (https://snapcd.io). Self-Hosted deployments running on Community-Plus or higher round-trip license tokens through this endpoint at refresh time. In non-debug runs the value is force-set to https://snapcd.io regardless of appsettings.json \u2014 see Program.cs.",
+          "default": "https://snapcd.io"
+        },
+        "RefreshJobCron": {
+          "type": "string",
+          "description": "Quartz cron expression for the background license refresh job. Defaults to 03:00 daily, which is frequent enough to propagate Cloud-side state changes (cancellation, plan changes, expiry) within a day while staying well under the Cloud endpoint\u0027s rate limit.",
+          "default": "0 3 * * *"
+        },
+        "RefreshWithinDaysOfExpiry": {
+          "type": "integer",
+          "description": "How many days before token expiry the refresh job tries to renew. Defaults to 3 \u2014 gives the scheduled job 3 daily opportunities to renew before a stale token actually expires.",
+          "default": 3
+        }
+      },
+      "description": "Configures how the Server obtains, refreshes, and validates its license token against the Snap CD Licensing Service. Defaults point at the public Cloud licensing endpoint and a daily refresh schedule \u2014 operators typically only change LicenseServerBaseUrl when running the Server in a disconnected environment with a private license proxy."
+    },
+    "Debugging": {
+      "type": "object",
+      "properties": {
+        "ForceEnterpriseLicenseWhenDebuggerAttached": {
+          "type": "boolean",
+          "description": "When true AND a debugger is attached, the LicenseService returns a synthetic valid EnterpriseEdition license bypassing all DB and SaaS checks. Has no effect when no debugger is attached. Intended for local development only."
+        }
+      },
+      "description": "Debugger-only escape hatches. Never set the flags here to true in any deployment that is not a developer\u0027s local workstation \u2014 they are documented in the schema so operators can see they exist, not because any production deployment should ever use them."
+    },
+    "OpenIdConnect": {
+      "type": "object",
+      "properties": {
+        "TokenEncryption": {
+          "type": "object",
+          "properties": {
+            "SymmetricKey": {
+              "type": "string",
+              "description": "PEM-armoured base64-encoded AES-256 symmetric key, surrounded by -----BEGIN SYMMETRIC KEY----- / -----END SYMMETRIC KEY----- markers. Sensitive \u2014 production deployments must supply this via the External Settings provider rather than checking it into appsettings.json. The placeholder shipped in the default appsettings.json is for dev only."
+            }
+          },
+          "description": "Symmetric encryption key used to encrypt the access tokens the Server issues. Required."
+        },
+        "TokenSigning": {
+          "type": "object",
+          "properties": {
+            "RsaPrivateKey": {
+              "type": "string",
+              "description": "PEM-armoured RSA private key. Sensitive \u2014 must be supplied via the External Settings provider in production. The placeholder shipped in the default appsettings.json is for dev only."
+            },
+            "RsaPublicKey": {
+              "type": "string",
+              "description": "PEM-armoured RSA public key matching RsaPrivateKey. Not sensitive, but must be the genuine pair to the private key or token validation will fail."
+            }
+          },
+          "description": "RSA keypair used to sign the access tokens the Server issues. Required."
+        },
+        "ExternalLoginProviders": {
+          "type": "object",
+          "properties": {
+            "Microsoft": {
+              "type": "object",
+              "properties": {
+                "TenantId": {
+                  "type": "string",
+                  "description": "Azure AD tenant ID the registered application lives in. Use common for multi-tenant apps, or a specific tenant GUID for single-tenant apps. Required when Enabled is true."
+                },
+                "Enabled": {
+                  "type": "boolean",
+                  "description": "When true, surface this provider as a sign-in option on the Dashboard. Defaults to false \u2014 providers must be opted-in explicitly per deployment."
+                },
+                "ClientId": {
+                  "type": "string",
+                  "description": "OAuth2 client ID issued by the provider\u0027s developer portal."
+                },
+                "ClientSecret": {
+                  "type": "string",
+                  "description": "OAuth2 client secret paired with ClientId. Sensitive \u2014 source via the External Settings provider in production."
+                },
+                "RedirectUri": {
+                  "type": "string",
+                  "description": "Redirect URI registered with the provider. Must match the URI configured at the provider\u0027s end exactly; typically {Server.Host}/signin-{provider}."
+                }
+              },
+              "description": "Microsoft (Entra ID / Azure AD) login provider."
+            },
+            "Okta": {
+              "type": "object",
+              "properties": {
+                "Issuer": {
+                  "type": "string",
+                  "description": "Okta authorization-server issuer URL, typically https://{your-okta-domain}/oauth2/default. Required when Enabled is true."
+                },
+                "Enabled": {
+                  "type": "boolean",
+                  "description": "When true, surface this provider as a sign-in option on the Dashboard. Defaults to false \u2014 providers must be opted-in explicitly per deployment."
+                },
+                "ClientId": {
+                  "type": "string",
+                  "description": "OAuth2 client ID issued by the provider\u0027s developer portal."
+                },
+                "ClientSecret": {
+                  "type": "string",
+                  "description": "OAuth2 client secret paired with ClientId. Sensitive \u2014 source via the External Settings provider in production."
+                },
+                "RedirectUri": {
+                  "type": "string",
+                  "description": "Redirect URI registered with the provider. Must match the URI configured at the provider\u0027s end exactly; typically {Server.Host}/signin-{provider}."
+                }
+              },
+              "description": "Okta login provider."
+            },
+            "Auth0": {
+              "type": "object",
+              "properties": {
+                "Issuer": {
+                  "type": "string",
+                  "description": "Auth0 tenant issuer URL, typically https://{your-tenant}.auth0.com/. Required when Enabled is true."
+                },
+                "Enabled": {
+                  "type": "boolean",
+                  "description": "When true, surface this provider as a sign-in option on the Dashboard. Defaults to false \u2014 providers must be opted-in explicitly per deployment."
+                },
+                "ClientId": {
+                  "type": "string",
+                  "description": "OAuth2 client ID issued by the provider\u0027s developer portal."
+                },
+                "ClientSecret": {
+                  "type": "string",
+                  "description": "OAuth2 client secret paired with ClientId. Sensitive \u2014 source via the External Settings provider in production."
+                },
+                "RedirectUri": {
+                  "type": "string",
+                  "description": "Redirect URI registered with the provider. Must match the URI configured at the provider\u0027s end exactly; typically {Server.Host}/signin-{provider}."
+                }
+              },
+              "description": "Auth0 login provider."
+            },
+            "Google": {
+              "type": "object",
+              "properties": {
+                "Enabled": {
+                  "type": "boolean",
+                  "description": "When true, surface this provider as a sign-in option on the Dashboard. Defaults to false \u2014 providers must be opted-in explicitly per deployment."
+                },
+                "ClientId": {
+                  "type": "string",
+                  "description": "OAuth2 client ID issued by the provider\u0027s developer portal."
+                },
+                "ClientSecret": {
+                  "type": "string",
+                  "description": "OAuth2 client secret paired with ClientId. Sensitive \u2014 source via the External Settings provider in production."
+                },
+                "RedirectUri": {
+                  "type": "string",
+                  "description": "Redirect URI registered with the provider. Must match the URI configured at the provider\u0027s end exactly; typically {Server.Host}/signin-{provider}."
+                }
+              },
+              "description": "Google login provider."
+            },
+            "GitHub": {
+              "type": "object",
+              "properties": {
+                "Enabled": {
+                  "type": "boolean",
+                  "description": "When true, surface this provider as a sign-in option on the Dashboard. Defaults to false \u2014 providers must be opted-in explicitly per deployment."
+                },
+                "ClientId": {
+                  "type": "string",
+                  "description": "OAuth2 client ID issued by the provider\u0027s developer portal."
+                },
+                "ClientSecret": {
+                  "type": "string",
+                  "description": "OAuth2 client secret paired with ClientId. Sensitive \u2014 source via the External Settings provider in production."
+                },
+                "RedirectUri": {
+                  "type": "string",
+                  "description": "Redirect URI registered with the provider. Must match the URI configured at the provider\u0027s end exactly; typically {Server.Host}/signin-{provider}."
+                }
+              },
+              "description": "GitHub login provider."
+            }
+          },
+          "description": "Optional external SSO providers. SSO providers are a paid feature and are honoured only when the active license tier permits it; on tiers that don\u0027t include SSO, this block is silently zeroed out before the providers are registered."
+        }
+      },
+      "description": "All OpenIdConnect / OpenIddict-related runtime settings: the symmetric key used to encrypt issued JWTs, the RSA keypair used to sign them, and the optional external SSO providers (Microsoft / Google / Okta / Auth0 / GitHub) the Server proxies authentication through."
+    },
+    "Turnstile": {
+      "type": "object",
+      "properties": {
+        "IsEnabled": {
+          "type": "boolean",
+          "description": "Enable or disable Turnstile verification globally."
+        },
+        "SiteKey": {
+          "type": "string",
+          "description": "Cloudflare Turnstile site key (public, used in widget)."
+        },
+        "SecretKey": {
+          "type": "string",
+          "description": "Cloudflare Turnstile secret key (private, used for server-side verification)."
+        },
+        "Theme": {
+          "type": "string",
+          "description": "Widget theme: \u0022light\u0022, \u0022dark\u0022, or \u0022auto\u0022 (matches app theme).",
+          "default": "auto"
+        }
+      },
+      "description": "Cloudflare Turnstile (bot-protection challenge) configuration for the Dashboard\u0027s public sign-up and password-reset flows. Paid feature on Self-Hosted \u2014 gated by license tier and silently no-ops on tiers that don\u0027t include it."
+    },
+    "Caching": {
+      "type": "object",
+      "properties": {
+        "Provider": {
+          "enum": [
+            "InMemory",
+            "Redis"
+          ],
+          "description": "Cache backing. InMemory (default) keeps everything in-process \u2014 fine for single-replica deployments. Redis uses a shared Redis instance as both the cache provider and the SignalR backplane, required when running more than one Server replica.",
+          "default": "InMemory"
+        },
+        "ConnectionString": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Connection string for the Redis instance. Required when Provider is Redis; ignored when InMemory. Sensitive in production \u2014 source via the External Settings provider when the Redis instance is auth-protected."
+        }
+      },
+      "description": "Distributed-cache and SignalR-backplane configuration. Single-replica deployments can leave the default InMemory provider; multi-replica deployments must use Redis so cache hits and SignalR group state are shared across replicas."
+    },
+    "EmailSender": {
+      "type": "object",
+      "properties": {
+        "EmailProvider": {
+          "type": "string",
+          "description": "Which transport handles outbound email. Values: \u0022NoOp\u0022 (default \u2014 disables email), \u0022AmazonSES\u0022, \u0022SendGrid\u0022, \u0022Mailgun\u0022, \u0022Postmark\u0022, \u0022Smtp\u0022. Any value not in this set is treated the same as \u0022NoOp\u0022.",
+          "default": "NoOp"
+        },
+        "AmazonSES": {
+          "type": "object",
+          "properties": {
+            "AccessKey": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "IAM access key ID. Ignored when UseDefaultCredentials is true (the AWS SDK then resolves credentials via instance profile / env vars / etc.). Sensitive \u2014 source via the External Settings provider in production."
+            },
+            "SecretKey": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "IAM secret access key paired with AccessKey. Ignored when UseDefaultCredentials is true. Sensitive."
+            },
+            "Region": {
+              "type": "string",
+              "description": "AWS region the SES endpoint lives in (e.g. eu-north-1, us-east-1 )."
+            },
+            "FromEmail": {
+              "type": "string",
+              "description": "\u0022From\u0022 address every Server-sent email is delivered as. Must be verified in SES."
+            },
+            "FromName": {
+              "type": "string",
+              "description": "Display name shown alongside FromEmail in clients."
+            },
+            "UseDefaultCredentials": {
+              "type": "boolean",
+              "description": "When true (default), resolve credentials via the standard AWS SDK chain (instance profile, env vars, shared credentials file). When false, use AccessKey / SecretKey explicitly.",
+              "default": true
+            }
+          },
+          "description": "Amazon SES transport credentials and sender identity. Used when EmailProvider is \u0022AmazonSES\u0022."
+        },
+        "SendGrid": {
+          "type": "object",
+          "properties": {
+            "ApiKey": {
+              "type": "string",
+              "description": "SendGrid API key. Sensitive \u2014 source via the External Settings provider in production."
+            },
+            "FromEmail": {
+              "type": "string",
+              "description": "\u0022From\u0022 address every Server-sent email is delivered as. Must be verified in SendGrid."
+            },
+            "FromName": {
+              "type": "string",
+              "description": "Display name shown alongside FromEmail in clients."
+            }
+          },
+          "description": "SendGrid transport credentials and sender identity. Used when EmailProvider is \u0022SendGrid\u0022."
+        },
+        "Mailgun": {
+          "type": "object",
+          "properties": {
+            "ApiKey": {
+              "type": "string",
+              "description": "Mailgun API key. Sensitive \u2014 source via the External Settings provider in production."
+            },
+            "Domain": {
+              "type": "string",
+              "description": "Mailgun sending domain (e.g. mg.example.com ). Must be verified in Mailgun."
+            },
+            "FromEmail": {
+              "type": "string",
+              "description": "\u0022From\u0022 address every Server-sent email is delivered as. Must be on Domain."
+            },
+            "FromName": {
+              "type": "string",
+              "description": "Display name shown alongside FromEmail in clients."
+            }
+          },
+          "description": "Mailgun transport credentials and sender identity. Used when EmailProvider is \u0022Mailgun\u0022."
+        },
+        "Postmark": {
+          "type": "object",
+          "properties": {
+            "ApiKey": {
+              "type": "string",
+              "description": "Postmark server API token. Sensitive \u2014 source via the External Settings provider in production."
+            },
+            "FromEmail": {
+              "type": "string",
+              "description": "\u0022From\u0022 address every Server-sent email is delivered as. Must be a verified sender signature in Postmark."
+            },
+            "FromName": {
+              "type": "string",
+              "description": "Display name shown alongside FromEmail in clients."
+            }
+          },
+          "description": "Postmark transport credentials and sender identity. Used when EmailProvider is \u0022Postmark\u0022."
+        },
+        "Smtp": {
+          "type": "object",
+          "properties": {
+            "SmtpHost": {
+              "type": "string",
+              "description": "SMTP server hostname (e.g. smtp-relay.gmail.com, smtp.office365.com ).",
+              "default": "smtp-relay.gmail.com"
+            },
+            "SmtpPort": {
+              "type": "integer",
+              "description": "SMTP port. Common values: 587 (submission with STARTTLS), 465 (implicit TLS), 25 (plain).",
+              "default": 587
+            },
+            "UseSsl": {
+              "type": "boolean",
+              "description": "When true, connect with implicit SSL/TLS on connect. Use for port 465. Mutually exclusive in spirit with UseStartTls \u2014 most modern SMTP servers expect either implicit TLS or STARTTLS, not both.",
+              "default": true
+            },
+            "Username": {
+              "type": "string",
+              "description": "SMTP authentication username. Often the same as FromEmail for hosted services."
+            },
+            "Password": {
+              "type": "string",
+              "description": "SMTP authentication password (or app password for accounts with 2FA). Sensitive \u2014 source via the External Settings provider in production."
+            },
+            "FromEmail": {
+              "type": "string",
+              "description": "\u0022From\u0022 address every Server-sent email is delivered as."
+            },
+            "FromName": {
+              "type": "string",
+              "description": "Display name shown alongside FromEmail in clients."
+            },
+            "UseStartTls": {
+              "type": "boolean",
+              "description": "When true, issue STARTTLS to upgrade the plaintext connection to TLS before authentication. Use for port 587. The standard \u0022submission\u0022 port flow.",
+              "default": true
+            }
+          },
+          "description": "Generic SMTP transport credentials and sender identity. Used when EmailProvider is \u0022Smtp\u0022."
+        }
+      },
+      "description": "Outbound email configuration. EmailProvider selects which transport sub-block the Server uses; the remaining blocks are ignored. When EmailProvider is \u0022NoOp\u0022 (or unset), the Server runs in no-op mode and email-driven flows (password resets, invitations) are admin-mediated rather than self-service."
+    },
+    "Logging": {
+      "type": "object",
+      "description": "Standard .NET Logging configuration. See https://learn.microsoft.com/dotnet/core/extensions/logging-configuration for the full reference. Provider-specific sub-blocks (Console, Debug, EventSource, etc.) are accepted but not enumerated here.",
+      "properties": {
+        "LogLevel": {
+          "type": "object",
+          "description": "Map of log category names (or category prefixes) to minimum log levels. \u0027Default\u0027 applies when no more-specific category matches; longer keys override shorter ones (Microsoft.AspNetCore beats Microsoft beats Default).",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "Trace",
+              "Debug",
+              "Information",
+              "Warning",
+              "Error",
+              "Critical",
+              "None"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "ConnectionString": {
+      "type": "string",
+      "description": "SQL Server connection string. Used both for the application database and as the default ServiceBus transport. Sensitive \u2014 production deployments should source this via the External Settings provider rather than committing it to appsettings.json."
+    },
+    "AllowHttp": {
+      "type": "boolean",
+      "default": false,
+      "description": "When false (default), the Server refuses to issue tokens over plain HTTP. Set to true only when terminating TLS upstream of the Server process (e.g. behind a reverse proxy that handles TLS itself)."
+    },
+    "Repositories": {
+      "type": "object",
+      "description": "Per-entity repository overrides. Each sub-key binds a discrete *RepositorySettings POCO from SnapCd.Server.Core.Settings.Repositories. Almost all are empty placeholders in the default appsettings.json \u2014 operators set them only to override per-entity behaviour (typically just for advanced tuning).",
+      "properties": {
+        "AgentConnection": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentConnection is created."
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentConnection is updated."
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentConnection is deleted."
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Repository settings for AgentConnection entity. Events are disabled since connections are runtime state, not configuration changes."
+        },
+        "AgentModuleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentModuleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentModuleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentModuleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-AgentModuleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentModuleAssignment entity specifically."
+        },
+        "AgentNamespaceAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentNamespaceAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentNamespaceAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentNamespaceAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-AgentNamespaceAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentNamespaceAssignment entity specifically."
+        },
+        "Agent": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Agent is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Agent is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Agent is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Agent repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Agent entity specifically."
+        },
+        "AgentRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-AgentRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentRoleAssignment entity specifically."
+        },
+        "AgentStackAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentStackAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentStackAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentStackAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-AgentStackAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentStackAssignment entity specifically."
+        },
+        "DependsOnModule": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a DependsOnModule is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a DependsOnModule is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a DependsOnModule is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-DependsOnModule repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the DependsOnModule entity specifically."
+        },
+        "GroupAgentRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupAgentRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupAgentRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupAgentRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupAgentRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupAgentRoleAssignment entity specifically."
+        },
+        "GroupGroupMember": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupGroupMember is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupGroupMember is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupGroupMember is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupGroupMember repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupGroupMember entity specifically."
+        },
+        "GroupMember": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupMember is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupMember is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupMember is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupMember repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupMember entity specifically."
+        },
+        "GroupModuleRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupModuleRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupModuleRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupModuleRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupModuleRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupModuleRoleAssignment entity specifically."
+        },
+        "GroupNamespaceRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupNamespaceRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupNamespaceRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupNamespaceRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupNamespaceRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupNamespaceRoleAssignment entity specifically."
+        },
+        "GroupOrganizationRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupOrganizationRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupOrganizationRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupOrganizationRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupOrganizationRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupOrganizationRoleAssignment entity specifically."
+        },
+        "Group": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Group is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Group is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Group is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Group repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Group entity specifically."
+        },
+        "GroupRunnerRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupRunnerRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupRunnerRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupRunnerRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupRunnerRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupRunnerRoleAssignment entity specifically."
+        },
+        "GroupStackRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a GroupStackRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a GroupStackRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a GroupStackRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-GroupStackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupStackRoleAssignment entity specifically."
+        },
+        "ModuleExtraFile": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleExtraFile is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleExtraFile is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleExtraFile is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleExtraFile repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleExtraFile entity specifically."
+        },
+        "ModuleHook": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleHook is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleHook is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleHook is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleHook repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleHook entity specifically."
+        },
+        "ModuleInputFromDefinition": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleInputFromDefinition is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleInputFromDefinition is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleInputFromDefinition is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleInputFromDefinition repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInputFromDefinition entity specifically."
+        },
+        "ModuleInputFromLiteral": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleInputFromLiteral is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleInputFromLiteral is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleInputFromLiteral is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleInputFromLiteral repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInputFromLiteral entity specifically."
+        },
+        "ModuleInputFromNamespace": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleInputFromNamespace is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleInputFromNamespace is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleInputFromNamespace is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleInputFromNamespace repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInputFromNamespace entity specifically."
+        },
+        "ModuleInputFromOutput": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleInputFromOutput is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleInputFromOutput is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleInputFromOutput is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleInputFromOutput repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInputFromOutput entity specifically."
+        },
+        "ModuleInputFromOutputSet": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleInputFromOutputSet is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleInputFromOutputSet is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleInputFromOutputSet is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleInputFromOutputSet repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInputFromOutputSet entity specifically."
+        },
+        "ModuleInputFromSecret": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleInputFromSecret is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleInputFromSecret is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleInputFromSecret is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleInputFromSecret repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInputFromSecret entity specifically."
+        },
+        "ModuleInput": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleInput is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleInput is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleInput is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleInput repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInput entity specifically."
+        },
+        "ModuleJobApproval": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleJobApproval is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleJobApproval is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleJobApproval is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleJobApproval repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleJobApproval entity specifically."
+        },
+        "ModuleJob": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleJob is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleJob is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleJob is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleJob repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleJob entity specifically."
+        },
+        "ModuleMission": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleMission is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleMission is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleMission is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleMission repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleMission entity specifically."
+        },
+        "ModulePulumiArrayFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModulePulumiArrayFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModulePulumiArrayFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModulePulumiArrayFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModulePulumiArrayFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModulePulumiArrayFlag entity specifically."
+        },
+        "ModulePulumiFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModulePulumiFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModulePulumiFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModulePulumiFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModulePulumiFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModulePulumiFlag entity specifically."
+        },
+        "Module": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Module is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Module is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Module is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Module repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Module entity specifically."
+        },
+        "ModuleRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleRoleAssignment entity specifically."
+        },
+        "ModuleSecret": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleSecret is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleSecret is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleSecret is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleSecret repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleSecret entity specifically."
+        },
+        "ModuleTerraformArrayFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleTerraformArrayFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleTerraformArrayFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleTerraformArrayFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleTerraformArrayFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleTerraformArrayFlag entity specifically."
+        },
+        "ModuleTerraformFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ModuleTerraformFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ModuleTerraformFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ModuleTerraformFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ModuleTerraformFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleTerraformFlag entity specifically."
+        },
+        "NamespaceExtraFile": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceExtraFile is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceExtraFile is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceExtraFile is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceExtraFile repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceExtraFile entity specifically."
+        },
+        "NamespaceHook": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceHook is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceHook is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceHook is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceHook repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceHook entity specifically."
+        },
+        "NamespaceInputFromDefinition": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceInputFromDefinition is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceInputFromDefinition is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceInputFromDefinition is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceInputFromDefinition repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceInputFromDefinition entity specifically."
+        },
+        "NamespaceInputFromLiteral": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceInputFromLiteral is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceInputFromLiteral is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceInputFromLiteral is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceInputFromLiteral repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceInputFromLiteral entity specifically."
+        },
+        "NamespaceInputFromSecret": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceInputFromSecret is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceInputFromSecret is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceInputFromSecret is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceInputFromSecret repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceInputFromSecret entity specifically."
+        },
+        "NamespaceInput": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceInput is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceInput is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceInput is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceInput repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceInput entity specifically."
+        },
+        "NamespaceMission": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceMission is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceMission is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceMission is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceMission repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceMission entity specifically."
+        },
+        "NamespacePulumiArrayFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespacePulumiArrayFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespacePulumiArrayFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespacePulumiArrayFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespacePulumiArrayFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespacePulumiArrayFlag entity specifically."
+        },
+        "NamespacePulumiFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespacePulumiFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespacePulumiFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespacePulumiFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespacePulumiFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespacePulumiFlag entity specifically."
+        },
+        "Namespace": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Namespace is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Namespace is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Namespace is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Namespace repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Namespace entity specifically."
+        },
+        "NamespaceRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceRoleAssignment entity specifically."
+        },
+        "NamespaceSecret": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceSecret is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceSecret is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceSecret is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceSecret repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceSecret entity specifically."
+        },
+        "NamespaceTerraformArrayFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceTerraformArrayFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceTerraformArrayFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceTerraformArrayFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceTerraformArrayFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceTerraformArrayFlag entity specifically."
+        },
+        "NamespaceTerraformFlag": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a NamespaceTerraformFlag is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a NamespaceTerraformFlag is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a NamespaceTerraformFlag is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-NamespaceTerraformFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceTerraformFlag entity specifically."
+        },
+        "OrganizationMission": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a OrganizationMission is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a OrganizationMission is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a OrganizationMission is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-OrganizationMission repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the OrganizationMission entity specifically."
+        },
+        "Organization": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Organization is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Organization is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Organization is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Organization repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Organization entity specifically."
+        },
+        "OrganizationRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a OrganizationRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a OrganizationRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a OrganizationRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-OrganizationRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the OrganizationRoleAssignment entity specifically."
+        },
+        "OrganizationUser": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a OrganizationUser is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a OrganizationUser is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a OrganizationUser is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-OrganizationUser repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the OrganizationUser entity specifically."
+        },
+        "Output": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Output is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Output is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Output is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Output repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Output entity specifically."
+        },
+        "OutputSet": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a OutputSet is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a OutputSet is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a OutputSet is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-OutputSet repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the OutputSet entity specifically."
+        },
+        "PreviewFeatureAcceptance": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a PreviewFeatureAcceptance is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a PreviewFeatureAcceptance is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a PreviewFeatureAcceptance is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-PreviewFeatureAcceptance repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the PreviewFeatureAcceptance entity specifically."
+        },
+        "RoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-RoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RoleAssignment entity specifically."
+        },
+        "RunnerConnectionJob": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerConnectionJob is created."
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerConnectionJob is updated."
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerConnectionJob is deleted."
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Repository settings for RunnerConnectionJob entity. Events are disabled since this tracks runtime job-to-connection associations, not configuration changes."
+        },
+        "RunnerConnection": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerConnection is created."
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerConnection is updated."
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerConnection is deleted."
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Repository settings for RunnerConnection entity. Events are disabled since connections are runtime state, not configuration changes."
+        },
+        "RunnerModuleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerModuleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerModuleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerModuleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-RunnerModuleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerModuleAssignment entity specifically."
+        },
+        "RunnerNamespaceAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerNamespaceAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerNamespaceAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerNamespaceAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-RunnerNamespaceAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerNamespaceAssignment entity specifically."
+        },
+        "Runner": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Runner is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Runner is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Runner is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Runner repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Runner entity specifically."
+        },
+        "RunnerRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-RunnerRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerRoleAssignment entity specifically."
+        },
+        "RunnerStackAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerStackAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerStackAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerStackAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-RunnerStackAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerStackAssignment entity specifically."
+        },
+        "Secret": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Secret is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Secret is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Secret is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Secret repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Secret entity specifically."
+        },
+        "ServicePrincipalAgentRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipalAgentRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipalAgentRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipalAgentRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipalAgentRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalAgentRoleAssignment entity specifically."
+        },
+        "ServicePrincipalGroupMember": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipalGroupMember is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipalGroupMember is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipalGroupMember is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipalGroupMember repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalGroupMember entity specifically."
+        },
+        "ServicePrincipalModuleRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipalModuleRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipalModuleRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipalModuleRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipalModuleRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalModuleRoleAssignment entity specifically."
+        },
+        "ServicePrincipalNamespaceRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipalNamespaceRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipalNamespaceRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipalNamespaceRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipalNamespaceRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalNamespaceRoleAssignment entity specifically."
+        },
+        "ServicePrincipalOrganizationRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipalOrganizationRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipalOrganizationRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipalOrganizationRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipalOrganizationRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalOrganizationRoleAssignment entity specifically."
+        },
+        "ServicePrincipal": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipal is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipal is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipal is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipal repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipal entity specifically."
+        },
+        "ServicePrincipalRunnerRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipalRunnerRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipalRunnerRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipalRunnerRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipalRunnerRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalRunnerRoleAssignment entity specifically."
+        },
+        "ServicePrincipalStackRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a ServicePrincipalStackRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a ServicePrincipalStackRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a ServicePrincipalStackRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-ServicePrincipalStackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalStackRoleAssignment entity specifically."
+        },
+        "SourceRefresherPreselection": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a SourceRefresherPreselection is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a SourceRefresherPreselection is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a SourceRefresherPreselection is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-SourceRefresherPreselection repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the SourceRefresherPreselection entity specifically."
+        },
+        "StackMission": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a StackMission is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a StackMission is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a StackMission is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-StackMission repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the StackMission entity specifically."
+        },
+        "Stack": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Stack is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Stack is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Stack is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Stack repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Stack entity specifically."
+        },
+        "StackRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a StackRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a StackRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a StackRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-StackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the StackRoleAssignment entity specifically."
+        },
+        "StackSecret": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a StackSecret is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a StackSecret is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a StackSecret is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-StackSecret repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the StackSecret entity specifically."
+        },
+        "UserAgentRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a UserAgentRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a UserAgentRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a UserAgentRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-UserAgentRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserAgentRoleAssignment entity specifically."
+        },
+        "UserGroupMember": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a UserGroupMember is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a UserGroupMember is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a UserGroupMember is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-UserGroupMember repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserGroupMember entity specifically."
+        },
+        "UserModuleRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a UserModuleRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a UserModuleRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a UserModuleRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-UserModuleRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserModuleRoleAssignment entity specifically."
+        },
+        "UserNamespaceRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a UserNamespaceRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a UserNamespaceRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a UserNamespaceRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-UserNamespaceRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserNamespaceRoleAssignment entity specifically."
+        },
+        "UserOrganizationRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a UserOrganizationRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a UserOrganizationRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a UserOrganizationRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-UserOrganizationRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserOrganizationRoleAssignment entity specifically."
+        },
+        "User": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a User is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a User is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a User is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-User repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the User entity specifically."
+        },
+        "UserRunnerRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a UserRunnerRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a UserRunnerRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a UserRunnerRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-UserRunnerRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserRunnerRoleAssignment entity specifically."
+        },
+        "UserStackRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a UserStackRoleAssignment is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a UserStackRoleAssignment is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a UserStackRoleAssignment is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-UserStackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserStackRoleAssignment entity specifically."
+        },
+        "Variable": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a Variable is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a Variable is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a Variable is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-Variable repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the Variable entity specifically."
+        },
+        "VariableSet": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a VariableSet is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a VariableSet is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a VariableSet is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
+            }
+          },
+          "description": "Per-VariableSet repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the VariableSet entity specifically."
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

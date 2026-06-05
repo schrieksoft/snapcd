@@ -1,0 +1,405 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/Agents"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject IOrganizationContext OrganizationContext
+@inject ILicenseInfoProvider LicenseInfoProvider
+
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
+@using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.Licensing.Services
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Agent
+@using SnapCd.Server.Core.UI.Dashboard.Components.AgentAssignments
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Agents
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
+<PageTitle>Agents</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <EeFeatureAlert Feature="Feature.AiAgents"
+                    Message="AI Agents require an Enterprise license. Upgrade your tier to manage agents and run autonomous missions."/>
+
+    <MudText Typo="Typo.h4" GutterBottom="true">Agents</MudText>
+
+    @if (_aiAgentsLicensed)
+    {
+    @if (_showCreateAgent)
+    {
+        <MudItem Class="mb-2">
+            <CreateAgent OnCreated="HandleAgentCreated"
+                         OnCancel="HandleCancelCreate"/>
+        </MudItem>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color: #000; color: #fff;"
+                   OnClick="ShowCreateAgent"
+                   Class="mt-2 mb-2">
+            Create New
+        </MudButton>
+    }
+
+    @if (_agents == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var agent in _agents)
+            {
+                <MudExpansionPanel Expanded="@(agent.Id == _expandedAgentId)"
+                                   ExpandedChanged="@(e => HandleExpansionChanged(agent.Id, e))">
+                    <TitleContent>
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <MudText>@agent.Name</MudText>
+                                @if (agent.IsDisabled)
+                                {
+                                    <MudChip T="string" Color="Color.Error" Text="Disabled" Size="Size.Small"/>
+                                }
+                                <AgentOnlineBadge AgentId="agent.Id" OrganizationId="OrganizationId" />
+                            </div>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        @if (!agent.IsDisabled)
+                        {
+                            <MudTooltip Text="Agent is enabled, click to disable">
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayDisabled" Color="Color.Primary"
+                                               Size="Size.Small" OnClick="() => DeactivateAgent(agent)"/>
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Agent is disabled, click to enable">
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Secondary"
+                                               Size="Size.Small" OnClick="() => ActivateAgent(agent)"/>
+                            </MudTooltip>
+                        }
+
+                        <MudTooltip Text="Overview">
+                            <MudIconButton Icon="@Icons.Material.Filled.Dashboard"
+                                           Color="@GetColor(agent.Id, ShowingType.Overview)" Size="Size.Small"
+                                           OnClick="() => ShowOverview(agent)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Edit Agent">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="@GetColor(agent.Id, ShowingType.Edit)" Size="Size.Small"
+                                           OnClick="() => Edit(agent)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Roles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                           Color="@GetColor(agent.Id, ShowingType.Roles)" Size="Size.Small"
+                                           OnClick="() => ManageRoles(agent)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Missions">
+                            <MudIconButton Icon="material-symbols-outlined/automation"
+                                           Color="@GetColor(agent.Id, ShowingType.Missions)" Size="Size.Small"
+                                           OnClick="() => ManageMissions(agent)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Assignments">
+                            <MudIconButton Icon="@Icons.Material.Filled.SettingsApplications"
+                                           Color="@GetColor(agent.Id, ShowingType.Assignments)" Size="Size.Small"
+                                           OnClick="() => ManageAssignments(agent)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Delete Agent">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(agent)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(agent.Id, ShowingType.Overview))
+                        {
+                            <MudItem Class="mt-2">
+                                <AgentOverview
+                                    AgentId="agent.Id"
+                                    OnClose="HandleOverviewClosed"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(agent.Id, ShowingType.Edit))
+                        {
+                            <MudItem Class="mt-2">
+                                <EditAgent Agent="_selectedAgent"
+                                           OnSaved="HandleAgentSaved"
+                                           OnCancel="HandleCancelEdit"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(agent.Id, ShowingType.Roles))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageAgentRoles
+                                    AgentId="agent.Id"
+                                    OnCancel="HandleRolesClosed"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(agent.Id, ShowingType.Missions))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageAgentMissions AgentId="agent.Id" AgentName="@agent.Name"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(agent.Id, ShowingType.Assignments))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageAgentAssignments
+                                    AgentId="agent.Id"
+                                    OnClose="HandleAssignmentsClosed"/>
+                            </MudItem>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    }
+    }
+</CascadingValue>
+
+
+@code {
+    [Inject] private AgentSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    [SupplyParameterFromQuery] public string? Agent { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<Agent>? _agents;
+    private bool _showCreateAgent;
+    private bool _aiAgentsLicensed;
+    private Agent? _selectedAgent;
+    private Guid? _expandedAgentId;
+    private ShowingType _showing;
+
+    private enum ShowingType
+    {
+        None,
+        Overview,
+        Edit,
+        Roles,
+        Missions,
+        Assignments
+    }
+
+    private Color GetColor(Guid agentId, ShowingType showTypeToMatch)
+    {
+        if (_selectedAgent == null) return Color.Primary;
+        if (agentId == _selectedAgent.Id)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid agentId, ShowingType showTypeToMatch)
+    {
+        if (_selectedAgent == null) return false;
+        return agentId == _selectedAgent.Id && _showing == showTypeToMatch;
+    }
+
+    private void ShowCreateAgent() => _showCreateAgent = true;
+
+    private async Task HandleAgentCreated(Guid agentId)
+    {
+        _showCreateAgent = false;
+        await ReloadAgents();
+    }
+
+    private void HandleCancelCreate() => _showCreateAgent = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var licenseInfo = await LicenseInfoProvider.GetLicenseInfoAsync(OrganizationId);
+        _aiAgentsLicensed = licenseInfo.Includes(Feature.AiAgents);
+        if (_aiAgentsLicensed)
+            await ReloadAgents();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Hydrate selection from the URL query params on first render and on navigation.
+        if (_agents is null) return;
+
+        if (Guid.TryParse(Agent, out var agentId))
+        {
+            var match = _agents.FirstOrDefault(a => a.Id == agentId);
+            if (match is not null)
+            {
+                _expandedAgentId = agentId;
+                if (!string.IsNullOrEmpty(Action) && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsedShowing) && parsedShowing != ShowingType.None)
+                {
+                    _selectedAgent = match;
+                    _showing = parsedShowing;
+                }
+            }
+        }
+    }
+
+    private void HandleExpansionChanged(Guid agentId, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedAgentId = agentId;
+        }
+        else if (_expandedAgentId == agentId)
+        {
+            _expandedAgentId = null;
+            if (_selectedAgent?.Id == agentId)
+            {
+                _selectedAgent = null;
+                _showing = ShowingType.None;
+            }
+        }
+        UpdateUrl();
+    }
+
+    private void UpdateUrl()
+    {
+        var query = new Dictionary<string, object?>();
+        if (_expandedAgentId is { } eid) query["agent"] = eid.ToString();
+        if (_selectedAgent is not null && _showing != ShowingType.None)
+            query["action"] = _showing.ToString().ToLowerInvariant();
+        var url = NavigationManager.GetUriWithQueryParameters("/Agents", query);
+        NavigationManager.NavigateTo(url, forceLoad: false, replace: true);
+    }
+
+    private async Task ReloadAgents()
+    {
+        using var repo = RepoFactory.Create();
+        _agents = await repo.List(OrganizationId);
+    }
+
+    private async Task Delete(Agent agent)
+    {
+        var parameters = new DialogParameters<DeleteAgentDialog>
+        {
+            { x => x.Agent, agent },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteAgentDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var agentId);
+            Snackbar.Add($"Successfully deleted Agent \"{agentId}\"", Severity.Success);
+            await ReloadAgents();
+        }
+    }
+
+    private async Task HandleAgentSaved(Agent agent)
+    {
+        ClearSelection();
+        await ReloadAgents();
+    }
+
+    private void HandleCancelEdit() => ClearSelection();
+
+    private void ManageRoles(Agent agent) => Select(agent, ShowingType.Roles);
+
+    private void HandleRolesClosed() => ClearSelection();
+
+    private void ManageMissions(Agent agent) => Select(agent, ShowingType.Missions);
+
+    private void ManageAssignments(Agent agent) => Select(agent, ShowingType.Assignments);
+
+    private void HandleAssignmentsClosed() => ClearSelection();
+
+    private void ShowOverview(Agent agent) => Select(agent, ShowingType.Overview);
+
+    private void HandleOverviewClosed() => ClearSelection();
+
+    private void Edit(Agent agent) => Select(agent, ShowingType.Edit);
+
+    private void Select(Agent agent, ShowingType action)
+    {
+        _selectedAgent = agent;
+        _expandedAgentId = agent.Id;
+        _showing = action;
+        UpdateUrl();
+    }
+
+    private void ClearSelection()
+    {
+        _selectedAgent = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
+    }
+
+    private async Task ActivateAgent(Agent agent)
+    {
+        var parameters = new DialogParameters<ActivateAgentDialog>
+        {
+            { x => x.Agent, agent },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ActivateAgentDialog>("Activate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var activatedAgentId);
+            Snackbar.Add($"Successfully activated Agent \"{activatedAgentId}\"", Severity.Success);
+            await ReloadAgents();
+        }
+    }
+
+    private async Task DeactivateAgent(Agent agent)
+    {
+        var parameters = new DialogParameters<DeactivateAgentDialog>
+        {
+            { x => x.Agent, agent },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeactivateAgentDialog>("Deactivate", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var deactivatedAgentId);
+            Snackbar.Add($"Successfully deactivated Agent \"{deactivatedAgentId}\"", Severity.Success);
+            await ReloadAgents();
+        }
+    }
+
+    public void Dispose() { }
+}

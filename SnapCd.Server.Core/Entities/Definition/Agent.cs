@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+using System.ComponentModel.DataAnnotations;
+using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
+using SnapCd.Server.Core.Entities.Definition.Base;
+using SnapCd.Server.Core.Entities.Definition.Missions;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base;
+using SnapCd.Server.Core.Entities.Interfaces;
+
+namespace SnapCd.Server.Core.Entities.Definition;
+
+public class Agent : AuditBase, IEntity, IOrganizationChild, ICreationTrackable
+{
+    public Guid Id { get; set; }
+    public Guid OrganizationId { get; set; }
+    public Guid ServicePrincipalId { get; set; }
+
+    [MaxLength(255)] public string Name { get; set; } = null!;
+
+    public bool IsDisabled { get; set; }
+
+    public bool AllowMultipleInstances { get; set; }
+
+    public bool IsAssignedToAllModules { get; set; }
+
+    // Navigation properties
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual ServicePrincipal ServicePrincipal { get; set; } = null!;
+
+    public List<AgentRoleAssignment> AgentRoleAssignments { get; set; } = null!;
+
+    public List<AgentStackAssignment> AgentStackAssignments { get; set; } = null!;
+    public List<AgentNamespaceAssignment> AgentNamespaceAssignments { get; set; } = null!;
+    public List<AgentModuleAssignment> AgentModuleAssignments { get; set; } = null!;
+
+    public List<OrganizationMission> OrganizationMissions { get; set; } = null!;
+    public List<StackMission> StackMissions { get; set; } = null!;
+    public List<NamespaceMission> NamespaceMissions { get; set; } = null!;
+    public List<ModuleMission> ModuleMissions { get; set; } = null!;
+
+    public Guid ParentId()
+    {
+        return OrganizationId;
+    }
+}

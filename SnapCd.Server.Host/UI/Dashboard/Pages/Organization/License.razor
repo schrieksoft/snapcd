@@ -13,7 +13,7 @@
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject IOrganizationContext OrganizationContext
 @inject LicenseService LicenseService
-@inject ISaaSLicenseClient SaaSLicenseClient
+@inject IRemoteLicenseClient RemoteLicenseClient
 @inject IQuotaGatingService QuotaGatingService
 @inject IOptions<DebuggingOptions> DebuggingOptions
 @using System.Diagnostics
@@ -24,6 +24,7 @@
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Host.Licensing.Services
 @using SnapCd.Server.Core.Licensing.Services
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Settings
@@ -117,6 +118,30 @@ else
                         <td style="font-weight: 600;">Expiry</td>
                         <td>@(_licenseInfo?.ExpiryDate?.ToString("yyyy-MM-dd") ?? "N/A")</td>
                     </tr>
+                </tbody>
+            </MudSimpleTable>
+
+            <MudText Typo="Typo.h6" Class="mt-6 mb-2">Feature comparison</MudText>
+            <MudSimpleTable Dense="true" Hover="true" Class="mb-4" Style="max-width: 720px;">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th style="text-align: center;">Community</th>
+                        <th style="text-align: center;">Lite</th>
+                        <th style="text-align: center;">Enterprise</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var feature in Enum.GetValues<Feature>())
+                    {
+                        var isEnterpriseOnly = feature == Feature.AiAgents;
+                        <tr>
+                            <td>@FeatureLabel(feature)</td>
+                            <td style="text-align: center;">@RenderTierCell(Tier.Community, feature, isEnterpriseOnly)</td>
+                            <td style="text-align: center;">@RenderTierCell(Tier.Lite, feature, isEnterpriseOnly)</td>
+                            <td style="text-align: center;">@RenderTierCell(Tier.Enterprise, feature, isEnterpriseOnly)</td>
+                        </tr>
+                    }
                 </tbody>
             </MudSimpleTable>
         }
@@ -263,6 +288,41 @@ else
         _ => tier.ToString()
     };
 
+    private static string FeatureLabel(Feature feature) => feature switch
+    {
+        Feature.FinegrainedRbac => "Fine-grained RBAC",
+        Feature.Sso => "SSO",
+        Feature.ApprovalWorkflows => "Approval workflows",
+        Feature.Turnstile => "Turnstile (anti-spam)",
+        Feature.PremiumMessageBroker => "Premium message broker",
+        Feature.PremiumSecretStore => "Premium secret store",
+        Feature.PremiumEmailProvider => "Premium email provider",
+        Feature.AiAgents => "AI Agents",
+        _ => feature.ToString()
+    };
+
+    private RenderFragment RenderTierCell(Tier tier, Feature feature, bool isEnterpriseOnly) => __builder =>
+    {
+        if (isEnterpriseOnly)
+        {
+            // AiAgents — Enterprise-only. Render a visible "Enterprise Only" chip in the Enterprise
+            // column and an invisible same-shape placeholder in the other columns so the row's cells
+            // line up horizontally with the rest of the grid.
+            var hidden = tier != Tier.Enterprise ? "visibility: hidden;" : "";
+            <span style="@hidden">
+                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">Enterprise Only</MudChip>
+            </span>
+        }
+        else if (tier.Includes(feature))
+        {
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+        }
+        else
+        {
+            <span style="opacity: 0.35; font-size: 1.1rem;">—</span>
+        }
+    };
+
     private void BeginReplace()
     {
         _replaceMode = true;
@@ -286,7 +346,7 @@ else
         try
         {
             var opaqueKey = _newLicenseKey.Trim();
-            var issued = await SaaSLicenseClient.IssueAsync(opaqueKey);
+            var issued = await RemoteLicenseClient.IssueAsync(opaqueKey);
 
             if (issued is null || string.IsNullOrWhiteSpace(issued.Token))
             {

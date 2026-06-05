@@ -7,9 +7,11 @@
 // for terms covering either use.
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SnapCd.Contracts;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 
@@ -41,10 +43,11 @@ public class GitTests : IDisposable
             Guid.NewGuid(),
             "GitTests",
             mockTaskLogger.Object,
+            new NullJobLogStream(),
             metadata
         );
 
-        _sourceResolver = new GitModuleSourceResolver();
+        _sourceResolver = new GitModuleSourceResolver(NullLogger<GitModuleSourceResolver>.Instance);
 
         _git = new Git(
             _mockLogger.Object,

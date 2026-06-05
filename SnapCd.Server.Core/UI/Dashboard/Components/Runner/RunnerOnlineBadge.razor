@@ -1,0 +1,58 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
+@using SnapCd.Server.Core.Services.Notification
+
+@implements IDisposable
+@inject RunnerConnectionRepositoryFactory ConnectionRepositoryFactory
+@inject RunnerAvailabilityModifiedNotificationService AvailabilityNotifications
+
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+    <MudIcon Icon="@Icons.Material.Filled.Circle"
+             Size="Size.Small"
+             Color="@(_isOnline ? Color.Success : Color.Default)"
+             Class="mr-1" />
+    @(_isOnline ? $"Online · {_connectionCount}" : "Offline")
+</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public Guid RunnerId { get; set; }
+    [Parameter, EditorRequired] public Guid OrganizationId { get; set; }
+
+    private int _connectionCount;
+    private bool _isOnline => _connectionCount > 0;
+    private Func<Guid, string, Task>? _handler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _handler = HandleAvailabilityChanged;
+        AvailabilityNotifications.Subscribe(RunnerId, _handler);
+        await Refresh();
+    }
+
+    private async Task HandleAvailabilityChanged(Guid runnerId, string runnerInstanceName)
+    {
+        if (runnerId != RunnerId) return;
+        await Refresh();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Refresh()
+    {
+        using var repo = ConnectionRepositoryFactory.Create();
+        var connections = await repo.GetActiveConnectionsByRunnerId(RunnerId, OrganizationId);
+        _connectionCount = connections.Count;
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null)
+            AvailabilityNotifications.Unsubscribe(RunnerId, _handler);
+    }
+}

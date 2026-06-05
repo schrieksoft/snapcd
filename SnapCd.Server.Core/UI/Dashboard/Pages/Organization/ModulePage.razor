@@ -249,6 +249,12 @@
                                OnClick="() => SwitchShowing(ShowingType.Roles)"/>
             </MudTooltip>
 
+            <MudTooltip Text="Manage Missions">
+                <MudIconButton Icon="material-symbols-outlined/automation"
+                               Color="GetColor(ShowingType.Missions)" Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Missions)"/>
+            </MudTooltip>
+
             <MudTooltip Text="Manage Secrets">
                 <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
                                Size="Size.Small"
@@ -275,7 +281,11 @@
 
         @if (_showing == ShowingType.Jobs)
         {
-            <ManageModuleJobs Module="_module"/>
+            <ManageModuleJobs Module="_module"
+                              InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
+                              InitialTab="@Tab"
+                              InitialTask="@Task"
+                              OnJobsStateChanged="HandleJobsStateChanged"/>
         }
 
         @if (_showing == ShowingType.Roles)
@@ -283,6 +293,12 @@
             <ManageModuleRoles ModuleId="_module.Id"
                                OnSaved="() => _showing = ShowingType.None"
                                OnCancel="() => _showing = ShowingType.None"/>
+        }
+
+        @if (_showing == ShowingType.Missions)
+        {
+            <ManageModuleMissions ModuleId="_module.Id" NamespaceId="_module.NamespaceId"
+                                  StackName="@StackName" NamespaceName="@NamespaceName"/>
         }
 
         @if (_showing == ShowingType.Edit)
@@ -604,6 +620,9 @@
     [SupplyParameterFromQuery] public string? Action { get; set; }
     [SupplyParameterFromQuery] public string? Search { get; set; }
     [SupplyParameterFromQuery] public string? Direction { get; set; }
+    [SupplyParameterFromQuery] public string? Tab { get; set; }
+    [SupplyParameterFromQuery] public string? Job { get; set; }
+    [SupplyParameterFromQuery] public string? Task { get; set; }
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleJobSecuredRepositoryFactory JobRepoFactory { get; set; } = null!;
@@ -1435,12 +1454,33 @@
         NavigationManager.NavigateTo(newUrl, false);
     }
 
+    private void HandleJobsStateChanged((Guid? JobId, string? Tab, string? Task) state)
+    {
+        var queryParams = new List<string> { "action=Jobs" };
+
+        if (state.JobId.HasValue)
+            queryParams.Add($"job={state.JobId.Value}");
+
+        if (!string.IsNullOrEmpty(state.Tab))
+            queryParams.Add($"tab={state.Tab}");
+
+        if (!string.IsNullOrEmpty(state.Task))
+            queryParams.Add($"task={Uri.EscapeDataString(state.Task)}");
+
+        if (!string.IsNullOrEmpty(Search))
+            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
+
+        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
+        NavigationManager.NavigateTo(newUrl, forceLoad: false, replace: true);
+    }
+
     private enum ShowingType
     {
         None,
         Jobs,
         Edit,
         Roles,
+        Missions,
         Secrets,
         Outputs,
         Variables,
@@ -1481,6 +1521,7 @@
             "edit" => ShowingType.Edit,
             "secrets" => ShowingType.Secrets,
             "roles" => ShowingType.Roles,
+            "missions" => ShowingType.Missions,
             "jobs" => ShowingType.Jobs,
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
@@ -1496,6 +1537,7 @@
             ShowingType.Edit => "Edit",
             ShowingType.Secrets => "Secrets",
             ShowingType.Roles => "Roles",
+            ShowingType.Missions => "Missions",
             ShowingType.Jobs => "Jobs",
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",

@@ -38,6 +38,7 @@ public partial class Tasks
             request.JobId,
             nameof(ApplyFromPlan),
             logger,
+            _jobLogStream,
             request.Metadata
         );
 

@@ -10,8 +10,24 @@ using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.Settings;
 
+/// <summary>
+/// Distributed-cache and SignalR-backplane configuration. Single-replica deployments can leave
+/// the default InMemory provider; multi-replica deployments must use Redis so cache hits and
+/// SignalR group state are shared across replicas.
+/// </summary>
 public class CachingSettings
 {
+    /// <summary>
+    /// Cache backing. <c>InMemory</c> (default) keeps everything in-process — fine for single-replica
+    /// deployments. <c>Redis</c> uses a shared Redis instance as both the cache provider and the
+    /// SignalR backplane, required when running more than one Server replica.
+    /// </summary>
     public CacheProvider Provider { get; set; } = CacheProvider.InMemory;
+
+    /// <summary>
+    /// Connection string for the Redis instance. Required when <see cref="Provider"/> is Redis;
+    /// ignored when InMemory. Sensitive in production — source via the External Settings provider
+    /// when the Redis instance is auth-protected.
+    /// </summary>
     public string? ConnectionString { get; set; }
 }

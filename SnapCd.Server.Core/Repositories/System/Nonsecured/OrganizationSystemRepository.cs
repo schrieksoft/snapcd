@@ -152,9 +152,11 @@ public class OrganizationSystemRepository : GenericSystemRepository<Organization
                 Status = OrganizationStatus.Active,
                 CreatedBy = createdByUserId,
                 CreatedByPrincipalDiscriminator = AuditPrincipalDiscriminator.User,
+                CreatedByAgentId = null,                                    // bootstrap path — no Agent context at org-create
                 CreatedDateTime = now,
                 ModifiedBy = createdByUserId,
                 ModifiedByPrincipalDiscriminator = AuditPrincipalDiscriminator.User,
+                ModifiedByAgentId = null,
                 ModifiedDateTime = now
             };
 
@@ -172,9 +174,11 @@ public class OrganizationSystemRepository : GenericSystemRepository<Organization
                 InvitationCompletedDateTime = now,
                 CreatedBy = createdByUserId,
                 CreatedByPrincipalDiscriminator = AuditPrincipalDiscriminator.User,
+                CreatedByAgentId = null,
                 CreatedDateTime = now,
                 ModifiedBy = createdByUserId,
                 ModifiedByPrincipalDiscriminator = AuditPrincipalDiscriminator.User,
+                ModifiedByAgentId = null,
                 ModifiedDateTime = now
             };
 
@@ -190,9 +194,11 @@ public class OrganizationSystemRepository : GenericSystemRepository<Organization
                 PrincipalDiscriminator = RoleAssignmentPrincipalDiscriminator.User,
                 CreatedBy = createdByUserId,
                 CreatedByPrincipalDiscriminator = AuditPrincipalDiscriminator.User,
+                CreatedByAgentId = null,
                 CreatedDateTime = now,
                 ModifiedBy = createdByUserId,
                 ModifiedByPrincipalDiscriminator = AuditPrincipalDiscriminator.User,
+                ModifiedByAgentId = null,
                 ModifiedDateTime = now
             };
 

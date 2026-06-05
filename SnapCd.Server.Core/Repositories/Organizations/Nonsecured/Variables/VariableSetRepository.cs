@@ -103,31 +103,36 @@ public class VariableSetRepository : GenericModuleChildRepository<
         var principalId = PrincipalProvider.GetSubjectOrDefault(variableSet.OrganizationId);
         var principalDiscriminator = PrincipalProvider.GetPrincipalDiscriminatorOrDefault();
         var auditDiscriminator = ConvertToAuditPrincipalDiscriminator(principalDiscriminator);
+        var agentId = PrincipalProvider.GetAgentId();
 
         // Set audit fields
 
         var now = DateTime.UtcNow;
-        
+
         variableSet.CreatedBy = principalId;
         variableSet.CreatedByPrincipalDiscriminator = auditDiscriminator;
+        variableSet.CreatedByAgentId = agentId;
         variableSet.CreatedDateTime = now;
         variableSet.ModifiedBy = principalId;
         variableSet.ModifiedByPrincipalDiscriminator = auditDiscriminator;
+        variableSet.ModifiedByAgentId = agentId;
         variableSet.ModifiedDateTime = now;
-        
+
 
         foreach (var variable in variableSet.Variables)
         {
             if (variable.Id == Guid.Empty)
                 throw new IdIsEmptyException($"{typeof(Variable)} ID cannot be empty.");
-            
+
             variable.VariableSetId = variableSet.Id;
             variable.OrganizationId = organizationId;
             variable.CreatedBy = principalId;
             variable.CreatedByPrincipalDiscriminator = auditDiscriminator;
+            variable.CreatedByAgentId = agentId;
             variable.CreatedDateTime = now;
             variable.ModifiedBy = principalId;
             variable.ModifiedByPrincipalDiscriminator = auditDiscriminator;
+            variable.ModifiedByAgentId = agentId;
             variable.ModifiedDateTime = now;
         }
 

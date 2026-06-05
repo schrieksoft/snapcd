@@ -18,6 +18,8 @@ namespace SnapCd.Server.Core.StateMachine.Gatekeeping;
 
 public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
 {
+    private readonly ILogger<ModuleStateMachine> _logger;
+
     public required State Gatekeeping { get; set; }
 
     // Events
@@ -43,8 +45,10 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
     public Schedule<ModuleSaga, DriftCheckScheduled> DriftCheckScheduled { get; set; } = null!;
 
 
-    public ModuleStateMachine()
+    public ModuleStateMachine(ILogger<ModuleStateMachine> logger)
     {
+        _logger = logger;
+
         InstanceState(x => x.CurrentState);
 
         // Correlate events by ModuleId
@@ -75,8 +79,9 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
 
         During(Gatekeeping,
             When(GatekeepingJobRequested)
-                .Then(x => Console.WriteLine(
-                    $"Received GatekeepingJobRequested with ID {x.Message.ModuleId} in Gatekeeping state"))
+                .Then(x => _logger.LogInformation(
+                    "Received GatekeepingJobRequested with ID {ModuleId} in Gatekeeping state",
+                    x.Message.ModuleId))
                 .Unschedule(DriftCheckScheduled)
                 .Then(x =>
                 {
@@ -91,7 +96,7 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
             When(ClearQueueRequested)
-                .Then(_ => Console.WriteLine("Clearing queue"))
+                .Then(_ => _logger.LogInformation("Clearing queue"))
                 .Then(y => { y.Saga.QueuedDesiredStateHeadline = null; })
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
@@ -144,12 +149,14 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
             When(ModuleDependencyCheckRequested)
-                .Then(y => Console.WriteLine($"Checking dependencies for queued module {y.Message.ModuleId}"))
+                .Then(y => _logger.LogInformation(
+                    "Checking dependencies for queued module {ModuleId}", y.Message.ModuleId))
                 .Activity(y => y.OfType<DequeueIfDependenciesMetJobActivity<ModuleDependencyCheckRequested>>())
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
             When(DriftCheckScheduled.Received)
-                .Then(x => Console.WriteLine($"Drift check fired for module {x.Saga.CorrelationId}"))
+                .Then(x => _logger.LogInformation(
+                    "Drift check fired for module {ModuleId}", x.Saga.CorrelationId))
                 .Publish(x => new GatekeepingJobRequested
                 {
                     ModuleId = x.Saga.CorrelationId,

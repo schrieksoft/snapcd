@@ -8,7 +8,6 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Components.Authorization;
-using SnapCd.Server.Core.Licensing.Filters;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Mappers.Outputs;
@@ -33,6 +32,11 @@ public static class MiscService
         // Runner Selection
         services.AddScoped<RunnerSelectionService>();
 
+        // Log redactor — singleton, shared by REST logs endpoint (Phase 4) + MCP
+        // redacted-logs Resource (Phase 6). Single chokepoint, identical scrub policy.
+        services.AddSingleton<SnapCd.Server.Core.Logging.ILogRedactor, SnapCd.Server.Core.Logging.DefaultLogRedactor>();
+
+        services.AddScoped<SnapCd.Server.Core.Services.AgentConnectionValidator.AgentConnectionValidator>();
 
         services.AddScoped<ResolvedConfigurationService>();
         services.AddScoped<DependencyGraphService>();
@@ -46,6 +50,7 @@ public static class MiscService
         // Job Execution Services
         services.AddScoped<JobService>();
         services.AddScoped<SecuredJobService>();
+        services.AddScoped<JobOrchestrationService>();
         services.AddScoped<SourceChangedService>();
 
         // Authentication and Security Services
@@ -59,6 +64,8 @@ public static class MiscService
         services.AddSingleton<JobUpdatedNotificationService>();
         services.AddSingleton<LogReceivedNotificationService>();
         services.AddSingleton<RunnerAvailabilityModifiedNotificationService>();
+        services.AddSingleton<AgentAvailabilityModifiedNotificationService>();
+        services.AddSingleton<MissionRunModifiedNotificationService>();
         services.AddSingleton<ModuleSagaModifiedNotificationService>();
         services.AddSingleton<ModuleStateModifiedNotificationService>();
         services.AddSingleton<ModuleJobApprovalModifiedNotificationService>();
@@ -94,13 +101,6 @@ public static class MiscService
         // Secret Migrator
         services.AddScoped<Services.SecretMigrator.SecretMigratorService>();
 
-        // Enterprise Edition services
-        services.AddScoped<LicenseService>();
-        services.AddScoped<LicenseRefreshJob>();
-        services.AddScoped<LicensePublicKeyRefreshJob>();
-        services.AddSingleton<ILicensePublicKeyService, LicensePublicKeyService>();
-        services.AddScoped<ISaaSLicenseClient, SaaSLicenseClient>();
-        services.AddScoped<VerifyLicenseActionFilter>();
         services.AddScoped<IQuotaGatingService, QuotaGatingService>();
         services.AddScoped<QuotaService>();
         services.AddScoped<QuotaEnforcementService>();
