@@ -15,8 +15,6 @@
 @using Microsoft.EntityFrameworkCore
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
-@using SnapCd.Server.Core.Licensing.Models
-@using SnapCd.Server.Core.Licensing.Services
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Services.Edition
 @using SnapCd.Server.Core.Settings
@@ -33,7 +31,6 @@
 @inject IOrganizationActivationService OrganizationActivation
 @inject OrganizationMembershipCacheService MembershipCache
 @inject UserManager<User> UserManager
-@inject ILicenseInfoProvider LicenseInfoProvider
 
 <MudNavMenu Style="background-color: #000; color: white; padding-top: 16px; width: 100%; overflow-x: hidden;">
 
@@ -348,14 +345,6 @@
         if (HostEnvironment.IsDevelopment())
             _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
         _swaggerIsAllowedToNavigate = await IsAllowedToNavigateAsync(typeof(Swagger), orgId);
-
-        var licenseInfo = await LicenseInfoProvider.GetLicenseInfoAsync(orgId);
-        if (!licenseInfo.Includes(Feature.AiAgents))
-        {
-            _automationIsAllowedToNavigateMap[typeof(Agents)] = false;
-            if (_testsIsAllowedToNavigateMap.ContainsKey(typeof(AgentHarness)))
-                _testsIsAllowedToNavigateMap[typeof(AgentHarness)] = false;
-        }
     }
 
     private async Task<Dictionary<Type, bool>> BuildAllowedMapAsync(IEnumerable<NavLinkItem> links, Guid orgId)

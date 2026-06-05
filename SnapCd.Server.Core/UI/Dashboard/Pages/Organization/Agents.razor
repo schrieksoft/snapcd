@@ -18,20 +18,16 @@
 @inject OrganizationServiceFactory OrganizationServiceFactory
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject IOrganizationContext OrganizationContext
-@inject ILicenseInfoProvider LicenseInfoProvider
 
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Filters
-@using SnapCd.Server.Core.Licensing.Models
-@using SnapCd.Server.Core.Licensing.Services
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Agent
 @using SnapCd.Server.Core.UI.Dashboard.Components.AgentAssignments
-@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Agents
 
@@ -41,13 +37,8 @@
 <PageTitle>Agents</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <EeFeatureAlert Feature="Feature.AiAgents"
-                    Message="AI Agents require an Enterprise license. Upgrade your tier to manage agents and run autonomous missions."/>
-
     <MudText Typo="Typo.h4" GutterBottom="true">Agents</MudText>
 
-    @if (_aiAgentsLicensed)
-    {
     @if (_showCreateAgent)
     {
         <MudItem Class="mb-2">
@@ -186,7 +177,6 @@
             }
         </MudExpansionPanels>
     }
-    }
 </CascadingValue>
 
 
@@ -201,7 +191,6 @@
 
     private List<Agent>? _agents;
     private bool _showCreateAgent;
-    private bool _aiAgentsLicensed;
     private Agent? _selectedAgent;
     private Guid? _expandedAgentId;
     private ShowingType _showing;
@@ -242,10 +231,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var licenseInfo = await LicenseInfoProvider.GetLicenseInfoAsync(OrganizationId);
-        _aiAgentsLicensed = licenseInfo.Includes(Feature.AiAgents);
-        if (_aiAgentsLicensed)
-            await ReloadAgents();
+        await ReloadAgents();
     }
 
     protected override void OnParametersSet()

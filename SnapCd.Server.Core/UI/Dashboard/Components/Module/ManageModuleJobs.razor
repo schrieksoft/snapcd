@@ -12,8 +12,6 @@
 @using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Licensing.Models
-@using SnapCd.Server.Core.Licensing.Services
 @using SnapCd.Server.Core.Services.Notification
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.Views
@@ -27,7 +25,6 @@
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject ModuleJobApprovalModifiedNotificationService ModuleJobApprovalModifiedNotificationService
 @inject ModuleApprovalThresholdModifiedNotificationService ModuleApprovalThresholdModifiedNotificationService
-@inject ILicenseInfoProvider LicenseInfoProvider
 
 @implements IDisposable
 
@@ -149,12 +146,9 @@ else
                             <ListApprovals ModuleJobId="@job.Id" ModuleId="@Module.Id" JobSagaType="@job.JobType"
                                            @ref="_listApprovalRefs[job.Id]"/>
                         </MudTabPanel>
-                        @if (_aiAgentsLicensed)
-                        {
-                            <MudTabPanel Text="Missions" Style="text-transform: none">
-                                <ListMissions ModuleJobId="@job.Id"/>
-                            </MudTabPanel>
-                        }
+                        <MudTabPanel Text="Missions" Style="text-transform: none">
+                            <ListMissions ModuleJobId="@job.Id"/>
+                        </MudTabPanel>
                     </MudTabs>
                 </ChildContent>
             </MudExpansionPanel>
@@ -196,7 +190,6 @@ else
     private Dictionary<Guid, ListLogs> _listLogsRefs = new();
     private Dictionary<Guid, ListApprovals> _listApprovalRefs = new();
     private List<ModuleJobView>? _moduleJobs;
-    private bool _aiAgentsLicensed;
 
     private Guid? _expandedJobId;
     private string _activeTab = "logs";
@@ -215,9 +208,6 @@ else
     {
         _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
         _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
-
-        var licenseInfo = await LicenseInfoProvider.GetLicenseInfoAsync(OrganizationId);
-        _aiAgentsLicensed = licenseInfo.Includes(Feature.AiAgents);
 
         await ReloadModuleJobs();
 
@@ -524,7 +514,7 @@ else
         return _activeTab switch
         {
             "approvals" => 1,
-            "missions" => _aiAgentsLicensed ? 2 : 0,
+            "missions" => 2,
             _ => 0
         };
     }
@@ -532,7 +522,7 @@ else
     private string GetTabName(int idx) => idx switch
     {
         1 => "approvals",
-        2 when _aiAgentsLicensed => "missions",
+        2 => "missions",
         _ => "logs"
     };
 
