@@ -6,21 +6,22 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Contracts.AgentResults;
+using SnapCd.Contracts.Dto.Missions;
+using SnapCd.Server.Core.Entities.Definition;
 
-namespace SnapCd.Agent.Models;
+namespace SnapCd.Server.Core.Mappers;
 
-/// <summary>One event parsed from the sidecar's SSE <c>/invoke</c> stream: a log line, a progress
-/// milestone, or the final result.</summary>
-public sealed class SidecarStreamEvent
+public static class ModuleJobMissionRunMilestoneMapper
 {
-    public bool IsResult { get; init; }
-    public bool IsMilestone { get; init; }
-    public string Level { get; init; } = "info";
-
-    /// <summary>Set on milestone events: the optional checkpoint label.</summary>
-    public string? MilestoneKind { get; init; }
-
-    public string? Message { get; init; }
-    public MissionResultDto? Result { get; init; }
+    public static ModuleJobMissionRunMilestoneReadDto ToDto(ModuleJobMissionRunMilestone entity)
+    {
+        return new ModuleJobMissionRunMilestoneReadDto
+        {
+            Id = entity.Id,
+            ModuleJobMissionRunId = entity.ModuleJobMissionRunId,
+            Kind = entity.Kind,
+            Message = entity.Message,
+            ReportedAt = entity.ReportedAt
+        };
+    }
 }

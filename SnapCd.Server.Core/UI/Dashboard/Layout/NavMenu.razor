@@ -117,7 +117,7 @@
                 </MudNavGroup>
             }
 
-            <!-- Tests Section (dev only — surfaces dev-mode test harnesses like AgentHarness). -->
+            <!-- Tests Section (dev only — surfaces dev-mode test tools like the Mission test bench). -->
             @if (HostEnvironment.IsDevelopment() && _testsIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
                 <MudNavGroup Title="Tests" Icon="@Icons.Material.Filled.Science" Expanded="false">
@@ -402,7 +402,7 @@
     // Tests Section - collapsible group, dev only
     private List<NavLinkItem> _testsNavLinks = new()
     {
-        new NavLinkItem("AgentHarness", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agent", typeof(AgentHarness))
+        new NavLinkItem("MissionTestBench", NavLinkMatch.All, Icons.Material.Filled.Science, "Mission test bench", typeof(MissionTestBench))
     };
 
     // Identity Access Section - collapsible group

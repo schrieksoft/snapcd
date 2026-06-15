@@ -7,6 +7,13 @@ Context:
 - jobId: {{jobId}}
 - moduleId: {{moduleId}}
 
+**Before pulling the job's own material, read this module's recent mission
+history** from `snapcd://orgs/{{organizationId}}/modules/{{moduleId}}/history` —
+prior diagnoses, fixes, approval recommendations, and summaries for this module
+(including any open PRs). Treat it as **priors to verify, not facts to trust**: the
+current job's logs, status, and source are ground truth; never conclude from
+history alone.
+
 Pull the source material in this order. Don't gather all of it if a short job
 makes most of it irrelevant; aim for "minimum context to write an honest
 summary".
@@ -76,6 +83,10 @@ Then the details, in this order:
 - **Approval** — who approved, when, with what reason; or "auto-applied
   (no approval required)".
 - **Anomalies** — bullet list, or "none" if nothing stood out.
+- **Facts** — always last, on every mission, so this record is usable as future
+  context: source `<SourceUrl>` @ `<SourceRevision>` (from the `source` resource),
+  commit `<DefinitiveRevision>` (from the `status` resource), PR `none` (this
+  mission opens none).
 
 Keep it concrete. Do not invent details that aren't in the logs/plan/approvals.
 Do not propose changes — this is a record of what happened, not a review.

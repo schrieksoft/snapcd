@@ -39,7 +39,12 @@ public class MissionMatcher
         _logger = logger;
     }
 
-    public async Task MatchAndDispatchAsync(
+    /// <summary>
+    /// Returns <c>true</c> if at least one mission of <paramref name="triggeredType"/> was configured for
+    /// the job's scope (whether or not it dispatched to a live agent — an offline match parks and wakes
+    /// later). Callers use this to express precedence between trigger-sharing mission types.
+    /// </summary>
+    public async Task<bool> MatchAndDispatchAsync(
         Guid moduleId, Guid organizationId, Guid jobId, MissionType triggeredType, CancellationToken ct)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(ct);
@@ -48,11 +53,11 @@ public class MissionMatcher
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
             .Select(m => new { m.NamespaceId, m.Namespace.StackId })
             .FirstOrDefaultAsync(ct);
-        if (scope is null) return;
+        if (scope is null) return false;
 
         var matches = await GatherMatchesAsync(db, organizationId, moduleId, scope.NamespaceId, scope.StackId, triggeredType, ct);
         if (matches.Count == 0)
-            return;
+            return false;
 
         var liveAgents = await db.AgentConnections
             .Where(c => c.OrganizationId == organizationId)
@@ -105,6 +110,8 @@ public class MissionMatcher
                 "Mission {MissionType} (job {JobId}) parked {Status} — no live match.",
                 mission.MissionType, jobId, mission.Status);
         }
+
+        return true;
     }
 
     private static async Task<ModuleJobMission?> GetOrCreateMissionAsync(

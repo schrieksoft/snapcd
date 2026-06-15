@@ -52,3 +52,9 @@ public class SummarizeJobMissionRequested : MissionRequestedBase
     public Guid JobId { get; set; }
     public Guid ModuleId { get; set; }
 }
+
+public class AutoFixMissionRequested : MissionRequestedBase
+{
+    public Guid JobId { get; set; }
+    public Guid ModuleId { get; set; }
+}

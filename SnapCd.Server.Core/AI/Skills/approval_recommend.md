@@ -7,6 +7,12 @@ Context:
 - jobId: {{jobId}}
 - moduleId: {{moduleId}}
 
+**Before reading the plan, read this module's recent mission history** from
+`snapcd://orgs/{{organizationId}}/modules/{{moduleId}}/history` — prior diagnoses,
+fixes, approval recommendations, and summaries for this module (including any open
+PRs). Treat it as **priors to verify, not facts to trust**: the current plan and
+source are ground truth; never conclude from history alone.
+
 Read the plan output from the job logs at
 `snapcd://orgs/{{organizationId}}/jobs/{{jobId}}/logs`. The plan body
 (resource-action lines) lives there, inside the `Plan` task slice. Do not
@@ -56,26 +62,29 @@ Now running … <<<<<<<<<`, `No before hook defined`), and refresh lines
 **ANSI escapes.** Strip or ignore `[…m` sequences — they're terminal
 colour codes, not content.
 
-Produce three sections in this exact order:
+Produce the report as bold-label bullets, in this exact order — self-contained,
+since a future mission reads it back cold as history:
 
-1. **What changes** — bulleted list. For each entry: action verb (`create`,
-   `update`, `replace`, `destroy`), resource type, and resource address. Group
-   `update` entries when the diff is purely a tag or metadata edit. Highlight
-   `replace` and `destroy` with their own line — never bury them in an update
-   group.
-
-2. **Risk assessment** — one short paragraph naming the highest-risk item and
-   why. Risk drivers (in descending order): destructive ops on stateful
-   resources (databases, storage with data, persistent volumes), IAM /
-   permissions changes, network rules that open public access, replacement of
-   resources with attached data. If no item triggers any of these, say
-   "Low-risk: additive or in-place changes only" and stop the section.
-
-3. **Recommendation** — one line: `approve` (low-risk and unambiguous; a
-   reviewer can safely click approve), `human-review` (needs eyes), or
-   `decline` (looks wrong / mismatched against what the change was supposed
-   to do). The recommendation is advisory only — a human reviewer still
-   clicks approve in SnapCd; nothing in the orchestrator acts on this label.
+- **What changes** — bulleted list. For each entry: action verb (`create`,
+  `update`, `replace`, `destroy`), resource type, and resource address. Group
+  `update` entries when the diff is purely a tag or metadata edit. Highlight
+  `replace` and `destroy` with their own line — never bury them in an update
+  group.
+- **Risk assessment** — one short paragraph naming the highest-risk item and
+  why. Risk drivers (in descending order): destructive ops on stateful
+  resources (databases, storage with data, persistent volumes), IAM /
+  permissions changes, network rules that open public access, replacement of
+  resources with attached data. If no item triggers any of these, say
+  "Low-risk: additive or in-place changes only".
+- **Recommendation** — one line: `approve` (low-risk and unambiguous; a
+  reviewer can safely click approve), `human-review` (needs eyes), or
+  `decline` (looks wrong / mismatched against what the change was supposed
+  to do). The recommendation is advisory only — a human reviewer still
+  clicks approve in SnapCd; nothing in the orchestrator acts on this label.
+- **Facts** — always last, on every mission: source `<SourceUrl>` @
+  `<SourceRevision>` (from the `source` resource), commit `<DefinitiveRevision>`
+  (from `snapcd://orgs/{{organizationId}}/jobs/{{jobId}}/status`), PR `none` (this
+  mission opens none).
 
 Hard rules:
 - Never recommend `approve` if any destroy or replace touches a stateful

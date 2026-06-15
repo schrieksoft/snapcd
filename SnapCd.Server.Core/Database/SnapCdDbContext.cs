@@ -127,6 +127,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
     public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
     public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
+    public DbSet<ModuleJobMissionRunMilestone> ModuleJobMissionRunMilestones { get; set; }
     public DbSet<OutputSet> OutputSets { get; set; }
     public DbSet<Output> Outputs { get; set; }
     public DbSet<LiteralOutput> LiteralOutputs { get; set; }
@@ -355,6 +356,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobMissionClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobMissionRunClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleJobMissionRunMilestoneClassMap());
         modelBuilder.ApplyConfiguration(new RunnerClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionJobClassMap());

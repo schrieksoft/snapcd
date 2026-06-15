@@ -215,6 +215,7 @@ public static class MassTransit
         typeof(AutoDiagnoseMissionConsumer),
         typeof(ApprovalRecommendMissionConsumer),
         typeof(SummarizeJobMissionConsumer),
+        typeof(AutoFixMissionConsumer),
         typeof(CancelMissionConsumer),
     ];
 

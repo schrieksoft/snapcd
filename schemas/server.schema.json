@@ -1808,6 +1808,60 @@
           },
           "description": "Per-ModuleJobApproval repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleJobApproval entity specifically."
         },
+        "ModuleJobMissionRunMilestone": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a milestone is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a milestone is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a milestone is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes."
+            }
+          },
+          "description": "Per-ModuleJobMissionRunMilestone repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for this entity specifically."
+        },
+        "ModuleJobMissionRun": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a run is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a run is updated. Overridable per environment via config ( Repositories:ModuleJobMissionRun ). The hub additionally suppresses it per-call (SuppressEvents) for the high-frequency streamed log-append update, where a per-batch event would be noise.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a run is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes."
+            }
+          },
+          "description": "Per-ModuleJobMissionRun repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for this entity specifically."
+        },
         "ModuleJob": {
           "type": "object",
           "properties": {

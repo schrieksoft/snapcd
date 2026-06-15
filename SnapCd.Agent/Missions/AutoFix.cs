@@ -6,21 +6,17 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Contracts.AgentResults;
+using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Contracts;
+using SnapCd.Contracts.AgentRequests;
 
-namespace SnapCd.Agent.Models;
+namespace SnapCd.Agent.Missions;
 
-/// <summary>One event parsed from the sidecar's SSE <c>/invoke</c> stream: a log line, a progress
-/// milestone, or the final result.</summary>
-public sealed class SidecarStreamEvent
+public sealed partial class Missions
 {
-    public bool IsResult { get; init; }
-    public bool IsMilestone { get; init; }
-    public string Level { get; init; } = "info";
-
-    /// <summary>Set on milestone events: the optional checkpoint label.</summary>
-    public string? MilestoneKind { get; init; }
-
-    public string? Message { get; init; }
-    public MissionResultDto? Result { get; init; }
+    private void AutoFix(AutoFixRequest req, HubConnection connection, CancellationToken ct)
+        => Dispatch(connection, req, nameof(MissionType.AutoFix),
+            skillName: "auto_fix",
+            sessionMode: "ephemeral",
+            new() { ["jobId"] = req.JobId.ToString(), ["moduleId"] = req.ModuleId.ToString() }, ct);
 }

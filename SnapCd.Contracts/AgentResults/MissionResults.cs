@@ -18,6 +18,21 @@ public class MissionLogLineDto
     public string Message { get; set; } = null!;
 }
 
+/// <summary>
+/// One progress milestone the agent reports mid-mission (via the <c>report_milestone</c> MCP tool),
+/// forwarded by the orchestrator to <c>AgentHub.AddMissionMilestone</c>. Distinct from a log line:
+/// milestones are curated checkpoints shown on the mission timeline and fanned out as domain events.
+/// </summary>
+public class MissionMilestoneDto
+{
+    public DateTimeOffset Timestamp { get; set; }
+
+    /// <summary>Optional short label for the checkpoint (e.g. investigating / diagnosed / pr_opened).</summary>
+    public string? Kind { get; set; }
+
+    public string Message { get; set; } = null!;
+}
+
 /// <summary>Final mission outcome, reported by the orchestrator to <c>AgentHub.MissionCompleted</c>.</summary>
 public class MissionResultDto
 {

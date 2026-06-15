@@ -35,4 +35,12 @@ public static class ModuleControllerMcpResourceSurface
         [Description(@"Module ID")] System.Guid moduleId)
         => System.Text.Json.JsonSerializer.Serialize(await service.GetState(moduleId, organizationId));
 
+    [McpServerResource(UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/history", Name = "module_history", MimeType = "application/json")]
+    [Description(@"Recent mission history for a Module — the last few AutoDiagnose / ApprovalRecommend / SummarizeJob / AutoFix runs, newest first. Each entry carries MissionType, Status, DiagnosisCategory, ResultSummary (which contains that run's facts block, including any PR url), the job's DefinitiveRevision (resolved commit) and JobType, timestamps, and the milestone timeline. Read this first to learn what past missions found and did for this module — treat it as priors to verify against current state, not facts to trust.")]
+    public static async System.Threading.Tasks.Task<string> ModuleHistory(
+        SnapCd.Server.Core.Services.Crud.ModuleService service,
+        [Description(@"Organization ID")] System.Guid organizationId,
+        [Description(@"Module ID")] System.Guid moduleId)
+        => System.Text.Json.JsonSerializer.Serialize(await service.GetMissionHistory(moduleId, organizationId));
+
 }

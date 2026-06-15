@@ -106,6 +106,7 @@ public class JobOrchestrationService
                 Id = j.Id,
                 ModuleId = j.ModuleId,
                 JobType = j.JobType,
+                DefinitiveRevision = j.DefinitiveRevision,
                 WaitingForApproval = j.WaitingForApproval,
                 ActualStateHeadline = j.ActualStateHeadline != null ? j.ActualStateHeadline.ToString() : null,
                 ServerSideErrorHeader = j.ServerSideErrorHeader,

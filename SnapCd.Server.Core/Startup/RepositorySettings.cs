@@ -15,6 +15,8 @@ public static class RepositorySettings
     public static IServiceCollection AddSnapCdRepositorySettings(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<DependsOnModuleRepositorySettings>(configuration.GetSection("Repositories:DependsOnModule"));
+        services.Configure<ModuleJobMissionRunRepositorySettings>(configuration.GetSection("Repositories:ModuleJobMissionRun"));
+        services.Configure<ModuleJobMissionRunMilestoneRepositorySettings>(configuration.GetSection("Repositories:ModuleJobMissionRunMilestone"));
         services.Configure<GroupGroupMemberRepositorySettings>(configuration.GetSection("Repositories:GroupGroupMember"));
         services.Configure<GroupMemberRepositorySettings>(configuration.GetSection("Repositories:GroupMember"));
         services.Configure<GroupModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupModuleRoleAssignment"));

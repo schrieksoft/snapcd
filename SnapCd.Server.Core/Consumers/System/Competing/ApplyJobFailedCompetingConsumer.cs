@@ -15,24 +15,37 @@ namespace SnapCd.Server.Core.Consumers.System.Competing;
 
 /// <summary>
 /// Layer 1 of agent mission dispatch for job-failure triggers — delegates the scope-resolve + match
-/// + live-first dispatch loop to <see cref="MissionMatcher"/>. Fires <see cref="MissionType.AutoDiagnose"/>
-/// on <see cref="ApplyModuleFailed"/> / <see cref="DestroyModuleFailed"/>.
+/// + live-first dispatch loop to <see cref="MissionMatcher"/>. On <see cref="ApplyModuleFailed"/> /
+/// <see cref="DestroyModuleFailed"/> it prefers <see cref="MissionType.AutoFix"/>, which diagnoses
+/// *and* remediates: if an AutoFix mission is configured for the job's scope, AutoFix runs and
+/// <see cref="MissionType.AutoDiagnose"/> is suppressed as redundant; only when no AutoFix mission is
+/// configured does AutoDiagnose run as the diagnose-only fallback.
 /// </summary>
 public class ApplyJobFailedCompetingConsumer :
     IConsumer<ApplyModuleFailed>,
     IConsumer<DestroyModuleFailed>
 {
-    private const MissionType TriggeredType = MissionType.AutoDiagnose;
-
     private readonly MissionMatcher _matcher;
 
     public ApplyJobFailedCompetingConsumer(MissionMatcher matcher) => _matcher = matcher;
 
     public Task Consume(ConsumeContext<ApplyModuleFailed> context) =>
-        _matcher.MatchAndDispatchAsync(context.Message.ModuleId, context.Message.OrganizationId,
-            context.Message.ModuleJobId, TriggeredType, context.CancellationToken);
+        DispatchAsync(context.Message.ModuleId, context.Message.OrganizationId,
+            context.Message.ModuleJobId, context.CancellationToken);
 
     public Task Consume(ConsumeContext<DestroyModuleFailed> context) =>
-        _matcher.MatchAndDispatchAsync(context.Message.ModuleId, context.Message.OrganizationId,
-            context.Message.ModuleJobId, TriggeredType, context.CancellationToken);
+        DispatchAsync(context.Message.ModuleId, context.Message.OrganizationId,
+            context.Message.ModuleJobId, context.CancellationToken);
+
+    private async Task DispatchAsync(Guid moduleId, Guid organizationId, Guid jobId, CancellationToken ct)
+    {
+        // AutoFix subsumes diagnosis, so it takes precedence: if an AutoFix mission is configured for
+        // the scope it owns the failure (even if its agent is offline — it parks and wakes later), and
+        // AutoDiagnose is suppressed. AutoDiagnose only fires as the fallback when no AutoFix is set up.
+        var autoFixConfigured = await _matcher.MatchAndDispatchAsync(
+            moduleId, organizationId, jobId, MissionType.AutoFix, ct);
+        if (!autoFixConfigured)
+            await _matcher.MatchAndDispatchAsync(
+                moduleId, organizationId, jobId, MissionType.AutoDiagnose, ct);
+    }
 }

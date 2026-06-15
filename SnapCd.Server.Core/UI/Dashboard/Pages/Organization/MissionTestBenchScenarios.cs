@@ -19,7 +19,7 @@ namespace SnapCd.Server.Core.UI.Dashboard.Pages.Organization;
 /// reads like a real runner trace and the agent's <c>TaskName</c>-based filtering works the way the
 /// skills expect.
 /// </summary>
-public static class AgentHarnessScenarios
+public static class MissionTestBenchScenarios
 {
     /// <summary>Title is shown in the dropdown; Header is the one-line summary surfaced to the agent
     /// (apply/error header). ErrorText is only set on Failed scenarios — used for
@@ -286,6 +286,30 @@ public static class AgentHarnessScenarios
             Header: "Plan: 0 to add, 5 to change, 0 to destroy.",
             ErrorText: null,
             Phases: AwaitingApproval[2].Phases),
+    };
+
+    /// <summary>
+    /// AutoFix scenarios run against the seeded <c>mock-module-vpc</c> module (real repo
+    /// <c>snapcd-samples/mock-module-vpc</c>, branch <c>autofixtest</c>), so the dispatched AutoFix
+    /// mission clones it, fixes the defect, and opens a PR. The error here matches the actual bugs on
+    /// that branch (a typo'd <c>creat_duration</c> in main.tf and an undeclared <c>random_uui</c> in
+    /// outputs.tf).
+    /// </summary>
+    public static readonly Scenario[] AutoFix = new[]
+    {
+        new Scenario(
+            Title: "Plan: typo'd argument + undeclared resource (mock-module-vpc)",
+            Header: "Error: Unsupported argument",
+            ErrorText: "An argument named \"creat_duration\" is not expected here (did you mean \"create_duration\"?), and managed resource \"random_uui\" \"private_subnet_id\" has not been declared.",
+            Phases: Prelude.Concat(new[]
+            {
+                new PhaseSnippet("Plan", new[]
+                {
+                    "Now planning",
+                    "╷\n│ Error: Unsupported argument\n│ \n│   on main.tf line 2, in resource \"time_sleep\" \"wait_10s\":\n│    2:   creat_duration  = \"10s\"\n│ \n│ An argument named \"creat_duration\" is not expected here. Did you mean \"create_duration\"?\n╵\n╷\n│ Error: Reference to undeclared resource\n│ \n│   on outputs.tf line 13, in output \"private_subnet_id\":\n│   13:   value       = random_uui.private_subnet_id.result\n│ \n│ A managed resource \"random_uui\" \"private_subnet_id\" has not been declared in the root module.\n╵",
+                    "Plan failed with exception: configuration is invalid.",
+                }),
+            }).ToArray()),
     };
 
     /// <summary>Render the scenario as a flat <see cref="List{LogEntryDto}"/> suitable for

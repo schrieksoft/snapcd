@@ -6,21 +6,16 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Contracts.AgentResults;
+using SnapCd.Contracts.Interfaces;
 
-namespace SnapCd.Agent.Models;
+namespace SnapCd.Contracts.Dto.Missions;
 
-/// <summary>One event parsed from the sidecar's SSE <c>/invoke</c> stream: a log line, a progress
-/// milestone, or the final result.</summary>
-public sealed class SidecarStreamEvent
+/// <summary>Read projection of a <c>ModuleJobMissionRunMilestone</c> — one progress checkpoint on a mission run's timeline.</summary>
+public class ModuleJobMissionRunMilestoneReadDto : IDto
 {
-    public bool IsResult { get; init; }
-    public bool IsMilestone { get; init; }
-    public string Level { get; init; } = "info";
-
-    /// <summary>Set on milestone events: the optional checkpoint label.</summary>
-    public string? MilestoneKind { get; init; }
-
-    public string? Message { get; init; }
-    public MissionResultDto? Result { get; init; }
+    public Guid Id { get; set; }
+    public Guid ModuleJobMissionRunId { get; set; }
+    public string? Kind { get; set; }
+    public string Message { get; set; } = null!;
+    public DateTime ReportedAt { get; set; }
 }

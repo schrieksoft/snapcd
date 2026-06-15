@@ -23,6 +23,7 @@ using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Hubs;
@@ -42,6 +43,8 @@ public class AgentHub : Hub
     private readonly AgentConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly Services.AgentConnectionValidator.AgentConnectionValidator _connectionValidator;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
+    private readonly ModuleJobMissionRunMilestoneRepositoryFactory _milestoneRepositoryFactory;
+    private readonly ModuleJobMissionRunRepositoryFactory _runRepositoryFactory;
 
     public AgentHub(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
@@ -50,7 +53,9 @@ public class AgentHub : Hub
         IOptions<ServerSettings> serverSettings,
         AgentConnectionRepositoryFactory connectionRepositoryFactory,
         Services.AgentConnectionValidator.AgentConnectionValidator connectionValidator,
-        ILicenseInfoProvider licenseInfoProvider)
+        ILicenseInfoProvider licenseInfoProvider,
+        ModuleJobMissionRunMilestoneRepositoryFactory milestoneRepositoryFactory,
+        ModuleJobMissionRunRepositoryFactory runRepositoryFactory)
     {
         _dbContextFactory = dbContextFactory;
         _bus = bus;
@@ -59,6 +64,8 @@ public class AgentHub : Hub
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _connectionValidator = connectionValidator;
         _licenseInfoProvider = licenseInfoProvider;
+        _milestoneRepositoryFactory = milestoneRepositoryFactory;
+        _runRepositoryFactory = runRepositoryFactory;
     }
 
     public override async Task OnConnectedAsync()
@@ -291,17 +298,37 @@ public class AgentHub : Hub
     /// <summary>Grace after a disconnect for the orchestrator to reconnect and resume the run.</summary>
     private static readonly TimeSpan ReconnectGrace = TimeSpan.FromMinutes(2);
 
-    public async Task MissionStarted(Guid invocationId)
+    public async Task MissionStarted(Guid invocationId) =>
+        await UpdateRunAsync(invocationId, run =>
+        {
+            run.Status = MissionStatus.Running;
+            run.StartedAt = DateTime.UtcNow;
+            run.DeadlineAt = DateTime.UtcNow.Add(ServerTimeout);
+        });
+
+    /// <summary>
+    /// Apply a mutation to the calling agent's run through the non-secured repository, so the run's audit
+    /// fields are stamped — attributed to the connecting agent via a <see cref="ClaimsPrincipalProvider"/>
+    /// over the hub's <c>Context.User</c> (IHttpContextAccessor is unreliable in a hub) — and, with the
+    /// parent-mission projection, committed in the repository's single transaction. The generic
+    /// run-updated event is suppressed (EmitUpdateEvents=false on the run repo), so this single-context
+    /// flow is correct and the run stays driven by the purpose-built <see cref="MissionRunModifiedEvent"/>.
+    /// Returns false if the run wasn't found / isn't owned by the caller.
+    /// </summary>
+    private async Task<bool> UpdateRunAsync(Guid invocationId, Action<ModuleJobMissionRun> mutate,
+        bool project = true, bool publishModified = true, bool suppressUpdateEvent = false)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var run = await ResolveRunAsync(db, invocationId);
-        if (run is null) return;
-        run.Status = MissionStatus.Running;
-        run.StartedAt = DateTime.UtcNow;
-        run.DeadlineAt = DateTime.UtcNow.Add(ServerTimeout);
-        await ProjectAsync(db, run);
-        await db.SaveChangesAsync();
-        await PublishRunModified(run);
+        // suppressUpdateEvent (e.g. streamed log appends): stamp audit, skip the per-batch event.
+        using var repo = _runRepositoryFactory.Create(
+            new ClaimsPrincipalProvider(Context.User), suppressEvents: suppressUpdateEvent);
+        // Load detached so the repository re-reads the unmodified row as the event's "previous" state.
+        var run = await ResolveRunAsync(repo.DbContext, invocationId, track: false);
+        if (run is null) return false;
+        mutate(run);
+        if (project) await ProjectAsync(repo.DbContext, run);
+        await repo.Update(run);
+        if (publishModified) await PublishRunModified(run);
+        return true;
     }
 
     /// <summary>Dedicated periodic liveness ping (the twin of RunnerHub's ReportRunningTask) — fires on
@@ -331,36 +358,79 @@ public class AgentHub : Hub
     public async Task AddMissionLogs(Guid invocationId, List<MissionLogLineDto> lines)
     {
         if (lines is null || lines.Count == 0) return;
+        await UpdateRunAsync(invocationId, run =>
+        {
+            var builder = new StringBuilder(run.Logs ?? string.Empty);
+            foreach (var line in lines)
+                builder.Append($"{line.Timestamp:O} [{line.Level}] {line.Message}\n");
+            run.Logs = builder.ToString();
+            run.LastEventAt = DateTime.UtcNow; // progress, not liveness — the heartbeat owns the deadline
+        }, project: false, suppressUpdateEvent: true); // log append: stamp audit, but no per-batch event
+    }
+
+    /// <summary>A curated progress checkpoint reported mid-mission (the agent's <c>report_milestone</c>
+    /// tool). Persists it to the run's timeline, refreshes the live UI, and publishes the
+    /// <see cref="MissionMilestoneReported"/> domain event the Integrations feature will subscribe to.</summary>
+    public async Task AddMissionMilestone(Guid invocationId, MissionMilestoneDto milestone)
+    {
+        if (milestone is null || string.IsNullOrWhiteSpace(milestone.Message)) return;
         await using var db = await _dbContextFactory.CreateDbContextAsync();
         var run = await ResolveRunAsync(db, invocationId);
         if (run is null) return;
 
-        var builder = new StringBuilder(run.Logs ?? string.Empty);
-        foreach (var line in lines)
-            builder.Append($"{line.Timestamp:O} [{line.Level}] {line.Message}\n");
-        run.Logs = builder.ToString();
+        var reportedAt = milestone.Timestamp == default ? DateTime.UtcNow : milestone.Timestamp.UtcDateTime;
+
+        // Persist through the non-secured repository so the audit fields are stamped and the generic
+        // CreatedEvent is emitted automatically. The principal comes from the hub's Context.User (the
+        // connecting agent) via ClaimsPrincipalProvider — IHttpContextAccessor is unreliable in a hub,
+        // so the default HttpContext-based provider would attribute the row to System instead.
+        using (var milestones = _milestoneRepositoryFactory.Create(new ClaimsPrincipalProvider(Context.User)))
+        {
+            await milestones.Create(new ModuleJobMissionRunMilestone
+            {
+                Id = NewId.NextGuid(),
+                OrganizationId = run.OrganizationId,
+                ModuleJobMissionRunId = run.Id,
+                Kind = milestone.Kind,
+                Message = milestone.Message,
+                ReportedAt = reportedAt
+            });
+        }
+
+        // Run-level progress + live UI refresh (a separate concern from the milestone row).
         run.LastEventAt = DateTime.UtcNow; // progress, not liveness — the heartbeat owns the deadline
         await db.SaveChangesAsync();
         await PublishRunModified(run);
+
+        // Domain event the Integrations feature subscribes to (carries ModuleJobMissionId, which the
+        // milestone row doesn't denormalise).
+        await _bus.Publish(new MissionMilestoneReported
+        {
+            OrganizationId = run.OrganizationId,
+            ModuleJobId = run.ModuleJobId,
+            ModuleJobMissionId = run.ModuleJobMissionId,
+            ModuleJobMissionRunId = run.Id,
+            MissionType = run.MissionType,
+            Kind = milestone.Kind,
+            Message = milestone.Message,
+            ReportedAt = reportedAt
+        });
     }
 
     public async Task MissionCompleted(Guid invocationId, MissionResultDto result)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var run = await ResolveRunAsync(db, invocationId);
-        if (run is null) return;
-
-        run.Status = result.Success ? MissionStatus.Succeeded : MissionStatus.Failed;
-        run.ResultSummary = result.Summary;
-        run.Error = JoinErrorAndDetail(result.Error, result.Detail);
-        run.ToolCallsJson = result.ToolCallsJson;
-        run.TokensJson = result.TokensJson;
-        run.DurationSeconds = result.DurationSeconds;
-        run.DiagnosisCategory = result.DiagnosisCategory;
-        run.CompletedAt = DateTime.UtcNow;
-        await ProjectAsync(db, run);
-        await db.SaveChangesAsync();
-        await PublishRunModified(run);
+        var updated = await UpdateRunAsync(invocationId, run =>
+        {
+            run.Status = result.Success ? MissionStatus.Succeeded : MissionStatus.Failed;
+            run.ResultSummary = result.Summary;
+            run.Error = JoinErrorAndDetail(result.Error, result.Detail);
+            run.ToolCallsJson = result.ToolCallsJson;
+            run.TokensJson = result.TokensJson;
+            run.DurationSeconds = result.DurationSeconds;
+            run.DiagnosisCategory = result.DiagnosisCategory;
+            run.CompletedAt = DateTime.UtcNow;
+        });
+        if (!updated) return;
 
         if (result.Success)
         {
@@ -374,31 +444,21 @@ public class AgentHub : Hub
         }
     }
 
-    public async Task MissionFaulted(Guid invocationId, string? error, string? detail)
-    {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var run = await ResolveRunAsync(db, invocationId);
-        if (run is null) return;
-        run.Status = MissionStatus.Failed;
-        run.Error = JoinErrorAndDetail(error, detail);
-        run.CompletedAt = DateTime.UtcNow;
-        await ProjectAsync(db, run);
-        await db.SaveChangesAsync();
-        await PublishRunModified(run);
-    }
+    public async Task MissionFaulted(Guid invocationId, string? error, string? detail) =>
+        await UpdateRunAsync(invocationId, run =>
+        {
+            run.Status = MissionStatus.Failed;
+            run.Error = JoinErrorAndDetail(error, detail);
+            run.CompletedAt = DateTime.UtcNow;
+        });
 
     /// <summary>Orchestrator confirms a cancel landed (the sidecar invoke was aborted).</summary>
-    public async Task MissionCancelled(Guid invocationId)
-    {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var run = await ResolveRunAsync(db, invocationId);
-        if (run is null) return;
-        run.Status = MissionStatus.Cancelled;
-        run.CompletedAt = DateTime.UtcNow;
-        await ProjectAsync(db, run);
-        await db.SaveChangesAsync();
-        await PublishRunModified(run);
-    }
+    public async Task MissionCancelled(Guid invocationId) =>
+        await UpdateRunAsync(invocationId, run =>
+        {
+            run.Status = MissionStatus.Cancelled;
+            run.CompletedAt = DateTime.UtcNow;
+        });
 
     /// <summary>Publish a run-modified notification so subscribed UI components (e.g. the Missions tab
     /// on a ModuleJob) refresh. Fires on status transitions and on log-batch appends so the live view
@@ -436,15 +496,18 @@ public class AgentHub : Hub
     }
 
     /// <summary>Resolve the run for the calling agent: by InvocationId within the connection's org, and
-    /// only if it belongs to the agent the JWT is attributed to.</summary>
-    private async Task<ModuleJobMissionRun?> ResolveRunAsync(SnapCdDbContext db, Guid invocationId)
+    /// only if it belongs to the agent the JWT is attributed to. Pass <paramref name="track"/> = false to
+    /// load it detached (so a subsequent repository update re-reads the unmodified row as the event's
+    /// "previous" state).</summary>
+    private async Task<ModuleJobMissionRun?> ResolveRunAsync(SnapCdDbContext db, Guid invocationId, bool track = true)
     {
         var httpContext = Context.GetHttpContext();
         if (!Guid.TryParse(httpContext?.Request.Query["organization_id"].ToString(), out var organizationId))
             return null;
         Guid.TryParse(Context.User?.FindFirst("agent_id")?.Value, out var agentId);
 
-        var run = await db.ModuleJobMissionRuns
+        var query = track ? db.ModuleJobMissionRuns : db.ModuleJobMissionRuns.AsNoTracking();
+        var run = await query
             .FirstOrDefaultAsync(r => r.InvocationId == invocationId && r.OrganizationId == organizationId);
         if (run is null)
         {

@@ -117,6 +117,33 @@ public class ModuleController : GenericCrudController<
         }
     }
 
+    /// <summary>Recent mission history for a Module — the last few AutoDiagnose / ApprovalRecommend / SummarizeJob / AutoFix runs, newest first. Each entry carries MissionType, Status, DiagnosisCategory, ResultSummary (which contains that run's facts block, including any PR url), the job's DefinitiveRevision (resolved commit) and JobType, timestamps, and the milestone timeline. Read this first to learn what past missions found and did for this module — treat it as priors to verify against current state, not facts to trust.</summary>
+    /// <param name="organizationId">Organization ID</param>
+    /// <param name="moduleId">Module ID</param>
+    [HttpGet("{moduleId}/history")]
+    [ExposeAsMcpResource(
+        UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/history",
+        Name = "module_history")]
+    public async Task<ActionResult<List<ModuleMissionHistoryEntryDto>>> GetMissionHistory(Guid organizationId, Guid moduleId)
+    {
+        try
+        {
+            return await Service.GetMissionHistory(moduleId, organizationId);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
     [HttpGet("ByName/{stackName}/{namespaceName}/{moduleName}")]
     public async Task<ActionResult<ModuleReadDto>> GetByName(Guid organizationId, string stackName, string namespaceName, string moduleName)
     {

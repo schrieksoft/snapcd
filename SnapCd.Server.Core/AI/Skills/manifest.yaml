@@ -10,8 +10,8 @@ skills:
         description: The failed ModuleJob ID.
         required: true
       - name: moduleId
-        description: The owning Module ID (for added context).
-        required: false
+        description: The owning Module ID (for source coordinates and mission history).
+        required: true
 
   - name: approval_recommend
     file: approval_recommend.md
@@ -39,4 +39,18 @@ skills:
         required: true
       - name: moduleId
         description: The owning Module ID.
+        required: true
+
+  - name: auto_fix
+    file: auto_fix.md
+    description: Remediate a failed module job — re-trigger a transient failure, or fix a code defect in the module source and open a PR.
+    arguments:
+      - name: organizationId
+        description: The organization the job belongs to (for org-scoped MCP resource URIs).
+        required: true
+      - name: jobId
+        description: The failed ModuleJob ID.
+        required: true
+      - name: moduleId
+        description: The owning Module ID (needed to read source coordinates and re-trigger).
         required: true

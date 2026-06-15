@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Events.Missions;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Helpers;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 namespace SnapCd.Server.Core.Services.Ai.Missions;
 
@@ -44,14 +45,16 @@ public class MissionDispatcher
     private readonly ILogger<MissionDispatcher> _logger;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
     private readonly AgentSupplyResolver _agentSupply;
+    private readonly ModuleJobMissionRunRepositoryFactory _runRepositoryFactory;
 
-    public MissionDispatcher(IBus bus, IMessageScheduler scheduler, ILogger<MissionDispatcher> logger, ILicenseInfoProvider licenseInfoProvider, AgentSupplyResolver agentSupply)
+    public MissionDispatcher(IBus bus, IMessageScheduler scheduler, ILogger<MissionDispatcher> logger, ILicenseInfoProvider licenseInfoProvider, AgentSupplyResolver agentSupply, ModuleJobMissionRunRepositoryFactory runRepositoryFactory)
     {
         _bus = bus;
         _scheduler = scheduler;
         _logger = logger;
         _licenseInfoProvider = licenseInfoProvider;
         _agentSupply = agentSupply;
+        _runRepositoryFactory = runRepositoryFactory;
     }
 
     /// <summary>
@@ -115,17 +118,20 @@ public class MissionDispatcher
             ServerInstanceId = connection.ServerInstanceId,
             SignalRConnectionId = connection.SignalRConnectionId
         };
-        db.ModuleJobMissionRuns.Add(run);
-
+        // Claim through the non-secured repository so the run gets its audit fields + a CreatedEvent.
+        // System-attributed (this runs in a consumer, no principal). Uses the repo's own context — that's
+        // safe because the lock is a DB-level filtered-unique index, not a same-transaction guarantee:
+        // a racing claim still throws DbUpdateException, and on a retry the caller has already moved +
+        // committed the prior run terminal before calling here (see MissionRunDeadlineCheckConsumer).
+        using var runRepo = _runRepositoryFactory.Create();
         try
         {
-            await db.SaveChangesAsync(ct);
+            await runRepo.Create(run);
         }
         catch (DbUpdateException)
         {
             // Filtered-unique lock violation: a non-terminal run for this (job, type) already exists.
             // Two consumers raced; this one loses. The DB is the arbiter — no double-run.
-            db.ChangeTracker.Clear();
             _logger.LogInformation(
                 "Mission {MissionType} (job {JobId}) already has an active run; claim dropped (locked).",
                 mission.MissionType, mission.ModuleJobId);
@@ -140,6 +146,7 @@ public class MissionDispatcher
             MissionType.AutoDiagnose => new AutoDiagnoseMissionRequested { JobId = mission.ModuleJobId, ModuleId = moduleId },
             MissionType.ApprovalRecommend => new ApprovalRecommendMissionRequested { JobId = mission.ModuleJobId, ModuleId = moduleId },
             MissionType.SummarizeJob => new SummarizeJobMissionRequested { JobId = mission.ModuleJobId, ModuleId = moduleId },
+            MissionType.AutoFix => new AutoFixMissionRequested { JobId = mission.ModuleJobId, ModuleId = moduleId },
             _ => throw new InvalidOperationException($"MissionDispatcher does not handle {mission.MissionType} (job-scoped only).")
         };
 

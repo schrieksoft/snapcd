@@ -6,7 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/AgentHarness"
+@page "/MissionTestBench"
 @layout OrganizationMainLayout
 
 @implements IDisposable
@@ -44,7 +44,7 @@
 @attribute [AuthorizeOnNavigationPermission]
 @attribute [OrganizationScopedFeature]
 
-<PageTitle>Agent harness</PageTitle>
+<PageTitle>Mission test bench</PageTitle>
 
 <style>
     .agent-markdown { font-size: 13px; line-height: 1.5; }
@@ -81,7 +81,7 @@
 
 <MudGrid Class="mb-2" AlignItems="Center.Center">
     <MudItem>
-        <MudText Typo="Typo.h4">Agent harness (dev)</MudText>
+        <MudText Typo="Typo.h4">Mission test bench (dev)</MudText>
     </MudItem>
     <MudItem>
         <MudChip T="string" Variant="Variant.Outlined">
@@ -95,7 +95,7 @@
 {
     <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mb-4">
         <MudIcon Icon="@Icons.Material.Filled.Lock" Class="mr-2" />
-        Agent harness is only available when the host runs in the Development environment.
+        The mission test bench is only available when the host runs in the Development environment.
     </MudAlert>
 }
 else
@@ -115,17 +115,17 @@ else
 
                     <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true" Class="mb-3">
                         <MudText Typo="Typo.body2">
-                            Target: <code>debug</code> / <code>debug</code> / <code>debug</code> —
+                            Target: <code>debug</code> / <code>debug</code> / <code>@SelectedModuleName</code> —
                             the stack / namespace / module seeded by <code>DebugDataSeeder</code>.
                             Triggering creates a synthetic <code>ModuleJob</code> against this module so
                             results are reproducible across runs.
                         </MudText>
-                        @if (_debugModuleExists is false)
+                        @if (SelectedTargetExists is false)
                         {
                             <MudText Typo="Typo.body2" Class="mt-1">
                                 <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" />
-                                The debug module isn't seeded in this org. Restart the server in Development
-                                so <code>DebugDataSeeder</code> runs.
+                                The <code>@SelectedModuleName</code> module isn't seeded in this org. Restart the
+                                server in Development so <code>DebugDataSeeder</code> runs.
                             </MudText>
                         }
                     </MudAlert>
@@ -133,6 +133,7 @@ else
                     <MudSelect T="TriggerType" Value="_selectedTriggerType" ValueChanged="OnTriggerTypeChanged"
                                Label="Trigger" Variant="Variant.Outlined" Class="mb-3">
                         <MudSelectItem T="TriggerType" Value="TriggerType.ApplyFailed">Apply failed (→ AutoDiagnose)</MudSelectItem>
+                        <MudSelectItem T="TriggerType" Value="TriggerType.AutoFix">Plan failed on mock-module-vpc (→ AutoFix)</MudSelectItem>
                         <MudSelectItem T="TriggerType" Value="TriggerType.ApplyDeclined">Apply declined (→ AutoDiagnose)</MudSelectItem>
                         <MudSelectItem T="TriggerType" Value="TriggerType.ApplySucceeded">Apply succeeded (→ SummarizeJob)</MudSelectItem>
                         <MudSelectItem T="TriggerType" Value="TriggerType.AwaitingApproval">Awaiting approval (→ ApprovalRecommend)</MudSelectItem>
@@ -149,13 +150,13 @@ else
                     <MudExpansionPanels Class="mb-3">
                         <MudExpansionPanel Text="Preview scenario">
                             <MudText Typo="Typo.subtitle2">@CurrentScenarios[_selectedScenarioIndex].Header</MudText>
-                            <pre style="white-space: pre-wrap; font-size: 11px; max-height: 200px; overflow: auto;">@AgentHarnessScenarios.Preview(CurrentScenarios[_selectedScenarioIndex])</pre>
+                            <pre style="white-space: pre-wrap; font-size: 11px; max-height: 200px; overflow: auto;">@MissionTestBenchScenarios.Preview(CurrentScenarios[_selectedScenarioIndex])</pre>
                         </MudExpansionPanel>
                     </MudExpansionPanels>
 
                     <MudButton Variant="Variant.Filled"
                                Style="background-color: #000; color: #fff;"
-                               Disabled="_debugModuleExists is not true || _triggering"
+                               Disabled="SelectedTargetExists is not true || _triggering"
                                OnClick="TriggerJob">
                         <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-2" />
                         Trigger
@@ -325,8 +326,14 @@ else
     private static readonly Guid DebugModuleId = new("99999999-9999-9999-9999-999999999999");
     private const string DebugModuleName = "debug";
 
+    // The AutoFix test runs against a second seeded module backed by the real mock-module-vpc repo
+    // (DebugDataSeeder.MockModuleVpcId), so the dispatched AutoFix mission clones + fixes a real repo.
+    private static readonly Guid MockModuleVpcId = new("99999999-9999-9999-9999-999999999910");
+    private const string MockModuleVpcName = "mock-module-vpc";
+
     private List<ModuleJobMissionRun> _recentRuns = new();
     private bool? _debugModuleExists;
+    private bool? _mockModuleVpcExists;
     private TriggerType _selectedTriggerType = TriggerType.ApplyFailed;
     private int _selectedScenarioIndex;
     private Guid? _lastTriggeredJobId;
@@ -335,14 +342,20 @@ else
     private int _connectedAgents;
     private Func<Guid, string, Task>? _availabilityHandler;
 
-    private AgentHarnessScenarios.Scenario[] CurrentScenarios => _selectedTriggerType switch
+    private MissionTestBenchScenarios.Scenario[] CurrentScenarios => _selectedTriggerType switch
     {
-        TriggerType.ApplyFailed => AgentHarnessScenarios.Failed,
-        TriggerType.ApplyDeclined => AgentHarnessScenarios.Declined,
-        TriggerType.ApplySucceeded => AgentHarnessScenarios.Succeeded,
-        TriggerType.AwaitingApproval => AgentHarnessScenarios.AwaitingApproval,
-        _ => AgentHarnessScenarios.Failed
+        TriggerType.ApplyFailed => MissionTestBenchScenarios.Failed,
+        TriggerType.ApplyDeclined => MissionTestBenchScenarios.Declined,
+        TriggerType.ApplySucceeded => MissionTestBenchScenarios.Succeeded,
+        TriggerType.AwaitingApproval => MissionTestBenchScenarios.AwaitingApproval,
+        TriggerType.AutoFix => MissionTestBenchScenarios.AutoFix,
+        _ => MissionTestBenchScenarios.Failed
     };
+
+    // AutoFix runs against the mock-module-vpc module; all other triggers against the debug module.
+    private Guid SelectedModuleId => _selectedTriggerType == TriggerType.AutoFix ? MockModuleVpcId : DebugModuleId;
+    private string SelectedModuleName => _selectedTriggerType == TriggerType.AutoFix ? MockModuleVpcName : DebugModuleName;
+    private bool? SelectedTargetExists => _selectedTriggerType == TriggerType.AutoFix ? _mockModuleVpcExists : _debugModuleExists;
 
     private void OnTriggerTypeChanged(TriggerType t)
     {
@@ -350,7 +363,7 @@ else
         _selectedScenarioIndex = 0;
     }
 
-    public enum TriggerType { ApplyFailed, ApplyDeclined, ApplySucceeded, AwaitingApproval }
+    public enum TriggerType { ApplyFailed, ApplyDeclined, ApplySucceeded, AwaitingApproval, AutoFix }
 
     // Stable fake principal ids for seeded approval rows. Real principal resolution will come once
     // the snapcd://…/approvals MCP resource is wired up; for the harness these are just identifiable.
@@ -398,6 +411,8 @@ else
         await using var db = await DbContextFactory.CreateDbContextAsync();
         _debugModuleExists = await db.Modules
             .AnyAsync(m => m.Id == DebugModuleId && m.OrganizationId == orgId);
+        _mockModuleVpcExists = await db.Modules
+            .AnyAsync(m => m.Id == MockModuleVpcId && m.OrganizationId == orgId);
     }
 
     private async Task RefreshRunsAsync()
@@ -415,13 +430,13 @@ else
 
     private async Task TriggerJob()
     {
-        if (!HostEnvironment.IsDevelopment() || _debugModuleExists is not true) return;
+        if (!HostEnvironment.IsDevelopment() || SelectedTargetExists is not true) return;
         _triggering = true;
         try
         {
             var orgId = CurrentOrgId;
-            var moduleId = DebugModuleId;
-            var moduleName = DebugModuleName;
+            var moduleId = SelectedModuleId;
+            var moduleName = SelectedModuleName;
             var scenario = CurrentScenarios[_selectedScenarioIndex];
             var now = DateTimeOffset.UtcNow;
 
@@ -429,9 +444,9 @@ else
             var jobId = NewId.NextGuid();
 
             // Production shape: ModuleJob.Logs = JsonSerializer.Serialize(List<LogEntryDto>), sorted by
-            // Timestamp. The harness builds the per-phase entries via AgentHarnessScenarios and serialises
+            // Timestamp. The test bench builds the per-phase entries via MissionTestBenchScenarios and serialises
             // them so ListLogs renders correctly and the MCP logs resource serves the right shape.
-            var logEntries = AgentHarnessScenarios.BuildEntries(scenario, jobId, moduleId, moduleName, now.AddSeconds(-30));
+            var logEntries = MissionTestBenchScenarios.BuildEntries(scenario, jobId, moduleId, moduleName, now.AddSeconds(-30));
             var logsJson = JsonSerializer.Serialize(logEntries);
 
             var (job, evt, approvals, label) = _selectedTriggerType switch
@@ -450,6 +465,20 @@ else
                     // Realistic: the job was approved, then failed at apply.
                     new[] { (HarnessApprover, false) },
                     "failed apply (→ AutoDiagnose)"),
+                TriggerType.AutoFix => (
+                    (object)new ModuleJob
+                    {
+                        Id = jobId, OrganizationId = orgId, ModuleId = moduleId,
+                        TimestampStart = now, TimestampEnd = now,
+                        Status = ExecutionStatus.Failed, JobType = nameof(ApplyJobSaga),
+                        Logs = logsJson,
+                        ServerSideErrorHeader = scenario.Header,
+                        ServerSideError = scenario.ErrorText
+                    },
+                    (object)new ApplyModuleFailed { OrganizationId = orgId, ModuleId = moduleId, ModuleJobId = jobId },
+                    // Plan-phase config error — fails before approval, so no approval rows.
+                    Array.Empty<(Guid, bool)>(),
+                    "failed plan on mock-module-vpc (→ AutoFix)"),
                 TriggerType.ApplyDeclined => (
                     (object)new ModuleJob
                     {

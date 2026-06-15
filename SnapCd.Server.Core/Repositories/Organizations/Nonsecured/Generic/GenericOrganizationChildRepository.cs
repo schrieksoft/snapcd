@@ -25,8 +25,8 @@ public abstract class GenericOrganizationChildRepository<TEntity, TDto, TCreateE
     where TDeleteEvent : DeletedEvent<TDto>, new()
     where TSettings : class, IEntitySettings
 {
-    public GenericOrganizationChildRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<TSettings> options, QuotaService? quotaService = null)
-        : base(dbContext, principalProvider, bus, options, quotaService)
+    public GenericOrganizationChildRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<TSettings> options, QuotaService? quotaService = null, bool suppressEvents = false)
+        : base(dbContext, principalProvider, bus, options, quotaService, suppressEvents)
     {
     }
 

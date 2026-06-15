@@ -52,6 +52,12 @@ public class SummarizeJobRequest : MissionRequestBase
     public Guid ModuleId { get; set; }
 }
 
+public class AutoFixRequest : MissionRequestBase
+{
+    public Guid JobId { get; set; }
+    public Guid ModuleId { get; set; }
+}
+
 /// <summary>
 /// Server → agent: cancel the in-flight run identified by <see cref="InvocationId"/>. Pushed on
 /// <see cref="Constants.AgentEndpoints.CancelMission"/>; the orchestrator cancels that run's token.

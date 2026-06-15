@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Contracts.Dto.Missions;
 using SnapCd.Contracts.Dto.Modules;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -119,5 +120,59 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
             LastWaitingForApproval = lastJob?.WaitingForApproval,
             LastServerSideErrorHeader = lastJob?.ServerSideErrorHeader
         };
+    }
+
+    public async Task<List<ModuleMissionHistoryEntryDto>> GetMissionHistory(Guid moduleId, Guid organizationId, int take = 5)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var moduleExists = await dbContext.Modules
+            .AnyAsync(m => m.Id == moduleId && m.OrganizationId == organizationId);
+        if (!moduleExists) throw new EntityNotFoundException($"Module '{moduleId}' not found");
+
+        var entries = await dbContext.ModuleJobMissionRuns
+            .Where(run => run.OrganizationId == organizationId)
+            .Join(
+                dbContext.ModuleJobs.Where(j => j.ModuleId == moduleId),
+                run => run.ModuleJobId,
+                job => job.Id,
+                (run, job) => new ModuleMissionHistoryEntryDto
+                {
+                    RunId = run.Id,
+                    ModuleJobId = run.ModuleJobId,
+                    JobType = job.JobType,
+                    MissionType = run.MissionType,
+                    Status = run.Status,
+                    DiagnosisCategory = run.DiagnosisCategory,
+                    ResultSummary = run.ResultSummary,
+                    DefinitiveRevision = job.DefinitiveRevision,
+                    StartedAt = run.StartedAt,
+                    CompletedAt = run.CompletedAt
+                })
+            .OrderByDescending(e => e.CompletedAt)
+            .ThenByDescending(e => e.StartedAt)
+            .Take(take)
+            .ToListAsync();
+
+        if (entries.Count == 0) return entries;
+
+        var runIds = entries.Select(e => e.RunId).ToList();
+        var milestones = await dbContext.ModuleJobMissionRunMilestones
+            .Where(m => m.OrganizationId == organizationId && runIds.Contains(m.ModuleJobMissionRunId))
+            .OrderBy(m => m.ReportedAt)
+            .Select(m => new ModuleJobMissionRunMilestoneReadDto
+            {
+                Id = m.Id,
+                ModuleJobMissionRunId = m.ModuleJobMissionRunId,
+                Kind = m.Kind,
+                Message = m.Message,
+                ReportedAt = m.ReportedAt
+            })
+            .ToListAsync();
+
+        foreach (var entry in entries)
+            entry.Milestones = milestones.Where(m => m.ModuleJobMissionRunId == entry.RunId).ToList();
+
+        return entries;
     }
 }

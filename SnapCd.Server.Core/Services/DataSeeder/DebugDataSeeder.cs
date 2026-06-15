@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Settings;
@@ -26,6 +27,10 @@ public class DebugDataSeeder : ProductionDataSeeder
 {
     // All "debug" entities — stack/namespace/module/runner share this id; secrets/SPs use suffix variants.
     private static readonly Guid DebugEntityId = new("99999999-9999-9999-9999-999999999999");
+
+    // A second module in the debug namespace, backed by the real snapcd-samples/mock-module-vpc repo
+    // (branch autofixtest), used by the Mission Test Bench AutoFix test so the mission fixes a real repo.
+    private static readonly Guid MockModuleVpcId = new("99999999-9999-9999-9999-999999999910");
 
     private static readonly Guid DebugUserId = new("99999999-9999-9999-9999-999999999990");
 
@@ -41,6 +46,7 @@ public class DebugDataSeeder : ProductionDataSeeder
 
     private readonly DebugDataSeederSettings _debugSettings;
     private readonly Guid _preseededOrganizationId;
+    private readonly Guid _preseededAgentId;
     private readonly IServiceProvider _serviceProvider;
 
     public DebugDataSeeder(
@@ -53,6 +59,7 @@ public class DebugDataSeeder : ProductionDataSeeder
     {
         _debugSettings = debugOptions.Value;
         _preseededOrganizationId = productionOptions.Value.Preseeded.Organization.Id ?? PreseededSettings.DefaultId;
+        _preseededAgentId = productionOptions.Value.Preseeded.Agent.Id ?? PreseededSettings.DefaultAgentId;
         _serviceProvider = serviceProvider;
     }
 
@@ -224,6 +231,77 @@ public class DebugDataSeeder : ProductionDataSeeder
             existingModule.NamespaceId = DebugEntityId;
             existingModule.RunnerId = DebugEntityId;
             existingModule.OrganizationId = _preseededOrganizationId;
+        }
+
+        // A second module backed by the real mock-module-vpc repo (branch autofixtest) so the AutoFix
+        // harness test gives the mission an actual repo to clone, fix, and open a PR against.
+        const string mockSourceUrl = "https://github.com/snapcd-samples/mock-module-vpc.git";
+        const string mockSourceRevision = "autofixtest";
+        var existingMockModule = await dbContext.Modules.FirstOrDefaultAsync(m => m.Id == MockModuleVpcId);
+        if (existingMockModule == null)
+        {
+            var mockModule = new Module
+            {
+                Id = MockModuleVpcId,
+                OrganizationId = _preseededOrganizationId,
+                NamespaceId = DebugEntityId,
+                RunnerId = DebugEntityId,
+                Name = "mock-module-vpc",
+                SourceUrl = mockSourceUrl,
+                SourceRevision = mockSourceRevision,
+                SourceSubdirectory = "",
+                SourceType = SourceType.Git,
+                SourceRevisionType = SourceRevisionType.Default,
+                CreatedDateTime = DateTime.UtcNow
+            };
+            mockModule.ModuleSaga = new ModuleSaga
+            {
+                CorrelationId = mockModule.Id,
+                OrganizationId = _preseededOrganizationId,
+                RowVersion = [],
+                CurrentState = nameof(ModuleStateMachine.Gatekeeping),
+                DesiredStateHeadline = DesiredStateHeadline.Applied,
+                QueuedDesiredStateHeadline = null
+            };
+            mockModule.ModuleModifiedSaga = new ModuleModifiedSaga
+            {
+                CorrelationId = mockModule.Id,
+                OrganizationId = _preseededOrganizationId,
+                RowVersion = [],
+                CurrentState = nameof(ModuleModifiedStateMachine.Idle),
+                LastUpdated = null,
+                TimeoutTokenId = null
+            };
+            dbContext.Modules.Add(mockModule);
+        }
+        else
+        {
+            existingMockModule.Name = "mock-module-vpc";
+            existingMockModule.NamespaceId = DebugEntityId;
+            existingMockModule.RunnerId = DebugEntityId;
+            existingMockModule.OrganizationId = _preseededOrganizationId;
+            existingMockModule.SourceUrl = mockSourceUrl;
+            existingMockModule.SourceRevision = mockSourceRevision;
+            existingMockModule.SourceSubdirectory = "";
+        }
+
+        // AutoFix is scoped to the mock module (not org-wide) so the existing AutoDiagnose harness tests
+        // on the debug module keep dispatching AutoDiagnose; a failed job on mock-module-vpc dispatches
+        // AutoFix (it takes precedence). Targets the preseeded default Agent (assigned to all modules).
+        var existingAutoFix = await dbContext.ModuleMissions.FirstOrDefaultAsync(m =>
+            m.ModuleId == MockModuleVpcId && m.AgentId == _preseededAgentId
+            && m.OrganizationId == _preseededOrganizationId && m.MissionType == MissionType.AutoFix);
+        if (existingAutoFix == null)
+        {
+            dbContext.ModuleMissions.Add(new ModuleMission
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _preseededOrganizationId,
+                AgentId = _preseededAgentId,
+                ModuleId = MockModuleVpcId,
+                MissionType = MissionType.AutoFix,
+                IsDisabled = false
+            });
         }
 
         await dbContext.SaveChangesAsync();

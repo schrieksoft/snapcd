@@ -319,7 +319,8 @@ public enum MissionType
 {
     AutoDiagnose,
     ApprovalRecommend,
-    SummarizeJob
+    SummarizeJob,
+    AutoFix
 }
 
 /// <summary>

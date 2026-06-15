@@ -243,6 +243,8 @@ public static class Factories
         services.AddScoped<AgentRepositoryFactory>();
         services.AddScoped<AgentSecuredRepositoryFactory>();
         services.AddScoped<AgentConnectionRepositoryFactory>();
+        services.AddScoped<ModuleJobMissionRunRepositoryFactory>();
+        services.AddScoped<ModuleJobMissionRunMilestoneRepositoryFactory>();
 
         // Mission family (4 scopes, raw + secured)
         services.AddScoped<OrganizationMissionRepositoryFactory>();
