@@ -45,8 +45,8 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" Value="Input.IsAssignedToAllModules"
-                           ValueChanged="IsAssignedToAllModulesChanged" Label="Is Assigned To All Modules"
+                <MudSwitch T="bool" Value="Input.IsSuppliedToAllModules"
+                           ValueChanged="IsSuppliedToAllModulesChanged" Label="Is Assigned To All Modules"
                            Color="Color.Info"/>
             </MudItem>
 
@@ -92,7 +92,7 @@
             ServicePrincipalId = Runner.ServicePrincipalId,
             Name = Runner.Name,
             AllowMultipleInstances = Runner.AllowMultipleInstances,
-            IsAssignedToAllModules = Runner.IsAssignedToAllModules
+            IsSuppliedToAllModules = Runner.IsSuppliedToAllModules
         };
     }
 
@@ -107,8 +107,8 @@
         public bool AllowMultipleInstances { get; set; }
 
         [Required]
-        [Display(Name = "IsAssignedToAllModules")]
-        public bool IsAssignedToAllModules { get; set; }
+        [Display(Name = "IsSuppliedToAllModules")]
+        public bool IsSuppliedToAllModules { get; set; }
     }
 
     private void AllowMultipleInstancesChanged()
@@ -117,9 +117,9 @@
         StateHasChanged();
     }
 
-    private void IsAssignedToAllModulesChanged()
+    private void IsSuppliedToAllModulesChanged()
     {
-        Input.IsAssignedToAllModules = !Input.IsAssignedToAllModules;
+        Input.IsSuppliedToAllModules = !Input.IsSuppliedToAllModules;
         StateHasChanged();
     }
 
@@ -131,7 +131,7 @@
             Runner.ServicePrincipalId = Input.ServicePrincipalId;
             Runner.Name = Input.Name;
             Runner.AllowMultipleInstances = Input.AllowMultipleInstances;
-            Runner.IsAssignedToAllModules = Input.IsAssignedToAllModules;
+            Runner.IsSuppliedToAllModules = Input.IsSuppliedToAllModules;
             // Note: IsDisabled is not updated here - use activate/deactivate buttons instead
             await repo.Update(Runner);
             Snackbar.Add("Runner updated successfully", Severity.Success);

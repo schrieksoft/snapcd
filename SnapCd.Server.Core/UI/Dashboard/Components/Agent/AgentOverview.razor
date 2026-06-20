@@ -8,10 +8,10 @@
 
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
-@using SnapCd.Server.Core.Entities.Definition.AgentAssignments
+@using SnapCd.Server.Core.Entities.Definition.AgentSupplies
 @using SnapCd.Server.Core.Entities.Definition.Missions
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
-@using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentAssignments
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies
 @using SnapCd.Server.Core.Services.Ai.Missions
 
 @inject ISnackbar Snackbar
@@ -27,7 +27,7 @@
     {
         <MudText Typo="Typo.h6" GutterBottom="true">Supply &mdash; where this Agent can be invoked</MudText>
 
-        @if (_agent?.IsAssignedToAllModules == true)
+        @if (_agent?.IsSuppliedToAllModules == true)
         {
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3" Icon="@Icons.Material.Filled.AllInclusive">
                 <strong>Assigned to all modules in this organization.</strong>
@@ -51,7 +51,7 @@
             @if (_stackAssignments.Count + _namespaceAssignments.Count + _moduleAssignments.Count == 0)
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3" Dense="true">
-                    No assignments configured. Until the Agent owner adds an assignment (or sets <code>IsAssignedToAllModules</code>),
+                    No assignments configured. Until the Agent owner adds an assignment (or sets <code>IsSuppliedToAllModules</code>),
                     every mission referencing this Agent will park as <code>BlockedAgentNotAssigned</code> on the next dispatch.
                 </MudAlert>
             }
@@ -180,9 +180,9 @@
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
-    [Inject] private AgentStackAssignmentSecuredRepositoryFactory StackAssignRepoFactory { get; set; } = null!;
-    [Inject] private AgentNamespaceAssignmentSecuredRepositoryFactory NsAssignRepoFactory { get; set; } = null!;
-    [Inject] private AgentModuleAssignmentSecuredRepositoryFactory ModAssignRepoFactory { get; set; } = null!;
+    [Inject] private AgentStackSupplySecuredRepositoryFactory StackAssignRepoFactory { get; set; } = null!;
+    [Inject] private AgentNamespaceSupplySecuredRepositoryFactory NsAssignRepoFactory { get; set; } = null!;
+    [Inject] private AgentModuleSupplySecuredRepositoryFactory ModAssignRepoFactory { get; set; } = null!;
     [Inject] private OrganizationMissionSecuredRepositoryFactory OrgMissionRepoFactory { get; set; } = null!;
     [Inject] private StackMissionSecuredRepositoryFactory StackMissionRepoFactory { get; set; } = null!;
     [Inject] private NamespaceMissionSecuredRepositoryFactory NsMissionRepoFactory { get; set; } = null!;
@@ -193,9 +193,9 @@
 
     private bool _loading = true;
     private Agent? _agent;
-    private List<AgentStackAssignment> _stackAssignments = new();
-    private List<AgentNamespaceAssignment> _namespaceAssignments = new();
-    private List<AgentModuleAssignment> _moduleAssignments = new();
+    private List<AgentStackSupply> _stackAssignments = new();
+    private List<AgentNamespaceSupply> _namespaceAssignments = new();
+    private List<AgentModuleSupply> _moduleAssignments = new();
     private List<Stack> _stacks = new();
     private List<Namespace> _namespaces = new();
     private List<Module> _modules = new();
@@ -333,14 +333,14 @@
         _modules.FirstOrDefault(m => m.Id == id)?.Name ?? id.ToString();
 
     private static string OrgResolutionHint() =>
-        "Resolve by setting IsAssignedToAllModules=true on this Agent. " +
+        "Resolve by setting IsSuppliedToAllModules=true on this Agent. " +
         "Org-wide missions require org-wide supply; per-scope assignments don't cover them.";
 
     private string StackResolutionHint(Guid stackId)
     {
         var stack = LookupStackName(stackId);
-        return $"Resolve by adding an AgentStackAssignment for stack '{stack}', " +
-               $"or by setting IsAssignedToAllModules on this Agent.";
+        return $"Resolve by adding an AgentStackSupply for stack '{stack}', " +
+               $"or by setting IsSuppliedToAllModules on this Agent.";
     }
 
     private string NamespaceResolutionHint(Guid nsId)
@@ -348,9 +348,9 @@
         var ns = _namespaces.FirstOrDefault(n => n.Id == nsId);
         var nsName = ns?.Name ?? nsId.ToString();
         var stackName = ns is null ? "?" : LookupStackName(ns.StackId);
-        return $"Resolve by adding an AgentNamespaceAssignment for namespace '{nsName}', " +
-               $"or an AgentStackAssignment for its parent stack '{stackName}', " +
-               $"or by setting IsAssignedToAllModules on this Agent.";
+        return $"Resolve by adding an AgentNamespaceSupply for namespace '{nsName}', " +
+               $"or an AgentStackSupply for its parent stack '{stackName}', " +
+               $"or by setting IsSuppliedToAllModules on this Agent.";
     }
 
     private string ModuleResolutionHint(Guid moduleId)
@@ -360,10 +360,10 @@
         var ns = module is null ? null : _namespaces.FirstOrDefault(n => n.Id == module.NamespaceId);
         var nsName = ns?.Name ?? "?";
         var stackName = ns is null ? "?" : LookupStackName(ns.StackId);
-        return $"Resolve by adding an AgentModuleAssignment for module '{moduleName}', " +
-               $"or an AgentNamespaceAssignment for namespace '{nsName}', " +
-               $"or an AgentStackAssignment for stack '{stackName}', " +
-               $"or by setting IsAssignedToAllModules on this Agent.";
+        return $"Resolve by adding an AgentModuleSupply for module '{moduleName}', " +
+               $"or an AgentNamespaceSupply for namespace '{nsName}', " +
+               $"or an AgentStackSupply for stack '{stackName}', " +
+               $"or by setting IsSuppliedToAllModules on this Agent.";
     }
 
     private async Task Close() => await OnClose.InvokeAsync();

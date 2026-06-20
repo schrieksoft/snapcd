@@ -24,6 +24,8 @@ public static class ControllerEndpoints
     public const string ModuleInputFromSecret = "api/{organizationId}/ModuleInputFromSecret";
     public const string Stack = "api/{organizationId}/Stack";
     public const string Module = "api/{organizationId}/Module";
+    public const string Integration = "api/{organizationId}/Integration";
+    public const string IntegrationEvent = "api/{organizationId}/IntegrationEvent";
     public const string Logs = "api/{organizationId}/Logs";
     public const string ServicePrincipal = "api/{organizationId}/ServicePrincipal";
     public const string User = "api/{organizationId}/User";
@@ -37,12 +39,12 @@ public static class ControllerEndpoints
     public const string StackSecret = "api/{organizationId}/StackSecret";
     public const string NamespaceSecret = "api/{organizationId}/NamespaceSecret";
     public const string ModuleSecret = "api/{organizationId}/ModuleSecret";
-    public const string RunnerStackAssignment = "api/{organizationId}/RunnerStackAssignment";
-    public const string RunnerNamespaceAssignment = "api/{organizationId}/RunnerNamespaceAssignment";
-    public const string RunnerModuleAssignment = "api/{organizationId}/RunnerModuleAssignment";
-    public const string AgentStackAssignment = "api/{organizationId}/AgentStackAssignment";
-    public const string AgentNamespaceAssignment = "api/{organizationId}/AgentNamespaceAssignment";
-    public const string AgentModuleAssignment = "api/{organizationId}/AgentModuleAssignment";
+    public const string RunnerStackSupply = "api/{organizationId}/RunnerStackSupply";
+    public const string RunnerNamespaceSupply = "api/{organizationId}/RunnerNamespaceSupply";
+    public const string RunnerModuleSupply = "api/{organizationId}/RunnerModuleSupply";
+    public const string AgentStackSupply = "api/{organizationId}/AgentStackSupply";
+    public const string AgentNamespaceSupply = "api/{organizationId}/AgentNamespaceSupply";
+    public const string AgentModuleSupply = "api/{organizationId}/AgentModuleSupply";
     public const string ModuleExtraFile = "api/{organizationId}/ModuleExtraFile";
     public const string DependsOnModule = "api/{organizationId}/DependsOnModule";
     public const string NamespaceExtraFile = "api/{organizationId}/NamespaceExtraFile";
@@ -67,4 +69,5 @@ public static class ControllerEndpoints
     public const string NamespaceMission = "api/{organizationId}/NamespaceMission";
     public const string ModuleMission = "api/{organizationId}/ModuleMission";
     public const string AgentRoleAssignment = "api/{organizationId}/AgentRoleAssignment";
+    public const string IntegrationRoleAssignment = "api/{organizationId}/IntegrationRoleAssignment";
 }

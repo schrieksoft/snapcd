@@ -1,0 +1,116 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Services.Ai.Missions
+
+@inject AgentSupplyResolver SupplyResolver
+
+@if (_loaded)
+{
+    <MudTooltip Placement="Placement.Top" Arrow="true">
+        <TooltipContent>
+            <div style="max-width: 380px; font-size: 12px;">
+                @if (_assigned)
+                {
+                    <strong>Agent is supplied for this @ScopeLabel.</strong>
+                }
+                else
+                {
+                    <strong>Agent has no supply path for this @ScopeLabel.</strong>
+                    <div style="margin-top: 6px;">
+                        Missions targeting this @ScopeLabel won't dispatch to this Agent until any one of these is true:
+                    </div>
+                    <ul style="margin: 4px 0 6px 16px; padding: 0;">
+                        @foreach (var path in SupplyPaths)
+                        {
+                            <li>@((MarkupString)path)</li>
+                        }
+                    </ul>
+                    <div style="margin-top: 6px;">
+                        <strong>To fix:</strong> open the Agent's <em>Assignments</em> tab and add the relevant assignment, or set <code>IsSuppliedToAllModules</code> on the Agent.
+                    </div>
+                    <div style="margin-top: 4px;">
+                        <strong>Required permission:</strong> <code>AgentRole.Owner</code> or <code>AgentRole.Contributor</code> on this Agent.
+                    </div>
+                }
+            </div>
+        </TooltipContent>
+        <ChildContent>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                <MudIcon Icon="@(_assigned ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Warning)"
+                         Size="Size.Small"
+                         Color="@(_assigned ? Color.Success : Color.Warning)"
+                         Class="mr-1" />
+                @(_assigned ? "Assigned" : "Not assigned")
+            </MudChip>
+        </ChildContent>
+    </MudTooltip>
+}
+
+@code {
+    public enum SupplyScope { Stack, Namespace, Module, Organization }
+
+    [Parameter, EditorRequired] public Guid AgentId { get; set; }
+    [Parameter, EditorRequired] public Guid OrganizationId { get; set; }
+    [Parameter, EditorRequired] public SupplyScope Scope { get; set; }
+    /// <summary>Required for Stack/Namespace/Module scopes; ignored for Organization scope.</summary>
+    [Parameter] public Guid? ScopeId { get; set; }
+
+    private bool _loaded;
+    private bool _assigned;
+
+    private string ScopeLabel => Scope switch
+    {
+        SupplyScope.Stack => "Stack",
+        SupplyScope.Namespace => "Namespace",
+        SupplyScope.Module => "Module",
+        SupplyScope.Organization => "Organization",
+        _ => "scope"
+    };
+
+    private string[] SupplyPaths => Scope switch
+    {
+        SupplyScope.Organization => new[]
+        {
+            "<code>Agent.IsSuppliedToAllModules = true</code> (the only org-wide supply mechanism)"
+        },
+        SupplyScope.Stack => new[]
+        {
+            "<code>Agent.IsSuppliedToAllModules = true</code> (org-wide)",
+            "<code>AgentStackSupply</code> for this Stack"
+        },
+        SupplyScope.Namespace => new[]
+        {
+            "<code>Agent.IsSuppliedToAllModules = true</code> (org-wide)",
+            "<code>AgentStackSupply</code> for the parent Stack",
+            "<code>AgentNamespaceSupply</code> for this Namespace"
+        },
+        SupplyScope.Module => new[]
+        {
+            "<code>Agent.IsSuppliedToAllModules = true</code> (org-wide)",
+            "<code>AgentStackSupply</code> for the parent Stack",
+            "<code>AgentNamespaceSupply</code> for the parent Namespace",
+            "<code>AgentModuleSupply</code> for this Module"
+        },
+        _ => Array.Empty<string>()
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        _assigned = Scope switch
+        {
+            SupplyScope.Organization => await SupplyResolver.IsAgentSuppliedOrgWide(AgentId, OrganizationId),
+            SupplyScope.Stack       => await SupplyResolver.IsAgentSuppliedToStack(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
+            SupplyScope.Namespace   => await SupplyResolver.IsAgentSuppliedToNamespace(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
+            SupplyScope.Module      => await SupplyResolver.IsAgentSuppliedToModule(AgentId, ScopeId ?? Guid.Empty, OrganizationId),
+            _ => false
+        };
+        _loaded = true;
+    }
+}

@@ -16,14 +16,14 @@
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
             <MudText Typo="Typo.body1"><strong>Agent: @AgentNameLookup(group.Key)</strong></MudText>
             <AgentOnlineBadge AgentId="group.Key" OrganizationId="OrganizationId" />
-            @if (Scope == AgentAssignmentBadge.AssignmentScope.Organization)
+            @if (Scope == AgentSupplyBadge.SupplyScope.Organization)
             {
-                <AgentAssignmentBadge AgentId="group.Key" OrganizationId="OrganizationId"
-                                      Scope="AgentAssignmentBadge.AssignmentScope.Organization" />
+                <AgentSupplyBadge AgentId="group.Key" OrganizationId="OrganizationId"
+                                      Scope="AgentSupplyBadge.SupplyScope.Organization" />
             }
             else if (ScopeId is { } sid)
             {
-                <AgentAssignmentBadge AgentId="group.Key" OrganizationId="OrganizationId"
+                <AgentSupplyBadge AgentId="group.Key" OrganizationId="OrganizationId"
                                       Scope="Scope" ScopeId="sid" />
             }
         </div>
@@ -69,7 +69,7 @@
     [Parameter] public Func<TRow, string?>? SidecarNameSelector { get; set; }
     [Parameter, EditorRequired] public Func<Guid, string> AgentNameLookup { get; set; } = null!;
     [Parameter, EditorRequired] public Guid OrganizationId { get; set; }
-    [Parameter, EditorRequired] public AgentAssignmentBadge.AssignmentScope Scope { get; set; }
+    [Parameter, EditorRequired] public AgentSupplyBadge.SupplyScope Scope { get; set; }
     /// <summary>Required for Stack/Namespace/Module scopes; ignored for Organization scope.</summary>
     [Parameter] public Guid? ScopeId { get; set; }
     [Parameter] public EventCallback<TRow> OnEdit { get; set; }

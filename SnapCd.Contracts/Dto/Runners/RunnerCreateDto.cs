@@ -21,5 +21,5 @@ public class RunnerCreateDto
 
     public bool AllowMultipleInstances { get; set; }
 
-    public bool IsAssignedToAllModules { get; set; } = false;
+    public bool IsSuppliedToAllModules { get; set; } = false;
 }

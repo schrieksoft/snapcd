@@ -24,9 +24,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.GroupMembers;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
-using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base;
-using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
 using SnapCd.Server.Core.Repositories.System.Nonsecured;
@@ -150,12 +150,12 @@ public static class Factories
         services.AddScoped<NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceEnvVarFromDefinition>>();
         services.AddScoped<NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceParamFromSecret>>();
         services.AddScoped<NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceEnvVarFromSecret>>();
-        services.AddScoped<RunnerStackAssignmentSecuredRepositoryFactory>();
-        services.AddScoped<RunnerNamespaceAssignmentSecuredRepositoryFactory>();
-        services.AddScoped<RunnerModuleAssignmentSecuredRepositoryFactory>();
-        services.AddScoped<AgentStackAssignmentSecuredRepositoryFactory>();
-        services.AddScoped<AgentNamespaceAssignmentSecuredRepositoryFactory>();
-        services.AddScoped<AgentModuleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<RunnerStackSupplySecuredRepositoryFactory>();
+        services.AddScoped<RunnerNamespaceSupplySecuredRepositoryFactory>();
+        services.AddScoped<RunnerModuleSupplySecuredRepositoryFactory>();
+        services.AddScoped<AgentStackSupplySecuredRepositoryFactory>();
+        services.AddScoped<AgentNamespaceSupplySecuredRepositoryFactory>();
+        services.AddScoped<AgentModuleSupplySecuredRepositoryFactory>();
         services.AddScoped<StackSecretRepositoryFactory>();
         services.AddScoped<NamespaceSecretRepositoryFactory>();
         services.AddScoped<ModuleSecretRepositoryFactory>();
@@ -245,6 +245,40 @@ public static class Factories
         services.AddScoped<AgentConnectionRepositoryFactory>();
         services.AddScoped<ModuleJobMissionRunRepositoryFactory>();
         services.AddScoped<ModuleJobMissionRunMilestoneRepositoryFactory>();
+
+        // Integrations (Phase 1 — Slack). Codecs are stateless singletons; the registry fans them out by type.
+        services.AddScoped<IntegrationRepositoryFactory>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSecuredRepositoryFactory>();
+        services.AddScoped<Services.Integrations.IntegrationSecretStore>();
+        services.AddScoped<Services.Integrations.IntegrationService>();
+        services.AddSingleton<Services.Integrations.Codecs.IIntegrationCodec, Services.Integrations.Codecs.SlackCodec>();
+        services.AddSingleton<Services.Integrations.Codecs.IIntegrationCodecRegistry, Services.Integrations.Codecs.IntegrationCodecRegistry>();
+        // Phase 2 — per-instance display cache (IMemoryCache only, never distributed), invalidated by fanout consumers.
+        services.AddMemoryCache();
+        services.AddSingleton<Services.Integrations.IntegrationConnectionCache>();
+        // Phase 3 — supply (assignments + resolver), mirroring agents.
+        services.AddScoped<IntegrationStackSupplyRepositoryFactory>();
+        services.AddScoped<IntegrationNamespaceSupplyRepositoryFactory>();
+        services.AddScoped<IntegrationModuleSupplyRepositoryFactory>();
+        services.AddScoped<Services.Integrations.IntegrationSupplyService>();
+        services.AddScoped<Services.Integrations.IntegrationSupplyResolver>();
+        // Phase 3 RBAC — integration role-assignment repos (non-secured + secured) + service.
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.IntegrationRoleAssignmentRepository>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.UserIntegrationRoleAssignmentRepository>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.ServicePrincipalIntegrationRoleAssignmentRepository>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.GroupIntegrationRoleAssignmentRepository>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.IntegrationRoleAssignmentSecuredRepository>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.UserIntegrationRoleAssignmentSecuredRepository>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.ServicePrincipalIntegrationRoleAssignmentSecuredRepository>();
+        services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.GroupIntegrationRoleAssignmentSecuredRepository>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.RoleAssignment.IntegrationRoleAssignmentService>();
+        // Phase 4 — IntegrationEvent (demand): per-scope repos + service + matcher.
+        services.AddScoped<OrganizationIntegrationEventRepositoryFactory>();
+        services.AddScoped<StackIntegrationEventRepositoryFactory>();
+        services.AddScoped<NamespaceIntegrationEventRepositoryFactory>();
+        services.AddScoped<ModuleIntegrationEventRepositoryFactory>();
+        services.AddScoped<Services.Integrations.IntegrationEventService>();
+        services.AddScoped<Services.Integrations.IntegrationEventMatcher>();
 
         // Mission family (4 scopes, raw + secured)
         services.AddScoped<OrganizationMissionRepositoryFactory>();

@@ -91,7 +91,7 @@
                                       SidecarNameSelector="@(r => r.SidecarName)"
                                       AgentNameLookup="@LookupAgentName"
                                       OrganizationId="OrganizationId"
-                                      Scope="AgentAssignmentBadge.AssignmentScope.Module"
+                                      Scope="AgentSupplyBadge.SupplyScope.Module"
                                       ScopeId="ModuleId"
                                       OnEdit="BeginEdit"
                                       OnDelete="DeleteRow"/>
@@ -114,7 +114,7 @@
                                           SidecarNameSelector="@(r => r.SidecarName)"
                                           AgentNameLookup="@LookupAgentName"
                                           OrganizationId="OrganizationId"
-                                          Scope="AgentAssignmentBadge.AssignmentScope.Namespace"
+                                          Scope="AgentSupplyBadge.SupplyScope.Namespace"
                                           ScopeId="NamespaceId"/>
                 </div>
             </MudTabPanel>
@@ -136,7 +136,7 @@
                                           SidecarNameSelector="@(r => r.SidecarName)"
                                           AgentNameLookup="@LookupAgentName"
                                           OrganizationId="OrganizationId"
-                                          Scope="AgentAssignmentBadge.AssignmentScope.Stack"
+                                          Scope="AgentSupplyBadge.SupplyScope.Stack"
                                           ScopeId="_stackId"/>
                 </div>
             </MudTabPanel>
@@ -158,7 +158,7 @@
                                           SidecarNameSelector="@(r => r.SidecarName)"
                                           AgentNameLookup="@LookupAgentName"
                                           OrganizationId="OrganizationId"
-                                          Scope="AgentAssignmentBadge.AssignmentScope.Organization"/>
+                                          Scope="AgentSupplyBadge.SupplyScope.Organization"/>
                 </div>
             </MudTabPanel>
         }

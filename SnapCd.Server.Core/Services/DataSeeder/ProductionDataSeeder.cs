@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
-using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
+using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Factories.Vaults;
@@ -394,7 +394,7 @@ public class ProductionDataSeeder : IDataSeeder
             existing.ServicePrincipalId = servicePrincipalId;
             // Single-instance default so the orchestrator can connect without supplying an instance name.
             existing.AllowMultipleInstances = false;
-            existing.IsAssignedToAllModules = true;
+            existing.IsSuppliedToAllModules = true;
             existing.IsDisabled = false;
         }
         else
@@ -406,7 +406,7 @@ public class ProductionDataSeeder : IDataSeeder
                 ServicePrincipalId = servicePrincipalId,
                 Name = name,
                 AllowMultipleInstances = false,
-                IsAssignedToAllModules = true,
+                IsSuppliedToAllModules = true,
                 IsDisabled = false
             });
         }
@@ -449,20 +449,20 @@ public class ProductionDataSeeder : IDataSeeder
             // Update existing runner
             existingRunner.Name = name;
             existingRunner.ServicePrincipalId = servicePrincipalId;
-            existingRunner.IsAssignedToAllModules = false;
+            existingRunner.IsSuppliedToAllModules = false;
             existingRunner.AllowMultipleInstances = true;
             existingRunner.IsDisabled = false;
         }
         else
         {
-            // Create new runner — explicitly scoped via RunnerStackAssignment, not all-modules.
+            // Create new runner — explicitly scoped via RunnerStackSupply, not all-modules.
             var runner = new Runner
             {
                 Id = runnerId,
                 OrganizationId = organizationId,
                 ServicePrincipalId = servicePrincipalId,
                 Name = name,
-                IsAssignedToAllModules = false,
+                IsSuppliedToAllModules = false,
                 AllowMultipleInstances = true,
                 IsDisabled = false
             };
@@ -495,11 +495,11 @@ public class ProductionDataSeeder : IDataSeeder
 
     protected async Task AssignRunnerToStack(Guid runnerId, Guid stackId, Guid organizationId)
     {
-        var existing = await _dbContext.Set<RunnerStackAssignment>()
+        var existing = await _dbContext.Set<RunnerStackSupply>()
             .FirstOrDefaultAsync(a => a.RunnerId == runnerId && a.StackId == stackId && a.OrganizationId == organizationId);
         if (existing != null) return;
 
-        _dbContext.Set<RunnerStackAssignment>().Add(new RunnerStackAssignment
+        _dbContext.Set<RunnerStackSupply>().Add(new RunnerStackSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,

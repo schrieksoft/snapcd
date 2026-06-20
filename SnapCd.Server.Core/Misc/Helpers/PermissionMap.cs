@@ -18,4 +18,5 @@ public class PermissionMap
     public List<ModuleRole> ModuleRoles { get; set; } = new();
     public List<AgentRole> AgentRoles { get; set; } = new();
     public List<RunnerRole> RunnerRoles { get; set; } = new();
+    public List<IntegrationRole> IntegrationRoles { get; set; } = new();
 }

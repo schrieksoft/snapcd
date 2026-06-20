@@ -52,14 +52,14 @@ public class QuotaLimits
     public int? SourceRefresherPreselectionQuota { get; set; }
 
     // Runner assignments
-    public int? RunnerStackAssignmentQuota { get; set; }
-    public int? RunnerNamespaceAssignmentQuota { get; set; }
-    public int? RunnerModuleAssignmentQuota { get; set; }
+    public int? RunnerStackSupplyQuota { get; set; }
+    public int? RunnerNamespaceSupplyQuota { get; set; }
+    public int? RunnerModuleSupplyQuota { get; set; }
 
     // Agent assignments
-    public int? AgentStackAssignmentQuota { get; set; }
-    public int? AgentNamespaceAssignmentQuota { get; set; }
-    public int? AgentModuleAssignmentQuota { get; set; }
+    public int? AgentStackSupplyQuota { get; set; }
+    public int? AgentNamespaceSupplyQuota { get; set; }
+    public int? AgentModuleSupplyQuota { get; set; }
 
     // Group members
     public int? UserGroupMemberQuota { get; set; }

@@ -24,8 +24,8 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
-using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
-using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
+using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
+using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
@@ -123,12 +123,12 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, Namespace> SmokeNamespaces { get; } = new();
     public Dictionary<string, Module> SmokeModules { get; } = new();
     public Dictionary<string, ModuleHook> SmokeModuleHooks { get; } = new();
-    public Dictionary<string, AgentModuleAssignment> SmokeAgentAssignments { get; } = new();
-    public Dictionary<string, RunnerModuleAssignment> SmokeRunnerAssignments { get; } = new();
+    public Dictionary<string, AgentModuleSupply> SmokeAgentSupplies { get; } = new();
+    public Dictionary<string, RunnerModuleSupply> SmokeRunnerSupplies { get; } = new();
 
     public Dictionary<string, Agent> Agents { get; } = new();
-    public Dictionary<string, AgentModuleAssignment> AgentModuleAssignments { get; } = new();
-    public Dictionary<string, RunnerModuleAssignment> RunnerModuleAssignments { get; } = new();
+    public Dictionary<string, AgentModuleSupply> AgentModuleSupplies { get; } = new();
+    public Dictionary<string, RunnerModuleSupply> RunnerModuleSupplies { get; } = new();
     public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.OrganizationMission> OrganizationMissions { get; } = new();
     public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.StackMission> StackMissions { get; } = new();
     public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.NamespaceMission> NamespaceMissions { get; } = new();
@@ -518,8 +518,8 @@ public class Fixture : IAsyncLifetime
         // Tier B scope-role Reader principals — one direct-User per scope row.
         CreateScopeReaderPrincipals_Org0(dbContext);
 
-        // Tier B Agent + RunnerModuleAssignment seed: Agent0 + Agent0Sibling in Org0, Agent1 in Org1,
-        // AgentModuleAssignment0 + AgentModuleAssignment0Sibling, plus RunnerModuleAssignment0Sibling
+        // Tier B Agent + RunnerModuleSupply seed: Agent0 + Agent0Sibling in Org0, Agent1 in Org1,
+        // AgentModuleSupply0 + AgentModuleSupply0Sibling, plus RunnerModuleSupply0Sibling
         // so the runner-chain tests have a sibling row to test isolation against. Includes AgentReader
         // and RunnerReaderSibling Users.
         CreateAgentRunnerScopeEntities(dbContext);
@@ -800,7 +800,7 @@ public class Fixture : IAsyncLifetime
 
         // Create Runner → Module assignments for testing
         // Assign Runner "0" to Module "0000" (direct module assignment)
-        dbContext.RunnerModuleAssignments.Add(new RunnerModuleAssignment
+        dbContext.RunnerModuleSupplies.Add(new RunnerModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org.Id,
@@ -968,15 +968,15 @@ public class Fixture : IAsyncLifetime
 
     /// <summary>
     /// Tier B (RoleResolution) seed for Agent / Runner chains. Creates:
-    ///   Org0 — Agent0 + Agent0Sibling + their AgentModuleAssignments + RunnerModuleAssignment0Sibling
+    ///   Org0 — Agent0 + Agent0Sibling + their AgentModuleSupplies + RunnerModuleSupply0Sibling
     ///         (on Module0001 via Runner0).
     ///   Org1 — Agent1 (for cross-org sweep tests).
     ///   AgentRole.Reader and Sibling Users on each Agent and Runner so the visibility-by-scope tests
     ///   have all the principals they need.
     /// Keyed entries:
     ///   Agents["0"], Agents["0Sibling"], Agents["1"]
-    ///   AgentModuleAssignments["0"] (Agent0 → Module0000), AgentModuleAssignments["0Sibling"] (Agent0Sibling → Module0001)
-    ///   RunnerModuleAssignments["0Sibling"] (Runner0 → Module0001)
+    ///   AgentModuleSupplies["0"] (Agent0 → Module0000), AgentModuleSupplies["0Sibling"] (Agent0Sibling → Module0001)
+    ///   RunnerModuleSupplies["0Sibling"] (Runner0 → Module0001)
     ///   ScopeReaderUsers["Agent0.Reader"], ["Agent0Sibling.Reader"], ["Runner0Sibling.Reader"]
     /// </summary>
     private void CreateAgentRunnerScopeEntities(SnapCdDbContext dbContext)
@@ -995,7 +995,7 @@ public class Fixture : IAsyncLifetime
             Name = "Agent0",
             IsDisabled = false,
             AllowMultipleInstances = false,
-            IsAssignedToAllModules = false,
+            IsSuppliedToAllModules = false,
         };
         dbContext.Agents.Add(Agents["0"]);
 
@@ -1010,7 +1010,7 @@ public class Fixture : IAsyncLifetime
             Name = "Agent0Sibling",
             IsDisabled = false,
             AllowMultipleInstances = false,
-            IsAssignedToAllModules = false,
+            IsSuppliedToAllModules = false,
         };
         dbContext.Agents.Add(Agents["0Sibling"]);
 
@@ -1025,29 +1025,29 @@ public class Fixture : IAsyncLifetime
             Name = "Agent1",
             IsDisabled = false,
             AllowMultipleInstances = false,
-            IsAssignedToAllModules = false,
+            IsSuppliedToAllModules = false,
         };
         dbContext.Agents.Add(Agents["1"]);
 
-        // ---- AgentModuleAssignment0 (Agent0 → Module0000) ----
-        AgentModuleAssignments["0"] = new AgentModuleAssignment
+        // ---- AgentModuleSupply0 (Agent0 → Module0000) ----
+        AgentModuleSupplies["0"] = new AgentModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0"].Id,
             ModuleId = Modules["0000"].Id,
         };
-        dbContext.AgentModuleAssignments.Add(AgentModuleAssignments["0"]);
+        dbContext.AgentModuleSupplies.Add(AgentModuleSupplies["0"]);
 
-        // ---- AgentModuleAssignment0Sibling (Agent0Sibling → Module0001) ----
-        AgentModuleAssignments["0Sibling"] = new AgentModuleAssignment
+        // ---- AgentModuleSupply0Sibling (Agent0Sibling → Module0001) ----
+        AgentModuleSupplies["0Sibling"] = new AgentModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0Sibling"].Id,
             ModuleId = Modules["0001"].Id,
         };
-        dbContext.AgentModuleAssignments.Add(AgentModuleAssignments["0Sibling"]);
+        dbContext.AgentModuleSupplies.Add(AgentModuleSupplies["0Sibling"]);
 
         // ---- Runner0Sibling + assignment + Reader principal ----
         // The base seed at CreateRunnerRolePrincipals_Org0 creates Runner0 + assignment to Module0000.
@@ -1059,14 +1059,14 @@ public class Fixture : IAsyncLifetime
         Runners["0Sibling"] = runner0Sibling;
         dbContext.Runners.Add(runner0Sibling);
 
-        RunnerModuleAssignments["0Sibling"] = new RunnerModuleAssignment
+        RunnerModuleSupplies["0Sibling"] = new RunnerModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             RunnerId = runner0Sibling.Id,
             ModuleId = Modules["0001"].Id,
         };
-        dbContext.RunnerModuleAssignments.Add(RunnerModuleAssignments["0Sibling"]);
+        dbContext.RunnerModuleSupplies.Add(RunnerModuleSupplies["0Sibling"]);
 
         SeedRunnerReader(dbContext, org0.Id, runner0Sibling.Id, "Runner0Sibling.Reader");
 
@@ -1193,47 +1193,47 @@ public class Fixture : IAsyncLifetime
         SmokeModuleHooks["ModuleHook_SmokeTests_DeleteCan"] =
             CreateAndAddModuleHook(dbContext, org0.Id, Modules["0000"].Id, HookTask.Apply, HookPhase.After, "Delete");
 
-        // AgentModuleAssignment_SmokeTests: dedicated under Agent0Sibling.
+        // AgentModuleSupply_SmokeTests: dedicated under Agent0Sibling.
         // Use Modules 0002 + 0003 (created by the orphaned-job seed elsewhere) to avoid
         // duplicate-assignment conflicts with the Tier B seed.
-        var agentUpdate = new AgentModuleAssignment
+        var agentUpdate = new AgentModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0Sibling"].Id,
             ModuleId = Modules["0002"].Id,
         };
-        var agentDelete = new AgentModuleAssignment
+        var agentDelete = new AgentModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             AgentId = Agents["0Sibling"].Id,
             ModuleId = Modules["0003"].Id,
         };
-        dbContext.AgentModuleAssignments.Add(agentUpdate);
-        dbContext.AgentModuleAssignments.Add(agentDelete);
-        SmokeAgentAssignments["AgentModuleAssignment_SmokeTests_UpdateCan"] = agentUpdate;
-        SmokeAgentAssignments["AgentModuleAssignment_SmokeTests_DeleteCan"] = agentDelete;
+        dbContext.AgentModuleSupplies.Add(agentUpdate);
+        dbContext.AgentModuleSupplies.Add(agentDelete);
+        SmokeAgentSupplies["AgentModuleSupply_SmokeTests_UpdateCan"] = agentUpdate;
+        SmokeAgentSupplies["AgentModuleSupply_SmokeTests_DeleteCan"] = agentDelete;
 
-        // RunnerModuleAssignment_SmokeTests: dedicated under Runner0Sibling.
-        var runnerUpdate = new RunnerModuleAssignment
+        // RunnerModuleSupply_SmokeTests: dedicated under Runner0Sibling.
+        var runnerUpdate = new RunnerModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             RunnerId = Runners["0Sibling"].Id,
             ModuleId = Modules["0002"].Id,
         };
-        var runnerDelete = new RunnerModuleAssignment
+        var runnerDelete = new RunnerModuleSupply
         {
             Id = Guid.NewGuid(),
             OrganizationId = org0.Id,
             RunnerId = Runners["0Sibling"].Id,
             ModuleId = Modules["0003"].Id,
         };
-        dbContext.RunnerModuleAssignments.Add(runnerUpdate);
-        dbContext.RunnerModuleAssignments.Add(runnerDelete);
-        SmokeRunnerAssignments["RunnerModuleAssignment_SmokeTests_UpdateCan"] = runnerUpdate;
-        SmokeRunnerAssignments["RunnerModuleAssignment_SmokeTests_DeleteCan"] = runnerDelete;
+        dbContext.RunnerModuleSupplies.Add(runnerUpdate);
+        dbContext.RunnerModuleSupplies.Add(runnerDelete);
+        SmokeRunnerSupplies["RunnerModuleSupply_SmokeTests_UpdateCan"] = runnerUpdate;
+        SmokeRunnerSupplies["RunnerModuleSupply_SmokeTests_DeleteCan"] = runnerDelete;
     }
 
     private static ModuleHook CreateAndAddModuleHook(SnapCdDbContext dbContext, Guid orgId, Guid moduleId, HookTask task, HookPhase phase, string nameSuffix)

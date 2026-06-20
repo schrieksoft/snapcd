@@ -139,7 +139,7 @@ public class DebugDataSeeder : ProductionDataSeeder
                 ServicePrincipalId = DebugSpRunnerId,
                 Name = "debug",
                 AllowMultipleInstances = true,
-                IsAssignedToAllModules = true,
+                IsSuppliedToAllModules = true,
                 OrganizationId = _preseededOrganizationId
             });
         }
@@ -148,7 +148,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             existingRunner.Name = "debug";
             existingRunner.ServicePrincipalId = DebugSpRunnerId;
             existingRunner.AllowMultipleInstances = true;
-            existingRunner.IsAssignedToAllModules = true;
+            existingRunner.IsSuppliedToAllModules = true;
             existingRunner.OrganizationId = _preseededOrganizationId;
         }
 

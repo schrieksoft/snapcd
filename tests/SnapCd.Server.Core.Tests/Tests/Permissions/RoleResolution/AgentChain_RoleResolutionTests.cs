@@ -9,8 +9,8 @@
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.AgentAssignments;
-using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.AgentSupplies;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
 
@@ -19,7 +19,7 @@ namespace SnapCd.Server.Core.Tests.Tests.Permissions.RoleResolution;
 /// <summary>
 /// Verifies that <c>GenericAgentChildSecuredRepository</c>'s AgentRoles family is wired into
 /// the ReadQuery: a user with <c>AgentRole.Reader</c> on an Agent must see at least one of that
-/// Agent's child assignments (<c>AgentModuleAssignment</c> as the representative entity).
+/// Agent's child assignments (<c>AgentModuleSupply</c> as the representative entity).
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
 public class AgentChain_RoleResolutionTests : IAsyncLifetime
@@ -50,9 +50,9 @@ public class AgentChain_RoleResolutionTests : IAsyncLifetime
         var principal = _fixture.ScopeReaderUsers["Agent0.Reader"];
         var orgId = _fixture.Organizations["0"].Id;
         var pp = _fixture.CreatePrincipalProvider(principal.Id, PrincipalDiscriminator.User, orgId);
-        var repo = new AgentModuleAssignmentSecuredRepository(
-            new AgentModuleAssignmentRepository(_dbContext, pp, _fixture.CreateMockBus(),
-                Options.Create(new AgentModuleAssignmentRepositorySettings())),
+        var repo = new AgentModuleSupplySecuredRepository(
+            new AgentModuleSupplyRepository(_dbContext, pp, _fixture.CreateMockBus(),
+                Options.Create(new AgentModuleSupplyRepositorySettings())),
             pp);
         var visible = await repo.List(orgId);
         Assert.NotEmpty(visible);

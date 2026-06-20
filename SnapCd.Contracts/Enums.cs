@@ -265,6 +265,9 @@ public enum OrganizationRole
     SourceRefresherPreselectionCreator,
     SourceRefresherPreselectionContributor,
     SourceRefresherPreselectionReader,
+    IntegrationCreator,
+    IntegrationContributor,
+    IntegrationReader,
 }
 
 public enum StackRole
@@ -315,6 +318,14 @@ public enum AgentRole
     IdentityAccessManager
 }
 
+public enum IntegrationRole
+{
+    Owner,
+    Contributor,
+    Reader,
+    IdentityAccessManager
+}
+
 public enum MissionType
 {
     AutoDiagnose,
@@ -351,11 +362,11 @@ public enum MissionStatus
     WaitingForAgent,
     /// <summary>Mission-level only: the referenced Agent has a live connection but is not assigned
     /// to the target scope (no covering <c>Agent{Stack,Namespace,Module}Assignment</c> row and
-    /// <c>Agent.IsAssignedToAllModules</c> is false). Parked until the Agent owner adds an assignment;
+    /// <c>Agent.IsSuppliedToAllModules</c> is false). Parked until the Agent owner adds an assignment;
     /// a status distinct from <see cref="WaitingForAgent"/> so the operator can see "this mission is
     /// blocked on configuration, not on the agent being offline". The wake path that picks this up is
-    /// <c>AgentAssignmentCreatedMissionWakeConsumer</c> — it consumes the assignment-created events and
-    /// the <c>Agent</c> update event for <c>IsAssignedToAllModules</c> flips, and re-attempts dispatch.</summary>
+    /// <c>AgentSupplyCreatedMissionWakeConsumer</c> — it consumes the assignment-created events and
+    /// the <c>Agent</c> update event for <c>IsSuppliedToAllModules</c> flips, and re-attempts dispatch.</summary>
     BlockedAgentNotAssigned,
     Running,
     AwaitingReconnect,

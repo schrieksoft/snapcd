@@ -66,7 +66,7 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
 
     /// <summary>
     /// Checks if a ServicePrincipal can run a specific module via its assigned Runner.
-    /// Checks runner assignments at module, namespace, and stack levels, as well as IsAssignedToAllModules flag.
+    /// Checks runner assignments at module, namespace, and stack levels, as well as IsSuppliedToAllModules flag.
     /// </summary>
     public async Task<bool> CanRunModule(Guid servicePrincipalId, Guid moduleId, Guid organizationId)
     {
@@ -89,13 +89,13 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
             .Where(r => r.ServicePrincipalId == servicePrincipalId && r.OrganizationId == organizationId)
             .AnyAsync(r =>
                 // Direct module assignment
-                r.RunnerModuleAssignments.Any(a => a.ModuleId == moduleId) ||
+                r.RunnerModuleSupplies.Any(a => a.ModuleId == moduleId) ||
                 // Namespace-level assignment
-                r.RunnerNamespaceAssignments.Any(a => a.NamespaceId == moduleInfo.NamespaceId) ||
+                r.RunnerNamespaceSupplies.Any(a => a.NamespaceId == moduleInfo.NamespaceId) ||
                 // Stack-level assignment
-                r.RunnerStackAssignments.Any(a => a.StackId == moduleInfo.StackId) ||
+                r.RunnerStackSupplies.Any(a => a.StackId == moduleInfo.StackId) ||
                 // Assigned to all modules
-                r.IsAssignedToAllModules);
+                r.IsSuppliedToAllModules);
 
         return hasAccess;
     }

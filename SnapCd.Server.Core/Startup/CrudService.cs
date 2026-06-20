@@ -67,12 +67,12 @@ public static class CrudService
         services.AddScoped<ModuleRoleAssignmentService>();
         services.AddScoped<RunnerRoleAssignmentService>();
         services.AddScoped<AgentRoleAssignmentService>();
-        services.AddScoped<RunnerStackAssignmentService>();
-        services.AddScoped<RunnerNamespaceAssignmentService>();
-        services.AddScoped<RunnerModuleAssignmentService>();
-        services.AddScoped<AgentStackAssignmentService>();
-        services.AddScoped<AgentNamespaceAssignmentService>();
-        services.AddScoped<AgentModuleAssignmentService>();
+        services.AddScoped<RunnerStackSupplyService>();
+        services.AddScoped<RunnerNamespaceSupplyService>();
+        services.AddScoped<RunnerModuleSupplyService>();
+        services.AddScoped<AgentStackSupplyService>();
+        services.AddScoped<AgentNamespaceSupplyService>();
+        services.AddScoped<AgentModuleSupplyService>();
         services.AddScoped<SecretService>();
         services.AddScoped<StackSecretService>();
         services.AddScoped<NamespaceSecretService>();

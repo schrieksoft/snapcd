@@ -94,7 +94,7 @@ public class MissionDispatcher
         if (!await _agentSupply.IsAgentSuppliedToModule(agentId, moduleId, mission.OrganizationId))
         {
             _logger.LogInformation(
-                "Mission {MissionType} (job {JobId}) not dispatched: agent {AgentId} is not assigned to module {ModuleId} (no covering Agent{{Stack,Namespace,Module}}Assignment and IsAssignedToAllModules is false).",
+                "Mission {MissionType} (job {JobId}) not dispatched: agent {AgentId} is not assigned to module {ModuleId} (no covering Agent{{Stack,Namespace,Module}}Assignment and IsSuppliedToAllModules is false).",
                 mission.MissionType, mission.ModuleJobId, agentId, moduleId);
             return MissionDispatchOutcome.AgentNotAssigned;
         }

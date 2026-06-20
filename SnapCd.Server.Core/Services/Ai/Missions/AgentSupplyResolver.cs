@@ -13,7 +13,7 @@ namespace SnapCd.Server.Core.Services.Ai.Missions;
 
 /// <summary>
 /// Mirrors <c>ServicePrincipalRepository.CanRunModule()</c> shape for Agent supply checks.
-/// An Agent is "supplied" to a scope when <c>Agent.IsAssignedToAllModules</c> is true OR a matching
+/// An Agent is "supplied" to a scope when <c>Agent.IsSuppliedToAllModules</c> is true OR a matching
 /// per-scope <c>Agent{Scope}Assignment</c> row exists. Used by the Mission-create gate to enforce
 /// the supply/demand duality on top of the existing scope-role authorization.
 /// </summary>
@@ -40,10 +40,10 @@ public class AgentSupplyResolver
         return await db.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a =>
-                a.IsAssignedToAllModules ||
-                a.AgentModuleAssignments.Any(x => x.ModuleId == moduleId) ||
-                a.AgentNamespaceAssignments.Any(x => x.NamespaceId == moduleInfo.NamespaceId) ||
-                a.AgentStackAssignments.Any(x => x.StackId == moduleInfo.StackId));
+                a.IsSuppliedToAllModules ||
+                a.AgentModuleSupplies.Any(x => x.ModuleId == moduleId) ||
+                a.AgentNamespaceSupplies.Any(x => x.NamespaceId == moduleInfo.NamespaceId) ||
+                a.AgentStackSupplies.Any(x => x.StackId == moduleInfo.StackId));
     }
 
     public async Task<bool> IsAgentSuppliedToNamespace(Guid agentId, Guid namespaceId, Guid organizationId)
@@ -60,9 +60,9 @@ public class AgentSupplyResolver
         return await db.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a =>
-                a.IsAssignedToAllModules ||
-                a.AgentNamespaceAssignments.Any(x => x.NamespaceId == namespaceId) ||
-                a.AgentStackAssignments.Any(x => x.StackId == nsInfo.StackId));
+                a.IsSuppliedToAllModules ||
+                a.AgentNamespaceSupplies.Any(x => x.NamespaceId == namespaceId) ||
+                a.AgentStackSupplies.Any(x => x.StackId == nsInfo.StackId));
     }
 
     public async Task<bool> IsAgentSuppliedToStack(Guid agentId, Guid stackId, Guid organizationId)
@@ -72,20 +72,20 @@ public class AgentSupplyResolver
         return await db.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
             .AnyAsync(a =>
-                a.IsAssignedToAllModules ||
-                a.AgentStackAssignments.Any(x => x.StackId == stackId));
+                a.IsSuppliedToAllModules ||
+                a.AgentStackSupplies.Any(x => x.StackId == stackId));
     }
 
     /// <summary>
     /// Org-wide demand (an <c>OrganizationMission</c> fires across every module in the org) requires
-    /// org-wide supply. The only mechanism for that is the <c>IsAssignedToAllModules</c> flag — there is
-    /// deliberately no <c>AgentOrganizationAssignment</c> sibling (mirrors Runner: no equivalent there).
+    /// org-wide supply. The only mechanism for that is the <c>IsSuppliedToAllModules</c> flag — there is
+    /// deliberately no <c>AgentOrganizationSupply</c> sibling (mirrors Runner: no equivalent there).
     /// </summary>
     public async Task<bool> IsAgentSuppliedOrgWide(Guid agentId, Guid organizationId)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
         return await db.Agents
             .Where(a => a.Id == agentId && a.OrganizationId == organizationId)
-            .AnyAsync(a => a.IsAssignedToAllModules);
+            .AnyAsync(a => a.IsSuppliedToAllModules);
     }
 }
