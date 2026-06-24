@@ -116,7 +116,8 @@
             {
                 <div class="selection-controls">
                     <MudCheckBox T="bool"
-                                 @bind-Value="_selectAllStacks"
+                                 Value="_selectAllStacks"
+                                 ValueChanged="OnSelectAllChanged"
                                  Label="Select all Stacks"
                                  Color="Color.Info"
                                  Dense="true"/>
@@ -480,18 +481,17 @@
         return new MarkupString(highlightedName);
     }
 
-    protected override async Task OnParametersSetAsync()
+    private void OnSelectAllChanged(bool value)
     {
-        // Handle select all changes
-        if (_selectAllStacks && _stacks != null && _selectedStacks.Count != _stacks.Count)
+        _selectAllStacks = value;
+
+        if (_selectAllStacks && _stacks != null)
         {
             _selectedStacks = new HashSet<Guid>(_stacks.Select(s => s.Id));
-            StateHasChanged();
         }
-        else if (!_selectAllStacks && _selectedStacks.Count == _stacks?.Count)
+        else
         {
             _selectedStacks.Clear();
-            StateHasChanged();
         }
     }
 

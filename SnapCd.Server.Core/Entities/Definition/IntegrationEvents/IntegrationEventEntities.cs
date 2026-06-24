@@ -17,7 +17,7 @@ namespace SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
 // The "demand" side: a scope subscribes a trigger to an integration. Mirrors the Mission entities, swapping
 // AgentId→IntegrationId and MissionType→Trigger, plus an optional template + filter.
 
-public class OrganizationIntegrationEvent : AuditBase, IEntity, IOrganizationChild
+public class OrganizationIntegrationEvent : AuditBase, IEntity, IOrganizationChild, IIntegrationChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
@@ -33,7 +33,7 @@ public class OrganizationIntegrationEvent : AuditBase, IEntity, IOrganizationChi
     public Guid ParentId() => IntegrationId;
 }
 
-public class StackIntegrationEvent : AuditBase, IEntity, IOrganizationChild, IStackChild
+public class StackIntegrationEvent : AuditBase, IEntity, IOrganizationChild, IStackChild, IIntegrationChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
@@ -51,7 +51,7 @@ public class StackIntegrationEvent : AuditBase, IEntity, IOrganizationChild, ISt
     public Guid ParentId() => StackId;
 }
 
-public class NamespaceIntegrationEvent : AuditBase, IEntity, IOrganizationChild, INamespaceChild
+public class NamespaceIntegrationEvent : AuditBase, IEntity, IOrganizationChild, INamespaceChild, IIntegrationChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
@@ -69,7 +69,7 @@ public class NamespaceIntegrationEvent : AuditBase, IEntity, IOrganizationChild,
     public Guid ParentId() => NamespaceId;
 }
 
-public class ModuleIntegrationEvent : AuditBase, IEntity, IOrganizationChild, IModuleChild
+public class ModuleIntegrationEvent : AuditBase, IEntity, IOrganizationChild, IModuleChild, IIntegrationChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }

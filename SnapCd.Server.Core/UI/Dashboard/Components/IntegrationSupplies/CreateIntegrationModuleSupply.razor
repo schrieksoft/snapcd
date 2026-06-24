@@ -1,0 +1,159 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudForm @ref="_form">
+        <MudGrid Class="pa-4" Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudItem xs="12" md="12">
+                    <MudAutocomplete T="Integration?"
+                                     Label="Integration"
+                                     @bind-Value="_selectedIntegration"
+                                     Disabled="@(IntegrationId.HasValue)"
+                                     Required="@(!IntegrationId.HasValue)"
+                                     RequiredError="Integration is required"
+                                     SearchFunc="@SearchIntegrations"
+                                     ToStringFunc="@(s => s?.Name ?? string.Empty)"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     Variant="Variant.Outlined">
+                    </MudAutocomplete>
+                </MudItem>
+
+                <MudItem xs="12" md="12">
+                    <MudAutocomplete T="Module?"
+                                     Label="Module"
+                                     @bind-Value="_selectedModule"
+                                     Disabled="@(ModuleId.HasValue)"
+                                     Required="@(!ModuleId.HasValue)"
+                                     RequiredError="Module is required"
+                                     SearchFunc="@SearchModules"
+                                     ToStringFunc="@(m => m?.Name ?? string.Empty)"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     Variant="Variant.Outlined">
+                    </MudAutocomplete>
+                </MudItem>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled"
+                           Style="background-color: #000; color: #fff;"
+                           OnClick="SaveSupply"
+                           Class="mr-2">
+                    Create
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Style="background-color: #000; color: #fff;"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [Parameter] public Guid? ModuleId { get; set; }
+    [Parameter] public Guid? IntegrationId { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IntegrationModuleSupplySecuredRepositoryFactory SupplyRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private IntegrationSecuredRepositoryFactory IntegrationRepoFactory { get; set; } = null!;
+
+    private MudForm? _form;
+    private Module? _selectedModule;
+    private Integration? _selectedIntegration;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInitialValues();
+    }
+
+    private async Task LoadInitialValues()
+    {
+        if (ModuleId.HasValue)
+        {
+            using var moduleRepo = ModuleRepoFactory.Create();
+            _selectedModule = await moduleRepo.Get(ModuleId.Value, OrganizationId);
+        }
+
+        if (IntegrationId.HasValue)
+        {
+            using var repo = IntegrationRepoFactory.Create();
+            _selectedIntegration = await repo.Get(IntegrationId.Value, OrganizationId);
+        }
+    }
+
+    private async Task<IEnumerable<Module>> SearchModules(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<Module>();
+
+        using var repo = ModuleRepoFactory.Create();
+        return await repo.List<Module>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+    }
+
+    private async Task<IEnumerable<Integration>> SearchIntegrations(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<Integration>();
+
+        using var repo = IntegrationRepoFactory.Create();
+        return await repo.List<Integration>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+    }
+
+    private async Task SaveSupply()
+    {
+        if (_form is null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            var supply = new IntegrationModuleSupply
+            {
+                Id = Guid.NewGuid(),
+                ModuleId = ModuleId ?? _selectedModule?.Id ?? Guid.Empty,
+                IntegrationId = IntegrationId ?? _selectedIntegration?.Id ?? Guid.Empty,
+                OrganizationId = OrganizationId
+            };
+
+            if (supply.ModuleId == Guid.Empty || supply.IntegrationId == Guid.Empty)
+            {
+                Snackbar.Add("Please select both module and integration", Severity.Error);
+                return;
+            }
+
+            using var repo = SupplyRepoFactory.Create();
+            await repo.Create(supply);
+
+            Snackbar.Add("Supply created successfully", Severity.Success);
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating supply: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        _selectedModule = null;
+        _selectedIntegration = null;
+        await OnCancel.InvokeAsync();
+    }
+
+}

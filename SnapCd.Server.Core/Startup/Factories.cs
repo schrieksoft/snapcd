@@ -26,6 +26,7 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
@@ -258,8 +259,11 @@ public static class Factories
         services.AddSingleton<Services.Integrations.IntegrationConnectionCache>();
         // Phase 3 — supply (assignments + resolver), mirroring agents.
         services.AddScoped<IntegrationStackSupplyRepositoryFactory>();
+        services.AddScoped<IntegrationStackSupplySecuredRepositoryFactory>();
         services.AddScoped<IntegrationNamespaceSupplyRepositoryFactory>();
+        services.AddScoped<IntegrationNamespaceSupplySecuredRepositoryFactory>();
         services.AddScoped<IntegrationModuleSupplyRepositoryFactory>();
+        services.AddScoped<IntegrationModuleSupplySecuredRepositoryFactory>();
         services.AddScoped<Services.Integrations.IntegrationSupplyService>();
         services.AddScoped<Services.Integrations.IntegrationSupplyResolver>();
         // Phase 3 RBAC — integration role-assignment repos (non-secured + secured) + service.
@@ -274,9 +278,13 @@ public static class Factories
         services.AddScoped<SnapCd.Server.Core.Services.Crud.RoleAssignment.IntegrationRoleAssignmentService>();
         // Phase 4 — IntegrationEvent (demand): per-scope repos + service + matcher.
         services.AddScoped<OrganizationIntegrationEventRepositoryFactory>();
+        services.AddScoped<OrganizationIntegrationEventSecuredRepositoryFactory>();
         services.AddScoped<StackIntegrationEventRepositoryFactory>();
+        services.AddScoped<StackIntegrationEventSecuredRepositoryFactory>();
         services.AddScoped<NamespaceIntegrationEventRepositoryFactory>();
+        services.AddScoped<NamespaceIntegrationEventSecuredRepositoryFactory>();
         services.AddScoped<ModuleIntegrationEventRepositoryFactory>();
+        services.AddScoped<ModuleIntegrationEventSecuredRepositoryFactory>();
         services.AddScoped<Services.Integrations.IntegrationEventService>();
         services.AddScoped<Services.Integrations.IntegrationEventMatcher>();
 

@@ -11,9 +11,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.IdentityModel.Tokens
-@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
 @using SnapCd.Server.Core.UI.Dashboard.Components.Module
-@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Queue
 @using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
 @using SnapCd.Contracts.Dto
@@ -232,33 +230,10 @@
                                OnClick="() => SwitchShowing(ShowingType.Jobs)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Edit Module">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="GetColor(ShowingType.Edit)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Edit)"/>
-            </MudTooltip>
-
             <MudTooltip Text="View Dependencies">
                 <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.Dependencies)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Dependencies)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Roles">
-                <MudIconButton Icon="@Icons.Material.Filled.Shield" Color="GetColor(ShowingType.Roles)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Roles)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Missions">
-                <MudIconButton Icon="material-symbols-outlined/automation"
-                               Color="GetColor(ShowingType.Missions)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Missions)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Secrets">
-                <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Secrets)"/>
             </MudTooltip>
 
             <MudTooltip Text="View Variables">
@@ -273,9 +248,10 @@
                                OnClick="() => SwitchShowing(ShowingType.Outputs)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Delete Module">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
-                               OnClick="() => { return Delete(_module); }"/>
+            <MudTooltip Text="Configure">
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
             </MudTooltip>
         </MudPaper>
 
@@ -288,26 +264,17 @@
                               OnJobsStateChanged="HandleJobsStateChanged"/>
         }
 
-        @if (_showing == ShowingType.Roles)
+        @if (_showing == ShowingType.Configure)
         {
-            <ManageModuleRoles ModuleId="_module.Id"
-                               OnSaved="() => _showing = ShowingType.None"
-                               OnCancel="() => _showing = ShowingType.None"/>
-        }
-
-        @if (_showing == ShowingType.Missions)
-        {
-            <ManageModuleMissions ModuleId="_module.Id" NamespaceId="_module.NamespaceId"
-                                  StackName="@StackName" NamespaceName="@NamespaceName"/>
-        }
-
-        @if (_showing == ShowingType.Edit)
-        {
-            <EditModule Module="_module"
-                        StackId="_stackId"
-                        PrincipalProvider="_literalPrincipalProvider"
-                        OnSaved="() => _showing = ShowingType.None"
-                        OnCancel="() => _showing = ShowingType.None"/>
+            <ConfigureModule Module="_module"
+                             StackId="_stackId"
+                             StackName="@StackName"
+                             NamespaceName="@NamespaceName"
+                             PrincipalProvider="_literalPrincipalProvider"
+                             InitialSection="@_configureSection"
+                             OnSectionChanged="HandleConfigureSectionChanged"
+                             OnModuleDeleted="HandleModuleDeleted"
+                             OnModuleSaved="HandleModuleSaved"/>
         }
 
         @if (_showing == ShowingType.Outputs)
@@ -318,14 +285,6 @@
         @if (_showing == ShowingType.Variables)
         {
             <ViewVariables Module="_module" StackName="@StackName"/>
-        }
-
-        @if (_showing == ShowingType.Secrets)
-        {
-            <ManageModuleSecrets
-                ModuleId="_module.Id"
-                NamespaceId="_module.NamespaceId"
-                StackId="_stackId"/>
         }
 
         @if (_showing == ShowingType.Dependencies)
@@ -623,6 +582,7 @@
     [SupplyParameterFromQuery] public string? Tab { get; set; }
     [SupplyParameterFromQuery] public string? Job { get; set; }
     [SupplyParameterFromQuery] public string? Task { get; set; }
+    [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleJobSecuredRepositoryFactory JobRepoFactory { get; set; } = null!;
@@ -637,6 +597,7 @@
     private List<BreadcrumbItem> _breadCrumbs = [];
 
     private ShowingType _showing = ShowingType.None;
+    private string? _configureSection;
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private Guid _stackId;
@@ -1368,7 +1329,7 @@
 
         // Set initial showing based on query parameter
         _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Jobs;
-
+        _configureSection = Section;
 
         RunnerAvailabilityModifiedNotificationService.Subscribe(_module.RunnerId, HandleRunnerAvailabilityModified);
         ModuleSagaModifiedNotificationService.Subscribe(_module.Id, HandleModuleSagaModified);
@@ -1414,44 +1375,15 @@
         return _showing == showTypeToMatch ? Color.Info : Color.Primary;
     }
 
-    private async Task Delete(Module module)
-    {
-        var parameters = new DialogParameters<DeleteModuleDialog>
-        {
-            { x => x.Module, module },
-            { x => x.OrganizationId, OrganizationId }
-        };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteModuleDialog>("Delete", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-        {
-            Guid.TryParse(result.Data?.ToString(), out var deletedModuleId);
-            Snackbar.Add($"Successfully deleted module \"{deletedModuleId}\"");
-            NavigationManager.NavigateTo("/Stacks");
-        }
-    }
-
     private void SwitchShowing(ShowingType newShowing)
     {
         var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
         _showing = targetShowing;
 
-        // Update URL without reloading, preserving organizationId and search terms
-        var actionQuery = GetActionFromShowingType(targetShowing);
-        var queryParams = new List<string>();
+        if (targetShowing != ShowingType.Configure)
+            _configureSection = null;
 
-        if (actionQuery != null)
-            queryParams.Add($"action={actionQuery}");
-
-        if (!string.IsNullOrEmpty(Search))
-            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
-
-        var queryString = "?" + string.Join("&", queryParams);
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
-        NavigationManager.NavigateTo(newUrl, false);
+        UpdateUrl();
     }
 
     private void HandleJobsStateChanged((Guid? JobId, string? Tab, string? Task) state)
@@ -1474,17 +1406,51 @@
         NavigationManager.NavigateTo(newUrl, forceLoad: false, replace: true);
     }
 
+    private void HandleConfigureSectionChanged(string? section)
+    {
+        _configureSection = section;
+        UpdateUrl();
+    }
+
+    private void HandleModuleDeleted()
+    {
+        NavigationManager.NavigateTo($"/Stacks/{StackName}/{NamespaceName}");
+    }
+
+    private async Task HandleModuleSaved()
+    {
+        using var moduleRepo = RepoFactory.Create();
+        _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
+        StateHasChanged();
+    }
+
+    private void UpdateUrl()
+    {
+        var queryParams = new List<string>();
+
+        var actionQuery = GetActionFromShowingType(_showing);
+        if (actionQuery != null)
+            queryParams.Add($"action={actionQuery}");
+
+        if (_showing == ShowingType.Configure && !string.IsNullOrEmpty(_configureSection))
+            queryParams.Add($"section={Uri.EscapeDataString(_configureSection)}");
+
+        if (!string.IsNullOrEmpty(Search))
+            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
+
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+        NavigationManager.NavigateTo(newUrl, false);
+    }
+
     private enum ShowingType
     {
         None,
         Jobs,
-        Edit,
-        Roles,
-        Missions,
-        Secrets,
         Outputs,
         Variables,
-        Dependencies
+        Dependencies,
+        Configure
     }
 
     public void Dispose()
@@ -1518,14 +1484,11 @@
     {
         return action?.ToLower() switch
         {
-            "edit" => ShowingType.Edit,
-            "secrets" => ShowingType.Secrets,
-            "roles" => ShowingType.Roles,
-            "missions" => ShowingType.Missions,
             "jobs" => ShowingType.Jobs,
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
             "dependencies" => ShowingType.Dependencies,
+            "configure" => ShowingType.Configure,
             _ => null
         };
     }
@@ -1534,14 +1497,11 @@
     {
         return showingType switch
         {
-            ShowingType.Edit => "Edit",
-            ShowingType.Secrets => "Secrets",
-            ShowingType.Roles => "Roles",
-            ShowingType.Missions => "Missions",
             ShowingType.Jobs => "Jobs",
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",
             ShowingType.Dependencies => "Dependencies",
+            ShowingType.Configure => "Configure",
             _ => null
         };
     }

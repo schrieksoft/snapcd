@@ -1,0 +1,410 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+
+<MudExpansionPanels MultiExpansion="false">
+    <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Edit, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small"/>
+                <MudText>Edit Namespace</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Edit))
+            {
+                <EditNamespace Namespace="Namespace"
+                               PrincipalProvider="PrincipalProvider"
+                               OnSaved="HandleNamespaceSaved"
+                               OnCancel="@(() => CollapseSection())"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Roles)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Roles, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small"/>
+                <MudText>Manage Roles</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Roles))
+            {
+                <ManageNamespaceRoles NamespaceId="Namespace.Id"
+                                      OnSaved="@(() => CollapseSection())"
+                                      OnCancel="@(() => CollapseSection())"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Missions)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Missions, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="material-symbols-outlined/automation" Size="Size.Small" Style="font-size: 1.25rem"/>
+                <MudText>Manage Missions</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Missions))
+            {
+                <ManageNamespaceMissions NamespaceId="Namespace.Id" StackId="Namespace.StackId"
+                                         StackName="@StackName"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.IntegrationEvents)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.IntegrationEvents, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small"/>
+                <MudText>Manage Integration Events</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.IntegrationEvents))
+            {
+                <ManageNamespaceIntegrationEvents NamespaceId="Namespace.Id" StackId="Namespace.StackId"
+                                                    StackName="@StackName"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Secrets)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Secrets, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Password" Size="Size.Small"/>
+                <MudText>Manage Secrets</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Secrets))
+            {
+                <ManageNamespaceSecrets NamespaceId="Namespace.Id" StackId="Namespace.StackId"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Delete)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Delete, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small"/>
+                <MudText>Delete Namespace</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Delete))
+            {
+                @if (!_dependencyCheckCompleted)
+                {
+                    <div class="text-center pa-4">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+                        <MudText Typo="Typo.body2" Class="mt-4">
+                            Analyzing dependencies for "@Namespace.Name"...
+                        </MudText>
+                    </div>
+                }
+                else
+                {
+                    @if (!_canDelete)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-3">
+                            <strong>Cannot delete this namespace!</strong> Modules within this namespace have external dependencies.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning" Class="mb-3">
+                            <strong>Warning:</strong> This action cannot be reversed! All modules within this namespace will also be deleted.
+                        </MudAlert>
+                    }
+
+                    @if (_externalDependencies.Any() || _internalDependencies.Any())
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Dependency analysis:</MudText>
+                        <MudPaper Elevation="1" Class="pa-3 mb-3">
+                            @if (_externalDependencies.Any())
+                            {
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">External Dependencies (blocking deletion):</MudText>
+                                <MudList T="string" Dense="true">
+                                    @foreach (var dep in _externalDependencies)
+                                    {
+                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Block">
+                                            <MudText Typo="Typo.body2" Color="Color.Error">@dep</MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+
+                            @if (_internalDependencies.Any())
+                            {
+                                <MudText Typo="Typo.subtitle2" Class="mb-2 mt-3">Internal Dependencies (will be deleted):</MudText>
+                                <MudList T="string" Dense="true">
+                                    @foreach (var dep in _internalDependencies)
+                                    {
+                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Link">
+                                            <MudText Typo="Typo.body2" Color="Color.Success">@dep</MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <MudPaper Elevation="1" Class="pa-3 mb-3">
+                            <MudList T="string" Dense="true">
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                                    <MudText Typo="Typo.body2" Color="Color.Success">No external dependencies found</MudText>
+                                </MudListItem>
+                            </MudList>
+                        </MudPaper>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <MudButton Variant="Variant.Filled"
+                                   Style="background-color: #000; color: #fff;"
+                                   OnClick="DeleteNamespace"
+                                   Disabled="@(!_canDelete || _isDeleting)">
+                            @if (_isDeleting)
+                            {
+                                @:Deleting...
+                            }
+                            else if (!_canDelete)
+                            {
+                                @:Cannot Delete
+                            }
+                            else
+                            {
+                                @:Delete
+                            }
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Style="background-color: #000; color: #fff;"
+                                   OnClick="@(() => CollapseSection())"
+                                   Disabled="@_isDeleting">
+                            Cancel
+                        </MudButton>
+                    </div>
+                }
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter] public required Namespace Namespace { get; set; }
+    [Parameter] public required string StackName { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [Parameter] public string? InitialSection { get; set; }
+    [Parameter] public EventCallback<string?> OnSectionChanged { get; set; }
+    [Parameter] public EventCallback OnNamespaceDeleted { get; set; }
+    [Parameter] public EventCallback OnNamespaceSaved { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputRepoFactory { get; set; } = null!;
+    [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetRepoFactory { get; set; } = null!;
+    [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleRepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private Section _activeSection = Section.None;
+    private bool _dependencyCheckCompleted;
+    private bool _canDelete;
+    private bool _isDeleting;
+    private List<string> _externalDependencies = new();
+    private List<string> _internalDependencies = new();
+
+    public enum Section
+    {
+        None,
+        Edit,
+        Roles,
+        Missions,
+        IntegrationEvents,
+        Secrets,
+        Delete
+    }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(InitialSection) &&
+            Enum.TryParse<Section>(InitialSection, ignoreCase: true, out var parsed) &&
+            parsed != Section.None)
+        {
+            _activeSection = parsed;
+            if (parsed == Section.Delete)
+                _ = CheckDependencies();
+        }
+    }
+
+    private bool IsSection(Section section) => _activeSection == section;
+
+    private void HandleSectionChanged(Section section, bool expanded)
+    {
+        if (expanded)
+        {
+            _activeSection = section;
+
+            if (section == Section.Delete && !_dependencyCheckCompleted)
+                _ = CheckDependencies();
+
+            OnSectionChanged.InvokeAsync(section.ToString().ToLowerInvariant());
+        }
+        else if (_activeSection == section)
+        {
+            _activeSection = Section.None;
+            OnSectionChanged.InvokeAsync(null);
+        }
+    }
+
+    private void CollapseSection()
+    {
+        _activeSection = Section.None;
+        OnSectionChanged.InvokeAsync(null);
+    }
+
+    private async Task HandleNamespaceSaved()
+    {
+        CollapseSection();
+        await OnNamespaceSaved.InvokeAsync();
+    }
+
+    private async Task CheckDependencies()
+    {
+        _dependencyCheckCompleted = false;
+        _externalDependencies.Clear();
+        _internalDependencies.Clear();
+        StateHasChanged();
+
+        try
+        {
+            using var moduleRepo = ModuleRepoFactory.Create();
+            using var moduleParamFromOutputRepo = ModuleParamFromOutputRepoFactory.Create();
+            using var moduleEnvVarFromOutputRepo = ModuleEnvVarFromOutputRepoFactory.Create();
+            using var moduleParamFromOutputSetRepo = ModuleParamFromOutputSetRepoFactory.Create();
+            using var dependsOnModuleRepo = DependsOnModuleRepoFactory.Create();
+
+            var modulesInNamespace = await moduleRepo.List(
+                OrganizationId,
+                q => q.Where(m => m.NamespaceId == Namespace.Id)
+            );
+            var moduleIds = modulesInNamespace.Select(m => m.Id).ToHashSet();
+
+            if (modulesInNamespace.Any())
+                _internalDependencies.Add($"{modulesInNamespace.Count} module(s) will be deleted");
+
+            foreach (var moduleId in moduleIds)
+            {
+                var paramOutputRefs = await moduleParamFromOutputRepo.List(
+                    queryModifier: q => q.Where(m => m.OutputModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+                foreach (var input in paramOutputRefs)
+                {
+                    if (!moduleIds.Contains(input.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: input.ModuleId, organizationId: OrganizationId);
+                        _externalDependencies.Add($"ModuleParamFromOutput on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+
+                var envVarOutputRefs = await moduleEnvVarFromOutputRepo.List(
+                    queryModifier: q => q.Where(m => m.OutputModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+                foreach (var input in envVarOutputRefs)
+                {
+                    if (!moduleIds.Contains(input.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: input.ModuleId, organizationId: OrganizationId);
+                        _externalDependencies.Add($"ModuleEnvVarFromOutput on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+
+                var paramSetRefs = await moduleParamFromOutputSetRepo.List(
+                    queryModifier: q => q.Where(m => m.OutputModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+                foreach (var set in paramSetRefs)
+                {
+                    if (!moduleIds.Contains(set.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: set.ModuleId, organizationId: OrganizationId);
+                        _externalDependencies.Add($"ModuleParamFromOutputSet on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+
+                var dependencyRefs = await dependsOnModuleRepo.List(
+                    queryModifier: q => q.Where(d => d.DependsOnModuleId == moduleId),
+                    organizationId: OrganizationId
+                );
+                foreach (var dep in dependencyRefs)
+                {
+                    if (!moduleIds.Contains(dep.ModuleId))
+                    {
+                        var referencingModule = await moduleRepo.Get(
+                            queryModifier: q => q.Include(m => m.Namespace),
+                            id: dep.ModuleId, organizationId: OrganizationId);
+                        _externalDependencies.Add($"DependsOnModule on {referencingModule.Namespace.Name}.{referencingModule.Name}");
+                    }
+                }
+            }
+
+            _internalDependencies.Add("Associated namespace configurations and secrets");
+            _canDelete = !_externalDependencies.Any();
+            _dependencyCheckCompleted = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error checking dependencies: {ex.Message}", Severity.Error);
+            _dependencyCheckCompleted = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteNamespace()
+    {
+        _isDeleting = true;
+        StateHasChanged();
+
+        try
+        {
+            using var repo = NamespaceRepoFactory.Create();
+            await repo.Delete(Namespace.Id, OrganizationId);
+            Snackbar.Add($"Successfully deleted namespace \"{Namespace.Name}\"", Severity.Success);
+            await OnNamespaceDeleted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete namespace: {ex.Message}", Severity.Error);
+            _isDeleting = false;
+            StateHasChanged();
+        }
+    }
+}

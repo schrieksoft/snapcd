@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Entities.Interfaces;
 namespace SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
 
 /// <summary>Supply: this integration serves the given module (mirrors AgentModuleSupply).</summary>
-public class IntegrationModuleSupply : AuditBase, IEntity, IOrganizationChild
+public class IntegrationModuleSupply : AuditBase, IEntity, IOrganizationChild, IIntegrationChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }

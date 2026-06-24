@@ -6,10 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Integrations;
-using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -27,31 +25,36 @@ public sealed class IntegrationEventService(
     StackIntegrationEventRepositoryFactory stackFactory,
     NamespaceIntegrationEventRepositoryFactory namespaceFactory,
     ModuleIntegrationEventRepositoryFactory moduleFactory,
-    IntegrationSecuredRepositoryFactory securedFactory,
-    IDbContextFactory<SnapCdDbContext> dbFactory)
+    IntegrationSecuredRepositoryFactory securedFactory)
 {
     public async Task<List<IntegrationEventDto>> List(Guid organizationId)
     {
-        await using var db = await dbFactory.CreateDbContextAsync();
-        var org = await db.OrganizationIntegrationEvents.Where(x => x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).ToListAsync();
-        var stack = await db.StackIntegrationEvents.Where(x => x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).ToListAsync();
-        var ns = await db.NamespaceIntegrationEvents.Where(x => x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).ToListAsync();
-        var mod = await db.ModuleIntegrationEvents.Where(x => x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).ToListAsync();
+        using var orgRepo = orgFactory.Create();
+        var org = (await orgRepo.List(organizationId)).Select(Mappers.IntegrationEventMapper.ToDto);
+        using var stackRepo = stackFactory.Create();
+        var stack = (await stackRepo.List(organizationId)).Select(Mappers.IntegrationEventMapper.ToDto);
+        using var nsRepo = namespaceFactory.Create();
+        var ns = (await nsRepo.List(organizationId)).Select(Mappers.IntegrationEventMapper.ToDto);
+        using var modRepo = moduleFactory.Create();
+        var mod = (await modRepo.List(organizationId)).Select(Mappers.IntegrationEventMapper.ToDto);
         return [.. org, .. stack, .. ns, .. mod];
     }
 
     public async Task<IntegrationEventDto> GetOne(Guid organizationId, IntegrationEventScope scope, Guid id)
     {
-        await using var db = await dbFactory.CreateDbContextAsync();
-        IntegrationEventDto? dto = scope switch
+        switch (scope)
         {
-            IntegrationEventScope.Organization => await db.OrganizationIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).FirstOrDefaultAsync(),
-            IntegrationEventScope.Stack => await db.StackIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).FirstOrDefaultAsync(),
-            IntegrationEventScope.Namespace => await db.NamespaceIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).FirstOrDefaultAsync(),
-            IntegrationEventScope.Module => await db.ModuleIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => Mappers.IntegrationEventMapper.ToDto(x)).FirstOrDefaultAsync(),
-            _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown event scope.")
-        };
-        return dto ?? throw new EntityNotFoundException($"Integration event '{id}' not found");
+            case IntegrationEventScope.Organization:
+                using (var repo = orgFactory.Create()) return Mappers.IntegrationEventMapper.ToDto(await repo.Get(id, organizationId));
+            case IntegrationEventScope.Stack:
+                using (var repo = stackFactory.Create()) return Mappers.IntegrationEventMapper.ToDto(await repo.Get(id, organizationId));
+            case IntegrationEventScope.Namespace:
+                using (var repo = namespaceFactory.Create()) return Mappers.IntegrationEventMapper.ToDto(await repo.Get(id, organizationId));
+            case IntegrationEventScope.Module:
+                using (var repo = moduleFactory.Create()) return Mappers.IntegrationEventMapper.ToDto(await repo.Get(id, organizationId));
+            default:
+                throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown event scope.");
+        }
     }
 
     public async Task<Guid> Create(Guid organizationId, IntegrationEventCreateDto dto)
@@ -92,7 +95,7 @@ public sealed class IntegrationEventService(
             case IntegrationEventScope.Organization:
                 using (var repo = orgFactory.Create())
                 {
-                    var e = await Load(repo.DbContext.OrganizationIntegrationEvents, id, organizationId);
+                    var e = await repo.Get(id, organizationId);
                     e.IntegrationId = dto.IntegrationId; e.Trigger = dto.Trigger; e.Template = dto.Template; e.Filter = dto.Filter; e.IsDisabled = dto.IsDisabled;
                     await repo.Update(e);
                 }
@@ -100,7 +103,7 @@ public sealed class IntegrationEventService(
             case IntegrationEventScope.Stack:
                 using (var repo = stackFactory.Create())
                 {
-                    var e = await Load(repo.DbContext.StackIntegrationEvents, id, organizationId);
+                    var e = await repo.Get(id, organizationId);
                     e.IntegrationId = dto.IntegrationId; e.Trigger = dto.Trigger; e.Template = dto.Template; e.Filter = dto.Filter; e.IsDisabled = dto.IsDisabled;
                     await repo.Update(e);
                 }
@@ -108,7 +111,7 @@ public sealed class IntegrationEventService(
             case IntegrationEventScope.Namespace:
                 using (var repo = namespaceFactory.Create())
                 {
-                    var e = await Load(repo.DbContext.NamespaceIntegrationEvents, id, organizationId);
+                    var e = await repo.Get(id, organizationId);
                     e.IntegrationId = dto.IntegrationId; e.Trigger = dto.Trigger; e.Template = dto.Template; e.Filter = dto.Filter; e.IsDisabled = dto.IsDisabled;
                     await repo.Update(e);
                 }
@@ -116,7 +119,7 @@ public sealed class IntegrationEventService(
             case IntegrationEventScope.Module:
                 using (var repo = moduleFactory.Create())
                 {
-                    var e = await Load(repo.DbContext.ModuleIntegrationEvents, id, organizationId);
+                    var e = await repo.Get(id, organizationId);
                     e.IntegrationId = dto.IntegrationId; e.Trigger = dto.Trigger; e.Template = dto.Template; e.Filter = dto.Filter; e.IsDisabled = dto.IsDisabled;
                     await repo.Update(e);
                 }
@@ -128,21 +131,8 @@ public sealed class IntegrationEventService(
 
     public async Task Delete(Guid organizationId, IntegrationEventScope scope, Guid id)
     {
-        // Look up the target integration to gate the delete on integration-update permission.
-        Guid? integrationId;
-        await using (var db = await dbFactory.CreateDbContextAsync())
-        {
-            integrationId = scope switch
-            {
-                IntegrationEventScope.Organization => await db.OrganizationIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
-                IntegrationEventScope.Stack => await db.StackIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
-                IntegrationEventScope.Namespace => await db.NamespaceIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
-                IntegrationEventScope.Module => await db.ModuleIntegrationEvents.Where(x => x.Id == id && x.OrganizationId == organizationId).Select(x => (Guid?)x.IntegrationId).FirstOrDefaultAsync(),
-                _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown event scope.")
-            };
-        }
-        if (integrationId is null) throw new EntityNotFoundException($"Integration event '{id}' not found");
-        EnsureCanManage(integrationId.Value, organizationId);
+        var dto = await GetOne(organizationId, scope, id);
+        EnsureCanManage(dto.IntegrationId, organizationId);
 
         switch (scope)
         {
@@ -162,10 +152,4 @@ public sealed class IntegrationEventService(
 
     private static Guid RequireScopeId(Guid? scopeId)
         => scopeId ?? throw new ArgumentException("ScopeId is required for a non-organization scope.");
-
-    private static async Task<T> Load<T>(IQueryable<T> set, Guid id, Guid organizationId) where T : class, Entities.Interfaces.IEntity, Entities.Interfaces.IOrganizationChild
-    {
-        var e = await set.FirstOrDefaultAsync(x => x.Id == id && x.OrganizationId == organizationId);
-        return e ?? throw new EntityNotFoundException($"Integration event '{id}' not found");
-    }
 }

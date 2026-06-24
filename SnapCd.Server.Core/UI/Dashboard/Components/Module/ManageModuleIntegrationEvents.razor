@@ -1,0 +1,333 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.IntegrationEvents
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Components.Integrations
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+
+@inject ISnackbar Snackbar
+
+<MudTabs Outlined="true" Rounded="true" Border="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+        <MudTabPanel Text="Module" Style="text-transform: none">
+            @if (!_showCreateForm && _editing is null)
+            {
+                <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                           OnClick="ShowCreate" Class="mb-3">
+                    Add Event
+                </MudButton>
+            }
+
+            @if (_showCreateForm || _editing is not null)
+            {
+                <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+                    <DataAnnotationsValidator/>
+                    <MudGrid Class="d-flex flex-column gap-3">
+                        <MudItem xs="12">
+                            <MudSelect T="Guid?" @bind-Value="Input.IntegrationId"
+                                       Label="Integration" Variant="Variant.Outlined" Required="true">
+                                @foreach (var integration in _integrations)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@integration.Id">@integration.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSelect T="IntegrationTrigger" @bind-Value="Input.Trigger"
+                                       Label="Trigger" Variant="Variant.Outlined" Required="true">
+                                @foreach (var trigger in Enum.GetValues<IntegrationTrigger>())
+                                {
+                                    <MudSelectItem Value="@trigger">@trigger.ToString()</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField Label="Template (optional)" @bind-Value="Input.Template"
+                                          Variant="Variant.Outlined" Lines="2"/>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField Label="Filter (optional)" @bind-Value="Input.Filter"
+                                          Variant="Variant.Outlined"/>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="Input.IsDisabled" Label="Disabled" Color="Color.Info"/>
+                        </MudItem>
+
+                        <MudItem xs="12" Class="d-flex justify-end gap-2">
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                                       Style="background-color: #000; color: #fff;">
+                                @(_editing is null ? "Create" : "Save")
+                            </MudButton>
+                            <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                                       OnClick="CancelEdit">
+                                Cancel
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </EditForm>
+            }
+
+            @if (_moduleRows.Count == 0)
+            {
+                <MudText Typo="Typo.body2">No integration events configured directly on this Module.</MudText>
+            }
+            else
+            {
+                <IntegrationGroupedEvents TRow="ModuleIntegrationEvent"
+                                          Rows="_moduleRows"
+                                          IntegrationIdSelector="@(r => r.IntegrationId)"
+                                          TriggerSelector="@(r => r.Trigger.ToString())"
+                                          IsDisabledSelector="@(r => r.IsDisabled)"
+                                          TemplateSelector="@(r => r.Template)"
+                                          FilterSelector="@(r => r.Filter)"
+                                          IntegrationNameLookup="@LookupIntegrationName"
+                                          OnEdit="BeginEdit"
+                                          OnDelete="DeleteRow"/>
+            }
+        </MudTabPanel>
+
+        @if (_namespaceRows.Count > 0)
+        {
+            <MudTabPanel Text="Inherited from Namespace" Style="text-transform: none">
+                <div style="opacity: 0.6;">
+                    <MudText Typo="Typo.caption" Class="mb-2">
+                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="@($"/Stacks/{StackName}/{NamespaceName}?action=configure&section=integrationevents")">here</MudLink>.
+                    </MudText>
+                    <MudDivider Class="mb-3"/>
+                    <IntegrationGroupedEvents TRow="NamespaceIntegrationEvent"
+                                              Rows="_namespaceRows"
+                                              IntegrationIdSelector="@(r => r.IntegrationId)"
+                                              TriggerSelector="@(r => r.Trigger.ToString())"
+                                              IsDisabledSelector="@(r => r.IsDisabled)"
+                                              TemplateSelector="@(r => r.Template)"
+                                              FilterSelector="@(r => r.Filter)"
+                                              IntegrationNameLookup="@LookupIntegrationName"/>
+                </div>
+            </MudTabPanel>
+        }
+
+        @if (_stackRows.Count > 0)
+        {
+            <MudTabPanel Text="Inherited from Stack" Style="text-transform: none">
+                <div style="opacity: 0.6;">
+                    <MudText Typo="Typo.caption" Class="mb-2">
+                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="@($"/Stacks/{StackName}?action=configure&section=integrationevents")">here</MudLink>.
+                    </MudText>
+                    <MudDivider Class="mb-3"/>
+                    <IntegrationGroupedEvents TRow="StackIntegrationEvent"
+                                              Rows="_stackRows"
+                                              IntegrationIdSelector="@(r => r.IntegrationId)"
+                                              TriggerSelector="@(r => r.Trigger.ToString())"
+                                              IsDisabledSelector="@(r => r.IsDisabled)"
+                                              TemplateSelector="@(r => r.Template)"
+                                              FilterSelector="@(r => r.Filter)"
+                                              IntegrationNameLookup="@LookupIntegrationName"/>
+                </div>
+            </MudTabPanel>
+        }
+
+        @if (_orgRows.Count > 0)
+        {
+            <MudTabPanel Text="Inherited from Organization" Style="text-transform: none">
+                <div style="opacity: 0.6;">
+                    <MudText Typo="Typo.caption" Class="mb-2">
+                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="/Integrations?action=integrationevents">here</MudLink>.
+                    </MudText>
+                    <MudDivider Class="mb-3"/>
+                    <IntegrationGroupedEvents TRow="OrganizationIntegrationEvent"
+                                              Rows="_orgRows"
+                                              IntegrationIdSelector="@(r => r.IntegrationId)"
+                                              TriggerSelector="@(r => r.Trigger.ToString())"
+                                              IsDisabledSelector="@(r => r.IsDisabled)"
+                                              TemplateSelector="@(r => r.Template)"
+                                              FilterSelector="@(r => r.Filter)"
+                                              IntegrationNameLookup="@LookupIntegrationName"/>
+                </div>
+            </MudTabPanel>
+        }
+    </MudTabs>
+
+@code {
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid NamespaceId { get; set; }
+    [Parameter] public required string StackName { get; set; }
+    [Parameter] public required string NamespaceName { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ModuleIntegrationEventSecuredRepositoryFactory ModuleEventRepoFactory { get; set; } = null!;
+    [Inject] private NamespaceIntegrationEventSecuredRepositoryFactory NsEventRepoFactory { get; set; } = null!;
+    [Inject] private StackIntegrationEventSecuredRepositoryFactory StackEventRepoFactory { get; set; } = null!;
+    [Inject] private OrganizationIntegrationEventSecuredRepositoryFactory OrgEventRepoFactory { get; set; } = null!;
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+    [Inject] private IntegrationSecuredRepositoryFactory IntegrationRepoFactory { get; set; } = null!;
+
+    private sealed class InputModel
+    {
+        public Guid? IntegrationId { get; set; }
+        public IntegrationTrigger Trigger { get; set; } = IntegrationTrigger.JobFailed;
+        public string? Template { get; set; }
+        public string? Filter { get; set; }
+        public bool IsDisabled { get; set; }
+    }
+
+    private InputModel Input { get; set; } = new();
+    private ModuleIntegrationEvent? _editing;
+    private bool _showCreateForm;
+    private List<ModuleIntegrationEvent> _moduleRows = new();
+    private List<NamespaceIntegrationEvent> _namespaceRows = new();
+    private List<StackIntegrationEvent> _stackRows = new();
+    private List<OrganizationIntegrationEvent> _orgRows = new();
+    private List<Integration> _integrations = new();
+    private Guid _stackId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadDependencies();
+        await ReloadRows();
+    }
+
+    private async Task ReloadDependencies()
+    {
+        using var integrationRepo = IntegrationRepoFactory.Create();
+        _integrations = await integrationRepo.List(OrganizationId);
+
+        using var nsRepo = NamespaceRepoFactory.Create();
+        var ns = await nsRepo.Get(NamespaceId, OrganizationId);
+        _stackId = ns.StackId;
+    }
+
+    private async Task ReloadRows()
+    {
+        using (var repo = ModuleEventRepoFactory.Create())
+            _moduleRows = (await repo.ListByModule(ModuleId, OrganizationId))
+                .OrderBy(e => e.IntegrationId).ThenBy(e => e.Trigger).ToList();
+
+        using (var repo = NsEventRepoFactory.Create())
+            _namespaceRows = (await repo.ListByNamespace(NamespaceId, OrganizationId))
+                .OrderBy(e => e.IntegrationId).ThenBy(e => e.Trigger).ToList();
+
+        using (var repo = StackEventRepoFactory.Create())
+            _stackRows = (await repo.ListByStack(_stackId, OrganizationId))
+                .OrderBy(e => e.IntegrationId).ThenBy(e => e.Trigger).ToList();
+
+        using (var repo = OrgEventRepoFactory.Create())
+            _orgRows = (await repo.List(OrganizationId))
+                .OrderBy(e => e.IntegrationId).ThenBy(e => e.Trigger).ToList();
+    }
+
+    private void ShowCreate()
+    {
+        _showCreateForm = true;
+        _editing = null;
+        Input = new InputModel();
+    }
+
+    private void BeginEdit(ModuleIntegrationEvent row)
+    {
+        _editing = row;
+        _showCreateForm = false;
+        Input = new InputModel
+        {
+            IntegrationId = row.IntegrationId,
+            Trigger = row.Trigger,
+            Template = row.Template,
+            Filter = row.Filter,
+            IsDisabled = row.IsDisabled
+        };
+    }
+
+    private void CancelEdit()
+    {
+        _showCreateForm = false;
+        _editing = null;
+        Input = new InputModel();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            EnsureIntegrationSelected();
+
+            if (_editing is null)
+                await CreateNew();
+            else
+                await UpdateExisting(_editing);
+
+            _editing = null;
+            _showCreateForm = false;
+            Input = new InputModel();
+            await ReloadRows();
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, _editing is null ? "creating integration event" : "updating integration event");
+        }
+    }
+
+    private async Task CreateNew()
+    {
+        using var repo = ModuleEventRepoFactory.Create();
+        await repo.Create(new ModuleIntegrationEvent
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = OrganizationId,
+            IntegrationId = Input.IntegrationId!.Value,
+            ModuleId = ModuleId,
+            Trigger = Input.Trigger,
+            Template = string.IsNullOrWhiteSpace(Input.Template) ? null : Input.Template,
+            Filter = string.IsNullOrWhiteSpace(Input.Filter) ? null : Input.Filter,
+            IsDisabled = Input.IsDisabled
+        });
+        Snackbar.Add("Integration event created", Severity.Success);
+    }
+
+    private async Task UpdateExisting(ModuleIntegrationEvent row)
+    {
+        using var repo = ModuleEventRepoFactory.Create();
+        var existing = await repo.Get(row.Id, OrganizationId);
+        existing.IntegrationId = Input.IntegrationId!.Value;
+        existing.Trigger = Input.Trigger;
+        existing.Template = string.IsNullOrWhiteSpace(Input.Template) ? null : Input.Template;
+        existing.Filter = string.IsNullOrWhiteSpace(Input.Filter) ? null : Input.Filter;
+        existing.IsDisabled = Input.IsDisabled;
+        await repo.Update(existing);
+        Snackbar.Add("Integration event updated", Severity.Success);
+    }
+
+    private void EnsureIntegrationSelected()
+    {
+        if (Input.IntegrationId is null || Input.IntegrationId == Guid.Empty)
+            throw new ValidationException("Integration must be selected.");
+    }
+
+    private async Task DeleteRow(ModuleIntegrationEvent row)
+    {
+        try
+        {
+            using var repo = ModuleEventRepoFactory.Create();
+            await repo.Delete(row.Id, OrganizationId);
+            Snackbar.Add("Integration event deleted", Severity.Success);
+            await ReloadRows();
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting integration event");
+        }
+    }
+
+    private string LookupIntegrationName(Guid integrationId) =>
+        _integrations.FirstOrDefault(i => i.Id == integrationId)?.Name ?? integrationId.ToString();
+}

@@ -130,6 +130,17 @@ public static class Repositories
         services.AddScoped<NamespaceMissionRepository>();
         services.AddScoped<ModuleMissionRepository>();
 
+        // IntegrationEvent family (4 scopes, raw)
+        services.AddScoped<OrganizationIntegrationEventRepository>();
+        services.AddScoped<StackIntegrationEventRepository>();
+        services.AddScoped<NamespaceIntegrationEventRepository>();
+        services.AddScoped<ModuleIntegrationEventRepository>();
+
+        // IntegrationSupply family (3 scopes, raw)
+        services.AddScoped<IntegrationStackSupplyRepository>();
+        services.AddScoped<IntegrationNamespaceSupplyRepository>();
+        services.AddScoped<IntegrationModuleSupplyRepository>();
+
         // AgentRoleAssignment family (TPH base + 3 subclasses)
         services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments.Base.AgentRoleAssignmentRepository>();
         services.AddScoped<UserAgentRoleAssignmentRepository>();

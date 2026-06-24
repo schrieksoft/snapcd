@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Entities.Interfaces;
 namespace SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
 
 /// <summary>Supply: this integration serves every module under the given stack.</summary>
-public class IntegrationStackSupply : AuditBase, IEntity, IOrganizationChild
+public class IntegrationStackSupply : AuditBase, IEntity, IOrganizationChild, IIntegrationChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
