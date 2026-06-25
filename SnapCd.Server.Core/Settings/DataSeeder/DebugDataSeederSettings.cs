@@ -51,4 +51,17 @@ public class DebugDataSeederSettings
     /// so debug runs can skip the paste-opaque-key flow. Defaults to false.
     /// </summary>
     public bool SeedLicenseToken { get; set; } = false;
+
+    /// <summary>
+    /// Optional Slack credentials for the debug integration. When set, the seeded
+    /// <c>debug-slack</c> integration uses these real credentials so the test bench
+    /// delivers to an actual Slack workspace.
+    /// </summary>
+    public SlackIntegrationSettings? SlackIntegration { get; set; }
+}
+
+public class SlackIntegrationSettings
+{
+    public string? BotToken { get; set; }
+    public string? DefaultChannel { get; set; }
 }

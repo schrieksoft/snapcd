@@ -19,6 +19,8 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.DataSeeder;
 using SnapCd.Server.Core.Settings.DataSeeder.ToSeed;
+using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
+using SnapCd.Server.Core.Services.Integrations;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 
 namespace SnapCd.Server.Core.Services.DataSeeder;
@@ -43,6 +45,13 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid DebugStackSecretId = new("99999999-9999-9999-9999-999999999901");
     private static readonly Guid DebugNamespaceSecretId = new("99999999-9999-9999-9999-999999999902");
     private static readonly Guid DebugModuleSecretId = new("99999999-9999-9999-9999-999999999903");
+
+    private static readonly Guid DebugIntegrationId = new("99999999-9999-9999-9999-999999999920");
+    private static readonly Guid DebugIntegrationEventJobFailedId = new("99999999-9999-9999-9999-999999999921");
+    private static readonly Guid DebugIntegrationEventJobSucceededId = new("99999999-9999-9999-9999-999999999922");
+    private static readonly Guid DebugIntegrationEventJobAwaitingApprovalId = new("99999999-9999-9999-9999-999999999923");
+    private static readonly Guid DebugIntegrationEventJobCancelledId = new("99999999-9999-9999-9999-999999999924");
+    private static readonly Guid DebugIntegrationEventMilestoneId = new("99999999-9999-9999-9999-999999999925");
 
     private readonly DebugDataSeederSettings _debugSettings;
     private readonly Guid _preseededOrganizationId;
@@ -73,6 +82,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         await SeedDebugServicePrincipals();
         await SeedDebugStackNamespaceModuleRunner(asyncServiceScope);
         await SeedDebugSecrets(asyncServiceScope);
+        await SeedDebugIntegration(asyncServiceScope);
         await SeedConfiguredUsers(asyncServiceScope);
     }
 
@@ -354,6 +364,84 @@ public class DebugDataSeeder : ProductionDataSeeder
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private async Task SeedDebugIntegration(AsyncServiceScope asyncServiceScope)
+    {
+        var dbContext = asyncServiceScope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
+
+        var existing = await dbContext.Integrations.FirstOrDefaultAsync(i => i.Id == DebugIntegrationId);
+        if (existing == null)
+        {
+            dbContext.Integrations.Add(new Integration
+            {
+                Id = DebugIntegrationId,
+                OrganizationId = _preseededOrganizationId,
+                Name = "debug-slack",
+                IntegrationType = IntegrationType.Slack,
+                Enabled = true,
+                IsSuppliedToAllModules = true,
+                CreatedDateTime = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            existing.Name = "debug-slack";
+            existing.IntegrationType = IntegrationType.Slack;
+            existing.Enabled = true;
+            existing.IsSuppliedToAllModules = true;
+            existing.OrganizationId = _preseededOrganizationId;
+        }
+
+        var events = new (Guid Id, IntegrationTrigger Trigger)[]
+        {
+            (DebugIntegrationEventJobFailedId, IntegrationTrigger.JobFailed),
+            (DebugIntegrationEventJobSucceededId, IntegrationTrigger.JobSucceeded),
+            (DebugIntegrationEventJobAwaitingApprovalId, IntegrationTrigger.JobAwaitingApproval),
+            (DebugIntegrationEventJobCancelledId, IntegrationTrigger.JobCancelled),
+            (DebugIntegrationEventMilestoneId, IntegrationTrigger.MissionMilestoneReported),
+        };
+
+        foreach (var (id, trigger) in events)
+        {
+            var existingEvent = await dbContext.OrganizationIntegrationEvents
+                .FirstOrDefaultAsync(e => e.Id == id);
+            if (existingEvent == null)
+            {
+                dbContext.OrganizationIntegrationEvents.Add(new OrganizationIntegrationEvent
+                {
+                    Id = id,
+                    OrganizationId = _preseededOrganizationId,
+                    IntegrationId = DebugIntegrationId,
+                    Trigger = trigger,
+                    IsDisabled = false,
+                    CreatedDateTime = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                existingEvent.OrganizationId = _preseededOrganizationId;
+                existingEvent.IntegrationId = DebugIntegrationId;
+                existingEvent.Trigger = trigger;
+                existingEvent.IsDisabled = false;
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        var slack = _debugSettings.SlackIntegration;
+        var botToken = slack?.BotToken;
+        var defaultChannel = slack?.DefaultChannel;
+        if (!string.IsNullOrWhiteSpace(botToken) && !string.IsNullOrWhiteSpace(defaultChannel))
+        {
+            var secretStore = asyncServiceScope.ServiceProvider.GetRequiredService<IntegrationSecretStore>();
+            var connectionJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                BotToken = botToken,
+                DefaultChannel = defaultChannel
+            });
+            await secretStore.WriteAsync(_preseededOrganizationId, DebugIntegrationId, connectionJson);
+        }
     }
 
     private async Task SeedConfiguredUsers(AsyncServiceScope asyncServiceScope)

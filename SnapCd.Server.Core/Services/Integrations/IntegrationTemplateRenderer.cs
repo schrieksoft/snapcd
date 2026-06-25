@@ -24,16 +24,16 @@ public static class IntegrationTemplateRenderer
 
     public static string DefaultTemplate(IntegrationTrigger trigger) => trigger switch
     {
-        IntegrationTrigger.JobFailed => "❌ {{jobType}} failed on *{{moduleName}}* (job {{jobId}}).",
-        IntegrationTrigger.JobSucceeded => "✅ {{jobType}} succeeded on *{{moduleName}}* (job {{jobId}}).",
-        IntegrationTrigger.JobAwaitingApproval => "⏳ *{{moduleName}}* is awaiting approval (job {{jobId}}).",
-        IntegrationTrigger.JobCancelled => "🚫 {{jobType}} on *{{moduleName}}* was cancelled (job {{jobId}}).",
-        IntegrationTrigger.JobApproved => "👍 {{jobType}} on *{{moduleName}}* was approved (job {{jobId}}).",
-        IntegrationTrigger.JobDeclined => "👎 {{jobType}} on *{{moduleName}}* was declined (job {{jobId}}).",
-        IntegrationTrigger.MissionStarted => "🛰️ {{missionType}} started on *{{moduleName}}*.",
-        IntegrationTrigger.MissionMilestoneReported => "🛰️ {{missionType}} on *{{moduleName}}*: {{message}}",
-        IntegrationTrigger.MissionCompleted => "🏁 {{missionType}} completed on *{{moduleName}}*.",
-        IntegrationTrigger.MissionFaulted => "💥 {{missionType}} faulted on *{{moduleName}}*.",
-        _ => "{{trigger}} on *{{moduleName}}* (job {{jobId}})."
+        IntegrationTrigger.JobFailed => "❌ {{jobType}} failed on *{{moduleName}}* ({{stackName}}/{{namespaceName}})\n{{jobUrl}}",
+        IntegrationTrigger.JobSucceeded => "✅ {{jobType}} succeeded on *{{moduleName}}* ({{stackName}}/{{namespaceName}})\n{{jobUrl}}",
+        IntegrationTrigger.JobAwaitingApproval => "⏳ *{{moduleName}}* is awaiting approval ({{stackName}}/{{namespaceName}})\n{{jobUrl}}",
+        IntegrationTrigger.JobCancelled => "🚫 {{jobType}} on *{{moduleName}}* was cancelled ({{stackName}}/{{namespaceName}})\n{{jobUrl}}",
+        IntegrationTrigger.JobApproved => "👍 {{jobType}} on *{{moduleName}}* was approved ({{stackName}}/{{namespaceName}})\n{{jobUrl}}",
+        IntegrationTrigger.JobDeclined => "👎 {{jobType}} on *{{moduleName}}* was declined ({{stackName}}/{{namespaceName}})\n{{jobUrl}}",
+        IntegrationTrigger.MissionStarted => "🛰️ {{missionType}} started on *{{moduleName}}* ({{stackName}}/{{namespaceName}})",
+        IntegrationTrigger.MissionMilestoneReported => "🛰️ {{missionType}} on *{{moduleName}}* ({{stackName}}/{{namespaceName}}): {{message}}",
+        IntegrationTrigger.MissionCompleted => "🏁 {{missionType}} completed on *{{moduleName}}* ({{stackName}}/{{namespaceName}})",
+        IntegrationTrigger.MissionFaulted => "💥 {{missionType}} faulted on *{{moduleName}}* ({{stackName}}/{{namespaceName}})",
+        _ => "{{trigger}} on *{{moduleName}}* ({{stackName}}/{{namespaceName}})\n{{jobUrl}}"
     };
 }

@@ -8,6 +8,7 @@
 
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -15,6 +16,7 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Missions;
 using SnapCd.Server.Core.Services.Integrations;
 using SnapCd.Server.Core.Services.Integrations.Codecs;
+using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Consumers.System.Competing;
 
@@ -38,6 +40,7 @@ public class IntegrationEventDispatcher :
     private readonly IntegrationSecretStore _secrets;
     private readonly IntegrationConnectionCache _connectionCache;
     private readonly ILogger<IntegrationEventDispatcher> _logger;
+    private readonly string _serverHost;
 
     public IntegrationEventDispatcher(
         IDbContextFactory<SnapCdDbContext> dbFactory,
@@ -45,6 +48,7 @@ public class IntegrationEventDispatcher :
         IIntegrationCodecRegistry codecs,
         IntegrationSecretStore secrets,
         IntegrationConnectionCache connectionCache,
+        IOptions<ServerSettings> serverSettings,
         ILogger<IntegrationEventDispatcher> logger)
     {
         _dbFactory = dbFactory;
@@ -53,6 +57,7 @@ public class IntegrationEventDispatcher :
         _secrets = secrets;
         _connectionCache = connectionCache;
         _logger = logger;
+        _serverHost = serverSettings.Value.Host.TrimEnd('/');
     }
 
     public Task Consume(ConsumeContext<ApplyModuleFailed> c) => DeliverJob(c.Message.ModuleId, c.Message.OrganizationId, c.Message.ModuleJobId, IntegrationTrigger.JobFailed, "Apply", c.CancellationToken);
@@ -105,9 +110,24 @@ public class IntegrationEventDispatcher :
         ctx["organizationId"] = organizationId.ToString();
         ctx["moduleId"] = moduleId.ToString();
         ctx["jobId"] = jobId?.ToString() ?? "";
-        ctx["moduleName"] = await db.Modules
+
+        var moduleScope = await db.Modules
             .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
-            .Select(m => m.Name).FirstOrDefaultAsync(ct) ?? "";
+            .Select(m => new { m.Name, NamespaceName = m.Namespace.Name, StackName = m.Namespace.Stack.Name })
+            .FirstOrDefaultAsync(ct);
+        ctx["moduleName"] = moduleScope?.Name ?? "";
+        ctx["namespaceName"] = moduleScope?.NamespaceName ?? "";
+        ctx["stackName"] = moduleScope?.StackName ?? "";
+
+        if (moduleScope is not null && jobId is not null)
+        {
+            var tab = trigger == IntegrationTrigger.JobAwaitingApproval ? "approvals" : "logs";
+            ctx["jobUrl"] = $"{_serverHost}/Stacks/{Uri.EscapeDataString(moduleScope.StackName)}/{Uri.EscapeDataString(moduleScope.NamespaceName)}/{Uri.EscapeDataString(moduleScope.Name)}?action=Jobs&job={jobId}&tab={tab}";
+        }
+        else
+        {
+            ctx["jobUrl"] = "";
+        }
 
         foreach (var match in matches)
         {

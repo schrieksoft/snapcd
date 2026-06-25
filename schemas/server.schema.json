@@ -461,6 +461,27 @@
         "SeedLicenseToken": {
           "type": "boolean",
           "description": "When true, seeds a debug-signed Enterprise license token onto the preseeded organization so debug runs can skip the paste-opaque-key flow. Defaults to false."
+        },
+        "SlackIntegration": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "BotToken": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "DefaultChannel": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "description": "Optional Slack credentials for the debug integration. When set, the seeded debug-slack integration uses these real credentials so the test bench delivers to an actual Slack workspace."
         }
       },
       "description": "Debug-time data seeder for the Server. Runs on startup only when the Server is built with the Development environment; lets a developer pre-populate a fresh database with Service Principals, Users, Stacks, Runners, and an Enterprise license token without going through the Dashboard\u0027s usual setup flow. Never runs in non-Development environments."

@@ -1,0 +1,446 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/IntegrationTestBench"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+@using System.Text.Json
+@using MassTransit
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Hosting
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.Misc
+@using SnapCd.Server.Core.Database
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Sagas
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Events.Jobs.Module
+@using SnapCd.Server.Core.Events.Missions
+@using SnapCd.Server.Core.Filters
+@using SnapCd.Server.Core.Services.Integrations
+@using SnapCd.Server.Core.Services.OrganizationContext
+
+@inject IDbContextFactory<SnapCdDbContext> DbContextFactory
+@inject IBus Bus
+@inject IntegrationEventMatcher Matcher
+@inject IOrganizationContext OrganizationContext
+@inject IHostEnvironment HostEnvironment
+@inject ISnackbar Snackbar
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
+
+<PageTitle>Integration test bench</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Integration test bench (dev)</MudText>
+
+@if (!HostEnvironment.IsDevelopment())
+{
+    <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Lock" Class="mr-2" />
+        The integration test bench is only available when the host runs in the Development environment.
+    </MudAlert>
+}
+else
+{
+    <MudText Class="mb-4">
+        Fire a synthetic job lifecycle event against the <code>debug</code> module.
+        The <code>IntegrationEventDispatcher</code> picks it up normally — matching integration events
+        against configured supplies, rendering templates, and delivering via the integration's codec.
+        Recent deliveries appear on the right.
+    </MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true">Trigger an event</MudText>
+
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                        <MudText Typo="Typo.body2">
+                            Target: <code>debug</code> / <code>debug</code> / <code>debug</code> —
+                            the stack / namespace / module seeded by <code>DebugDataSeeder</code>.
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            Integration: <code>debug-slack</code> (Slack) — supplied to all modules,
+                            with org-level events for JobFailed, JobSucceeded, JobAwaitingApproval, JobCancelled.
+                        </MudText>
+                        @if (_debugModuleExists is false)
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" />
+                                The <code>debug</code> module isn't seeded in this org. Restart the
+                                server in Development so <code>DebugDataSeeder</code> runs.
+                            </MudText>
+                        }
+                        @if (_debugIntegrationExists is false)
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" />
+                                The <code>debug-slack</code> integration isn't seeded in this org. Restart the
+                                server in Development so <code>DebugDataSeeder</code> runs.
+                            </MudText>
+                        }
+                    </MudAlert>
+
+                    <MudSelect T="IntegrationTrigger" @bind-Value="_selectedTrigger"
+                               Label="Trigger" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem T="IntegrationTrigger" Value="IntegrationTrigger.JobFailed">JobFailed</MudSelectItem>
+                        <MudSelectItem T="IntegrationTrigger" Value="IntegrationTrigger.JobSucceeded">JobSucceeded</MudSelectItem>
+                        <MudSelectItem T="IntegrationTrigger" Value="IntegrationTrigger.JobAwaitingApproval">JobAwaitingApproval</MudSelectItem>
+                        <MudSelectItem T="IntegrationTrigger" Value="IntegrationTrigger.JobCancelled">JobCancelled</MudSelectItem>
+                        <MudSelectItem T="IntegrationTrigger" Value="IntegrationTrigger.MissionMilestoneReported">MissionMilestoneReported</MudSelectItem>
+                    </MudSelect>
+
+                    @if (_selectedTrigger == IntegrationTrigger.MissionMilestoneReported)
+                    {
+                        <MudTextField T="string" @bind-Value="_milestoneMessage"
+                                      Label="Milestone message" Variant="Variant.Outlined" Class="mb-3" />
+                    }
+
+                    <MudButton Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;"
+                               Disabled="_debugModuleExists is not true || _triggering"
+                               OnClick="TriggerEvent">
+                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-2" />
+                        Trigger
+                    </MudButton>
+
+                    @if (_lastTriggeredJobId is not null)
+                    {
+                        <MudText Class="mt-3" Typo="Typo.caption">
+                            Last trigger: job <code>@_lastTriggeredJobId</code>
+                        </MudText>
+                    }
+
+                    @if (_lastMatchCount is not null)
+                    {
+                        <MudText Typo="Typo.caption">
+                            Matched @_lastMatchCount integration event(s)
+                        </MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Class="mt-3">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true">Dry run (match only)</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Run the matcher against the debug module for the selected trigger without
+                        publishing an event. Shows which integration events would fire.
+                    </MudText>
+
+                    <MudButton Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;"
+                               Disabled="_debugModuleExists is not true || _dryRunning"
+                               OnClick="DryRun">
+                        <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-2" />
+                        Dry run
+                    </MudButton>
+
+                    @if (_dryRunResults is not null)
+                    {
+                        <MudText Typo="Typo.caption" Class="mt-3">
+                            @_dryRunResults.Count match(es) for <code>@_selectedTrigger</code>
+                        </MudText>
+                        @foreach (var m in _dryRunResults)
+                        {
+                            <MudPaper Class="pa-2 mt-1" Outlined="true">
+                                <MudText Typo="Typo.caption">
+                                    <strong>@m.Scope</strong> · integration <code>@m.IntegrationId.ToString().Substring(0, 8)</code>
+                                    · event <code>@m.EventId.ToString().Substring(0, 8)</code>
+                                    @if (!string.IsNullOrEmpty(m.Template)) { <text> · custom template</text> }
+                                    @if (!string.IsNullOrEmpty(m.Filter)) { <text> · filter: @m.Filter</text> }
+                                </MudText>
+                            </MudPaper>
+                        }
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true">
+                        Recent deliveries
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="RefreshDeliveriesAsync" />
+                    </MudText>
+
+                    @if (_recentDeliveries.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2">No deliveries yet. Configure an integration + event subscription, then trigger.</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var d in _recentDeliveries)
+                        {
+                            <MudPaper Class="pa-3 mb-2" Outlined="true">
+                                <div class="d-flex align-center mb-1" style="gap: 8px;">
+                                    <MudIcon Icon="@DeliveryStatusIcon(d.Status)" Size="Size.Small" />
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">@d.Trigger</MudText>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@d.Status</MudChip>
+                                    <MudSpacer />
+                                    <MudText Typo="Typo.caption" Style="opacity: 0.7;">
+                                        @TimeRelative(d.CreatedAt)
+                                    </MudText>
+                                </div>
+
+                                <MudText Typo="Typo.caption" Style="opacity: 0.7;">
+                                    integration <code>@d.IntegrationId.ToString().Substring(0, 8)</code>
+                                    · event <code>@d.IntegrationEventId.ToString().Substring(0, 8)</code>
+                                    @if (d.ModuleJobId is not null) { <text> · job <code>@d.ModuleJobId.Value.ToString().Substring(0, 8)</code></text> }
+                                    @if (d.MessageId is not null) { <text> · msg <code>@d.MessageId</code></text> }
+                                </MudText>
+
+                                @if (!string.IsNullOrEmpty(d.Error))
+                                {
+                                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-1">
+                                        <MudText Typo="Typo.caption">@d.Error</MudText>
+                                    </MudAlert>
+                                }
+                            </MudPaper>
+                        }
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
+    private static readonly Guid DebugModuleId = new("99999999-9999-9999-9999-999999999999");
+    private static readonly Guid DebugIntegrationId = new("99999999-9999-9999-9999-999999999920");
+
+    private bool? _debugModuleExists;
+    private bool? _debugIntegrationExists;
+    private IntegrationTrigger _selectedTrigger = IntegrationTrigger.JobFailed;
+    private Guid? _lastTriggeredJobId;
+    private int? _lastMatchCount;
+    private bool _triggering;
+    private bool _dryRunning;
+    private string _milestoneMessage = "Agent is investigating the failed apply…";
+    private List<IntegrationEventMatcher.IntegrationEventMatch>? _dryRunResults;
+    private List<IntegrationDelivery> _recentDeliveries = new();
+    private Timer? _pollTimer;
+
+    private Guid CurrentOrgId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!HostEnvironment.IsDevelopment()) return;
+        await CheckDebugModuleAsync();
+        await CheckDebugIntegrationAsync();
+        await RefreshDeliveriesAsync();
+        _pollTimer = new Timer(async _ => await SafePoll(), null, PollInterval, PollInterval);
+    }
+
+    private async Task SafePoll()
+    {
+        try { await RefreshDeliveriesAsync(); }
+        catch { /* polling is best-effort */ }
+    }
+
+    private async Task CheckDebugModuleAsync()
+    {
+        var orgId = CurrentOrgId;
+        if (orgId == Guid.Empty) { _debugModuleExists = false; return; }
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        _debugModuleExists = await db.Modules
+            .AnyAsync(m => m.Id == DebugModuleId && m.OrganizationId == orgId);
+    }
+
+    private async Task CheckDebugIntegrationAsync()
+    {
+        var orgId = CurrentOrgId;
+        if (orgId == Guid.Empty) { _debugIntegrationExists = false; return; }
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        _debugIntegrationExists = await db.Integrations
+            .AnyAsync(i => i.Id == DebugIntegrationId && i.OrganizationId == orgId);
+    }
+
+    private async Task RefreshDeliveriesAsync()
+    {
+        var orgId = CurrentOrgId;
+        if (orgId == Guid.Empty) return;
+        await using var db = await DbContextFactory.CreateDbContextAsync();
+        _recentDeliveries = await db.IntegrationDeliveries
+            .Where(d => d.OrganizationId == orgId)
+            .OrderByDescending(d => d.CreatedAt)
+            .Take(30)
+            .ToListAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DryRun()
+    {
+        if (_debugModuleExists is not true) return;
+        _dryRunning = true;
+        try
+        {
+            _dryRunResults = await Matcher.MatchAsync(DebugModuleId, CurrentOrgId, _selectedTrigger);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Dry run failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _dryRunning = false;
+        }
+    }
+
+    private async Task TriggerEvent()
+    {
+        if (!HostEnvironment.IsDevelopment() || _debugModuleExists is not true) return;
+        _triggering = true;
+        try
+        {
+            var orgId = CurrentOrgId;
+
+            if (_selectedTrigger == IntegrationTrigger.MissionMilestoneReported)
+            {
+                await TriggerMilestone(orgId);
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var jobId = NewId.NextGuid();
+
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+
+            var status = _selectedTrigger switch
+            {
+                IntegrationTrigger.JobFailed => ExecutionStatus.Failed,
+                IntegrationTrigger.JobSucceeded => ExecutionStatus.Completed,
+                IntegrationTrigger.JobCancelled => ExecutionStatus.Cancelled,
+                IntegrationTrigger.JobAwaitingApproval => ExecutionStatus.Running,
+                _ => ExecutionStatus.Failed
+            };
+
+            db.ModuleJobs.Add(new ModuleJob
+            {
+                Id = jobId,
+                OrganizationId = orgId,
+                ModuleId = DebugModuleId,
+                TimestampStart = now,
+                TimestampEnd = status == ExecutionStatus.Running ? null : now,
+                Status = status,
+                JobType = nameof(ApplyJobSaga),
+                Logs = JsonSerializer.Serialize(new List<LogEntryDto>()),
+                WaitingForApproval = _selectedTrigger == IntegrationTrigger.JobAwaitingApproval
+            });
+            await db.SaveChangesAsync();
+
+            object evt = _selectedTrigger switch
+            {
+                IntegrationTrigger.JobFailed => new ApplyModuleFailed { OrganizationId = orgId, ModuleId = DebugModuleId, ModuleJobId = jobId },
+                IntegrationTrigger.JobSucceeded => new ApplyModuleCompleted { OrganizationId = orgId, ModuleId = DebugModuleId, ModuleJobId = jobId },
+                IntegrationTrigger.JobCancelled => new ApplyModuleCancelled { OrganizationId = orgId, ModuleId = DebugModuleId, ModuleJobId = jobId },
+                IntegrationTrigger.JobAwaitingApproval => new ModuleJobAwaitingApprovalEvent { OrganizationId = orgId, ModuleId = DebugModuleId, ModuleJobId = jobId },
+                _ => throw new InvalidOperationException()
+            };
+            await Bus.Publish(evt);
+
+            var matches = await Matcher.MatchAsync(DebugModuleId, orgId, _selectedTrigger);
+            _lastMatchCount = matches.Count;
+            _lastTriggeredJobId = jobId;
+
+            Snackbar.Add($"Published {_selectedTrigger} — {matches.Count} integration event(s) matched.", Severity.Success);
+            await RefreshDeliveriesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Trigger failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _triggering = false;
+        }
+    }
+
+    private async Task TriggerMilestone(Guid orgId)
+    {
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var jobId = NewId.NextGuid();
+            var missionId = NewId.NextGuid();
+            var runId = NewId.NextGuid();
+
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+
+            db.ModuleJobs.Add(new ModuleJob
+            {
+                Id = jobId,
+                OrganizationId = orgId,
+                ModuleId = DebugModuleId,
+                TimestampStart = now,
+                Status = ExecutionStatus.Running,
+                JobType = nameof(ApplyJobSaga),
+                Logs = JsonSerializer.Serialize(new List<LogEntryDto>()),
+            });
+            await db.SaveChangesAsync();
+
+            await Bus.Publish(new MissionMilestoneReported
+            {
+                OrganizationId = orgId,
+                ModuleJobId = jobId,
+                ModuleJobMissionId = missionId,
+                ModuleJobMissionRunId = runId,
+                MissionType = MissionType.AutoDiagnose,
+                Kind = "progress",
+                Message = _milestoneMessage,
+                ReportedAt = DateTime.UtcNow
+            });
+
+            var matches = await Matcher.MatchAsync(DebugModuleId, orgId, IntegrationTrigger.MissionMilestoneReported);
+            _lastMatchCount = matches.Count;
+            _lastTriggeredJobId = jobId;
+
+            Snackbar.Add($"Published MissionMilestoneReported — {matches.Count} integration event(s) matched.", Severity.Success);
+            await RefreshDeliveriesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Milestone trigger failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _triggering = false;
+        }
+    }
+
+    private static string DeliveryStatusIcon(IntegrationDeliveryStatus s) => s switch
+    {
+        IntegrationDeliveryStatus.Pending => Icons.Material.Filled.HourglassEmpty,
+        IntegrationDeliveryStatus.Sent => Icons.Material.Filled.CheckCircle,
+        IntegrationDeliveryStatus.Failed => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private static string TimeRelative(DateTime t)
+    {
+        var delta = t - DateTime.UtcNow;
+        var abs = delta.Duration();
+        var unit = abs.TotalSeconds < 90 ? $"{(int)abs.TotalSeconds}s" :
+                   abs.TotalMinutes < 90 ? $"{(int)abs.TotalMinutes}m" :
+                   $"{(int)abs.TotalHours}h";
+        return delta.Ticks >= 0 ? $"in {unit}" : $"{unit} ago";
+    }
+
+    public void Dispose()
+    {
+        _pollTimer?.Dispose();
+    }
+}

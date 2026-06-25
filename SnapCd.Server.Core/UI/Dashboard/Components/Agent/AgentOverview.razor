@@ -30,8 +30,8 @@
         @if (_agent?.IsSuppliedToAllModules == true)
         {
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3" Icon="@Icons.Material.Filled.AllInclusive">
-                <strong>Assigned to all modules in this organization.</strong>
-                Every <code>{Scope}Mission</code> referencing this Agent will be supplied at dispatch regardless of per-scope assignment rows.
+                <strong>Supplied to all modules in this organization.</strong>
+                Every <code>{Scope}Mission</code> referencing this Agent will be supplied at dispatch regardless of per-scope supply rows.
             </MudAlert>
         }
         else
@@ -51,7 +51,7 @@
             @if (_stackAssignments.Count + _namespaceAssignments.Count + _moduleAssignments.Count == 0)
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3" Dense="true">
-                    No assignments configured. Until the Agent owner adds an assignment (or sets <code>IsSuppliedToAllModules</code>),
+                    No supplies configured. Until the Agent owner adds a supply (or sets <code>IsSuppliedToAllModules</code>),
                     every mission referencing this Agent will park as <code>BlockedAgentNotAssigned</code> on the next dispatch.
                 </MudAlert>
             }
