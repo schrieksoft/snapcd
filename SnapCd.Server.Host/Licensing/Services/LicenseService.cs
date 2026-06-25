@@ -13,10 +13,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Host.Licensing.Services;
@@ -27,6 +30,7 @@ public class LicenseService(
     IRemoteLicenseClient remoteLicenseClient,
     ILicensePublicKeyService publicKeyService,
     IOptions<DebuggingOptions> debuggingOptions,
+    IPrincipalProvider principalProvider,
     ILogger<LicenseService> logger) : ILicenseInfoProvider
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(8);
@@ -98,6 +102,8 @@ public class LicenseService(
 
     public async Task<LicenseInfo> SaveIssuedLicenseAsync(Guid organizationId, string opaqueKey, string jwt)
     {
+        await EnsureHasLicenseManagementPermissionAsync(organizationId);
+
         var info = await ValidateLicenseTokenAsync(jwt, organizationId);
         if (!info.IsValid) return info;
 
@@ -124,6 +130,8 @@ public class LicenseService(
 
     public async Task<LicenseInfo> RefreshFromSaaSAsync(Guid organizationId)
     {
+        await EnsureHasLicenseManagementPermissionAsync(organizationId);
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var row = await dbContext.Set<SelfHostedOrganizationLicense>()
             .FirstOrDefaultAsync(l => l.OrganizationId == organizationId);
@@ -144,6 +152,8 @@ public class LicenseService(
 
     public async Task RemoveLicenseKeyAsync(Guid organizationId)
     {
+        await EnsureHasLicenseManagementPermissionAsync(organizationId);
+
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var license = await dbContext.Set<SelfHostedOrganizationLicense>()
             .FirstOrDefaultAsync(l => l.OrganizationId == organizationId);
@@ -155,6 +165,33 @@ public class LicenseService(
         }
 
         EvictCache(organizationId);
+    }
+
+    private async Task EnsureHasLicenseManagementPermissionAsync(Guid organizationId)
+    {
+        var discriminator = principalProvider.GetPrincipalDiscriminator();
+        var principalId = principalProvider.GetSubject(organizationId);
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+
+        var hasRole = discriminator switch
+        {
+            PrincipalDiscriminator.User => await dbContext.UserOrganizationRoleAssignments
+                .AnyAsync(x =>
+                    x.OrganizationId == organizationId &&
+                    x.PrincipalId == principalId &&
+                    (x.RoleName == OrganizationRole.Owner || x.RoleName == OrganizationRole.SubscriptionManager)),
+            PrincipalDiscriminator.ServicePrincipal => await dbContext.ServicePrincipalOrganizationRoleAssignments
+                .AnyAsync(x =>
+                    x.OrganizationId == organizationId &&
+                    x.PrincipalId == principalId &&
+                    (x.RoleName == OrganizationRole.Owner || x.RoleName == OrganizationRole.SubscriptionManager)),
+            _ => false
+        };
+
+        if (!hasRole)
+            throw new PrincipalNotAuthorizedException(
+                $"{discriminator} with ID {principalId} does not have permission to manage licenses for organization {organizationId}");
     }
 
     private static async Task UpsertLicenseAsync(

@@ -70,7 +70,7 @@ var allowHttp = builder.Configuration.GetSection("AllowHttp").Get<bool>();
 var connectionString = builder.Configuration["ConnectionString"] ?? throw new Exception("Connection string not found.");
 
 builder.Services.AddSelfHostedDbContextConfiguration(connectionString);
-builder.Services.AddSnapCdControllers();
+builder.Services.AddSnapCdControllers([typeof(SnapCd.Server.Host.Controllers.LicenseController)]);
 builder.Services.AddSnapCdEmailSender(builder.Configuration);
 builder.Services.AddSnapCdFactories();
 builder.Services.AddSnapCdSecuredRepositories();
