@@ -14,8 +14,8 @@ using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Runner.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base;
-using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
-using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
+using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
+using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
 using SnapCd.Server.Core.Entities.Interfaces;
 
@@ -93,13 +93,13 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
     public virtual ICollection<RunnerRoleAssignment> RunnerRoleAssignments { get; set; } = new List<RunnerRoleAssignment>();
     public virtual ICollection<AgentRoleAssignment> AgentRoleAssignments { get; set; } = new List<AgentRoleAssignment>();
 
-    public virtual ICollection<RunnerModuleAssignment> RunnerModuleAssignments { get; set; } = new List<RunnerModuleAssignment>();
-    public virtual ICollection<RunnerNamespaceAssignment> RunnerNamespaceAssignments { get; set; } = new List<RunnerNamespaceAssignment>();
-    public virtual ICollection<RunnerStackAssignment> RunnerStackAssignments { get; set; } = new List<RunnerStackAssignment>();
+    public virtual ICollection<RunnerModuleSupply> RunnerModuleSupplies { get; set; } = new List<RunnerModuleSupply>();
+    public virtual ICollection<RunnerNamespaceSupply> RunnerNamespaceSupplies { get; set; } = new List<RunnerNamespaceSupply>();
+    public virtual ICollection<RunnerStackSupply> RunnerStackSupplies { get; set; } = new List<RunnerStackSupply>();
 
-    public virtual ICollection<AgentModuleAssignment> AgentModuleAssignments { get; set; } = new List<AgentModuleAssignment>();
-    public virtual ICollection<AgentNamespaceAssignment> AgentNamespaceAssignments { get; set; } = new List<AgentNamespaceAssignment>();
-    public virtual ICollection<AgentStackAssignment> AgentStackAssignments { get; set; } = new List<AgentStackAssignment>();
+    public virtual ICollection<AgentModuleSupply> AgentModuleSupplies { get; set; } = new List<AgentModuleSupply>();
+    public virtual ICollection<AgentNamespaceSupply> AgentNamespaceSupplies { get; set; } = new List<AgentNamespaceSupply>();
+    public virtual ICollection<AgentStackSupply> AgentStackSupplies { get; set; } = new List<AgentStackSupply>();
     public virtual ICollection<DependsOnModule> DependsOnModules { get; set; } = new List<DependsOnModule>();
 }
 

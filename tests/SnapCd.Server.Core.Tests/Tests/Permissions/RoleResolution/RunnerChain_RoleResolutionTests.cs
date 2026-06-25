@@ -9,8 +9,8 @@
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerAssignments;
-using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerSupplies;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Tests.Infrastructure;
 
@@ -19,7 +19,7 @@ namespace SnapCd.Server.Core.Tests.Tests.Permissions.RoleResolution;
 /// <summary>
 /// Verifies that <c>GenericRunnerChildSecuredRepository</c>'s RunnerRoles family is wired into
 /// the ReadQuery: a user with <c>RunnerRole.Reader</c> on a Runner must see at least one of that
-/// Runner's child assignments (<c>RunnerModuleAssignment</c> as the representative entity).
+/// Runner's child assignments (<c>RunnerModuleSupply</c> as the representative entity).
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
 public class RunnerChain_RoleResolutionTests : IAsyncLifetime
@@ -52,9 +52,9 @@ public class RunnerChain_RoleResolutionTests : IAsyncLifetime
         var principal = _fixture.RunnerPrincipals["0"][RunnerRole.Reader].DirectUser;
         var orgId = _fixture.Organizations["0"].Id;
         var pp = _fixture.CreatePrincipalProvider(principal.Id, PrincipalDiscriminator.User, orgId);
-        var repo = new RunnerModuleAssignmentSecuredRepository(
-            new RunnerModuleAssignmentRepository(_dbContext, pp, _fixture.CreateMockBus(),
-                Options.Create(new RunnerModuleAssignmentRepositorySettings())),
+        var repo = new RunnerModuleSupplySecuredRepository(
+            new RunnerModuleSupplyRepository(_dbContext, pp, _fixture.CreateMockBus(),
+                Options.Create(new RunnerModuleSupplyRepositorySettings())),
             pp);
         var visible = await repo.List(orgId);
         Assert.NotEmpty(visible);

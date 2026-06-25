@@ -461,6 +461,27 @@
         "SeedLicenseToken": {
           "type": "boolean",
           "description": "When true, seeds a debug-signed Enterprise license token onto the preseeded organization so debug runs can skip the paste-opaque-key flow. Defaults to false."
+        },
+        "SlackIntegration": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "BotToken": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "DefaultChannel": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "description": "Optional Slack credentials for the debug integration. When set, the seeded debug-slack integration uses these real credentials so the test bench delivers to an actual Slack workspace."
         }
       },
       "description": "Debug-time data seeder for the Server. Runs on startup only when the Server is built with the Development environment; lets a developer pre-populate a fresh database with Service Principals, Users, Stacks, Runners, and an Enterprise license token without going through the Dashboard\u0027s usual setup flow. Never runs in non-Development environments."
@@ -1133,22 +1154,22 @@
           },
           "description": "Repository settings for AgentConnection entity. Events are disabled since connections are runtime state, not configuration changes."
         },
-        "AgentModuleAssignment": {
+        "AgentModuleSupply": {
           "type": "object",
           "properties": {
             "EmitCreateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a CreatedEvent on the bus when a AgentModuleAssignment is created.",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentModuleSupply is created.",
               "default": true
             },
             "EmitUpdateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentModuleAssignment is updated.",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentModuleSupply is updated.",
               "default": true
             },
             "EmitDeleteEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a DeletedEvent on the bus when a AgentModuleAssignment is deleted.",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentModuleSupply is deleted.",
               "default": true
             },
             "EventTtl": {
@@ -1158,24 +1179,24 @@
               "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
             }
           },
-          "description": "Per-AgentModuleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentModuleAssignment entity specifically."
+          "description": "Per-AgentModuleSupply repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentModuleSupply entity specifically."
         },
-        "AgentNamespaceAssignment": {
+        "AgentNamespaceSupply": {
           "type": "object",
           "properties": {
             "EmitCreateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a CreatedEvent on the bus when a AgentNamespaceAssignment is created.",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentNamespaceSupply is created.",
               "default": true
             },
             "EmitUpdateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentNamespaceAssignment is updated.",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentNamespaceSupply is updated.",
               "default": true
             },
             "EmitDeleteEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a DeletedEvent on the bus when a AgentNamespaceAssignment is deleted.",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentNamespaceSupply is deleted.",
               "default": true
             },
             "EventTtl": {
@@ -1185,7 +1206,7 @@
               "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
             }
           },
-          "description": "Per-AgentNamespaceAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentNamespaceAssignment entity specifically."
+          "description": "Per-AgentNamespaceSupply repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentNamespaceSupply entity specifically."
         },
         "Agent": {
           "type": "object",
@@ -1241,22 +1262,22 @@
           },
           "description": "Per-AgentRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentRoleAssignment entity specifically."
         },
-        "AgentStackAssignment": {
+        "AgentStackSupply": {
           "type": "object",
           "properties": {
             "EmitCreateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a CreatedEvent on the bus when a AgentStackAssignment is created.",
+              "description": "When true (default), publish a CreatedEvent on the bus when a AgentStackSupply is created.",
               "default": true
             },
             "EmitUpdateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentStackAssignment is updated.",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a AgentStackSupply is updated.",
               "default": true
             },
             "EmitDeleteEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a DeletedEvent on the bus when a AgentStackAssignment is deleted.",
+              "description": "When true (default), publish a DeletedEvent on the bus when a AgentStackSupply is deleted.",
               "default": true
             },
             "EventTtl": {
@@ -1266,7 +1287,7 @@
               "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
             }
           },
-          "description": "Per-AgentStackAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentStackAssignment entity specifically."
+          "description": "Per-AgentStackSupply repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the AgentStackSupply entity specifically."
         },
         "DependsOnModule": {
           "type": "object",
@@ -1538,6 +1559,98 @@
           },
           "description": "Per-GroupStackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupStackRoleAssignment entity specifically."
         },
+        "IntegrationEvent": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          },
+          "description": "Shared tuning for the four scoped integration-event repositories."
+        },
+        "Integration": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          },
+          "description": "Per-Integration repository tuning. The CRUD events drive the fanout cache-invalidation consumer, so leaving these at their defaults is expected; operators override only to change event TTL."
+        },
+        "IntegrationRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          },
+          "description": "Shared tuning for the integration role-assignment repositories (base \u002B per-principal)."
+        },
+        "IntegrationSupply": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          },
+          "description": "Shared tuning for the three integration supply-assignment repositories."
+        },
         "ModuleExtraFile": {
           "type": "object",
           "properties": {
@@ -1807,6 +1920,60 @@
             }
           },
           "description": "Per-ModuleJobApproval repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleJobApproval entity specifically."
+        },
+        "ModuleJobMissionRunMilestone": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a milestone is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a milestone is updated.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a milestone is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes."
+            }
+          },
+          "description": "Per-ModuleJobMissionRunMilestone repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for this entity specifically."
+        },
+        "ModuleJobMissionRun": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a CreatedEvent on the bus when a run is created.",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a run is updated. Overridable per environment via config ( Repositories:ModuleJobMissionRun ). The hub additionally suppresses it per-call (SuppressEvents) for the high-frequency streamed log-append update, where a per-batch event would be noise.",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "description": "When true (default), publish a DeletedEvent on the bus when a run is deleted.",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$",
+              "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes."
+            }
+          },
+          "description": "Per-ModuleJobMissionRun repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for this entity specifically."
         },
         "ModuleJob": {
           "type": "object",
@@ -2693,22 +2860,22 @@
           },
           "description": "Repository settings for RunnerConnection entity. Events are disabled since connections are runtime state, not configuration changes."
         },
-        "RunnerModuleAssignment": {
+        "RunnerModuleSupply": {
           "type": "object",
           "properties": {
             "EmitCreateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerModuleAssignment is created.",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerModuleSupply is created.",
               "default": true
             },
             "EmitUpdateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerModuleAssignment is updated.",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerModuleSupply is updated.",
               "default": true
             },
             "EmitDeleteEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerModuleAssignment is deleted.",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerModuleSupply is deleted.",
               "default": true
             },
             "EventTtl": {
@@ -2718,24 +2885,24 @@
               "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
             }
           },
-          "description": "Per-RunnerModuleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerModuleAssignment entity specifically."
+          "description": "Per-RunnerModuleSupply repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerModuleSupply entity specifically."
         },
-        "RunnerNamespaceAssignment": {
+        "RunnerNamespaceSupply": {
           "type": "object",
           "properties": {
             "EmitCreateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerNamespaceAssignment is created.",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerNamespaceSupply is created.",
               "default": true
             },
             "EmitUpdateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerNamespaceAssignment is updated.",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerNamespaceSupply is updated.",
               "default": true
             },
             "EmitDeleteEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerNamespaceAssignment is deleted.",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerNamespaceSupply is deleted.",
               "default": true
             },
             "EventTtl": {
@@ -2745,7 +2912,7 @@
               "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
             }
           },
-          "description": "Per-RunnerNamespaceAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerNamespaceAssignment entity specifically."
+          "description": "Per-RunnerNamespaceSupply repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerNamespaceSupply entity specifically."
         },
         "Runner": {
           "type": "object",
@@ -2801,22 +2968,22 @@
           },
           "description": "Per-RunnerRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerRoleAssignment entity specifically."
         },
-        "RunnerStackAssignment": {
+        "RunnerStackSupply": {
           "type": "object",
           "properties": {
             "EmitCreateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerStackAssignment is created.",
+              "description": "When true (default), publish a CreatedEvent on the bus when a RunnerStackSupply is created.",
               "default": true
             },
             "EmitUpdateEvents": {
               "type": "boolean",
-              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerStackAssignment is updated.",
+              "description": "When true (default), publish an UpdatedEvent on the bus when a RunnerStackSupply is updated.",
               "default": true
             },
             "EmitDeleteEvents": {
               "type": "boolean",
-              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerStackAssignment is deleted.",
+              "description": "When true (default), publish a DeletedEvent on the bus when a RunnerStackSupply is deleted.",
               "default": true
             },
             "EventTtl": {
@@ -2826,7 +2993,7 @@
               "description": "Time-to-live for emitted events from this entity. Defaults to 30 minutes \u2014 increase only for entities whose downstream consumers might be offline long enough to miss the default window."
             }
           },
-          "description": "Per-RunnerStackAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerStackAssignment entity specifically."
+          "description": "Per-RunnerStackSupply repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the RunnerStackSupply entity specifically."
         },
         "Secret": {
           "type": "object",

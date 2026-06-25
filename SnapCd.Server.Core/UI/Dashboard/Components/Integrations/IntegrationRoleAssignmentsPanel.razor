@@ -1,0 +1,113 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@inject SnapCd.Server.Core.Services.Crud.RoleAssignment.IntegrationRoleAssignmentService RoleService
+@inject ISnackbar Snackbar
+
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.RoleAssignments
+
+<MudText Typo="Typo.subtitle2" Class="mt-3">Role assignments (RBAC)</MudText>
+<MudText Typo="Typo.caption">Who may manage this integration's child resources.</MudText>
+
+@if (_roles is null)
+{
+    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Class="mt-1">
+        <tbody>
+            @foreach (var ra in _roles)
+            {
+                <tr>
+                    <td>@ra.PrincipalDiscriminator</td>
+                    <td><code>@ra.PrincipalId</code></td>
+                    <td>@ra.RoleName</td>
+                    <td style="text-align:right">
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => Remove(ra))">Remove</MudButton>
+                    </td>
+                </tr>
+            }
+            @if (_roles.Count == 0)
+            {
+                <tr><td colspan="4"><MudText Typo="Typo.caption">None.</MudText></td></tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+
+    <div class="d-flex align-center gap-2 mt-2">
+        <MudSelect T="RoleAssignmentPrincipalDiscriminator" @bind-Value="_addDiscriminator" Dense="true" Label="Principal type" Style="min-width:150px">
+            <MudSelectItem Value="RoleAssignmentPrincipalDiscriminator.User">User</MudSelectItem>
+            <MudSelectItem Value="RoleAssignmentPrincipalDiscriminator.Group">Group</MudSelectItem>
+            <MudSelectItem Value="RoleAssignmentPrincipalDiscriminator.ServicePrincipal">ServicePrincipal</MudSelectItem>
+        </MudSelect>
+        <MudTextField @bind-Value="_addPrincipalId" Label="Principal id (GUID)" Dense="true" Style="min-width:300px" />
+        <MudSelect T="IntegrationRole" @bind-Value="_addRole" Dense="true" Label="Role" Style="min-width:160px">
+            <MudSelectItem Value="IntegrationRole.Owner">Owner</MudSelectItem>
+            <MudSelectItem Value="IntegrationRole.Contributor">Contributor</MudSelectItem>
+            <MudSelectItem Value="IntegrationRole.Reader">Reader</MudSelectItem>
+            <MudSelectItem Value="IntegrationRole.IdentityAccessManager">IdentityAccessManager</MudSelectItem>
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="Add">Grant</MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid IntegrationId { get; set; }
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    private List<IntegrationRoleAssignmentReadDto>? _roles;
+    private RoleAssignmentPrincipalDiscriminator _addDiscriminator = RoleAssignmentPrincipalDiscriminator.User;
+    private string _addPrincipalId = "";
+    private IntegrationRole _addRole = IntegrationRole.Reader;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var all = await RoleService.List(OrganizationId);
+            _roles = all.Where(r => r.IntegrationId == IntegrationId).ToList();
+        }
+        catch (Exception e) { Snackbar.Add(e.Message, Severity.Error); }
+    }
+
+    private async Task Add()
+    {
+        if (!Guid.TryParse(_addPrincipalId, out var principalId))
+        {
+            Snackbar.Add("Principal id must be a GUID.", Severity.Warning);
+            return;
+        }
+        try
+        {
+            await RoleService.Create(new IntegrationRoleAssignmentReadDto
+            {
+                IntegrationId = IntegrationId,
+                PrincipalId = principalId,
+                PrincipalDiscriminator = _addDiscriminator,
+                RoleName = _addRole
+            }, OrganizationId);
+            _addPrincipalId = "";
+            await LoadAsync();
+        }
+        catch (Exception e) { Snackbar.Add(e.Message, Severity.Error); }
+    }
+
+    private async Task Remove(IntegrationRoleAssignmentReadDto ra)
+    {
+        try
+        {
+            await RoleService.Delete(ra.Id, OrganizationId);
+            await LoadAsync();
+        }
+        catch (Exception e) { Snackbar.Add(e.Message, Severity.Error); }
+    }
+}

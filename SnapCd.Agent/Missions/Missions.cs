@@ -63,6 +63,7 @@ public sealed partial class Missions
         connection.On<AutoDiagnoseRequest>(AgentEndpoints.AutoDiagnose, req => AutoDiagnose(req, connection, ct));
         connection.On<ApprovalRecommendRequest>(AgentEndpoints.ApprovalRecommend, req => ApprovalRecommend(req, connection, ct));
         connection.On<SummarizeJobRequest>(AgentEndpoints.SummarizeJob, req => SummarizeJob(req, connection, ct));
+        connection.On<AutoFixRequest>(AgentEndpoints.AutoFix, req => AutoFix(req, connection, ct));
         connection.On<CancelMissionRequest>(AgentEndpoints.CancelMission, CancelRun);
     }
 
@@ -140,6 +141,19 @@ public sealed partial class Missions
                 if (ev.IsResult)
                 {
                     result = ev.Result;
+                    continue;
+                }
+
+                if (ev.IsMilestone)
+                {
+                    // Flush any pending logs first so the milestone lands after the log lines that preceded it.
+                    if (logBatch.Count > 0)
+                    {
+                        await _hub.SendMissionLogsAsync(req.InvocationId, logBatch);
+                        logBatch = new List<MissionLogLineDto>();
+                    }
+                    await _hub.SendMissionMilestoneAsync(req.InvocationId,
+                        new MissionMilestoneDto { Timestamp = DateTimeOffset.UtcNow, Kind = ev.MilestoneKind, Message = ev.Message ?? string.Empty });
                     continue;
                 }
 

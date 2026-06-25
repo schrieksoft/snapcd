@@ -1,0 +1,209 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using Stack = SnapCd.Server.Core.Entities.Definition.Stack
+
+<MudExpansionPanels MultiExpansion="false">
+    <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Edit, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small"/>
+                <MudText>Edit Stack</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Edit))
+            {
+                <EditStack Stack="Stack"
+                           PrincipalProvider="PrincipalProvider"
+                           OnSaved="HandleStackSaved"
+                           OnCancel="@(() => CollapseSection())"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Roles)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Roles, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small"/>
+                <MudText>Manage Roles</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Roles))
+            {
+                <ManageStackRoles StackId="Stack.Id"
+                                  OnSaved="@(() => CollapseSection())"
+                                  OnCancel="@(() => CollapseSection())"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Missions)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Missions, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="material-symbols-outlined/automation" Size="Size.Small" Style="font-size: 1.25rem"/>
+                <MudText>Manage Missions</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Missions))
+            {
+                <ManageStackMissions StackId="Stack.Id"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.IntegrationEvents)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.IntegrationEvents, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small"/>
+                <MudText>Manage Integration Events</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.IntegrationEvents))
+            {
+                <ManageStackIntegrationEvents StackId="Stack.Id"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Secrets)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Secrets, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Password" Size="Size.Small"/>
+                <MudText>Manage Secrets</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Secrets))
+            {
+                <ManageStackSecrets StackId="Stack.Id"/>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Expanded="@IsSection(Section.Delete)"
+                       ExpandedChanged="@(e => HandleSectionChanged(Section.Delete, e))">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small"/>
+                <MudText>Delete Stack</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            @if (IsSection(Section.Delete))
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    Are you sure you want to delete stack "@Stack.Name" (ID "@Stack.Id")?
+                </MudAlert>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;"
+                               OnClick="DeleteStack">
+                        Delete
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;"
+                               OnClick="@(() => CollapseSection())">
+                        Cancel
+                    </MudButton>
+                </div>
+            }
+        </ChildContent>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter] public required Stack Stack { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [Parameter] public string? InitialSection { get; set; }
+    [Parameter] public EventCallback<string?> OnSectionChanged { get; set; }
+    [Parameter] public EventCallback OnStackDeleted { get; set; }
+    [Parameter] public EventCallback OnStackSaved { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private Section _activeSection = Section.None;
+
+    public enum Section
+    {
+        None,
+        Edit,
+        Roles,
+        Missions,
+        IntegrationEvents,
+        Secrets,
+        Delete
+    }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(InitialSection) &&
+            Enum.TryParse<Section>(InitialSection, ignoreCase: true, out var parsed) &&
+            parsed != Section.None)
+        {
+            _activeSection = parsed;
+        }
+    }
+
+    private bool IsSection(Section section) => _activeSection == section;
+
+    private void HandleSectionChanged(Section section, bool expanded)
+    {
+        if (expanded)
+        {
+            _activeSection = section;
+            OnSectionChanged.InvokeAsync(section.ToString().ToLowerInvariant());
+        }
+        else if (_activeSection == section)
+        {
+            _activeSection = Section.None;
+            OnSectionChanged.InvokeAsync(null);
+        }
+    }
+
+    private void CollapseSection()
+    {
+        _activeSection = Section.None;
+        OnSectionChanged.InvokeAsync(null);
+    }
+
+    private async Task HandleStackSaved()
+    {
+        CollapseSection();
+        await OnStackSaved.InvokeAsync();
+    }
+
+    private async Task DeleteStack()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            await repo.Delete(Stack.Id, OrganizationId);
+            Snackbar.Add($"Successfully deleted stack \"{Stack.Name}\"", Severity.Success);
+            await OnStackDeleted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting stack: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="$HOME/.dotnet:$PATH"
+
 # Verifies that SnapCd.Server.Core/Mcp/Generated/*.cs matches what SnapCd.Mcp.Generator
 # would emit from the current controller annotations. Exits non-zero if any generated
 # file would change — call `dotnet run --project SnapCd.Mcp.Generator` to fix.

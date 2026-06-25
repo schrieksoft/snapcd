@@ -28,9 +28,9 @@ using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Runner.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base;
-using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
+using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.System;
-using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
+using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
@@ -127,6 +127,20 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
     public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
     public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
+    public DbSet<ModuleJobMissionRunMilestone> ModuleJobMissionRunMilestones { get; set; }
+    public DbSet<Integration> Integrations { get; set; }
+    public DbSet<Entities.Definition.IntegrationSupplies.IntegrationStackSupply> IntegrationStackSupplies { get; set; }
+    public DbSet<Entities.Definition.IntegrationSupplies.IntegrationNamespaceSupply> IntegrationNamespaceSupplies { get; set; }
+    public DbSet<Entities.Definition.IntegrationSupplies.IntegrationModuleSupply> IntegrationModuleSupplies { get; set; }
+    public DbSet<Entities.Definition.RoleAssignments.Org.Integration.Base.IntegrationRoleAssignment> IntegrationRoleAssignments { get; set; }
+    public DbSet<Entities.Definition.RoleAssignments.Org.UserIntegrationRoleAssignment> UserIntegrationRoleAssignments { get; set; }
+    public DbSet<Entities.Definition.RoleAssignments.Org.ServicePrincipalIntegrationRoleAssignment> ServicePrincipalIntegrationRoleAssignments { get; set; }
+    public DbSet<Entities.Definition.RoleAssignments.Org.GroupIntegrationRoleAssignment> GroupIntegrationRoleAssignments { get; set; }
+    public DbSet<Entities.Definition.IntegrationEvents.OrganizationIntegrationEvent> OrganizationIntegrationEvents { get; set; }
+    public DbSet<Entities.Definition.IntegrationEvents.StackIntegrationEvent> StackIntegrationEvents { get; set; }
+    public DbSet<Entities.Definition.IntegrationEvents.NamespaceIntegrationEvent> NamespaceIntegrationEvents { get; set; }
+    public DbSet<Entities.Definition.IntegrationEvents.ModuleIntegrationEvent> ModuleIntegrationEvents { get; set; }
+    public DbSet<Entities.Definition.IntegrationDelivery> IntegrationDeliveries { get; set; }
     public DbSet<OutputSet> OutputSets { get; set; }
     public DbSet<Output> Outputs { get; set; }
     public DbSet<LiteralOutput> LiteralOutputs { get; set; }
@@ -140,15 +154,15 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<RunnerConnection> RunnerConnections { get; set; }
     public DbSet<RunnerConnectionJob> RunnerConnectionJobs { get; set; }
     public DbSet<JobRunnerAssignment> JobRunnerAssignments { get; set; }
-    public DbSet<RunnerStackAssignment> RunnerStackAssignments { get; set; }
-    public DbSet<RunnerNamespaceAssignment> RunnerNamespaceAssignments { get; set; }
-    public DbSet<RunnerModuleAssignment> RunnerModuleAssignments { get; set; }
+    public DbSet<RunnerStackSupply> RunnerStackSupplies { get; set; }
+    public DbSet<RunnerNamespaceSupply> RunnerNamespaceSupplies { get; set; }
+    public DbSet<RunnerModuleSupply> RunnerModuleSupplies { get; set; }
 
     public DbSet<Agent> Agents { get; set; }
     public DbSet<AgentConnection> AgentConnections { get; set; }
-    public DbSet<AgentStackAssignment> AgentStackAssignments { get; set; }
-    public DbSet<AgentNamespaceAssignment> AgentNamespaceAssignments { get; set; }
-    public DbSet<AgentModuleAssignment> AgentModuleAssignments { get; set; }
+    public DbSet<AgentStackSupply> AgentStackSupplies { get; set; }
+    public DbSet<AgentNamespaceSupply> AgentNamespaceSupplies { get; set; }
+    public DbSet<AgentModuleSupply> AgentModuleSupplies { get; set; }
     public DbSet<OrganizationMission> OrganizationMissions { get; set; }
     public DbSet<StackMission> StackMissions { get; set; }
     public DbSet<NamespaceMission> NamespaceMissions { get; set; }
@@ -355,19 +369,33 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobMissionClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobMissionRunClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleJobMissionRunMilestoneClassMap());
+        modelBuilder.ApplyConfiguration(new IntegrationClassMap());
+        modelBuilder.ApplyConfiguration(new IntegrationStackSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new IntegrationNamespaceSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new IntegrationModuleSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new ClassMaps.RoleAssignments.Org.IntegrationRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new ClassMaps.RoleAssignments.Org.UserIntegrationRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new ClassMaps.RoleAssignments.Org.ServicePrincipalIntegrationRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new ClassMaps.RoleAssignments.Org.GroupIntegrationRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new OrganizationIntegrationEventClassMap());
+        modelBuilder.ApplyConfiguration(new StackIntegrationEventClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceIntegrationEventClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleIntegrationEventClassMap());
+        modelBuilder.ApplyConfiguration(new IntegrationDeliveryClassMap());
         modelBuilder.ApplyConfiguration(new RunnerClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionJobClassMap());
         modelBuilder.ApplyConfiguration(new JobRunnerAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new SourceRefresherPreselectionClassMap());
-        modelBuilder.ApplyConfiguration(new RunnerStackAssignmentClassMap());
-        modelBuilder.ApplyConfiguration(new RunnerNamespaceAssignmentClassMap());
-        modelBuilder.ApplyConfiguration(new RunnerModuleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new RunnerStackSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new RunnerNamespaceSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new RunnerModuleSupplyClassMap());
         modelBuilder.ApplyConfiguration(new AgentClassMap());
         modelBuilder.ApplyConfiguration(new AgentConnectionClassMap());
-        modelBuilder.ApplyConfiguration(new AgentStackAssignmentClassMap());
-        modelBuilder.ApplyConfiguration(new AgentNamespaceAssignmentClassMap());
-        modelBuilder.ApplyConfiguration(new AgentModuleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new AgentStackSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new AgentNamespaceSupplyClassMap());
+        modelBuilder.ApplyConfiguration(new AgentModuleSupplyClassMap());
         modelBuilder.ApplyConfiguration(new OrganizationMissionClassMap());
         modelBuilder.ApplyConfiguration(new StackMissionClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceMissionClassMap());

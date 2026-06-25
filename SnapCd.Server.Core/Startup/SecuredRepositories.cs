@@ -12,9 +12,10 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.GroupMembers;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
-using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base;
-using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerAssignments;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies;
+using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
 using SnapCd.Server.Core.Repositories.System.Secured;
@@ -59,12 +60,12 @@ public static class SecuredRepositories
         services.AddScoped<NamespaceInputFromDefinitionSecuredRepository<NamespaceEnvVarFromDefinition>>();
         services.AddScoped<NamespaceInputFromSecretSecuredRepository<NamespaceParamFromSecret>>();
         services.AddScoped<NamespaceInputFromSecretSecuredRepository<NamespaceEnvVarFromSecret>>();
-        services.AddScoped<RunnerStackAssignmentSecuredRepository>();
-        services.AddScoped<RunnerNamespaceAssignmentSecuredRepository>();
-        services.AddScoped<RunnerModuleAssignmentSecuredRepository>();
-        services.AddScoped<AgentStackAssignmentSecuredRepository>();
-        services.AddScoped<AgentNamespaceAssignmentSecuredRepository>();
-        services.AddScoped<AgentModuleAssignmentSecuredRepository>();
+        services.AddScoped<RunnerStackSupplySecuredRepository>();
+        services.AddScoped<RunnerNamespaceSupplySecuredRepository>();
+        services.AddScoped<RunnerModuleSupplySecuredRepository>();
+        services.AddScoped<AgentStackSupplySecuredRepository>();
+        services.AddScoped<AgentNamespaceSupplySecuredRepository>();
+        services.AddScoped<AgentModuleSupplySecuredRepository>();
         services.AddScoped<StackSecretSecuredRepository>();
         services.AddScoped<NamespaceSecretSecuredRepository>();
         services.AddScoped<ModuleSecretSecuredRepository>();
@@ -124,6 +125,17 @@ public static class SecuredRepositories
         services.AddScoped<StackMissionSecuredRepository>();
         services.AddScoped<NamespaceMissionSecuredRepository>();
         services.AddScoped<ModuleMissionSecuredRepository>();
+
+        // IntegrationEvent family secured (4 scopes)
+        services.AddScoped<OrganizationIntegrationEventSecuredRepository>();
+        services.AddScoped<StackIntegrationEventSecuredRepository>();
+        services.AddScoped<NamespaceIntegrationEventSecuredRepository>();
+        services.AddScoped<ModuleIntegrationEventSecuredRepository>();
+
+        // IntegrationSupply family secured (3 scopes)
+        services.AddScoped<IntegrationStackSupplySecuredRepository>();
+        services.AddScoped<IntegrationNamespaceSupplySecuredRepository>();
+        services.AddScoped<IntegrationModuleSupplySecuredRepository>();
 
         // AgentRoleAssignment family secured (TPH base + 3 subclasses)
         services.AddScoped<SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments.Base.AgentRoleAssignmentSecuredRepository>();

@@ -3,9 +3,10 @@
     "SnapCd.Server.Host": {
       "commandName": "Project",
       "launchBrowser": false,
-      "applicationUrl": "https://localhost:20002",
+      "applicationUrl": "https://localhost:20002;http://0.0.0.0:40002",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "AllowHttp": "true"
       }
     }
   }

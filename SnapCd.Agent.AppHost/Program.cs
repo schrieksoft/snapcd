@@ -12,17 +12,28 @@ var snapcdBaseUrl = builder.Configuration["Sidecar:SnapcdBaseUrl"]
     ?? throw new InvalidOperationException("Sidecar:SnapcdBaseUrl is not set (appsettings.json).");
 var claudeCodeOAuthToken = builder.Configuration["Sidecar:ClaudeCodeOAuthToken"];
 var anthropicApiKey = builder.Configuration["Sidecar:AnthropicApiKey"];
+// GitHub PAT the sidecar's pre-installed `gh`/`git` use for the AutoFix code path (clone + open PR).
+// Read by gh straight from the process env as GITHUB_TOKEN — nothing in config.py consumes it.
+var gitHubToken = builder.Configuration["Sidecar:GitHubToken"];
 
-var claudeSidecar = builder.AddUvicornApp("claude-sidecar", "../SnapCd.Agent/Sidecars/Claude", "main:app")
-    .WithUv()
-    .WithHttpEndpoint(env: "UVICORN_PORT")
+// Run the sidecar as a container built from its Dockerfile (not a host uvicorn process) so the
+// image's git + gh are present for the AutoFix code path — dev matches prod. The container listens on
+// $PORT (default 7001); Aspire injects it and proxies the endpoint.
+var claudeSidecar = builder.AddDockerfile("claude-sidecar", "../SnapCd.Agent/Sidecars/Claude")
+    .WithHttpEndpoint(targetPort: 7001, env: "PORT")
     .WithHttpHealthCheck("/health")
+    // The sidecar reaches the host-run SnapCd server via host.docker.internal; on Linux that needs the
+    // host-gateway mapping. SnapcdBaseUrl points at the server's plain-HTTP dev port (AllowHttp=true), so
+    // there's no host dev TLS cert to trust from inside the container.
+    .WithContainerRuntimeArgs("--add-host=host.docker.internal:host-gateway")
     .WithEnvironment("SNAPCD_BASE_URL", snapcdBaseUrl);
 
 if (!string.IsNullOrWhiteSpace(claudeCodeOAuthToken))
     claudeSidecar.WithEnvironment("CLAUDE_CODE_OAUTH_TOKEN", claudeCodeOAuthToken);
 if (!string.IsNullOrWhiteSpace(anthropicApiKey))
     claudeSidecar.WithEnvironment("ANTHROPIC_API_KEY", anthropicApiKey);
+if (!string.IsNullOrWhiteSpace(gitHubToken))
+    claudeSidecar.WithEnvironment("GITHUB_TOKEN", gitHubToken);
 
 builder.AddProject<Projects.SnapCd_Agent>("snapcd-agent")
     .WithEnvironment("DOTNET_ENVIRONMENT", "Development")

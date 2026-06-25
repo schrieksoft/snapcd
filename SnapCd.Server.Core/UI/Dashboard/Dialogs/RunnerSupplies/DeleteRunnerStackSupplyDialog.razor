@@ -1,0 +1,49 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies
+<MudDialog>
+    <TitleContent>
+        <MudText>Delete Runner Stack Supply</MudText>
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to remove the supply of Runner "@RunnerName" to Stack "@StackName" on?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete">Delete</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [Inject] private RunnerStackSupplySecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+
+
+    [Parameter] public required Guid RunnerStackSupplyId { get; set; }
+    [Parameter] public required string RunnerName { get; set; }
+    [Parameter] public required string StackName { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Delete()
+    {
+        using var repo = RepoFactory.Create();
+        await repo.Delete(RunnerStackSupplyId, OrganizationId);
+
+        MudDialog.Close(DialogResult.Ok(RunnerStackSupplyId));
+    }
+
+}

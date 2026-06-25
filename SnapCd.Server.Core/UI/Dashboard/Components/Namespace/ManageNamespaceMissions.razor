@@ -16,10 +16,7 @@
 
 @inject ISnackbar Snackbar
 
-<MudPaper Elevation="1" Class="pa-4">
-    <MudText Typo="Typo.h6" GutterBottom="true">Missions</MudText>
-
-    <MudTabs Outlined="true" Rounded="true" Border="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+<MudTabs Outlined="true" Rounded="true" Border="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
         <MudTabPanel Text="Namespace" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)
             {
@@ -91,7 +88,7 @@
                                       SidecarNameSelector="@(r => r.SidecarName)"
                                       AgentNameLookup="@LookupAgentName"
                                       OrganizationId="OrganizationId"
-                                      Scope="AgentAssignmentBadge.AssignmentScope.Namespace"
+                                      Scope="AgentSupplyBadge.SupplyScope.Namespace"
                                       ScopeId="NamespaceId"
                                       OnEdit="BeginEdit"
                                       OnDelete="DeleteRow"/>
@@ -103,7 +100,7 @@
             <MudTabPanel Text="Inherited from Stack" Style="text-transform: none">
                 <div style="opacity: 0.6;">
                     <MudText Typo="Typo.caption" Class="mb-2">
-                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="@($"/Stacks/{StackName}?action=missions")">here</MudLink>.
+                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="@($"/Stacks/{StackName}?action=configure&section=missions")">here</MudLink>.
                     </MudText>
                     <MudDivider Class="mb-3"/>
                     <AgentGroupedMissions TRow="StackMission"
@@ -114,7 +111,7 @@
                                           SidecarNameSelector="@(r => r.SidecarName)"
                                           AgentNameLookup="@LookupAgentName"
                                           OrganizationId="OrganizationId"
-                                          Scope="AgentAssignmentBadge.AssignmentScope.Stack"
+                                          Scope="AgentSupplyBadge.SupplyScope.Stack"
                                           ScopeId="StackId"/>
                 </div>
             </MudTabPanel>
@@ -136,12 +133,11 @@
                                           SidecarNameSelector="@(r => r.SidecarName)"
                                           AgentNameLookup="@LookupAgentName"
                                           OrganizationId="OrganizationId"
-                                          Scope="AgentAssignmentBadge.AssignmentScope.Organization"/>
+                                          Scope="AgentSupplyBadge.SupplyScope.Organization"/>
                 </div>
             </MudTabPanel>
         }
     </MudTabs>
-</MudPaper>
 
 @code {
     [Parameter] public required Guid NamespaceId { get; set; }

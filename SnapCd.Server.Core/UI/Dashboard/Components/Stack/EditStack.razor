@@ -9,10 +9,9 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
-<MudPaper Elevation="1" Class="pa-4 mb-4">
-    <EditForm Model="Stack" OnValidSubmit="SaveStack">
-        <DataAnnotationsValidator/>
-        <MudGrid Class="pa-4">
+<EditForm Model="Stack" OnValidSubmit="SaveStack">
+    <DataAnnotationsValidator/>
+    <MudGrid>
             <!-- Read-only IDs -->
             <MudItem md="12">
                 <MudTextField Label="Stack ID" @bind-Value="Stack.Id"
@@ -39,9 +38,8 @@
                     Cancel
                 </MudButton>
             </MudItem>
-        </MudGrid>
-    </EditForm>
-</MudPaper>
+    </MudGrid>
+</EditForm>
 
 @code {
     [Parameter] public required Stack Stack { get; set; }

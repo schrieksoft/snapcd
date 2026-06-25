@@ -40,13 +40,21 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
     private bool _deferEvents;
     private readonly List<Func<Task>> _pendingEvents = new();
 
-    public GenericRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<TSettings> options, QuotaService? quotaService = null)
+    /// <summary>
+    /// When true, create/update/delete events are NOT published by this repository instance regardless
+    /// of the entity settings — for high-frequency writes (e.g. streamed mission-log appends) where the
+    /// event would be noise. Audit fields are still stamped. Set once via the constructor; default false.
+    /// </summary>
+    protected readonly bool SuppressEvents;
+
+    public GenericRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<TSettings> options, QuotaService? quotaService = null, bool suppressEvents = false)
     {
         DbContext = dbContext;
         PrincipalProvider = principalProvider;
         Bus = bus;
         Options = options;
         QuotaService = quotaService;
+        SuppressEvents = suppressEvents;
     }
 
     /// <summary>
@@ -215,7 +223,7 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
 
         await DbContext.SaveChangesAsync();
 
-        if (Options.Value.EmitCreateEvents)
+        if (Options.Value.EmitCreateEvents && !SuppressEvents)
         {
             await EnqueueOrPublish(() => Bus.Publish(EventMapper.ToCreateEto<TEntity, TDto, TCreateEvent>(entity, MapToDto, entity.OrganizationId),
                 publishContext => { publishContext.TimeToLive = Options.Value.EventTtl; }));
@@ -288,7 +296,7 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         DbContext.Entry(existingEntity).CurrentValues.SetValues(entity);
         await DbContext.SaveChangesAsync();
 
-        if (Options.Value.EmitUpdateEvents)
+        if (Options.Value.EmitUpdateEvents && !SuppressEvents)
         {
             await EnqueueOrPublish(() => Bus.Publish(EventMapper.ToUpdateEto<TEntity, TDto, TUpdateEvent>(previousEntity, existingEntity, MapToDto, entity.OrganizationId),
                 publishContext => { publishContext.TimeToLive = Options.Value.EventTtl; }));
@@ -337,7 +345,7 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         DbContext.Set<TEntity>().Remove(entity);
         await DbContext.SaveChangesAsync();
 
-        if (Options.Value.EmitDeleteEvents)
+        if (Options.Value.EmitDeleteEvents && !SuppressEvents)
         {
             await EnqueueOrPublish(() => Bus.Publish(EventMapper.ToDeleteEto<TEntity, TDto, TDeleteEvent>(deletedEntity, MapToDto, organizationId),
                 publishContext => { publishContext.TimeToLive = Options.Value.EventTtl; }));

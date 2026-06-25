@@ -24,7 +24,6 @@
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.Views
 @using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
-@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Stacks
 @using Stack = SnapCd.Server.Core.Entities.Definition.Stack
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Components.Stack
@@ -87,38 +86,16 @@
                                OnClick="() => SwitchShowing(ShowingType.Namespaces)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Edit Stack">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="GetColor(ShowingType.Edit)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Edit)"/>
-            </MudTooltip>
-
             <MudTooltip Text="Dependency Graph">
                 <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.DependencyGraph)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Manage Roles">
-                <MudIconButton Icon="@Icons.Material.Filled.Shield" Color="GetColor(ShowingType.Roles)"
+            <MudTooltip Text="Configure">
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
                                Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Roles)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Missions">
-                <MudIconButton Icon="material-symbols-outlined/automation"
-                               Color="GetColor(ShowingType.Missions)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Missions)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Secrets">
-                <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Secrets)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Delete Stack">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
-                               OnClick="() => Delete(_stack)"/>
+                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
             </MudTooltip>
         </MudPaper>
 
@@ -205,30 +182,14 @@
             </MudPaper>
         }
 
-        @if (_showing == ShowingType.Edit && _stack != null)
+        @if (_showing == ShowingType.Configure && _stack != null)
         {
-            <EditStack Stack="_stack"
-                       PrincipalProvider="_literalPrincipalProvider"
-                       OnSaved="() => _showing = ShowingType.None"
-                       OnCancel="() => _showing = ShowingType.None"/>
-        }
-
-        @if (_showing == ShowingType.Roles && _stack != null)
-        {
-            <ManageStackRoles StackId="_stack.Id"
-                              OnSaved="() => _showing = ShowingType.None"
-                              OnCancel="() => _showing = ShowingType.None"/>
-        }
-
-        @if (_showing == ShowingType.Missions && _stack != null)
-        {
-            <ManageStackMissions StackId="_stack.Id"/>
-        }
-
-        @if (_showing == ShowingType.Secrets && _stack != null)
-        {
-            <ManageStackSecrets
-                StackId="_stack.Id"/>
+            <ConfigureStack Stack="_stack"
+                            PrincipalProvider="_literalPrincipalProvider"
+                            InitialSection="@_configureSection"
+                            OnSectionChanged="HandleConfigureSectionChanged"
+                            OnStackDeleted="HandleStackDeleted"
+                            OnStackSaved="HandleStackSaved"/>
         }
 
         @if (_showing == ShowingType.DependencyGraph && _stack != null)
@@ -447,6 +408,7 @@
     [SupplyParameterFromQuery] public string? Action { get; set; }
     [SupplyParameterFromQuery] public string? Search { get; set; }
     [SupplyParameterFromQuery] public string? Direction { get; set; }
+    [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
     private Stack? _stack;
@@ -454,6 +416,7 @@
     private List<BreadcrumbItem> _breadCrumbs = [];
 
     private ShowingType _showing = ShowingType.None;
+    private string? _configureSection;
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private bool _showCreate;
@@ -546,6 +509,7 @@
 
         // Set initial showing based on query parameter
         _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Namespaces;
+        _configureSection = Section;
     }
 
     private Color GetColor(ShowingType showTypeToMatch)
@@ -558,51 +522,36 @@
         var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
         _showing = targetShowing;
 
-        // Update URL without reloading, preserving organizationId and search terms
-        var actionQuery = GetActionFromShowingType(targetShowing);
-        var queryParams = new List<string>();
+        if (targetShowing != ShowingType.Configure)
+            _configureSection = null;
 
-        if (actionQuery != null)
-            queryParams.Add($"action={actionQuery}");
-
-        if (_searchTerms.Any())
-            queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
-
-        var queryString = "?" + string.Join("&", queryParams);
-        var newUrl = $"/Stacks/{StackName}{queryString}";
-        NavigationManager.NavigateTo(newUrl, false);
+        UpdateUrl();
     }
 
     private enum ShowingType
     {
         None,
         Namespaces,
-        Edit,
-        Roles,
-        Missions,
-        Secrets,
-        DependencyGraph
+        DependencyGraph,
+        Configure
     }
 
 
-    private async Task Delete(Stack stack)
+    private void HandleConfigureSectionChanged(string? section)
     {
-        var parameters = new DialogParameters<DeleteStackDialog>
-        {
-            { x => x.Stack, stack },
-            { x => x.OrganizationId, OrganizationId }
-        };
+        _configureSection = section;
+        UpdateUrl();
+    }
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteStackDialog>("Delete", parameters, options);
-        var result = await dialog.Result;
+    private void HandleStackDeleted()
+    {
+        NavigationManager.NavigateTo("/Stacks");
+    }
 
-        if (result is { Canceled: false })
-        {
-            Guid.TryParse(result.Data?.ToString(), out var deletedStackId);
-            Snackbar.Add($"Successfully deleted stack \"{deletedStackId}\"");
-            NavigationManager.NavigateTo("/Stacks");
-        }
+    private async Task HandleStackSaved()
+    {
+        using var repo = RepoFactory.Create();
+        _stack = await repo.GetByName(StackName, OrganizationId);
     }
 
     private async Task HandleCreated()
@@ -637,7 +586,7 @@
             _showNamespaceSearch = false; // Hide search box after adding term
 
             // Update URL with search terms
-            UpdateUrlWithSearchTerms();
+            UpdateUrl();
 
             if (_listNamespacesComponent != null)
                 await _listNamespacesComponent.LoadNamespaces();
@@ -649,25 +598,27 @@
         _searchTerms.Remove(term);
 
         // Update URL with search terms
-        UpdateUrlWithSearchTerms();
+        UpdateUrl();
 
         if (_listNamespacesComponent != null)
             await _listNamespacesComponent.LoadNamespaces();
     }
 
-    private void UpdateUrlWithSearchTerms()
+    private void UpdateUrl()
     {
         var queryParams = new List<string>();
 
-        // Preserve action parameter if present
         var actionQuery = GetActionFromShowingType(_showing);
         if (actionQuery != null)
             queryParams.Add($"action={actionQuery}");
 
+        if (_showing == ShowingType.Configure && !string.IsNullOrEmpty(_configureSection))
+            queryParams.Add($"section={Uri.EscapeDataString(_configureSection)}");
+
         if (_searchTerms.Any())
             queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
 
-        var queryString = "?" + string.Join("&", queryParams);
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
         var newUrl = $"/Stacks/{StackName}{queryString}";
         NavigationManager.NavigateTo(newUrl, false);
     }
@@ -748,12 +699,9 @@
     {
         return action?.ToLower() switch
         {
-            "edit" => ShowingType.Edit,
-            "secrets" => ShowingType.Secrets,
-            "roles" => ShowingType.Roles,
-            "missions" => ShowingType.Missions,
             "namespaces" => ShowingType.Namespaces,
             "dependencygraph" => ShowingType.DependencyGraph,
+            "configure" => ShowingType.Configure,
             _ => null
         };
     }
@@ -762,12 +710,9 @@
     {
         return showingType switch
         {
-            ShowingType.Edit => "Edit",
-            ShowingType.Secrets => "Secrets",
-            ShowingType.Roles => "Roles",
-            ShowingType.Missions => "Missions",
             ShowingType.Namespaces => "Namespaces",
             ShowingType.DependencyGraph => "DependencyGraph",
+            ShowingType.Configure => "Configure",
             _ => null
         };
     }

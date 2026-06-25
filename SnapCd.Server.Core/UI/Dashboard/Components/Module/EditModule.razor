@@ -16,9 +16,8 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @implements IDisposable
 
-<MudPaper Elevation="1" Class="pa-4 mb-4">
-    <MudForm @ref="_form">
-        <MudGrid Class="pa-4">
+<MudForm @ref="_form">
+    <MudGrid>
             <!-- Read-only IDs -->
             <MudItem md="12">
                 <MudTextField Label="Module ID" @bind-Value="Module.Id" Variant="Variant.Outlined" ReadOnly
@@ -446,9 +445,8 @@
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveModule">Save</MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel">Cancel</MudButton>
             </MudItem>
-        </MudGrid>
-    </MudForm>
-</MudPaper>
+    </MudGrid>
+</MudForm>
 
 @code {
     [Parameter] public required Module Module { get; set; }

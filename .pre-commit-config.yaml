@@ -15,8 +15,8 @@ repos:
             | .*GlobalUsings\.g\.cs
           )$
       - id: mcp-surface
-        name: MCP generated surface is up-to-date
-        entry: scripts/check-mcp-surface.sh
+        name: MCP generated surface (regenerated if stale)
+        entry: scripts/check-mcp-surface.sh --write
         language: system
         pass_filenames: false
         # Only run when something that could affect the generated output changes:
@@ -29,8 +29,8 @@ repos:
             | SnapCd\.Server\.Core/AI/Mcp/Generated/.*\.cs
           )$
       - id: settings-schemas
-        name: Settings schemas are up-to-date
-        entry: scripts/check-settings-schemas.sh
+        name: Settings schemas (regenerated if stale)
+        entry: scripts/check-settings-schemas.sh --write
         language: system
         pass_filenames: false
         # Run when any settings POCO, generator source, shared emitter, or committed schema

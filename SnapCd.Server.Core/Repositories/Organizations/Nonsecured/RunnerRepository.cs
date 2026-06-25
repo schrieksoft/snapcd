@@ -111,10 +111,10 @@ public class RunnerRepository : GenericOrganizationChildRepository<Runner, Runne
 
         query = query.Where(rp =>
             rp.OrganizationId == organizationId &&
-            (rp.RunnerModuleAssignments.Any(a => a.ModuleId == moduleId) ||
-             rp.RunnerNamespaceAssignments.Any(a => a.NamespaceId == module.NamespaceId) ||
-             rp.RunnerStackAssignments.Any(a => a.StackId == module.StackId) ||
-             rp.IsAssignedToAllModules));
+            (rp.RunnerModuleSupplies.Any(a => a.ModuleId == moduleId) ||
+             rp.RunnerNamespaceSupplies.Any(a => a.NamespaceId == module.NamespaceId) ||
+             rp.RunnerStackSupplies.Any(a => a.StackId == module.StackId) ||
+             rp.IsSuppliedToAllModules));
 
         return await query.ToListAsync();
     }
@@ -137,9 +137,9 @@ public class RunnerRepository : GenericOrganizationChildRepository<Runner, Runne
 
         query = query.Where(rp =>
             rp.OrganizationId == organizationId &&
-            (rp.RunnerNamespaceAssignments.Any(a => a.NamespaceId == ns.Id) ||
-             rp.RunnerStackAssignments.Any(a => a.StackId == ns.StackId) ||
-             rp.IsAssignedToAllModules));
+            (rp.RunnerNamespaceSupplies.Any(a => a.NamespaceId == ns.Id) ||
+             rp.RunnerStackSupplies.Any(a => a.StackId == ns.StackId) ||
+             rp.IsSuppliedToAllModules));
 
         return await query.ToListAsync();
     }
@@ -153,8 +153,8 @@ public class RunnerRepository : GenericOrganizationChildRepository<Runner, Runne
 
         query = query.Where(rp =>
             rp.OrganizationId == organizationId &&
-            (rp.RunnerStackAssignments.Any(a => a.StackId == stackId) ||
-             rp.IsAssignedToAllModules));
+            (rp.RunnerStackSupplies.Any(a => a.StackId == stackId) ||
+             rp.IsSuppliedToAllModules));
 
         return await query.ToListAsync();
     }

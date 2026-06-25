@@ -104,6 +104,9 @@ public sealed class HttpAgentSidecar : IAgentSidecar
         if (evt.Type == "result")
             return new SidecarStreamEvent { IsResult = true, Result = MapResult(evt.Result) };
 
+        if (evt.Type == "milestone")
+            return new SidecarStreamEvent { IsMilestone = true, MilestoneKind = evt.Kind, Message = evt.Message };
+
         return new SidecarStreamEvent { IsResult = false, Level = evt.Level ?? "info", Message = evt.Message };
     }
 
@@ -135,6 +138,7 @@ public sealed class HttpAgentSidecar : IAgentSidecar
     {
         [JsonPropertyName("type")] public string Type { get; set; } = "";
         [JsonPropertyName("level")] public string? Level { get; set; }
+        [JsonPropertyName("kind")] public string? Kind { get; set; }
         [JsonPropertyName("message")] public string? Message { get; set; }
         [JsonPropertyName("result")] public JsonElement Result { get; set; }
     }

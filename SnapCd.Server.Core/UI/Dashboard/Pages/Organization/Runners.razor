@@ -31,7 +31,7 @@
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Runner
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Runners
-@using SnapCd.Server.Core.UI.Dashboard.Components.RunnerAssignments
+@using SnapCd.Server.Core.UI.Dashboard.Components.RunnerSupplies
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 
 @attribute [Authorize]
@@ -107,8 +107,8 @@
 
                         <MudTooltip Text="Manage Where Runner can be used from">
                             <MudIconButton Icon="@Icons.Material.Filled.Layers"
-                                           Color="@GetColor(runner.Id, ShowingType.Assignments)" Size="Size.Small"
-                                           OnClick="() => ManageAssignments(runner)"/>
+                                           Color="@GetColor(runner.Id, ShowingType.Supplies)" Size="Size.Small"
+                                           OnClick="() => ManageSupplies(runner)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Roles">
@@ -131,12 +131,12 @@
                             </MudItem>
                         }
 
-                        @if (IsShowing(runner.Id, ShowingType.Assignments))
+                        @if (IsShowing(runner.Id, ShowingType.Supplies))
                         {
                             <MudItem Class="mt-2">
-                                <ManageRunnerAssignments
+                                <ManageRunnerSupplies
                                     RunnerId=runner.Id
-                                    OnClose="HandleAssignmentsClosed"/>
+                                    OnClose="HandleSuppliesClosed"/>
                             </MudItem>
                         }
 
@@ -175,7 +175,7 @@
     {
         None,
         Edit,
-        Assignments,
+        Supplies,
         Roles
     }
 
@@ -213,13 +213,13 @@
     }
 
 
-    private void HandleAssignmentsClosed()
+    private void HandleSuppliesClosed()
     {
         _selectedRunner = null;
         _showing = ShowingType.None;
     }
 
-    private void HandleServicePrincipalAssignmentsClosed()
+    private void HandleServicePrincipalSuppliesClosed()
     {
         _selectedRunner = null;
         _showing = ShowingType.None;
@@ -278,10 +278,10 @@
     }
 
 
-    private void ManageAssignments(Runner runner)
+    private void ManageSupplies(Runner runner)
     {
         _selectedRunner = runner;
-        _showing = ShowingType.Assignments;
+        _showing = ShowingType.Supplies;
     }
 
     private void ManageRoles(Runner runner)

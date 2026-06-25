@@ -23,7 +23,7 @@ public static class AgentMapper
             Name = dto.Name,
             IsDisabled = dto.IsDisabled,
             AllowMultipleInstances = dto.AllowMultipleInstances,
-            IsAssignedToAllModules = dto.IsAssignedToAllModules
+            IsSuppliedToAllModules = dto.IsSuppliedToAllModules
         };
     }
 
@@ -36,7 +36,7 @@ public static class AgentMapper
             Name = entity.Name,
             IsDisabled = entity.IsDisabled,
             AllowMultipleInstances = entity.AllowMultipleInstances,
-            IsAssignedToAllModules = entity.IsAssignedToAllModules
+            IsSuppliedToAllModules = entity.IsSuppliedToAllModules
         };
     }
 
@@ -46,6 +46,6 @@ public static class AgentMapper
         entity.Name = dto.Name;
         entity.IsDisabled = dto.IsDisabled;
         entity.AllowMultipleInstances = dto.AllowMultipleInstances;
-        entity.IsAssignedToAllModules = dto.IsAssignedToAllModules;
+        entity.IsSuppliedToAllModules = dto.IsSuppliedToAllModules;
     }
 }

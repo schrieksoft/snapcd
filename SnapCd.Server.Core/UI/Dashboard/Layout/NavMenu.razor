@@ -117,7 +117,7 @@
                 </MudNavGroup>
             }
 
-            <!-- Tests Section (dev only — surfaces dev-mode test harnesses like AgentHarness). -->
+            <!-- Tests Section (dev only — surfaces dev-mode test tools like the Mission test bench). -->
             @if (HostEnvironment.IsDevelopment() && _testsIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
                 <MudNavGroup Title="Tests" Icon="@Icons.Material.Filled.Science" Expanded="false">
@@ -396,13 +396,15 @@
     {
         new NavLinkItem("Runners", NavLinkMatch.All, "material-symbols-outlined/manufacturing", "Runners", typeof(Runners)),
         new NavLinkItem("Agents", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agents", typeof(Agents)),
+        new NavLinkItem("Integrations", NavLinkMatch.All, Icons.Material.Filled.Hub, "Integrations", typeof(Integrations)),
         new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, "material-symbols-outlined/code", "Source Refreshers", typeof(SourceRefresherPreselections))
     };
 
     // Tests Section - collapsible group, dev only
     private List<NavLinkItem> _testsNavLinks = new()
     {
-        new NavLinkItem("AgentHarness", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agent", typeof(AgentHarness))
+        new NavLinkItem("MissionTestBench", NavLinkMatch.All, Icons.Material.Filled.Science, "Mission test bench", typeof(MissionTestBench)),
+        new NavLinkItem("IntegrationTestBench", NavLinkMatch.All, Icons.Material.Filled.Hub, "Integration test bench", typeof(IntegrationTestBench))
     };
 
     // Identity Access Section - collapsible group

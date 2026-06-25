@@ -27,7 +27,7 @@
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Agent
-@using SnapCd.Server.Core.UI.Dashboard.Components.AgentAssignments
+@using SnapCd.Server.Core.UI.Dashboard.Components.AgentSupplies
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Agents
 
@@ -119,10 +119,10 @@
                                            OnClick="() => ManageMissions(agent)"/>
                         </MudTooltip>
 
-                        <MudTooltip Text="Manage Assignments">
-                            <MudIconButton Icon="@Icons.Material.Filled.SettingsApplications"
-                                           Color="@GetColor(agent.Id, ShowingType.Assignments)" Size="Size.Small"
-                                           OnClick="() => ManageAssignments(agent)"/>
+                        <MudTooltip Text="Manage Supplies">
+                            <MudIconButton Icon="@Icons.Material.Filled.Layers"
+                                           Color="@GetColor(agent.Id, ShowingType.Supplies)" Size="Size.Small"
+                                           OnClick="() => ManageSupplies(agent)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete Agent">
@@ -164,12 +164,12 @@
                             </MudItem>
                         }
 
-                        @if (IsShowing(agent.Id, ShowingType.Assignments))
+                        @if (IsShowing(agent.Id, ShowingType.Supplies))
                         {
                             <MudItem Class="mt-2">
-                                <ManageAgentAssignments
+                                <ManageAgentSupplies
                                     AgentId="agent.Id"
-                                    OnClose="HandleAssignmentsClosed"/>
+                                    OnClose="HandleSuppliesClosed"/>
                             </MudItem>
                         }
                     </ChildContent>
@@ -202,7 +202,7 @@
         Edit,
         Roles,
         Missions,
-        Assignments
+        Supplies
     }
 
     private Color GetColor(Guid agentId, ShowingType showTypeToMatch)
@@ -322,9 +322,9 @@
 
     private void ManageMissions(Agent agent) => Select(agent, ShowingType.Missions);
 
-    private void ManageAssignments(Agent agent) => Select(agent, ShowingType.Assignments);
+    private void ManageSupplies(Agent agent) => Select(agent, ShowingType.Supplies);
 
-    private void HandleAssignmentsClosed() => ClearSelection();
+    private void HandleSuppliesClosed() => ClearSelection();
 
     private void ShowOverview(Agent agent) => Select(agent, ShowingType.Overview);
 

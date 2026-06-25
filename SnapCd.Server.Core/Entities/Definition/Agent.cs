@@ -7,7 +7,7 @@
 // for terms covering either use.
 
 using System.ComponentModel.DataAnnotations;
-using SnapCd.Server.Core.Entities.Definition.AgentAssignments;
+using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base;
@@ -27,7 +27,7 @@ public class Agent : AuditBase, IEntity, IOrganizationChild, ICreationTrackable
 
     public bool AllowMultipleInstances { get; set; }
 
-    public bool IsAssignedToAllModules { get; set; }
+    public bool IsSuppliedToAllModules { get; set; }
 
     // Navigation properties
     public virtual Organization Organization { get; set; } = null!;
@@ -35,9 +35,9 @@ public class Agent : AuditBase, IEntity, IOrganizationChild, ICreationTrackable
 
     public List<AgentRoleAssignment> AgentRoleAssignments { get; set; } = null!;
 
-    public List<AgentStackAssignment> AgentStackAssignments { get; set; } = null!;
-    public List<AgentNamespaceAssignment> AgentNamespaceAssignments { get; set; } = null!;
-    public List<AgentModuleAssignment> AgentModuleAssignments { get; set; } = null!;
+    public List<AgentStackSupply> AgentStackSupplies { get; set; } = null!;
+    public List<AgentNamespaceSupply> AgentNamespaceSupplies { get; set; } = null!;
+    public List<AgentModuleSupply> AgentModuleSupplies { get; set; } = null!;
 
     public List<OrganizationMission> OrganizationMissions { get; set; } = null!;
     public List<StackMission> StackMissions { get; set; } = null!;

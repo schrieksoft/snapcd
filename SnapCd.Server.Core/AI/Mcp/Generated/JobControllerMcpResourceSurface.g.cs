@@ -28,7 +28,7 @@ public static class JobControllerMcpResourceSurface
         => await service.GetLogs(jobId, organizationId);
 
     [McpServerResource(UriTemplate = "snapcd://orgs/{organizationId}/jobs/{jobId}/status", Name = "module_job_status", MimeType = "application/json")]
-    [Description(@"Status metadata for a SnapCd ModuleJob: JobType (Apply/Destroy), WaitingForApproval, ActualStateHeadline, server-side error fields, and output deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action plan body or the apply output — those are in module_job_logs filtered by TaskName.")]
+    [Description(@"Status metadata for a SnapCd ModuleJob: JobType (Apply/Destroy), DefinitiveRevision (the resolved commit SHA the job ran against), WaitingForApproval, ActualStateHeadline, server-side error fields, and output deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action plan body or the apply output — those are in module_job_logs filtered by TaskName.")]
     public static async System.Threading.Tasks.Task<string> ModuleJobStatus(
         SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,

@@ -1,0 +1,439 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/Integrations"
+@layout OrganizationMainLayout
+
+@inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+@inject SnapCd.Server.Core.Services.OrganizationContext.IOrganizationContext OrganizationContext
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+@using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.Integrations
+@using SnapCd.Server.Core.Filters
+@using SnapCd.Server.Core.UI.Dashboard.Components.Integrations
+@using SnapCd.Server.Core.UI.Dashboard.Components.IntegrationSupplies
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
+<PageTitle>Integrations</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudText Typo="Typo.h4" GutterBottom="true">Integrations</MudText>
+
+    @if (_showCreate)
+    {
+        <MudPaper Class="pa-4 mb-3" Elevation="1">
+            <MudText Typo="Typo.h6" GutterBottom="true">New Integration</MudText>
+            <MudSelect T="IntegrationType" @bind-Value="_create.IntegrationType" Label="Integration Type" Class="mb-2">
+                @foreach (var t in Enum.GetValues<IntegrationType>())
+                {
+                    <MudSelectItem T="IntegrationType" Value="t">@t</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_create.Name" Label="Name" Class="mb-2" />
+            @if (_create.IntegrationType == IntegrationType.Slack)
+            {
+                <MudTextField @bind-Value="_create.DefaultChannel" Label="Default channel (e.g. #alerts or channel id)" Class="mb-2" />
+                <MudTextField @bind-Value="_create.BotToken" Label="Bot token (xoxb-…)" InputType="MudBlazor.InputType.Password" Class="mb-2" />
+            }
+            <MudSwitch T="bool" @bind-Value="_create.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Default" />
+            <MudSwitch T="bool" @bind-Value="_create.Enabled" Label="Enabled" Color="Color.Default" />
+            <div class="mt-2">
+                <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="SubmitCreate" Class="me-2">Create</MudButton>
+                <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="@(() => _showCreate = false)">Cancel</MudButton>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="ShowCreate" Class="mt-2 mb-2">Create New</MudButton>
+    }
+
+    @if (_integrations is null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_integrations.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mt-2">No integrations yet.</MudText>
+    }
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var i in _integrations)
+            {
+                <MudExpansionPanel Expanded="@(i.Id == _expandedIntegrationId)"
+                                   ExpandedChanged="@(e => HandleExpansionChanged(i.Id, e))">
+                    <TitleContent>
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <MudText><b>@i.Name</b> — @i.IntegrationType</MudText>
+                                @if (!i.Enabled) { <MudChip T="string" Size="Size.Small" Class="ms-2">disabled</MudChip> }
+                                @if (i.IsSuppliedToAllModules) { <MudChip T="string" Size="Size.Small" Class="ms-2">all modules</MudChip> }
+                            </div>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudTooltip Text="Edit Integration">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="@GetColor(i.Id, ShowingType.Edit)" Size="Size.Small"
+                                           OnClick="() => SelectShowing(i.Id, ShowingType.Edit)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Integration Events">
+                            <MudIconButton Icon="@Icons.Material.Filled.Bolt"
+                                           Color="@GetColor(i.Id, ShowingType.IntegrationEvents)" Size="Size.Small"
+                                           OnClick="() => SelectShowing(i.Id, ShowingType.IntegrationEvents)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Supplies">
+                            <MudIconButton Icon="@Icons.Material.Filled.Layers"
+                                           Color="@GetColor(i.Id, ShowingType.Supplies)" Size="Size.Small"
+                                           OnClick="() => SelectShowing(i.Id, ShowingType.Supplies)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Roles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                           Color="@GetColor(i.Id, ShowingType.Roles)" Size="Size.Small"
+                                           OnClick="() => SelectShowing(i.Id, ShowingType.Roles)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Test Connection">
+                            <MudIconButton Icon="@Icons.Material.Filled.NetworkCheck"
+                                           Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Test(i.Id)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Delete Integration">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(i.Id)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(i.Id, ShowingType.Edit))
+                        {
+                            <MudItem Class="mt-2">
+                                @if (_editModels.TryGetValue(i.Id, out var m))
+                                {
+                                    <MudPaper Elevation="0" Class="pa-4">
+                                        <MudTextField @bind-Value="m.Name" Label="Name" Class="mb-2" />
+                                        @if (i.IntegrationType == IntegrationType.Slack)
+                                        {
+                                            <MudTextField @bind-Value="m.DefaultChannel" Label="Default channel" Class="mb-2" />
+                                            <MudTextField @bind-Value="m.BotToken" Label="Bot token (leave masked to keep)" InputType="MudBlazor.InputType.Password" Class="mb-2" />
+                                        }
+                                        <MudSwitch T="bool" @bind-Value="m.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Default" />
+                                        <MudSwitch T="bool" @bind-Value="m.Enabled" Label="Enabled" Color="Color.Default" />
+                                        <div class="mt-2">
+                                            <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="@(() => SaveEdit(i.Id))" Class="me-2">Save</MudButton>
+                                        </div>
+                                    </MudPaper>
+                                }
+                                else
+                                {
+                                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+                                }
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(i.Id, ShowingType.IntegrationEvents))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageIntegrationIntegrationEvents IntegrationId="i.Id"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(i.Id, ShowingType.Supplies))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageIntegrationSupplies
+                                    IntegrationId="i.Id"
+                                    OnClose="HandleSuppliesClosed"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(i.Id, ShowingType.Roles))
+                        {
+                            <MudItem Class="mt-2">
+                                <IntegrationRoleAssignmentsPanel IntegrationId="i.Id" OrganizationId="OrganizationId" />
+                            </MudItem>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    }
+</CascadingValue>
+
+@code {
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+    [SupplyParameterFromQuery] public string? Integration { get; set; }
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<IntegrationReadDto>? _integrations;
+    private bool _showCreate;
+    private readonly CreateModel _create = new();
+    private readonly Dictionary<Guid, EditModel> _editModels = new();
+    private Guid? _expandedIntegrationId;
+    private Guid? _selectedIntegrationId;
+    private ShowingType _showing;
+
+    private enum ShowingType
+    {
+        None,
+        Edit,
+        IntegrationEvents,
+        Supplies,
+        Roles
+    }
+
+    private Color GetColor(Guid integrationId, ShowingType showTypeToMatch)
+    {
+        if (_selectedIntegrationId is null) return Color.Primary;
+        if (integrationId == _selectedIntegrationId)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid integrationId, ShowingType showTypeToMatch)
+    {
+        if (_selectedIntegrationId is null) return false;
+        return integrationId == _selectedIntegrationId && _showing == showTypeToMatch;
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    protected override void OnParametersSet()
+    {
+        if (_integrations is null) return;
+
+        if (Guid.TryParse(Integration, out var integrationId))
+        {
+            var match = _integrations.FirstOrDefault(i => i.Id == integrationId);
+            if (match is not null)
+            {
+                _expandedIntegrationId = integrationId;
+                if (!string.IsNullOrEmpty(Action) && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsedShowing) && parsedShowing != ShowingType.None)
+                {
+                    _selectedIntegrationId = integrationId;
+                    _showing = parsedShowing;
+                }
+            }
+        }
+        else if (!string.IsNullOrEmpty(Action) && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsedShowing) && parsedShowing != ShowingType.None)
+        {
+            _showing = parsedShowing;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _integrations = await Service.List(OrganizationId);
+        _editModels.Clear();
+    }
+
+    private void HandleExpansionChanged(Guid integrationId, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedIntegrationId = integrationId;
+            LoadEditModel(integrationId);
+        }
+        else if (_expandedIntegrationId == integrationId)
+        {
+            _expandedIntegrationId = null;
+            if (_selectedIntegrationId == integrationId)
+            {
+                _selectedIntegrationId = null;
+                _showing = ShowingType.None;
+            }
+        }
+        UpdateUrl();
+    }
+
+    private void SelectShowing(Guid integrationId, ShowingType showType)
+    {
+        if (_selectedIntegrationId == integrationId && _showing == showType)
+        {
+            _selectedIntegrationId = null;
+            _showing = ShowingType.None;
+        }
+        else
+        {
+            _selectedIntegrationId = integrationId;
+            _expandedIntegrationId = integrationId;
+            _showing = showType;
+
+            if (showType == ShowingType.Edit)
+                LoadEditModel(integrationId);
+        }
+        UpdateUrl();
+    }
+
+    private void HandleSuppliesClosed()
+    {
+        _selectedIntegrationId = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
+    }
+
+    private void UpdateUrl()
+    {
+        var query = new Dictionary<string, object?>();
+        if (_expandedIntegrationId is { } eid) query["integration"] = eid.ToString();
+        if (_selectedIntegrationId is not null && _showing != ShowingType.None)
+            query["action"] = _showing.ToString().ToLowerInvariant();
+        var url = NavigationManager.GetUriWithQueryParameters("/Integrations", query);
+        NavigationManager.NavigateTo(url, forceLoad: false, replace: true);
+    }
+
+    private void ShowCreate()
+    {
+        _create.IntegrationType = IntegrationType.Slack;
+        _create.Name = "";
+        _create.DefaultChannel = "";
+        _create.BotToken = "";
+        _create.IsSuppliedToAllModules = false;
+        _create.Enabled = true;
+        _showCreate = true;
+    }
+
+    private async Task SubmitCreate()
+    {
+        try
+        {
+            await Service.Create(OrganizationId, new IntegrationCreateDto
+            {
+                Name = _create.Name,
+                IntegrationType = _create.IntegrationType,
+                Enabled = _create.Enabled,
+                IsSuppliedToAllModules = _create.IsSuppliedToAllModules,
+                Connection = BuildConnection(_create.IntegrationType, _create.BotToken, _create.DefaultChannel)
+            });
+            _showCreate = false;
+            Snackbar.Add("Integration created.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+
+    private async void LoadEditModel(Guid id)
+    {
+        if (_editModels.ContainsKey(id)) return;
+        try
+        {
+            var detail = await Service.Get(id, OrganizationId);
+            var model = new EditModel
+            {
+                Name = detail.Name,
+                Enabled = detail.Enabled,
+                IsSuppliedToAllModules = detail.IsSuppliedToAllModules
+            };
+            if (!string.IsNullOrEmpty(detail.Connection))
+            {
+                using var doc = JsonDocument.Parse(detail.Connection);
+                if (detail.IntegrationType == IntegrationType.Slack)
+                {
+                    if (doc.RootElement.TryGetProperty("defaultChannel", out var ch)) model.DefaultChannel = ch.GetString() ?? "";
+                    if (doc.RootElement.TryGetProperty("botToken", out var bt)) model.BotToken = bt.GetString() ?? "";
+                }
+            }
+            _editModels[id] = model;
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+
+    private async Task SaveEdit(Guid id)
+    {
+        if (!_editModels.TryGetValue(id, out var m)) return;
+        var integrationType = _integrations?.FirstOrDefault(i => i.Id == id)?.IntegrationType ?? IntegrationType.Slack;
+        try
+        {
+            await Service.Update(id, OrganizationId, new IntegrationUpdateDto
+            {
+                Name = m.Name,
+                Enabled = m.Enabled,
+                IsSuppliedToAllModules = m.IsSuppliedToAllModules,
+                Connection = BuildConnection(integrationType, m.BotToken, m.DefaultChannel)
+            });
+            Snackbar.Add("Saved.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+
+    private async Task Test(Guid id)
+    {
+        try
+        {
+            var result = await Service.TestConnection(id, OrganizationId);
+            Snackbar.Add(result.Success ? "Connection OK." : $"Failed: {result.Error}", result.Success ? Severity.Success : Severity.Error);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        try
+        {
+            await Service.Delete(id, OrganizationId);
+            Snackbar.Add("Deleted.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+
+    private static JsonElement BuildConnection(IntegrationType type, string botToken, string defaultChannel)
+    {
+        return type switch
+        {
+            IntegrationType.Slack => JsonSerializer.SerializeToElement(new { botToken, defaultChannel }),
+            _ => JsonSerializer.SerializeToElement(new { })
+        };
+    }
+
+    private class CreateModel
+    {
+        public IntegrationType IntegrationType { get; set; } = IntegrationType.Slack;
+        public string Name { get; set; } = "";
+        public string DefaultChannel { get; set; } = "";
+        public string BotToken { get; set; } = "";
+        public bool IsSuppliedToAllModules { get; set; }
+        public bool Enabled { get; set; } = true;
+    }
+
+    private class EditModel
+    {
+        public string Name { get; set; } = "";
+        public string DefaultChannel { get; set; } = "";
+        public string BotToken { get; set; } = "";
+        public bool IsSuppliedToAllModules { get; set; }
+        public bool Enabled { get; set; }
+    }
+}

@@ -21,5 +21,5 @@ public class AgentCreateDto
 
     public bool AllowMultipleInstances { get; set; }
 
-    public bool IsAssignedToAllModules { get; set; }
+    public bool IsSuppliedToAllModules { get; set; }
 }

@@ -1,0 +1,286 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@* @page "/RoleAssignments" *@
+
+@implements IDisposable
+
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Server.Core.Entities.Definition.RunnerSupplies
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.RunnerSupplies
+
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="Stack Supplies" Style="text-transform: none">
+        @if (!_showCreateStackSupply)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Class="mt-2 mb-2"
+                       OnClick="ShowCreateStackSupply">
+                Create New
+            </MudButton>
+        }
+        @if (_showCreateStackSupply)
+        {
+            <CreateRunnerStackSupply
+                RunnerId="@RunnerId"
+                OnSaved="async () => { 
+                    _showCreateStackSupply = false;
+                    await ReloadSupplies();
+                }"
+                OnCancel="() => _showCreateStackSupply = false"/>
+        }
+        <MudExpansionPanels>
+            @foreach (var supply in _runnerStackSupplies)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <MudText>@supply.Stack.Name</MudText>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudTooltip Text="Delete supply">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => DeleteStackSupply(supply)"/>
+                        </MudTooltip>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    </MudTabPanel>
+    <MudTabPanel Text="Namespace Supplies" Style="text-transform: none">
+        @if (!_showCreateNamespaceSupply)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Class="mt-2 mb-2"
+                       OnClick="ShowCreateNamespaceSupply">
+                Create New
+            </MudButton>
+        }
+        @if (_showCreateNamespaceSupply)
+        {
+            <CreateRunnerNamespaceSupply
+                RunnerId="@RunnerId"
+                OnSaved="async () => { 
+                    _showCreateNamespaceSupply = false;
+                    await ReloadSupplies();
+                }"
+                OnCancel="() => _showCreateNamespaceSupply = false"/>
+        }
+
+        <MudExpansionPanels>
+            @foreach (var supply in _runnerNamespaceSupplies)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <MudText>@supply.Namespace.Name</MudText>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudTooltip Text="Delete supply">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => DeleteNamespaceSupply(supply)"/>
+                        </MudTooltip>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    </MudTabPanel>
+    <MudTabPanel Text="Module Supplies" Style="text-transform: none">
+        @if (!_showCreateModuleSupply)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Class="mt-2 mb-2"
+                       OnClick="ShowCreateModuleSupply">
+                Create New
+            </MudButton>
+        }
+        @if (_showCreateModuleSupply)
+        {
+            <CreateRunnerModuleSupply
+                RunnerId="@RunnerId"
+                OnSaved="async () => { 
+                    _showCreateModuleSupply = false;
+                    await ReloadSupplies();
+                }"
+                OnCancel="() => _showCreateModuleSupply = false"/>
+        }
+        <MudExpansionPanels>
+            @foreach (var supply in _runnerModuleSupplies)
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <MudText>@supply.Module.Name</MudText>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudTooltip Text="Delete supply">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => DeleteModuleSupply(supply)"/>
+                        </MudTooltip>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    </MudTabPanel>
+    <MudButton
+        Variant="Variant.Filled"
+        Color="Color.Secondary"
+        Class="mt-2 mb-2"
+        OnClick="Close">Close
+    </MudButton>
+</MudTabs>
+
+@code {
+
+    [Parameter] public Guid RunnerId { get; set; }
+    [Parameter] public required EventCallback OnClose { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private RunnerStackSupplySecuredRepositoryFactory StackSupplyRepoFactory { get; set; } = null!;
+    [Inject] private RunnerModuleSupplySecuredRepositoryFactory ModuleSupplyRepoFactory { get; set; } = null!;
+    [Inject] private RunnerNamespaceSupplySecuredRepositoryFactory NamespaceSupplyRepoFactory { get; set; } = null!;
+
+
+    private bool _showCreateStackSupply;
+    private bool _showCreateNamespaceSupply;
+    private bool _showCreateModuleSupply;
+
+    private List<RunnerStackSupply> _runnerStackSupplies = new();
+    private List<RunnerModuleSupply> _runnerModuleSupplies = new();
+    private List<RunnerNamespaceSupply> _runnerNamespaceSupplies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadSupplies();
+    }
+
+
+    private void ShowCreateStackSupply()
+    {
+        _showCreateStackSupply = true;
+    }
+
+
+    private void ShowCreateModuleSupply()
+    {
+        _showCreateModuleSupply = true;
+    }
+
+
+    private void ShowCreateNamespaceSupply()
+    {
+        _showCreateNamespaceSupply = true;
+    }
+
+
+    private async Task ReloadSupplies()
+    {
+        using var stackSupplyRepo = StackSupplyRepoFactory.Create();
+        _runnerStackSupplies = await stackSupplyRepo.ListByParentId(
+            RunnerId, OrganizationId,
+            x => x
+                .Include(y => y.Runner)
+                .Include(y => y.Stack)
+        );
+
+        using var moduleSupplyRepo = ModuleSupplyRepoFactory.Create();
+        _runnerModuleSupplies = await moduleSupplyRepo.ListByParentId(RunnerId, OrganizationId,
+            x => x
+                .Include(y => y.Runner)
+                .Include(y => y.Module)
+        );
+
+        using var namespaceSupplyRepo = NamespaceSupplyRepoFactory.Create();
+        _runnerNamespaceSupplies = await namespaceSupplyRepo.ListByParentId(RunnerId, OrganizationId,
+            x => x
+                .Include(y => y.Runner)
+                .Include(y => y.Namespace)
+        );
+    }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task DeleteStackSupply(RunnerStackSupply supply)
+    {
+        var parameters = new DialogParameters<DeleteRunnerStackSupplyDialog>
+        {
+            { x => x.RunnerStackSupplyId, supply.Id },
+            { x => x.StackName, supply.Stack.Name },
+            { x => x.RunnerName, supply.Runner.Name },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteRunnerStackSupplyDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var id);
+            Snackbar.Add($"Successfully deleted RunnerStackSupply \"{id}\"", Severity.Success);
+            await ReloadSupplies();
+        }
+    }
+
+    private async Task DeleteNamespaceSupply(RunnerNamespaceSupply supply)
+    {
+        var parameters = new DialogParameters<DeleteRunnerNamespaceSupplyDialog>
+        {
+            { x => x.RunnerNamespaceSupplyId, supply.Id },
+            { x => x.NamespaceName, supply.Namespace.Name },
+            { x => x.RunnerName, supply.Runner.Name },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteRunnerNamespaceSupplyDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var id);
+            Snackbar.Add($"Successfully deleted RunnerNamespaceSupply \"{id}\"", Severity.Success);
+            await ReloadSupplies();
+        }
+    }
+
+    private async Task DeleteModuleSupply(RunnerModuleSupply supply)
+    {
+        var parameters = new DialogParameters<DeleteRunnerModuleSupplyDialog>
+        {
+            { x => x.RunnerModuleSupplyId, supply.Id },
+            { x => x.ModuleName, supply.Module.Name },
+            { x => x.RunnerName, supply.Runner.Name },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteRunnerModuleSupplyDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Guid.TryParse(result.Data?.ToString(), out var id);
+            Snackbar.Add($"Successfully deleted RunnerModuleSupply \"{id}\"", Severity.Success);
+            await ReloadSupplies();
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+
+
+}

@@ -1,0 +1,65 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@typeparam TRow
+
+@foreach (var group in Rows
+    .GroupBy(IntegrationIdSelector)
+    .OrderBy(g => IntegrationNameLookup(g.Key), StringComparer.OrdinalIgnoreCase))
+{
+    <div class="mb-3">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
+            <MudText Typo="Typo.body1"><strong>Integration: @IntegrationNameLookup(group.Key)</strong></MudText>
+        </div>
+        <MudTable Items="group.OrderBy(TriggerSelector).ToList()" Dense="true" Hover="true">
+            <HeaderContent>
+                <MudTh>Trigger</MudTh>
+                <MudTh>Template</MudTh>
+                <MudTh>Filter</MudTh>
+                <MudTh>Disabled</MudTh>
+                @if (OnEdit.HasDelegate || OnDelete.HasDelegate)
+                {
+                    <MudTh></MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@TriggerSelector(context)</MudTd>
+                <MudTd>@(TemplateSelector?.Invoke(context) ?? string.Empty)</MudTd>
+                <MudTd>@(FilterSelector?.Invoke(context) ?? string.Empty)</MudTd>
+                <MudTd>@(IsDisabledSelector(context) ? "yes" : "no")</MudTd>
+                @if (OnEdit.HasDelegate || OnDelete.HasDelegate)
+                {
+                    <MudTd>
+                        @if (OnEdit.HasDelegate)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           OnClick="@(() => OnEdit.InvokeAsync(context))"/>
+                        }
+                        @if (OnDelete.HasDelegate)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => OnDelete.InvokeAsync(context))"/>
+                        }
+                    </MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IEnumerable<TRow> Rows { get; set; } = Array.Empty<TRow>();
+    [Parameter, EditorRequired] public Func<TRow, Guid> IntegrationIdSelector { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<TRow, string> TriggerSelector { get; set; } = null!;
+    [Parameter, EditorRequired] public Func<TRow, bool> IsDisabledSelector { get; set; } = null!;
+    [Parameter] public Func<TRow, string?>? TemplateSelector { get; set; }
+    [Parameter] public Func<TRow, string?>? FilterSelector { get; set; }
+    [Parameter, EditorRequired] public Func<Guid, string> IntegrationNameLookup { get; set; } = null!;
+    [Parameter] public EventCallback<TRow> OnEdit { get; set; }
+    [Parameter] public EventCallback<TRow> OnDelete { get; set; }
+}

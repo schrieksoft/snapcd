@@ -1,0 +1,95 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@inject SnapCd.Server.Core.Services.Integrations.IntegrationSupplyService SupplyService
+@inject ISnackbar Snackbar
+
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.Integrations
+
+<MudText Typo="Typo.subtitle2" Class="mt-2">Supplies</MudText>
+<MudText Typo="Typo.caption">Which scopes this integration serves (org-wide is the "all modules" toggle above).</MudText>
+
+@if (_supplies is null)
+{
+    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Class="mt-1">
+        <tbody>
+            @foreach (var a in _supplies)
+            {
+                <tr>
+                    <td>@a.Scope</td>
+                    <td><code>@a.ScopeId</code></td>
+                    <td style="text-align:right">
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => Remove(a))">Remove</MudButton>
+                    </td>
+                </tr>
+            }
+            @if (_supplies.Count == 0)
+            {
+                <tr><td colspan="3"><MudText Typo="Typo.caption">None.</MudText></td></tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+
+    <div class="d-flex align-center gap-2 mt-2">
+        <MudSelect T="IntegrationSupplyScope" @bind-Value="_addScope" Dense="true" Label="Scope" Style="min-width:140px">
+            <MudSelectItem Value="IntegrationSupplyScope.Stack">Stack</MudSelectItem>
+            <MudSelectItem Value="IntegrationSupplyScope.Namespace">Namespace</MudSelectItem>
+            <MudSelectItem Value="IntegrationSupplyScope.Module">Module</MudSelectItem>
+        </MudSelect>
+        <MudTextField @bind-Value="_addScopeId" Label="Scope id (GUID)" Dense="true" Style="min-width:320px" />
+        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="Add">Add</MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid IntegrationId { get; set; }
+    [Parameter] public Guid OrganizationId { get; set; }
+
+    private List<IntegrationSupplyDto>? _supplies;
+    private IntegrationSupplyScope _addScope = IntegrationSupplyScope.Module;
+    private string _addScopeId = "";
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try { _supplies = await SupplyService.List(IntegrationId, OrganizationId); }
+        catch (Exception e) { Snackbar.Add(e.Message, Severity.Error); }
+    }
+
+    private async Task Add()
+    {
+        if (!Guid.TryParse(_addScopeId, out var scopeId))
+        {
+            Snackbar.Add("Scope id must be a GUID.", Severity.Warning);
+            return;
+        }
+        try
+        {
+            await SupplyService.Add(IntegrationId, OrganizationId, new IntegrationSupplyCreateDto { Scope = _addScope, ScopeId = scopeId });
+            _addScopeId = "";
+            await LoadAsync();
+        }
+        catch (Exception e) { Snackbar.Add(e.Message, Severity.Error); }
+    }
+
+    private async Task Remove(IntegrationSupplyDto a)
+    {
+        try
+        {
+            await SupplyService.Remove(OrganizationId, a.Scope, a.Id);
+            await LoadAsync();
+        }
+        catch (Exception e) { Snackbar.Add(e.Message, Severity.Error); }
+    }
+}

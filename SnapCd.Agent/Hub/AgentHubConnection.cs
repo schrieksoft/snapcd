@@ -42,6 +42,11 @@ public sealed class AgentHubConnection : IAsyncDisposable
 
     private readonly record struct BufferedLog(Guid InvocationId, MissionLogLineDto Line);
 
+    // Buffered mission-milestone sending — same robustness as logs. Milestones are important progress
+    // checkpoints, so a hub blip mid-mission buffers them for flush on reconnect rather than losing them.
+    private readonly ConcurrentQueue<BufferedMilestone> _milestoneBuffer = new();
+    private readonly record struct BufferedMilestone(Guid InvocationId, MissionMilestoneDto Milestone);
+
     public AgentHubConnection(
         IOptions<AgentOptions> options,
         IOptions<ServerSettings> server,
@@ -88,6 +93,7 @@ public sealed class AgentHubConnection : IAsyncDisposable
         {
             _logger.LogInformation("Agent hub reconnected with connection ID {ConnectionId}", connectionId);
             await FlushLogBufferAsync();
+            await FlushMilestoneBufferAsync();
         };
         _connection.Closed += error =>
         {
@@ -103,6 +109,7 @@ public sealed class AgentHubConnection : IAsyncDisposable
         if (!cancellationToken.IsCancellationRequested)
         {
             await FlushLogBufferAsync();
+            await FlushMilestoneBufferAsync();
             _logger.LogInformation("Agent connected to {HubUrl}; awaiting mission invocations.", hubUrl);
         }
     }
@@ -175,6 +182,57 @@ public sealed class AgentHubConnection : IAsyncDisposable
         {
             _logger.LogWarning("Total of {Count} mission log entries were dropped due to buffer overflow", _droppedLogCount);
             _droppedLogCount = 0;
+        }
+    }
+
+    /// <summary>Send one streamed mission milestone to the server, buffering on failure/disconnect.</summary>
+    public async Task SendMissionMilestoneAsync(Guid invocationId, MissionMilestoneDto milestone)
+    {
+        if (_connection?.State != HubConnectionState.Connected)
+        {
+            BufferMilestone(invocationId, milestone);
+            return;
+        }
+
+        try
+        {
+            await _connection.InvokeAsync("AddMissionMilestone", invocationId, milestone);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending mission milestone for {InvocationId}; buffering for retry", invocationId);
+            BufferMilestone(invocationId, milestone);
+        }
+    }
+
+    private void BufferMilestone(Guid invocationId, MissionMilestoneDto milestone)
+    {
+        if (_milestoneBuffer.Count >= MaxLogBufferSize)
+            _milestoneBuffer.TryDequeue(out _);
+        _milestoneBuffer.Enqueue(new BufferedMilestone(invocationId, milestone));
+    }
+
+    private async Task FlushMilestoneBufferAsync()
+    {
+        if (_milestoneBuffer.IsEmpty || _connection?.State != HubConnectionState.Connected)
+            return;
+
+        var drained = new List<BufferedMilestone>();
+        while (drained.Count < FlushChunkSize && _milestoneBuffer.TryDequeue(out var m))
+            drained.Add(m);
+
+        // Send individually, preserving order — milestones are low-volume.
+        foreach (var buffered in drained)
+        {
+            try
+            {
+                await _connection!.InvokeAsync("AddMissionMilestone", buffered.InvocationId, buffered.Milestone);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error flushing buffered milestone for {InvocationId}; re-queuing", buffered.InvocationId);
+                _milestoneBuffer.Enqueue(buffered);
+            }
         }
     }
 

@@ -238,10 +238,10 @@ public class RunnerJobAuthorizationService
 
         // No runners in the pool have access to this module
         _logger.LogWarning(
-            "Validation failed: Module {ModuleId} is not allowed to run jobs on Runner {RunnerId}. You must first assign the Runner to this Module (or to its parent Namespace or Stack), or you must set the IsAssignedToAllModules flag to 'true' on the Runner itself." +
+            "Validation failed: Module {ModuleId} is not allowed to run jobs on Runner {RunnerId}. You must first assign the Runner to this Module (or to its parent Namespace or Stack), or you must set the IsSuppliedToAllModules flag to 'true' on the Runner itself." +
             "(Organization: {OrganizationId})",
             runnerId, moduleId, organizationId);
         throw new InvalidOperationException(
-            $"Module {moduleId} is not allowed to run jobs on Runner {runnerId}. You must first assign the Runner to this Module (or to its parent Namespace or Stack), or you must set the IsAssignedToAllModules flag to 'true' on the Runner itself.");
+            $"Module {moduleId} is not allowed to run jobs on Runner {runnerId}. You must first assign the Runner to this Module (or to its parent Namespace or Stack), or you must set the IsSuppliedToAllModules flag to 'true' on the Runner itself.");
     }
 }

@@ -1,0 +1,219 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Definition.IntegrationEvents
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+
+@inject ISnackbar Snackbar
+
+<MudPaper Elevation="1" Class="pa-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Integration Events (Organization scope)</MudText>
+
+    @if (!_showCreateForm && _editing is null)
+    {
+        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                   OnClick="ShowCreate" Class="mb-3">
+            Add Event
+        </MudButton>
+    }
+
+    @if (_showCreateForm || _editing is not null)
+    {
+        <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator/>
+            <MudGrid Class="d-flex flex-column gap-3">
+                <MudItem xs="12">
+                    <MudSelect T="IntegrationTrigger" @bind-Value="Input.Trigger"
+                               Label="Trigger" Variant="Variant.Outlined" Required="true">
+                        @foreach (var trigger in Enum.GetValues<IntegrationTrigger>())
+                        {
+                            <MudSelectItem Value="@trigger">@trigger.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField Label="Template (optional)" @bind-Value="Input.Template"
+                                  Variant="Variant.Outlined" Lines="2"/>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField Label="Filter (optional)" @bind-Value="Input.Filter"
+                                  Variant="Variant.Outlined"/>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Input.IsDisabled" Label="Disabled" Color="Color.Info"/>
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end gap-2">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                               Style="background-color: #000; color: #fff;">
+                        @(_editing is null ? "Create" : "Save")
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                               OnClick="CancelEdit">
+                        Cancel
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    }
+
+    @if (_rows.Count == 0)
+    {
+        <MudText Typo="Typo.body2">No organization-level events for this integration.</MudText>
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true">
+            <HeaderContent>
+                <MudTh>Trigger</MudTh>
+                <MudTh>Template</MudTh>
+                <MudTh>Filter</MudTh>
+                <MudTh>Disabled</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Trigger</MudTd>
+                <MudTd>@(context.Template ?? "")</MudTd>
+                <MudTd>@(context.Filter ?? "")</MudTd>
+                <MudTd>@(context.IsDisabled ? "yes" : "no")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   OnClick="@(() => BeginEdit(context))"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => DeleteRow(context))"/>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public required Guid IntegrationId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private OrganizationIntegrationEventSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private sealed class InputModel
+    {
+        public IntegrationTrigger Trigger { get; set; } = IntegrationTrigger.JobFailed;
+        public string? Template { get; set; }
+        public string? Filter { get; set; }
+        public bool IsDisabled { get; set; }
+    }
+
+    private InputModel Input { get; set; } = new();
+    private OrganizationIntegrationEvent? _editing;
+    private bool _showCreateForm;
+    private List<OrganizationIntegrationEvent> _rows = new();
+
+    protected override async Task OnInitializedAsync() => await ReloadRows();
+
+    private async Task ReloadRows()
+    {
+        using var repo = RepoFactory.Create();
+        _rows = (await repo.ListByIntegration(IntegrationId, OrganizationId))
+            .OrderBy(e => e.Trigger).ToList();
+    }
+
+    private void ShowCreate()
+    {
+        _showCreateForm = true;
+        _editing = null;
+        Input = new InputModel();
+    }
+
+    private void BeginEdit(OrganizationIntegrationEvent row)
+    {
+        _editing = row;
+        _showCreateForm = false;
+        Input = new InputModel
+        {
+            Trigger = row.Trigger,
+            Template = row.Template,
+            Filter = row.Filter,
+            IsDisabled = row.IsDisabled
+        };
+    }
+
+    private void CancelEdit()
+    {
+        _showCreateForm = false;
+        _editing = null;
+        Input = new InputModel();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (_editing is null)
+                await CreateNew();
+            else
+                await UpdateExisting(_editing);
+
+            _editing = null;
+            _showCreateForm = false;
+            Input = new InputModel();
+            await ReloadRows();
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, _editing is null ? "creating integration event" : "updating integration event");
+        }
+    }
+
+    private async Task CreateNew()
+    {
+        using var repo = RepoFactory.Create();
+        await repo.Create(new OrganizationIntegrationEvent
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = OrganizationId,
+            IntegrationId = IntegrationId,
+            Trigger = Input.Trigger,
+            Template = string.IsNullOrWhiteSpace(Input.Template) ? null : Input.Template,
+            Filter = string.IsNullOrWhiteSpace(Input.Filter) ? null : Input.Filter,
+            IsDisabled = Input.IsDisabled
+        });
+        Snackbar.Add("Integration event created", Severity.Success);
+    }
+
+    private async Task UpdateExisting(OrganizationIntegrationEvent row)
+    {
+        using var repo = RepoFactory.Create();
+        var existing = await repo.Get(row.Id, OrganizationId);
+        existing.Trigger = Input.Trigger;
+        existing.Template = string.IsNullOrWhiteSpace(Input.Template) ? null : Input.Template;
+        existing.Filter = string.IsNullOrWhiteSpace(Input.Filter) ? null : Input.Filter;
+        existing.IsDisabled = Input.IsDisabled;
+        await repo.Update(existing);
+        Snackbar.Add("Integration event updated", Severity.Success);
+    }
+
+    private async Task DeleteRow(OrganizationIntegrationEvent row)
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            await repo.Delete(row.Id, OrganizationId);
+            Snackbar.Add("Integration event deleted", Severity.Success);
+            await ReloadRows();
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting integration event");
+        }
+    }
+}

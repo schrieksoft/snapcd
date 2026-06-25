@@ -67,4 +67,29 @@ def build_reports_server(capture: ReportCapture) -> dict[str, Any]:
         capture.diagnosis_category = args["category"]
         return {"content": [{"type": "text", "text": f"Recorded diagnosis category: {args['category']}"}]}
 
-    return create_sdk_mcp_server("reports", "1.0", [report_diagnosis_category])
+    @tool(
+        "report_milestone",
+        "Post a short progress milestone the human watching can see live (e.g. 'investigating', "
+        "'diagnosed', 'opened PR'). Call this at each meaningful checkpoint of your work — it does NOT "
+        "end the mission. Keep the message to one human-readable line.",
+        {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "One human-readable line describing what just happened / is happening.",
+                },
+                "kind": {
+                    "type": "string",
+                    "description": "Optional short label for the checkpoint, e.g. investigating / diagnosed / fixing / pr_opened / retried / blocked.",
+                },
+            },
+            "required": ["message"],
+        },
+    )
+    async def report_milestone(args: dict[str, Any]) -> dict[str, Any]:
+        # The milestone is streamed out by the session manager when it observes this tool-use
+        # (see session_manager._run_once_streaming); here we just acknowledge to the agent.
+        return {"content": [{"type": "text", "text": "Milestone recorded."}]}
+
+    return create_sdk_mcp_server("reports", "1.0", [report_diagnosis_category, report_milestone])

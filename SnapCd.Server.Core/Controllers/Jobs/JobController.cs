@@ -157,7 +157,7 @@ public class JobController : ControllerBase
         }
     }
 
-    /// <summary>Status metadata for a SnapCd ModuleJob: JobType (Apply/Destroy), WaitingForApproval, ActualStateHeadline, server-side error fields, and output deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action plan body or the apply output — those are in module_job_logs filtered by TaskName.</summary>
+    /// <summary>Status metadata for a SnapCd ModuleJob: JobType (Apply/Destroy), DefinitiveRevision (the resolved commit SHA the job ran against), WaitingForApproval, ActualStateHeadline, server-side error fields, and output deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action plan body or the apply output — those are in module_job_logs filtered by TaskName.</summary>
     /// <param name="organizationId">Organization ID</param>
     /// <param name="jobId">Job ID</param>
     [HttpGet("{jobId}/status")]

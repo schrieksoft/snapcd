@@ -102,7 +102,7 @@ public class MissionRunController : ControllerBase
             MissionDispatchOutcome.AlreadyActive => Conflict($"Mission '{missionId}' already has an active run."),
             MissionDispatchOutcome.NoLiveConnection => Conflict($"Agent for mission '{missionId}' has no live connection."),
             MissionDispatchOutcome.NotLicensed => StatusCode(StatusCodes.Status403Forbidden, "AI Agents are not licensed for this organization."),
-            MissionDispatchOutcome.AgentNotAssigned => UnprocessableEntity($"Agent for mission '{missionId}' is not assigned to the target scope. The Agent owner must assign the Agent (or set IsAssignedToAllModules) before this mission can be re-run."),
+            MissionDispatchOutcome.AgentNotAssigned => UnprocessableEntity($"Agent for mission '{missionId}' is not assigned to the target scope. The Agent owner must assign the Agent (or set IsSuppliedToAllModules) before this mission can be re-run."),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }

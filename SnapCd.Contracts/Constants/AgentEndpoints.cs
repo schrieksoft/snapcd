@@ -19,6 +19,7 @@ public static class AgentEndpoints
     public const string AutoDiagnose = "AutoDiagnose";
     public const string ApprovalRecommend = "ApprovalRecommend";
     public const string SummarizeJob = "SummarizeJob";
+    public const string AutoFix = "AutoFix";
 
     /// <summary>Server → agent: cancel an in-flight mission run (the agent twin of
     /// <c>RunnerEndpoints.CancelGraceful</c>). Carries a <c>CancelMissionRequest</c>.</summary>

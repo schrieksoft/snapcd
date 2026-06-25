@@ -10,11 +10,17 @@ using SnapCd.Contracts.AgentResults;
 
 namespace SnapCd.Agent.Models;
 
-/// <summary>One event parsed from the sidecar's SSE <c>/invoke</c> stream: either a log line or the final result.</summary>
+/// <summary>One event parsed from the sidecar's SSE <c>/invoke</c> stream: a log line, a progress
+/// milestone, or the final result.</summary>
 public sealed class SidecarStreamEvent
 {
     public bool IsResult { get; init; }
+    public bool IsMilestone { get; init; }
     public string Level { get; init; } = "info";
+
+    /// <summary>Set on milestone events: the optional checkpoint label.</summary>
+    public string? MilestoneKind { get; init; }
+
     public string? Message { get; init; }
     public MissionResultDto? Result { get; init; }
 }

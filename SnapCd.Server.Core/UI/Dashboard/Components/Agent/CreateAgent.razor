@@ -38,7 +38,7 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="Input.IsAssignedToAllModules" Label="Assigned to all Modules (org-wide supply)"
+                <MudSwitch T="bool" @bind-Value="Input.IsSuppliedToAllModules" Label="Supplied to all Modules (org-wide supply)"
                            Color="Color.Info"/>
             </MudItem>
 
@@ -87,8 +87,8 @@
         public bool AllowMultipleInstances { get; set; }
 
         [Required]
-        [Display(Name = "IsAssignedToAllModules")]
-        public bool IsAssignedToAllModules { get; set; }
+        [Display(Name = "IsSuppliedToAllModules")]
+        public bool IsSuppliedToAllModules { get; set; }
     }
 
     private async Task HandleValidSubmit()
@@ -102,7 +102,7 @@
                 ServicePrincipalId = Input.ServicePrincipalId,
                 Name = Input.Name,
                 AllowMultipleInstances = Input.AllowMultipleInstances,
-                IsAssignedToAllModules = Input.IsAssignedToAllModules,
+                IsSuppliedToAllModules = Input.IsSuppliedToAllModules,
                 IsDisabled = false,
                 OrganizationId = OrganizationId
             };

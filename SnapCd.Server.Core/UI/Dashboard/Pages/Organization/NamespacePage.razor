@@ -25,7 +25,6 @@
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.Views
 @using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
-@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Namespaces
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Components.Namespace
 @using SnapCd.Server.Core.UI.Dashboard.Components.Module
@@ -86,38 +85,16 @@
                                OnClick="() => SwitchShowing(ShowingType.Modules)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Edit Namespace">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="GetColor(ShowingType.Edit)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Edit)"/>
-            </MudTooltip>
-
             <MudTooltip Text="View Dependency Graph">
                 <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.DependencyGraph)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Manage Roles">
-                <MudIconButton Icon="@Icons.Material.Filled.Shield" Color="GetColor(ShowingType.Roles)"
+            <MudTooltip Text="Configure">
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
                                Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Roles)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Missions">
-                <MudIconButton Icon="material-symbols-outlined/automation"
-                               Color="GetColor(ShowingType.Missions)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Missions)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Secrets">
-                <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Secrets)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Delete Namespace">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
-                               OnClick="() => Delete(_namespace)"/>
+                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
             </MudTooltip>
         </MudPaper>
 
@@ -205,34 +182,16 @@
             </MudPaper>
         }
 
-        @if (_showing == ShowingType.Edit)
+        @if (_showing == ShowingType.Configure)
         {
-            <EditNamespace Namespace="_namespace"
-                           PrincipalProvider="_literalPrincipalProvider"
-                           OnSaved="() => _showing = ShowingType.None"
-                           OnCancel="() => _showing = ShowingType.None"/>
+            <ConfigureNamespace Namespace="_namespace"
+                                StackName="@StackName"
+                                PrincipalProvider="_literalPrincipalProvider"
+                                InitialSection="@_configureSection"
+                                OnSectionChanged="HandleConfigureSectionChanged"
+                                OnNamespaceDeleted="HandleNamespaceDeleted"
+                                OnNamespaceSaved="HandleNamespaceSaved"/>
         }
-
-        @if (_showing == ShowingType.Roles)
-        {
-            <ManageNamespaceRoles NamespaceId="_namespace.Id"
-                                  OnSaved="() => _showing = ShowingType.None"
-                                  OnCancel="() => _showing = ShowingType.None"/>
-        }
-
-        @if (_showing == ShowingType.Missions)
-        {
-            <ManageNamespaceMissions NamespaceId="_namespace.Id" StackId="_namespace.StackId"
-                                     StackName="@StackName"/>
-        }
-
-        @if (_showing == ShowingType.Secrets)
-        {
-            <ManageNamespaceSecrets
-                NamespaceId="_namespace.Id"
-                StackId="_namespace.StackId"/>
-        }
-
 
         @if (_showing == ShowingType.DependencyGraph)
         {
@@ -530,12 +489,14 @@
     [Parameter] public required string NamespaceName { get; set; }
     [SupplyParameterFromQuery] public string? Action { get; set; }
     [SupplyParameterFromQuery] public string? Search { get; set; }
+    [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private NamespaceSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
     private Namespace _namespace = null!;
     private TruncatedNamespace? _truncatedNamespace;
     private List<BreadcrumbItem> _breadCrumbs = [];
     private ShowingType _showing = ShowingType.None;
+    private string? _configureSection;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
     private IPrincipalProvider _literalPrincipalProvider = null!;
@@ -636,6 +597,7 @@
 
         // Set initial showing based on query parameter
         _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Modules;
+        _configureSection = Section;
     }
 
 
@@ -649,51 +611,35 @@
         var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
         _showing = targetShowing;
 
-        // Update URL without reloading, preserving organizationId and search terms
-        var actionQuery = GetActionFromShowingType(targetShowing);
-        var queryParams = new List<string>();
+        if (targetShowing != ShowingType.Configure)
+            _configureSection = null;
 
-        if (actionQuery != null)
-            queryParams.Add($"action={actionQuery}");
-
-        if (_searchTerms.Any())
-            queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
-
-        var queryString = "?" + string.Join("&", queryParams);
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}{queryString}";
-        NavigationManager.NavigateTo(newUrl, false);
+        UpdateUrl();
     }
 
     private enum ShowingType
     {
         None,
         Modules,
-        Edit,
-        Roles,
-        Missions,
-        Secrets,
-        DependencyGraph
+        DependencyGraph,
+        Configure
     }
 
-    private async Task Delete(Namespace namespaceToDelete)
+    private void HandleConfigureSectionChanged(string? section)
     {
-        var parameters = new DialogParameters<DeleteNamespaceDialog>
-        {
-            { x => x.Namespace, namespaceToDelete },
-            { x => x.OrganizationId, OrganizationId }
-        };
+        _configureSection = section;
+        UpdateUrl();
+    }
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+    private void HandleNamespaceDeleted()
+    {
+        NavigationManager.NavigateTo($"/Stacks/{StackName}");
+    }
 
-        var dialog = await DialogService.ShowAsync<DeleteNamespaceDialog>("Delete", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-        {
-            Guid.TryParse(result.Data?.ToString(), out var deletedNamespaceId);
-            Snackbar.Add($"Successfully deleted namespace \"{deletedNamespaceId}\"");
-            NavigationManager.NavigateTo($"/Stacks/{StackName}");
-        }
+    private async Task HandleNamespaceSaved()
+    {
+        using var repo = RepoFactory.Create();
+        _namespace = await repo.Get(StackName, NamespaceName, OrganizationId);
     }
 
     private async Task AddSearchTerm()
@@ -707,7 +653,7 @@
             _showModuleSearch = false; // Hide search box after adding term
 
             // Update URL with search terms
-            UpdateUrlWithSearchTerms();
+            UpdateUrl();
 
             if (_listModulesComponent != null)
                 await _listModulesComponent.LoadModules();
@@ -719,25 +665,27 @@
         _searchTerms.Remove(term);
 
         // Update URL with search terms
-        UpdateUrlWithSearchTerms();
+        UpdateUrl();
 
         if (_listModulesComponent != null)
             await _listModulesComponent.LoadModules();
     }
 
-    private void UpdateUrlWithSearchTerms()
+    private void UpdateUrl()
     {
         var queryParams = new List<string>();
 
-        // Preserve action parameter if present
         var actionQuery = GetActionFromShowingType(_showing);
         if (actionQuery != null)
             queryParams.Add($"action={actionQuery}");
 
+        if (_showing == ShowingType.Configure && !string.IsNullOrEmpty(_configureSection))
+            queryParams.Add($"section={Uri.EscapeDataString(_configureSection)}");
+
         if (_searchTerms.Any())
             queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
 
-        var queryString = "?" + string.Join("&", queryParams);
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
         var newUrl = $"/Stacks/{StackName}/{NamespaceName}{queryString}";
         NavigationManager.NavigateTo(newUrl, false);
     }
@@ -1107,12 +1055,9 @@
     {
         return action?.ToLower() switch
         {
-            "edit" => ShowingType.Edit,
-            "secrets" => ShowingType.Secrets,
-            "roles" => ShowingType.Roles,
-            "missions" => ShowingType.Missions,
             "modules" => ShowingType.Modules,
             "dependencygraph" => ShowingType.DependencyGraph,
+            "configure" => ShowingType.Configure,
             _ => null
         };
     }
@@ -1121,12 +1066,9 @@
     {
         return showingType switch
         {
-            ShowingType.Edit => "Edit",
-            ShowingType.Secrets => "Secrets",
-            ShowingType.Roles => "Roles",
-            ShowingType.Missions => "Missions",
             ShowingType.Modules => "Modules",
             ShowingType.DependencyGraph => "DependencyGraph",
+            ShowingType.Configure => "Configure",
             _ => null
         };
     }

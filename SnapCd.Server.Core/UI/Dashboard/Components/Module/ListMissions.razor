@@ -38,6 +38,11 @@
     .mission-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
     .mission-card-timing { font-size: 11px; opacity: 0.6; margin-bottom: 10px; }
     .diagnosis-box { background: rgba(0,0,0,0.025); border-left: 3px solid #000; padding: 12px 14px; border-radius: 0 4px 4px 0; margin-bottom: 10px; }
+    .mission-timeline { margin: 4px 0 12px; padding-left: 2px; }
+    .mission-timeline-item { display: flex; align-items: baseline; gap: 6px; font-size: 12px; line-height: 1.6; }
+    .mission-timeline-kind { font-weight: 600; text-transform: lowercase; }
+    .mission-timeline-msg { flex: 1; }
+    .mission-timeline-time { font-size: 11px; opacity: 0.5; white-space: nowrap; }
     .mission-actions { display: flex; gap: 6px; margin-top: 12px; margin-bottom: 8px; }
     .mission-markdown { font-size: 13px; line-height: 1.5; }
     .mission-markdown h1, .mission-markdown h2, .mission-markdown h3, .mission-markdown h4 { margin: 10px 0 4px; line-height: 1.25; font-weight: 600; }
@@ -125,6 +130,24 @@ else
                         }
                     </div>
 
+                    @if (_milestones.TryGetValue(run.Id, out var milestones) && milestones.Count > 0)
+                    {
+                        <div class="mission-timeline">
+                            @foreach (var m in milestones)
+                            {
+                                <div class="mission-timeline-item">
+                                    <MudIcon Icon="@Icons.Material.Filled.RadioButtonChecked" Size="Size.Small" />
+                                    @if (!string.IsNullOrEmpty(m.Kind))
+                                    {
+                                        <span class="mission-timeline-kind">@m.Kind</span>
+                                    }
+                                    <span class="mission-timeline-msg">@m.Message</span>
+                                    <span class="mission-timeline-time">@TimeRelative(m.ReportedAt)</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
                     @if (!string.IsNullOrEmpty(run.Error))
                     {
                         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-2" Dense="true">
@@ -196,6 +219,7 @@ else
 
     private const int LogTailChars = 4000;
     private List<ModuleJobMissionRun>? _runs;
+    private Dictionary<Guid, List<ModuleJobMissionRunMilestone>> _milestones = new();
     private Func<Guid, Task>? _handler;
 
     protected override async Task OnInitializedAsync()
@@ -212,6 +236,16 @@ else
             .Where(r => r.ModuleJobId == ModuleJobId && r.OrganizationId == OrganizationId)
             .OrderByDescending(r => r.StartedAt ?? r.DeadlineAt)
             .ToListAsync();
+
+        var runIds = _runs.Select(r => r.Id).ToList();
+        var milestones = await db.ModuleJobMissionRunMilestones
+            .Where(m => runIds.Contains(m.ModuleJobMissionRunId) && m.OrganizationId == OrganizationId)
+            .OrderBy(m => m.ReportedAt)
+            .ToListAsync();
+        _milestones = milestones
+            .GroupBy(m => m.ModuleJobMissionRunId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         await InvokeAsync(StateHasChanged);
     }
 

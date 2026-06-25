@@ -190,7 +190,13 @@ class SessionManager:
                     elif isinstance(block, ToolUseBlock):
                         call = _parse_tool_use(block)
                         tool_calls.append(call)
-                        yield {"type": "log", "level": "info", "message": f"tool → {call['target']}.{call['tool']}"}
+                        # A report_milestone tool-use is a structured progress checkpoint, not a log line:
+                        # surface it as its own milestone event so the server can persist + fan it out.
+                        if call["target"] == "reports" and call["tool"] == "report_milestone":
+                            args = block.input or {}
+                            yield {"type": "milestone", "kind": args.get("kind"), "message": args.get("message") or ""}
+                        else:
+                            yield {"type": "log", "level": "info", "message": f"tool → {call['target']}.{call['tool']}"}
             elif isinstance(message, ResultMessage):
                 result_msg = message
 

@@ -9,7 +9,7 @@
 using System.ComponentModel.DataAnnotations;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Runner.Base;
-using SnapCd.Server.Core.Entities.Definition.RunnerAssignments;
+using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Interfaces;
 
 namespace SnapCd.Server.Core.Entities.Definition;
@@ -32,17 +32,17 @@ public class Runner : AuditBase, IEntity, IOrganizationChild, ICreationTrackable
 
     public List<Module> Modules { get; set; } = null!;
 
-    public List<RunnerModuleAssignment> RunnerModuleAssignments { get; set; } = null!;
+    public List<RunnerModuleSupply> RunnerModuleSupplies { get; set; } = null!;
 
-    public List<RunnerNamespaceAssignment> RunnerNamespaceAssignments { get; set; } = null!;
+    public List<RunnerNamespaceSupply> RunnerNamespaceSupplies { get; set; } = null!;
 
-    public List<RunnerStackAssignment> RunnerStackAssignments { get; set; } = null!;
+    public List<RunnerStackSupply> RunnerStackSupplies { get; set; } = null!;
 
     public List<SourceRefresherPreselection> SourceRefresherPreselections { get; set; } = null!;
 
     public List<RunnerRoleAssignment> RunnerRoleAssignments { get; set; } = null!;
 
-    public bool IsAssignedToAllModules { get; set; }
+    public bool IsSuppliedToAllModules { get; set; }
 
     public Guid ParentId()
     {

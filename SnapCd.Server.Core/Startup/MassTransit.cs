@@ -215,6 +215,7 @@ public static class MassTransit
         typeof(AutoDiagnoseMissionConsumer),
         typeof(ApprovalRecommendMissionConsumer),
         typeof(SummarizeJobMissionConsumer),
+        typeof(AutoFixMissionConsumer),
         typeof(CancelMissionConsumer),
     ];
 
@@ -229,6 +230,9 @@ public static class MassTransit
         typeof(JobSucceededCompetingConsumer),
         typeof(ApprovalRequestedCompetingConsumer),
 
+        // Integrations dispatch — maps saga/mission events to integration deliveries (supply ∩ demand)
+        typeof(IntegrationEventDispatcher),
+
         // Agent mission run watchdog (fired by the scheduled MissionRunDeadlineCheck)
         typeof(MissionRunDeadlineCheckConsumer),
 
@@ -236,8 +240,8 @@ public static class MassTransit
         typeof(AgentReconnectedMissionWakeConsumer),
 
         // Wakes parked missions (Status=BlockedAgentNotAssigned) when a new Agent{Scope}Assignment is
-        // created for the bound agent, or when the agent's IsAssignedToAllModules flag flips on
-        typeof(AgentAssignmentCreatedMissionWakeConsumer),
+        // created for the bound agent, or when the agent's IsSuppliedToAllModules flag flips on
+        typeof(AgentSupplyCreatedMissionWakeConsumer),
 
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
         typeof(ModuleModifiedCompetingConsumer),
@@ -275,6 +279,8 @@ public static class MassTransit
         typeof(ModuleJobApprovalModifiedFanoutConsumer),
         typeof(ModuleApprovalThresholdModifiedFanoutConsumer),
         typeof(ModuleResourceCountUpdatedFanoutConsumer),
+        typeof(IntegrationUpdatedCacheInvalidationConsumer),
+        typeof(IntegrationDeletedCacheInvalidationConsumer),
         typeof(ServerHeartbeatConsumer),
         typeof(AgentHeartbeatConsumer)
     ];

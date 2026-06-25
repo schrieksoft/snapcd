@@ -8,6 +8,12 @@ Context:
 - jobId: {{jobId}}
 - moduleId: {{moduleId}}
 
+**Before investigating, read this module's recent mission history** from the MCP
+resource `snapcd://orgs/{{organizationId}}/modules/{{moduleId}}/history` — the last
+few missions for this module and what they found or did (including any open PRs).
+Treat it as **priors to verify, not facts to trust**: current logs, status, and
+source are ground truth; never conclude from history alone.
+
 Follow this investigation order. Stop at the first conclusive signal; do not
 gather all of it if you don't need to.
 
@@ -83,7 +89,8 @@ values (this commits your category to a structured field the server reads):
 - `ExternalMutation` — a resource was changed out-of-band (e.g. console
   delete) since the last apply.
 
-Then produce the human-readable markdown:
+Then produce the human-readable markdown as bold-label bullets — write it
+self-contained, since a future mission reads it back cold as history:
 
 - **Root cause** — one sentence.
 - **Suggested action** — one paragraph; if it's a code change, name file +
@@ -93,6 +100,10 @@ Then produce the human-readable markdown:
   what the requester should change before re-requesting approval.
 - **Confidence** — high / medium / low. Mark low if the log was truncated,
   the failure mode is ambiguous, or you had to infer a decline reason.
+- **Facts** — always last, on every mission, so this record is usable as future
+  context: source `<SourceUrl>` @ `<SourceRevision>` (from the `source` resource),
+  commit `<DefinitiveRevision>` (from the `status` resource), PR `none` (this
+  mission opens none).
 
 (The `Category` is committed via the tool call above; do not repeat it in the
 markdown.)

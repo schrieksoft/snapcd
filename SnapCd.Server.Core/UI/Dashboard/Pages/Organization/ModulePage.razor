@@ -11,9 +11,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.IdentityModel.Tokens
-@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
 @using SnapCd.Server.Core.UI.Dashboard.Components.Module
-@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Queue
 @using SnapCd.Server.Core.UI.Dashboard.Components.DependencyGraph
 @using SnapCd.Contracts.Dto
@@ -77,153 +75,69 @@
             </MudAlert>
         }
 
-        <MudGrid>
-            <MudItem md="12">
-                <MudGrid>
-                    <MudItem md="2">
-                        <MudText Typo="Typo.h6">State</MudText>
-                        <MudPaper Elevation="1" Class="pa-4 mb-4">
-                            @if (_actualStateSummary != null)
-                            {
-                                <MudTooltip Text="@_actualStateSummary.Icon.Tooltip">
-                                    <MudGrid>
-                                        <MudItem md="1">
-                                            <MudIcon Icon="@_actualStateSummary.Icon.Name"
-                                                     Size="Size.Small"
-                                                     Color="@_actualStateSummary.Icon.Color"/>
-                                        </MudItem>
-                                        <MudItem md="9">
-                                            <MudText Typo="Typo.body1">@_actualStateSummary.State</MudText>
-                                        </MudItem>
-                                    </MudGrid>
-                                    <MudGrid>
-                                        <MudItem md="1">
-                                        </MudItem>
-                                        <MudItem md="9">
-                                            @if (_moduleSaga.ActualResourceCount.HasValue)
-                                            {
-                                                <MudText
-                                                    Typo="Typo.caption">@(_moduleSaga.ActualResourceCount.Value) @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources")</MudText>
-                                            }
-                                            else
-                                            {
-                                                <MudText Typo="Typo.caption">? resources</MudText>
-                                            }
-                                        </MudItem>
-                                    </MudGrid>
-                                </MudTooltip>
-                            }
-                        </MudPaper>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <div class="module-status-grid">
+                @if (_actualStateSummary != null)
+                {
+                    <MudText Typo="Typo.body2" Class="module-status-label">State</MudText>
+                    <div class="d-flex align-center gap-2">
+                        <MudTooltip Text="@_actualStateSummary.Icon.Tooltip">
+                            <MudIcon Icon="@_actualStateSummary.Icon.Name" Size="Size.Small"
+                                     Color="@_actualStateSummary.Icon.Color"/>
+                        </MudTooltip>
+                        <MudText Typo="Typo.body1">@_actualStateSummary.State</MudText>
+                        @if (_moduleSaga.ActualResourceCount.HasValue)
+                        {
+                            <MudText Typo="Typo.caption">(@_moduleSaga.ActualResourceCount.Value @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources"))</MudText>
+                        }
+                    </div>
+                }
 
-                    </MudItem>
+                @if (_revisionSummary != null)
+                {
+                    <MudText Typo="Typo.body2" Class="module-status-label">Revision</MudText>
+                    <div class="d-flex align-center gap-2">
+                        <MudTooltip Text="@_revisionSummary.Icon.Tooltip">
+                            <MudIcon Icon="@_revisionSummary.Icon.Name" Size="Size.Small"
+                                     Color="@_revisionSummary.Icon.Color"/>
+                        </MudTooltip>
+                        <MudText Typo="Typo.body1">@FormatRevisionState(_revisionSummary.State)</MudText>
+                        <MudText Typo="Typo.caption">@_revisionSummary.Subtext</MudText>
+                    </div>
+                }
 
-                    <MudItem md="2">
-                        <MudText Typo="Typo.h6">Queued</MudText>
-                        <MudPaper Elevation="1" Class="pa-4 mb-4">
-                            @* @if (_jobSummary != null) *@
-                            @* { *@
-                            @*     <MudGrid> *@
-                            @*         <MudItem md="1"> *@
-                            @*             <MudIcon Icon="@_jobSummary.Icon.Name" Size="Size.Small" *@
-                            @*                      Color="@_jobSummary.Icon.Color"/> *@
-                            @*         </MudItem> *@
-                            @*         <MudItem md="9"> *@
-                            @*             <MudText Typo="Typo.body1">@_jobSummary.Text</MudText> *@
-                            @*         </MudItem> *@
-                            @*     </MudGrid> *@
-                            @*      *@
-                            @* } *@
-                            @if (_queuedSummary != null)
-                            {
-                                <MudGrid>
-                                    <MudItem md="1">
-                                        <MudIcon Icon="@_queuedSummary.Icon.Name" Size="Size.Small"
-                                                 Color="@_queuedSummary.Icon.Color"/>
-                                    </MudItem>
-                                    <MudItem md="9">
-                                        @if (_moduleSaga.QueuedDesiredStateHeadline.HasValue && _moduleSaga.QueuedReason.HasValue)
-                                        {
-                                            <MudText
-                                                Typo="Typo.caption">@GetQueuedReasonText(_moduleSaga.QueuedReason.Value)</MudText>
-                                        }
-                                        <MudText Typo="Typo.body1">@_queuedSummary.Text</MudText>
-                                    </MudItem>
-                                </MudGrid>
-                            }
-                        </MudPaper>
-
-
+                @if (_queuedSummary != null)
+                {
+                    <MudText Typo="Typo.body2" Class="module-status-label">Queued</MudText>
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@_queuedSummary.Icon.Name" Size="Size.Small"
+                                 Color="@_queuedSummary.Icon.Color"/>
+                        <MudText Typo="Typo.body1">@_queuedSummary.Text</MudText>
+                        @if (_moduleSaga.QueuedDesiredStateHeadline.HasValue && _moduleSaga.QueuedReason.HasValue)
+                        {
+                            <MudText Typo="Typo.caption">@GetQueuedReasonText(_moduleSaga.QueuedReason.Value)</MudText>
+                        }
                         @if (_queuedSummary is { State: true })
                         {
-                            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunQueueNow">Run
-                                    Now
-                                </MudButton>
-                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ClearQueue">Clear
-                                </MudButton>
-                            </MudPaper>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       OnClick="RunQueueNow">Run Now</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       OnClick="ClearQueue">Clear</MudButton>
                         }
-                    </MudItem>
+                    </div>
+                }
 
-
-                    <MudItem md="2">
-                        <MudText Typo="Typo.h6">Runners</MudText>
-                        <MudPaper Elevation="1" Class="pa-4 mb-4">
-                            @if (_runnerAvailabilitySummary != null)
-                            {
-                                <MudGrid>
-                                    <MudItem md="1">
-                                        <MudIcon Icon="@_runnerAvailabilitySummary.Icon.Name" Size="Size.Small"
-                                                 Color="@_runnerAvailabilitySummary.Icon.Color"/>
-                                    </MudItem>
-                                    <MudItem md="9">
-                                        <MudText Typo="Typo.body1">@_runnerAvailabilitySummary.Text</MudText>
-                                    </MudItem>
-                                </MudGrid>
-                                <MudGrid>
-                                    <MudItem md="1">
-                                        <MudText Typo="Typo.body1"></MudText>
-                                    </MudItem>
-                                    <MudItem md="9">
-                                        <MudText Typo="Typo.body1"></MudText>
-                                    </MudItem>
-                                </MudGrid>
-                            }
-                        </MudPaper>
-                    </MudItem>
-
-                    <MudItem md="6">
-                        <MudText Typo="Typo.h6">Revision</MudText>
-                        <MudPaper Elevation="1" Class="pa-4 mb-4">
-                            @if (_revisionSummary != null)
-                            {
-                                <MudTooltip Text="@_revisionSummary.Icon.Tooltip">
-                                    <MudGrid>
-                                        <MudItem md="1">
-                                            <MudIcon Icon="@_revisionSummary.Icon.Name" Size="Size.Small"
-                                                     Color="@_revisionSummary.Icon.Color"/>
-                                        </MudItem>
-                                        <MudItem md="9">
-                                            <MudText Typo="Typo.body1">@_revisionSummary.State</MudText>
-                                        </MudItem>
-                                    </MudGrid>
-                                    <MudGrid>
-                                        <MudItem md="1">
-                                        </MudItem>
-                                        <MudItem md="9">
-                                            <MudText Typo="Typo.caption">@_revisionSummary.Subtext</MudText>
-                                        </MudItem>
-                                    </MudGrid>
-
-                                </MudTooltip>
-                            }
-                        </MudPaper>
-                    </MudItem>
-
-
-                </MudGrid>
-            </MudItem>
-        </MudGrid>
+                @if (_runnerAvailabilitySummary != null)
+                {
+                    <MudText Typo="Typo.body2" Class="module-status-label">Runners</MudText>
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@_runnerAvailabilitySummary.Icon.Name" Size="Size.Small"
+                                 Color="@_runnerAvailabilitySummary.Icon.Color"/>
+                        <MudText Typo="Typo.body1">@_runnerAvailabilitySummary.Text</MudText>
+                    </div>
+                }
+            </div>
+        </MudPaper>
 
         <MudPaper Elevation="1" Class="pa-4 mb-4">
             <MudTooltip Text="Manage Jobs">
@@ -232,33 +146,10 @@
                                OnClick="() => SwitchShowing(ShowingType.Jobs)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Edit Module">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="GetColor(ShowingType.Edit)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Edit)"/>
-            </MudTooltip>
-
             <MudTooltip Text="View Dependencies">
                 <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.Dependencies)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Dependencies)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Roles">
-                <MudIconButton Icon="@Icons.Material.Filled.Shield" Color="GetColor(ShowingType.Roles)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Roles)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Missions">
-                <MudIconButton Icon="material-symbols-outlined/automation"
-                               Color="GetColor(ShowingType.Missions)" Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Missions)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Manage Secrets">
-                <MudIconButton Icon="@Icons.Material.Filled.Password" Color="GetColor(ShowingType.Secrets)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Secrets)"/>
             </MudTooltip>
 
             <MudTooltip Text="View Variables">
@@ -273,9 +164,10 @@
                                OnClick="() => SwitchShowing(ShowingType.Outputs)"/>
             </MudTooltip>
 
-            <MudTooltip Text="Delete Module">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
-                               OnClick="() => { return Delete(_module); }"/>
+            <MudTooltip Text="Configure">
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
+                               Size="Size.Small"
+                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
             </MudTooltip>
         </MudPaper>
 
@@ -288,26 +180,17 @@
                               OnJobsStateChanged="HandleJobsStateChanged"/>
         }
 
-        @if (_showing == ShowingType.Roles)
+        @if (_showing == ShowingType.Configure)
         {
-            <ManageModuleRoles ModuleId="_module.Id"
-                               OnSaved="() => _showing = ShowingType.None"
-                               OnCancel="() => _showing = ShowingType.None"/>
-        }
-
-        @if (_showing == ShowingType.Missions)
-        {
-            <ManageModuleMissions ModuleId="_module.Id" NamespaceId="_module.NamespaceId"
-                                  StackName="@StackName" NamespaceName="@NamespaceName"/>
-        }
-
-        @if (_showing == ShowingType.Edit)
-        {
-            <EditModule Module="_module"
-                        StackId="_stackId"
-                        PrincipalProvider="_literalPrincipalProvider"
-                        OnSaved="() => _showing = ShowingType.None"
-                        OnCancel="() => _showing = ShowingType.None"/>
+            <ConfigureModule Module="_module"
+                             StackId="_stackId"
+                             StackName="@StackName"
+                             NamespaceName="@NamespaceName"
+                             PrincipalProvider="_literalPrincipalProvider"
+                             InitialSection="@_configureSection"
+                             OnSectionChanged="HandleConfigureSectionChanged"
+                             OnModuleDeleted="HandleModuleDeleted"
+                             OnModuleSaved="HandleModuleSaved"/>
         }
 
         @if (_showing == ShowingType.Outputs)
@@ -318,14 +201,6 @@
         @if (_showing == ShowingType.Variables)
         {
             <ViewVariables Module="_module" StackName="@StackName"/>
-        }
-
-        @if (_showing == ShowingType.Secrets)
-        {
-            <ManageModuleSecrets
-                ModuleId="_module.Id"
-                NamespaceId="_module.NamespaceId"
-                StackId="_stackId"/>
         }
 
         @if (_showing == ShowingType.Dependencies)
@@ -612,6 +487,19 @@
     }
 </CascadingValue>
 
+<style>
+    .module-status-grid {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        row-gap: 0.5rem;
+        align-items: center;
+    }
+
+    .module-status-label {
+        color: var(--mud-palette-text-secondary);
+    }
+</style>
+
 @code {
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     [Parameter] public required string StackName { get; set; }
@@ -623,6 +511,7 @@
     [SupplyParameterFromQuery] public string? Tab { get; set; }
     [SupplyParameterFromQuery] public string? Job { get; set; }
     [SupplyParameterFromQuery] public string? Task { get; set; }
+    [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleJobSecuredRepositoryFactory JobRepoFactory { get; set; } = null!;
@@ -637,6 +526,7 @@
     private List<BreadcrumbItem> _breadCrumbs = [];
 
     private ShowingType _showing = ShowingType.None;
+    private string? _configureSection;
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private Guid _stackId;
@@ -1073,7 +963,7 @@
                 {
                     Color = Color.Default,
                     Name = Icons.Material.Filled.StopCircle,
-                    Tooltip = "The revision state is unknown."
+                    Tooltip = "No revision information yet"
                 };
 
             case RevisionState.Synced:
@@ -1097,9 +987,18 @@
                 {
                     Color = Color.Default,
                     Name = Icons.Material.Filled.StopCircle,
-                    Tooltip = "The revision state is unknown."
+                    Tooltip = "No revision information yet"
                 };
         }
+    }
+
+    private string FormatRevisionState(RevisionState state)
+    {
+        return state switch
+        {
+            RevisionState.Unknown => "None",
+            _ => state.ToString()
+        };
     }
 
     # endregion
@@ -1368,7 +1267,7 @@
 
         // Set initial showing based on query parameter
         _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Jobs;
-
+        _configureSection = Section;
 
         RunnerAvailabilityModifiedNotificationService.Subscribe(_module.RunnerId, HandleRunnerAvailabilityModified);
         ModuleSagaModifiedNotificationService.Subscribe(_module.Id, HandleModuleSagaModified);
@@ -1414,44 +1313,15 @@
         return _showing == showTypeToMatch ? Color.Info : Color.Primary;
     }
 
-    private async Task Delete(Module module)
-    {
-        var parameters = new DialogParameters<DeleteModuleDialog>
-        {
-            { x => x.Module, module },
-            { x => x.OrganizationId, OrganizationId }
-        };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteModuleDialog>("Delete", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-        {
-            Guid.TryParse(result.Data?.ToString(), out var deletedModuleId);
-            Snackbar.Add($"Successfully deleted module \"{deletedModuleId}\"");
-            NavigationManager.NavigateTo("/Stacks");
-        }
-    }
-
     private void SwitchShowing(ShowingType newShowing)
     {
         var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
         _showing = targetShowing;
 
-        // Update URL without reloading, preserving organizationId and search terms
-        var actionQuery = GetActionFromShowingType(targetShowing);
-        var queryParams = new List<string>();
+        if (targetShowing != ShowingType.Configure)
+            _configureSection = null;
 
-        if (actionQuery != null)
-            queryParams.Add($"action={actionQuery}");
-
-        if (!string.IsNullOrEmpty(Search))
-            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
-
-        var queryString = "?" + string.Join("&", queryParams);
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
-        NavigationManager.NavigateTo(newUrl, false);
+        UpdateUrl();
     }
 
     private void HandleJobsStateChanged((Guid? JobId, string? Tab, string? Task) state)
@@ -1474,17 +1344,51 @@
         NavigationManager.NavigateTo(newUrl, forceLoad: false, replace: true);
     }
 
+    private void HandleConfigureSectionChanged(string? section)
+    {
+        _configureSection = section;
+        UpdateUrl();
+    }
+
+    private void HandleModuleDeleted()
+    {
+        NavigationManager.NavigateTo($"/Stacks/{StackName}/{NamespaceName}");
+    }
+
+    private async Task HandleModuleSaved()
+    {
+        using var moduleRepo = RepoFactory.Create();
+        _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
+        StateHasChanged();
+    }
+
+    private void UpdateUrl()
+    {
+        var queryParams = new List<string>();
+
+        var actionQuery = GetActionFromShowingType(_showing);
+        if (actionQuery != null)
+            queryParams.Add($"action={actionQuery}");
+
+        if (_showing == ShowingType.Configure && !string.IsNullOrEmpty(_configureSection))
+            queryParams.Add($"section={Uri.EscapeDataString(_configureSection)}");
+
+        if (!string.IsNullOrEmpty(Search))
+            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
+
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+        NavigationManager.NavigateTo(newUrl, false);
+    }
+
     private enum ShowingType
     {
         None,
         Jobs,
-        Edit,
-        Roles,
-        Missions,
-        Secrets,
         Outputs,
         Variables,
-        Dependencies
+        Dependencies,
+        Configure
     }
 
     public void Dispose()
@@ -1518,14 +1422,11 @@
     {
         return action?.ToLower() switch
         {
-            "edit" => ShowingType.Edit,
-            "secrets" => ShowingType.Secrets,
-            "roles" => ShowingType.Roles,
-            "missions" => ShowingType.Missions,
             "jobs" => ShowingType.Jobs,
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
             "dependencies" => ShowingType.Dependencies,
+            "configure" => ShowingType.Configure,
             _ => null
         };
     }
@@ -1534,14 +1435,11 @@
     {
         return showingType switch
         {
-            ShowingType.Edit => "Edit",
-            ShowingType.Secrets => "Secrets",
-            ShowingType.Roles => "Roles",
-            ShowingType.Missions => "Missions",
             ShowingType.Jobs => "Jobs",
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",
             ShowingType.Dependencies => "Dependencies",
+            ShowingType.Configure => "Configure",
             _ => null
         };
     }

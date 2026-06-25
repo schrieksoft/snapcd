@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="$HOME/.dotnet:$PATH"
+
 # Verifies that applications/snapcd/schemas/<component>.schema.json matches what the matching
 # SnapCd.Settings.Generator.<Component> would emit from the current settings POCOs and their
 # XML doc summaries. Exits non-zero if any schema file would change — call without --check

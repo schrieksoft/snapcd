@@ -19,7 +19,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// <c>(ModuleJobId, MissionType, OrganizationId)</c> restricted to the non-terminal statuses enforces
 /// <b>at most one active run per (job, type)</b> — the hard, race-proof lock (the DB is the arbiter).
 /// </summary>
-public class ModuleJobMissionRun : AuditBase, IEntity, ICreationTrackable
+public class ModuleJobMissionRun : AuditBase, IEntity, ICreationTrackable, IOrganizationChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
