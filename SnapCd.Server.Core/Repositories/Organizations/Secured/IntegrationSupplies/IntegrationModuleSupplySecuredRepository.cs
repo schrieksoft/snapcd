@@ -9,7 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts.Dto.Integrations;
+using SnapCd.Contracts.Dto.IntegrationModuleSupplies;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
 using SnapCd.Server.Core.Events.Repository.Organization;
@@ -23,7 +23,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSuppl
 public class IntegrationModuleSupplySecuredRepositoryFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
-    IOptions<IntegrationSupplyRepositorySettings> options)
+    IOptions<IntegrationModuleSupplyRepositorySettings> options)
 {
     public IntegrationModuleSupplySecuredRepository Create(IPrincipalProvider? principalProvider = null)
     {
@@ -38,12 +38,12 @@ public class IntegrationModuleSupplySecuredRepositoryFactory(
 
 public class IntegrationModuleSupplySecuredRepository : GenericIntegrationChildSecuredRepository<
     IntegrationModuleSupply,
-    IntegrationSupplyDto,
+    IntegrationModuleSupplyReadDto,
     IntegrationModuleSupplyRepository,
-    IntegrationSupplyCreatedEvent,
-    IntegrationSupplyUpdatedEvent,
-    IntegrationSupplyDeletedEvent,
-    IntegrationSupplyRepositorySettings>
+    IntegrationModuleSupplyCreatedEvent,
+    IntegrationModuleSupplyUpdatedEvent,
+    IntegrationModuleSupplyDeletedEvent,
+    IntegrationModuleSupplyRepositorySettings>
 {
     public IntegrationModuleSupplySecuredRepository(
         IntegrationModuleSupplyRepository repository,

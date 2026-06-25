@@ -10,7 +10,9 @@ using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts.Dto.Integrations;
+using SnapCd.Contracts.Dto.IntegrationModuleSupplies;
+using SnapCd.Contracts.Dto.IntegrationNamespaceSupplies;
+using SnapCd.Contracts.Dto.IntegrationStackSupplies;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
 using SnapCd.Server.Core.Events.Repository.Organization;
@@ -22,52 +24,52 @@ using SnapCd.Server.Core.Settings.Repositories;
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 public class IntegrationModuleSupplyRepositoryFactory(
-    IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationSupplyRepositorySettings> options)
+    IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationModuleSupplyRepositorySettings> options)
 {
     public IntegrationModuleSupplyRepository Create(IPrincipalProvider? principalProvider = null)
         => new(dbFactory.CreateDbContext(), principalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor()), bus, options);
 }
 
 public class IntegrationModuleSupplyRepository(
-    SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationSupplyRepositorySettings> options)
-    : GenericOrganizationChildRepository<IntegrationModuleSupply, IntegrationSupplyDto,
-        IntegrationSupplyCreatedEvent, IntegrationSupplyUpdatedEvent, IntegrationSupplyDeletedEvent,
-        IntegrationSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
+    SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationModuleSupplyRepositorySettings> options)
+    : GenericOrganizationChildRepository<IntegrationModuleSupply, IntegrationModuleSupplyReadDto,
+        IntegrationModuleSupplyCreatedEvent, IntegrationModuleSupplyUpdatedEvent, IntegrationModuleSupplyDeletedEvent,
+        IntegrationModuleSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
-    protected override IntegrationSupplyDto MapToDto(IntegrationModuleSupply entity)
-        => IntegrationSupplyMapper.ToDto(entity);
+    protected override IntegrationModuleSupplyReadDto MapToDto(IntegrationModuleSupply entity)
+        => IntegrationModuleSupplyMapper.ToDto(entity);
 }
 
 public class IntegrationNamespaceSupplyRepositoryFactory(
-    IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationSupplyRepositorySettings> options)
+    IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationNamespaceSupplyRepositorySettings> options)
 {
     public IntegrationNamespaceSupplyRepository Create(IPrincipalProvider? principalProvider = null)
         => new(dbFactory.CreateDbContext(), principalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor()), bus, options);
 }
 
 public class IntegrationNamespaceSupplyRepository(
-    SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationSupplyRepositorySettings> options)
-    : GenericOrganizationChildRepository<IntegrationNamespaceSupply, IntegrationSupplyDto,
-        IntegrationSupplyCreatedEvent, IntegrationSupplyUpdatedEvent, IntegrationSupplyDeletedEvent,
-        IntegrationSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
+    SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationNamespaceSupplyRepositorySettings> options)
+    : GenericOrganizationChildRepository<IntegrationNamespaceSupply, IntegrationNamespaceSupplyReadDto,
+        IntegrationNamespaceSupplyCreatedEvent, IntegrationNamespaceSupplyUpdatedEvent, IntegrationNamespaceSupplyDeletedEvent,
+        IntegrationNamespaceSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
-    protected override IntegrationSupplyDto MapToDto(IntegrationNamespaceSupply entity)
-        => IntegrationSupplyMapper.ToDto(entity);
+    protected override IntegrationNamespaceSupplyReadDto MapToDto(IntegrationNamespaceSupply entity)
+        => IntegrationNamespaceSupplyMapper.ToDto(entity);
 }
 
 public class IntegrationStackSupplyRepositoryFactory(
-    IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationSupplyRepositorySettings> options)
+    IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationStackSupplyRepositorySettings> options)
 {
     public IntegrationStackSupplyRepository Create(IPrincipalProvider? principalProvider = null)
         => new(dbFactory.CreateDbContext(), principalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor()), bus, options);
 }
 
 public class IntegrationStackSupplyRepository(
-    SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationSupplyRepositorySettings> options)
-    : GenericOrganizationChildRepository<IntegrationStackSupply, IntegrationSupplyDto,
-        IntegrationSupplyCreatedEvent, IntegrationSupplyUpdatedEvent, IntegrationSupplyDeletedEvent,
-        IntegrationSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
+    SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationStackSupplyRepositorySettings> options)
+    : GenericOrganizationChildRepository<IntegrationStackSupply, IntegrationStackSupplyReadDto,
+        IntegrationStackSupplyCreatedEvent, IntegrationStackSupplyUpdatedEvent, IntegrationStackSupplyDeletedEvent,
+        IntegrationStackSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
-    protected override IntegrationSupplyDto MapToDto(IntegrationStackSupply entity)
-        => IntegrationSupplyMapper.ToDto(entity);
+    protected override IntegrationStackSupplyReadDto MapToDto(IntegrationStackSupply entity)
+        => IntegrationStackSupplyMapper.ToDto(entity);
 }

@@ -10,7 +10,7 @@ using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts.Dto.Integrations;
+using SnapCd.Contracts.Dto.IntegrationEvents;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
 using SnapCd.Server.Core.Events.Repository.Organization;
@@ -23,7 +23,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 // ── Organization ──
 
-public class OrganizationIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationEventRepositorySettings> options)
+public class OrganizationIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<OrganizationIntegrationEventRepositorySettings> options)
 {
     public OrganizationIntegrationEventRepository Create(IPrincipalProvider? principalProvider = null)
     {
@@ -34,18 +34,18 @@ public class OrganizationIntegrationEventRepositoryFactory(IDbContextFactory<Sna
     }
 }
 
-public class OrganizationIntegrationEventRepository : GenericOrganizationChildRepository<OrganizationIntegrationEvent, IntegrationEventDto, IntegrationEventCreatedEvent, IntegrationEventUpdatedEvent, IntegrationEventDeletedEvent, IntegrationEventRepositorySettings>
+public class OrganizationIntegrationEventRepository : GenericOrganizationChildRepository<OrganizationIntegrationEvent, OrganizationIntegrationEventReadDto, OrganizationIntegrationEventCreatedEvent, OrganizationIntegrationEventUpdatedEvent, OrganizationIntegrationEventDeletedEvent, OrganizationIntegrationEventRepositorySettings>
 {
     public OrganizationIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
         IPublishEndpoint bus,
-        IOptions<IntegrationEventRepositorySettings> options)
+        IOptions<OrganizationIntegrationEventRepositorySettings> options)
         : base(dbContext, principalProvider, bus, options)
     {
     }
 
-    protected override IntegrationEventDto MapToDto(OrganizationIntegrationEvent entity) => IntegrationEventMapper.ToDto(entity);
+    protected override OrganizationIntegrationEventReadDto MapToDto(OrganizationIntegrationEvent entity) => OrganizationIntegrationEventMapper.ToDto(entity);
 
     public async Task<List<OrganizationIntegrationEvent>> ListByIntegration(Guid integrationId, Guid organizationId)
     {
@@ -57,7 +57,7 @@ public class OrganizationIntegrationEventRepository : GenericOrganizationChildRe
 
 // ── Stack ──
 
-public class StackIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationEventRepositorySettings> options)
+public class StackIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<StackIntegrationEventRepositorySettings> options)
 {
     public StackIntegrationEventRepository Create(IPrincipalProvider? principalProvider = null)
     {
@@ -68,18 +68,18 @@ public class StackIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbCo
     }
 }
 
-public class StackIntegrationEventRepository : GenericStackChildRepository<StackIntegrationEvent, IntegrationEventDto, IntegrationEventCreatedEvent, IntegrationEventUpdatedEvent, IntegrationEventDeletedEvent, IntegrationEventRepositorySettings>
+public class StackIntegrationEventRepository : GenericStackChildRepository<StackIntegrationEvent, StackIntegrationEventReadDto, StackIntegrationEventCreatedEvent, StackIntegrationEventUpdatedEvent, StackIntegrationEventDeletedEvent, StackIntegrationEventRepositorySettings>
 {
     public StackIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
         IPublishEndpoint bus,
-        IOptions<IntegrationEventRepositorySettings> options)
+        IOptions<StackIntegrationEventRepositorySettings> options)
         : base(dbContext, principalProvider, bus, options)
     {
     }
 
-    protected override IntegrationEventDto MapToDto(StackIntegrationEvent entity) => IntegrationEventMapper.ToDto(entity);
+    protected override StackIntegrationEventReadDto MapToDto(StackIntegrationEvent entity) => StackIntegrationEventMapper.ToDto(entity);
 
     public async Task<List<StackIntegrationEvent>> ListByIntegration(Guid integrationId, Guid organizationId)
     {
@@ -98,7 +98,7 @@ public class StackIntegrationEventRepository : GenericStackChildRepository<Stack
 
 // ── Namespace ──
 
-public class NamespaceIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationEventRepositorySettings> options)
+public class NamespaceIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<NamespaceIntegrationEventRepositorySettings> options)
 {
     public NamespaceIntegrationEventRepository Create(IPrincipalProvider? principalProvider = null)
     {
@@ -109,18 +109,18 @@ public class NamespaceIntegrationEventRepositoryFactory(IDbContextFactory<SnapCd
     }
 }
 
-public class NamespaceIntegrationEventRepository : GenericNamespaceChildRepository<NamespaceIntegrationEvent, IntegrationEventDto, IntegrationEventCreatedEvent, IntegrationEventUpdatedEvent, IntegrationEventDeletedEvent, IntegrationEventRepositorySettings>
+public class NamespaceIntegrationEventRepository : GenericNamespaceChildRepository<NamespaceIntegrationEvent, NamespaceIntegrationEventReadDto, NamespaceIntegrationEventCreatedEvent, NamespaceIntegrationEventUpdatedEvent, NamespaceIntegrationEventDeletedEvent, NamespaceIntegrationEventRepositorySettings>
 {
     public NamespaceIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
         IPublishEndpoint bus,
-        IOptions<IntegrationEventRepositorySettings> options)
+        IOptions<NamespaceIntegrationEventRepositorySettings> options)
         : base(dbContext, principalProvider, bus, options)
     {
     }
 
-    protected override IntegrationEventDto MapToDto(NamespaceIntegrationEvent entity) => IntegrationEventMapper.ToDto(entity);
+    protected override NamespaceIntegrationEventReadDto MapToDto(NamespaceIntegrationEvent entity) => NamespaceIntegrationEventMapper.ToDto(entity);
 
     public async Task<List<NamespaceIntegrationEvent>> ListByIntegration(Guid integrationId, Guid organizationId)
     {
@@ -139,7 +139,7 @@ public class NamespaceIntegrationEventRepository : GenericNamespaceChildReposito
 
 // ── Module ──
 
-public class ModuleIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<IntegrationEventRepositorySettings> options)
+public class ModuleIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<ModuleIntegrationEventRepositorySettings> options)
 {
     public ModuleIntegrationEventRepository Create(IPrincipalProvider? principalProvider = null)
     {
@@ -150,18 +150,18 @@ public class ModuleIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbC
     }
 }
 
-public class ModuleIntegrationEventRepository : GenericModuleChildRepository<ModuleIntegrationEvent, IntegrationEventDto, IntegrationEventCreatedEvent, IntegrationEventUpdatedEvent, IntegrationEventDeletedEvent, IntegrationEventRepositorySettings>
+public class ModuleIntegrationEventRepository : GenericModuleChildRepository<ModuleIntegrationEvent, ModuleIntegrationEventReadDto, ModuleIntegrationEventCreatedEvent, ModuleIntegrationEventUpdatedEvent, ModuleIntegrationEventDeletedEvent, ModuleIntegrationEventRepositorySettings>
 {
     public ModuleIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
         IPublishEndpoint bus,
-        IOptions<IntegrationEventRepositorySettings> options)
+        IOptions<ModuleIntegrationEventRepositorySettings> options)
         : base(dbContext, principalProvider, bus, options)
     {
     }
 
-    protected override IntegrationEventDto MapToDto(ModuleIntegrationEvent entity) => IntegrationEventMapper.ToDto(entity);
+    protected override ModuleIntegrationEventReadDto MapToDto(ModuleIntegrationEvent entity) => ModuleIntegrationEventMapper.ToDto(entity);
 
     public async Task<List<ModuleIntegrationEvent>> ListByIntegration(Guid integrationId, Guid organizationId)
     {

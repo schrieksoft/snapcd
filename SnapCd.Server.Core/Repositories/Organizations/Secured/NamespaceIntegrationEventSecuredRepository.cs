@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
-using SnapCd.Contracts.Dto.Integrations;
+using SnapCd.Contracts.Dto.IntegrationEvents;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
@@ -27,7 +27,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 public class NamespaceIntegrationEventSecuredRepositoryFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
-    IOptions<IntegrationEventRepositorySettings> options)
+    IOptions<NamespaceIntegrationEventRepositorySettings> options)
 {
     public NamespaceIntegrationEventSecuredRepository Create(IPrincipalProvider? principalProvider = null)
     {
@@ -42,12 +42,12 @@ public class NamespaceIntegrationEventSecuredRepositoryFactory(
 
 public class NamespaceIntegrationEventSecuredRepository : GenericNamespaceChildSecuredRepository<
     NamespaceIntegrationEvent,
-    IntegrationEventDto,
+    NamespaceIntegrationEventReadDto,
     NamespaceIntegrationEventRepository,
-    IntegrationEventCreatedEvent,
-    IntegrationEventUpdatedEvent,
-    IntegrationEventDeletedEvent,
-    IntegrationEventRepositorySettings>
+    NamespaceIntegrationEventCreatedEvent,
+    NamespaceIntegrationEventUpdatedEvent,
+    NamespaceIntegrationEventDeletedEvent,
+    NamespaceIntegrationEventRepositorySettings>
 {
     public NamespaceIntegrationEventSecuredRepository(
         NamespaceIntegrationEventRepository repository,

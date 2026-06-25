@@ -26,6 +26,10 @@ public static class ControllerEndpoints
     public const string Module = "api/{organizationId}/Module";
     public const string Integration = "api/{organizationId}/Integration";
     public const string IntegrationEvent = "api/{organizationId}/IntegrationEvent";
+    public const string OrganizationIntegrationEvent = "api/{organizationId}/OrganizationIntegrationEvent";
+    public const string StackIntegrationEvent = "api/{organizationId}/StackIntegrationEvent";
+    public const string NamespaceIntegrationEvent = "api/{organizationId}/NamespaceIntegrationEvent";
+    public const string ModuleIntegrationEvent = "api/{organizationId}/ModuleIntegrationEvent";
     public const string Logs = "api/{organizationId}/Logs";
     public const string ServicePrincipal = "api/{organizationId}/ServicePrincipal";
     public const string User = "api/{organizationId}/User";
@@ -70,4 +74,7 @@ public static class ControllerEndpoints
     public const string ModuleMission = "api/{organizationId}/ModuleMission";
     public const string AgentRoleAssignment = "api/{organizationId}/AgentRoleAssignment";
     public const string IntegrationRoleAssignment = "api/{organizationId}/IntegrationRoleAssignment";
+    public const string IntegrationStackSupply = "api/{organizationId}/IntegrationStackSupply";
+    public const string IntegrationNamespaceSupply = "api/{organizationId}/IntegrationNamespaceSupply";
+    public const string IntegrationModuleSupply = "api/{organizationId}/IntegrationModuleSupply";
 }

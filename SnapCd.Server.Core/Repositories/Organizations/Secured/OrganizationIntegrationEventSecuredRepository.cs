@@ -10,7 +10,7 @@ using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts.Dto.Integrations;
+using SnapCd.Contracts.Dto.IntegrationEvents;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
 using SnapCd.Server.Core.Events.Repository.Organization;
@@ -24,7 +24,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 public class OrganizationIntegrationEventSecuredRepositoryFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
-    IOptions<IntegrationEventRepositorySettings> options)
+    IOptions<OrganizationIntegrationEventRepositorySettings> options)
 {
     public OrganizationIntegrationEventSecuredRepository Create(IPrincipalProvider? principalProvider = null)
     {
@@ -39,12 +39,12 @@ public class OrganizationIntegrationEventSecuredRepositoryFactory(
 
 public class OrganizationIntegrationEventSecuredRepository : GenericIntegrationChildSecuredRepository<
     OrganizationIntegrationEvent,
-    IntegrationEventDto,
+    OrganizationIntegrationEventReadDto,
     OrganizationIntegrationEventRepository,
-    IntegrationEventCreatedEvent,
-    IntegrationEventUpdatedEvent,
-    IntegrationEventDeletedEvent,
-    IntegrationEventRepositorySettings>
+    OrganizationIntegrationEventCreatedEvent,
+    OrganizationIntegrationEventUpdatedEvent,
+    OrganizationIntegrationEventDeletedEvent,
+    OrganizationIntegrationEventRepositorySettings>
 {
     public OrganizationIntegrationEventSecuredRepository(
         OrganizationIntegrationEventRepository repository,

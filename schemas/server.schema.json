@@ -1582,6 +1582,50 @@
           },
           "description": "Shared tuning for the four scoped integration-event repositories."
         },
+        "IntegrationModuleSupply": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
+        },
+        "IntegrationNamespaceSupply": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
+        },
         "Integration": {
           "type": "object",
           "properties": {
@@ -1627,6 +1671,28 @@
             }
           },
           "description": "Shared tuning for the integration role-assignment repositories (base \u002B per-principal)."
+        },
+        "IntegrationStackSupply": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
         },
         "IntegrationSupply": {
           "type": "object",
@@ -1893,6 +1959,28 @@
             }
           },
           "description": "Per-ModuleInput repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ModuleInput entity specifically."
+        },
+        "ModuleIntegrationEvent": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
         },
         "ModuleJobApproval": {
           "type": "object",
@@ -2380,6 +2468,28 @@
           },
           "description": "Per-NamespaceInput repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceInput entity specifically."
         },
+        "NamespaceIntegrationEvent": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
+        },
         "NamespaceMission": {
           "type": "object",
           "properties": {
@@ -2595,6 +2705,28 @@
             }
           },
           "description": "Per-NamespaceTerraformFlag repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the NamespaceTerraformFlag entity specifically."
+        },
+        "OrganizationIntegrationEvent": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
         },
         "OrganizationMission": {
           "type": "object",
@@ -3264,6 +3396,28 @@
             }
           },
           "description": "Per-SourceRefresherPreselection repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the SourceRefresherPreselection entity specifically."
+        },
+        "StackIntegrationEvent": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
         },
         "StackMission": {
           "type": "object",

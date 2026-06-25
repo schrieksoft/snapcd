@@ -73,6 +73,13 @@ public static class CrudService
         services.AddScoped<AgentStackSupplyService>();
         services.AddScoped<AgentNamespaceSupplyService>();
         services.AddScoped<AgentModuleSupplyService>();
+        services.AddScoped<IntegrationStackSupplyService>();
+        services.AddScoped<IntegrationNamespaceSupplyService>();
+        services.AddScoped<IntegrationModuleSupplyService>();
+        services.AddScoped<OrganizationIntegrationEventService>();
+        services.AddScoped<StackIntegrationEventService>();
+        services.AddScoped<NamespaceIntegrationEventService>();
+        services.AddScoped<ModuleIntegrationEventService>();
         services.AddScoped<SecretService>();
         services.AddScoped<StackSecretService>();
         services.AddScoped<NamespaceSecretService>();

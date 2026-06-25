@@ -18,9 +18,15 @@ public static class RepositorySettings
         services.Configure<ModuleJobMissionRunRepositorySettings>(configuration.GetSection("Repositories:ModuleJobMissionRun"));
         services.Configure<ModuleJobMissionRunMilestoneRepositorySettings>(configuration.GetSection("Repositories:ModuleJobMissionRunMilestone"));
         services.Configure<IntegrationRepositorySettings>(configuration.GetSection("Repositories:Integration"));
-        services.Configure<IntegrationSupplyRepositorySettings>(configuration.GetSection("Repositories:IntegrationSupply"));
+        services.Configure<IntegrationModuleSupplyRepositorySettings>(configuration.GetSection("Repositories:IntegrationModuleSupply"));
+        services.Configure<IntegrationNamespaceSupplyRepositorySettings>(configuration.GetSection("Repositories:IntegrationNamespaceSupply"));
+        services.Configure<IntegrationStackSupplyRepositorySettings>(configuration.GetSection("Repositories:IntegrationStackSupply"));
         services.Configure<IntegrationRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:IntegrationRoleAssignment"));
         services.Configure<IntegrationEventRepositorySettings>(configuration.GetSection("Repositories:IntegrationEvent"));
+        services.Configure<OrganizationIntegrationEventRepositorySettings>(configuration.GetSection("Repositories:OrganizationIntegrationEvent"));
+        services.Configure<StackIntegrationEventRepositorySettings>(configuration.GetSection("Repositories:StackIntegrationEvent"));
+        services.Configure<NamespaceIntegrationEventRepositorySettings>(configuration.GetSection("Repositories:NamespaceIntegrationEvent"));
+        services.Configure<ModuleIntegrationEventRepositorySettings>(configuration.GetSection("Repositories:ModuleIntegrationEvent"));
         services.Configure<GroupGroupMemberRepositorySettings>(configuration.GetSection("Repositories:GroupGroupMember"));
         services.Configure<GroupMemberRepositorySettings>(configuration.GetSection("Repositories:GroupMember"));
         services.Configure<GroupModuleRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupModuleRoleAssignment"));
