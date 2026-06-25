@@ -88,7 +88,7 @@ public static class MiscService
         services.AddScoped<HttpContextPrincipalProvider>();
         services.AddScoped<SnapCdUserManager>();
         
-        if (System.Diagnostics.Debugger.IsAttached)
+        if (System.Diagnostics.Debugger.IsAttached || configuration.GetValue<bool>("UseDebugDataSeeder"))
         {
             services.AddScoped<IDataSeeder, DebugDataSeeder>();
         }

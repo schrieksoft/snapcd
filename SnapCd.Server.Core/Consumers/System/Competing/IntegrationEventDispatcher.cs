@@ -14,6 +14,8 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Missions;
+using SnapCd.Server.Core.Licensing.Models;
+using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Services.Integrations;
 using SnapCd.Server.Core.Services.Integrations.Codecs;
 using SnapCd.Server.Core.Settings;
@@ -39,6 +41,7 @@ public class IntegrationEventDispatcher :
     private readonly IIntegrationCodecRegistry _codecs;
     private readonly IntegrationSecretStore _secrets;
     private readonly IntegrationConnectionCache _connectionCache;
+    private readonly ILicenseInfoProvider _licenseInfoProvider;
     private readonly ILogger<IntegrationEventDispatcher> _logger;
     private readonly string _serverHost;
 
@@ -48,6 +51,7 @@ public class IntegrationEventDispatcher :
         IIntegrationCodecRegistry codecs,
         IntegrationSecretStore secrets,
         IntegrationConnectionCache connectionCache,
+        ILicenseInfoProvider licenseInfoProvider,
         IOptions<ServerSettings> serverSettings,
         ILogger<IntegrationEventDispatcher> logger)
     {
@@ -56,6 +60,7 @@ public class IntegrationEventDispatcher :
         _codecs = codecs;
         _secrets = secrets;
         _connectionCache = connectionCache;
+        _licenseInfoProvider = licenseInfoProvider;
         _logger = logger;
         _serverHost = serverSettings.Value.Host.TrimEnd('/');
     }
@@ -101,6 +106,13 @@ public class IntegrationEventDispatcher :
         Guid moduleId, Guid organizationId, Guid? jobId, Guid? missionId,
         IntegrationTrigger trigger, string dedupeKey, Dictionary<string, string?> ctx, CancellationToken ct)
     {
+        var licenseInfo = await _licenseInfoProvider.GetLicenseInfoAsync(organizationId);
+        if (!licenseInfo.Includes(Feature.Integrations))
+        {
+            _logger.LogDebug("Integration dispatch skipped for organization {OrganizationId}: feature not included in license tier", organizationId);
+            return;
+        }
+
         var matches = await _matcher.MatchAsync(moduleId, organizationId, trigger, ct);
         if (matches.Count == 0) return;
 

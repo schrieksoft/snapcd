@@ -12,10 +12,13 @@
 @using SnapCd.Server.Core.Entities.Definition.IntegrationEvents
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.UI.Dashboard.Components.Integrations
+@using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 
 @inject ISnackbar Snackbar
 
+<EeFeatureAlert Feature="Feature.Integrations" Message="Integrations are not included in your current tier. Events will not be dispatched." />
 <MudTabs Outlined="true" Rounded="true" Border="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
         <MudTabPanel Text="Module" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)

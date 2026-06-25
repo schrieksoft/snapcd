@@ -11,12 +11,15 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Entities.Definition.IntegrationEvents
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Licensing.Models
+@using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 
 @inject ISnackbar Snackbar
 
 <MudPaper Elevation="1" Class="pa-4">
     <MudText Typo="Typo.h6" GutterBottom="true">Integration Events (Organization scope)</MudText>
+    <EeFeatureAlert Feature="Feature.Integrations" Message="Integrations are not included in your current tier. Events will not be dispatched." />
 
     @if (!_showCreateForm && _editing is null)
     {

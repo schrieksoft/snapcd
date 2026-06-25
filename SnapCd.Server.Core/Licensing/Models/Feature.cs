@@ -24,6 +24,7 @@ public enum Feature
     PremiumSecretStore,
     PremiumEmailProvider,
     AiAgents,
+    Integrations,
 }
 
 /// <summary>
@@ -42,6 +43,7 @@ public static class TierFeatures
         { (Tier.Community, Feature.PremiumSecretStore), false },
         { (Tier.Community, Feature.PremiumEmailProvider), false },
         { (Tier.Community, Feature.AiAgents), false },
+        { (Tier.Community, Feature.Integrations), false },
 
         // Lite tier — paid baseline; AiAgents is reserved for Enterprise.
         { (Tier.Lite, Feature.FinegrainedRbac), true },
@@ -52,6 +54,7 @@ public static class TierFeatures
         { (Tier.Lite, Feature.PremiumSecretStore), true },
         { (Tier.Lite, Feature.PremiumEmailProvider), true },
         { (Tier.Lite, Feature.AiAgents), false },
+        { (Tier.Lite, Feature.Integrations), true },
 
         // Enterprise tier — full feature set, including Enterprise-exclusive AiAgents.
         { (Tier.Enterprise, Feature.FinegrainedRbac), true },
@@ -62,6 +65,7 @@ public static class TierFeatures
         { (Tier.Enterprise, Feature.PremiumSecretStore), true },
         { (Tier.Enterprise, Feature.PremiumEmailProvider), true },
         { (Tier.Enterprise, Feature.AiAgents), true },
+        { (Tier.Enterprise, Feature.Integrations), true },
     };
 
     public static bool Includes(this Tier tier, Feature feature) =>
