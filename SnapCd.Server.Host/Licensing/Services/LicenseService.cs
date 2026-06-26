@@ -115,11 +115,17 @@ public class LicenseService(
             return LicenseInfo.Unlicensed("Organization not found.");
         }
 
+        var cachedPublicKey = await publicKeyService.GetAsync();
         await UpsertLicenseAsync(dbContext, organizationId, license =>
         {
             license.LicenseToken = jwt;
             license.SelfHostedLicenseKey = opaqueKey;
             license.SelfHostedSubscriptionId = info.SubscriptionId;
+            if (license.PublicKeyPem is null && cachedPublicKey is not null)
+            {
+                license.PublicKeyPem = cachedPublicKey;
+                license.PublicKeyFetchedAtUtc = DateTime.UtcNow;
+            }
         });
 
         EvictCache(organizationId);
