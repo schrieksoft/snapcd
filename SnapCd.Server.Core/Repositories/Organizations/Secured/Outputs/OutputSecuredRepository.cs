@@ -293,6 +293,7 @@ public class OutputSecuredRepository : GenericSecuredRepository<
             join outputSet in Repository.DbContext.OutputSets
                 on output.OutputSetId equals outputSet.Id
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on output.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -301,7 +302,6 @@ public class OutputSecuredRepository : GenericSecuredRepository<
                 on new { ModuleId = outputSet.ModuleId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.ModuleId, assignment.OrganizationId, assignment.PrincipalId }
             where output.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && moduleRoles.Contains(assignment.RoleName)
             select output;
     }
@@ -319,6 +319,7 @@ public class OutputSecuredRepository : GenericSecuredRepository<
             join module in Repository.DbContext.Modules
                 on new { ModuleId = outputSet.ModuleId, outputSet.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on output.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -327,7 +328,6 @@ public class OutputSecuredRepository : GenericSecuredRepository<
                 on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where output.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
             select output;
     }
@@ -349,6 +349,7 @@ public class OutputSecuredRepository : GenericSecuredRepository<
             join stack in Repository.DbContext.Stacks
                 on new { StackId = ns.StackId, ns.OrganizationId } equals new { StackId = stack.Id, stack.OrganizationId }
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on output.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -357,7 +358,6 @@ public class OutputSecuredRepository : GenericSecuredRepository<
                 on new { StackId = stack.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.StackId, assignment.OrganizationId, assignment.PrincipalId }
             where output.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && stackRoles.Contains(assignment.RoleName)
             select output;
     }
@@ -371,6 +371,7 @@ public class OutputSecuredRepository : GenericSecuredRepository<
     {
         return from output in Repository.DbContext.Outputs
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on output.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -379,7 +380,6 @@ public class OutputSecuredRepository : GenericSecuredRepository<
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
             where output.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && organizationRoles.Contains(assignment.RoleName)
             select output;
     }

@@ -51,6 +51,83 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
         return Task.CompletedTask;
     }
 
+    // ---- StackSecuredRepository: StackRole + reverse inheritance ----
+
+    [Fact]
+    public async Task Stack_StackRoles_AreWired()
+    {
+        // StackSecuredRepository declares StackRoles. If the join is wired, a user with
+        // StackRole.Reader on Stack00 should see Stack00 in the list.
+        var principal = _fixture.ScopeReaderUsers["Stack00.Reader"];
+        var visible = await ListStacks(principal.Id);
+        Assert.Contains(visible, s => s.Id == _fixture.Stacks["00"].Id);
+    }
+
+    [Fact]
+    public async Task Stack_StackRoles_DoNotLeakAcrossStacks()
+    {
+        // StackRole.Reader on Stack00 should NOT see Stack01.
+        var principal = _fixture.ScopeReaderUsers["Stack00.Reader"];
+        var visible = await ListStacks(principal.Id);
+        Assert.DoesNotContain(visible, s => s.Id == _fixture.Stacks["01"].Id);
+    }
+
+    [Fact]
+    public async Task Stack_ReverseInheritance_NamespaceRoleGrantsStackRead()
+    {
+        // NamespaceRole.Reader on Namespace000 should grant read on Stack00 (parent).
+        var principal = _fixture.ScopeReaderUsers["Namespace000.Reader"];
+        var visible = await ListStacks(principal.Id);
+        Assert.Contains(visible, s => s.Id == _fixture.Stacks["00"].Id);
+    }
+
+    [Fact]
+    public async Task Stack_ReverseInheritance_NamespaceRoleDoesNotLeakAcrossStacks()
+    {
+        // NamespaceRole.Reader on Namespace000 (in Stack00) should NOT see Stack01.
+        var principal = _fixture.ScopeReaderUsers["Namespace000.Reader"];
+        var visible = await ListStacks(principal.Id);
+        Assert.DoesNotContain(visible, s => s.Id == _fixture.Stacks["01"].Id);
+    }
+
+    [Fact]
+    public async Task Stack_ReverseInheritance_ModuleRoleGrantsStackRead()
+    {
+        // ModuleRole.Reader on Module0000 should grant read on Stack00 (grandparent).
+        var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
+        var visible = await ListStacks(principal.Id);
+        Assert.Contains(visible, s => s.Id == _fixture.Stacks["00"].Id);
+    }
+
+    [Fact]
+    public async Task Stack_ReverseInheritance_ModuleRoleDoesNotLeakAcrossStacks()
+    {
+        // ModuleRole.Reader on Module0000 (in Stack00) should NOT see Stack01.
+        var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
+        var visible = await ListStacks(principal.Id);
+        Assert.DoesNotContain(visible, s => s.Id == _fixture.Stacks["01"].Id);
+    }
+
+    // ---- Namespace: reverse inheritance ----
+
+    [Fact]
+    public async Task Namespace_ReverseInheritance_ModuleRoleGrantsNamespaceRead()
+    {
+        // ModuleRole.Reader on Module0000 should grant read on Namespace000 (parent).
+        var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
+        var visible = await ListNamespaces(principal.Id);
+        Assert.Contains(visible, n => n.Id == _fixture.Namespaces["000"].Id);
+    }
+
+    [Fact]
+    public async Task Namespace_ReverseInheritance_ModuleRoleDoesNotLeakAcrossNamespaces()
+    {
+        // ModuleRole.Reader on Module0000 (in Namespace000) should NOT see Namespace001.
+        var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
+        var visible = await ListNamespaces(principal.Id);
+        Assert.DoesNotContain(visible, n => n.Id == _fixture.Namespaces["001"].Id);
+    }
+
     // ---- GenericStackChildSecuredRepository (Namespace as rep) ----
 
     [Fact]
@@ -109,6 +186,17 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
         var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
         var visible = await ListModuleHooks(principal.Id);
         Assert.NotEmpty(visible);
+    }
+
+    private async Task<List<Entities.Definition.Stack>> ListStacks(Guid principalId)
+    {
+        var orgId = _fixture.Organizations["0"].Id;
+        var pp = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, orgId);
+        var repo = new StackSecuredRepository(
+            new StackRepository(_dbContext, pp, _fixture.CreateMockBus(),
+                Options.Create(new StackRepositorySettings())),
+            pp);
+        return await repo.List(orgId);
     }
 
     private async Task<List<Entities.Definition.Namespace>> ListNamespaces(Guid principalId)

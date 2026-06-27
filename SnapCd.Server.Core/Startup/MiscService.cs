@@ -44,8 +44,8 @@ public static class MiscService
         // Parameter Resolution (for Terraform)
         services.AddScoped<ParamResolverFactory>();
 
-        // Database View Management
-        services.AddScoped<IViewManager, ViewManager>();
+        // Idempotent SQL Management
+        services.AddScoped<IIdempotentSqlManager, IdempotentSqlManager>();
 
         // Job Execution Services
         services.AddScoped<JobService>();

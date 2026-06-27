@@ -16,6 +16,8 @@ public class GroupClassMap : IEntityTypeConfiguration<Group>
 {
     public void Configure(EntityTypeBuilder<Group> entity)
     {
+        entity.ToTable(t => t.UseSqlOutputClause(false));
+
         // Composite primary key with OrganizationId
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 

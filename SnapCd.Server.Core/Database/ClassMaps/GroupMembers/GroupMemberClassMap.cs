@@ -17,6 +17,8 @@ public class GroupMemberClassMap : IEntityTypeConfiguration<GroupMember>
 {
     public void Configure(EntityTypeBuilder<GroupMember> entity)
     {
+        entity.ToTable(t => t.UseSqlOutputClause(false));
+
         // Composite primary key with OrganizationId
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
@@ -49,6 +51,11 @@ public class GroupMemberClassMap : IEntityTypeConfiguration<GroupMember>
         // Index on PrincipalId for efficient lookups
         entity
             .HasIndex(e => e.PrincipalId);
+
+        // Composite index for permission query optimization
+        entity
+            .HasIndex(e => new { e.PrincipalId, e.OrganizationId, e.GroupMemberDiscriminator })
+            .HasDatabaseName("IX_GroupMembers_Principal_Org_Disc");
 
         // Parent Group navigation property
         entity

@@ -55,6 +55,11 @@ public class AgentRoleAssignmentClassMap : IEntityTypeConfiguration<AgentRoleAss
         entity
             .HasIndex(e => e.AgentId);
 
+        // Composite index for permission query optimization
+        entity
+            .HasIndex(e => new { e.AgentId, e.OrganizationId, e.PrincipalId, e.RoleName })
+            .HasDatabaseName("IX_AgentRoleAssign_Agent_Principal_Org_Role");
+
         // Organization navigation property
         entity
             .HasOne(e => e.Organization)

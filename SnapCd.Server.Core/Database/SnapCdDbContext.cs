@@ -406,6 +406,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new UserGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new ServicePrincipalGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new GroupGroupMemberClassMap());
+        modelBuilder.ApplyConfiguration(new RecursiveGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new TokenClassMap());
         modelBuilder.ApplyConfiguration(new AuthorizationClassMap());
 
@@ -710,31 +711,6 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 .WithMany()
                 .HasForeignKey(e => new { e.ReferencedStackId, e.ReferencedOrganizationId })
                 .HasPrincipalKey(s => new { s.Id, s.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-        });
-
-        // Configure recursive group member view
-        modelBuilder.Entity<RecursiveGroupMember>(entity =>
-        {
-            entity.HasNoKey();
-            entity.ToView("vw_RecursiveGroupMember");
-
-            entity.HasOne(e => e.RootGroup)
-                .WithMany()
-                .HasForeignKey(e => new { e.RootGroupId, e.RootOrganizationId })
-                .HasPrincipalKey(g => new { g.Id, g.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.Group)
-                .WithMany()
-                .HasForeignKey(e => new { e.GroupId, e.OrganizationId })
-                .HasPrincipalKey(g => new { g.Id, g.OrganizationId })
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(e => e.Organization)
-                .WithMany()
-                .HasForeignKey(e => e.OrganizationId)
-                .HasPrincipalKey(o => o.Id)
                 .OnDelete(DeleteBehavior.NoAction);
         });
     }

@@ -55,6 +55,20 @@ public class StackRoleAssignmentClassMap : IEntityTypeConfiguration<StackRoleAss
         entity
             .HasIndex(e => e.StackId);
 
+        // Filtered composite indexes for permission query optimization.
+        // User/SP queries join on StackId first; Group queries join on PrincipalId first.
+        // Two filtered indexes instead of one unfiltered index prevent the optimizer from
+        // choosing a bad join path for the group branch.
+        entity
+            .HasIndex(e => new { e.StackId, e.OrganizationId, e.PrincipalId, e.RoleName })
+            .HasDatabaseName("IX_StackRoleAssign_UserSP_StackFirst")
+            .HasFilter("[PrincipalDiscriminator] IN ('User', 'ServicePrincipal')");
+
+        entity
+            .HasIndex(e => new { e.PrincipalId, e.StackId, e.OrganizationId, e.RoleName })
+            .HasDatabaseName("IX_StackRoleAssign_Group_PrincipalFirst")
+            .HasFilter("[PrincipalDiscriminator] = 'Group'");
+
         // Organization navigation property
         entity
             .HasOne(e => e.Organization)

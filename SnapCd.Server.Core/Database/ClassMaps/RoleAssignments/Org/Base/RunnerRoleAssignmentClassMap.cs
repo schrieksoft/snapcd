@@ -55,6 +55,11 @@ public class RunnerRoleAssignmentClassMap : IEntityTypeConfiguration<RunnerRoleA
         entity
             .HasIndex(e => e.RunnerId);
 
+        // Composite index for permission query optimization
+        entity
+            .HasIndex(e => new { e.RunnerId, e.OrganizationId, e.PrincipalId, e.RoleName })
+            .HasDatabaseName("IX_RunnerRoleAssign_Runner_Principal_Org_Role");
+
         // Organization navigation property
         entity
             .HasOne(e => e.Organization)

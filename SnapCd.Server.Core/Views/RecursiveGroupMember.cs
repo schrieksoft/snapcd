@@ -24,7 +24,6 @@ public class RecursiveGroupMember
 
     // Recursion metadata
     public int Depth { get; set; }
-    public string VisitedPath { get; set; } = null!;
 
     // Navigation properties
     public Group RootGroup { get; set; } = null!;

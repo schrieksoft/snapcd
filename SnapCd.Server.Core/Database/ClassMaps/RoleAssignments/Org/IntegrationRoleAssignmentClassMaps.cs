@@ -42,6 +42,11 @@ public class IntegrationRoleAssignmentClassMap : IEntityTypeConfiguration<Integr
         entity.HasIndex(e => e.PrincipalId);
         entity.HasIndex(e => e.IntegrationId);
 
+        // Composite index for permission query optimization
+        entity
+            .HasIndex(e => new { e.IntegrationId, e.OrganizationId, e.PrincipalId, e.RoleName })
+            .HasDatabaseName("IX_IntegRoleAssign_Integ_Principal_Org_Role");
+
         entity.HasOne(e => e.Organization).WithMany()
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);

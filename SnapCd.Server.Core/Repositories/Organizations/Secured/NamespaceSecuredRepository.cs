@@ -228,6 +228,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return from ns in Repository.DbContext.Namespaces
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on ns.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -236,7 +237,6 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 on new { NamespaceId = ns.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where ns.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
             select ns;
     }
@@ -252,6 +252,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             join stack in Repository.DbContext.Stacks
                 on new { StackId = ns.StackId, ns.OrganizationId } equals new { StackId = stack.Id, stack.OrganizationId }
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on ns.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -260,7 +261,6 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 on new { StackId = stack.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.StackId, assignment.OrganizationId, assignment.PrincipalId }
             where ns.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && stackRoles.Contains(assignment.RoleName)
             select ns;
     }
@@ -274,6 +274,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return from ns in Repository.DbContext.Namespaces
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on ns.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -282,7 +283,6 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
             where ns.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && organizationRoles.Contains(assignment.RoleName)
             select ns;
     }
@@ -293,20 +293,21 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
 
         return PrincipalDiscriminator switch
         {
-            PrincipalDiscriminator.User => ReverseInheritanceQuery<UserModuleRoleAssignment>(organizationId, principalId, moduleRoles),
-            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceQuery<ServicePrincipalModuleRoleAssignment>(organizationId, principalId, moduleRoles),
+            PrincipalDiscriminator.User => ReverseInheritanceDirectQuery<UserModuleRoleAssignment>(organizationId, principalId, moduleRoles)
+                .Concat(ReverseInheritanceGroupQuery<UserGroupMember>(organizationId, principalId, moduleRoles)),
+            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectQuery<ServicePrincipalModuleRoleAssignment>(organizationId, principalId, moduleRoles)
+                .Concat(ReverseInheritanceGroupQuery<ServicePrincipalGroupMember>(organizationId, principalId, moduleRoles)),
             _ => null
         };
     }
 
-    private IQueryable<Namespace> ReverseInheritanceQuery<TModuleRoleAssignment>(
+    private IQueryable<Namespace> ReverseInheritanceDirectQuery<TModuleRoleAssignment>(
         Guid organizationId,
         Guid principalId,
         List<ModuleRole> moduleRoles)
         where TModuleRoleAssignment : class, IModuleRoleAssignment
     {
-        // Get namespaces where the principal has specified roles on any Module within the namespace
-        var namespacesFromModuleOwnership = from assignment in Repository.DbContext.Set<TModuleRoleAssignment>()
+        return from assignment in Repository.DbContext.Set<TModuleRoleAssignment>()
             where assignment.PrincipalId == principalId
                   && assignment.OrganizationId == organizationId
                   && moduleRoles.Contains(assignment.RoleName)
@@ -315,8 +316,28 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             join ns in Repository.DbContext.Namespaces
                 on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
             select ns;
+    }
 
-        return namespacesFromModuleOwnership;
+    private IQueryable<Namespace> ReverseInheritanceGroupQuery<TGroupMember>(
+        Guid organizationId,
+        Guid principalId,
+        List<ModuleRole> moduleRoles)
+        where TGroupMember : class, IGroupMember
+    {
+        return from groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
+            join rgm in Repository.DbContext.RecursiveGroupMembers
+                on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
+                equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+            join assignment in Repository.DbContext.GroupModuleRoleAssignments
+                on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                equals new { assignment.OrganizationId, assignment.PrincipalId }
+            where moduleRoles.Contains(assignment.RoleName)
+            join module in Repository.DbContext.Modules
+                on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
+            join ns in Repository.DbContext.Namespaces
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+            select ns;
     }
 
     private bool CanCreateInStack<TOrganizationRoleAssignment, TStackRoleAssignment>(
