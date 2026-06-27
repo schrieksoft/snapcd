@@ -208,8 +208,8 @@ public class Fixture : IAsyncLifetime
 
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
 
-        // Register ViewManager for test fixture
-        services.AddScoped<IViewManager, ViewManager>();
+        // Register IdempotentSqlManager for test fixture
+        services.AddScoped<IIdempotentSqlManager, IdempotentSqlManager>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -219,9 +219,9 @@ public class Fixture : IAsyncLifetime
         var dbContext = scope.ServiceProvider.GetRequiredService<SelfHostedSnapCdDbContext>();
         await dbContext.Database.MigrateAsync();
 
-        // Apply database views after migrations
-        var viewManager = scope.ServiceProvider.GetRequiredService<IViewManager>();
-        await viewManager.ApplyViewsAsync();
+        // Apply idempotent SQL scripts after migrations
+        var idempotentSqlManager = scope.ServiceProvider.GetRequiredService<IIdempotentSqlManager>();
+        await idempotentSqlManager.ApplyIdempotentSqlAsync();
 
         // Seed all test data
         await SeedTestData(dbContext);

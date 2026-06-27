@@ -142,9 +142,9 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
     await dbContext.Database.MigrateAsync();
 
-    // Apply database views after migrations
-    var viewManager = scope.ServiceProvider.GetRequiredService<IViewManager>();
-    await viewManager.ApplyViewsAsync();
+    // Apply idempotent SQL scripts after migrations
+    var idempotentSqlManager = scope.ServiceProvider.GetRequiredService<IIdempotentSqlManager>();
+    await idempotentSqlManager.ApplyIdempotentSqlAsync();
 
     var dataSeeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
     await dataSeeder.SeedAsync();

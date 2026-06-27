@@ -150,6 +150,7 @@ public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, T
     {
         return from entity in Repository.DbContext.Set<TEntity>()
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -158,7 +159,6 @@ public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, T
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && organizationRoles.Contains(assignment.RoleName)
             select entity;
     }

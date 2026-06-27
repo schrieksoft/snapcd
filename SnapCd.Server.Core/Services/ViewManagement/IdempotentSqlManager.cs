@@ -7,35 +7,32 @@
 // for terms covering either use.
 
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 
 namespace SnapCd.Server.Core.Services.ViewManagement;
 
-/// <summary>
-/// Service for managing database views that are applied after migrations.
-/// Views are stored as SQL files in embedded resources and applied using idempotent syntax.
-/// </summary>
-public class ViewManager : IViewManager
+public class IdempotentSqlManager : IIdempotentSqlManager
 {
     private readonly SnapCdDbContext _dbContext;
-    private readonly ILogger<ViewManager> _logger;
-    private readonly IEnumerable<ViewAssemblySource> _additionalSources;
+    private readonly ILogger<IdempotentSqlManager> _logger;
+    private readonly IEnumerable<IdempotentSqlAssemblySource> _additionalSources;
 
-    public ViewManager(SnapCdDbContext dbContext, ILogger<ViewManager> logger, IEnumerable<ViewAssemblySource> additionalSources)
+    public IdempotentSqlManager(SnapCdDbContext dbContext, ILogger<IdempotentSqlManager> logger, IEnumerable<IdempotentSqlAssemblySource> additionalSources)
     {
         _dbContext = dbContext;
         _logger = logger;
         _additionalSources = additionalSources;
     }
 
-    public async Task ApplyViewsAsync(CancellationToken cancellationToken = default)
+    public async Task ApplyIdempotentSqlAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Applying SQL Server database views");
+        _logger.LogInformation("Applying idempotent SQL scripts");
 
         var assemblySources = new List<(Assembly Assembly, string Prefix)>
         {
-            (typeof(ViewManager).Assembly, "SnapCd.Server.Core.Views.SqlServer.")
+            (typeof(IdempotentSqlManager).Assembly, "SnapCd.Server.Core.Views.SqlServer.")
         };
 
         foreach (var source in _additionalSources)
@@ -54,13 +51,13 @@ public class ViewManager : IViewManager
 
             foreach (var resourceName in viewResources)
             {
-                var viewName = resourceName
+                var scriptName = resourceName
                     .Replace(prefix, "")
                     .Replace(".sql", "");
 
                 try
                 {
-                    _logger.LogDebug("Applying view: {ViewName}", viewName);
+                    _logger.LogDebug("Applying script: {ScriptName}", scriptName);
 
                     using var stream = assembly.GetManifestResourceStream(resourceName);
                     if (stream == null)
@@ -72,14 +69,20 @@ public class ViewManager : IViewManager
                     using var reader = new StreamReader(stream);
                     var sql = await reader.ReadToEndAsync(cancellationToken);
 
-                    await _dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                    var batches = Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase)
+                        .Where(b => !string.IsNullOrWhiteSpace(b));
 
-                    _logger.LogInformation("Successfully applied view: {ViewName}", viewName);
+                    foreach (var batch in batches)
+                    {
+                        await _dbContext.Database.ExecuteSqlRawAsync(batch, cancellationToken);
+                    }
+
+                    _logger.LogInformation("Successfully applied script: {ScriptName}", scriptName);
                     totalApplied++;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to apply view: {ViewName}", viewName);
+                    _logger.LogError(ex, "Failed to apply script: {ScriptName}", scriptName);
                     throw;
                 }
             }
@@ -87,10 +90,10 @@ public class ViewManager : IViewManager
 
         if (totalApplied == 0)
         {
-            _logger.LogWarning("No view files found");
+            _logger.LogWarning("No SQL script files found");
             return;
         }
 
-        _logger.LogInformation("All {Count} views applied successfully", totalApplied);
+        _logger.LogInformation("All {Count} scripts applied successfully", totalApplied);
     }
 }

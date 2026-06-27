@@ -55,6 +55,11 @@ public class ModuleRoleAssignmentClassMap : IEntityTypeConfiguration<ModuleRoleA
         entity
             .HasIndex(e => e.ModuleId);
 
+        // Composite index for permission query optimization
+        entity
+            .HasIndex(e => new { e.ModuleId, e.OrganizationId, e.PrincipalId, e.RoleName })
+            .HasDatabaseName("IX_ModRoleAssign_Mod_Principal_Org_Role");
+
         // Organization navigation property
         entity
             .HasOne(e => e.Organization)

@@ -182,6 +182,7 @@ public abstract class GenericAgentChildSecuredRepository<TEntity, TDto, TReposit
     {
         return from entity in Repository.DbContext.Set<TEntity>()
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -190,7 +191,6 @@ public abstract class GenericAgentChildSecuredRepository<TEntity, TDto, TReposit
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && organizationRoles.Contains(assignment.RoleName)
             select entity;
     }
@@ -203,6 +203,7 @@ public abstract class GenericAgentChildSecuredRepository<TEntity, TDto, TReposit
     {
         return from entity in Repository.DbContext.Set<TEntity>()
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -211,7 +212,6 @@ public abstract class GenericAgentChildSecuredRepository<TEntity, TDto, TReposit
                 on new { entity.AgentId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.AgentId, assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && agentRoles.Contains(assignment.RoleName)
             select entity;
     }

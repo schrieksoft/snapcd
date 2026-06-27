@@ -164,6 +164,7 @@ public abstract class GenericIntegrationChildSecuredRepository<TEntity, TDto, TR
     {
         return from entity in Repository.DbContext.Set<TEntity>()
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -172,7 +173,6 @@ public abstract class GenericIntegrationChildSecuredRepository<TEntity, TDto, TR
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && organizationRoles.Contains(assignment.RoleName)
             select entity;
     }
@@ -185,6 +185,7 @@ public abstract class GenericIntegrationChildSecuredRepository<TEntity, TDto, TR
     {
         return from entity in Repository.DbContext.Set<TEntity>()
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -193,7 +194,6 @@ public abstract class GenericIntegrationChildSecuredRepository<TEntity, TDto, TR
                 on new { entity.IntegrationId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.IntegrationId, assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && integrationRoles.Contains(assignment.RoleName)
             select entity;
     }

@@ -55,6 +55,18 @@ public class NamespaceRoleAssignmentClassMap : IEntityTypeConfiguration<Namespac
         entity
             .HasIndex(e => e.NamespaceId);
 
+        // Filtered composite indexes for permission query optimization.
+        // User/SP queries join on NamespaceId first; Group queries join on PrincipalId first.
+        entity
+            .HasIndex(e => new { e.NamespaceId, e.OrganizationId, e.PrincipalId, e.RoleName })
+            .HasDatabaseName("IX_NsRoleAssign_UserSP_NsFirst")
+            .HasFilter("[PrincipalDiscriminator] IN ('User', 'ServicePrincipal')");
+
+        entity
+            .HasIndex(e => new { e.PrincipalId, e.NamespaceId, e.OrganizationId, e.RoleName })
+            .HasDatabaseName("IX_NsRoleAssign_Group_PrincipalFirst")
+            .HasFilter("[PrincipalDiscriminator] = 'Group'");
+
         // Organization navigation property
         entity
             .HasOne(e => e.Organization)

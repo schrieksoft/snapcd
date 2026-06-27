@@ -266,6 +266,7 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
     {
         return from entity in Repository.DbContext.Set<TEntity>()
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -274,7 +275,6 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
                 on new { StackId = entity.StackId, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.StackId, assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && stackRoles.Contains(assignment.RoleName)
             select entity;
     }
@@ -288,6 +288,7 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
     {
         return from entity in Repository.DbContext.Set<TEntity>()
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -296,7 +297,6 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && organizationRoles.Contains(assignment.RoleName)
             select entity;
     }
@@ -314,6 +314,7 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
             join ns in Repository.DbContext.Namespaces
                 on new { StackId = stack.Id, stack.OrganizationId } equals new { ns.StackId, ns.OrganizationId }
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -322,7 +323,6 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
                 on new { NamespaceId = ns.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.NamespaceId, assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && namespaceRoles.Contains(assignment.RoleName)
             select entity;
     }
@@ -342,6 +342,7 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
             join mod in Repository.DbContext.Modules
                 on new { NamespaceId = ns.Id, ns.OrganizationId } equals new { mod.NamespaceId, mod.OrganizationId }
             join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
                 on entity.OrganizationId equals groupMember.OrganizationId
             join rgm in Repository.DbContext.RecursiveGroupMembers
                 on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
@@ -350,7 +351,6 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TReposit
                 on new { ModuleId = mod.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.ModuleId, assignment.OrganizationId, assignment.PrincipalId }
             where entity.OrganizationId == organizationId
-                  && groupMember.PrincipalId == principalId
                   && moduleRoles.Contains(assignment.RoleName)
             select entity;
     }
