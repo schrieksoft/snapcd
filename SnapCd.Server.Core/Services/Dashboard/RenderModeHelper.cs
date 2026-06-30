@@ -33,9 +33,6 @@ public static class RenderModeHelper
         if (IsStaticServersideRendering(httpContext, navigationManager))
             return GetRenderMode(RenderModeEnum.StaticServerSideRendering);
 
-        if (IsMarketingPage(httpContext, navigationManager))
-            return GetRenderMode(RenderModeEnum.StaticServerSideRendering);
-
         return GetRenderMode(RenderModeEnum.InteractiveServerSideRendering_Without_Prerendering);
     }
 
@@ -77,17 +74,6 @@ public static class RenderModeHelper
         "/Account/SelectOrganization"
     };
 
-    private static readonly string[] MarketingPages =
-    {
-        "/",
-        "/docs",
-        "/pricing",
-        "/terms",
-        "/privacy",
-        "/impressum",
-        "/Error"
-    };
-
     public static bool IsStaticServersideRendering(HttpContext? httpContext, NavigationManager navigationManager)
     {
         if (httpContext == null)
@@ -107,31 +93,4 @@ public static class RenderModeHelper
         }
     }
 
-    public static bool IsMarketingPage(HttpContext? httpContext, NavigationManager navigationManager)
-    {
-        if (httpContext == null)
-        {
-            var relativePath = navigationManager.ToBaseRelativePath(navigationManager.Uri);
-            var fullPath = "/" + relativePath;
-
-            // Exact match for root, or starts with for others
-            if (fullPath == "/" || MarketingPages.Any(x => x != "/" && fullPath.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
-                return true;
-
-            return false;
-        }
-        else
-        {
-            var path = httpContext.Request.Path.Value ?? "";
-
-            // Exact match for root
-            if (path == "/" || path == "") return true;
-
-            // Check other marketing pages
-            if (MarketingPages.Any(x => x != "/" && httpContext.Request.Path.StartsWithSegments(x, StringComparison.OrdinalIgnoreCase)))
-                return true;
-
-            return false;
-        }
-    }
 }
