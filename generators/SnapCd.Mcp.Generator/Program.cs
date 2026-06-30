@@ -24,11 +24,11 @@ var (projectPath, outDir, checkOnly) = ParseArgs(args);
 MSBuildLocator.RegisterDefaults();
 
 using var workspace = MSBuildWorkspace.Create();
-workspace.WorkspaceFailed += (_, e) =>
+workspace.RegisterWorkspaceFailedHandler(e =>
 {
     if (e.Diagnostic.Kind == WorkspaceDiagnosticKind.Failure)
         Console.Error.WriteLine($"workspace failure: {e.Diagnostic.Message}");
-};
+});
 
 Console.WriteLine($"Loading {projectPath}…");
 var project = await workspace.OpenProjectAsync(projectPath);
