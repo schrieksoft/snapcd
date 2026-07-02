@@ -97,7 +97,6 @@ builder.Services.AddScoped<ILicenseVerificationPolicy, SelfHostedLicenseVerifica
 builder.Services.AddScoped<ILicenseInfoProvider>(sp => sp.GetRequiredService<LicenseService>());
 builder.Services.AddScoped<ISsoPolicy, SelfHostedSsoPolicy>();
 builder.Services.AddScoped<ITurnstilePolicy, SelfHostedTurnstilePolicy>();
-builder.Services.AddScoped<IApprovalPolicy, SelfHostedApprovalPolicy>();
 builder.Services.AddScoped<IPremiumEmailPolicy, LicensedPremiumEmailPolicy>();
 builder.Services.AddScoped<IPremiumMessageBrokerPolicy, LicensedPremiumMessageBrokerPolicy>();
 builder.Services.AddScoped<IPremiumSecretStorePolicy, LicensedPremiumSecretStorePolicy>();

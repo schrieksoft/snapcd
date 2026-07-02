@@ -6,41 +6,25 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@using SnapCd.Server.Core.Licensing.Models
-@using SnapCd.Server.Core.Licensing.Services
-@inject ILicenseInfoProvider LicenseInfoProvider
-
-@if (_disabled)
-{
-    <MudItem md="12">
-        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-            Approval workflows are not included in your current tier. These settings will have no effect.
-        </MudAlert>
-    </MudItem>
-}
-
 <MudItem md="12">
     <MudTextField T="int?" Label="Default Approval Threshold (Apply)"
                   Value="@DefaultApplyApprovalThreshold"
                   ValueChanged="@DefaultApplyApprovalThresholdChanged"
-                  Variant="Variant.Outlined"
-                  Disabled="@_disabled"/>
+                  Variant="Variant.Outlined"/>
 </MudItem>
 
 <MudItem md="12">
     <MudTextField T="int?" Label="Default Approval Threshold (Destroy)"
                   Value="@DefaultDestroyApprovalThreshold"
                   ValueChanged="@DefaultDestroyApprovalThresholdChanged"
-                  Variant="Variant.Outlined"
-                  Disabled="@_disabled"/>
+                  Variant="Variant.Outlined"/>
 </MudItem>
 
 <MudItem md="12">
     <MudTextField T="int?" Label="Default Approval Timeout Minutes"
                   Value="@DefaultApprovalTimeoutMinutes"
                   ValueChanged="@DefaultApprovalTimeoutMinutesChanged"
-                  Variant="Variant.Outlined"
-                  Disabled="@_disabled"/>
+                  Variant="Variant.Outlined"/>
 </MudItem>
 
 @code {
@@ -52,14 +36,4 @@
 
     [Parameter] public int? DefaultApprovalTimeoutMinutes { get; set; }
     [Parameter] public EventCallback<int?> DefaultApprovalTimeoutMinutesChanged { get; set; }
-
-    [CascadingParameter] public Guid OrganizationId { get; set; }
-
-    private bool _disabled;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var licenseInfo = await LicenseInfoProvider.GetLicenseInfoAsync(OrganizationId);
-        _disabled = !licenseInfo.Includes(Feature.ApprovalWorkflows);
-    }
 }

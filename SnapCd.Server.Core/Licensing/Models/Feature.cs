@@ -18,7 +18,6 @@ public enum Feature
 {
     FinegrainedRbac,
     Sso,
-    ApprovalWorkflows,
     Turnstile,
     PremiumMessageBroker,
     PremiumSecretStore,
@@ -37,7 +36,6 @@ public static class TierFeatures
         // Community tier — baseline only, no gated features.
         { (Tier.Community, Feature.FinegrainedRbac), false },
         { (Tier.Community, Feature.Sso), false },
-        { (Tier.Community, Feature.ApprovalWorkflows), false },
         { (Tier.Community, Feature.Turnstile), false },
         { (Tier.Community, Feature.PremiumMessageBroker), false },
         { (Tier.Community, Feature.PremiumSecretStore), false },
@@ -48,7 +46,6 @@ public static class TierFeatures
         // Lite tier — paid baseline; AiAgents is reserved for Enterprise.
         { (Tier.Lite, Feature.FinegrainedRbac), true },
         { (Tier.Lite, Feature.Sso), true },
-        { (Tier.Lite, Feature.ApprovalWorkflows), true },
         { (Tier.Lite, Feature.Turnstile), true },
         { (Tier.Lite, Feature.PremiumMessageBroker), true },
         { (Tier.Lite, Feature.PremiumSecretStore), true },
@@ -59,7 +56,6 @@ public static class TierFeatures
         // Enterprise tier — full feature set, including Enterprise-exclusive AiAgents.
         { (Tier.Enterprise, Feature.FinegrainedRbac), true },
         { (Tier.Enterprise, Feature.Sso), true },
-        { (Tier.Enterprise, Feature.ApprovalWorkflows), true },
         { (Tier.Enterprise, Feature.Turnstile), true },
         { (Tier.Enterprise, Feature.PremiumMessageBroker), true },
         { (Tier.Enterprise, Feature.PremiumSecretStore), true },

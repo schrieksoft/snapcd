@@ -17,6 +17,10 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Base;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Licensing;
+using SnapCd.Server.Core.Licensing.Models;
+using SnapCd.Server.Core.Licensing.Services;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services.DependencyGraph;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -35,6 +39,8 @@ public class JobServiceFactory
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly IOptions<ModuleJobRepositorySettings> _moduleJobOptions;
     private readonly IOptions<ModuleRepositorySettings> _moduleOptions;
+    private readonly IPremiumMessageBrokerPolicy _messageBrokerPolicy;
+    private readonly QuotaEnforcementService _quotaEnforcementService;
 
     public JobServiceFactory(
         IBus bus,
@@ -43,7 +49,9 @@ public class JobServiceFactory
         DependencyGraphServiceFactory dependencyServiceFactory,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         IOptions<ModuleJobRepositorySettings> moduleJobOptions,
-        IOptions<ModuleRepositorySettings> moduleOptions
+        IOptions<ModuleRepositorySettings> moduleOptions,
+        IPremiumMessageBrokerPolicy messageBrokerPolicy,
+        QuotaEnforcementService quotaEnforcementService
     )
     {
         _bus = bus;
@@ -53,6 +61,8 @@ public class JobServiceFactory
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _moduleJobOptions = moduleJobOptions;
         _moduleOptions = moduleOptions;
+        _messageBrokerPolicy = messageBrokerPolicy;
+        _quotaEnforcementService = quotaEnforcementService;
     }
 
     public JobService Create(IPrincipalProvider? principalProvider = null)
@@ -68,7 +78,7 @@ public class JobServiceFactory
         var moduleRepository = new ModuleRepository(dbContext, principalProvider, _bus, _moduleOptions);
         var dependencyService = _dependencyServiceFactory.Create();
 
-        return new JobService(_bus, dbContext, resolvedConfigurationService, moduleJobRepository, moduleRepository, dependencyService, _dbFactory, _connectionRepositoryFactory);
+        return new JobService(_bus, dbContext, resolvedConfigurationService, moduleJobRepository, moduleRepository, dependencyService, _dbFactory, _connectionRepositoryFactory, _messageBrokerPolicy, _quotaEnforcementService);
     }
 }
 
@@ -82,6 +92,8 @@ public class JobService : IDisposable
     private readonly DependencyGraphService _dependencyService;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
+    private readonly IPremiumMessageBrokerPolicy _messageBrokerPolicy;
+    private readonly QuotaEnforcementService _quotaEnforcementService;
 
     public JobService(
         IBus bus,
@@ -91,7 +103,9 @@ public class JobService : IDisposable
         ModuleRepository moduleRepository,
         DependencyGraphService dependencyService,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        RunnerConnectionRepositoryFactory connectionRepositoryFactory
+        RunnerConnectionRepositoryFactory connectionRepositoryFactory,
+        IPremiumMessageBrokerPolicy messageBrokerPolicy,
+        QuotaEnforcementService quotaEnforcementService
     )
     {
         _bus = bus;
@@ -102,6 +116,8 @@ public class JobService : IDisposable
         _dependencyService = dependencyService;
         _dbContextFactory = dbContextFactory;
         _connectionRepositoryFactory = connectionRepositoryFactory;
+        _messageBrokerPolicy = messageBrokerPolicy;
+        _quotaEnforcementService = quotaEnforcementService;
     }
 
     public void Dispose()
@@ -130,6 +146,8 @@ public class JobService : IDisposable
         var correlationId = optionalCorrelationId ?? Guid.NewGuid();
         try
         {
+            await EnforceLicenceAndQuota(organizationId);
+
             var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
 
             // Override runner name if provided
@@ -155,6 +173,8 @@ public class JobService : IDisposable
         var correlationId = optionalCorrelationId ?? Guid.NewGuid();
         try
         {
+            await EnforceLicenceAndQuota(organizationId);
+
             var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
 
             // Override runner name if provided
@@ -272,6 +292,18 @@ public class JobService : IDisposable
             // On error, assume no runners available
             return false;
         }
+    }
+
+    private async Task EnforceLicenceAndQuota(Guid organizationId)
+    {
+        if (!await _messageBrokerPolicy.IsAllowedAsync())
+            throw new LicenceFeatureUnavailableException(Feature.PremiumMessageBroker,
+                "Cannot create new jobs: configured message-broker backend requires the PremiumMessageBroker feature. " +
+                "Either set ServiceBus:BusType=SqlServer or upgrade to a Lite/Enterprise licence.");
+
+        var (canCreate, reason) = await _quotaEnforcementService.CanCreateModuleJobAsync(organizationId);
+        if (!canCreate)
+            throw new QuotaExceededException("Module", 0, 0, reason!);
     }
 
     private async Task<bool> ShouldCheckApplyDependencies(WaitForApplyDependencies waitForApplyDependencies, Guid moduleId, Guid organizationId)
