@@ -19,7 +19,17 @@
 -- ==========================================================================
 
 -- ============================================================================
--- 1. Stored procedure to recompute DependencyEdges
+-- 1. Table type for passing module IDs to stored procedures
+-- ============================================================================
+
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'GuidList' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE dbo.GuidList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+END;
+GO
+
+-- ============================================================================
+-- 2. Stored procedure to recompute DependencyEdges (full rebuild, used at startup)
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_RecomputeDependencyEdges
@@ -46,7 +56,39 @@ END;
 GO
 
 -- ============================================================================
--- 2. Triggers on DependsOnModules and ModuleInputs to maintain DependencyEdges
+-- 3. Stored procedure to incrementally update DependencyEdges for specific modules
+-- ============================================================================
+
+CREATE OR ALTER PROCEDURE sp_UpdateDependencyEdgesForModules
+    @AffectedModules dbo.GuidList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    MERGE DependencyEdges AS target
+    USING (
+        SELECT ModuleId AS DefinedModuleId, DependsOnModuleId AS ReferencedModuleId, OrganizationId
+        FROM DependsOnModules
+        WHERE ModuleId IN (SELECT Id FROM @AffectedModules)
+        UNION
+        SELECT ModuleId AS DefinedModuleId, OutputModuleId AS ReferencedModuleId, OrganizationId
+        FROM ModuleInputs
+        WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+          AND ModuleId IN (SELECT Id FROM @AffectedModules)
+    ) AS source
+    ON target.DefinedModuleId = source.DefinedModuleId AND target.ReferencedModuleId = source.ReferencedModuleId
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (DefinedModuleId, ReferencedModuleId, OrganizationId)
+        VALUES (source.DefinedModuleId, source.ReferencedModuleId, source.OrganizationId)
+    WHEN MATCHED THEN
+        UPDATE SET OrganizationId = source.OrganizationId
+    WHEN NOT MATCHED BY SOURCE AND target.DefinedModuleId IN (SELECT Id FROM @AffectedModules) THEN
+        DELETE;
+END;
+GO
+
+-- ============================================================================
+-- 4. Triggers on DependsOnModules and ModuleInputs to maintain DependencyEdges
 -- ============================================================================
 
 CREATE OR ALTER TRIGGER trg_DependsOnModules_DependencyEdges
@@ -55,7 +97,14 @@ AFTER INSERT, DELETE, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    EXEC sp_RecomputeDependencyEdges;
+
+    DECLARE @affected dbo.GuidList;
+    INSERT INTO @affected (Id)
+    SELECT DISTINCT ModuleId FROM inserted
+    UNION
+    SELECT DISTINCT ModuleId FROM deleted;
+
+    EXEC sp_UpdateDependencyEdgesForModules @affected;
 END;
 GO
 
@@ -65,12 +114,30 @@ AFTER INSERT, DELETE, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    EXEC sp_RecomputeDependencyEdges;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM inserted
+        WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+    ) AND NOT EXISTS (
+        SELECT 1 FROM deleted
+        WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+    )
+        RETURN;
+
+    DECLARE @affected dbo.GuidList;
+    INSERT INTO @affected (Id)
+    SELECT DISTINCT ModuleId FROM inserted
+    WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+    UNION
+    SELECT DISTINCT ModuleId FROM deleted
+    WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet');
+
+    EXEC sp_UpdateDependencyEdgesForModules @affected;
 END;
 GO
 
 -- ============================================================================
--- 3. Stored procedure to recompute the transitive closure (integer VisitedPath)
+-- 5. Stored procedure to recompute the transitive closure (integer VisitedPath)
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_RecomputeRecursiveDependencyEdges
@@ -193,7 +260,7 @@ END;
 GO
 
 -- ============================================================================
--- 4. Trigger on DependencyEdges to recompute transitive closure
+-- 6. Trigger on DependencyEdges to recompute transitive closure
 -- ============================================================================
 
 CREATE OR ALTER TRIGGER trg_DependencyEdges_RecursiveClosure
@@ -207,7 +274,7 @@ END;
 GO
 
 -- ============================================================================
--- 5. Stored procedure to fully recompute ModuleState
+-- 7. Stored procedure to fully recompute ModuleState
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_RecomputeModuleState
@@ -244,7 +311,7 @@ END;
 GO
 
 -- ============================================================================
--- 6. Trigger on ModuleJobs to maintain ModuleState
+-- 8. Trigger on ModuleJobs to maintain ModuleState
 -- ============================================================================
 
 CREATE OR ALTER TRIGGER trg_ModuleJobs_ModuleState
@@ -260,6 +327,12 @@ BEGIN
         UNION
         SELECT ModuleId FROM deleted
     ) x;
+
+    INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+    SELECT am.ModuleId, m.OrganizationId, 0, NULL, NULL, NULL
+    FROM #AffectedModules am
+    INNER JOIN Modules m ON m.Id = am.ModuleId
+    WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = am.ModuleId);
 
     UPDATE ms SET
         ms.IsRunning = CASE WHEN cj.ModuleId IS NOT NULL THEN 1 ELSE 0 END
@@ -291,7 +364,7 @@ END;
 GO
 
 -- ============================================================================
--- 7. Trigger on ModuleSagas to maintain ModuleState
+-- 9. Trigger on ModuleSagas to maintain ModuleState
 -- ============================================================================
 
 CREATE OR ALTER TRIGGER trg_ModuleSagas_ModuleState
@@ -300,6 +373,11 @@ AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+    SELECT i.CorrelationId, i.OrganizationId, 0, NULL, i.DesiredStateHeadline, i.QueuedDesiredStateHeadline
+    FROM inserted i
+    WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = i.CorrelationId);
 
     UPDATE ms SET
         ms.DesiredStateHeadline = i.DesiredStateHeadline,
@@ -317,10 +395,13 @@ END;
 GO
 
 -- ============================================================================
--- 8. Initial population (idempotent)
+-- 10. Initial population (idempotent)
 -- ============================================================================
 
 EXEC sp_RecomputeDependencyEdges;
+GO
+
+EXEC sp_RecomputeRecursiveDependencyEdges;
 GO
 
 EXEC sp_RecomputeModuleState;
