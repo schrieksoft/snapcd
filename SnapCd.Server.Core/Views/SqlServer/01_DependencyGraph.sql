@@ -29,7 +29,7 @@ END;
 GO
 
 -- ============================================================================
--- 2. Stored procedure to recompute DependencyEdges (full rebuild, used at startup)
+-- 2. Stored procedure to recompute DependencyEdges (full rebuild)
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_RecomputeDependencyEdges
@@ -137,19 +137,29 @@ END;
 GO
 
 -- ============================================================================
--- 5. Stored procedure to recompute the transitive closure (integer VisitedPath)
+-- 5. Stored procedure to recompute the transitive closure
+--    @StackId NULL = full rebuild, non-NULL = stack-scoped rebuild
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_RecomputeRecursiveDependencyEdges
+    @StackId UNIQUEIDENTIFIER = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
     CREATE TABLE #ModuleMap (ModuleId UNIQUEIDENTIFIER PRIMARY KEY, Seq INT NOT NULL);
     INSERT INTO #ModuleMap (ModuleId, Seq)
-    SELECT Id, ROW_NUMBER() OVER (ORDER BY Id) FROM Modules;
+    SELECT m.Id, ROW_NUMBER() OVER (ORDER BY m.Id)
+    FROM Modules m
+    INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId
+    WHERE @StackId IS NULL OR ns.StackId = @StackId;
 
-    TRUNCATE TABLE RecursiveDependencyEdges;
+    IF @StackId IS NULL
+        TRUNCATE TABLE RecursiveDependencyEdges;
+    ELSE
+        DELETE rde
+        FROM RecursiveDependencyEdges rde
+        WHERE rde.RootModuleId IN (SELECT ModuleId FROM #ModuleMap);
 
     -- Apply direction: root = DefinedModuleId, walk Defined->Referenced
     WITH ApplyClosure AS (
@@ -260,7 +270,7 @@ END;
 GO
 
 -- ============================================================================
--- 6. Trigger on DependencyEdges to recompute transitive closure
+-- 6. Trigger on DependencyEdges to recompute transitive closure (stack-scoped)
 -- ============================================================================
 
 CREATE OR ALTER TRIGGER trg_DependencyEdges_RecursiveClosure
@@ -269,7 +279,31 @@ AFTER INSERT, DELETE, UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    EXEC sp_RecomputeRecursiveDependencyEdges;
+
+    DECLARE @stackIds TABLE (StackId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+    INSERT INTO @stackIds (StackId)
+    SELECT DISTINCT ns.StackId
+    FROM (
+        SELECT DefinedModuleId FROM inserted
+        UNION
+        SELECT DefinedModuleId FROM deleted
+    ) affected
+    INNER JOIN Modules m ON m.Id = affected.DefinedModuleId
+    INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId;
+
+    DECLARE @stackId UNIQUEIDENTIFIER;
+    DECLARE stack_cursor CURSOR LOCAL FAST_FORWARD FOR
+        SELECT StackId FROM @stackIds;
+
+    OPEN stack_cursor;
+    FETCH NEXT FROM stack_cursor INTO @stackId;
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        EXEC sp_RecomputeRecursiveDependencyEdges @StackId = @stackId;
+        FETCH NEXT FROM stack_cursor INTO @stackId;
+    END;
+    CLOSE stack_cursor;
+    DEALLOCATE stack_cursor;
 END;
 GO
 
@@ -395,14 +429,23 @@ END;
 GO
 
 -- ============================================================================
--- 10. Initial population (idempotent)
+-- 10. Initial population (only on first deploy when tables are empty)
 -- ============================================================================
 
-EXEC sp_RecomputeDependencyEdges;
+IF NOT EXISTS (SELECT TOP 1 1 FROM DependencyEdges)
+BEGIN
+    EXEC sp_RecomputeDependencyEdges;
+END;
 GO
 
-EXEC sp_RecomputeRecursiveDependencyEdges;
+IF NOT EXISTS (SELECT TOP 1 1 FROM RecursiveDependencyEdges)
+BEGIN
+    EXEC sp_RecomputeRecursiveDependencyEdges;
+END;
 GO
 
-EXEC sp_RecomputeModuleState;
+IF NOT EXISTS (SELECT TOP 1 1 FROM ModuleState)
+BEGIN
+    EXEC sp_RecomputeModuleState;
+END;
 GO
