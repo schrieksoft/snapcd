@@ -47,20 +47,20 @@ public class RecursiveDestroyDependency : IRecursiveDependency
     public bool DefinedIsQueued { get; set; }
     public DesiredStateHeadline? DefinedRunningDesiredState { get; set; }
 
-    // Current edge: Referenced Module (target of edge - the dependency)
-    public Guid ReferencedModuleId { get; set; }
-    public Guid ReferencedOrganizationId { get; set; }
-    public string ReferencedModuleName { get; set; } = null!;
-    public Guid ReferencedNamespaceId { get; set; }
-    public string ReferencedNamespaceName { get; set; } = null!;
-    public Guid ReferencedStackId { get; set; }
-    public string ReferencedStackName { get; set; } = null!;
-    public string ReferencedDisplayName { get; set; } = null!;
+    // Current edge: Referenced Module (target of edge - the dependency) — nullable for standalone modules
+    public Guid? ReferencedModuleId { get; set; }
+    public Guid? ReferencedOrganizationId { get; set; }
+    public string? ReferencedModuleName { get; set; }
+    public Guid? ReferencedNamespaceId { get; set; }
+    public string? ReferencedNamespaceName { get; set; }
+    public Guid? ReferencedStackId { get; set; }
+    public string? ReferencedStackName { get; set; }
+    public string? ReferencedDisplayName { get; set; }
     public ActualStateHeadline? ReferencedLatestActualState { get; set; }
     public DesiredStateHeadline? ReferencedDesiredState { get; set; }
     public DesiredStateHeadline? ReferencedQueuedDesiredState { get; set; }
-    public bool ReferencedIsRunning { get; set; }
-    public bool ReferencedIsQueued { get; set; }
+    public bool? ReferencedIsRunning { get; set; }
+    public bool? ReferencedIsQueued { get; set; }
     public DesiredStateHeadline? ReferencedRunningDesiredState { get; set; }
 
     // Depth in the recursive chain
@@ -68,9 +68,9 @@ public class RecursiveDestroyDependency : IRecursiveDependency
 
     // Navigation properties
     public Module DefinedModule { get; set; } = null!;
-    public Module ReferencedModule { get; set; } = null!;
+    public Module? ReferencedModule { get; set; }
     public Namespace DefinedNamespace { get; set; } = null!;
-    public Namespace ReferencedNamespace { get; set; } = null!;
+    public Namespace? ReferencedNamespace { get; set; }
     public Stack DefinedStack { get; set; } = null!;
-    public Stack ReferencedStack { get; set; } = null!;
+    public Stack? ReferencedStack { get; set; }
 }

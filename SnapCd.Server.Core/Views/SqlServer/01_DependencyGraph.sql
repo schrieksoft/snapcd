@@ -1,0 +1,451 @@
+-- SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+-- Copyright (c) 2026 Karl Schriek / Schrieksoft.
+-- No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+-- embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+-- system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+-- Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+-- for terms covering either use.
+
+-- ==========================================================================
+-- Dependency graph materialization infrastructure.
+--
+-- Stored procedures, triggers, and initial population for three
+-- trigger-maintained tables (created by migration):
+--   1. DependencyEdges            - flattened direct edges
+--   2. RecursiveDependencyEdges   - transitive closure
+--   3. ModuleState                - pre-materialized per-module state
+--
+-- Must run BEFORE the view scripts (02-05).
+-- ==========================================================================
+
+-- ============================================================================
+-- 1. Table type for passing module IDs to stored procedures
+-- ============================================================================
+
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'GuidList' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE dbo.GuidList AS TABLE (Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+END;
+GO
+
+-- ============================================================================
+-- 2. Stored procedure to recompute DependencyEdges (full rebuild)
+-- ============================================================================
+
+CREATE OR ALTER PROCEDURE sp_RecomputeDependencyEdges
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    MERGE DependencyEdges AS target
+    USING (
+        SELECT ModuleId AS DefinedModuleId, DependsOnModuleId AS ReferencedModuleId, OrganizationId
+        FROM DependsOnModules
+        UNION
+        SELECT ModuleId AS DefinedModuleId, OutputModuleId AS ReferencedModuleId, OrganizationId
+        FROM ModuleInputs
+        WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+    ) AS source
+    ON target.DefinedModuleId = source.DefinedModuleId AND target.ReferencedModuleId = source.ReferencedModuleId
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (DefinedModuleId, ReferencedModuleId, OrganizationId)
+        VALUES (source.DefinedModuleId, source.ReferencedModuleId, source.OrganizationId)
+    WHEN NOT MATCHED BY SOURCE THEN
+        DELETE;
+END;
+GO
+
+-- ============================================================================
+-- 3. Stored procedure to incrementally update DependencyEdges for specific modules
+-- ============================================================================
+
+CREATE OR ALTER PROCEDURE sp_UpdateDependencyEdgesForModules
+    @AffectedModules dbo.GuidList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    MERGE DependencyEdges AS target
+    USING (
+        SELECT ModuleId AS DefinedModuleId, DependsOnModuleId AS ReferencedModuleId, OrganizationId
+        FROM DependsOnModules
+        WHERE ModuleId IN (SELECT Id FROM @AffectedModules)
+        UNION
+        SELECT ModuleId AS DefinedModuleId, OutputModuleId AS ReferencedModuleId, OrganizationId
+        FROM ModuleInputs
+        WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+          AND ModuleId IN (SELECT Id FROM @AffectedModules)
+    ) AS source
+    ON target.DefinedModuleId = source.DefinedModuleId AND target.ReferencedModuleId = source.ReferencedModuleId
+    WHEN NOT MATCHED BY TARGET THEN
+        INSERT (DefinedModuleId, ReferencedModuleId, OrganizationId)
+        VALUES (source.DefinedModuleId, source.ReferencedModuleId, source.OrganizationId)
+    WHEN MATCHED THEN
+        UPDATE SET OrganizationId = source.OrganizationId
+    WHEN NOT MATCHED BY SOURCE AND target.DefinedModuleId IN (SELECT Id FROM @AffectedModules) THEN
+        DELETE;
+END;
+GO
+
+-- ============================================================================
+-- 4. Triggers on DependsOnModules and ModuleInputs to maintain DependencyEdges
+-- ============================================================================
+
+CREATE OR ALTER TRIGGER trg_DependsOnModules_DependencyEdges
+ON DependsOnModules
+AFTER INSERT, DELETE, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @affected dbo.GuidList;
+    INSERT INTO @affected (Id)
+    SELECT DISTINCT ModuleId FROM inserted
+    UNION
+    SELECT DISTINCT ModuleId FROM deleted;
+
+    EXEC sp_UpdateDependencyEdgesForModules @affected;
+END;
+GO
+
+CREATE OR ALTER TRIGGER trg_ModuleInputs_DependencyEdges
+ON ModuleInputs
+AFTER INSERT, DELETE, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM inserted
+        WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+    ) AND NOT EXISTS (
+        SELECT 1 FROM deleted
+        WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+    )
+        RETURN;
+
+    DECLARE @affected dbo.GuidList;
+    INSERT INTO @affected (Id)
+    SELECT DISTINCT ModuleId FROM inserted
+    WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+    UNION
+    SELECT DISTINCT ModuleId FROM deleted
+    WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet');
+
+    EXEC sp_UpdateDependencyEdgesForModules @affected;
+END;
+GO
+
+-- ============================================================================
+-- 5. Stored procedure to recompute the transitive closure
+--    @StackId NULL = full rebuild, non-NULL = stack-scoped rebuild
+-- ============================================================================
+
+CREATE OR ALTER PROCEDURE sp_RecomputeRecursiveDependencyEdges
+    @StackId UNIQUEIDENTIFIER = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    CREATE TABLE #ModuleMap (ModuleId UNIQUEIDENTIFIER PRIMARY KEY, Seq INT NOT NULL);
+    INSERT INTO #ModuleMap (ModuleId, Seq)
+    SELECT m.Id, ROW_NUMBER() OVER (ORDER BY m.Id)
+    FROM Modules m
+    INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId
+    WHERE @StackId IS NULL OR ns.StackId = @StackId;
+
+    IF @StackId IS NULL
+        TRUNCATE TABLE RecursiveDependencyEdges;
+    ELSE
+        DELETE rde
+        FROM RecursiveDependencyEdges rde
+        WHERE rde.RootModuleId IN (SELECT ModuleId FROM #ModuleMap);
+
+    -- Apply direction: root = DefinedModuleId, walk Defined->Referenced
+    WITH ApplyClosure AS (
+        SELECT
+            de.DefinedModuleId AS RootModuleId,
+            de.DefinedModuleId,
+            de.ReferencedModuleId,
+            de.OrganizationId,
+            1 AS Depth,
+            CAST('|' + CAST(dm.Seq AS VARCHAR(10)) + '|' + CAST(rm.Seq AS VARCHAR(10)) + '|' AS VARCHAR(MAX)) AS VisitedPath
+        FROM DependencyEdges de
+        INNER JOIN #ModuleMap dm ON dm.ModuleId = de.DefinedModuleId
+        INNER JOIN #ModuleMap rm ON rm.ModuleId = de.ReferencedModuleId
+
+        UNION ALL
+
+        SELECT
+            ac.RootModuleId,
+            de.DefinedModuleId,
+            de.ReferencedModuleId,
+            de.OrganizationId,
+            ac.Depth + 1,
+            CAST(ac.VisitedPath + CAST(rm.Seq AS VARCHAR(10)) + '|' AS VARCHAR(MAX))
+        FROM ApplyClosure ac
+        INNER JOIN DependencyEdges de ON ac.ReferencedModuleId = de.DefinedModuleId
+        INNER JOIN #ModuleMap rm ON rm.ModuleId = de.ReferencedModuleId
+        WHERE CHARINDEX('|' + CAST(rm.Seq AS VARCHAR(10)) + '|', ac.VisitedPath) = 0
+    )
+    INSERT INTO RecursiveDependencyEdges (
+        RootModuleId, RootOrganizationId, RootModuleName, RootNamespaceId, RootNamespaceName, RootStackId, RootStackName, RootDisplayName,
+        DefinedModuleId, DefinedOrganizationId, DefinedModuleName, DefinedNamespaceId, DefinedNamespaceName, DefinedStackId, DefinedStackName, DefinedDisplayName,
+        ReferencedModuleId, ReferencedOrganizationId, ReferencedModuleName, ReferencedNamespaceId, ReferencedNamespaceName, ReferencedStackId, ReferencedStackName, ReferencedDisplayName,
+        Depth, OrganizationId, Direction)
+    SELECT
+        ac.RootModuleId, m_root.OrganizationId, m_root.Name, m_root.NamespaceId, ns_root.Name, ns_root.StackId, st_root.Name,
+        CONCAT(st_root.Name, '/', ns_root.Name, '/', m_root.Name),
+        ac.DefinedModuleId, m_def.OrganizationId, m_def.Name, m_def.NamespaceId, ns_def.Name, ns_def.StackId, st_def.Name,
+        CONCAT(st_def.Name, '/', ns_def.Name, '/', m_def.Name),
+        ac.ReferencedModuleId, m_ref.OrganizationId, m_ref.Name, m_ref.NamespaceId, ns_ref.Name, ns_ref.StackId, st_ref.Name,
+        CONCAT(st_ref.Name, '/', ns_ref.Name, '/', m_ref.Name),
+        ac.Depth, ac.OrganizationId, 1
+    FROM ApplyClosure ac
+    INNER JOIN Modules m_root ON m_root.Id = ac.RootModuleId
+    INNER JOIN Namespaces ns_root ON ns_root.Id = m_root.NamespaceId
+    INNER JOIN Stacks st_root ON st_root.Id = ns_root.StackId
+    INNER JOIN Modules m_def ON m_def.Id = ac.DefinedModuleId
+    INNER JOIN Namespaces ns_def ON ns_def.Id = m_def.NamespaceId
+    INNER JOIN Stacks st_def ON st_def.Id = ns_def.StackId
+    INNER JOIN Modules m_ref ON m_ref.Id = ac.ReferencedModuleId
+    INNER JOIN Namespaces ns_ref ON ns_ref.Id = m_ref.NamespaceId
+    INNER JOIN Stacks st_ref ON st_ref.Id = ns_ref.StackId
+    OPTION (MAXRECURSION 0);
+
+    -- Destroy direction: root = ReferencedModuleId, walk Referenced->Defined
+    WITH DestroyClosure AS (
+        SELECT
+            de.ReferencedModuleId AS RootModuleId,
+            de.DefinedModuleId,
+            de.ReferencedModuleId,
+            de.OrganizationId,
+            1 AS Depth,
+            CAST('|' + CAST(rm.Seq AS VARCHAR(10)) + '|' + CAST(dm.Seq AS VARCHAR(10)) + '|' AS VARCHAR(MAX)) AS VisitedPath
+        FROM DependencyEdges de
+        INNER JOIN #ModuleMap dm ON dm.ModuleId = de.DefinedModuleId
+        INNER JOIN #ModuleMap rm ON rm.ModuleId = de.ReferencedModuleId
+
+        UNION ALL
+
+        SELECT
+            dc.RootModuleId,
+            de.DefinedModuleId,
+            de.ReferencedModuleId,
+            de.OrganizationId,
+            dc.Depth + 1,
+            CAST(dc.VisitedPath + CAST(dm.Seq AS VARCHAR(10)) + '|' AS VARCHAR(MAX))
+        FROM DestroyClosure dc
+        INNER JOIN DependencyEdges de ON dc.DefinedModuleId = de.ReferencedModuleId
+        INNER JOIN #ModuleMap dm ON dm.ModuleId = de.DefinedModuleId
+        WHERE CHARINDEX('|' + CAST(dm.Seq AS VARCHAR(10)) + '|', dc.VisitedPath) = 0
+    )
+    INSERT INTO RecursiveDependencyEdges (
+        RootModuleId, RootOrganizationId, RootModuleName, RootNamespaceId, RootNamespaceName, RootStackId, RootStackName, RootDisplayName,
+        DefinedModuleId, DefinedOrganizationId, DefinedModuleName, DefinedNamespaceId, DefinedNamespaceName, DefinedStackId, DefinedStackName, DefinedDisplayName,
+        ReferencedModuleId, ReferencedOrganizationId, ReferencedModuleName, ReferencedNamespaceId, ReferencedNamespaceName, ReferencedStackId, ReferencedStackName, ReferencedDisplayName,
+        Depth, OrganizationId, Direction)
+    SELECT
+        dc.RootModuleId, m_root.OrganizationId, m_root.Name, m_root.NamespaceId, ns_root.Name, ns_root.StackId, st_root.Name,
+        CONCAT(st_root.Name, '/', ns_root.Name, '/', m_root.Name),
+        dc.DefinedModuleId, m_def.OrganizationId, m_def.Name, m_def.NamespaceId, ns_def.Name, ns_def.StackId, st_def.Name,
+        CONCAT(st_def.Name, '/', ns_def.Name, '/', m_def.Name),
+        dc.ReferencedModuleId, m_ref.OrganizationId, m_ref.Name, m_ref.NamespaceId, ns_ref.Name, ns_ref.StackId, st_ref.Name,
+        CONCAT(st_ref.Name, '/', ns_ref.Name, '/', m_ref.Name),
+        dc.Depth, dc.OrganizationId, 2
+    FROM DestroyClosure dc
+    INNER JOIN Modules m_root ON m_root.Id = dc.RootModuleId
+    INNER JOIN Namespaces ns_root ON ns_root.Id = m_root.NamespaceId
+    INNER JOIN Stacks st_root ON st_root.Id = ns_root.StackId
+    INNER JOIN Modules m_def ON m_def.Id = dc.DefinedModuleId
+    INNER JOIN Namespaces ns_def ON ns_def.Id = m_def.NamespaceId
+    INNER JOIN Stacks st_def ON st_def.Id = ns_def.StackId
+    INNER JOIN Modules m_ref ON m_ref.Id = dc.ReferencedModuleId
+    INNER JOIN Namespaces ns_ref ON ns_ref.Id = m_ref.NamespaceId
+    INNER JOIN Stacks st_ref ON st_ref.Id = ns_ref.StackId
+    OPTION (MAXRECURSION 0);
+
+    DROP TABLE #ModuleMap;
+END;
+GO
+
+-- ============================================================================
+-- 6. Trigger on DependencyEdges to recompute transitive closure (stack-scoped)
+-- ============================================================================
+
+CREATE OR ALTER TRIGGER trg_DependencyEdges_RecursiveClosure
+ON DependencyEdges
+AFTER INSERT, DELETE, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @stackIds TABLE (StackId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY);
+    INSERT INTO @stackIds (StackId)
+    SELECT DISTINCT ns.StackId
+    FROM (
+        SELECT DefinedModuleId FROM inserted
+        UNION
+        SELECT DefinedModuleId FROM deleted
+    ) affected
+    INNER JOIN Modules m ON m.Id = affected.DefinedModuleId
+    INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId;
+
+    DECLARE @stackId UNIQUEIDENTIFIER;
+    DECLARE stack_cursor CURSOR LOCAL FAST_FORWARD FOR
+        SELECT StackId FROM @stackIds;
+
+    OPEN stack_cursor;
+    FETCH NEXT FROM stack_cursor INTO @stackId;
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        EXEC sp_RecomputeRecursiveDependencyEdges @StackId = @stackId;
+        FETCH NEXT FROM stack_cursor INTO @stackId;
+    END;
+    CLOSE stack_cursor;
+    DEALLOCATE stack_cursor;
+END;
+GO
+
+-- ============================================================================
+-- 7. Stored procedure to fully recompute ModuleState
+-- ============================================================================
+
+CREATE OR ALTER PROCEDURE sp_RecomputeModuleState
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    TRUNCATE TABLE ModuleState;
+
+    WITH CurrentJobs AS (
+        SELECT mj.ModuleId,
+            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.TimestampStart DESC) AS rn
+        FROM ModuleJobs mj WHERE mj.IsCurrent = 1
+    ),
+    LatestModuleJobs AS (
+        SELECT mj.ModuleId,
+            COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
+            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.TimestampEnd DESC) AS rn
+        FROM ModuleJobs mj WHERE mj.TimestampEnd IS NOT NULL
+    )
+    INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+    SELECT
+        m.Id,
+        m.OrganizationId,
+        CAST(CASE WHEN cj.ModuleId IS NOT NULL THEN 1 ELSE 0 END AS BIT),
+        lj.ActualStateHeadline,
+        ms.DesiredStateHeadline,
+        ms.QueuedDesiredStateHeadline
+    FROM Modules m
+    LEFT JOIN CurrentJobs cj ON cj.ModuleId = m.Id AND cj.rn = 1
+    LEFT JOIN LatestModuleJobs lj ON lj.ModuleId = m.Id AND lj.rn = 1
+    LEFT JOIN ModuleSagas ms ON ms.CorrelationId = m.Id;
+END;
+GO
+
+-- ============================================================================
+-- 8. Trigger on ModuleJobs to maintain ModuleState
+-- ============================================================================
+
+CREATE OR ALTER TRIGGER trg_ModuleJobs_ModuleState
+ON ModuleJobs
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT DISTINCT ModuleId INTO #AffectedModules
+    FROM (
+        SELECT ModuleId FROM inserted
+        UNION
+        SELECT ModuleId FROM deleted
+    ) x;
+
+    INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+    SELECT am.ModuleId, m.OrganizationId, 0, NULL, NULL, NULL
+    FROM #AffectedModules am
+    INNER JOIN Modules m ON m.Id = am.ModuleId
+    WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = am.ModuleId);
+
+    UPDATE ms SET
+        ms.IsRunning = CASE WHEN cj.ModuleId IS NOT NULL THEN 1 ELSE 0 END
+    FROM ModuleState ms
+    INNER JOIN #AffectedModules am ON am.ModuleId = ms.ModuleId
+    LEFT JOIN (
+        SELECT mj.ModuleId,
+            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.TimestampStart DESC) AS rn
+        FROM ModuleJobs mj
+        WHERE mj.IsCurrent = 1
+          AND mj.ModuleId IN (SELECT ModuleId FROM #AffectedModules)
+    ) cj ON cj.ModuleId = ms.ModuleId AND cj.rn = 1;
+
+    UPDATE ms SET
+        ms.LatestActualStateHeadline = lj.ActualStateHeadline
+    FROM ModuleState ms
+    INNER JOIN #AffectedModules am ON am.ModuleId = ms.ModuleId
+    LEFT JOIN (
+        SELECT mj.ModuleId,
+            COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
+            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.TimestampEnd DESC) AS rn
+        FROM ModuleJobs mj
+        WHERE mj.TimestampEnd IS NOT NULL
+          AND mj.ModuleId IN (SELECT ModuleId FROM #AffectedModules)
+    ) lj ON lj.ModuleId = ms.ModuleId AND lj.rn = 1;
+
+    DROP TABLE #AffectedModules;
+END;
+GO
+
+-- ============================================================================
+-- 9. Trigger on ModuleSagas to maintain ModuleState
+-- ============================================================================
+
+CREATE OR ALTER TRIGGER trg_ModuleSagas_ModuleState
+ON ModuleSagas
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+    SELECT i.CorrelationId, i.OrganizationId, 0, NULL, i.DesiredStateHeadline, i.QueuedDesiredStateHeadline
+    FROM inserted i
+    WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = i.CorrelationId);
+
+    UPDATE ms SET
+        ms.DesiredStateHeadline = i.DesiredStateHeadline,
+        ms.QueuedDesiredStateHeadline = i.QueuedDesiredStateHeadline
+    FROM ModuleState ms
+    INNER JOIN inserted i ON i.CorrelationId = ms.ModuleId;
+
+    UPDATE ms SET
+        ms.DesiredStateHeadline = NULL,
+        ms.QueuedDesiredStateHeadline = NULL
+    FROM ModuleState ms
+    INNER JOIN deleted d ON d.CorrelationId = ms.ModuleId
+    WHERE NOT EXISTS (SELECT 1 FROM inserted i WHERE i.CorrelationId = d.CorrelationId);
+END;
+GO
+
+-- ============================================================================
+-- 10. Initial population (only on first deploy when tables are empty)
+-- ============================================================================
+
+IF NOT EXISTS (SELECT TOP 1 1 FROM DependencyEdges)
+BEGIN
+    EXEC sp_RecomputeDependencyEdges;
+END;
+GO
+
+IF NOT EXISTS (SELECT TOP 1 1 FROM RecursiveDependencyEdges)
+BEGIN
+    EXEC sp_RecomputeRecursiveDependencyEdges;
+END;
+GO
+
+IF NOT EXISTS (SELECT TOP 1 1 FROM ModuleState)
+BEGIN
+    EXEC sp_RecomputeModuleState;
+END;
+GO

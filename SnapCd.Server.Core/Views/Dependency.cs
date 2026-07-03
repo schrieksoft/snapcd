@@ -31,29 +31,29 @@ public class Dependency
     public bool DefinedIsQueued { get; set; }
     public DesiredStateHeadline? DefinedRunningDesiredState { get; set; }
 
-    // Referenced Module (target of edge)
-    public Guid ReferencedModuleId { get; set; }
-    public Guid ReferencedOrganizationId { get; set; }
-    public string ReferencedModuleName { get; set; } = null!;
-    public Guid ReferencedNamespaceId { get; set; }
-    public string ReferencedNamespaceName { get; set; } = null!;
-    public Guid ReferencedStackId { get; set; }
-    public string ReferencedStackName { get; set; } = null!;
-    public string ReferencedDisplayName { get; set; } = null!;
+    // Referenced Module (target of edge) — nullable for standalone modules with no dependencies
+    public Guid? ReferencedModuleId { get; set; }
+    public Guid? ReferencedOrganizationId { get; set; }
+    public string? ReferencedModuleName { get; set; }
+    public Guid? ReferencedNamespaceId { get; set; }
+    public string? ReferencedNamespaceName { get; set; }
+    public Guid? ReferencedStackId { get; set; }
+    public string? ReferencedStackName { get; set; }
+    public string? ReferencedDisplayName { get; set; }
     public ActualStateHeadline? ReferencedLatestActualState { get; set; }
     public DesiredStateHeadline? ReferencedDesiredState { get; set; }
     public DesiredStateHeadline? ReferencedQueuedDesiredState { get; set; }
-    public bool ReferencedIsRunning { get; set; }
-    public bool ReferencedIsQueued { get; set; }
+    public bool? ReferencedIsRunning { get; set; }
+    public bool? ReferencedIsQueued { get; set; }
     public DesiredStateHeadline? ReferencedRunningDesiredState { get; set; }
 
     // Navigation properties
     public Module DefinedModule { get; set; } = null!;
-    public Module ReferencedModule { get; set; } = null!;
+    public Module? ReferencedModule { get; set; }
     public Namespace DefinedNamespace { get; set; } = null!;
-    public Namespace ReferencedNamespace { get; set; } = null!;
+    public Namespace? ReferencedNamespace { get; set; }
     public Stack DefinedStack { get; set; } = null!;
-    public Stack ReferencedStack { get; set; } = null!;
+    public Stack? ReferencedStack { get; set; }
 
     // Factory methods for creating ModuleStateInfo from dependency edges
     public ModuleStateInfo ToDefinedModuleStateInfo() => new ModuleStateInfo
@@ -73,22 +73,24 @@ public class Dependency
         RunningDesiredState = DefinedRunningDesiredState
     };
 
-    public ModuleStateInfo ToReferencedModuleStateInfo() => new ModuleStateInfo
-    {
-        ModuleId = ReferencedModuleId,
-        Name = ReferencedModuleName,
-        NamespaceName = ReferencedNamespaceName,
-        NamespaceId = ReferencedNamespaceId,
-        StackName = ReferencedStackName,
-        StackId = ReferencedStackId,
-        DisplayName = ReferencedDisplayName,
-        LatestActualState = ReferencedLatestActualState,
-        DesiredState = ReferencedDesiredState,
-        QueuedDesiredState = ReferencedQueuedDesiredState,
-        IsRunning = ReferencedIsRunning,
-        IsQueued = ReferencedIsQueued,
-        RunningDesiredState = ReferencedRunningDesiredState
-    };
+    public ModuleStateInfo? ToReferencedModuleStateInfo() => ReferencedModuleId.HasValue
+        ? new ModuleStateInfo
+        {
+            ModuleId = ReferencedModuleId.Value,
+            Name = ReferencedModuleName!,
+            NamespaceName = ReferencedNamespaceName!,
+            NamespaceId = ReferencedNamespaceId!.Value,
+            StackName = ReferencedStackName!,
+            StackId = ReferencedStackId!.Value,
+            DisplayName = ReferencedDisplayName!,
+            LatestActualState = ReferencedLatestActualState,
+            DesiredState = ReferencedDesiredState,
+            QueuedDesiredState = ReferencedQueuedDesiredState,
+            IsRunning = ReferencedIsRunning ?? false,
+            IsQueued = ReferencedIsQueued ?? false,
+            RunningDesiredState = ReferencedRunningDesiredState
+        }
+        : null;
 
     // Factory method to create a Dependency from a recursive dependency type
     public static Dependency FromRecursive(IRecursiveDependency rd) => new Dependency

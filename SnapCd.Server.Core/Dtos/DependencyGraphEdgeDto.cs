@@ -13,4 +13,13 @@ public class DependencyGraphEdgeDto
     public string DisplayName { get; set; } = null!;
     public Guid ModuleId { get; set; }
     public Guid NamespaceId { get; set; }
+
+    public string ShortDisplayName
+    {
+        get
+        {
+            var parts = DisplayName.Split('/');
+            return parts.Length >= 3 ? $"{parts[1]}/{parts[2]}" : DisplayName;
+        }
+    }
 }

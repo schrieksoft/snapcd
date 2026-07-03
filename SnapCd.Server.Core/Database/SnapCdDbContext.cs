@@ -530,6 +530,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 entity.Property(e => e.ReferencedRunningDesiredState)
                     .HasConversion<string>();
 
+                entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
+                entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
 
                 // Configure navigation properties
                 entity.HasOne(e => e.DefinedModule)
@@ -604,6 +606,9 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             entity.Property(e => e.RootRunningDesiredState)
                 .HasConversion<string>();
 
+            entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
+            entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
+
             // Configure navigation properties
             entity.HasOne(e => e.DefinedModule)
                 .WithMany()
@@ -675,6 +680,9 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 .HasConversion<string>();
             entity.Property(e => e.RootRunningDesiredState)
                 .HasConversion<string>();
+
+            entity.Property(e => e.ReferencedIsRunning).IsRequired(false);
+            entity.Property(e => e.ReferencedIsQueued).IsRequired(false);
 
             // Configure navigation properties with composite keys
             entity.HasOne(e => e.DefinedModule)

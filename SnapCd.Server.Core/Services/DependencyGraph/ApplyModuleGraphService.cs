@@ -101,7 +101,9 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // Get all unique modules involved
         var moduleIds = dependencies
-            .SelectMany(d => new[] { d.DefinedModuleId, d.ReferencedModuleId })
+            .SelectMany(d => d.ReferencedModuleId.HasValue
+                ? new[] { d.DefinedModuleId, d.ReferencedModuleId.Value }
+                : new[] { d.DefinedModuleId })
             .Distinct()
             .ToList();
 
@@ -141,8 +143,8 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
             // Get modules this one depends on (referenced modules where this is defined)
             var dependencyModules = dependencies
-                .Where(d => d.DefinedModuleId == id)
-                .Select(d => d.ReferencedDisplayName)
+                .Where(d => d.DefinedModuleId == id && d.ReferencedDisplayName != null)
+                .Select(d => d.ReferencedDisplayName!)
                 .Distinct()
                 .ToList();
             nodeState.DependencyModules.AddRange(dependencyModules);
@@ -227,7 +229,9 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // Get all unique modules involved
         var moduleIds = dependencies
-            .SelectMany(d => new[] { d.DefinedModuleId, d.ReferencedModuleId })
+            .SelectMany(d => d.ReferencedModuleId.HasValue
+                ? new[] { d.DefinedModuleId, d.ReferencedModuleId.Value }
+                : new[] { d.DefinedModuleId })
             .Distinct()
             .ToList();
 
@@ -244,15 +248,15 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
             var nodeState = CreateNodeState(moduleId, moduleInfo, DesiredStateHeadline.Applied);
 
             // Get incoming edges (dependencies) - what this module depends on (DefinedModuleId = this module)
-            var incomingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId).ToList();
+            var incomingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId && e.ReferencedModuleId.HasValue).ToList();
             nodeState.IncomingEdges = incomingEdges
-                .GroupBy(e => e.ReferencedModuleId)
+                .GroupBy(e => e.ReferencedModuleId!.Value)
                 .Select(g => g.First())
                 .Select(e => new DependencyGraphEdgeDto
                 {
-                    DisplayName = e.ReferencedDisplayName,
-                    ModuleId = e.ReferencedModuleId,
-                    NamespaceId = e.ReferencedNamespaceId
+                    DisplayName = e.ReferencedDisplayName!,
+                    ModuleId = e.ReferencedModuleId!.Value,
+                    NamespaceId = e.ReferencedNamespaceId!.Value
                 })
                 .ToList();
 
@@ -320,7 +324,7 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // For Apply: find what this module depends on (where this module is DefinedModule)
         // These dependencies must be applied BEFORE this module
-        var dependencyEdges = dependencies.Where(d => d.DefinedModuleId == moduleId).ToList();
+        var dependencyEdges = dependencies.Where(d => d.DefinedModuleId == moduleId && d.ReferencedModuleId.HasValue).ToList();
 
         if (!dependencyEdges.Any())
         {
@@ -335,7 +339,7 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
         var maxDependencyStage = -1;
         foreach (var edge in dependencyEdges)
         {
-            var dependencyStage = CalculateApplyStageRecursiveForNodes(edge.ReferencedModuleId, dependencies, stages, computed, currentPath);
+            var dependencyStage = CalculateApplyStageRecursiveForNodes(edge.ReferencedModuleId!.Value, dependencies, stages, computed, currentPath);
             maxDependencyStage = Math.Max(maxDependencyStage, dependencyStage);
         }
 
@@ -354,7 +358,9 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // Get all unique modules involved
         var moduleIds = dependencies
-            .SelectMany(d => new[] { d.DefinedModuleId, d.ReferencedModuleId })
+            .SelectMany(d => d.ReferencedModuleId.HasValue
+                ? new[] { d.DefinedModuleId, d.ReferencedModuleId.Value }
+                : new[] { d.DefinedModuleId })
             .Distinct()
             .ToList();
 
@@ -431,12 +437,12 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
             // Add outgoing edges (modules this one depends on)
             var outgoingEdges = dependencies
-                .Where(d => d.DefinedModuleId == id)
+                .Where(d => d.DefinedModuleId == id && d.ReferencedModuleId.HasValue)
                 .Select(d => new DependencyGraphEdgeDto
                 {
-                    ModuleId = d.ReferencedModuleId,
-                    DisplayName = d.ReferencedDisplayName,
-                    NamespaceId = d.ReferencedNamespaceId
+                    ModuleId = d.ReferencedModuleId!.Value,
+                    DisplayName = d.ReferencedDisplayName!,
+                    NamespaceId = d.ReferencedNamespaceId!.Value
                 })
                 .Distinct()
                 .ToList();
@@ -469,7 +475,9 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // Get all unique modules involved
         var moduleIds = dependencies
-            .SelectMany(d => new[] { d.DefinedModuleId, d.ReferencedModuleId })
+            .SelectMany(d => d.ReferencedModuleId.HasValue
+                ? new[] { d.DefinedModuleId, d.ReferencedModuleId.Value }
+                : new[] { d.DefinedModuleId })
             .Distinct()
             .ToList();
 
@@ -486,15 +494,15 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
             var nodeState = CreateNodeState(moduleId, moduleInfo, DesiredStateHeadline.Applied);
 
             // Get incoming edges (dependencies) - what this module depends on (DefinedModuleId = this module)
-            var incomingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId).ToList();
+            var incomingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId && e.ReferencedModuleId.HasValue).ToList();
             nodeState.IncomingEdges = incomingEdges
-                .GroupBy(e => e.ReferencedModuleId)
+                .GroupBy(e => e.ReferencedModuleId!.Value)
                 .Select(g => g.First())
                 .Select(e => new DependencyGraphEdgeDto
                 {
-                    DisplayName = e.ReferencedDisplayName,
-                    ModuleId = e.ReferencedModuleId,
-                    NamespaceId = e.ReferencedNamespaceId
+                    DisplayName = e.ReferencedDisplayName!,
+                    ModuleId = e.ReferencedModuleId!.Value,
+                    NamespaceId = e.ReferencedNamespaceId!.Value
                 })
                 .ToList();
 
@@ -562,7 +570,7 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // For Apply: find what this module depends on (where this module is DefinedModule)
         // These dependencies must be applied BEFORE this module
-        var dependencyEdges = dependencies.Where(d => d.DefinedModuleId == moduleId).ToList();
+        var dependencyEdges = dependencies.Where(d => d.DefinedModuleId == moduleId && d.ReferencedModuleId.HasValue).ToList();
 
         if (!dependencyEdges.Any())
         {
@@ -577,7 +585,7 @@ public class ApplyModuleGraphService : ModuleGraphServiceBase, IDisposable
         var maxDependencyStage = -1;
         foreach (var edge in dependencyEdges)
         {
-            var dependencyStage = CalculateStackApplyStageRecursive(edge.ReferencedModuleId, dependencies, stages, computed, currentPath);
+            var dependencyStage = CalculateStackApplyStageRecursive(edge.ReferencedModuleId!.Value, dependencies, stages, computed, currentPath);
             maxDependencyStage = Math.Max(maxDependencyStage, dependencyStage);
         }
 

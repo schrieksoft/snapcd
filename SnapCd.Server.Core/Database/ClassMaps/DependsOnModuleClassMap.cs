@@ -16,6 +16,8 @@ public class DependsOnModuleClassMap : IEntityTypeConfiguration<DependsOnModule>
 {
     public void Configure(EntityTypeBuilder<DependsOnModule> entity)
     {
+        entity.ToTable("DependsOnModules", t => t.UseSqlOutputClause(false));
+
         // Composite primary key with OrganizationId
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 

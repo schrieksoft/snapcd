@@ -55,7 +55,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
         // Take the first occurrence of each unique edge (lowest depth)
         var distinctEdges = recursiveDependencies
             .GroupBy(rd => new { rd.DefinedModuleId, rd.ReferencedModuleId })
-            .Select(g => g.OrderBy(rd => rd.Depth).First()) // Take the one with the lowest depth
+            .Select(g => g.OrderBy(rd => rd.Depth).First())
             .ToList();
 
         // Convert to Dependency objects
@@ -82,7 +82,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
         if (rootModule == null) throw new ArgumentException($"Module with ID {rootModuleId} not found");
 
         // Get all unique module IDs from the dependency edges, including the root module
-        var moduleIds = allEdges.SelectMany(e => new[] { e.DefinedModuleId, e.ReferencedModuleId }).Distinct().ToList();
+        var moduleIds = allEdges.SelectMany(e => e.ReferencedModuleId.HasValue ? new[] { e.DefinedModuleId, e.ReferencedModuleId.Value } : new[] { e.DefinedModuleId }).Distinct().ToList();
         moduleIds.Add(rootModuleId); // Ensure root module is included even if it has no dependencies
         moduleIds = moduleIds.Distinct().ToList();
 
@@ -129,9 +129,9 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
                 .ToList();
 
             // Find dependency modules (modules this one depends on)
-            var dependencyEdges = allEdges.Where(e => e.DefinedModuleId == moduleId);
+            var dependencyEdges = allEdges.Where(e => e.DefinedModuleId == moduleId && e.ReferencedModuleId.HasValue);
             nodeState.DependencyModules = dependencyEdges
-                .Select(e => e.ReferencedDisplayName)
+                .Select(e => e.ReferencedDisplayName!)
                 .Distinct()
                 .ToList();
 
@@ -139,7 +139,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
         }
 
         // Calculate stages for destruction (reverse of apply order)
-        CalculateDestructionStages(nodeStates, allEdges.Where(e => moduleIds.Contains(e.DefinedModuleId) && moduleIds.Contains(e.ReferencedModuleId)).ToList());
+        CalculateDestructionStages(nodeStates, allEdges.Where(e => moduleIds.Contains(e.DefinedModuleId) && e.ReferencedModuleId.HasValue && moduleIds.Contains(e.ReferencedModuleId.Value)).ToList());
 
         var result = new DestroyModuleGraphDto
         {
@@ -226,7 +226,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
         // Take the first occurrence of each unique edge (lowest depth)
         var distinctEdges = recursiveDependencies
             .GroupBy(rd => new { rd.DefinedModuleId, rd.ReferencedModuleId })
-            .Select(g => g.OrderBy(rd => rd.Depth).First()) // Take the one with the lowest depth
+            .Select(g => g.OrderBy(rd => rd.Depth).First())
             .ToList();
 
         // Convert to Dependency objects
@@ -244,7 +244,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // Get all unique modules involved
         var moduleIds = dependencies
-            .SelectMany(d => new[] { d.DefinedModuleId, d.ReferencedModuleId })
+            .SelectMany(d => d.ReferencedModuleId.HasValue ? new[] { d.DefinedModuleId, d.ReferencedModuleId.Value } : new[] { d.DefinedModuleId })
             .Distinct()
             .ToList();
 
@@ -309,12 +309,12 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
             // For destroy, incoming edges are modules this depends on (referenced where this is defined)
             var incomingEdges = dependencies
-                .Where(d => d.DefinedModuleId == id)
+                .Where(d => d.DefinedModuleId == id && d.ReferencedModuleId.HasValue)
                 .Select(d => new DependencyGraphEdgeDto
                 {
-                    ModuleId = d.ReferencedModuleId,
-                    DisplayName = d.ReferencedDisplayName,
-                    NamespaceId = d.ReferencedNamespaceId
+                    ModuleId = d.ReferencedModuleId!.Value,
+                    DisplayName = d.ReferencedDisplayName!,
+                    NamespaceId = d.ReferencedNamespaceId!.Value
                 })
                 .Distinct()
                 .ToList();
@@ -358,7 +358,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
         // Get all unique modules involved
         var moduleIds = dependencies
-            .SelectMany(d => new[] { d.DefinedModuleId, d.ReferencedModuleId })
+            .SelectMany(d => d.ReferencedModuleId.HasValue ? new[] { d.DefinedModuleId, d.ReferencedModuleId.Value } : new[] { d.DefinedModuleId })
             .Distinct()
             .ToList();
 
@@ -388,15 +388,15 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
                 .ToList();
 
             // Get outgoing edges (dependents) - what this module depends on (DefinedModuleId = this module)
-            var outgoingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId).ToList();
+            var outgoingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId && e.ReferencedModuleId.HasValue).ToList();
             nodeState.OutgoingEdges = outgoingEdges
-                .GroupBy(e => e.ReferencedModuleId)
+                .GroupBy(e => e.ReferencedModuleId!.Value)
                 .Select(g => g.First())
                 .Select(e => new DependencyGraphEdgeDto
                 {
-                    DisplayName = e.ReferencedDisplayName,
-                    ModuleId = e.ReferencedModuleId,
-                    NamespaceId = e.ReferencedNamespaceId
+                    DisplayName = e.ReferencedDisplayName!,
+                    ModuleId = e.ReferencedModuleId!.Value,
+                    NamespaceId = e.ReferencedNamespaceId!.Value
                 })
                 .ToList();
 
@@ -480,11 +480,11 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
     public async Task<StackDependencyGraphDto> BuildStackDestroyGraphAsync(Guid stackId, string stackName)
     {
         var directDependencyService = new DependencyGraphService(_dbContext);
-        var dependencies = await directDependencyService.ListForReferencedStack(stackId);
+        var dependencies = await directDependencyService.ListForDefinedStack(stackId);
 
         // Get all unique modules involved
         var moduleIds = dependencies
-            .SelectMany(d => new[] { d.DefinedModuleId, d.ReferencedModuleId })
+            .SelectMany(d => d.ReferencedModuleId.HasValue ? new[] { d.DefinedModuleId, d.ReferencedModuleId.Value } : new[] { d.DefinedModuleId })
             .Distinct()
             .ToList();
 
@@ -514,15 +514,15 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
                 .ToList();
 
             // For Destroy logic: OutgoingEdges = what this module depends on (destroyed after dependents)
-            var outgoingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId).ToList();
+            var outgoingEdges = dependencies.Where(e => e.DefinedModuleId == moduleId && e.ReferencedModuleId.HasValue).ToList();
             nodeState.OutgoingEdges = outgoingEdges
-                .GroupBy(e => e.ReferencedModuleId)
+                .GroupBy(e => e.ReferencedModuleId!.Value)
                 .Select(g => g.First())
                 .Select(e => new DependencyGraphEdgeDto
                 {
-                    DisplayName = e.ReferencedDisplayName,
-                    ModuleId = e.ReferencedModuleId,
-                    NamespaceId = e.ReferencedNamespaceId
+                    DisplayName = e.ReferencedDisplayName!,
+                    ModuleId = e.ReferencedModuleId!.Value,
+                    NamespaceId = e.ReferencedNamespaceId!.Value
                 })
                 .ToList();
 

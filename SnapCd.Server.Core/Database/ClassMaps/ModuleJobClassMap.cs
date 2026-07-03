@@ -20,6 +20,8 @@ public class ModuleJobClassMap : IEntityTypeConfiguration<ModuleJob>
 
     public void Configure(EntityTypeBuilder<ModuleJob> entity)
     {
+        entity.ToTable("ModuleJobs", t => t.UseSqlOutputClause(false));
+
         // Composite primary key with OrganizationId
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
