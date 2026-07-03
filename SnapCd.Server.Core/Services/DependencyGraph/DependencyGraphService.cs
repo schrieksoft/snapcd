@@ -48,8 +48,8 @@ public class DependencyGraphService : IDisposable
     public async Task<List<Guid>> ListModuleIdsForDefinedModule(Guid moduleId)
     {
         return await _dbContext.Dependencies
-            .Where(e => e.DefinedModuleId == moduleId)
-            .Select(x => x.ReferencedModuleId)
+            .Where(e => e.DefinedModuleId == moduleId && e.ReferencedModuleId.HasValue)
+            .Select(x => x.ReferencedModuleId!.Value)
             .ToListAsync();
     }
 

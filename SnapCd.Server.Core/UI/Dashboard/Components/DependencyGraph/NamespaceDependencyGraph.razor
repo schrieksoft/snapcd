@@ -19,6 +19,7 @@
 @inject PersistentComponentState ApplicationState
 @inject ModuleStateModifiedNotificationService ModuleStateModifiedNotificationService
 @inject DependencyGraphServiceFactory DependencyGraphServiceFactory
+@inject IJSRuntime JS
 
 
 @if (_isLoading)
@@ -44,9 +45,11 @@ else if (_dependencyGraph != null)
         </MudTooltip>
     </MudStack>
 
-    <NamespaceDependencyGraphExecutionFlow DependencyGraphWithStates="filteredGraph"
-                                           UninvolvedModuleIds="UninvolvedModuleIds"
-                                           PrimaryNamespaceId="NamespaceId"/>
+    <div @ref="_scrollContainer" data-dag-scroll style="overflow: auto; height: @(_scrollContainerHeight)px;">
+        <NamespaceDependencyGraphExecutionFlow DependencyGraphWithStates="filteredGraph"
+                                               UninvolvedModuleIds="UninvolvedModuleIds"
+                                               PrimaryNamespaceId="NamespaceId"/>
+    </div>
 }
 else if (_error != null)
 {
@@ -73,11 +76,30 @@ else if (_error != null)
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private HashSet<Guid> _subscribedModuleIds = new();
+    private ElementReference _scrollContainer;
+    private int _scrollContainerHeight = 500;
 
     // Track previous parameter values to detect changes
     private Guid _previousNamespaceId;
     private string _previousNamespaceName = string.Empty;
     private string _previousDirection = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_dependencyGraph != null)
+        {
+            var top = await JS.InvokeAsync<double>("eval", "document.querySelector('[data-dag-scroll]')?.getBoundingClientRect().top ?? 0");
+            if (top > 0)
+            {
+                var newHeight = (int)(await JS.InvokeAsync<double>("eval", "window.innerHeight") - top - 16);
+                if (newHeight != _scrollContainerHeight && newHeight > 100)
+                {
+                    _scrollContainerHeight = newHeight;
+                    StateHasChanged();
+                }
+            }
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

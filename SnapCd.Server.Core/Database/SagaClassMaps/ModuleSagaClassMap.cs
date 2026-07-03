@@ -22,6 +22,8 @@ public class ModuleSagaClassMap : SagaClassMap<ModuleSaga>
 
     protected override void Configure(EntityTypeBuilder<ModuleSaga> entity, ModelBuilder modelBuilder)
     {
+        entity.ToTable("ModuleSagas", t => t.UseSqlOutputClause(false));
+
         entity.Property(x => x.CurrentState).HasMaxLength(64);
 
         entity.Property(x => x.RowVersion).IsRowVersion(); // for optimistic concurrency

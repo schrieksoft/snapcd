@@ -16,6 +16,8 @@ public class ModuleInputClassMap : IEntityTypeConfiguration<ModuleInput>
 {
     public void Configure(EntityTypeBuilder<ModuleInput> entity)
     {
+        entity.ToTable("ModuleInputs", t => t.UseSqlOutputClause(false));
+
         // Composite primary key with OrganizationId
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 

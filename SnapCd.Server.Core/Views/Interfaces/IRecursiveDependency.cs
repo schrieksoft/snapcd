@@ -29,26 +29,26 @@ public interface IRecursiveDependency
     bool DefinedIsQueued { get; }
     DesiredStateHeadline? DefinedRunningDesiredState { get; }
 
-    // Referenced Module (target of edge)
-    Guid ReferencedModuleId { get; }
-    string ReferencedModuleName { get; }
-    Guid ReferencedNamespaceId { get; }
-    string ReferencedNamespaceName { get; }
-    Guid ReferencedStackId { get; }
-    string ReferencedStackName { get; }
-    string ReferencedDisplayName { get; }
+    // Referenced Module (target of edge) — nullable for standalone modules
+    Guid? ReferencedModuleId { get; }
+    string? ReferencedModuleName { get; }
+    Guid? ReferencedNamespaceId { get; }
+    string? ReferencedNamespaceName { get; }
+    Guid? ReferencedStackId { get; }
+    string? ReferencedStackName { get; }
+    string? ReferencedDisplayName { get; }
     ActualStateHeadline? ReferencedLatestActualState { get; }
     DesiredStateHeadline? ReferencedDesiredState { get; }
     DesiredStateHeadline? ReferencedQueuedDesiredState { get; }
-    bool ReferencedIsRunning { get; }
-    bool ReferencedIsQueued { get; }
+    bool? ReferencedIsRunning { get; }
+    bool? ReferencedIsQueued { get; }
     DesiredStateHeadline? ReferencedRunningDesiredState { get; }
 
     // Navigation properties
     Module DefinedModule { get; }
-    Module ReferencedModule { get; }
+    Module? ReferencedModule { get; }
     Namespace DefinedNamespace { get; }
-    Namespace ReferencedNamespace { get; }
+    Namespace? ReferencedNamespace { get; }
     Stack DefinedStack { get; }
-    Stack ReferencedStack { get; }
+    Stack? ReferencedStack { get; }
 }

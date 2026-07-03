@@ -15,7 +15,7 @@
 @inject NavigationManager Navigation
 
 <div class="dag-stages"
-     style="display: flex; gap: 24px; min-width: max-content; padding: 16px; overflow-x: auto; width: 100%;">
+     style="display: flex; gap: 24px; min-width: max-content; padding: 16px;">
     @{
         // Group stages and order them
         var stages = DependencyGraphWithStates.NodeStates
@@ -27,122 +27,128 @@
 
     @foreach (var stage in stagesList)
     {
-        <div class="stage-column" style="min-width: 280px; flex-shrink: 0;">
+        <div class="stage-column" style="min-width: 240px; flex-shrink: 0;">
             @{
-                // Calculate execution order position
                 var executionOrder = stagesList.IndexOf(stage) + 1;
             }
-            <MudText Typo="Typo.h6" Class="mb-3" Align="Align.Center">
+            <MudText Typo="Typo.subtitle1" Class="mb-2" Align="Align.Center">
                 Stage @executionOrder
             </MudText>
-            <MudText Typo="Typo.caption" Class="mb-3" Align="Align.Center">
+            <MudText Typo="Typo.caption" Class="mb-2" Align="Align.Center" Style="font-size: 0.8rem;">
                 Must
                 be @(DependencyGraphWithStates.Direction == "Destroy" ? "destroyed" : "applied") @(executionOrder == 1 ? "first" : stage.First().StageOrdinal)
             </MudText>
 
-            <MudStack Spacing="2">
+            <MudStack Spacing="1">
                 @{
-                    // Group modules by namespace within this stage
                     var namespaceGroups = stage.GroupBy(n => n.NamespaceDisplayName)
                         .OrderBy(g => g.Key);
                 }
 
                 @foreach (var namespaceGroup in namespaceGroups)
                 {
-                    <MudCard Elevation="1" Class="mb-2">
-                        <MudCardHeader Class="pb-2">
+                    <MudCard Elevation="1" Class="mb-1">
+                        <MudCardHeader Class="pa-2 pb-1">
                             <CardHeaderContent>
                                 <MudLink Href="@($"/Stacks/{namespaceGroup.Key}")"
-                                         Typo="Typo.body1" Class="font-weight-bold">
-                                    @namespaceGroup.Key
+                                         Typo="Typo.body2" Class="font-weight-bold">
+                                    @namespaceGroup.First().NamespaceName
                                 </MudLink>
                             </CardHeaderContent>
                         </MudCardHeader>
-                        <MudCardContent Class="pt-0">
-                            <MudStack Spacing="1">
+                        <MudCardContent Class="pa-2 pt-0">
+                            <MudStack Spacing="0">
                                 @foreach (var nodeState in namespaceGroup.OrderBy(n => n.ModuleName))
                                 {
-                                    <MudCard Elevation="0" Style="@nodeState.NodeBorderStyle">
-                                        <MudCardHeader Class="pb-2">
-                                            <CardHeaderContent>
-                                                <MudStack Row Justify="Justify.SpaceBetween"
-                                                          AlignItems="AlignItems.Center">
-                                                    <MudLink
-                                                        Href="@($"/Stacks/{nodeState.DisplayName}")"
-                                                        Typo="Typo.body2" Class="font-weight-medium">
-                                                        @nodeState.ModuleName
-                                                    </MudLink>
-                                                    <MudIcon Icon="@nodeState.StateIcon"
-                                                             Color="@nodeState.StateColor"
-                                                             Size="Size.Small"/>
-                                                </MudStack>
-                                                <MudText Typo="Typo.caption" Color="@nodeState.StateColor">
-                                                    @nodeState.StateDisplayText
-                                                </MudText>
-                                            </CardHeaderContent>
-                                        </MudCardHeader>
+                                    var hasDeps = nodeState.IncomingEdges.Any() || nodeState.OutgoingEdges.Any();
 
-                                        @if (nodeState.IncomingEdges.Any() || nodeState.OutgoingEdges.Any())
-                                        {
-                                            <MudExpansionPanels Elevation="0" Class="ma-0">
-                                                <MudExpansionPanel Class="pa-2">
-                                                    <TitleContent>
-                                                        <div style="display: flex; align-items: center;">
-                                                            <MudIcon Icon="@Icons.Material.Filled.AccountTree"
-                                                                     class="mr-3"></MudIcon>
-                                                            <MudText Typo="Typo.body2">Dependencies</MudText>
-                                                        </div>
-                                                    </TitleContent>
-                                                    <ChildContent>
-                                                        <MudStack Spacing="2" Class="pa-2">
-                                                            @if (nodeState.IncomingEdges.Any())
-                                                            {
-                                                                <div>
-                                                                    <MudText Typo="Typo.caption"
-                                                                             Class="font-weight-bold mb-1">
-                                                                        @(DependencyGraphWithStates.Direction == "Destroy" ? "These modules must be destroyed first:" : "This module depends on:")
-                                                                    </MudText>
-                                                                    <MudStack Spacing="1" Class="ml-3 mb-2">
-                                                                        @foreach (var dep in nodeState.IncomingEdges)
-                                                                        {
-                                                                            <MudChip T="string" Size="Size.Small"
-                                                                                     Color="Color.Info"
-                                                                                     Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{dep.DisplayName}"))">
-                                                                                @dep.DisplayName
-                                                                            </MudChip>
-                                                                        }
-                                                                    </MudStack>
-                                                                </div>
-                                                            }
+                                    @if (hasDeps)
+                                    {
+                                        <MudExpansionPanels Elevation="0" Class="ma-0 dag-module-panel">
+                                            <MudExpansionPanel Class="pa-0" Style="@nodeState.NodeBorderStyle">
+                                                <TitleContent>
+                                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                                                        <MudLink Href="@($"/Stacks/{nodeState.DisplayName}")"
+                                                                 Typo="Typo.caption" Class="font-weight-medium"
+                                                                 Style="font-size: 0.8rem;"
+                                                                 @onclick:stopPropagation="true">
+                                                            @nodeState.ModuleName
+                                                        </MudLink>
+                                                        <MudIcon Icon="@nodeState.StateIcon"
+                                                                 Color="@nodeState.StateColor"
+                                                                 Size="Size.Small" Style="font-size: 1rem;"/>
+                                                    </div>
+                                                    <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
+                                                        @nodeState.StateDisplayText
+                                                    </MudText>
+                                                </TitleContent>
+                                                <ChildContent>
+                                                    <MudStack Spacing="1" Class="pa-1">
+                                                        @if (nodeState.IncomingEdges.Any())
+                                                        {
+                                                            <div>
+                                                                <MudText Typo="Typo.caption" Class="font-weight-bold" Style="font-size: 0.75rem;">
+                                                                    @(DependencyGraphWithStates.Direction == "Destroy" ? "Must be destroyed first:" : "Depends on:")
+                                                                </MudText>
+                                                                <MudStack Spacing="0" Class="ml-2">
+                                                                    @foreach (var dep in nodeState.IncomingEdges)
+                                                                    {
+                                                                        <MudLink Typo="Typo.caption"
+                                                                                 Href="@($"/Stacks/{dep.DisplayName}")"
+                                                                                 Style="font-size: 0.8rem;">
+                                                                            @dep.ShortDisplayName
+                                                                        </MudLink>
+                                                                    }
+                                                                </MudStack>
+                                                            </div>
+                                                        }
 
-                                                            @if (nodeState.OutgoingEdges.Any())
-                                                            {
-                                                                <MudDivider/>
-                                                                <div>
-                                                                    <MudText Typo="Typo.caption"
-                                                                             Class="font-weight-bold mb-1">
-                                                                        @(DependencyGraphWithStates.Direction == "Destroy" ? "This module must be destroyed before:" : "This module is depended on by:")
-                                                                    </MudText>
-                                                                    <MudStack Spacing="1" Class="ml-3">
-                                                                        @foreach (var trigger in nodeState.OutgoingEdges)
-                                                                        {
-                                                                            <MudChip T="string" Size="Size.Small"
-                                                                                     Color="Color.Info"
-                                                                                     Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{trigger.DisplayName}"))">
-                                                                                @trigger.DisplayName
-                                                                            </MudChip>
-                                                                        }
-                                                                    </MudStack>
-                                                                </div>
-                                                            }
-                                                        </MudStack>
-                                                    </ChildContent>
-                                                </MudExpansionPanel>
-                                            </MudExpansionPanels>
-                                        }
-                                    </MudCard>
+                                                        @if (nodeState.IncomingEdges.Any() && nodeState.OutgoingEdges.Any())
+                                                        {
+                                                            <MudDivider/>
+                                                        }
+
+                                                        @if (nodeState.OutgoingEdges.Any())
+                                                        {
+                                                            <div>
+                                                                <MudText Typo="Typo.caption" Class="font-weight-bold" Style="font-size: 0.75rem;">
+                                                                    @(DependencyGraphWithStates.Direction == "Destroy" ? "Must be destroyed before:" : "Depended on by:")
+                                                                </MudText>
+                                                                <MudStack Spacing="0" Class="ml-2">
+                                                                    @foreach (var trigger in nodeState.OutgoingEdges)
+                                                                    {
+                                                                        <MudLink Typo="Typo.caption"
+                                                                                 Href="@($"/Stacks/{trigger.DisplayName}")"
+                                                                                 Style="font-size: 0.8rem;">
+                                                                            @trigger.ShortDisplayName
+                                                                        </MudLink>
+                                                                    }
+                                                                </MudStack>
+                                                            </div>
+                                                        }
+                                                    </MudStack>
+                                                </ChildContent>
+                                            </MudExpansionPanel>
+                                        </MudExpansionPanels>
+                                    }
+                                    else
+                                    {
+                                        <div class="dag-module-nodeps" style="@nodeState.NodeBorderStyle">
+                                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                                                <MudLink Href="@($"/Stacks/{nodeState.DisplayName}")"
+                                                         Typo="Typo.caption" Class="font-weight-medium"
+                                                         Style="font-size: 0.8rem;">
+                                                    @nodeState.ModuleName
+                                                </MudLink>
+                                                <MudIcon Icon="@nodeState.StateIcon"
+                                                         Color="@nodeState.StateColor"
+                                                         Size="Size.Small" Style="font-size: 1rem;"/>
+                                            </div>
+                                            <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
+                                                @nodeState.StateDisplayText
+                                            </MudText>
+                                        </div>
+                                    }
                                 }
                             </MudStack>
                         </MudCardContent>
@@ -154,8 +160,8 @@
         @if (stage != stagesList.Last())
         {
             <div class="stage-arrow"
-                 style="display: flex; align-items: center; justify-content: center; min-width: 40px; height: 100%;">
-                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Large" Color="Color.Default"/>
+                 style="display: flex; align-items: center; justify-content: center; min-width: 32px; height: 100%;">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Medium" Color="Color.Default"/>
             </div>
         }
     }
@@ -173,11 +179,30 @@
         background: var(--mud-palette-surface);
         border: 1px solid var(--mud-palette-lines-default);
         border-radius: 8px;
-        padding: 16px;
+        padding: 12px;
     }
 
     .stage-arrow {
         opacity: 0.5;
+    }
+
+    .dag-module-panel .mud-expand-panel {
+        margin: 2px 0;
+    }
+
+    .dag-module-panel .mud-expand-panel-header {
+        padding: 4px 8px;
+        min-height: unset;
+    }
+
+    .dag-module-panel .mud-expand-panel-content {
+        padding: 4px 8px;
+    }
+
+    .dag-module-nodeps {
+        padding: 4px 8px;
+        margin: 2px 0;
+        border-radius: 4px;
     }
 </style>
 

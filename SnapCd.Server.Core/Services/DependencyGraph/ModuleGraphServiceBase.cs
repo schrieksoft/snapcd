@@ -190,8 +190,12 @@ public abstract class ModuleGraphServiceBase
             if (!lookup.ContainsKey(edge.DefinedModuleId))
                 lookup[edge.DefinedModuleId] = edge.ToDefinedModuleStateInfo();
 
-            if (!lookup.ContainsKey(edge.ReferencedModuleId))
-                lookup[edge.ReferencedModuleId] = edge.ToReferencedModuleStateInfo();
+            if (edge.ReferencedModuleId.HasValue && !lookup.ContainsKey(edge.ReferencedModuleId.Value))
+            {
+                var refInfo = edge.ToReferencedModuleStateInfo();
+                if (refInfo != null)
+                    lookup[edge.ReferencedModuleId.Value] = refInfo;
+            }
         }
 
         return lookup;

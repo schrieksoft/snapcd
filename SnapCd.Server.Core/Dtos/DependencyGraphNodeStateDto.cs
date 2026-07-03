@@ -54,4 +54,14 @@ public class DependencyGraphNodeStateDto
 
     // Namespace display name (Stack/Namespace)
     public string NamespaceDisplayName { get; set; } = "";
+
+    // Just the namespace name without stack prefix
+    public string NamespaceName
+    {
+        get
+        {
+            var parts = NamespaceDisplayName.Split('/');
+            return parts.Length >= 2 ? parts[1] : NamespaceDisplayName;
+        }
+    }
 }

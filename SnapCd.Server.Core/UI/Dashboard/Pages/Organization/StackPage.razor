@@ -199,7 +199,7 @@
                 @if (!_showApplyComponent && !_showDestroyComponent)
                 {
                     <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
+                               Color="Color.Secondary"
                                OnClick="ShowApplyComponent">
                         Apply All Modules
                     </MudButton>
@@ -265,7 +265,7 @@
 
                     <MudStack Row>
                         <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                                   Color="Color.Secondary"
                                    OnClick="ExecuteApply"
                                    Disabled="@_isApplying">
                             @if (_isApplying)
@@ -279,7 +279,7 @@
                         </MudButton>
 
                         <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                                   Color="Color.Secondary"
                                    OnClick="CancelApply"
                                    Disabled="@_isApplying">
                             Cancel
@@ -389,7 +389,7 @@
                 }
             </MudPaper>
 
-            <MudPaper Elevation="1" Class="pa-4 mb-4" Style="overflow-x: auto;">
+            <MudPaper Elevation="1" Class="pa-4 mb-4">
                 <MudText Typo="Typo.h5" Class="mb-4">Dependency Graph</MudText>
 
                 <StackDependencyGraph
