@@ -38,6 +38,7 @@ public abstract class BaseEngine
     protected readonly string InitDir;
     protected Dictionary<string, string> EnvVars = new();
     private readonly List<string> _additionalBinaryPaths;
+    protected readonly Dictionary<string, string> RunnerEnvVars;
     protected readonly List<EngineFlagEntry> EngineFlags;
     protected readonly List<EngineArrayFlagEntry> EngineArrayFlags;
     protected virtual bool TreatStderrAsError => true;
@@ -47,6 +48,7 @@ public abstract class BaseEngine
         ILogger logger,
         ModuleDirectoryService moduleDirectoryService,
         List<string> additionalBinaryPaths,
+        Dictionary<string, string> runnerEnvVars,
         List<EngineFlagEntry> engineFlags,
         List<EngineArrayFlagEntry> engineArrayFlags)
     {
@@ -55,6 +57,7 @@ public abstract class BaseEngine
         SnapCdDir = moduleDirectoryService.GetSnapCdDir();
         InitDir = moduleDirectoryService.GetInitDir();
         _additionalBinaryPaths = additionalBinaryPaths;
+        RunnerEnvVars = runnerEnvVars;
         EngineFlags = engineFlags;
         EngineArrayFlags = engineArrayFlags;
 

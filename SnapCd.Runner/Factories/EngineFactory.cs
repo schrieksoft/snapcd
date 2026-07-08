@@ -19,16 +19,19 @@ public class EngineFactory
 {
     private readonly IOptions<WorkingDirectorySettings> _workingDirectorySettings;
     private readonly IOptions<EngineSettings> _engineSettings;
+    private readonly IOptions<RunnerEnvVarsSettings> _runnerEnvVarsSettings;
     private readonly ILoggerFactory _loggerFactory;
 
     public EngineFactory(
         IOptions<WorkingDirectorySettings> workingDirectorySettings,
         IOptions<EngineSettings> engineSettings,
+        IOptions<RunnerEnvVarsSettings> runnerEnvVarsSettings,
         ILoggerFactory loggerFactory
     )
     {
         _workingDirectorySettings = workingDirectorySettings;
         _engineSettings = engineSettings;
+        _runnerEnvVarsSettings = runnerEnvVarsSettings;
         _loggerFactory = loggerFactory;
     }
 
@@ -47,6 +50,7 @@ public class EngineFactory
         );
 
         var additionalBinaryPaths = _engineSettings.Value.AdditionalBinaryPaths;
+        var runnerEnvVars = _runnerEnvVarsSettings.Value;
 
         List<EngineFlagEntry> engineFlags;
         List<EngineArrayFlagEntry> engineArrayFlags;
@@ -75,6 +79,7 @@ public class EngineFactory
                 moduleDirectoryService,
                 engine,
                 additionalBinaryPaths,
+                runnerEnvVars,
                 engineFlags,
                 engineArrayFlags),
             "pulumi" => new PulumiEngine(
@@ -82,6 +87,7 @@ public class EngineFactory
                 _loggerFactory.CreateLogger<PulumiEngine>(),
                 moduleDirectoryService,
                 additionalBinaryPaths,
+                runnerEnvVars,
                 engineFlags,
                 engineArrayFlags),
             _ => throw new NotSupportedException($"Engine '{engine}' is not supported")

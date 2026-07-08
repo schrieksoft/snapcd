@@ -128,6 +128,15 @@ public class QuotaLimits
     public int? RunnerConnectionQuota { get; set; }
     public int? RunnerConnectionJobQuota { get; set; }
 
+    // StateStore + StateFile
+    public int? StateStoreQuota { get; set; }
+    public int? StateFileQuota { get; set; }
+
+    // Role assignments - StateStore scope
+    public int? UserStateStoreRoleAssignmentQuota { get; set; }
+    public int? ServicePrincipalStateStoreRoleAssignmentQuota { get; set; }
+    public int? GroupStateStoreRoleAssignmentQuota { get; set; }
+
     // Agent + missions + role assignments
     public int? AgentQuota { get; set; }
     public int? AgentConnectionQuota { get; set; }

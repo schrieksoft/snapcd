@@ -171,7 +171,14 @@
 
     private string GetServicePrincipalDisplayName()
     {
-        return _servicePrincipal?.ClientId ?? $"ServicePrincipal {ServicePrincipalId}";
+        return StripOrgPrefix(_servicePrincipal?.ClientId) ?? $"ServicePrincipal {ServicePrincipalId}";
+    }
+
+    private string? StripOrgPrefix(string? clientId)
+    {
+        if (clientId == null) return null;
+        var prefix = OrganizationId + ":";
+        return clientId.StartsWith(prefix) ? clientId[prefix.Length..] : clientId;
     }
 
     public void Dispose()

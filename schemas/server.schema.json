@@ -1559,6 +1559,28 @@
           },
           "description": "Per-GroupStackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the GroupStackRoleAssignment entity specifically."
         },
+        "GroupStateStoreRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
+        },
         "IntegrationEvent": {
           "type": "object",
           "properties": {
@@ -3370,6 +3392,28 @@
           },
           "description": "Per-ServicePrincipalStackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the ServicePrincipalStackRoleAssignment entity specifically."
         },
+        "ServicePrincipalStateStoreRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
+        },
         "SourceRefresherPreselection": {
           "type": "object",
           "properties": {
@@ -3526,6 +3570,72 @@
             }
           },
           "description": "Per-StackSecret repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the StackSecret entity specifically."
+        },
+        "StateFile": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
+        },
+        "StateStore": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
+        },
+        "StateStoreRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
         },
         "UserAgentRoleAssignment": {
           "type": "object",
@@ -3742,6 +3852,28 @@
             }
           },
           "description": "Per-UserStackRoleAssignment repository tuning. Almost always left at defaults \u2014 operators override only when they need to opt out of bus events or change the event TTL for the UserStackRoleAssignment entity specifically."
+        },
+        "UserStateStoreRoleAssignment": {
+          "type": "object",
+          "properties": {
+            "EmitCreateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitUpdateEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EmitDeleteEvents": {
+              "type": "boolean",
+              "default": true
+            },
+            "EventTtl": {
+              "$comment": "Represents a System.TimeSpan value.",
+              "type": "string",
+              "pattern": "^-?(\\d\u002B\\.)?\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,7})?$"
+            }
+          }
         },
         "Variable": {
           "type": "object",

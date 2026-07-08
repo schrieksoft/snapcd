@@ -305,6 +305,7 @@ public class ProductionDataSeeder : IDataSeeder
         await SeedPreseededUserAsync(asyncServiceScope, preseeded, organizationId);
         await SeedPreseededRunnerAsync(asyncServiceScope, preseeded, organizationId);
         await SeedPreseededAgentAsync(asyncServiceScope, preseeded, organizationId);
+        await SeedPreseededStateStoreAsync(preseeded, organizationId);
     }
 
     protected virtual async Task SeedPreseededUserAsync(AsyncServiceScope asyncServiceScope, PreseededSettings preseeded, Guid organizationId)
@@ -627,6 +628,48 @@ public class ProductionDataSeeder : IDataSeeder
                 CreatedDateTime = DateTime.UtcNow
             };
             _dbContext.Set<UserSystemRoleAssignment>().Add(systemRoleAssignment);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
+    protected virtual async Task SeedPreseededStateStoreAsync(PreseededSettings preseeded, Guid organizationId)
+    {
+        var stateStoreId = PreseededSettings.DefaultId;
+
+        var existing = await _dbContext.StateStores.FirstOrDefaultAsync(ss => ss.Id == stateStoreId);
+        if (existing != null)
+        {
+            existing.Name = "default";
+            existing.OrganizationId = organizationId;
+        }
+        else
+        {
+            _dbContext.StateStores.Add(new StateStore
+            {
+                Id = stateStoreId,
+                OrganizationId = organizationId,
+                Name = "default"
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        var spId = preseeded.Runner.ServicePrincipalId ?? PreseededSettings.DefaultId;
+        var existingRa = await _dbContext.Set<ServicePrincipalStateStoreRoleAssignment>()
+            .FirstOrDefaultAsync(ra => ra.StateStoreId == stateStoreId
+                                       && ra.ServicePrincipalId == spId
+                                       && ra.OrganizationId == organizationId);
+
+        if (existingRa == null)
+        {
+            _dbContext.Set<ServicePrincipalStateStoreRoleAssignment>().Add(new ServicePrincipalStateStoreRoleAssignment
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                StateStoreId = stateStoreId,
+                ServicePrincipalId = spId,
+                RoleName = StateStoreRole.Contributor
+            });
             await _dbContext.SaveChangesAsync();
         }
     }

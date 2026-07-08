@@ -1,0 +1,52 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Contracts.Dto.StateFiles
+@using SnapCd.Server.Core.Services.Crud
+<MudDialog>
+    <TitleContent>
+        <MudText>Rename State File</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_name)">Save</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private StateFileService Service { get; set; } = null!;
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid OrganizationId { get; set; }
+    [Parameter] public required StateFileReadDto StateFile { get; set; }
+
+    private string _name = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        _name = StateFile.Name;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Save()
+    {
+        var updateDto = new StateFileUpdateDto
+        {
+            Name = _name,
+            StateStoreId = StateFile.StateStoreId
+        };
+        await Service.Update(updateDto, StateFile.Id, OrganizationId);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

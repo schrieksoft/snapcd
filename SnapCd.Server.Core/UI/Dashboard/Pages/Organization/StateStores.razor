@@ -1,0 +1,296 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/StateStores"
+@layout OrganizationMainLayout
+
+@implements IDisposable
+
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<User> UserManager
+@inject OrganizationServiceFactory OrganizationServiceFactory
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject IOrganizationContext OrganizationContext
+
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Components.StateStore
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.StateStores
+@using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Components.StateFile
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+@attribute [OrganizationScopedFeature]
+<PageTitle>State Stores</PageTitle>
+
+<CascadingValue Value="OrganizationId">
+    <MudText Typo="Typo.h4" GutterBottom="true">State Stores</MudText>
+
+    @if (_showCreate)
+    {
+        <MudItem Class="mb-2">
+            <CreateStateStore OnCreated="HandleCreated"
+                              OnCancel="HandleCancelCreate"/>
+        </MudItem>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   OnClick="ShowCreate"
+                   Class="mt-2 mb-2">
+            Create New
+        </MudButton>
+    }
+
+    @if (_stateStores == null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else
+    {
+        <MudExpansionPanels>
+            @foreach (var stateStore in _stateStores)
+            {
+                <MudExpansionPanel Expanded="@(stateStore.Id == _expandedStateStoreId)"
+                                   ExpandedChanged="@(e => HandleExpansionChanged(stateStore.Id, e))">
+                    <TitleContent>
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <MudText>@stateStore.Name</MudText>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudTooltip Text="Edit State Store">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="@GetColor(stateStore.Id, ShowingType.Edit)" Size="Size.Small"
+                                           OnClick="() => Edit(stateStore)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage States">
+                            <MudIconButton Icon="@Icons.Material.Filled.Storage"
+                                           Color="@GetColor(stateStore.Id, ShowingType.States)" Size="Size.Small"
+                                           OnClick="() => ManageStates(stateStore)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Manage Roles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                           Color="@GetColor(stateStore.Id, ShowingType.Roles)" Size="Size.Small"
+                                           OnClick="() => ManageRoles(stateStore)"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Delete State Store">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(stateStore)"/>
+                        </MudTooltip>
+
+                        @if (IsShowing(stateStore.Id, ShowingType.Edit))
+                        {
+                            <MudItem Class="mt-2">
+                                <EditStateStore StateStore="_selectedStateStore"
+                                                OnSaved="HandleSaved"
+                                                OnCancel="HandleCancelEdit"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(stateStore.Id, ShowingType.States))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageStateFiles
+                                    StateStoreId="stateStore.Id"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(stateStore.Id, ShowingType.Roles))
+                        {
+                            <MudItem Class="mt-2">
+                                <ManageStateStoreRoles
+                                    StateStoreId="stateStore.Id"
+                                    OnCancel="HandleRolesClosed"/>
+                            </MudItem>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    }
+</CascadingValue>
+
+@code {
+    [Inject] private StateStoreSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    [SupplyParameterFromQuery] public string? StateStore { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+
+    private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private List<Entities.Definition.StateStore>? _stateStores;
+    private bool _showCreate;
+    private Entities.Definition.StateStore? _selectedStateStore;
+    private Guid? _expandedStateStoreId;
+    private ShowingType _showing;
+    private enum ShowingType
+    {
+        None,
+        Edit,
+        States,
+        Roles
+    }
+
+    private Color GetColor(Guid id, ShowingType showTypeToMatch)
+    {
+        if (_selectedStateStore == null)
+            return Color.Primary;
+        if (id == _selectedStateStore.Id)
+            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return Color.Primary;
+    }
+
+    private bool IsShowing(Guid id, ShowingType showTypeToMatch)
+    {
+        if (_selectedStateStore == null)
+            return false;
+        return id == _selectedStateStore.Id && _showing == showTypeToMatch;
+    }
+
+    private void ShowCreate()
+    {
+        _showCreate = true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadStateStores();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_stateStores is null) return;
+
+        if (Guid.TryParse(StateStore, out var stateStoreId))
+        {
+            var match = _stateStores.FirstOrDefault(s => s.Id == stateStoreId);
+            if (match is not null)
+            {
+                _expandedStateStoreId = stateStoreId;
+                if (!string.IsNullOrEmpty(Action) && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsedShowing) && parsedShowing != ShowingType.None)
+                {
+                    _selectedStateStore = match;
+                    _showing = parsedShowing;
+                }
+            }
+        }
+    }
+
+    private void HandleExpansionChanged(Guid stateStoreId, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedStateStoreId = stateStoreId;
+        }
+        else if (_expandedStateStoreId == stateStoreId)
+        {
+            _expandedStateStoreId = null;
+            if (_selectedStateStore?.Id == stateStoreId)
+            {
+                _selectedStateStore = null;
+                _showing = ShowingType.None;
+            }
+        }
+        UpdateUrl();
+    }
+
+    private void UpdateUrl()
+    {
+        var query = new Dictionary<string, object?>();
+        if (_expandedStateStoreId is { } eid) query["statestore"] = eid.ToString();
+        if (_selectedStateStore is not null && _showing != ShowingType.None)
+            query["action"] = _showing.ToString().ToLowerInvariant();
+        var url = NavigationManager.GetUriWithQueryParameters("/StateStores", query);
+        NavigationManager.NavigateTo(url, forceLoad: false, replace: true);
+    }
+
+    private async Task ReloadStateStores()
+    {
+        using var repo = RepoFactory.Create();
+        _stateStores = await repo.List(OrganizationId);
+    }
+
+    private async Task HandleCreated(Guid stateStoreId)
+    {
+        _showCreate = false;
+        await ReloadStateStores();
+    }
+
+    private void HandleCancelCreate()
+    {
+        _showCreate = false;
+    }
+
+    private void Edit(Entities.Definition.StateStore stateStore) => Select(stateStore, ShowingType.Edit);
+
+    private async Task HandleSaved(Entities.Definition.StateStore stateStore)
+    {
+        ClearSelection();
+        await ReloadStateStores();
+    }
+
+    private void HandleCancelEdit() => ClearSelection();
+
+    private void ManageStates(Entities.Definition.StateStore stateStore) => Select(stateStore, ShowingType.States);
+
+    private void ManageRoles(Entities.Definition.StateStore stateStore) => Select(stateStore, ShowingType.Roles);
+
+    private void HandleRolesClosed() => ClearSelection();
+
+    private void Select(Entities.Definition.StateStore stateStore, ShowingType action)
+    {
+        _selectedStateStore = stateStore;
+        _expandedStateStoreId = stateStore.Id;
+        _showing = action;
+        UpdateUrl();
+    }
+
+    private void ClearSelection()
+    {
+        _selectedStateStore = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
+    }
+
+    private async Task Delete(Entities.Definition.StateStore stateStore)
+    {
+        var parameters = new DialogParameters<DeleteStateStoreDialog>
+        {
+            { x => x.StateStore, stateStore },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteStateStoreDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add($"Successfully deleted State Store", Severity.Success);
+            await ReloadStateStores();
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+}

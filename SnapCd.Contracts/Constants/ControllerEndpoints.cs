@@ -77,4 +77,7 @@ public static class ControllerEndpoints
     public const string IntegrationStackSupply = "api/{organizationId}/IntegrationStackSupply";
     public const string IntegrationNamespaceSupply = "api/{organizationId}/IntegrationNamespaceSupply";
     public const string IntegrationModuleSupply = "api/{organizationId}/IntegrationModuleSupply";
+    public const string StateStore = "api/{organizationId}/StateStore";
+    public const string StateFile = "api/{organizationId}/StateFile";
+    public const string StateStoreRoleAssignment = "api/{organizationId}/StateStoreRoleAssignment";
 }

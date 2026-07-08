@@ -35,6 +35,7 @@ builder.Services.Configure<RunnerSettings>(builder.Configuration.GetSection("Run
 builder.Services.Configure<HooksPreapprovalSettings>(builder.Configuration.GetSection("HooksPreapproval"));
 builder.Services.Configure<EngineSettings>(builder.Configuration.GetSection("Engine"));
 builder.Services.Configure<JobLogStreamSettings>(builder.Configuration.GetSection("JobLogStream"));
+builder.Services.Configure<RunnerEnvVarsSettings>(builder.Configuration.GetSection("RunnerEnvVars"));
 
 builder.Services.AddMemoryCache();
 

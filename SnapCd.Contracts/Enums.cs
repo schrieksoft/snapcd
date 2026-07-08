@@ -268,6 +268,9 @@ public enum OrganizationRole
     IntegrationCreator,
     IntegrationContributor,
     IntegrationReader,
+    StateStoreCreator,
+    StateStoreContributor,
+    StateStoreReader,
 }
 
 public enum StackRole
@@ -319,6 +322,14 @@ public enum AgentRole
 }
 
 public enum IntegrationRole
+{
+    Owner,
+    Contributor,
+    Reader,
+    IdentityAccessManager
+}
+
+public enum StateStoreRole
 {
     Owner,
     Contributor,

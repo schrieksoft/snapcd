@@ -92,6 +92,11 @@ public static class Controllers
             typeof(NamespaceSecretController),
             typeof(StackSecretController),
 
+            typeof(StateStoreController),
+            typeof(StateFileController),
+            typeof(StateStoreRoleAssignmentController),
+            typeof(StateController),
+
             // OpenIddict
             typeof(AuthenticationController),
             typeof(AuthorizationController),

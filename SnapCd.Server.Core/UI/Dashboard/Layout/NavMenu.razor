@@ -79,22 +79,6 @@
                 </MudNavGroup>
             }
 
-            <!-- Automation Section (gated by Cloud subscription status on SaaS) -->
-            @if (_organizationActivated && _automationIsAllowedToNavigateMap.Any(entry => entry.Value))
-            {
-                <MudNavGroup Title="Automation" Icon="material-symbols-outlined/automation" Expanded="false">
-                    @foreach (var link in _automationNavLinks)
-                    {
-                        @if (_automationIsAllowedToNavigateMap[link.PageType])
-                        {
-                            <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
-                                @link.Text
-                            </MudNavLink>
-                        }
-                    }
-                </MudNavGroup>
-            }
-
             <!-- System Section (gated by Cloud subscription status on SaaS) -->
             @if (_organizationActivated && _systemIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
@@ -341,7 +325,6 @@
         _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
         _accountIsAllowedToNavigateMap = await BuildAllowedMapAsync(_accountNavLinks, orgId);
         _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
-        _automationIsAllowedToNavigateMap = await BuildAllowedMapAsync(_automationNavLinks, orgId);
         if (HostEnvironment.IsDevelopment())
             _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
         _swaggerIsAllowedToNavigate = await IsAllowedToNavigateAsync(typeof(Swagger), orgId);
@@ -388,16 +371,12 @@
     // System Section - collapsible group
     private List<NavLinkItem> _systemNavLinks = new()
     {
-        new NavLinkItem("PreviewFeatures", NavLinkMatch.All, Icons.Material.Filled.Science, "Preview Features", typeof(PreviewFeatures))
-    };
-
-    // Automation Section - collapsible group
-    private List<NavLinkItem> _automationNavLinks = new()
-    {
         new NavLinkItem("Runners", NavLinkMatch.All, "material-symbols-outlined/manufacturing", "Runners", typeof(Runners)),
         new NavLinkItem("Agents", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agents", typeof(Agents)),
         new NavLinkItem("Integrations", NavLinkMatch.All, Icons.Material.Filled.Hub, "Integrations", typeof(Integrations)),
-        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, "material-symbols-outlined/code", "Source Refreshers", typeof(SourceRefresherPreselections))
+        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, "material-symbols-outlined/code", "Source Refreshers", typeof(SourceRefresherPreselections)),
+        new NavLinkItem("StateStores", NavLinkMatch.All, Icons.Material.Filled.Storage, "State Stores", typeof(StateStores)),
+        new NavLinkItem("PreviewFeatures", NavLinkMatch.All, Icons.Material.Filled.Science, "Preview Features", typeof(PreviewFeatures))
     };
 
     // Tests Section - collapsible group, dev only
@@ -426,7 +405,6 @@
 
     private Dictionary<Type, bool> _generalIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _systemIsAllowedToNavigateMap = new();
-    private Dictionary<Type, bool> _automationIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _testsIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _identityAccessIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _accountIsAllowedToNavigateMap = new();

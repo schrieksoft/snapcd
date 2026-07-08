@@ -102,6 +102,10 @@ public static class CrudService
         services.AddScoped<OutputService>();
         services.AddScoped<VariableSetService>();
         services.AddScoped<VariableService>();
+        services.AddScoped<StateStoreService>();
+        services.AddScoped<StateFileService>();
+        services.AddScoped<StateFileServiceFactory>();
+        services.AddScoped<StateStoreRoleAssignmentService>();
 
         return services;
     }

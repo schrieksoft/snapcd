@@ -69,8 +69,9 @@ public class SignalForwardingTests : IDisposable
             _moduleDirectoryService,
             "terraform",
             new List<string>(),
-        new List<EngineFlagEntry>(),
-        new List<EngineArrayFlagEntry>()
+            new Dictionary<string, string>(),
+            new List<EngineFlagEntry>(),
+            new List<EngineArrayFlagEntry>()
         );
 
         Directory.CreateDirectory(_engine.GetInitDir());

@@ -30,9 +30,10 @@ public class TerraformEngine : BaseEngine, IEngine
         ModuleDirectoryService moduleDirectoryService,
         string engine,
         List<string> additionalBinaryPaths,
+        Dictionary<string, string> runnerEnvVars,
         List<EngineFlagEntry> engineFlags,
         List<EngineArrayFlagEntry> engineArrayFlags
-    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, engineFlags, engineArrayFlags)
+    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, runnerEnvVars, engineFlags, engineArrayFlags)
     {
         _engine = engine;
     }
@@ -86,7 +87,10 @@ public class TerraformEngine : BaseEngine, IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
-        EnvVars = resolvedEnvVars;
+        var merged = new Dictionary<string, string>(RunnerEnvVars);
+        foreach (var kvp in resolvedEnvVars)
+            merged[kvp.Key] = kvp.Value;
+        EnvVars = merged;
         SaveEnvVarsToFile();
 
         var upgradeRequested = EngineFlags.Any(f => f.Flag == "-upgrade");
