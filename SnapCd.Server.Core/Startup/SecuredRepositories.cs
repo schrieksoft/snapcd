@@ -143,6 +143,16 @@ public static class SecuredRepositories
         services.AddScoped<ServicePrincipalAgentRoleAssignmentSecuredRepository>();
         services.AddScoped<GroupAgentRoleAssignmentSecuredRepository>();
 
+        // StateStore + StateFile
+        services.AddScoped<StateStoreSecuredRepository>();
+        services.AddScoped<StateFileSecuredRepository>();
+
+        // StateStoreRoleAssignment family secured (TPH base + 3 subclasses)
+        services.AddScoped<StateStoreRoleAssignmentSecuredRepository>();
+        services.AddScoped<UserStateStoreRoleAssignmentSecuredRepository>();
+        services.AddScoped<ServicePrincipalStateStoreRoleAssignmentSecuredRepository>();
+        services.AddScoped<GroupStateStoreRoleAssignmentSecuredRepository>();
+
         return services;
     }
 }

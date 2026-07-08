@@ -75,6 +75,7 @@ public class EngineTests : IDisposable
             _moduleDirectoryService,
             TestEngine,
             new List<string>(),
+            new Dictionary<string, string>(),
             new List<EngineFlagEntry>(),
             new List<EngineArrayFlagEntry>()
         );
@@ -308,6 +309,7 @@ public class EngineTests : IDisposable
             _moduleDirectoryService,
             TestEngine,
             new List<string>(),
+            new Dictionary<string, string>(),
             engineFlags ?? new List<EngineFlagEntry>(),
             engineArrayFlags ?? new List<EngineArrayFlagEntry>()
         );

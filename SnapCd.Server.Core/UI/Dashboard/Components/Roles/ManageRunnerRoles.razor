@@ -126,12 +126,12 @@
                                  @bind-Value="_selectedServicePrincipal"
                                  SearchFunc="@SearchServicePrincipals"
                                  Label="Search Service Principal by Client ID"
-                                 ToStringFunc="@(sp => sp?.ClientId ?? string.Empty)"
+                                 ToStringFunc="@(sp => StripOrgPrefix(sp?.ClientId) ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
                                  Class="mb-3">
                     <ItemTemplate Context="item">
-                        <MudText>@item?.ClientId</MudText>
+                        <MudText>@StripOrgPrefix(item?.ClientId)</MudText>
                     </ItemTemplate>
                 </MudAutocomplete>
 
@@ -540,7 +540,14 @@
 
     private string GetServicePrincipalDisplayName(ServicePrincipalRunnerRoleAssignment assignment)
     {
-        return assignment.ServicePrincipal?.ClientId ?? $"ServicePrincipal {assignment.ServicePrincipalId}";
+        return StripOrgPrefix(assignment.ServicePrincipal?.ClientId) ?? $"ServicePrincipal {assignment.ServicePrincipalId}";
+    }
+
+    private string? StripOrgPrefix(string? clientId)
+    {
+        if (clientId == null) return null;
+        var prefix = OrganizationId + ":";
+        return clientId.StartsWith(prefix) ? clientId[prefix.Length..] : clientId;
     }
 
     // Group methods

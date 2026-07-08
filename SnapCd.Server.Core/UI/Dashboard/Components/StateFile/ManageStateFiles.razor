@@ -1,0 +1,454 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using BlazorMonaco
+@using BlazorMonaco.Editor
+@using SnapCd.Contracts.Dto.StateFiles
+@using SnapCd.Server.Core.Services.Crud
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.StateFiles
+@using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (_stateFiles == null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_stateFiles.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mt-2">No state files found.</MudText>
+}
+else
+{
+    <MudTooltip Text="Search state files">
+        <MudIconButton Icon="@Icons.Material.Filled.Search"
+                       Color="@(_showSearch ? Color.Info : Color.Primary)"
+                       Size="Size.Small"
+                       OnClick="@(() => _showSearch = !_showSearch)"/>
+    </MudTooltip>
+
+    @if (_showSearch)
+    {
+        <MudTextField @bind-Value="_searchString"
+                      Placeholder="Search state files"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      IconSize="Size.Small"
+                      Immediate="true"
+                      Class="mb-2"
+                      Style="max-width: 300px;"/>
+    }
+
+    <MudExpansionPanels>
+        @foreach (var stateFile in FilteredStateFiles)
+        {
+            <MudExpansionPanel Expanded="@(stateFile.Id == _expandedStateFileId)"
+                               ExpandedChanged="@(e => HandleExpansionChanged(stateFile, e))">
+                <TitleContent>
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <MudText>@stateFile.Name</MudText>
+                        <div class="d-flex align-center gap-2" style="margin-right: 16px;">
+                            @if (!string.IsNullOrEmpty(stateFile.LockId))
+                            {
+                                <MudTooltip Text="@stateFile.LockInfo">
+                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Locked</MudChip>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">Unlocked</MudChip>
+                            }
+                        </div>
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudTooltip Text="Rename">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => RenameStateFile(stateFile)"/>
+                        </MudTooltip>
+                        @if (!string.IsNullOrEmpty(stateFile.LockId))
+                        {
+                            <MudTooltip Text="Force Unlock">
+                                <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Color="Color.Primary" Size="Size.Small"
+                                               OnClick="() => ForceUnlock(stateFile)"/>
+                            </MudTooltip>
+                        }
+                        <MudTooltip Text="Delete State File">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => DeleteStateFile(stateFile)"/>
+                        </MudTooltip>
+                    </div>
+
+                        @if (_versions == null && _expandedStateFileId == stateFile.Id)
+                        {
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
+                        }
+                        else if (_versions != null && _versions.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2">No versions found.</MudText>
+                        }
+                        else if (_versions != null)
+                        {
+                            <MudExpansionPanels>
+                                @foreach (var version in _versions)
+                                {
+                                    <MudExpansionPanel Expanded="@(_expandedVersionId == version.Id)"
+                                                       ExpandedChanged="@(e => HandleVersionExpansionChanged(version, e))">
+                                        <TitleContent>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                                <div class="d-flex align-center gap-2">
+                                                    <MudText>@version.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                                                    @if (version.IsLatest)
+                                                    {
+                                                        <MudChip T="string" Color="Color.Info" Size="Size.Small">Current</MudChip>
+                                                    }
+                                                </div>
+                                                <div class="d-flex align-center gap-2" style="margin-right: 16px;">
+                                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@version.CreatedByDisplayName</MudText>
+                                                </div>
+                                            </div>
+                                        </TitleContent>
+                                        <ChildContent>
+                                            <div class="d-flex align-center gap-2 mb-2">
+                                                <MudTooltip Text="Download">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Primary" Size="Size.Small"
+                                                                   OnClick="() => DownloadVersion(version)"/>
+                                                </MudTooltip>
+                                                @if (!version.IsLatest)
+                                                {
+                                                    <MudTooltip Text="Restore">
+                                                        <MudIconButton Icon="@Icons.Material.Filled.RestorePage" Color="Color.Primary" Size="Size.Small"
+                                                                       OnClick="() => RestoreVersion(stateFile, version)"/>
+                                                    </MudTooltip>
+                                                }
+                                                <MudTooltip Text="Delete Version">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                                                   OnClick="() => DeleteVersion(stateFile, version)"/>
+                                                </MudTooltip>
+                                            </div>
+
+                                            @if (_expandedVersionData.ContainsKey(version.Id))
+                                            {
+                                                <StandaloneCodeEditor Id="@($"version-{version.Id}")"
+                                                                      CssClass="state-editor"
+                                                                      ConstructionOptions="@(e => ReadOnlyEditorOptions(e, _expandedVersionData[version.Id]))"/>
+                                            }
+                                            else if (_expandedVersionId == version.Id)
+                                            {
+                                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" Class="mt-2"/>
+                                            }
+                                        </ChildContent>
+                                    </MudExpansionPanel>
+                                }
+                            </MudExpansionPanels>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+    </MudExpansionPanels>
+}
+
+<style>
+    .state-editor {
+        height: 500px;
+        margin-top: 8px;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid StateStoreId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private StateFileService Service { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ThemeService ThemeService { get; set; } = null!;
+
+    private List<StateFileReadDto>? _stateFiles;
+    private string _searchString = string.Empty;
+    private bool _showSearch;
+    private Guid? _expandedStateFileId;
+    private List<StateFileVersionReadDto>? _versions;
+    private Guid? _expandedVersionId;
+    private Dictionary<Guid, string?> _expandedVersionData = new();
+
+    private IEnumerable<StateFileReadDto> FilteredStateFiles =>
+        string.IsNullOrWhiteSpace(_searchString)
+            ? _stateFiles!
+            : _stateFiles!.Where(sf => sf.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase));
+
+    private StandaloneEditorConstructionOptions ReadOnlyEditorOptions(StandaloneCodeEditor editor, string? value)
+    {
+        return new StandaloneEditorConstructionOptions
+        {
+            AutomaticLayout = true,
+            Language = "json",
+            Value = value ?? "",
+            ReadOnly = true,
+            Minimap = new EditorMinimapOptions { Enabled = false },
+            ScrollBeyondLastLine = false
+        };
+    }
+
+    private static bool _themesRegistered;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_themesRegistered)
+        {
+            await BlazorMonaco.Editor.Global.DefineTheme(JS, "snapcd-light", new StandaloneThemeData
+            {
+                Base = "vs",
+                Inherit = true,
+                Rules = [
+                    new TokenThemeRule { Token = "", Foreground = "27272f" },
+                    new TokenThemeRule { Token = "string", Foreground = "2e7d32" },
+                    new TokenThemeRule { Token = "string.key.json", Foreground = "1a1a1a", FontStyle = "bold" },
+                    new TokenThemeRule { Token = "number", Foreground = "1565c0" },
+                    new TokenThemeRule { Token = "keyword", Foreground = "6a1b9a" },
+                ],
+                Colors = new Dictionary<string, string>
+                {
+                    ["editor.background"] = "#ffffff",
+                    ["editor.foreground"] = "#27272f",
+                    ["editor.lineHighlightBackground"] = "#f5f5f5",
+                    ["editorLineNumber.foreground"] = "#9e9e9e",
+                    ["editorLineNumber.activeForeground"] = "#27272f",
+                    ["editorBracketHighlight.foreground1"] = "#000000",
+                    ["editorBracketHighlight.foreground2"] = "#000000",
+                    ["editorBracketHighlight.foreground3"] = "#000000",
+                }
+            });
+            await BlazorMonaco.Editor.Global.DefineTheme(JS, "snapcd-dark", new StandaloneThemeData
+            {
+                Base = "vs-dark",
+                Inherit = true,
+                Rules = [
+                    new TokenThemeRule { Token = "", Foreground = "e0e0e0" },
+                    new TokenThemeRule { Token = "string", Foreground = "64b5f6" },
+                    new TokenThemeRule { Token = "string.json", Foreground = "64b5f6" },
+                    new TokenThemeRule { Token = "string.value.json", Foreground = "64b5f6" },
+                    new TokenThemeRule { Token = "string.key.json", Foreground = "ffffff", FontStyle = "bold" },
+                    new TokenThemeRule { Token = "number", Foreground = "64b5f6" },
+                    new TokenThemeRule { Token = "number.json", Foreground = "64b5f6" },
+                    new TokenThemeRule { Token = "keyword", Foreground = "64b5f6" },
+                    new TokenThemeRule { Token = "keyword.json", Foreground = "64b5f6" },
+                ],
+                Colors = new Dictionary<string, string>
+                {
+                    ["editor.background"] = "#27272f",
+                    ["editor.foreground"] = "#e0e0e0",
+                    ["editor.lineHighlightBackground"] = "#32333d",
+                    ["editorLineNumber.foreground"] = "#616161",
+                    ["editorLineNumber.activeForeground"] = "#e0e0e0",
+                    ["editorBracketHighlight.foreground1"] = "#ffffff",
+                    ["editorBracketHighlight.foreground2"] = "#ffffff",
+                    ["editorBracketHighlight.foreground3"] = "#ffffff",
+                }
+            });
+            _themesRegistered = true;
+        }
+        await ApplyTheme();
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        await ReloadStateFiles();
+    }
+
+    private async void OnThemeChanged()
+    {
+        await ApplyTheme();
+    }
+
+    private async Task ApplyTheme()
+    {
+        await BlazorMonaco.Editor.Global.SetTheme(JS, ThemeService.IsDarkMode ? "snapcd-dark" : "snapcd-light");
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+    }
+
+    private async Task HandleExpansionChanged(StateFileReadDto stateFile, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedStateFileId = stateFile.Id;
+            _versions = null;
+            _expandedVersionId = null;
+            _expandedVersionData.Clear();
+            await LoadVersions(stateFile);
+        }
+        else if (_expandedStateFileId == stateFile.Id)
+        {
+            _expandedStateFileId = null;
+            _versions = null;
+            _expandedVersionId = null;
+            _expandedVersionData.Clear();
+        }
+    }
+
+    private async Task LoadVersions(StateFileReadDto stateFile)
+    {
+        try
+        {
+            _versions = await Service.ListVersions(stateFile.Id, OrganizationId);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "loading versions");
+        }
+    }
+
+    private async Task HandleVersionExpansionChanged(StateFileVersionReadDto version, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedVersionId = version.Id;
+            if (!_expandedVersionData.ContainsKey(version.Id))
+            {
+                try
+                {
+                    var data = await Service.GetVersionData(version.Id, OrganizationId);
+                    _expandedVersionData[version.Id] = data;
+                }
+                catch (Exception ex)
+                {
+                    ExceptionHandler.HandleException(Snackbar, ex, "loading version data");
+                }
+            }
+        }
+        else if (_expandedVersionId == version.Id)
+        {
+            _expandedVersionId = null;
+        }
+    }
+
+    private async Task ReloadStateFiles()
+    {
+        _stateFiles = await Service.ListByParentId(StateStoreId, OrganizationId);
+    }
+
+    private async Task RestoreVersion(StateFileReadDto stateFile, StateFileVersionReadDto version)
+    {
+        var parameters = new DialogParameters<RestoreStateFileVersionDialog>
+        {
+            { x => x.Version, version },
+            { x => x.OrganizationId, OrganizationId }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<RestoreStateFileVersionDialog>("Restore", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Version restored successfully", Severity.Success);
+            _expandedVersionData.Clear();
+            _expandedVersionId = null;
+            await LoadVersions(stateFile);
+            await ReloadStateFiles();
+        }
+    }
+
+    private async Task DownloadVersion(StateFileVersionReadDto version)
+    {
+        try
+        {
+            var data = await Service.GetVersionData(version.Id, OrganizationId);
+            if (string.IsNullOrEmpty(data))
+            {
+                Snackbar.Add("Version has no data", Severity.Warning);
+                return;
+            }
+            var bytes = System.Text.Encoding.UTF8.GetBytes(data);
+            var base64 = Convert.ToBase64String(bytes);
+            var stateFile = _stateFiles?.FirstOrDefault(sf => sf.Id == version.StateFileId);
+            var timestamp = version.CreatedDateTime.ToString("yyyyMMdd-HHmmss");
+            var fileName = stateFile != null ? $"{stateFile.Name}_{timestamp}.tfstate" : $"{timestamp}.tfstate";
+            await JS.InvokeVoidAsync("eval", $"{{ var a = document.createElement('a'); a.href = 'data:application/json;base64,{base64}'; a.download = '{fileName}'; a.click(); }}");
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "downloading version");
+        }
+    }
+
+    private async Task DeleteVersion(StateFileReadDto stateFile, StateFileVersionReadDto version)
+    {
+        var parameters = new DialogParameters<DeleteStateFileVersionDialog>
+        {
+            { x => x.Version, version },
+            { x => x.OrganizationId, OrganizationId }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteStateFileVersionDialog>("Delete Version", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Version deleted", Severity.Success);
+            _expandedVersionData.Clear();
+            _expandedVersionId = null;
+            await LoadVersions(stateFile);
+            await ReloadStateFiles();
+        }
+    }
+
+    private async Task RenameStateFile(StateFileReadDto dto)
+    {
+        var parameters = new DialogParameters<RenameStateFileDialog>
+        {
+            { x => x.StateFile, dto },
+            { x => x.OrganizationId, OrganizationId }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<RenameStateFileDialog>("Rename", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("State file renamed", Severity.Success);
+            await ReloadStateFiles();
+        }
+    }
+
+    private async Task ForceUnlock(StateFileReadDto dto)
+    {
+        var parameters = new DialogParameters<UnlockStateFileDialog>
+        {
+            { x => x.StateFile, dto },
+            { x => x.OrganizationId, OrganizationId }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<UnlockStateFileDialog>("Unlock", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("State file unlocked", Severity.Success);
+            await ReloadStateFiles();
+        }
+    }
+
+    private async Task DeleteStateFile(StateFileReadDto dto)
+    {
+        var parameters = new DialogParameters<DeleteStateFileDialog>
+        {
+            { x => x.StateFile, dto },
+            { x => x.OrganizationId, OrganizationId }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteStateFileDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Successfully deleted state file", Severity.Success);
+            _expandedStateFileId = null;
+            _versions = null;
+            await ReloadStateFiles();
+        }
+    }
+
+}

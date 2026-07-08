@@ -119,8 +119,11 @@
                         }
                         @if (_queuedSummary is { State: true })
                         {
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       OnClick="RunQueueNow">Run Now</MudButton>
+                            @if (_moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           OnClick="RunQueueNow">Run Now</MudButton>
+                            }
                             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                        OnClick="ClearQueue">Clear</MudButton>
                         }

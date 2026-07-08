@@ -32,9 +32,10 @@ public class PulumiEngine : BaseEngine, IEngine
         ILogger logger,
         ModuleDirectoryService moduleDirectoryService,
         List<string> additionalBinaryPaths,
+        Dictionary<string, string> runnerEnvVars,
         List<EngineFlagEntry> engineFlags,
         List<EngineArrayFlagEntry> engineArrayFlags
-    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, engineFlags, engineArrayFlags)
+    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, runnerEnvVars, engineFlags, engineArrayFlags)
     {
     }
 
@@ -63,7 +64,10 @@ public class PulumiEngine : BaseEngine, IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
-        EnvVars = resolvedEnvVars;
+        var merged = new Dictionary<string, string>(RunnerEnvVars);
+        foreach (var kvp in resolvedEnvVars)
+            merged[kvp.Key] = kvp.Value;
+        EnvVars = merged;
         SaveEnvVarsToFile();
 
         var initFlags = PulumiFlagConverter.Convert(backendConfig.PulumiFlags);

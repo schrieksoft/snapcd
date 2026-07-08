@@ -21,6 +21,7 @@ using SnapCd.Server.Core.Services.Notification;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration;
 using SnapCd.Server.Core.Services.ViewManagement;
+using SnapCd.Server.Core.Settings;
 using RunnerSelectionService = SnapCd.Server.Core.Services.RunnerSelectionService;
 
 namespace SnapCd.Server.Core.Startup;
@@ -76,6 +77,10 @@ public static class MiscService
         //services.AddScoped<ModuleJobApprovalRepository>(); // currently doesn't exist
 
         services.AddScoped<CustomOutputMapper>();
+
+        // State Store
+        services.Configure<StateStoreSettings>(configuration.GetSection("StateStore"));
+        services.AddSingleton<IStateEncryptionService, StateEncryptionService>();
 
 
         // Execution Services

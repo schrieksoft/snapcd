@@ -309,6 +309,23 @@ public static class Factories
         services.AddScoped<GroupAgentRoleAssignmentSecuredRepositoryFactory>();
         services.AddScoped<AgentRoleAssignmentServiceFactory>();
 
+        // StateStore + StateFile
+        services.AddScoped<StateStoreRepositoryFactory>();
+        services.AddScoped<StateStoreSecuredRepositoryFactory>();
+        services.AddScoped<StateFileRepositoryFactory>();
+        services.AddScoped<StateFileSecuredRepositoryFactory>();
+
+        // StateStoreRoleAssignment family (TPH base + 3 subclasses, raw + secured)
+        services.AddScoped<StateStoreRoleAssignmentRepositoryFactory>();
+        services.AddScoped<StateStoreRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<UserStateStoreRoleAssignmentRepositoryFactory>();
+        services.AddScoped<UserStateStoreRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<ServicePrincipalStateStoreRoleAssignmentRepositoryFactory>();
+        services.AddScoped<ServicePrincipalStateStoreRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<GroupStateStoreRoleAssignmentRepositoryFactory>();
+        services.AddScoped<GroupStateStoreRoleAssignmentSecuredRepositoryFactory>();
+        services.AddScoped<StateStoreRoleAssignmentServiceFactory>();
+
         return services;
     }
 }

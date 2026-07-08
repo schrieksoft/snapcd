@@ -147,6 +147,16 @@ public static class Repositories
         services.AddScoped<ServicePrincipalAgentRoleAssignmentRepository>();
         services.AddScoped<GroupAgentRoleAssignmentRepository>();
 
+        // StateStore + StateFile
+        services.AddScoped<StateStoreRepository>();
+        services.AddScoped<StateFileRepository>();
+
+        // StateStoreRoleAssignment family (TPH base + 3 subclasses)
+        services.AddScoped<StateStoreRoleAssignmentRepository>();
+        services.AddScoped<UserStateStoreRoleAssignmentRepository>();
+        services.AddScoped<ServicePrincipalStateStoreRoleAssignmentRepository>();
+        services.AddScoped<GroupStateStoreRoleAssignmentRepository>();
+
         return services;
     }
 }

@@ -245,6 +245,18 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<GroupAgentRoleAssignment> GroupAgentRoleAssignments { get; set; }
 
+    public DbSet<StateStore> StateStores { get; set; }
+    public DbSet<StateFile> StateFiles { get; set; }
+    public DbSet<StateFileVersion> StateFileVersions { get; set; }
+
+    public DbSet<StateStoreRoleAssignment> StateStoreRoleAssignments { get; set; }
+
+    public DbSet<UserStateStoreRoleAssignment> UserStateStoreRoleAssignments { get; set; }
+
+    public DbSet<ServicePrincipalStateStoreRoleAssignment> ServicePrincipalStateStoreRoleAssignments { get; set; }
+
+    public DbSet<GroupStateStoreRoleAssignment> GroupStateStoreRoleAssignments { get; set; }
+
     // Implement the Configurations property
     protected IEnumerable<ISagaClassMap> SagaClassMaps
     {
@@ -435,6 +447,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ModuleRoleAssignmentClassMap()); // Base TPH configuration
         modelBuilder.ApplyConfiguration(new RunnerRoleAssignmentClassMap()); // Base TPH configuration
         modelBuilder.ApplyConfiguration(new AgentRoleAssignmentClassMap()); // Base TPH configuration
+        modelBuilder.ApplyConfiguration(new StateStoreRoleAssignmentClassMap()); // Base TPH configuration
 
         modelBuilder.ApplyConfiguration(new UserOrganizationRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new UserStackRoleAssignmentClassMap());
@@ -454,6 +467,14 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new UserAgentRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new ServicePrincipalAgentRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new GroupAgentRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new UserStateStoreRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new ServicePrincipalStateStoreRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new GroupStateStoreRoleAssignmentClassMap());
+
+        // StateStore and StateFile
+        modelBuilder.ApplyConfiguration(new StateStoreClassMap());
+        modelBuilder.ApplyConfiguration(new StateFileClassMap());
+        modelBuilder.ApplyConfiguration(new StateFileVersionClassMap());
 
         // System Role Assignment ClassMaps
         modelBuilder.ApplyConfiguration(new UserSystemRoleAssignmentClassMap());

@@ -4136,6 +4136,83 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.UseTphMappingStrategy();
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base.StateStoreRoleAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid>("PrincipalId")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uniqueidentifier")
+                        .HasComputedColumnSql("CASE WHEN [PrincipalDiscriminator] = 'User' THEN [UserId] WHEN [PrincipalDiscriminator] = 'ServicePrincipal' THEN [ServicePrincipalId] WHEN [PrincipalDiscriminator] = 'Group' THEN [GroupId] END", true);
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("StateStoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("PrincipalId");
+
+                    b.HasIndex("PrincipalId", "StateStoreId", "OrganizationId", "RoleName")
+                        .HasDatabaseName("IX_StateStoreRoleAssign_Group_PrincipalFirst")
+                        .HasFilter("[PrincipalDiscriminator] = 'Group'");
+
+                    b.HasIndex("StateStoreId", "OrganizationId", "PrincipalId", "RoleName")
+                        .HasDatabaseName("IX_StateStoreRoleAssign_UserSP_StoreFirst")
+                        .HasFilter("[PrincipalDiscriminator] IN ('User', 'ServicePrincipal')");
+
+                    b.ToTable("StateStoreRoleAssignments");
+
+                    b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
+
+                    b.UseTphMappingStrategy();
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Integration.Base.IntegrationRoleAssignment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5268,6 +5345,181 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("Stacks");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTimeOffset?>("LockCreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LockId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LockInfo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("LockedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LockedByPrincipalDiscriminator")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("StateStoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("StateStoreId", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("StateStoreId", "OrganizationId");
+
+                    b.ToTable("StateFiles");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFileVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("Data")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StateFileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("StateFileId", "CreatedDateTime")
+                        .IsDescending(false, true);
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("StateFileId", "CreatedDateTime"), new[] { "Data" });
+
+                    b.HasIndex("StateFileId", "OrganizationId");
+
+                    b.ToTable("StateFileVersions");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateStore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("CreatedDateTime");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("StateStores");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Token", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5984,33 +6236,30 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReferencedDisplayName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("ReferencedIsQueued")
+                    b.Property<bool?>("ReferencedIsQueued")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("ReferencedIsRunning")
+                    b.Property<bool?>("ReferencedIsRunning")
                         .HasColumnType("bit");
 
                     b.Property<string>("ReferencedLatestActualState")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedModuleId")
+                    b.Property<Guid?>("ReferencedModuleId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedModuleName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedNamespaceId")
+                    b.Property<Guid?>("ReferencedNamespaceId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedNamespaceName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedOrganizationId")
+                    b.Property<Guid?>("ReferencedOrganizationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedQueuedDesiredState")
@@ -6019,11 +6268,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("ReferencedRunningDesiredState")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedStackId")
+                    b.Property<Guid?>("ReferencedStackId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedStackName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasIndex("DefinedModuleId", "DefinedOrganizationId");
@@ -6098,33 +6346,30 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReferencedDisplayName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("ReferencedIsQueued")
+                    b.Property<bool?>("ReferencedIsQueued")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("ReferencedIsRunning")
+                    b.Property<bool?>("ReferencedIsRunning")
                         .HasColumnType("bit");
 
                     b.Property<string>("ReferencedLatestActualState")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedModuleId")
+                    b.Property<Guid?>("ReferencedModuleId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedModuleName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedNamespaceId")
+                    b.Property<Guid?>("ReferencedNamespaceId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedNamespaceName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedOrganizationId")
+                    b.Property<Guid?>("ReferencedOrganizationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedQueuedDesiredState")
@@ -6133,11 +6378,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("ReferencedRunningDesiredState")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedStackId")
+                    b.Property<Guid?>("ReferencedStackId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedStackName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RootDesiredState")
@@ -6258,33 +6502,30 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReferencedDisplayName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("ReferencedIsQueued")
+                    b.Property<bool?>("ReferencedIsQueued")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("ReferencedIsRunning")
+                    b.Property<bool?>("ReferencedIsRunning")
                         .HasColumnType("bit");
 
                     b.Property<string>("ReferencedLatestActualState")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedModuleId")
+                    b.Property<Guid?>("ReferencedModuleId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedModuleName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedNamespaceId")
+                    b.Property<Guid?>("ReferencedNamespaceId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedNamespaceName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedOrganizationId")
+                    b.Property<Guid?>("ReferencedOrganizationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedQueuedDesiredState")
@@ -6293,11 +6534,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("ReferencedRunningDesiredState")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ReferencedStackId")
+                    b.Property<Guid?>("ReferencedStackId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferencedStackName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RootDesiredState")
@@ -7043,6 +7283,60 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("UserId", "OrganizationId");
 
                     b.HasIndex("UserId", "StackId", "OrganizationId", "RoleName")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
+
+                    b.HasDiscriminator().HasValue("User");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.GroupStateStoreRoleAssignment", b =>
+                {
+                    b.HasBaseType("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base.StateStoreRoleAssignment");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("GroupId", "OrganizationId");
+
+                    b.HasIndex("GroupId", "StateStoreId", "OrganizationId", "RoleName")
+                        .IsUnique()
+                        .HasFilter("[GroupId] IS NOT NULL");
+
+                    b.HasDiscriminator().HasValue("Group");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.ServicePrincipalStateStoreRoleAssignment", b =>
+                {
+                    b.HasBaseType("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base.StateStoreRoleAssignment");
+
+                    b.Property<Guid>("ServicePrincipalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasIndex("ServicePrincipalId");
+
+                    b.HasIndex("ServicePrincipalId", "OrganizationId");
+
+                    b.HasIndex("ServicePrincipalId", "StateStoreId", "OrganizationId", "RoleName")
+                        .IsUnique()
+                        .HasFilter("[ServicePrincipalId] IS NOT NULL");
+
+                    b.HasDiscriminator().HasValue("ServicePrincipal");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.UserStateStoreRoleAssignment", b =>
+                {
+                    b.HasBaseType("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base.StateStoreRoleAssignment");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "OrganizationId");
+
+                    b.HasIndex("UserId", "StateStoreId", "OrganizationId", "RoleName")
                         .IsUnique()
                         .HasFilter("[UserId] IS NOT NULL");
 
@@ -8336,6 +8630,25 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Stack");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Base.StateStoreRoleAssignment", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateStore", "StateStore")
+                        .WithMany("StateStoreRoleAssignments")
+                        .HasForeignKey("StateStoreId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("StateStore");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Integration.Base.IntegrationRoleAssignment", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -8606,6 +8919,55 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFile", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateStore", "StateStore")
+                        .WithMany("StateFiles")
+                        .HasForeignKey("StateStoreId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("StateStore");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFileVersion", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateFile", "StateFile")
+                        .WithMany("Versions")
+                        .HasForeignKey("StateFileId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("StateFile");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateStore", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Token", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.ServicePrincipal", "Application")
@@ -8712,20 +9074,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "ReferencedModule")
                         .WithMany()
                         .HasForeignKey("ReferencedModuleId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "ReferencedNamespace")
                         .WithMany()
                         .HasForeignKey("ReferencedNamespaceId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Stack", "ReferencedStack")
                         .WithMany()
                         .HasForeignKey("ReferencedStackId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("DefinedModule");
 
@@ -8763,20 +9122,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "ReferencedModule")
                         .WithMany()
                         .HasForeignKey("ReferencedModuleId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "ReferencedNamespace")
                         .WithMany()
                         .HasForeignKey("ReferencedNamespaceId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Stack", "ReferencedStack")
                         .WithMany()
                         .HasForeignKey("ReferencedStackId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("DefinedModule");
 
@@ -8814,20 +9170,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "ReferencedModule")
                         .WithMany()
                         .HasForeignKey("ReferencedModuleId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "ReferencedNamespace")
                         .WithMany()
                         .HasForeignKey("ReferencedNamespaceId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Stack", "ReferencedStack")
                         .WithMany()
                         .HasForeignKey("ReferencedStackId", "ReferencedOrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("DefinedModule");
 
@@ -9303,6 +9656,40 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("OrganizationUser");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.GroupStateStoreRoleAssignment", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.ServicePrincipalStateStoreRoleAssignment", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ServicePrincipal", "ServicePrincipal")
+                        .WithMany()
+                        .HasForeignKey("ServicePrincipalId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServicePrincipal");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.UserStateStoreRoleAssignment", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.OrganizationUser", "OrganizationUser")
+                        .WithMany()
+                        .HasForeignKey("UserId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrganizationUser");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.GroupIntegrationRoleAssignment", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Group", "Group")
@@ -9749,6 +10136,18 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("StackMissions");
 
                     b.Navigation("StackRoleAssignments");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFile", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateStore", b =>
+                {
+                    b.Navigation("StateFiles");
+
+                    b.Navigation("StateStoreRoleAssignments");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.User", b =>

@@ -1,0 +1,82 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using System.ComponentModel.DataAnnotations
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+
+<MudPaper Elevation="1" Class="pa-4 my-4">
+    <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <MudGrid Class="d-flex flex-column gap-4">
+            <MudItem xs="12">
+                <MudTextField Label="State Store Name"
+                              @bind-Value="Input.Name"
+                              Required="true"
+                              UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
+            </MudItem>
+
+            <MudItem xs="12" class="d-flex justify-end gap-2">
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary">
+                    Create
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public EventCallback<Guid> OnCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private StateStoreSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private InputModel Input { get; set; } = new();
+
+    private sealed class InputModel
+    {
+        [Required] [Display(Name = "Name")] public string Name { get; set; } = string.Empty;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            using var repo = RepoFactory.Create();
+            var stateStore = new Entities.Definition.StateStore
+            {
+                Id = Guid.NewGuid(),
+                Name = Input.Name,
+                OrganizationId = OrganizationId
+            };
+
+            await repo.Create(stateStore);
+            Snackbar.Add("State Store created successfully", Severity.Success);
+            await OnCreated.InvokeAsync(stateStore.Id);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating state store");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

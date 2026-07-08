@@ -121,6 +121,14 @@ public static class RepositorySettings
         services.Configure<ServicePrincipalAgentRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalAgentRoleAssignment"));
         services.Configure<GroupAgentRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupAgentRoleAssignment"));
 
+        // StateStore + StateFile + StateStoreRoleAssignment family
+        services.Configure<StateStoreRepositorySettings>(configuration.GetSection("Repositories:StateStore"));
+        services.Configure<StateFileRepositorySettings>(configuration.GetSection("Repositories:StateFile"));
+        services.Configure<StateStoreRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:StateStoreRoleAssignment"));
+        services.Configure<UserStateStoreRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:UserStateStoreRoleAssignment"));
+        services.Configure<ServicePrincipalStateStoreRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:ServicePrincipalStateStoreRoleAssignment"));
+        services.Configure<GroupStateStoreRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:GroupStateStoreRoleAssignment"));
+
         return services;
     }
 }
