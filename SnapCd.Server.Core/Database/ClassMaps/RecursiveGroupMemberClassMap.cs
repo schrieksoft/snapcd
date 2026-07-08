@@ -22,23 +22,5 @@ public class RecursiveGroupMemberClassMap : IEntityTypeConfiguration<RecursiveGr
 
         entity.HasIndex(e => new { e.GroupId, e.OrganizationId })
             .HasDatabaseName("IX_RGMP_GroupId_OrgId");
-
-        entity.HasOne(e => e.RootGroup)
-            .WithMany()
-            .HasForeignKey(e => new { e.RootGroupId, e.RootOrganizationId })
-            .HasPrincipalKey(g => new { g.Id, g.OrganizationId })
-            .OnDelete(DeleteBehavior.NoAction);
-
-        entity.HasOne(e => e.Group)
-            .WithMany()
-            .HasForeignKey(e => new { e.GroupId, e.OrganizationId })
-            .HasPrincipalKey(g => new { g.Id, g.OrganizationId })
-            .OnDelete(DeleteBehavior.NoAction);
-
-        entity.HasOne(e => e.Organization)
-            .WithMany()
-            .HasForeignKey(e => e.OrganizationId)
-            .HasPrincipalKey(o => o.Id)
-            .OnDelete(DeleteBehavior.NoAction);
     }
 }
