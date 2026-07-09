@@ -28,6 +28,7 @@ var sectionTypes = new Dictionary<string, Type>
     ["Debugging"] = typeof(DebuggingOptions),
     ["OpenIdConnect"] = typeof(OpenIdConnectSettings),
     ["Turnstile"] = typeof(TurnstileSettings),
+    ["StateStore"] = typeof(StateStoreSettings),
     ["Caching"] = typeof(CachingSettings),
     ["EmailSender"] = typeof(EmailSenderSettings),
 };

@@ -79,7 +79,10 @@ public static class MiscService
         services.AddScoped<CustomOutputMapper>();
 
         // State Store
-        services.Configure<StateStoreSettings>(configuration.GetSection("StateStore"));
+        services.AddOptions<StateStoreSettings>()
+            .Bind(configuration.GetSection("StateStore"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.AddSingleton<IStateEncryptionService, StateEncryptionService>();
 
 

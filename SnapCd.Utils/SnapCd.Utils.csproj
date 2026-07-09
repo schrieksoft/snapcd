@@ -10,6 +10,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\SnapCd.Contracts\SnapCd.Contracts.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- Carve-out schema fragments for settings that don't fit the POCO-driven path:
              .NET-standard sections (Logging) and bare top-level scalars (ConnectionString,
              AllowHttp). Loaded by StandardSchemaFragments via Assembly.GetManifestResourceStream. -->

@@ -6,11 +6,13 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
+using SnapCd.Contracts.Validation;
 
 namespace SnapCd.Utils.Settings;
 
@@ -157,11 +159,14 @@ public static class SettingsSchemaEmitter
                     if (description is not null) obj["description"] = description;
 
                     InjectDefault(obj, prop);
+                    InjectRequired(obj, prop.PropertyType);
                 }
                 else
                 {
                     var description = ResolveDescription(ctx.TypeInfo.Type, xmlDoc);
                     if (description is not null) obj["description"] = description;
+
+                    InjectRequired(obj, ctx.TypeInfo.Type);
                 }
 
                 return schema;
@@ -238,5 +243,21 @@ public static class SettingsSchemaEmitter
         // Object types, collections, dictionaries: skip parent-level default. The recursive callback
         // emits defaults at the nested level when each sub-property's schema is generated.
         return false;
+    }
+
+    private static void InjectRequired(JsonObject schema, Type type)
+    {
+        var requiredProps = new JsonArray();
+        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (prop.IsDefined(typeof(RequiredAttribute), inherit: true)
+                || prop.IsDefined(typeof(NonEmptyGuidAttribute), inherit: true))
+            {
+                requiredProps.Add(prop.Name);
+            }
+        }
+
+        if (requiredProps.Count > 0)
+            schema["required"] = requiredProps;
     }
 }

@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace SnapCd.Server.Core.Settings;
 
 /// <summary>
@@ -28,12 +30,15 @@ public class AmazonSesEmailTransportSettings
     public string? SecretKey { get; set; }
 
     /// <summary>AWS region the SES endpoint lives in (e.g. <c>eu-north-1</c>, <c>us-east-1</c>).</summary>
+    [Required]
     public string Region { get; set; } = null!;
 
     /// <summary>"From" address every Server-sent email is delivered as. Must be verified in SES.</summary>
+    [Required]
     public string FromEmail { get; set; } = null!;
 
     /// <summary>Display name shown alongside <see cref="FromEmail"/> in clients.</summary>
+    [Required]
     public string FromName { get; set; } = null!;
 
     /// <summary>

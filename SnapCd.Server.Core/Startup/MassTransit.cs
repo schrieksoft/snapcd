@@ -35,12 +35,10 @@ public static class MassTransit
         ConfigurationManager configuration,
         params Type[] additionalCompetingConsumerTypes)
     {
-        var serviceBusSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>() ??
-                                 throw new Exception("No 'ServiceBus' configuration section found. You must configure this in order for Snap CD Server to start up");
+        var serviceBusSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>()
+                                 ?? new ServiceBusSettings();
 
-        // Read server instance ID from configuration
-        var serverSettings = configuration.GetSection("Server").Get<ServerSettings>() ??
-                             throw new Exception("No 'Server' configuration section found");
+        var serverSettings = configuration.GetSection("Server").Get<ServerSettings>()!;
         var instanceId = serverSettings.InstanceId.ToString("N");
 
         if (serviceBusSettings.BusType == BusType.SqlServer)
@@ -71,9 +69,6 @@ public static class MassTransit
             switch (serviceBusSettings.BusType)
             {
                 case BusType.AzureServiceBus:
-                    if (serviceBusSettings.TransportOptions.AzureServiceBus == null)
-                        throw new ApplicationException(
-                            "Azure Service Bus selected as Bus Type, but its configuration is missing");
                     x.AddServiceBusMessageScheduler();
 
                     x.UsingAzureServiceBus((context, cfg) =>

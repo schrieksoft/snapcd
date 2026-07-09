@@ -46,9 +46,6 @@ public static class Auth
                                               externalLoginProviderSettings.Google.Enabled ||
                                               externalLoginProviderSettings.GitHub.Enabled;
 
-        if (string.IsNullOrEmpty(openIdConnectSettings.TokenEncryption.SymmetricKey))
-            throw new Exception("No value found for setting 'OpenIdConnect:TokenEncryption:SymmetricKey'. Snap CD Server requires a valid symmetric key here.");
-
         var symmetricKeyString = openIdConnectSettings.TokenEncryption.SymmetricKey;
 
         services.Configure<SecurityKeySettings>(c =>

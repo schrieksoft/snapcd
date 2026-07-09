@@ -6,16 +6,19 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Settings;
+namespace SnapCd.Server.Core.Validation;
 
-public class StateStoreSettings
+public class CachingSettingsValidator : IValidateOptions<CachingSettings>
 {
-    [Required]
-    public string EncryptionKey { get; set; } = null!;
+    public ValidateOptionsResult Validate(string? name, CachingSettings options)
+    {
+        if (options.Provider == CacheProvider.Redis && string.IsNullOrEmpty(options.ConnectionString))
+            return ValidateOptionsResult.Fail("Caching:ConnectionString is required when Caching:Provider is 'Redis'.");
 
-    public int LockTimeoutMinutes { get; set; } = 30;
-
-    public int MaxStateFileVersions { get; set; } = 20;
+        return ValidateOptionsResult.Success;
+    }
 }

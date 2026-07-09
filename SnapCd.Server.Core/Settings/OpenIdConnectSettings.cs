@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
 using SnapCd.Server.Core.Settings.ExternalLoginProviderSettings;
 
 namespace SnapCd.Server.Core.Settings;
@@ -47,7 +48,8 @@ public class TokenEncryptionSettings
     /// rather than checking it into <c>appsettings.json</c>. The placeholder shipped in the
     /// default appsettings.json is for dev only.
     /// </summary>
-    public string SymmetricKey { get; set; } = string.Empty;
+    [Required]
+    public string SymmetricKey { get; set; } = null!;
 }
 
 /// <summary>
@@ -61,11 +63,13 @@ public class TokenSigningSettings
     /// provider in production. The placeholder shipped in the default appsettings.json is for
     /// dev only.
     /// </summary>
-    public string RsaPrivateKey { get; set; } = string.Empty;
+    [Required]
+    public string RsaPrivateKey { get; set; } = null!;
 
     /// <summary>
     /// PEM-armoured RSA public key matching <see cref="RsaPrivateKey"/>. Not sensitive, but must
     /// be the genuine pair to the private key or token validation will fail.
     /// </summary>
-    public string RsaPublicKey { get; set; } = string.Empty;
+    [Required]
+    public string RsaPublicKey { get; set; } = null!;
 }

@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace SnapCd.Runner.Settings;
 
 /// <summary>
@@ -17,5 +19,6 @@ public class ServerSettings
     /// Base URL of the Snap CD Server, including scheme and port. The Runner opens its SignalR
     /// connection to {Url}/runnerhub and obtains JWTs from {Url}/connect/token.
     /// </summary>
-    public string Url { get; set; } = string.Empty;
+    [Required]
+    public string Url { get; set; } = null!;
 }

@@ -17,10 +17,10 @@
           "description": "Unique identifier for this Server process. Generated automatically at startup (a fresh GUID per process) by the predefined configuration provider \u2014 operators should not set this in appsettings.json. Used to distinguish per-process MassTransit consumer endpoints when multiple Server replicas share one bus."
         }
       },
+      "description": "Settings describing the Server\u0027s own runtime identity \u2014 its public URL and the unique per-process instance ID used to disambiguate replicas on the message bus.",
       "required": [
         "Host"
-      ],
-      "description": "Settings describing the Server\u0027s own runtime identity \u2014 its public URL and the unique per-process instance ID used to disambiguate replicas on the message bus."
+      ]
     },
     "ServiceBus": {
       "type": "object",
@@ -755,7 +755,10 @@
               "description": "PEM-armoured base64-encoded AES-256 symmetric key, surrounded by -----BEGIN SYMMETRIC KEY----- / -----END SYMMETRIC KEY----- markers. Sensitive \u2014 production deployments must supply this via the External Settings provider rather than checking it into appsettings.json. The placeholder shipped in the default appsettings.json is for dev only."
             }
           },
-          "description": "Symmetric encryption key used to encrypt the access tokens the Server issues. Required."
+          "description": "Symmetric encryption key used to encrypt the access tokens the Server issues. Required.",
+          "required": [
+            "SymmetricKey"
+          ]
         },
         "TokenSigning": {
           "type": "object",
@@ -769,7 +772,11 @@
               "description": "PEM-armoured RSA public key matching RsaPrivateKey. Not sensitive, but must be the genuine pair to the private key or token validation will fail."
             }
           },
-          "description": "RSA keypair used to sign the access tokens the Server issues. Required."
+          "description": "RSA keypair used to sign the access tokens the Server issues. Required.",
+          "required": [
+            "RsaPrivateKey",
+            "RsaPublicKey"
+          ]
         },
         "ExternalLoginProviders": {
           "type": "object",
@@ -925,6 +932,25 @@
       },
       "description": "Cloudflare Turnstile (bot-protection challenge) configuration for the Dashboard\u0027s public sign-up and password-reset flows. Paid feature on Self-Hosted \u2014 gated by license tier and silently no-ops on tiers that don\u0027t include it."
     },
+    "StateStore": {
+      "type": "object",
+      "properties": {
+        "EncryptionKey": {
+          "type": "string"
+        },
+        "LockTimeoutMinutes": {
+          "type": "integer",
+          "default": 30
+        },
+        "MaxStateFileVersions": {
+          "type": "integer",
+          "default": 20
+        }
+      },
+      "required": [
+        "EncryptionKey"
+      ]
+    },
     "Caching": {
       "type": "object",
       "properties": {
@@ -989,7 +1015,12 @@
               "default": true
             }
           },
-          "description": "Amazon SES transport credentials and sender identity. Used when EmailProvider is \u0022AmazonSES\u0022."
+          "description": "Amazon SES transport credentials and sender identity. Used when EmailProvider is \u0022AmazonSES\u0022.",
+          "required": [
+            "Region",
+            "FromEmail",
+            "FromName"
+          ]
         },
         "SendGrid": {
           "type": "object",
@@ -1007,7 +1038,12 @@
               "description": "Display name shown alongside FromEmail in clients."
             }
           },
-          "description": "SendGrid transport credentials and sender identity. Used when EmailProvider is \u0022SendGrid\u0022."
+          "description": "SendGrid transport credentials and sender identity. Used when EmailProvider is \u0022SendGrid\u0022.",
+          "required": [
+            "ApiKey",
+            "FromEmail",
+            "FromName"
+          ]
         },
         "Mailgun": {
           "type": "object",
@@ -1029,7 +1065,13 @@
               "description": "Display name shown alongside FromEmail in clients."
             }
           },
-          "description": "Mailgun transport credentials and sender identity. Used when EmailProvider is \u0022Mailgun\u0022."
+          "description": "Mailgun transport credentials and sender identity. Used when EmailProvider is \u0022Mailgun\u0022.",
+          "required": [
+            "ApiKey",
+            "Domain",
+            "FromEmail",
+            "FromName"
+          ]
         },
         "Postmark": {
           "type": "object",
@@ -1047,7 +1089,12 @@
               "description": "Display name shown alongside FromEmail in clients."
             }
           },
-          "description": "Postmark transport credentials and sender identity. Used when EmailProvider is \u0022Postmark\u0022."
+          "description": "Postmark transport credentials and sender identity. Used when EmailProvider is \u0022Postmark\u0022.",
+          "required": [
+            "ApiKey",
+            "FromEmail",
+            "FromName"
+          ]
         },
         "Smtp": {
           "type": "object",
@@ -1089,7 +1136,13 @@
               "default": true
             }
           },
-          "description": "Generic SMTP transport credentials and sender identity. Used when EmailProvider is \u0022Smtp\u0022."
+          "description": "Generic SMTP transport credentials and sender identity. Used when EmailProvider is \u0022Smtp\u0022.",
+          "required": [
+            "Username",
+            "Password",
+            "FromEmail",
+            "FromName"
+          ]
         }
       },
       "description": "Outbound email configuration. EmailProvider selects which transport sub-block the Server uses; the remaining blocks are ignored. When EmailProvider is \u0022NoOp\u0022 (or unset), the Server runs in no-op mode and email-driven flows (password resets, invitations) are admin-mediated rather than self-service."

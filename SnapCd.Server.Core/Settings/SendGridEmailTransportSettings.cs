@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace SnapCd.Server.Core.Settings;
 
 /// <summary>
@@ -15,11 +17,14 @@ namespace SnapCd.Server.Core.Settings;
 public class SendGridEmailTransportSettings
 {
     /// <summary>SendGrid API key. Sensitive — source via the External Settings provider in production.</summary>
+    [Required]
     public string ApiKey { get; set; } = null!;
 
     /// <summary>"From" address every Server-sent email is delivered as. Must be verified in SendGrid.</summary>
+    [Required]
     public string FromEmail { get; set; } = null!;
 
     /// <summary>Display name shown alongside <see cref="FromEmail"/> in clients.</summary>
+    [Required]
     public string FromName { get; set; } = null!;
 }

@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace SnapCd.Server.Core.Settings;
 
 /// <summary>
@@ -19,7 +21,8 @@ public class ServerSettings
     /// (set as the OpenIddict issuer claim), email link generation, and self-referential redirects.
     /// Required. Must be reachable from Runners, Agents and the Dashboard.
     /// </summary>
-    public required string Host { get; set; }
+    [Required]
+    public string Host { get; set; } = null!;
 
     /// <summary>
     /// Unique identifier for this Server process. Generated automatically at startup (a fresh GUID

@@ -45,18 +45,32 @@ builder.Configuration
     .AddExternalConfiguration() // Service-specific (sensitive) overrides, e.g. loaded directly from AKV
     .AddPredefined(); // Predefined values generated at startup
 
-builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("Server"));
-builder.Services.Configure<ServiceBusSettings>(builder.Configuration.GetSection("ServiceBus"));
+builder.Services.AddOptions<ServerSettings>()
+    .Bind(builder.Configuration.GetSection("Server"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<ServiceBusSettings>()
+    .Bind(builder.Configuration.GetSection("ServiceBus"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<ServiceBusSettings>, SnapCd.Server.Core.Validation.ServiceBusSettingsValidator>();
 builder.Services.Configure<ProductionDataSeederSettings>(builder.Configuration.GetSection("ProductionDataSeeder"));
 builder.Services.Configure<DebugDataSeederSettings>(builder.Configuration.GetSection("DebugDataSeeder"));
-builder.Services.Configure<SecretStoreSettings>(builder.Configuration.GetSection("SecretStore"));
+builder.Services.AddOptions<SecretStoreSettings>()
+    .Bind(builder.Configuration.GetSection("SecretStore"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<SecretStoreSettings>, SnapCd.Server.Core.Validation.SecretStoreSettingsValidator>();
 builder.Services.Configure<SourceRefreshSettings>(builder.Configuration.GetSection("SourceRefresh"));
 builder.Services.AddSnapCdRepositorySettings(builder.Configuration);
 builder.Services.Configure<InvitationSettings>(builder.Configuration.GetSection("InvitationSettings"));
 builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.GetSection("OrphanedJobCleanup"));
 builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("License"));
 builder.Services.Configure<DebuggingOptions>(builder.Configuration.GetSection("Debugging"));
-builder.Services.Configure<OpenIdConnectSettings>(builder.Configuration.GetSection("OpenIdConnect"));
+builder.Services.AddOptions<OpenIdConnectSettings>()
+    .Bind(builder.Configuration.GetSection("OpenIdConnect"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 // In non-debug runs, force LicenseServerBaseUrl to snapcd.io regardless of appsettings.
 // Debug runs keep whatever was bound from appsettings (e.g. Development overrides to a local license server).
 if (!Debugger.IsAttached)
@@ -133,6 +147,34 @@ builder.Services.AddScoped<IMemberAdminService, SelfHostedMemberAdminService>();
 builder.Services.AddScoped<IOrganizationMemberAdminActionsProvider, ServerOrganizationMemberAdminActionsProvider>();
 
 var app = builder.Build();
+
+// Eagerly validate options before migrations / data seeding run.
+// ValidateOnStart() registers a hosted service that fires too late — after the inline
+// startup block below. Resolving IOptions<T>.Value here triggers the same
+// ValidateDataAnnotations + IValidateOptions<T> pipeline immediately. We collect all
+// failures so the operator sees every missing setting in one message.
+{
+    var validationErrors = new List<string>();
+
+    void ValidateOptions<T>(IServiceProvider sp) where T : class
+    {
+        try { _ = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<T>>().Value; }
+        catch (Microsoft.Extensions.Options.OptionsValidationException ex) { validationErrors.AddRange(ex.Failures); }
+    }
+
+    ValidateOptions<ServerSettings>(app.Services);
+    ValidateOptions<StateStoreSettings>(app.Services);
+    ValidateOptions<OpenIdConnectSettings>(app.Services);
+    ValidateOptions<ServiceBusSettings>(app.Services);
+    ValidateOptions<SecretStoreSettings>(app.Services);
+    ValidateOptions<CachingSettings>(app.Services);
+
+    if (validationErrors.Count > 0)
+        throw new Microsoft.Extensions.Options.OptionsValidationException(
+            "MultipleSettings",
+            typeof(object),
+            validationErrors);
+}
 
 app.UseForwardedHeaders();
 

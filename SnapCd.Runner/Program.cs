@@ -29,9 +29,15 @@ builder.Configuration
     .AddExternalConfiguration();
 
 // builder.Services.Configure<ProviderCacheSettings>(builder.Configuration.GetSection("ProviderCache"));
-builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("Server"));
+builder.Services.AddOptions<ServerSettings>()
+    .Bind(builder.Configuration.GetSection("Server"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.Configure<WorkingDirectorySettings>(builder.Configuration.GetSection("WorkingDirectory"));
-builder.Services.Configure<RunnerSettings>(builder.Configuration.GetSection("Runner"));
+builder.Services.AddOptions<RunnerSettings>()
+    .Bind(builder.Configuration.GetSection("Runner"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.Configure<HooksPreapprovalSettings>(builder.Configuration.GetSection("HooksPreapproval"));
 builder.Services.Configure<EngineSettings>(builder.Configuration.GetSection("Engine"));
 builder.Services.Configure<JobLogStreamSettings>(builder.Configuration.GetSection("JobLogStream"));
