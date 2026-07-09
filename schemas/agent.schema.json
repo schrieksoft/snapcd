@@ -12,7 +12,10 @@
           "description": "Base URL of the Snap CD Server, including scheme and port. The Agent opens its SignalR connection to {Url}/agenthub, fetches the MCP surface from {Url}/mcp, and obtains JWTs from {Url}/connect/token."
         }
       },
-      "description": "Coordinates of the Snap CD Server the Agent connects to. Bound from the Server section of appsettings.json."
+      "description": "Coordinates of the Snap CD Server the Agent connects to. Bound from the Server section of appsettings.json.",
+      "required": [
+        "Url"
+      ]
     },
     "Agent": {
       "type": "object",
@@ -61,7 +64,13 @@
           "description": "Registered Sidecar processes the Agent supervises and dispatches Missions to. Each entry binds a sidecar name (used as the value of a Mission\u0027s sidecar_name field) to the base URL the Agent posts /invoke calls against. An Agent with no Sidecars connects to the Server but receives no Mission dispatches."
         }
       },
-      "description": "Orchestrator configuration, bound from the \u0022Agent\u0022 section of appsettings.json (overridable by appsettings.{Environment}.json and Agent__* environment variables)."
+      "description": "Orchestrator configuration, bound from the \u0022Agent\u0022 section of appsettings.json (overridable by appsettings.{Environment}.json and Agent__* environment variables).",
+      "required": [
+        "OrganizationId",
+        "AgentId",
+        "ClientId",
+        "ClientSecret"
+      ]
     },
     "Logging": {
       "type": "object",

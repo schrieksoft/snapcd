@@ -6,16 +6,19 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Settings;
 
-namespace SnapCd.Server.Core.Settings;
+namespace SnapCd.Server.Core.Validation;
 
-public class StateStoreSettings
+public class SecretStoreSettingsValidator : IValidateOptions<SecretStoreSettings>
 {
-    [Required]
-    public string EncryptionKey { get; set; } = null!;
+    public ValidateOptionsResult Validate(string? name, SecretStoreSettings options)
+    {
+        if (options.Provider == SecretStoreProvider.SqlServer
+            && string.IsNullOrEmpty(options.SqlServer?.SymmetricKey))
+            return ValidateOptionsResult.Fail("SecretStore:SqlServer:SymmetricKey is required when SecretStore:Provider is 'SqlServer'.");
 
-    public int LockTimeoutMinutes { get; set; } = 30;
-
-    public int MaxStateFileVersions { get; set; } = 20;
+        return ValidateOptionsResult.Success;
+    }
 }

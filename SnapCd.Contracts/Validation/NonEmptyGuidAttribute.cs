@@ -8,21 +8,18 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace SnapCd.Agent.Configuration;
+namespace SnapCd.Contracts.Validation;
 
-/// <summary>
-/// Coordinates of the Snap CD Server the Agent connects to. Bound from the <c>Server</c>
-/// section of <c>appsettings.json</c>.
-/// </summary>
-public sealed class ServerSettings
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
+public sealed class NonEmptyGuidAttribute : ValidationAttribute
 {
-    public const string SectionName = "Server";
+    public NonEmptyGuidAttribute()
+        : base("The {0} field must be a non-empty GUID.")
+    {
+    }
 
-    /// <summary>
-    /// Base URL of the Snap CD Server, including scheme and port. The Agent opens its SignalR
-    /// connection to <c>{Url}/agenthub</c>, fetches the MCP surface from <c>{Url}/mcp</c>, and
-    /// obtains JWTs from <c>{Url}/connect/token</c>.
-    /// </summary>
-    [Required]
-    public string Url { get; set; } = null!;
+    public override bool IsValid(object? value)
+    {
+        return value is Guid guid && guid != Guid.Empty;
+    }
 }

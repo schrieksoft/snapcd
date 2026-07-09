@@ -18,11 +18,13 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services
     .AddOptions<AgentOptions>()
     .Bind(builder.Configuration.GetSection(AgentOptions.SectionName))
+    .ValidateDataAnnotations()
     .ValidateOnStart();
 
 builder.Services
     .AddOptions<ServerSettings>()
     .Bind(builder.Configuration.GetSection(ServerSettings.SectionName))
+    .ValidateDataAnnotations()
     .ValidateOnStart();
 
 builder.Services.AddHttpClient();

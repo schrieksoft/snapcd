@@ -27,9 +27,7 @@ public class StateEncryptionService : IStateEncryptionService
 
     public StateEncryptionService(IOptions<StateStoreSettings> options)
     {
-        var keyBase64 = options.Value.EncryptionKey
-            ?? throw new InvalidOperationException("StateStore:EncryptionKey is not configured.");
-        _key = Convert.FromBase64String(keyBase64);
+        _key = Convert.FromBase64String(options.Value.EncryptionKey);
         if (_key.Length != 32)
             throw new InvalidOperationException("StateStore:EncryptionKey must be a base64-encoded 256-bit (32-byte) key.");
     }

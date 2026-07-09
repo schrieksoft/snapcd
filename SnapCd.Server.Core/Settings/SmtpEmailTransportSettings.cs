@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace SnapCd.Server.Core.Settings;
 
 /// <summary>
@@ -29,18 +31,22 @@ public class SmtpEmailTransportSettings
     public bool UseSsl { get; set; } = true;
 
     /// <summary>SMTP authentication username. Often the same as <see cref="FromEmail"/> for hosted services.</summary>
+    [Required]
     public string Username { get; set; } = null!;
 
     /// <summary>
     /// SMTP authentication password (or app password for accounts with 2FA). Sensitive — source
     /// via the External Settings provider in production.
     /// </summary>
+    [Required]
     public string Password { get; set; } = null!;
 
     /// <summary>"From" address every Server-sent email is delivered as.</summary>
+    [Required]
     public string FromEmail { get; set; } = null!;
 
     /// <summary>Display name shown alongside <see cref="FromEmail"/> in clients.</summary>
+    [Required]
     public string FromName { get; set; } = null!;
 
     /// <summary>

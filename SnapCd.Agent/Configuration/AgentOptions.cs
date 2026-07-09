@@ -6,6 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
+using SnapCd.Contracts.Validation;
+
 namespace SnapCd.Agent.Configuration;
 
 /// <summary>
@@ -20,12 +23,14 @@ public sealed class AgentOptions
     /// Identifier of the Organization this Agent belongs to. Must match the Organization the
     /// Agent record below was created in.
     /// </summary>
+    [NonEmptyGuid]
     public Guid OrganizationId { get; set; }
 
     /// <summary>
     /// Identifier of the Agent record on the Server this process binds to. The Service Principal
     /// referenced via ClientId / ClientSecret must be the one bound to this Agent record.
     /// </summary>
+    [NonEmptyGuid]
     public Guid AgentId { get; set; }
 
     /// <summary>
@@ -39,6 +44,7 @@ public sealed class AgentOptions
     /// The Agent's Service Principal client identifier. The Agent prefixes this with the
     /// Organization ID when calling the token endpoint, so supply only the raw client ID here.
     /// </summary>
+    [Required]
     public string ClientId { get; set; } = null!;
 
     /// <summary>
@@ -46,6 +52,7 @@ public sealed class AgentOptions
     /// source this via the External Settings provider rather than committing it to
     /// appsettings.json.
     /// </summary>
+    [Required]
     public string ClientSecret { get; set; } = null!;
 
     /// <summary>

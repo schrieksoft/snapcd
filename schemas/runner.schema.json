@@ -12,7 +12,10 @@
           "description": "Base URL of the Snap CD Server, including scheme and port. The Runner opens its SignalR connection to {Url}/runnerhub and obtains JWTs from {Url}/connect/token."
         }
       },
-      "description": "Coordinates of the Snap CD Server the Runner connects to."
+      "description": "Coordinates of the Snap CD Server the Runner connects to.",
+      "required": [
+        "Url"
+      ]
     },
     "WorkingDirectory": {
       "type": "object",
@@ -57,14 +60,18 @@
               "description": "The Service Principal\u0027s client secret. Sensitive \u2014 production deployments should source this via the External Settings provider rather than committing it to appsettings.json."
             }
           },
+          "description": "Service Principal credentials the Runner authenticates with. The Service Principal referenced here must be the one bound to the Runner record via service_principal_id.",
           "required": [
             "ClientId",
             "ClientSecret"
-          ],
-          "description": "Service Principal credentials the Runner authenticates with. The Service Principal referenced here must be the one bound to the Runner record via service_principal_id."
+          ]
         }
       },
-      "description": "Identity, organisation and credentials that bind this Runner process to a Runner record on the Server. All four fields are required for the Runner to authenticate and connect."
+      "description": "Identity, organisation and credentials that bind this Runner process to a Runner record on the Server. All four fields are required for the Runner to authenticate and connect.",
+      "required": [
+        "OrganizationId",
+        "Id"
+      ]
     },
     "HooksPreapproval": {
       "type": "object",

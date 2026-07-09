@@ -6,6 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel.DataAnnotations;
+using SnapCd.Contracts.Validation;
+
 namespace SnapCd.Runner.Settings;
 
 /// <summary>
@@ -18,6 +21,7 @@ public class RunnerSettings
     /// Identifier of the Organization this Runner belongs to. Must match the Organization the
     /// Runner record below was created in.
     /// </summary>
+    [NonEmptyGuid]
     public Guid OrganizationId { get; set; }
 
     /// <summary>
@@ -30,6 +34,7 @@ public class RunnerSettings
     /// <summary>
     /// Identifier of the Runner record on the Server this process binds to.
     /// </summary>
+    [NonEmptyGuid]
     public Guid Id { get; set; }
 
     /// <summary>
@@ -50,11 +55,13 @@ public class Credentials
     /// token endpoint (the prefix is added automatically by the Runner; supply only the raw
     /// client ID here).
     /// </summary>
-    public required string ClientId { get; set; }
+    [Required]
+    public string ClientId { get; set; } = null!;
 
     /// <summary>
     /// The Service Principal's client secret. Sensitive — production deployments should source
     /// this via the External Settings provider rather than committing it to appsettings.json.
     /// </summary>
-    public required string ClientSecret { get; set; }
+    [Required]
+    public string ClientSecret { get; set; } = null!;
 }
