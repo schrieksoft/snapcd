@@ -67,7 +67,7 @@
         @foreach (var assignment in _roleAssignments)
         {
             <MudExpansionPanel Text="@assignment.RoleName.ToString()" Class="mb-2">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                <MudIconButton Icon="@SnapCdIcons.Delete"
                                Color="Color.Secondary"
                                Size="Size.Small"
                                OnClick="@(async () => await DeleteRoleAssignment(assignment))"/>

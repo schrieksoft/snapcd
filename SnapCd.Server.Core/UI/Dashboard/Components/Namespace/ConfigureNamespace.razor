@@ -17,7 +17,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Edit, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Edit" Size="Size.Small"/>
                 <MudText>Edit Namespace</MudText>
             </div>
         </TitleContent>
@@ -36,7 +36,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Roles, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Shield" Size="Size.Small"/>
                 <MudText>Manage Roles</MudText>
             </div>
         </TitleContent>
@@ -71,7 +71,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.IntegrationEvents, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Bolt" Size="Size.Small"/>
                 <MudText>Manage Integration Events</MudText>
             </div>
         </TitleContent>
@@ -88,7 +88,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Secrets, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Password" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Password" Size="Size.Small"/>
                 <MudText>Manage Secrets</MudText>
             </div>
         </TitleContent>
@@ -104,7 +104,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Delete, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Delete" Size="Size.Small"/>
                 <MudText>Delete Namespace</MudText>
             </div>
         </TitleContent>
@@ -145,7 +145,7 @@
                                 <MudList T="string" Dense="true">
                                     @foreach (var dep in _externalDependencies)
                                     {
-                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Block">
+                                        <MudListItem T="string" Icon="@SnapCdIcons.Block">
                                             <MudText Typo="Typo.body2" Color="Color.Error">@dep</MudText>
                                         </MudListItem>
                                     }
@@ -158,7 +158,7 @@
                                 <MudList T="string" Dense="true">
                                     @foreach (var dep in _internalDependencies)
                                     {
-                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Link">
+                                        <MudListItem T="string" Icon="@SnapCdIcons.Link">
                                             <MudText Typo="Typo.body2" Color="Color.Success">@dep</MudText>
                                         </MudListItem>
                                     }
@@ -170,7 +170,7 @@
                     {
                         <MudPaper Elevation="1" Class="pa-3 mb-3">
                             <MudList T="string" Dense="true">
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                                <MudListItem T="string" Icon="@SnapCdIcons.Check">
                                     <MudText Typo="Typo.body2" Color="Color.Success">No external dependencies found</MudText>
                                 </MudListItem>
                             </MudList>

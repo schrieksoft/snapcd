@@ -80,19 +80,19 @@
 
         <MudPaper Elevation="1" Class="pa-4 mb-4">
             <MudTooltip Text="Manage Modules">
-                <MudIconButton Icon="@Icons.Material.Filled.SpaceDashboard" Color="GetColor(ShowingType.Modules)"
+                <MudIconButton Icon="@SnapCdIcons.SpaceDashboard" Color="GetColor(ShowingType.Modules)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Modules)"/>
             </MudTooltip>
 
             <MudTooltip Text="View Dependency Graph">
-                <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
+                <MudIconButton Icon="@SnapCdIcons.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.DependencyGraph)"/>
             </MudTooltip>
 
             <MudTooltip Text="Configure">
-                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
+                <MudIconButton Icon="@SnapCdIcons.Settings" Color="GetColor(ShowingType.Configure)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Configure)"/>
             </MudTooltip>
@@ -103,14 +103,14 @@
             <MudPaper Elevation="1" Class="pa-4 mb-4">
                 <div class="module-header">
                     <MudTooltip Text="Select multiple">
-                        <MudIconButton Icon="@Icons.Material.Filled.Checklist"
+                        <MudIconButton Icon="@SnapCdIcons.Checklist"
                                        Color="@(_showSelectionMode ? Color.Info : Color.Primary)"
                                        Size="Size.Small"
                                        OnClick="() => ToggleSelectionMode()"/>
                     </MudTooltip>
 
                     <MudTooltip Text="Search modules">
-                        <MudIconButton Icon="@Icons.Material.Filled.Search"
+                        <MudIconButton Icon="@SnapCdIcons.Search"
                                        Color="@(_showModuleSearch ? Color.Info : Color.Primary)"
                                        Size="Size.Small"
                                        OnClick="() => _showModuleSearch = !_showModuleSearch"/>
@@ -138,7 +138,7 @@
                                           HelperText="Press Enter to search (minimum 2 characters)"
                                           Variant="Variant.Outlined"
                                           Adornment="Adornment.End"
-                                          AdornmentIcon="@Icons.Material.Filled.Search"
+                                          AdornmentIcon="@SnapCdIcons.Search"
                                           OnKeyDown="@HandleKeyDown"
                                           Immediate="true"
                                           Class="search-field-inline"/>
@@ -159,7 +159,7 @@
                         {
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       StartIcon="@SnapCdIcons.Delete"
                                        OnClick="DeleteSelectedModules"
                                        Size="Size.Small">
                                 Delete Selected (@_selectedModules.Count)
@@ -230,7 +230,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -253,7 +253,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -283,7 +283,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -336,7 +336,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -359,7 +359,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -389,7 +389,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }

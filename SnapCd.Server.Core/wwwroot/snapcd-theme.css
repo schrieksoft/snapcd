@@ -1,0 +1,100 @@
+/* Snap CD theme v2.4 — derived from design/brand/tokens/tokens.json */
+
+@font-face { font-family: 'Geist Sans'; font-weight: 400; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Sans'; font-weight: 500; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Sans'; font-weight: 600; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-SemiBold.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Sans'; font-weight: 700; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-weight: 400; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistMono-Regular.woff2') format('woff2'); }
+
+:root {
+  --snap-ink: #12171D;
+  --snap-steel: #4A5561;
+  --snap-fog: #8B96A0;
+  --snap-mist: #DDE3E8;
+  --snap-surface: #F2F4F6;
+  --snap-paper: #FAFBFB;
+
+  --snap-accent: #E85D1A;
+  --snap-accent-hover: #DC5414;
+  --snap-accent-deep: #C1470C;
+  --snap-accent-tint: #FDEEE3;
+  --snap-on-accent: #12171D;
+
+  --snap-apply: #00B368;
+  --snap-apply-tint: #DFF7EC;
+  --snap-plan: #D9A514;
+  --snap-plan-tint: #FBF3DB;
+  --snap-destroy: #DB4A3F;
+  --snap-destroy-tint: #FBE7E5;
+
+  --snap-bg: #FAFBFB;
+  --snap-bg-raised: #FFFFFF;
+  --snap-bg-inset: #F2F4F6;
+  --snap-bg-sidebar: #12171D;
+  --snap-border: #DDE3E8;
+  --snap-text: #12171D;
+  --snap-text-2: #4A5561;
+  --snap-text-3: #8B96A0;
+  --snap-code-bg: #12171D;
+  --snap-code-text: #E8ECEF;
+
+  --snap-btn-bg: #12171D;
+  --snap-btn-text: #E8ECEF;
+  --snap-btn-hover: #2B333C;
+
+  --snap-shadow-sm: 0 1px 2px rgba(18,23,29,0.06);
+  --snap-shadow-md: 0 2px 4px rgba(18,23,29,0.08), 0 1px 2px rgba(18,23,29,0.04);
+  --snap-shadow-lg: 0 4px 8px rgba(18,23,29,0.10), 0 2px 4px rgba(18,23,29,0.05);
+
+  --snap-font-sans: 'Geist Sans', system-ui, -apple-system, sans-serif;
+  --snap-font-mono: 'Geist Mono', ui-monospace, 'Cascadia Code', monospace;
+}
+
+.mud-dark {
+  --snap-bg: #000000;
+  --snap-bg-raised: #171D24;
+  --snap-bg-inset: #0E1216;
+  --snap-bg-sidebar: #0E1216;
+  --snap-border: #262E37;
+  --snap-text: #E8ECEF;
+  --snap-text-2: #9AA5B0;
+  --snap-text-3: #6B7681;
+  --snap-code-bg: #000000;
+  --snap-code-text: #E8ECEF;
+
+  --snap-apply-tint: #0a2618;
+  --snap-plan-tint: #2a2008;
+  --snap-destroy-tint: #2a1210;
+
+  --snap-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --snap-shadow-md: 0 2px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.2);
+  --snap-shadow-lg: 0 4px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.25);
+}
+
+/* Global overrides */
+.mud-button-root .mud-button-label {
+  text-transform: lowercase !important;
+}
+
+.mud-button-root {
+  border-radius: 0px !important;
+}
+
+.mud-tabs .mud-tabs-tabbar {
+  text-transform: lowercase !important;
+}
+
+.mud-button-filled.mud-button-filled-secondary {
+  background-color: var(--snap-btn-bg) !important;
+  color: var(--snap-btn-text) !important;
+}
+
+.mud-button-filled.mud-button-filled-secondary:hover {
+  background-color: var(--snap-btn-hover) !important;
+  color: var(--snap-btn-text) !important;
+}
+
+.mud-button-filled.mud-button-filled-secondary:focus {
+  background-color: var(--snap-btn-bg) !important;
+  color: var(--snap-btn-text) !important;
+}

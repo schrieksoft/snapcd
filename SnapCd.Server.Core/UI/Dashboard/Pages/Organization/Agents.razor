@@ -83,32 +83,32 @@
                         @if (!agent.IsDisabled)
                         {
                             <MudTooltip Text="Agent is enabled, click to disable">
-                                <MudIconButton Icon="@Icons.Material.Filled.PlayDisabled" Color="Color.Primary"
+                                <MudIconButton Icon="@SnapCdIcons.PlayDisabled" Color="Color.Primary"
                                                Size="Size.Small" OnClick="() => DeactivateAgent(agent)"/>
                             </MudTooltip>
                         }
                         else
                         {
                             <MudTooltip Text="Agent is disabled, click to enable">
-                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Secondary"
+                                <MudIconButton Icon="@SnapCdIcons.PlayArrow" Color="Color.Secondary"
                                                Size="Size.Small" OnClick="() => ActivateAgent(agent)"/>
                             </MudTooltip>
                         }
 
                         <MudTooltip Text="Overview">
-                            <MudIconButton Icon="@Icons.Material.Filled.Dashboard"
+                            <MudIconButton Icon="@SnapCdIcons.Dashboard"
                                            Color="@GetColor(agent.Id, ShowingType.Overview)" Size="Size.Small"
                                            OnClick="() => ShowOverview(agent)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Edit Agent">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(agent.Id, ShowingType.Edit)" Size="Size.Small"
                                            OnClick="() => Edit(agent)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Roles">
-                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(agent.Id, ShowingType.Roles)" Size="Size.Small"
                                            OnClick="() => ManageRoles(agent)"/>
                         </MudTooltip>
@@ -120,13 +120,13 @@
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Supplies">
-                            <MudIconButton Icon="@Icons.Material.Filled.Layers"
+                            <MudIconButton Icon="@SnapCdIcons.Layers"
                                            Color="@GetColor(agent.Id, ShowingType.Supplies)" Size="Size.Small"
                                            OnClick="() => ManageSupplies(agent)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete Agent">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Delete(agent)"/>
                         </MudTooltip>
 

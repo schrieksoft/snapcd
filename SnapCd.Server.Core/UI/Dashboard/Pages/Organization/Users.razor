@@ -97,7 +97,7 @@
                             @if (!orgUser.IsDeactivated)
                             {
                                 <MudTooltip Text="User is active, click to deactivate">
-                                    <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Color="Color.Primary"
+                                    <MudIconButton Icon="@SnapCdIcons.PersonOff" Color="Color.Primary"
                                                    Size="Size.Small"
                                                    OnClick="() => DeactivateUser(orgUser)"/>
                                 </MudTooltip>
@@ -105,14 +105,14 @@
                             else
                             {
                                 <MudTooltip Text="User is deactivated, click to activate">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Secondary"
+                                    <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
                                                    Size="Size.Small"
                                                    OnClick="() => ActivateUser(orgUser)"/>
                                 </MudTooltip>
                             }
 
                             <MudTooltip Text="Manage user's organization roles">
-                                <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                <MudIconButton Icon="@SnapCdIcons.Shield"
                                                Color="@GetColor(orgUser.Id, ShowingType.Roles)" Size="Size.Small"
                                                OnClick="() => ManageRoles(orgUser)"/>
                             </MudTooltip>
@@ -121,14 +121,14 @@
                         {
                             @* Pending invitation actions *@
                             <MudTooltip Text="Cancel invitation">
-                                <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Primary"
+                                <MudIconButton Icon="@SnapCdIcons.Cancel" Color="Color.Primary"
                                                Size="Size.Small"
                                                OnClick="() => CancelInvitation(orgUser)"/>
                             </MudTooltip>
                         }
 
                         <MudTooltip Text="Remove user from organization">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => RemoveUser(orgUser)"/>
                         </MudTooltip>
 
@@ -167,7 +167,7 @@
                 <MudExpansionPanel Expanded="@(_expandedId.HasValue && _organizationUsers.Any(ou => ou.IsDeactivated && ou.InvitationCompleted && ou.Id == _expandedId))">
                     <TitleContent>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small"/>
+                            <MudIcon Icon="@SnapCdIcons.PersonOff" Size="Size.Small"/>
                             <MudText>Deactivated Members (@_organizationUsers.Count(ou => ou.IsDeactivated && ou.InvitationCompleted))</MudText>
                         </div>
                     </TitleContent>
@@ -185,19 +185,19 @@
                                     </TitleContent>
                                     <ChildContent>
                                         <MudTooltip Text="Reactivate user">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Secondary"
+                                            <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
                                                            Size="Size.Small"
                                                            OnClick="() => ActivateUser(orgUser)"/>
                                         </MudTooltip>
 
                                         <MudTooltip Text="Manage user's organization roles">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                                            Color="@GetColor(orgUser.Id, ShowingType.Roles)" Size="Size.Small"
                                                            OnClick="() => ManageRoles(orgUser)"/>
                                         </MudTooltip>
 
                                         <MudTooltip Text="Remove user from organization">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                                            OnClick="() => RemoveUser(orgUser)"/>
                                         </MudTooltip>
 

@@ -22,7 +22,7 @@
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudTooltip Text="Refresh">
-        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium"
+        <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium"
                        OnClick="() => ReloadOutputSets()"/>
     </MudTooltip>
 
@@ -50,7 +50,7 @@
                             <div class="d-flex align-center justify-space-between">
                                 <MudText>Output Set @dateTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
                                 <MudTooltip Text="Delete Output Set">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                    <MudIconButton Icon="@SnapCdIcons.Delete"
                                                    Color="Color.Dark"
                                                    Size="Size.Small"
                                                    OnClick="@(async () => await ShowDeleteDialog(outputSet))"/>
@@ -107,7 +107,7 @@
                                                         <div class="d-flex align-center gap-2">
                                                             <span style="white-space: pre-wrap;">@literal.Value</span>
                                                             <MudTooltip Text="Copy value">
-                                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                                <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                                                                Size="Size.Small"
                                                                                OnClick="@(async () => await CopyToClipboard(literal.Value))"/>
                                                             </MudTooltip>
@@ -144,7 +144,7 @@
                                                         <div class="d-flex align-center gap-2">
                                                             <span style="white-space: pre-wrap;">@literal.Value</span>
                                                             <MudTooltip Text="Copy value">
-                                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                                <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                                                                Size="Size.Small"
                                                                                OnClick="@(async () => await CopyToClipboard(literal.Value))"/>
                                                             </MudTooltip>
@@ -407,18 +407,18 @@
             <div class="d-flex align-center gap-2">
                 <span style="white-space: pre-wrap;">@revealedDto.Value</span>
                 <MudTooltip Text="Copy value">
-                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                    <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                    Size="Size.Small"
                                    OnClick="@(async () => await CopyToClipboard(revealedDto.Value))" />
                 </MudTooltip>
-                <MudIconButton Icon="@Icons.Material.Filled.VisibilityOff"
+                <MudIconButton Icon="@SnapCdIcons.VisibilityOff"
                                Size="Size.Small"
                                OnClick="@(() => HideSecret(secret.Id))" />
             </div>
         }
         else
         {
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+            <MudIconButton Icon="@SnapCdIcons.Visibility"
                            Size="Size.Small"
                            OnClick="@(async () => await RevealSecret(secret))" />
         }

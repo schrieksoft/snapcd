@@ -69,7 +69,7 @@
         @if (_runner != null && _runner.IsDisabled)
         {
             <MudAlert Severity="Severity.Warning" Class="mb-4">
-                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
+                <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-2"/>
                 The Runner "@_runner.Name" assigned to this module is currently inactive and will not process new
                 jobs.
             </MudAlert>
@@ -144,31 +144,31 @@
 
         <MudPaper Elevation="1" Class="pa-4 mb-4">
             <MudTooltip Text="Manage Jobs">
-                <MudIconButton Icon="@Icons.Material.Filled.RunCircle" Color="GetColor(ShowingType.Jobs)"
+                <MudIconButton Icon="@SnapCdIcons.RunCircle" Color="GetColor(ShowingType.Jobs)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Jobs)"/>
             </MudTooltip>
 
             <MudTooltip Text="View Dependencies">
-                <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.Dependencies)"
+                <MudIconButton Icon="@SnapCdIcons.AccountTree" Color="GetColor(ShowingType.Dependencies)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Dependencies)"/>
             </MudTooltip>
 
             <MudTooltip Text="View Variables">
-                <MudIconButton Icon="@Icons.Material.Filled.DataObject" Color="GetColor(ShowingType.Variables)"
+                <MudIconButton Icon="@SnapCdIcons.DataObject" Color="GetColor(ShowingType.Variables)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Variables)"/>
             </MudTooltip>
 
             <MudTooltip Text="View Outputs">
-                <MudIconButton Icon="@Icons.Material.Filled.Output" Color="GetColor(ShowingType.Outputs)"
+                <MudIconButton Icon="@SnapCdIcons.Output" Color="GetColor(ShowingType.Outputs)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Outputs)"/>
             </MudTooltip>
 
             <MudTooltip Text="Configure">
-                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
+                <MudIconButton Icon="@SnapCdIcons.Settings" Color="GetColor(ShowingType.Configure)"
                                Size="Size.Small"
                                OnClick="() => SwitchShowing(ShowingType.Configure)"/>
             </MudTooltip>
@@ -240,7 +240,7 @@
                             @if (!_hasApplyPermission)
                             {
                                 <MudTooltip Text="You do not have permission to apply this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                    <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                              Size="Size.Small"/>
                                 </MudTooltip>
                             }
@@ -255,7 +255,7 @@
                             <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                      Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
                             <MudTooltip Text="This module has already been applied">
-                                <MudIcon Icon="Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                <MudIcon Icon="SnapCdIcons.CheckCircle" Color="Color.Success"
                                          Size="Size.Small"/>
                             </MudTooltip>
                         </div>
@@ -282,7 +282,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -303,7 +303,7 @@
                                     <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     <MudTooltip Text="This prerequisite module has already been applied">
-                                        <MudIcon Icon="Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                        <MudIcon Icon="SnapCdIcons.CheckCircle" Color="Color.Success"
                                                  Size="Size.Small"/>
                                     </MudTooltip>
                                 </div>
@@ -352,7 +352,7 @@
                             @if (!_hasDestroyPermission)
                             {
                                 <MudTooltip Text="You do not have permission to destroy this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                    <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                              Size="Size.Small"/>
                                 </MudTooltip>
                             }
@@ -367,7 +367,7 @@
                             <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                      Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
                             <MudTooltip Text="This module has already been destroyed">
-                                <MudIcon Icon="Icons.Material.Filled.StopCircle" Color="Color.Default"
+                                <MudIcon Icon="SnapCdIcons.StopCircle" Color="Color.Default"
                                          Size="Size.Small"/>
                             </MudTooltip>
                         </div>
@@ -394,7 +394,7 @@
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -415,7 +415,7 @@
                                     <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     <MudTooltip Text="This dependent module has already been destroyed">
-                                        <MudIcon Icon="Icons.Material.Filled.StopCircle" Color="Color.Default"
+                                        <MudIcon Icon="SnapCdIcons.StopCircle" Color="Color.Default"
                                                  Size="Size.Small"/>
                                     </MudTooltip>
                                 </div>
@@ -624,7 +624,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -637,7 +637,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -650,7 +650,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -663,7 +663,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -675,7 +675,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -783,7 +783,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No currently connected runners"
                 };
 
@@ -791,7 +791,7 @@
                 return new Icon
                 {
                     Color = Color.Success,
-                    Name = Icons.Material.Filled.CheckCircle,
+                    Name = SnapCdIcons.CheckCircle,
                     Tooltip = "Runners currently connected"
                 };
         }
@@ -836,7 +836,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "There are currently no running jobs."
                 };
 
@@ -844,7 +844,7 @@
                 return new Icon
                 {
                     Color = Color.Warning,
-                    Name = Icons.Material.Filled.RunCircle,
+                    Name = SnapCdIcons.RunCircle,
                     Tooltip = "A job is currently running"
                 };
 
@@ -852,7 +852,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Unknown"
                 };
         }
@@ -887,7 +887,7 @@
                 return new Icon
                 {
                     Color = Color.Warning,
-                    Name = Icons.Material.Filled.AccessTimeFilled,
+                    Name = SnapCdIcons.AccessTimeFilled,
                     Tooltip = "A job is currently queued"
                 };
 
@@ -895,7 +895,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No jobs currently queued"
                 };
         }
@@ -965,7 +965,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No revision information yet"
                 };
 
@@ -973,7 +973,7 @@
                 return new Icon
                 {
                     Color = Color.Success,
-                    Name = Icons.Material.Filled.CheckCircle,
+                    Name = SnapCdIcons.CheckCircle,
                     Tooltip = "Synced"
                 };
 
@@ -981,7 +981,7 @@
                 return new Icon
                 {
                     Color = Color.Warning,
-                    Name = Icons.Material.Filled.ChangeCircle,
+                    Name = SnapCdIcons.ChangeCircle,
                     Tooltip = "Out of sync"
                 };
 
@@ -989,7 +989,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No revision information yet"
                 };
         }
@@ -1024,7 +1024,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No jobs have been run yet"
                 };
 
@@ -1032,7 +1032,7 @@
                 return new Icon
                 {
                     Color = Color.Success,
-                    Name = Icons.Material.Filled.CheckCircle,
+                    Name = SnapCdIcons.CheckCircle,
                     Tooltip = "Most recent job sucessfully applied the Module"
                 };
 
@@ -1040,7 +1040,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Most recent job sucessfully destroyed the Module"
                 };
 
@@ -1048,7 +1048,7 @@
                 return new Icon
                 {
                     Color = Color.Error,
-                    Name = Icons.Material.Filled.Error,
+                    Name = SnapCdIcons.Error,
                     Tooltip = "Most recent job failed to apply the Module"
                 };
 
@@ -1056,7 +1056,7 @@
                 return new Icon
                 {
                     Color = Color.Error,
-                    Name = Icons.Material.Filled.Error,
+                    Name = SnapCdIcons.Error,
                     Tooltip = "Most recent job failed to destroy the Module"
                 };
 
@@ -1064,7 +1064,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Most recent job was cancelled."
                 };
 
@@ -1072,7 +1072,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Most recent job was cancelled."
                 };
 
@@ -1080,7 +1080,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No jobs have been run yet"
                 };
         }

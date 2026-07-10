@@ -99,7 +99,7 @@
                                  RequiredError="Output module is required"
                                  SearchFunc="@SearchModules"
                                  ToStringFunc="@(m => m?.Name ?? string.Empty)"
-                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentIcon="@SnapCdIcons.Search"
                                  Variant="Variant.Outlined"
                                  FullWidth="true">
                     <ItemTemplate Context="moduleContext">
@@ -134,7 +134,7 @@
                                  RequiredError="Output module is required"
                                  SearchFunc="@SearchModules"
                                  ToStringFunc="@(m => m?.Name ?? string.Empty)"
-                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentIcon="@SnapCdIcons.Search"
                                  Variant="Variant.Outlined"
                                  FullWidth="true">
                     <ItemTemplate Context="moduleContext">
@@ -210,7 +210,7 @@
 
                 <MudButton Color="Color.Secondary"
                            Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.Delete"
+                           StartIcon="@SnapCdIcons.Delete"
                            OnClick="DeleteItem">
                     Delete
                 </MudButton>

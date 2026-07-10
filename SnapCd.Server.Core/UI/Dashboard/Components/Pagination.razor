@@ -10,11 +10,11 @@
 {
     <MudPaper Elevation="1" Class="pa-4 mb-4 align-center">
         <MudStack Justify="Justify.Center" Row="true" Spacing="1" Style="margin-top: 1px; margin-bottom: 1px;">
-            <MudIconButton Icon="@Icons.Material.Filled.FirstPage"
+            <MudIconButton Icon="@SnapCdIcons.FirstPage"
                            Disabled="@(CurrentPage == 1)"
                            Class="my-auto"
                            OnClick="() => GoToPage(1)"/>
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+            <MudIconButton Icon="@SnapCdIcons.ChevronLeft"
                            Disabled="@(CurrentPage == 1)"
                            Class="my-auto"
                            OnClick="PreviousPage"/>
@@ -34,10 +34,10 @@
                 }
             }
 
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+            <MudIconButton Icon="@SnapCdIcons.ChevronRight"
                            Disabled="@(CurrentPage >= TotalPages)"
                            OnClick="NextPage"/>
-            <MudIconButton Icon="@Icons.Material.Filled.LastPage"
+            <MudIconButton Icon="@SnapCdIcons.LastPage"
                            Disabled="@(CurrentPage >= TotalPages)"
                            OnClick="() => GoToPage(TotalPages)"/>
         </MudStack>

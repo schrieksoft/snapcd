@@ -38,7 +38,7 @@ else
         {
             {
                 var iconColor = approval.ModuleJobApproval.Declined ? Color.Error : Color.Success;
-                var iconType = approval.ModuleJobApproval.Declined ? Icons.Material.Filled.Error : Icons.Material.Filled.CheckCircle;
+                var iconType = approval.ModuleJobApproval.Declined ? SnapCdIcons.Error : SnapCdIcons.CheckCircle;
                 var iconTooltip = approval.ModuleJobApproval.Declined ? "Declined" : "Approved";
                 var isUsersApproval = _principalId == approval.ModuleJobApproval.PrincipalId;
                 var hasReason = !string.IsNullOrEmpty(approval.ModuleJobApproval.Reason);
@@ -75,7 +75,7 @@ else
                                 @if (isUsersApproval && _isWaitingForApproval)
                                 {
                                     <MudTooltip Text="Remove My Approval">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                        <MudIconButton Icon="@SnapCdIcons.Delete"
                                                        Color="Color.Primary" Size="Size.Small"
                                                        OnClick="() => RemoveApproval(approval.ModuleJobApproval.Id)"/>
                                     </MudTooltip>
@@ -107,7 +107,7 @@ else
     }
 
     @* <MudTooltip Text="Refresh"> *@
-    @*     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium" *@
+    @*     <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium" *@
     @*                    OnClick="() => ReloadApprovals()"/> *@
     @* </MudTooltip> *@
 </MudPaper>

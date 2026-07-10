@@ -55,7 +55,7 @@
                         <MudList T="string" Dense="true">
                             @foreach (var dep in _externalDependencies)
                             {
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.Block">
+                                <MudListItem T="string" Icon="@SnapCdIcons.Block">
                                     <MudText Typo="Typo.body2" Color="Color.Error">@dep</MudText>
                                 </MudListItem>
                             }
@@ -69,7 +69,7 @@
                         <MudList T="string" Dense="true">
                             @foreach (var dep in _internalDependencies)
                             {
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.Link">
+                                <MudListItem T="string" Icon="@SnapCdIcons.Link">
                                     <MudText Typo="Typo.body2" Color="Color.Success">@dep</MudText>
                                 </MudListItem>
                             }
@@ -81,7 +81,7 @@
             {
                 <MudPaper Elevation="1" Class="pa-3">
                     <MudList T="string" Dense="true">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                        <MudListItem T="string" Icon="@SnapCdIcons.Check">
                             <MudText Typo="Typo.body2" Color="Color.Success">No dependencies found</MudText>
                         </MudListItem>
                     </MudList>
@@ -94,7 +94,7 @@
                    Color="Color.Error"
                    OnClick="Delete"
                    Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
-                   StartIcon="@Icons.Material.Filled.Delete">
+                   StartIcon="@SnapCdIcons.Delete">
             @if (_isDeleting)
             {
                 @:Deleting...

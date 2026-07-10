@@ -86,7 +86,7 @@
                         @if (!servicePrincipal.IsDisabled)
                         {
                             <MudTooltip Text="Service principal is enabled, click to disable">
-                                <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Color="Color.Primary"
+                                <MudIconButton Icon="@SnapCdIcons.PersonOff" Color="Color.Primary"
                                                Size="Size.Small"
                                                OnClick="() => DeactivateServicePrincipal(servicePrincipal)"/>
                             </MudTooltip>
@@ -94,26 +94,26 @@
                         else
                         {
                             <MudTooltip Text="Service principal is disabled, click to enable">
-                                <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Secondary"
+                                <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
                                                Size="Size.Small"
                                                OnClick="() => ActivateServicePrincipal(servicePrincipal)"/>
                             </MudTooltip>
                         }
 
                         <MudTooltip Text="Edit service principal">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(servicePrincipal.Id, ShowingType.Edit)" Size="Size.Small"
                                            OnClick="() => Edit(servicePrincipal)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage service principals's roles">
-                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(servicePrincipal.Id, ShowingType.Roles)" Size="Size.Small"
                                            OnClick="() => ManageRoles(servicePrincipal)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete service principal">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color=Color.Primary Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color=Color.Primary Size="Size.Small"
                                            OnClick="() => Delete(servicePrincipal)"/>
                         </MudTooltip>
 

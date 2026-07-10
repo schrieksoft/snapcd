@@ -85,7 +85,7 @@
                                                                    Style="@(isRoot ? "background-color: var(--mud-palette-black) !important; color: white !important;" : "")">
                                                     <TitleContent>
                                                         <div style="display: flex; align-items: center;">
-                                                            <MudIcon Icon="@Icons.Material.Filled.AccountTree" class="mr-3" />
+                                                            <MudIcon Icon="@SnapCdIcons.AccountTree" class="mr-3" />
                                                             <MudText Typo="Typo.body2">Dependencies</MudText>
                                                         </div>
                                                     </TitleContent>
@@ -152,7 +152,7 @@
         {
             <div class="stage-arrow"
                  style="display: flex; align-items: center; justify-content: center; min-width: 40px; height: 100%;">
-                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Large" Color="Color.Default" />
+                <MudIcon Icon="@SnapCdIcons.ArrowForward" Size="Size.Large" Color="Color.Default" />
             </div>
         }
     }
@@ -202,13 +202,13 @@
 
     private static string GetStateIcon(DestroyModuleNodeDto node) => node.ActualState switch
     {
-        ActualStateHeadline.Applied => Icons.Material.Filled.CheckCircle,
-        ActualStateHeadline.Destroyed => Icons.Material.Filled.RemoveCircleOutline,
-        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => Icons.Material.Filled.Error,
-        ActualStateHeadline.ApplyCancelled or ActualStateHeadline.DestroyCancelled => Icons.Material.Filled.Cancel,
-        ActualStateHeadline.ApplyTimeout or ActualStateHeadline.DestroyTimeout => Icons.Material.Filled.Schedule,
-        ActualStateHeadline.ApplyNotApproved or ActualStateHeadline.DestroyNotApproved => Icons.Material.Filled.Block,
-        _ => Icons.Material.Filled.HelpOutline
+        ActualStateHeadline.Applied => SnapCdIcons.CheckCircle,
+        ActualStateHeadline.Destroyed => SnapCdIcons.RemoveCircleOutline,
+        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => SnapCdIcons.Error,
+        ActualStateHeadline.ApplyCancelled or ActualStateHeadline.DestroyCancelled => SnapCdIcons.Cancel,
+        ActualStateHeadline.ApplyTimeout or ActualStateHeadline.DestroyTimeout => SnapCdIcons.Schedule,
+        ActualStateHeadline.ApplyNotApproved or ActualStateHeadline.DestroyNotApproved => SnapCdIcons.Block,
+        _ => SnapCdIcons.HelpOutline
     };
 
     private static Color GetStateColor(DestroyModuleNodeDto node) => node.ActualState switch

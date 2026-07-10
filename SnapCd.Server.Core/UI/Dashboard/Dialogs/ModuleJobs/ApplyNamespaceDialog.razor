@@ -76,7 +76,7 @@
                             @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
                             {
                                 <MudTooltip Text="You do not have permission to apply this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                    <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                              Size="Size.Small"/>
                                 </MudTooltip>
                             }
@@ -108,7 +108,7 @@
                             @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
                             {
                                 <MudTooltip Text="You do not have permission to apply this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                    <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                              Size="Size.Small"/>
                                 </MudTooltip>
                             }
@@ -125,7 +125,7 @@
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     <MudList T="string" Dense="true">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                        <MudListItem T="string" Icon="@SnapCdIcons.Check">
                             <MudText Typo="Typo.body2" Color="Color.Success">No external dependencies required</MudText>
                         </MudListItem>
                     </MudList>

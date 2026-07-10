@@ -95,7 +95,7 @@ else
                 <MudExpansionPanel>
                     <TitleContent>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <MudIcon Icon="@Icons.Material.Filled.Mail" Size="Size.Small" />
+                            <MudIcon Icon="@SnapCdIcons.Mail" Size="Size.Small" />
                             <MudText>@invitation.Organization.Name</MudText>
                             @if (IsExpired(invitation))
                             {
@@ -152,12 +152,12 @@ else
                 <MudExpansionPanel>
                     <TitleContent>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                            <MudIcon Icon="@SnapCdIcons.Business" Size="Size.Small" />
                             <MudText>@membership.Organization.Name</MudText>
                             <MudText Typo="Typo.caption" Style="font-family: monospace; color: var(--mud-palette-text-secondary);">@membership.OrganizationId</MudText>
                             <MudTooltip Text="Copy Organization ID">
                                 <span @onclick:stopPropagation="true">
-                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                    <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                                    Size="Size.Small"
                                                    OnClick="() => CopyOrganizationId(membership.OrganizationId)"/>
                                 </span>

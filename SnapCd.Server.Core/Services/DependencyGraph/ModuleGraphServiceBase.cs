@@ -9,6 +9,7 @@
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.UI.Dashboard.Theme;
 using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Services.DependencyGraph;
@@ -66,15 +67,15 @@ public abstract class ModuleGraphServiceBase
     public static string GetStateIcon(ActualStateHeadline? actualState, bool isRunning)
     {
         // If running, show a sync/progress icon
-        if (isRunning) return MudBlazor.Icons.Material.Filled.PlayCircle;
+        if (isRunning) return SnapCdIcons.PlayCircle;
 
         return actualState switch
         {
-            ActualStateHeadline.Applied => MudBlazor.Icons.Material.Filled.CheckCircle,
-            ActualStateHeadline.Destroyed => MudBlazor.Icons.Material.Filled.StopCircle,
-            ActualStateHeadline.None => MudBlazor.Icons.Material.Filled.StopCircle,
-            null => MudBlazor.Icons.Material.Filled.StopCircle,
-            _ => MudBlazor.Icons.Material.Filled.Error
+            ActualStateHeadline.Applied => SnapCdIcons.CheckCircle,
+            ActualStateHeadline.Destroyed => SnapCdIcons.StopCircle,
+            ActualStateHeadline.None => SnapCdIcons.StopCircle,
+            null => SnapCdIcons.StopCircle,
+            _ => SnapCdIcons.Error
         };
     }
 

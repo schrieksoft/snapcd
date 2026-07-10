@@ -78,25 +78,25 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Edit group">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(group.Id, ShowingType.Edit)"
                                            Size="Size.Small" OnClick="() => Edit(group)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage groups's roles">
-                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(group.Id, ShowingType.Roles)" Size="Size.Small"
                                            OnClick="() => ManageRoles(group)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage groups's members">
-                            <MudIconButton Icon="@Icons.Material.Filled.Group"
+                            <MudIconButton Icon="@SnapCdIcons.Group"
                                            Color="@GetColor(group.Id, ShowingType.Members)" Size="Size.Small"
                                            OnClick="() => ManageMembers(group)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete group">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Delete(group)"/>
                         </MudTooltip>
 

@@ -88,13 +88,13 @@ else
                                 <AgentOnlineBadge AgentId="run.AgentId" OrganizationId="OrganizationId" />
                             }
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
-                                <MudIcon Icon="@Icons.Material.Filled.Repeat" Size="Size.Small" Class="mr-1" />
+                                <MudIcon Icon="@SnapCdIcons.Repeat" Size="Size.Small" Class="mr-1" />
                                 attempt @run.AttemptNumber
                             </MudChip>
                             @if (run.DurationSeconds is { } secs)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
-                                    <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="mr-1" />
+                                    <MudIcon Icon="@SnapCdIcons.Timer" Size="Size.Small" Class="mr-1" />
                                     @secs.ToString("0.0")s
                                 </MudChip>
                             }
@@ -109,14 +109,14 @@ else
                         @if (TokensTotal(run.TokensJson) is { } toks)
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
-                                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" Class="mr-1" />
+                                <MudIcon Icon="@SnapCdIcons.Psychology" Size="Size.Small" Class="mr-1" />
                                 @toks.ToString("N0") tokens
                             </MudChip>
                         }
                         @if (ToolCallsCount(run.ToolCallsJson) is { } tc)
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
-                                <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" Class="mr-1" />
+                                <MudIcon Icon="@SnapCdIcons.Build" Size="Size.Small" Class="mr-1" />
                                 @tc tool call@(tc == 1 ? "" : "s")
                             </MudChip>
                         }
@@ -136,7 +136,7 @@ else
                             @foreach (var m in milestones)
                             {
                                 <div class="mission-timeline-item">
-                                    <MudIcon Icon="@Icons.Material.Filled.RadioButtonChecked" Size="Size.Small" />
+                                    <MudIcon Icon="@SnapCdIcons.RadioButtonChecked" Size="Size.Small" />
                                     @if (!string.IsNullOrEmpty(m.Kind))
                                     {
                                         <span class="mission-timeline-kind">@m.Kind</span>
@@ -361,15 +361,15 @@ else
 
     private static string StatusIcon(MissionStatus s) => s switch
     {
-        MissionStatus.Pending => Icons.Material.Filled.HourglassEmpty,
-        MissionStatus.WaitingForAgent => Icons.Material.Filled.SignalWifiOff,
-        MissionStatus.Running => Icons.Material.Filled.PlayCircle,
-        MissionStatus.AwaitingReconnect => Icons.Material.Filled.CloudOff,
-        MissionStatus.Succeeded => Icons.Material.Filled.CheckCircle,
-        MissionStatus.Failed => Icons.Material.Filled.Error,
-        MissionStatus.Cancelled => Icons.Material.Filled.Cancel,
-        MissionStatus.TimedOut => Icons.Material.Filled.AlarmOff,
-        _ => Icons.Material.Filled.HelpOutline
+        MissionStatus.Pending => SnapCdIcons.HourglassEmpty,
+        MissionStatus.WaitingForAgent => SnapCdIcons.SignalWifiOff,
+        MissionStatus.Running => SnapCdIcons.PlayCircle,
+        MissionStatus.AwaitingReconnect => SnapCdIcons.CloudOff,
+        MissionStatus.Succeeded => SnapCdIcons.CheckCircle,
+        MissionStatus.Failed => SnapCdIcons.Error,
+        MissionStatus.Cancelled => SnapCdIcons.Cancel,
+        MissionStatus.TimedOut => SnapCdIcons.AlarmOff,
+        _ => SnapCdIcons.HelpOutline
     };
 
     private static string TimeRelative(DateTime? t)

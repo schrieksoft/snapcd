@@ -32,12 +32,10 @@
 @inject OrganizationMembershipCacheService MembershipCache
 @inject UserManager<User> UserManager
 
-<MudNavMenu Style="background-color: #000; color: white; padding-top: 16px; width: 100%; overflow-x: hidden;">
+<MudNavMenu Style="background-color: var(--snap-bg-sidebar); color: var(--snap-text); padding-top: 16px; width: 100%; overflow-x: hidden;">
 
     <AuthorizeView>
         <Authorized>
-            <link rel="stylesheet"
-                  href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0"/>
 
             <!-- Header Section -->
             <a href="/" style="display: flex; align-items: center; padding: 16px; margin-bottom: 16px; text-decoration: none; cursor: pointer;">
@@ -65,7 +63,7 @@
             <!-- Identity Access Section -->
             @if (_identityAccessIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
-                <MudNavGroup Title="Identity Access" Icon="@Icons.Material.Filled.SupervisedUserCircle"
+                <MudNavGroup Title="Identity Access" Icon="@SnapCdIcons.SupervisedUserCircle"
                              Expanded="false">
                     @foreach (var link in _identityAccessNavLinks)
                     {
@@ -82,7 +80,7 @@
             <!-- System Section (gated by Cloud subscription status on SaaS) -->
             @if (_organizationActivated && _systemIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
-                <MudNavGroup Title="System" Icon="@Icons.Material.Filled.Settings" Expanded="false">
+                <MudNavGroup Title="System" Icon="@SnapCdIcons.Settings" Expanded="false">
                     @foreach (var link in _systemNavLinks)
                     {
                         @if (_systemIsAllowedToNavigateMap[link.PageType])
@@ -104,7 +102,7 @@
             <!-- Tests Section (dev only — surfaces dev-mode test tools like the Mission test bench). -->
             @if (HostEnvironment.IsDevelopment() && _testsIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
-                <MudNavGroup Title="Tests" Icon="@Icons.Material.Filled.Science" Expanded="false">
+                <MudNavGroup Title="Tests" Icon="@SnapCdIcons.Science" Expanded="false">
                     @foreach (var link in _testsNavLinks)
                     {
                         @if (_testsIsAllowedToNavigateMap[link.PageType])
@@ -148,7 +146,7 @@
             <!-- Swagger (gated by Cloud subscription status on SaaS) -->
             @if (_organizationActivated && _swaggerIsAllowedToNavigate)
             {
-                <MudNavLink Href="@GetNavigationUrl("Swagger")" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Api">Swagger
+                <MudNavLink Href="@GetNavigationUrl("Swagger")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">Swagger
                 </MudNavLink>
             }
 
@@ -156,34 +154,40 @@
                 <AntiforgeryToken/>
                 <input type="hidden" name="ReturnUrl" value="@_currentUrl"/>
                 <button type="submit" class="mud-nav-link mud-ripple" style="width: 100%; text-align: left; background: none; border: none; font-family: inherit; font-size: inherit; display: flex; align-items: center; padding: 8px 16px;">
-                    <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-3"></MudIcon>
+                    <MudIcon Icon="@SnapCdIcons.Logout" Class="mr-3"></MudIcon>
                     Logout
                 </button>
             </form>
 
         </Authorized>
         <NotAuthorized>
-            <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">
+            <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Person">
                 Register
             </MudNavLink>
-            <MudNavLink Href="Account/Login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Password">Login
+            <MudNavLink Href="Account/Login" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Password">Login
             </MudNavLink>
         </NotAuthorized>
     </AuthorizeView>
 </MudNavMenu>
 
 <style>
-    /* Override MudNavMenu styles for pitch black theme */
     .mud-nav-menu {
-        background-color: #000 !important;
+        background-color: var(--snap-bg-sidebar) !important;
         width: 100% !important;
         max-width: 100% !important;
         overflow-x: hidden !important;
         box-sizing: border-box !important;
     }
 
+    .mud-nav-menu,
+    .mud-nav-menu *,
+    .mud-nav-menu .mud-icon-root,
+    .mud-nav-menu svg {
+        color: var(--snap-btn-text) !important;
+        fill: var(--snap-btn-text) !important;
+    }
+
     .mud-nav-link {
-        color: white !important;
         max-width: 100% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -191,109 +195,17 @@
         box-sizing: border-box !important;
     }
 
-    .mud-nav-link:hover {
-        background-color: rgba(135, 206, 235, 0.2) !important; /* Light blue with opacity */
-        color: white !important;
+    .mud-nav-link:hover,
+    .mud-nav-group .mud-nav-group-header:hover {
+        background-color: rgba(232,236,239,0.1) !important;
     }
 
     .mud-nav-link.mud-nav-link-active {
-        background-color: rgba(135, 206, 235, 0.3) !important; /* Light blue with higher opacity */
-        color: white !important;
-    }
-
-    .mud-nav-link .mud-icon {
-        color: white !important;
-    }
-
-    .mud-nav-group .mud-nav-group-header {
-        color: white !important;
-    }
-
-    .mud-nav-group .mud-nav-group-header .mud-icon {
-        color: white !important;
-    }
-
-    .mud-nav-group .mud-nav-group-header:hover {
-        background-color: rgba(135, 206, 235, 0.2) !important;
-        color: white !important;
-    }
-
-    /* Ensure dropdown arrows are white */
-    .mud-nav-group .mud-nav-group-header .mud-expand-icon {
-        color: white !important;
-    }
-
-    .mud-nav-group .mud-nav-group-header .mud-expand-icon svg {
-        color: white !important;
-        fill: white !important;
+        background-color: rgba(232,236,239,0.15) !important;
     }
 
     .mud-divider {
-        background-color: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    /* Override any theme-specific styles */
-    .mud-nav-menu * {
-        color: white !important;
-    }
-
-    .mud-nav-menu .mud-icon {
-        color: white !important;
-    }
-
-    /* Ensure all SVG icons are white */
-    .mud-nav-menu svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Target all MudBlazor icon classes */
-    .mud-nav-menu .mud-icon-root {
-        color: white !important;
-    }
-
-    .mud-nav-menu .mud-icon-root svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Ensure button icons are white */
-    .mud-nav-menu .mud-button .mud-icon {
-        color: white !important;
-    }
-
-    .mud-nav-menu .mud-button .mud-icon svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Force override for light mode - more specific selectors */
-    .mud-theme-light .mud-nav-menu .mud-icon,
-    .mud-theme-light .mud-nav-menu .mud-icon-root,
-    .mud-theme-light .mud-nav-menu .mud-expand-icon {
-        color: white !important;
-    }
-
-    .mud-theme-light .mud-nav-menu svg,
-    .mud-theme-light .mud-nav-menu .mud-icon svg,
-    .mud-theme-light .mud-nav-menu .mud-icon-root svg,
-    .mud-theme-light .mud-nav-menu .mud-expand-icon svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Target the specific MudBlazor icon classes used in light mode */
-    .mud-nav-menu .mud-nav-link .mud-icon,
-    .mud-nav-menu .mud-nav-group-header .mud-icon,
-    .mud-nav-menu .mud-button-root .mud-icon {
-        color: white !important;
-    }
-
-    .mud-nav-menu .mud-nav-link .mud-icon svg,
-    .mud-nav-menu .mud-nav-group-header .mud-icon svg,
-    .mud-nav-menu .mud-button-root .mud-icon svg {
-        color: white !important;
-        fill: white !important;
+        background-color: rgba(255,255,255,0.15) !important;
     }
 </style>
 
@@ -317,7 +229,7 @@
         {
             _systemNavLinks.Add(new NavLinkItem(
                 "SecretMigrator", NavLinkMatch.All,
-                Icons.Material.Filled.SyncAlt, "Secret Migrator",
+                SnapCdIcons.SyncAlt, "Secret Migrator",
                 typeof(SecretMigrator)));
         }
 
@@ -365,40 +277,40 @@
     // General Section - displayed at the top
     private List<NavLinkItem> _generalNavLinks = new()
     {
-        new NavLinkItem("Stacks", NavLinkMatch.Prefix, Icons.Material.Filled.Layers, "Stacks", typeof(Stacks))
+        new NavLinkItem("Stacks", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Stacks", typeof(Stacks))
     };
 
     // System Section - collapsible group
     private List<NavLinkItem> _systemNavLinks = new()
     {
-        new NavLinkItem("Runners", NavLinkMatch.All, "material-symbols-outlined/manufacturing", "Runners", typeof(Runners)),
-        new NavLinkItem("Agents", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agents", typeof(Agents)),
-        new NavLinkItem("Integrations", NavLinkMatch.All, Icons.Material.Filled.Hub, "Integrations", typeof(Integrations)),
-        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, "material-symbols-outlined/code", "Source Refreshers", typeof(SourceRefresherPreselections)),
-        new NavLinkItem("StateStores", NavLinkMatch.All, Icons.Material.Filled.Storage, "State Stores", typeof(StateStores)),
-        new NavLinkItem("PreviewFeatures", NavLinkMatch.All, Icons.Material.Filled.Science, "Preview Features", typeof(PreviewFeatures))
+        new NavLinkItem("Runners", NavLinkMatch.All, SnapCdIcons.Manufacturing, "Runners", typeof(Runners)),
+        new NavLinkItem("Agents", NavLinkMatch.All, SnapCdIcons.SmartToy, "Agents", typeof(Agents)),
+        new NavLinkItem("Integrations", NavLinkMatch.All, SnapCdIcons.Hub, "Integrations", typeof(Integrations)),
+        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, SnapCdIcons.Code, "Source Refreshers", typeof(SourceRefresherPreselections)),
+        new NavLinkItem("StateStores", NavLinkMatch.All, SnapCdIcons.Storage, "State Stores", typeof(StateStores)),
+        new NavLinkItem("PreviewFeatures", NavLinkMatch.All, SnapCdIcons.Science, "Preview Features", typeof(PreviewFeatures))
     };
 
     // Tests Section - collapsible group, dev only
     private List<NavLinkItem> _testsNavLinks = new()
     {
-        new NavLinkItem("MissionTestBench", NavLinkMatch.All, Icons.Material.Filled.Science, "Mission test bench", typeof(MissionTestBench)),
-        new NavLinkItem("IntegrationTestBench", NavLinkMatch.All, Icons.Material.Filled.Hub, "Integration test bench", typeof(IntegrationTestBench))
+        new NavLinkItem("MissionTestBench", NavLinkMatch.All, SnapCdIcons.Science, "Mission test bench", typeof(MissionTestBench)),
+        new NavLinkItem("IntegrationTestBench", NavLinkMatch.All, SnapCdIcons.Hub, "Integration test bench", typeof(IntegrationTestBench))
     };
 
     // Identity Access Section - collapsible group
     private List<NavLinkItem> _identityAccessNavLinks = new()
     {
-        new NavLinkItem("Users", NavLinkMatch.All, Icons.Material.Filled.Person, "Users", typeof(Users)),
-        new NavLinkItem("Groups", NavLinkMatch.All, @Icons.Material.Filled.Group, "Groups", typeof(Groups)),
-        new NavLinkItem("ServicePrincipals", NavLinkMatch.All, Icons.Material.Filled.Terminal, "Service Principals", typeof(ServicePrincipals))
+        new NavLinkItem("Users", NavLinkMatch.All, SnapCdIcons.Person, "Users", typeof(Users)),
+        new NavLinkItem("Groups", NavLinkMatch.All, @SnapCdIcons.Group, "Groups", typeof(Groups)),
+        new NavLinkItem("ServicePrincipals", NavLinkMatch.All, SnapCdIcons.Terminal, "Service Principals", typeof(ServicePrincipals))
     };
 
 
     // Account Section - collapsible group
     private List<NavLinkItem> _accountNavLinks = new()
     {
-        new NavLinkItem("Account", NavLinkMatch.Prefix, Icons.Material.Filled.AccountCircle, "Account", typeof(Index))
+        new NavLinkItem("Account", NavLinkMatch.Prefix, SnapCdIcons.AccountCircle, "Account", typeof(Index))
     };
 
     private record NavLinkItem(string Href, NavLinkMatch Match, string Icon, string Text, Type PageType);

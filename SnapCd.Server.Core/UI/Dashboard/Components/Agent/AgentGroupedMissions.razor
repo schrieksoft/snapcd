@@ -46,12 +46,12 @@
                     <MudTd>
                         @if (OnEdit.HasDelegate)
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Edit" Size="Size.Small"
                                            OnClick="@(() => OnEdit.InvokeAsync(context))"/>
                         }
                         @if (OnDelete.HasDelegate)
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Size="Size.Small" Color="Color.Error"
                                            OnClick="@(() => OnDelete.InvokeAsync(context))"/>
                         }
                     </MudTd>

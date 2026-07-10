@@ -251,7 +251,7 @@
                                     <span class="provider-icon">@((MarkupString)iconHtml)</span>
                                 </MudTooltip>
                             </button>
-                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                            <MudIconButton Icon="@SnapCdIcons.Close"
                                            Color="Color.Error"
                                            Size="Size.Small"
                                            OnClick="() => NavigateToRemoveLogin(login.LoginProvider, login.ProviderKey)"
@@ -306,7 +306,7 @@
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
                     <MudText Typo="Typo.subtitle2" GutterBottom="true">Generated Token</MudText>
                     <MudIconButton
-                        Icon="@Icons.Material.Filled.Close"
+                        Icon="@SnapCdIcons.Close"
                         OnClick="CloseTokenPanel"
                         Color="Color.Inherit"
                         Size="Size.Small"
@@ -381,7 +381,7 @@
                 </MudTd>
                 <MudTd DataLabel="Actions">
                     <MudButton OnClick="() => RevokeToken(context.Id)" Variant="Variant.Text" Color="Color.Info">
-                        <MudIcon Icon="@Icons.Material.Filled.Delete"/>
+                        <MudIcon Icon="@SnapCdIcons.Delete"/>
                     </MudButton>
                 </MudTd>
             </RowTemplate>

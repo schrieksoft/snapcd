@@ -88,37 +88,37 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Edit Integration">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(i.Id, ShowingType.Edit)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.Edit)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Integration Events">
-                            <MudIconButton Icon="@Icons.Material.Filled.Bolt"
+                            <MudIconButton Icon="@SnapCdIcons.Bolt"
                                            Color="@GetColor(i.Id, ShowingType.IntegrationEvents)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.IntegrationEvents)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Supplies">
-                            <MudIconButton Icon="@Icons.Material.Filled.Layers"
+                            <MudIconButton Icon="@SnapCdIcons.Layers"
                                            Color="@GetColor(i.Id, ShowingType.Supplies)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.Supplies)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Roles">
-                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(i.Id, ShowingType.Roles)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.Roles)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Test Connection">
-                            <MudIconButton Icon="@Icons.Material.Filled.NetworkCheck"
+                            <MudIconButton Icon="@SnapCdIcons.NetworkCheck"
                                            Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Test(i.Id)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete Integration">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Delete(i.Id)"/>
                         </MudTooltip>
 

@@ -36,7 +36,7 @@
 
 
 @* <MudTooltip Text="Refresh"> *@
-@*     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium" *@
+@*     <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium" *@
 @*                    OnClick="() => ReloadModuleJobs()"/> *@
 @* </MudTooltip> *@
 
@@ -65,12 +65,12 @@ else
 
             var iconType = job.Status switch
             {
-                ExecutionStatus.Running => Icons.Material.Filled.RunCircle,
-                ExecutionStatus.Completed => Icons.Material.Filled.CheckCircle,
-                ExecutionStatus.Failed => Icons.Material.Filled.Error,
-                ExecutionStatus.NotApproved => Icons.Material.Filled.ThumbDownAlt,
-                ExecutionStatus.Cancelled => Icons.Material.Filled.StopCircle,
-                _ => Icons.Material.Filled.RunCircle
+                ExecutionStatus.Running => SnapCdIcons.RunCircle,
+                ExecutionStatus.Completed => SnapCdIcons.CheckCircle,
+                ExecutionStatus.Failed => SnapCdIcons.Error,
+                ExecutionStatus.NotApproved => SnapCdIcons.ThumbDownAlt,
+                ExecutionStatus.Cancelled => SnapCdIcons.StopCircle,
+                _ => SnapCdIcons.RunCircle
             };
 
             var elapsedTime = DateTimeOffset.UtcNow - job.TimestampStart;
@@ -96,7 +96,7 @@ else
                                 {
                                     <MudItem md="6">
                                         <MudTooltip Text="Cancel Job">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                            <MudIconButton Icon="@SnapCdIcons.Cancel"
                                                            Color="Color.Primary" Size="Size.Small"
                                                            OnClick="() => CancelJob(job.Id)"/>
                                         </MudTooltip>
@@ -137,7 +137,7 @@ else
                             @if (job.WaitingForApproval == true)
                             {
                                 <MudAlert Severity="Severity.Info" Class="mt-4">
-                                    <MudIcon Icon="@Icons.Material.Filled.Approval" Class="mr-2"/>
+                                    <MudIcon Icon="@SnapCdIcons.Approval" Class="mr-2"/>
                                     This job is waiting for approval. Please review and approve in the Approvals tab.
                                 </MudAlert>
                             }

@@ -87,38 +87,38 @@
                         @if (!runner.IsDisabled)
                         {
                             <MudTooltip Text="Runner is enabled, click to disable">
-                                <MudIconButton Icon="@Icons.Material.Filled.PlayDisabled" Color="Color.Primary"
+                                <MudIconButton Icon="@SnapCdIcons.PlayDisabled" Color="Color.Primary"
                                                Size="Size.Small" OnClick="() => DeactivateRunner(runner)"/>
                             </MudTooltip>
                         }
                         else
                         {
                             <MudTooltip Text="Runner is disabled, click to enable">
-                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Secondary"
+                                <MudIconButton Icon="@SnapCdIcons.PlayArrow" Color="Color.Secondary"
                                                Size="Size.Small" OnClick="() => ActivateRunner(runner)"/>
                             </MudTooltip>
                         }
 
                         <MudTooltip Text="Edit Runner">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(runner.Id, ShowingType.Edit)" Size="Size.Small"
                                            OnClick="() => Edit(runner)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Where Runner can be used from">
-                            <MudIconButton Icon="@Icons.Material.Filled.Layers"
+                            <MudIconButton Icon="@SnapCdIcons.Layers"
                                            Color="@GetColor(runner.Id, ShowingType.Supplies)" Size="Size.Small"
                                            OnClick="() => ManageSupplies(runner)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Roles">
-                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(runner.Id, ShowingType.Roles)" Size="Size.Small"
                                            OnClick="() => ManageRoles(runner)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete Runner">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Delete(runner)"/>
                         </MudTooltip>
 
