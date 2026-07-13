@@ -188,12 +188,14 @@
             @if (IsCreateMode)
             {
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
                            OnClick="CreateItem">
                     Create
                 </MudButton>
 
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
                            OnClick="Cancel">
                     Cancel
@@ -202,6 +204,7 @@
             else
             {
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
                            Disabled="@(!HasChanges)"
                            OnClick="UpdateItem">
@@ -209,6 +212,7 @@
                 </MudButton>
 
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
                            StartIcon="@SnapCdIcons.Delete"
                            OnClick="DeleteItem">

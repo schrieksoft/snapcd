@@ -38,9 +38,7 @@
   --snap-code-bg: #12171D;
   --snap-code-text: #E8ECEF;
 
-  --snap-btn-bg: #12171D;
-  --snap-btn-text: #E8ECEF;
-  --snap-btn-hover: #2B333C;
+  --snap-sidebar-text: #E8ECEF;
 
   --snap-shadow-sm: 0 1px 2px rgba(18,23,29,0.06);
   --snap-shadow-md: 0 2px 4px rgba(18,23,29,0.08), 0 1px 2px rgba(18,23,29,0.04);
@@ -84,17 +82,3 @@
   text-transform: lowercase !important;
 }
 
-.mud-button-filled.mud-button-filled-secondary {
-  background-color: var(--snap-btn-bg) !important;
-  color: var(--snap-btn-text) !important;
-}
-
-.mud-button-filled.mud-button-filled-secondary:hover {
-  background-color: var(--snap-btn-hover) !important;
-  color: var(--snap-btn-text) !important;
-}
-
-.mud-button-filled.mud-button-filled-secondary:focus {
-  background-color: var(--snap-btn-bg) !important;
-  color: var(--snap-btn-text) !important;
-}

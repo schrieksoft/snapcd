@@ -76,7 +76,7 @@
                               HelperText="Your last name as it appears on your account."/>
 
                 <div>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" ButtonType="ButtonType.Submit">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" ButtonType="ButtonType.Submit" Size="Size.Small">
                         Save Changes
                     </MudButton>
                 </div>
@@ -106,6 +106,7 @@
         <div class="button-group mt-4">
             <MudButton Variant="Variant.Filled"
                        Color="Color.Secondary"
+                       Size="Size.Small"
                        OnClick="NavigateToResetPassword"
                        Class="profile-btn">
                 Reset Password
@@ -115,6 +116,7 @@
             {
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToRemovePassword"
                            Class="profile-btn">
                     Remove Password
@@ -181,6 +183,7 @@
             {
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToRegisterAuthenticator"
                            Class="profile-btn">
                     Add Authenticator
@@ -192,6 +195,7 @@
                 {
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="NavigateToDisable2fa"
                                Class="profile-btn">
                         Disable 2FA
@@ -201,6 +205,7 @@
                 {
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="NavigateToEnable2fa"
                                Class="profile-btn">
                         Enable 2FA
@@ -209,6 +214,7 @@
 
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToResetAuthenticator"
                            Class="profile-btn">
                     Reset Authenticator
@@ -219,6 +225,7 @@
             {
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToGenerateRecoveryCodes"
                            Class="profile-btn">
                     Generate Recovery Codes
@@ -319,13 +326,13 @@
                         InputType="@DisplayedTokenType"
                         Style="width: 600px; margin-right: 1rem;"/>
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
                                Size="Size.Small"
                                OnClick="ToggleShowToken">
                         @ShowTokenText
                     </MudButton>
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
                                Size="Size.Small"
                                OnClick="CopyToken">
                         Copy Token
@@ -340,6 +347,7 @@
 
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
+                   Size="Size.Small"
                    OnClick="ToggleTokenForm"
                    Class="profile-btn mt-4 mb-4">
             Generate New Token
@@ -358,6 +366,7 @@
                 </MudStack>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="GenerateToken"
                            Class="profile-btn mt-4 mb-4">
                     Submit
@@ -380,7 +389,7 @@
                     }
                 </MudTd>
                 <MudTd DataLabel="Actions">
-                    <MudButton OnClick="() => RevokeToken(context.Id)" Variant="Variant.Text" Color="Color.Info">
+                    <MudButton OnClick="() => RevokeToken(context.Id)" Variant="Variant.Text" Color="Color.Default">
                         <MudIcon Icon="@SnapCdIcons.Delete"/>
                     </MudButton>
                 </MudTd>

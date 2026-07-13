@@ -46,20 +46,20 @@
 
     @if (_showCreate)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateServicePrincipal OnCreated="HandleCreated" OnCancel="HandleCancelCreate"/>
-        </MudItem>
+        </MudPaper>
     }
-
     else
     {
-        <MudButton
-            Variant="Variant.Filled"
-            Color="Color.Secondary"
-            Class="mt-2 mb-2"
-            OnClick="ShowCreate">
-            Create New
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreate">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_servicePrincipals == null)
@@ -95,7 +95,7 @@
                         {
                             <MudTooltip Text="Service principal is disabled, click to enable">
                                 <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
-                                               Size="Size.Small"
+                                                                          Size="Size.Small"
                                                OnClick="() => ActivateServicePrincipal(servicePrincipal)"/>
                             </MudTooltip>
                         }
@@ -245,7 +245,7 @@
         if (_selectedServicePrincipal == null)
             return Color.Primary;
         if (servicePrincipalId == _selectedServicePrincipal.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 

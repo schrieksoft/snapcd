@@ -94,7 +94,7 @@
                 <MudCheckBox T="bool"
                              Value="@_applyExternalModules"
                              Label="Also apply these prerequisite modules"
-                             Color="Color.Info"
+                             Color="Color.Default"
                              Class="mb-3"
                              Disabled="@_isApplying"
                              ValueChanged="@OnApplyExternalModulesChanged"
@@ -162,8 +162,8 @@
             var filteredGraph = GetFilteredGraph();
             var uninvolvedCount = GetUninvolvedModuleIds().Count;
             var involvedCount = filteredGraph.NodeStates.Count - uninvolvedCount;
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="ExecuteNamespaceApplication"
                        Disabled="@_isApplying">
                 @if (_isApplying)
@@ -177,8 +177,9 @@
             </MudButton>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="Cancel"
                    Disabled="@_isApplying">
             Cancel

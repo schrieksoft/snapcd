@@ -212,22 +212,26 @@
 
                 @if (!_showApplyComponent && !_showDestroyComponent)
                 {
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowApplyComponent">
-                        Apply Module
-                    </MudButton>
+                    <MudStack Row Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="ShowApplyComponent">
+                            Apply
+                        </MudButton>
 
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowDestroyComponent">
-                        Destroy Module
-                    </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="ShowDestroyComponent">
+                            Destroy
+                        </MudButton>
+                    </MudStack>
                 }
 
                 @if (_showApplyComponent)
                 {
-                    <MudText Typo="Typo.h6" Class="mb-3">Apply Module</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-3">Apply</MudText>
 
                     @if (_moduleCanBeApplied)
                     {
@@ -235,7 +239,7 @@
                             <strong>Module to be applied:</strong>
                         </MudText>
                         <div class="d-flex align-center gap-2 mb-3">
-                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                            <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                      Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
                             @if (!_hasApplyPermission)
                             {
@@ -270,14 +274,14 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_applyPrerequisiteModules"
                                      Label="Also apply these prerequisite modules"
-                                     Color="Color.Info"
+                                     Color="Color.Default"
                                      Class="mb-3"/>
 
                         <div class="d-flex flex-column gap-1 mb-3">
                             @foreach (var module in _prerequisiteModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -339,7 +343,7 @@
 
                 @if (_showDestroyComponent)
                 {
-                    <MudText Typo="Typo.h6" Class="mb-3">Destroy Module</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-3">Destroy</MudText>
 
                     @if (_moduleCanBeDestroyed)
                     {
@@ -347,7 +351,7 @@
                             <strong>Module to be destroyed:</strong>
                         </MudText>
                         <div class="d-flex align-center gap-2 mb-3">
-                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                            <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                      Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
                             @if (!_hasDestroyPermission)
                             {
@@ -382,14 +386,14 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_destroyDependentModules"
                                      Label="Also destroy these dependent modules"
-                                     Color="Color.Info"
+                                     Color="Color.Default"
                                      Class="mb-3"/>
 
                         <div class="d-flex flex-column gap-1 mb-3">
                             @foreach (var module in _dependentModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -453,6 +457,7 @@
                     <MudStack Row>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="ExecuteDestroy"
                                    Disabled="@(_isDestroying || !CanExecuteDestroy())">
                             @if (_isDestroying)
@@ -1313,7 +1318,7 @@
 
     private Color GetColor(ShowingType showTypeToMatch)
     {
-        return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
     }
 
     private void SwitchShowing(ShowingType newShowing)

@@ -41,19 +41,21 @@
 
     @if (_showCreateAgent)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateAgent OnCreated="HandleAgentCreated"
                          OnCancel="HandleCancelCreate"/>
-        </MudItem>
+        </MudPaper>
     }
     else
     {
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: #000; color: #fff;"
-                   OnClick="ShowCreateAgent"
-                   Class="mt-2 mb-2">
-            Create New
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreateAgent">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_agents == null)
@@ -91,7 +93,7 @@
                         {
                             <MudTooltip Text="Agent is disabled, click to enable">
                                 <MudIconButton Icon="@SnapCdIcons.PlayArrow" Color="Color.Secondary"
-                                               Size="Size.Small" OnClick="() => ActivateAgent(agent)"/>
+                                                                             Size="Size.Small" OnClick="() => ActivateAgent(agent)"/>
                             </MudTooltip>
                         }
 
@@ -114,7 +116,7 @@
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Missions">
-                            <MudIconButton Icon="material-symbols-outlined/automation"
+                            <MudIconButton Icon="@SnapCdIcons.Automation"
                                            Color="@GetColor(agent.Id, ShowingType.Missions)" Size="Size.Small"
                                            OnClick="() => ManageMissions(agent)"/>
                         </MudTooltip>
@@ -209,7 +211,7 @@
     {
         if (_selectedAgent == null) return Color.Primary;
         if (agentId == _selectedAgent.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 

@@ -31,6 +31,7 @@
         else
         {
             <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="() => CreateMember(GroupMemberDiscriminator.User)"
                        Class="mt-2 mb-2">Add Member
             </MudButton>
@@ -70,6 +71,7 @@
         else
         {
             <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="() => CreateMember(GroupMemberDiscriminator.ServicePrincipal)" Class="mt-2 mb-2">Add
                 Member
             </MudButton>
@@ -104,12 +106,6 @@
 </MudTabs>
 
 
-<MudButton
-    Variant="Variant.Filled"
-    Color="Color.Secondary"
-    Class="mt-2 mb-2"
-    OnClick="Close">Close
-</MudButton>
 
 @code {
     [Parameter] public Guid GroupId { get; set; }

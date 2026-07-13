@@ -41,19 +41,21 @@
 
     @if (_showCreate)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateStateStore OnCreated="HandleCreated"
                               OnCancel="HandleCancelCreate"/>
-        </MudItem>
+        </MudPaper>
     }
     else
     {
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   OnClick="ShowCreate"
-                   Class="mt-2 mb-2">
-            Create New
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreate">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_stateStores == null)
@@ -155,7 +157,7 @@
         if (_selectedStateStore == null)
             return Color.Primary;
         if (id == _selectedStateStore.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 

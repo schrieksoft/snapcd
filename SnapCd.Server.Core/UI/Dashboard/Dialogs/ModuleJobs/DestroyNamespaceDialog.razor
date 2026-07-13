@@ -93,7 +93,7 @@
                 <MudCheckBox T="bool"
                              Value="@_destroyExternalModules"
                              Label="Also destroy these dependent modules"
-                             Color="Color.Info"
+                             Color="Color.Default"
                              Class="mb-3"
                              Disabled="@_isDestroying"
                              ValueChanged="@OnDestroyExternalModulesChanged"
@@ -163,8 +163,8 @@
             var filteredGraph = GetFilteredGraph();
             var uninvolvedCount = GetUninvolvedModuleIds().Count;
             var involvedCount = filteredGraph.NodeStates.Count - uninvolvedCount;
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="ExecuteNamespaceDestruction"
                        Disabled="@_isDestroying">
                 @if (_isDestroying)
@@ -178,8 +178,9 @@
             </MudButton>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="Cancel"
                    Disabled="@_isDestroying">
             Cancel

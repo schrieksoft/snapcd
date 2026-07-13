@@ -46,7 +46,7 @@ else
     {
         // Get theme from cookie for SSR pages
         var themeCookie = HttpContext?.Request.Cookies["theme"];
-        _isDarkMode = themeCookie == "dark";
+        _isDarkMode = themeCookie != "light";
 
         // Subscribe to theme changes for interactive pages
         ThemeService.Initialize(_isDarkMode);

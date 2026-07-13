@@ -16,8 +16,8 @@
         <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required"/>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_name)">Save</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_name)" Size="Size.Small">Save</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
 

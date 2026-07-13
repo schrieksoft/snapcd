@@ -34,13 +34,13 @@ else if (_dependencyGraph != null)
     <MudStack Class="mb-3">
         <MudSwitch Value="_showOnlyDirectDependencies"
                    ValueChanged="@(async (bool val) => await OnShowDirectDependenciesChanged(val))"
-                   Color="Color.Info">
+                   Color="Color.Default">
             Only Show Direct Dependencies
         </MudSwitch>
         <MudTooltip Text="@GetToggleTooltipText()">
             <MudSwitch Value="_showDestroyGraph"
                        ValueChanged="@(async (bool val) => await OnShowDestroyGraphChanged(val))"
-                       Color="Color.Info"
+                       Color="Color.Default"
                        Disabled="DisableDirectionToggle">
                 Show Destroy Graph
             </MudSwitch>

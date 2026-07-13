@@ -108,7 +108,8 @@ else
                     }
 
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
                                Disabled="_debugModuleExists is not true || _triggering"
                                OnClick="TriggerEvent">
                         <MudIcon Icon="@SnapCdIcons.PlayArrow" Class="mr-2" />
@@ -140,7 +141,8 @@ else
                     </MudText>
 
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
                                Disabled="_debugModuleExists is not true || _dryRunning"
                                OnClick="DryRun">
                         <MudIcon Icon="@SnapCdIcons.Search" Class="mr-2" />

@@ -46,20 +46,21 @@
 
     @if (_showCreateGroup)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateGroup OnCreated="HandleGroupCreated"
                          OnCancel="HandleCancelCreate"/>
-        </MudItem>
+        </MudPaper>
     }
-
     else
     {
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   OnClick="ShowCreateGroup"
-                   Class="mt-2 mb-2">
-            Create New
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreateGroup">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_groups == null)
@@ -166,7 +167,7 @@
         if (_selectedGroup == null)
             return Color.Primary;
         if (groupId == _selectedGroup.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 

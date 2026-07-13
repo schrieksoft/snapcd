@@ -21,7 +21,8 @@
         @if (!_showCreateStackSupply)
         {
             <MudButton Variant="Variant.Filled"
-                       Style="background-color: #000; color: #fff;"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
                        Class="mt-2 mb-2"
                        OnClick="ShowCreateStackSupply">
                 Create New
@@ -58,7 +59,8 @@
         @if (!_showCreateNamespaceSupply)
         {
             <MudButton Variant="Variant.Filled"
-                       Style="background-color: #000; color: #fff;"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
                        Class="mt-2 mb-2"
                        OnClick="ShowCreateNamespaceSupply">
                 Create New
@@ -96,7 +98,8 @@
         @if (!_showCreateModuleSupply)
         {
             <MudButton Variant="Variant.Filled"
-                       Style="background-color: #000; color: #fff;"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
                        Class="mt-2 mb-2"
                        OnClick="ShowCreateModuleSupply">
                 Create New
@@ -129,12 +132,6 @@
             }
         </MudExpansionPanels>
     </MudTabPanel>
-    <MudButton
-        Variant="Variant.Filled"
-        Style="background-color: #000; color: #fff;"
-        Class="mt-2 mb-2"
-        OnClick="Close">Close
-    </MudButton>
 </MudTabs>
 
 @code {

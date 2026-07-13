@@ -43,19 +43,20 @@
 
     @if (_showInvite)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <InviteUser OnInvited="HandleInvited" OnCancel="HandleCancelInvite"/>
-        </MudItem>
+        </MudPaper>
     }
     else
     {
-        <MudButton
-            Variant="Variant.Filled"
-            Color="Color.Secondary"
-            Class="mt-2 mb-2"
-            OnClick="ShowInvite">
-            Invite User
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowInvite">
+                Invite User
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_organizationUsers == null)
@@ -106,7 +107,7 @@
                             {
                                 <MudTooltip Text="User is deactivated, click to activate">
                                     <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
-                                                   Size="Size.Small"
+                                                                              Size="Size.Small"
                                                    OnClick="() => ActivateUser(orgUser)"/>
                                 </MudTooltip>
                             }
@@ -186,7 +187,7 @@
                                     <ChildContent>
                                         <MudTooltip Text="Reactivate user">
                                             <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
-                                                           Size="Size.Small"
+                                                                                      Size="Size.Small"
                                                            OnClick="() => ActivateUser(orgUser)"/>
                                         </MudTooltip>
 
@@ -346,7 +347,7 @@
         if (_selectedUser == null)
             return Color.Primary;
         if (orgUserId == _selectedUser.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 

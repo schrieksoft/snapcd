@@ -101,7 +101,7 @@
                                                                         @foreach (var dep in node.DependentModules)
                                                                         {
                                                                             <MudChip T="string" Size="Size.Small"
-                                                                                     Color="Color.Info"
+                                                                                     Color="Color.Default"
                                                                                      Variant="Variant.Text"
                                                                                      OnClick="@(() => Navigation.NavigateTo($"/Stacks/{dep}"))">
                                                                                 @dep
@@ -125,7 +125,7 @@
                                                                         @foreach (var trigger in node.DependencyModules)
                                                                         {
                                                                             <MudChip T="string" Size="Size.Small"
-                                                                                     Color="Color.Info"
+                                                                                     Color="Color.Default"
                                                                                      Variant="Variant.Text"
                                                                                      OnClick="@(() => Navigation.NavigateTo($"/Stacks/{trigger}"))">
                                                                                 @trigger

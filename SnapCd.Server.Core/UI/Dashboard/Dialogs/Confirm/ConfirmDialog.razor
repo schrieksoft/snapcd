@@ -21,11 +21,13 @@
     <DialogActions>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
+                   Size="Size.Small"
                    OnClick="Cancel">
             Cancel
         </MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
+                   Size="Size.Small"
                    OnClick="Submit"
                    Disabled="@(RequireConfirmation && userInput != ConfirmationText)">
             @ButtonText

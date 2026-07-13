@@ -9,6 +9,10 @@ public static class SnapCdTheme
 {
     private static readonly string[] FontFamily = ["Geist Sans", "system-ui", "-apple-system", "sans-serif"];
 
+    private const string AccentColor = "#E85D1A";
+    private const string AccentHover = "#DC5414";
+    private const string AccentTint = "#FDEEE3";
+
     public static MudTheme Default { get; } = new()
     {
         PaletteLight = new PaletteLight
@@ -16,12 +20,13 @@ public static class SnapCdTheme
             Primary = "#12171D",
             PrimaryDarken = "#0E1216",
             PrimaryLighten = "#2B333C",
-            Secondary = "#12171D",
-            SecondaryDarken = "#0E1216",
-            SecondaryLighten = "#2B333C",
-            Tertiary = "#E85D1A",
-            TertiaryDarken = "#C1470C",
-            TertiaryLighten = "#FDEEE3",
+            Secondary = AccentColor,
+            SecondaryDarken = AccentHover,
+            SecondaryLighten = AccentTint,
+            SecondaryContrastText = "#FFFFFF",
+            Tertiary = "#12171D",
+            TertiaryDarken = "#0E1216",
+            TertiaryLighten = "#2B333C",
             Info = "#4E8AF4",
             Success = "#00B368",
             Warning = "#D9A514",
@@ -49,17 +54,18 @@ public static class SnapCdTheme
             Primary = "#E8ECEF",
             PrimaryDarken = "#9AA5B0",
             PrimaryLighten = "#FFFFFF",
-            Secondary = "#12171D",
-            SecondaryDarken = "#0E1216",
-            SecondaryLighten = "#2B333C",
-            Tertiary = "#E85D1A",
-            TertiaryDarken = "#C1470C",
-            TertiaryLighten = "#FDEEE3",
+            Secondary = AccentColor,
+            SecondaryDarken = AccentHover,
+            SecondaryLighten = AccentTint,
+            SecondaryContrastText = "#FFFFFF",
+            Tertiary = "#12171D",
+            TertiaryDarken = "#0E1216",
+            TertiaryLighten = "#2B333C",
             Info = "#4E8AF4",
             Success = "#00B368",
             Warning = "#D9A514",
             Error = "#DB4A3F",
-            Dark = "#12171D",
+            Dark = "#000000",
             TextPrimary = "#E8ECEF",
             TextSecondary = "#9AA5B0",
             TextDisabled = "#6B7681",

@@ -121,8 +121,11 @@
     .drawer-toggle-button,
     .drawer-toggle-button .mud-icon-root,
     .drawer-toggle-button svg {
-        color: var(--snap-btn-text) !important;
-        fill: var(--snap-btn-text) !important;
+        color: var(--snap-sidebar-text) !important;
+    }
+
+    .drawer-toggle-button svg path:not([fill="none"]) {
+        fill: var(--snap-sidebar-text) !important;
     }
 
     .drawer-toggle-button.drawer-open {
@@ -134,7 +137,7 @@
     }
 
     .drawer-toggle-button:hover {
-        background-color: var(--snap-btn-hover);
+        background-color: var(--snap-bg-raised);
     }
 
     .mud-drawer .mud-drawer-content {
@@ -142,11 +145,17 @@
     }
 
     .mud-drawer .mud-drawer-content,
-    .mud-drawer .mud-drawer-content *,
+    .mud-drawer .mud-drawer-content * {
+        color: var(--snap-sidebar-text) !important;
+    }
+
     .mud-drawer .mud-drawer-content .mud-icon-root,
     .mud-drawer .mud-drawer-content svg {
-        color: var(--snap-btn-text) !important;
-        fill: var(--snap-btn-text) !important;
+        color: var(--snap-sidebar-text) !important;
+    }
+
+    .mud-drawer .mud-drawer-content svg path:not([fill="none"]) {
+        fill: var(--snap-sidebar-text) !important;
     }
 </style>
 
@@ -167,7 +176,7 @@
     protected override void OnInitialized()
     {
         var themeCookie = HttpContextAccessor.HttpContext?.Request.Cookies["theme"];
-        ThemeService.Initialize(themeCookie == "dark");
+        ThemeService.Initialize(themeCookie != "light");
         _isDarkMode = ThemeService.IsDarkMode;
         ThemeService.OnThemeChanged += ThemeChanged;
     }

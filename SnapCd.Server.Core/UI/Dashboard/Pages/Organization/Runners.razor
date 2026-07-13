@@ -44,21 +44,21 @@
 
     @if (_showCreateRunner)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateRunner OnCreated="HandleRunnerCreated"
-                              OnCancel="HandleCancelCreate"/>
-        </MudItem>
+                          OnCancel="HandleCancelCreate"/>
+        </MudPaper>
     }
-
     else
     {
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   OnClick="ShowCreateRunner"
-                   Class="mt-2 mb-2"
-        >
-            Create New
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreateRunner">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_runners == null)
@@ -70,7 +70,8 @@
         <MudExpansionPanels>
             @foreach (var runner in _runners)
             {
-                <MudExpansionPanel>
+                <MudExpansionPanel Expanded="@(runner.Id == _expandedId)"
+                                   ExpandedChanged="@(e => HandleExpansionChanged(runner.Id, e))">
                     <TitleContent>
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -95,26 +96,26 @@
                         {
                             <MudTooltip Text="Runner is disabled, click to enable">
                                 <MudIconButton Icon="@SnapCdIcons.PlayArrow" Color="Color.Secondary"
-                                               Size="Size.Small" OnClick="() => ActivateRunner(runner)"/>
+                                                                             Size="Size.Small" OnClick="() => ActivateRunner(runner)"/>
                             </MudTooltip>
                         }
 
                         <MudTooltip Text="Edit Runner">
                             <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(runner.Id, ShowingType.Edit)" Size="Size.Small"
-                                           OnClick="() => Edit(runner)"/>
+                                           OnClick="() => Select(runner, ShowingType.Edit)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Where Runner can be used from">
                             <MudIconButton Icon="@SnapCdIcons.Layers"
                                            Color="@GetColor(runner.Id, ShowingType.Supplies)" Size="Size.Small"
-                                           OnClick="() => ManageSupplies(runner)"/>
+                                           OnClick="() => Select(runner, ShowingType.Supplies)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Roles">
                             <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(runner.Id, ShowingType.Roles)" Size="Size.Small"
-                                           OnClick="() => ManageRoles(runner)"/>
+                                           OnClick="() => Select(runner, ShowingType.Roles)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete Runner">
@@ -163,13 +164,16 @@
     [Inject] private RunnerSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
+    [SupplyParameterFromQuery] public string? Runner { get; set; }
+    [SupplyParameterFromQuery] public string? Action { get; set; }
+
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
-    private List<Runner>? _runners;
+    private List<Entities.Definition.Runner>? _runners;
     private bool _showCreateRunner;
-    private Runner? _selectedRunner;
+    private Entities.Definition.Runner? _selectedRunner;
+    private Guid? _expandedId;
     private ShowingType _showing;
-
 
     private enum ShowingType
     {
@@ -184,7 +188,7 @@
         if (_selectedRunner == null)
             return Color.Primary;
         if (runnerId == _selectedRunner.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 
@@ -192,14 +196,8 @@
     {
         if (_selectedRunner == null)
             return false;
-        if (runnerId == _selectedRunner.Id && _showing == showTypeToMatch)
-        {
-            return true;
-        }
-
-        return false;
+        return runnerId == _selectedRunner.Id && _showing == showTypeToMatch;
     }
-
 
     private void ShowCreateRunner()
     {
@@ -212,18 +210,7 @@
         await ReloadRunners();
     }
 
-
-    private void HandleSuppliesClosed()
-    {
-        _selectedRunner = null;
-        _showing = ShowingType.None;
-    }
-
-    private void HandleServicePrincipalSuppliesClosed()
-    {
-        _selectedRunner = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleSuppliesClosed() => ClearSelection();
 
     private void HandleCancelCreate()
     {
@@ -232,8 +219,70 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Ensure organizationId is in URL, redirect if missing
         await ReloadRunners();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_runners is null) return;
+        if (Guid.TryParse(Runner, out var id))
+        {
+            var match = _runners.FirstOrDefault(r => r.Id == id);
+            if (match is not null)
+            {
+                _expandedId = id;
+                if (!string.IsNullOrEmpty(Action)
+                    && Enum.TryParse<ShowingType>(Action, ignoreCase: true, out var parsed)
+                    && parsed != ShowingType.None)
+                {
+                    _selectedRunner = match;
+                    _showing = parsed;
+                }
+            }
+        }
+    }
+
+    private void HandleExpansionChanged(Guid id, bool expanded)
+    {
+        if (expanded)
+        {
+            _expandedId = id;
+        }
+        else if (_expandedId == id)
+        {
+            _expandedId = null;
+            if (_selectedRunner?.Id == id)
+            {
+                _selectedRunner = null;
+                _showing = ShowingType.None;
+            }
+        }
+        UpdateUrl();
+    }
+
+    private void UpdateUrl()
+    {
+        var query = new Dictionary<string, object?>();
+        if (_expandedId is { } eid) query["runner"] = eid.ToString();
+        if (_selectedRunner is not null && _showing != ShowingType.None)
+            query["action"] = _showing.ToString().ToLowerInvariant();
+        var url = NavigationManager.GetUriWithQueryParameters("/Runners", query);
+        NavigationManager.NavigateTo(url, forceLoad: false, replace: true);
+    }
+
+    private void Select(Entities.Definition.Runner entity, ShowingType action)
+    {
+        _selectedRunner = entity;
+        _expandedId = entity.Id;
+        _showing = action;
+        UpdateUrl();
+    }
+
+    private void ClearSelection()
+    {
+        _selectedRunner = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
     }
 
     private async Task ReloadRunners()
@@ -242,8 +291,7 @@
         _runners = await repo.List(OrganizationId);
     }
 
-
-    private async Task Delete(Runner runner)
+    private async Task Delete(Entities.Definition.Runner runner)
     {
         var parameters = new DialogParameters<DeleteRunnerDialog>
         {
@@ -259,51 +307,21 @@
         {
             Guid.TryParse(result.Data?.ToString(), out var runnerId);
             Snackbar.Add($"Successfully deleted Runner \"{runnerId}\"", Severity.Success);
-
             await ReloadRunners();
         }
     }
 
-    private async Task HandleRunnerSaved(Runner runner)
+    private async Task HandleRunnerSaved(Entities.Definition.Runner runner)
     {
-        _selectedRunner = null;
-        _showing = ShowingType.None;
+        ClearSelection();
         await ReloadRunners();
     }
 
-    private void HandleCancelEdit()
-    {
-        _selectedRunner = null;
-        _showing = ShowingType.None;
-    }
+    private void HandleCancelEdit() => ClearSelection();
 
+    private void HandleRolesClosed() => ClearSelection();
 
-    private void ManageSupplies(Runner runner)
-    {
-        _selectedRunner = runner;
-        _showing = ShowingType.Supplies;
-    }
-
-    private void ManageRoles(Runner runner)
-    {
-        _selectedRunner = runner;
-        _showing = ShowingType.Roles;
-    }
-
-    private void HandleRolesClosed()
-    {
-        _selectedRunner = null;
-        _showing = ShowingType.None;
-    }
-
-    private void Edit(Runner runner)
-    {
-        _selectedRunner = runner;
-        _showing = ShowingType.Edit;
-    }
-
-
-    private async Task ActivateRunner(Runner runner)
+    private async Task ActivateRunner(Entities.Definition.Runner runner)
     {
         var parameters = new DialogParameters<ActivateRunnerDialog>
         {
@@ -323,7 +341,7 @@
         }
     }
 
-    private async Task DeactivateRunner(Runner runner)
+    private async Task DeactivateRunner(Entities.Definition.Runner runner)
     {
         var parameters = new DialogParameters<DeactivateRunnerDialog>
         {

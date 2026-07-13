@@ -106,8 +106,9 @@
                       Disabled="@_isDestroying"/>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="ConfirmDestruction"
                    Disabled="@(_confirmationText != "DESTROY" || _isDestroying)">
             @if (_isDestroying)
@@ -120,8 +121,9 @@
             }
         </MudButton>
 
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="Cancel"
                    Disabled="@_isDestroying">
             Cancel

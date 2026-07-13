@@ -56,7 +56,7 @@
 
         <div class="button-container">
             <EditForm Model="@_emptyModel" FormName="accept-invitation" OnValidSubmit="OnAcceptAsync" method="post">
-                <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" Size="Size.Large"
+                <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large"
                                  FormAction="FormAction.Submit" Class="action-btn">
                     Accept Invitation
                 </MudStaticButton>
@@ -65,7 +65,7 @@
 
         <div class="button-container mt-3">
             <EditForm Model="@_emptyModel" FormName="decline-invitation" OnValidSubmit="OnDeclineAsync" method="post">
-                <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" Size="Size.Medium"
+                <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Medium"
                                  FormAction="FormAction.Submit" Class="action-btn">
                     Decline
                 </MudStaticButton>

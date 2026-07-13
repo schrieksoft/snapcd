@@ -43,21 +43,21 @@
 
     @if (_showCreate)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateStack OnCreated="HandleCreated"
                          OnCancel="HandleCreateCanceled"/>
-        </MudItem>
+        </MudPaper>
     }
-
     else
     {
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   OnClick="ShowCreate"
-                   Class="mt-2 mb-2"
-        >
-            Create Stack
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreate">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_stacks == null)
@@ -70,14 +70,14 @@
             <div class="stack-header">
                 <MudTooltip Text="Select multiple">
                     <MudIconButton Icon="@SnapCdIcons.Checklist"
-                                   Color="@(_showSelectionMode ? Color.Info : Color.Primary)"
+                                   Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
                                    Size="Size.Small"
                                    OnClick="() => ToggleSelectionMode()"/>
                 </MudTooltip>
 
                 <MudTooltip Text="Search stacks">
                     <MudIconButton Icon="@SnapCdIcons.Search"
-                                   Color="@(_showStackSearch ? Color.Info : Color.Primary)"
+                                   Color="@(_showStackSearch ? Color.Secondary : Color.Primary)"
                                    Size="Size.Small"
                                    OnClick="@(() => _showStackSearch = !_showStackSearch)"/>
                 </MudTooltip>
@@ -119,7 +119,7 @@
                                  Value="_selectAllStacks"
                                  ValueChanged="OnSelectAllChanged"
                                  Label="Select all Stacks"
-                                 Color="Color.Info"
+                                 Color="Color.Default"
                                  Dense="true"/>
 
                     @if (_selectedStacks.Any())
@@ -148,7 +148,7 @@
                                     <MudCheckBox T="bool"
                                                  Value="@_selectedStacks.Contains(stack.Id)"
                                                  ValueChanged="@(value => OnStackSelectionChanged(stack.Id, value))"
-                                                 Color="Color.Info"
+                                                 Color="Color.Default"
                                                  Dense="true"
                                                  Style="margin: 0; padding: 0;"/>
                                     <MudTooltip Text="Stack">

@@ -57,28 +57,6 @@
 
     @if (_stack != null)
     {
-        @if (_showCreate)
-        {
-            <MudItem Class="mb-2">
-                <CreateNamespace
-                    StackId="@_stack.Id"
-                    PrincipalProvider="_literalPrincipalProvider"
-                    OnCreated="HandleCreated"
-                    OnCancel="HandleCreateCanceled"/>
-            </MudItem>
-        }
-
-        else
-        {
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       OnClick="ShowCreate"
-                       Class="mt-2 mb-2"
-            >
-                Create Namespace
-            </MudButton>
-        }
-
         <MudPaper Elevation="1" Class="pa-4 mb-4">
             <MudTooltip Text="Manage Namespaces">
                 <MudIconButton Icon="@SnapCdIcons.SpaceDashboard" Color="GetColor(ShowingType.Namespaces)"
@@ -101,18 +79,40 @@
 
         @if (_showing == ShowingType.Namespaces && _stack != null)
         {
+            @if (_showCreate)
+            {
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <CreateNamespace
+                        StackId="@_stack.Id"
+                        PrincipalProvider="_literalPrincipalProvider"
+                        OnCreated="HandleCreated"
+                        OnCancel="HandleCreateCanceled"/>
+                </MudPaper>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="ShowCreate">
+                        Create
+                    </MudButton>
+                </MudPaper>
+            }
+
             <MudPaper Elevation="1" Class="pa-4 mb-4">
                 <div class="namespace-header">
                     <MudTooltip Text="Select multiple">
                         <MudIconButton Icon="@SnapCdIcons.Checklist"
-                                       Color="@(_showSelectionMode ? Color.Info : Color.Primary)"
+                                       Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
                                        Size="Size.Small"
                                        OnClick="() => ToggleSelectionMode()"/>
                     </MudTooltip>
 
                     <MudTooltip Text="Search namespaces">
                         <MudIconButton Icon="@SnapCdIcons.Search"
-                                       Color="@(_showNamespaceSearch ? Color.Info : Color.Primary)"
+                                       Color="@(_showNamespaceSearch ? Color.Secondary : Color.Primary)"
                                        Size="Size.Small"
                                        OnClick="@(() => _showNamespaceSearch = !_showNamespaceSearch)"/>
                     </MudTooltip>
@@ -153,7 +153,7 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_selectAllNamespaces"
                                      Label="Select all Namespaces"
-                                     Color="Color.Info"
+                                     Color="Color.Default"
                                      Dense="true"/>
 
                         @if (_selectedNamespaces.Any())
@@ -198,22 +198,26 @@
 
                 @if (!_showApplyComponent && !_showDestroyComponent)
                 {
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowApplyComponent">
-                        Apply All Modules
-                    </MudButton>
+                    <MudStack Row Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="ShowApplyComponent">
+                            Apply All
+                        </MudButton>
 
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowDestroyComponent">
-                        Destroy All Modules
-                    </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="ShowDestroyComponent">
+                            Destroy All
+                        </MudButton>
+                    </MudStack>
                 }
 
                 @if (_showApplyComponent)
                 {
-                    <MudText Typo="Typo.h6" Class="mb-3">Apply All Modules</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-3">Apply All</MudText>
 
                     @if (_modulesToApply.Any())
                     {
@@ -224,7 +228,7 @@
                             @foreach (var module in _modulesToApply)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -247,7 +251,7 @@
                             @foreach (var module in _alreadyAppliedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -266,6 +270,7 @@
                     <MudStack Row>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="ExecuteApply"
                                    Disabled="@_isApplying">
                             @if (_isApplying)
@@ -280,6 +285,7 @@
 
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="CancelApply"
                                    Disabled="@_isApplying">
                             Cancel
@@ -289,7 +295,7 @@
 
                 @if (_showDestroyComponent)
                 {
-                    <MudText Typo="Typo.h6" Class="mb-3">Destroy All Modules</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-3">Destroy All</MudText>
 
                     @if (_alreadyDestroyedModules.Any())
                     {
@@ -300,7 +306,7 @@
                             @foreach (var module in _alreadyDestroyedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -323,7 +329,7 @@
                             @foreach (var module in _modulesToDestroy)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -367,6 +373,7 @@
                     <MudStack Row>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="ExecuteDestroy"
                                    Disabled="@_isDestroying">
                             @if (_isDestroying)
@@ -381,6 +388,7 @@
 
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="CancelDestroy"
                                    Disabled="@_isDestroying">
                             Cancel
@@ -514,7 +522,7 @@
 
     private Color GetColor(ShowingType showTypeToMatch)
     {
-        return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
     }
 
     private void SwitchShowing(ShowingType newShowing)

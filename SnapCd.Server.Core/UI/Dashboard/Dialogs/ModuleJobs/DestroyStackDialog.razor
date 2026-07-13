@@ -93,8 +93,8 @@
         @if (_dependencyGraph != null)
         {
             var modulesToDestroy = GetModulesToDestroy();
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="ExecuteStackDestruction"
                        Disabled="@_isDestroying">
                 @if (_isDestroying)
@@ -108,8 +108,9 @@
             </MudButton>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="Cancel"
                    Disabled="@_isDestroying">
             Cancel

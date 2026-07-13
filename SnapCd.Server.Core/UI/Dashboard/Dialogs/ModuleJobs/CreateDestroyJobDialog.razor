@@ -54,7 +54,7 @@
                 Are you sure you want to destroy this module?
             </MudText>
             <div class="mb-3">
-                <MudChip T="string" Color="Color.Info"
+                <MudChip T="string" Color="Color.Default"
                          Variant="Variant.Text">@(_currentModuleDisplayName ?? Module?.Name ?? "this module")</MudChip>
             </div>
 
@@ -68,7 +68,7 @@
                 <MudStack Class="mb-3" AlignItems="AlignItems.Start">
                     @foreach (var dep in _recursiveDependencies)
                     {
-                        <MudChip T="string" Color="Color.Info" Variant="Variant.Text">@dep</MudChip>
+                        <MudChip T="string" Color="Color.Default" Variant="Variant.Text">@dep</MudChip>
                     }
                 </MudStack>
             }
@@ -87,7 +87,7 @@
             <MudCheckBox T="bool"
                          Value="@_destroyWithDependencies"
                          Label="Also destroy all dependent modules"
-                         Color="Color.Info"
+                         Color="Color.Default"
                          Class="mb-3"
                          Disabled="@_isDestroying"
                          ValueChanged="@(async (bool e) => await OnDestroyWithDependenciesChanged(e))"
@@ -122,8 +122,9 @@
     <DialogActions>
         @if (_destroyWithDependencies && _dependencyGraphLoaded && _destroyGraph != null)
         {
-            <MudButton Variant="Variant.Filled"
-                       Style="background-color: black; color: white;"
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
+                       
                        OnClick="ExecuteDependencyDestruction"
                        Disabled="@_isDestroying">
                 @if (_isDestroying)
@@ -138,8 +139,9 @@
         }
         else
         {
-            <MudButton Variant="Variant.Filled"
-                       Style="background-color: black; color: white;"
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
+                       
                        OnClick="DestroyModule"
                        Disabled="@(_isDestroying || Module == null || !_dependencyCheckCompleted || (_destroyWithDependencies && !_dependencyGraphLoaded))">
                 @if (_isDestroying)
@@ -157,8 +159,9 @@
             </MudButton>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="Cancel"
                    Disabled="@_isDestroying">
             Cancel
