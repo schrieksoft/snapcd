@@ -36,6 +36,10 @@ public class ModuleJobClassMap : IEntityTypeConfiguration<ModuleJob>
             .OnDelete(DeleteBehavior.Restrict);
 
         entity
+            .Property(p => p.JobNumber)
+            .UseIdentityColumn();
+
+        entity
             .HasIndex(p => new { p.ModuleId, p.TimestampStart, p.OrganizationId })
             .IsUnique();
 

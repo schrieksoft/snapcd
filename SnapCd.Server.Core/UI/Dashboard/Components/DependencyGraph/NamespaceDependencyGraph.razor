@@ -36,9 +36,8 @@ else if (_dependencyGraph != null)
             Only Show Modules within Namespace
         </MudSwitch>
         <MudTooltip Text="@GetToggleTooltipText()">
-            <MudSwitch Value="_showDestroyGraph"
+            <MudSwitch Color="Color.Secondary" Value="_showDestroyGraph"
                        ValueChanged="@(async (bool val) => await OnShowDestroyGraphChanged(val))"
-                       Color="Color.Default"
                        Disabled="DisableDirectionToggle">
                 Show Destroy Graph
             </MudSwitch>

@@ -39,10 +39,10 @@
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
 @attribute [OrganizationScopedIAM]
-<PageTitle>Manage Groups</PageTitle>
+<PageTitle>Groups</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <MudText Typo="Typo.h4" GutterBottom="true">Manage Groups</MudText>
+    <MudText Typo="Typo.h4" GutterBottom="true">Groups</MudText>
 
     @if (_showCreateGroup)
     {

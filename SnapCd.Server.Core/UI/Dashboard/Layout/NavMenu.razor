@@ -6,7 +6,6 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@implements IDisposable
 @using SnapCd.Server.Core.UI.Dashboard.Components.Organization
 @using Microsoft.AspNetCore.WebUtilities
 @using SnapCd.Server.Core.UI.Dashboard.Pages.Account.Interactive
@@ -21,8 +20,10 @@
 @using SnapCd.Server.Core.UI.Dashboard.Pages.SystemAdmin
 @using Microsoft.Extensions.Hosting
 @using Microsoft.Extensions.Options
+@using SnapCd.Server.Core.Services
 @inject NavigationManager NavigationManager
 @inject IHostEnvironment HostEnvironment
+@inject IVersionService VersionService
 @inject IEditionNavProvider EditionNavProvider
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -42,6 +43,9 @@
                 <img src="/_content/SnapCd.Server.Core/logo-inverted-32x32.png" alt="Snap CD"
                      style="width: 32px; height: 32px; margin-right: 12px; image-rendering: -webkit-optimize-contrast; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;"/>
                 <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Snap CD</MudText>
+                <MudText Typo="Typo.caption" Style="color: rgba(255, 255, 255, 0.35); margin-left: auto; font-size: 0.65rem;">
+                    v@(VersionService.ShortVersion)
+                </MudText>
             </a>
 
             <!-- Organization Selector -->
@@ -100,17 +104,21 @@
             }
 
             <!-- Tests Section (dev only — surfaces dev-mode test tools like the Mission test bench). -->
-            @if (HostEnvironment.IsDevelopment() && _testsIsAllowedToNavigateMap.Any(entry => entry.Value))
+            @if (HostEnvironment.IsDevelopment())
             {
                 <MudNavGroup Title="Tests" Icon="@SnapCdIcons.Science" Expanded="false">
                     @foreach (var link in _testsNavLinks)
                     {
-                        @if (_testsIsAllowedToNavigateMap[link.PageType])
+                        @if (_testsIsAllowedToNavigateMap.TryGetValue(link.PageType, out var allowed) && allowed)
                         {
                             <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
                                 @link.Text
                             </MudNavLink>
                         }
+                    }
+                    @if (_organizationActivated && _swaggerIsAllowedToNavigate)
+                    {
+                        <MudNavLink Href="@GetNavigationUrl("Swagger")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">Swagger</MudNavLink>
                     }
                 </MudNavGroup>
             }
@@ -121,43 +129,12 @@
                 @EditionNavItems
             }
 
-            <MudDivider/>
-
-            <!-- Account Section -->
-            @if (_accountIsAllowedToNavigateMap.Any(entry => entry.Value))
-            {
-                @foreach (var link in _accountNavLinks)
-                {
-                    @if (_accountIsAllowedToNavigateMap[link.PageType])
-                    {
-                        <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
-                            @link.Text
-                        </MudNavLink>
-                    }
-                }
-            }
-
             <!-- Edition-specific account nav items (Organizations, etc.) -->
             @if (EditionAccountNavItems != null)
             {
                 @EditionAccountNavItems
             }
 
-            <!-- Swagger (gated by Cloud subscription status on SaaS) -->
-            @if (_organizationActivated && _swaggerIsAllowedToNavigate)
-            {
-                <MudNavLink Href="@GetNavigationUrl("Swagger")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">Swagger
-                </MudNavLink>
-            }
-
-            <form action="Account/Logout" method="post" style="margin: 0; padding: 0;">
-                <AntiforgeryToken/>
-                <input type="hidden" name="ReturnUrl" value="@_currentUrl"/>
-                <button type="submit" class="mud-nav-link mud-ripple" style="width: 100%; text-align: left; background: none; border: none; font-family: inherit; font-size: inherit; display: flex; align-items: center; padding: 8px 16px;">
-                    <MudIcon Icon="@SnapCdIcons.Logout" Class="mr-3"></MudIcon>
-                    Logout
-                </button>
-            </form>
 
         </Authorized>
         <NotAuthorized>
@@ -219,7 +196,6 @@
 </style>
 
 @code {
-    private string? _currentUrl;
     private Guid? _currentOrganizationId => OrganizationContext.CurrentOrganizationId;
     [Parameter] public required Type CurrentPageType { get; set; }
     private RenderFragment? EditionSystemNavItems => EditionNavProvider.EditionSystemNavItems;
@@ -228,9 +204,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        NavigationManager.LocationChanged += OnLocationChanged;
-
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         _organizationActivated = await OrganizationActivation.IsActivatedAsync(orgId);
 
@@ -244,7 +217,6 @@
 
         _generalIsAllowedToNavigateMap = await BuildAllowedMapAsync(_generalNavLinks, orgId);
         _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
-        _accountIsAllowedToNavigateMap = await BuildAllowedMapAsync(_accountNavLinks, orgId);
         _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
         if (HostEnvironment.IsDevelopment())
             _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
@@ -261,11 +233,6 @@
         return map;
     }
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    {
-        _currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
-    }
-
     private bool HasOrganizationSelected()
     {
         return _currentOrganizationId.HasValue && _currentOrganizationId.Value != Guid.Empty;
@@ -276,11 +243,6 @@
         // All pages now use simple URLs without organization ID
         // The organization context is maintained via cookie
         return $"/{baseHref}";
-    }
-
-    public void Dispose()
-    {
-        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
     // General Section - displayed at the top
@@ -316,19 +278,12 @@
     };
 
 
-    // Account Section - collapsible group
-    private List<NavLinkItem> _accountNavLinks = new()
-    {
-        new NavLinkItem("Account", NavLinkMatch.Prefix, SnapCdIcons.AccountCircle, "Account", typeof(Index))
-    };
-
     private record NavLinkItem(string Href, NavLinkMatch Match, string Icon, string Text, Type PageType);
 
     private Dictionary<Type, bool> _generalIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _systemIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _testsIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _identityAccessIsAllowedToNavigateMap = new();
-    private Dictionary<Type, bool> _accountIsAllowedToNavigateMap = new();
     private bool _swaggerIsAllowedToNavigate;
     private bool _organizationActivated;
 

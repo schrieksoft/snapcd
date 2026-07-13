@@ -20,15 +20,14 @@ else
     <div class="namespace-list">
         @foreach (var ns in _namespaces)
         {
-            <MudExpansionPanel Class="custom-panel" @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)">
+            <MudExpansionPanel @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)" Class="mb-2">
                 <TitleContent>
                     @if (ShowCheckboxes)
                     {
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <MudCheckBox T="bool"
+                            <MudCheckBox Color="Color.Secondary" T="bool"
                                          Value="@_selectedNamespaces.Contains(ns.Id)"
                                          ValueChanged="@(value => OnNamespaceSelectionChanged(ns.Id, value))"
-                                         Color="Color.Default"
                                          Dense="true"
                                          Style="margin: 0; padding: 0;"/>
                             <MudTooltip Text="Namespace">
@@ -66,24 +65,6 @@ else
 
 
 <style>
-    .custom-panel {
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        border-bottom: 1px solid #e0e0e0 !important;
-    }
-
-    .custom-panel > .mud-expand-panel {
-        border-top: 1px solid #e0e0e0 !important;
-        border-bottom: 1px solid #e0e0e0 !important;
-    }
-
-    .custom-panel .mud-expand-panel-header {
-        min-height: 40px !important;
-        height: 40px !important;
-        padding-top: 8px !important;
-        padding-bottom: 8px !important;
-    }
-
     .search-highlight {
         background-color: var(--mud-palette-info-lighten);
         color: white;

@@ -87,7 +87,7 @@
             <MudCheckBox T="bool"
                          Value="@_destroyWithDependencies"
                          Label="Also destroy all dependent modules"
-                         Color="Color.Default"
+                         Color="Color.Secondary"
                          Class="mb-3"
                          Disabled="@_isDestroying"
                          ValueChanged="@(async (bool e) => await OnDestroyWithDependenciesChanged(e))"

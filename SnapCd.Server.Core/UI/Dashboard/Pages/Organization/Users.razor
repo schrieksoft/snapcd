@@ -36,10 +36,10 @@
 @attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
 @attribute [OrganizationScopedIAM]
 
-<PageTitle>Manage Users</PageTitle>
+<PageTitle>Users</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <MudText Typo="Typo.h4" GutterBottom="true">Manage Users</MudText>
+    <MudText Typo="Typo.h4" GutterBottom="true">Users</MudText>
 
     @if (_showInvite)
     {
@@ -106,7 +106,7 @@
                             else
                             {
                                 <MudTooltip Text="User is deactivated, click to activate">
-                                    <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
+                                    <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Primary"
                                                                               Size="Size.Small"
                                                    OnClick="() => ActivateUser(orgUser)"/>
                                 </MudTooltip>
@@ -186,7 +186,7 @@
                                     </TitleContent>
                                     <ChildContent>
                                         <MudTooltip Text="Reactivate user">
-                                            <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
+                                            <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Primary"
                                                                                       Size="Size.Small"
                                                            OnClick="() => ActivateUser(orgUser)"/>
                                         </MudTooltip>

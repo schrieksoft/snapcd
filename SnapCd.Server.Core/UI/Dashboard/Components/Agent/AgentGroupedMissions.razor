@@ -51,7 +51,7 @@
                         }
                         @if (OnDelete.HasDelegate)
                         {
-                            <MudIconButton Icon="@SnapCdIcons.Delete" Size="Size.Small" Color="Color.Error"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Size="Size.Small" Color="Color.Primary"
                                            OnClick="@(() => OnDelete.InvokeAsync(context))"/>
                         }
                     </MudTd>

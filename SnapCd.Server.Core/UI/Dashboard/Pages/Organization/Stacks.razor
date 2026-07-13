@@ -119,13 +119,13 @@
                                  Value="_selectAllStacks"
                                  ValueChanged="OnSelectAllChanged"
                                  Label="Select all Stacks"
-                                 Color="Color.Default"
+                                 Color="Color.Secondary"
                                  Dense="true"/>
 
                     @if (_selectedStacks.Any())
                     {
                         <MudButton Variant="Variant.Filled"
-                                   Color="Color.Error"
+                                   Color="Color.Secondary"
                                    StartIcon="@SnapCdIcons.Delete"
                                    OnClick="DeleteSelectedStacks"
                                    Size="Size.Small">
@@ -134,21 +134,21 @@
                     }
                 </div>
             }
+        </MudPaper>
 
             <div class="stack-list">
                 @foreach (var stack in _stacks)
                 {
-                    <MudExpansionPanel Class="custom-panel" @key="stack.Id"
+                    <MudExpansionPanel @key="stack.Id" Class="mb-2"
                                        Expanded="_expandedStacks.Contains(stack.Id)">
                         @* ExpandedChanged="@(isExpanded => OnStackExpanded(stack, isExpanded))" *@
                         <TitleContent>
                             @if (_showSelectionMode)
                             {
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <MudCheckBox T="bool"
+                                    <MudCheckBox Color="Color.Secondary" T="bool"
                                                  Value="@_selectedStacks.Contains(stack.Id)"
                                                  ValueChanged="@(value => OnStackSelectionChanged(stack.Id, value))"
-                                                 Color="Color.Default"
                                                  Dense="true"
                                                  Style="margin: 0; padding: 0;"/>
                                     <MudTooltip Text="Stack">
@@ -178,7 +178,6 @@
                             TotalPages="_totalPages"
                             PageChanged="HandlePageChanged"/>
             }
-        </MudPaper>
     }
 </CascadingValue>
 
@@ -577,24 +576,6 @@
         margin-top: 1rem;
         padding: 1rem;
         border-radius: 4px;
-    }
-
-    .custom-panel {
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        border-bottom: 1px solid #e0e0e0 !important;
-    }
-
-    .custom-panel > .mud-expand-panel {
-        border-top: 1px solid #e0e0e0 !important;
-        border-bottom: 1px solid #e0e0e0 !important;
-    }
-
-    .custom-panel .mud-expand-panel-header {
-        min-height: 40px !important;
-        height: 40px !important;
-        padding-top: 8px !important;
-        padding-bottom: 8px !important;
     }
 
     .stack-header {

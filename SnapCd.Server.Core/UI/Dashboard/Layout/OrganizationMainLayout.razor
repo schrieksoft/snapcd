@@ -39,14 +39,17 @@
         <div style="flex: 1; overflow-y: auto; background-color: var(--snap-bg-sidebar);">
             <NavMenu CurrentPageType="@PageType"/> @* See https://stackx48a overflow.com/a/63225118/141789*@
         </div>
-        <MudPaper Class="pa-2" Style="margin: 8px; border-radius: 4px; background-color: var(--snap-bg-sidebar) !important;"
-                  Elevation="0">
+        <div style="display: flex; align-items: center; padding: 4px 0; border-top: 1px solid rgba(255,255,255,0.15); background-color: var(--snap-bg-sidebar);">
+            <MudNavLink Href="/Account" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.AccountCircle"
+                        Style="flex: 1; color: var(--snap-sidebar-text) !important;">
+                Account
+            </MudNavLink>
             @if (RenderModeHelper.IsStaticServersideRendering(HttpContext, NavigationManager))
             {
-                <form action="Theme/ToggleDarkMode" method="post">
+                <form action="Theme/ToggleDarkMode" method="post" style="margin: 0;">
                     <AntiforgeryToken/>
                     <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
-                        <MudStaticButton Style="box-shadow: none; min-width: unset; padding: 12px; width: 100%;"
+                        <MudStaticButton Style="box-shadow: none; min-width: unset; padding: 8px;"
                                          Variant="Variant.Text" FormAction="FormAction.Submit">
                             <MudIcon
                                 Icon="@(_isDarkMode ? SnapCdIcons.LightMode : SnapCdIcons.DarkMode)"/>
@@ -57,23 +60,12 @@
             else
             {
                 <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
-                    <MudButton Style="box-shadow: none; width: 100%;"
-                               Variant="Variant.Text"
-                               OnClick="@(_ => ToggleDarkMode())">
-                        <MudIcon
-                            Icon="@(_isDarkMode ? SnapCdIcons.LightMode : SnapCdIcons.DarkMode)"/>
-                    </MudButton>
+                    <MudIconButton Style="box-shadow: none;"
+                                   OnClick="@(_ => ToggleDarkMode())"
+                                   Icon="@(_isDarkMode ? SnapCdIcons.LightMode : SnapCdIcons.DarkMode)"/>
                 </MudTooltip>
             }
-
-            <!-- Version Info -->
-            <div
-                style="text-align: left; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                <MudText Typo="Typo.caption" Style="color: rgba(255, 255, 255, 0.5);">
-                    v@(VersionService.ShortVersion)
-                </MudText>
-            </div>
-        </MudPaper>
+        </div>
     </MudDrawer>
 
     <!-- Custom Drawer Toggle Button -->
@@ -156,6 +148,13 @@
 
     .mud-drawer .mud-drawer-content svg path:not([fill="none"]) {
         fill: var(--snap-sidebar-text) !important;
+    }
+
+    .mud-drawer .mud-nav-link.mud-nav-link-active,
+    .mud-drawer .mud-nav-link.active {
+        background-color: rgba(232,236,239,0.15) !important;
+        border-left: 3px solid var(--snap-accent, #E85D1A) !important;
+        padding-left: calc(var(--mud-nav-link-padding-left, 16px) - 3px);
     }
 </style>
 

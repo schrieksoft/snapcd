@@ -21,6 +21,8 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild
 
     public Guid ModuleId { get; set; }
 
+    public int JobNumber { get; set; }
+
     public DateTimeOffset TimestampStart { get; set; }
     public DateTimeOffset? TimestampEnd { get; set; }
 

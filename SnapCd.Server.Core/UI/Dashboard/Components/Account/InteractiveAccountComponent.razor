@@ -15,7 +15,7 @@
     <MudPaper Class="login-card" Elevation="0">
         <div class="login-header">
             <div class="logo-section">
-                <img src="/_content/SnapCd.Server.Core/login-logo.png" alt="Snap CD" width="64" height="64" class="login-logo"/>
+                <img src="/_content/SnapCd.Server.Core/@(_isDarkMode ? "logo-inverted-64x64.png" : "logo-64x64.png")" alt="Snap CD" width="64" height="64" class="login-logo"/>
                 <MudText Typo="Typo.h3" Class="login-title">Snap CD</MudText>
             </div>
             @if (!string.IsNullOrEmpty(Subtitle))
@@ -181,7 +181,7 @@
     {
         // Get initial theme from cookie via server-side value
         var themeCookie = HttpContextAccessor.HttpContext?.Request.Cookies["theme"];
-        _isDarkMode = themeCookie == "dark";
+        _isDarkMode = themeCookie != "light";
 
         ThemeService.Initialize(_isDarkMode);
         ThemeService.OnThemeChanged += ThemeChanged;

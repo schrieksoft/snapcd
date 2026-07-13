@@ -56,25 +56,11 @@
 
     @if (_namespace != null)
     {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudTooltip Text="Manage Modules">
-                <MudIconButton Icon="@SnapCdIcons.SpaceDashboard" Color="GetColor(ShowingType.Modules)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Modules)"/>
-            </MudTooltip>
+        <div class="page-header">
+            <MudText Typo="Typo.h4" Class="page-header-title">@NamespaceName</MudText>
+        </div>
 
-            <MudTooltip Text="View Dependency Graph">
-                <MudIconButton Icon="@SnapCdIcons.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.DependencyGraph)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Configure">
-                <MudIconButton Icon="@SnapCdIcons.Settings" Color="GetColor(ShowingType.Configure)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
-            </MudTooltip>
-        </MudPaper>
+        <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
         @if (_showing == ShowingType.Modules)
         {
@@ -151,13 +137,13 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_selectAllModules"
                                      Label="Select all Modules"
-                                     Color="Color.Default"
+                                     Color="Color.Secondary"
                                      Dense="true"/>
 
                         @if (_selectedModules.Any())
                         {
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Error"
+                                       Color="Color.Secondary"
                                        StartIcon="@SnapCdIcons.Delete"
                                        OnClick="DeleteSelectedModules"
                                        Size="Size.Small">
@@ -166,6 +152,8 @@
                         }
                     </div>
                 }
+
+            </MudPaper>
 
                 @if (_truncatedNamespace != null)
                 {
@@ -178,7 +166,6 @@
                                  SelectAll="@_selectAllModules"
                                  OnSelectionChanged="@HandleModuleSelectionChanged"/>
                 }
-            </MudPaper>
         }
 
         @if (_showing == ShowingType.Configure)
@@ -274,7 +261,7 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_applyExternalModules"
                                      Label="Also apply these prerequisite modules"
-                                     Color="Color.Default"
+                                     Color="Color.Secondary"
                                      Class="mb-3"/>
 
                         <div class="d-flex flex-column gap-1 mb-3">
@@ -380,7 +367,7 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_destroyDependentModules"
                                      Label="Also destroy these dependent modules"
-                                     Color="Color.Default"
+                                     Color="Color.Secondary"
                                      Class="mb-3"/>
 
                         <div class="d-flex flex-column gap-1 mb-3">
@@ -459,8 +446,6 @@
                     Dependency Graph
                 </MudText>
 
-                @* <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="mt-8" PanelClass="pa-6"> *@
-                @* <MudTabPanel Text="Apply Dependency Graph" Style="text-transform: none"> *@
                 <MudText Typo="Typo.body2" Class="mb-4">
                     Modules within this namespace and their apply dependencies across the stack:
                 </MudText>
@@ -470,18 +455,6 @@
                                           Direction="@GetGraphDirection()"
                                           UninvolvedModuleIds="@GetUninvolvedModuleIds()"
                                           DisableDirectionToggle="@(_showApplyComponent || _showDestroyComponent)"/>
-                @* </MudTabPanel> *@
-                @* *@
-                @* <MudTabPanel Text="Destroy Depedency Graph" Style="text-transform: none"> *@
-                @*     <MudText Typo="Typo.body2" Class="mb-4"> *@
-                @*         Modules within this namespace and their destroy dependencies across the stack: *@
-                @*     </MudText> *@
-                @*      *@
-                @*     <NamespaceDependencyGraph NamespaceId="@_namespace.Id"  *@
-                @*                               NamespaceName="@_namespace.Name"  *@
-                @*                               Direction="Destroy" /> *@
-                @* </MudTabPanel> *@
-                @* </MudTabs> *@
             </MudPaper>
         }
     }
@@ -500,6 +473,13 @@
     private TruncatedNamespace? _truncatedNamespace;
     private List<BreadcrumbItem> _breadCrumbs = [];
     private ShowingType _showing = ShowingType.None;
+
+    private readonly List<TabBar.TabBarItem> _tabs =
+    [
+        new() { Key = nameof(ShowingType.Modules), Label = "Modules" },
+        new() { Key = nameof(ShowingType.DependencyGraph), Label = "Dependencies" },
+        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+    ];
     private string? _configureSection;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
@@ -557,8 +537,8 @@
         _breadCrumbs =
         [
             new BreadcrumbItem("Stacks", $"/Stacks{queryString}"),
-            new BreadcrumbItem($"{StackName} (Stack)", $"/Stacks/{StackName}{queryString}"),
-            new BreadcrumbItem($"{NamespaceName} (Namespace)", $"/Stacks/{StackName}/{NamespaceName}")
+            new BreadcrumbItem(StackName, $"/Stacks/{StackName}{queryString}"),
+            new BreadcrumbItem(NamespaceName, $"/Stacks/{StackName}/{NamespaceName}")
         ];
 
         using var repo = RepoFactory.Create();
@@ -619,6 +599,17 @@
             _configureSection = null;
 
         UpdateUrl();
+    }
+
+    private void HandleTabChanged(string key)
+    {
+        if (Enum.TryParse<ShowingType>(key, out var parsed))
+        {
+            _showing = parsed;
+            if (parsed != ShowingType.Configure)
+                _configureSection = null;
+            UpdateUrl();
+        }
     }
 
     private enum ShowingType
@@ -1178,5 +1169,14 @@
 
     .search-field-inline {
         margin-bottom: 0;
+    }
+
+    .page-header {
+        margin-bottom: 16px;
+    }
+
+    .page-header-title {
+        font-weight: 600;
+        letter-spacing: -0.015em;
     }
 </style>

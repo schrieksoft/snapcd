@@ -82,3 +82,11 @@
   text-transform: lowercase !important;
 }
 
+.mud-tabs .mud-tab {
+  font-size: 14px !important;
+}
+
+.mud-expand-panel .mud-expand-panel-header .mud-expand-panel-text {
+  font-size: 14px !important;
+}
+

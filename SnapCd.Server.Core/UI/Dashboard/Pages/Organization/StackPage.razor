@@ -57,25 +57,11 @@
 
     @if (_stack != null)
     {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudTooltip Text="Manage Namespaces">
-                <MudIconButton Icon="@SnapCdIcons.SpaceDashboard" Color="GetColor(ShowingType.Namespaces)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Namespaces)"/>
-            </MudTooltip>
+        <div class="page-header">
+            <MudText Typo="Typo.h4" Class="page-header-title">@StackName</MudText>
+        </div>
 
-            <MudTooltip Text="Dependency Graph">
-                <MudIconButton Icon="@SnapCdIcons.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.DependencyGraph)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Configure">
-                <MudIconButton Icon="@SnapCdIcons.Settings" Color="GetColor(ShowingType.Configure)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
-            </MudTooltip>
-        </MudPaper>
+        <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
         @if (_showing == ShowingType.Namespaces && _stack != null)
         {
@@ -153,13 +139,13 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_selectAllNamespaces"
                                      Label="Select all Namespaces"
-                                     Color="Color.Default"
+                                     Color="Color.Secondary"
                                      Dense="true"/>
 
                         @if (_selectedNamespaces.Any())
                         {
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Error"
+                                       Color="Color.Secondary"
                                        StartIcon="@SnapCdIcons.Delete"
                                        OnClick="DeleteSelectedNamespaces"
                                        Size="Size.Small">
@@ -168,6 +154,7 @@
                         }
                     </div>
                 }
+            </MudPaper>
 
                 @if (_truncatedStack != null)
                 {
@@ -179,7 +166,6 @@
                                     SelectAll="@_selectAllNamespaces"
                                     OnSelectionChanged="@HandleNamespaceSelectionChanged"/>
                 }
-            </MudPaper>
         }
 
         @if (_showing == ShowingType.Configure && _stack != null)
@@ -426,6 +412,13 @@
     private ShowingType _showing = ShowingType.None;
     private string? _configureSection;
 
+    private readonly List<TabBar.TabBarItem> _tabs =
+    [
+        new() { Key = nameof(ShowingType.Namespaces), Label = "Namespaces" },
+        new() { Key = nameof(ShowingType.DependencyGraph), Label = "Dependencies" },
+        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+    ];
+
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private bool _showCreate;
     private Guid _principalId;
@@ -474,7 +467,7 @@
         _breadCrumbs =
         [
             new BreadcrumbItem("Stacks", "/Stacks"),
-            new BreadcrumbItem($"{StackName} (Stack)", $"/Stacks/{StackName}")
+            new BreadcrumbItem(StackName, $"/Stacks/{StackName}")
         ];
 
         using var repo = RepoFactory.Create();
@@ -534,6 +527,17 @@
             _configureSection = null;
 
         UpdateUrl();
+    }
+
+    private void HandleTabChanged(string key)
+    {
+        if (Enum.TryParse<ShowingType>(key, out var parsed))
+        {
+            _showing = parsed;
+            if (parsed != ShowingType.Configure)
+                _configureSection = null;
+            UpdateUrl();
+        }
     }
 
     private enum ShowingType
@@ -989,5 +993,14 @@
 
     .search-field-inline {
         margin-bottom: 0;
+    }
+
+    .page-header {
+        margin-bottom: 16px;
+    }
+
+    .page-header-title {
+        font-weight: 600;
+        letter-spacing: -0.015em;
     }
 </style>

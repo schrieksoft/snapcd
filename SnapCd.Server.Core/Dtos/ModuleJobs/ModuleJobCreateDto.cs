@@ -13,6 +13,7 @@ namespace SnapCd.Server.Core.Dtos.ModuleJobs;
 public class ModuleJobCreateDto
 {
     public Guid ModuleId { get; set; }
+    public int JobNumber { get; set; }
     public DateTimeOffset TimestampStart { get; set; }
     public DateTimeOffset? TimestampEnd { get; set; }
     public ExecutionStatus Status { get; set; }

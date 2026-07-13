@@ -15,15 +15,14 @@
 <div class="module-list">
     @foreach (var module in _paginatedModules)
     {
-        <MudExpansionPanel Class="custom-panel" @key="module.Id" Disabled="true" HideIcon="true">
+        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="mb-2">
             <TitleContent>
                 @if (ShowCheckboxes)
                 {
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <MudCheckBox T="bool"
+                        <MudCheckBox Color="Color.Secondary" T="bool"
                                      Value="@_selectedModules.Contains(module.Id)"
                                      ValueChanged="@(value => OnModuleSelectionChanged(module.Id, value))"
-                                     Color="Color.Default"
                                      Dense="true"
                                      Style="margin: 0; padding: 0;"/>
                         <MudTooltip Text="Module">
@@ -54,24 +53,6 @@
 }
 
 <style>
-
-    .custom-panel {
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        border-bottom: 1px solid #e0e0e0 !important;
-    }
-
-    .custom-panel > .mud-expand-panel {
-        border-top: 1px solid #e0e0e0 !important;
-        border-bottom: 1px solid #e0e0e0 !important;
-    }
-
-    .custom-panel .mud-expand-panel-header {
-        min-height: 40px !important;
-        height: 40px !important;
-        padding-top: 8px !important;
-        padding-bottom: 8px !important;
-    }
 
     .search-highlight {
         background-color: var(--mud-palette-info-lighten);
@@ -272,7 +253,7 @@
 
 <style>
     .module-list {
-        margin-left: 1rem;
+        margin-left: 0;
     }
 
     .search-highlight {

@@ -39,10 +39,10 @@
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
 @attribute [OrganizationScopedIAM]
-<PageTitle>Manage Service Principals</PageTitle>
+<PageTitle>Service Principals</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <MudText Typo="Typo.h4" GutterBottom="true">Manage Service Principals</MudText>
+    <MudText Typo="Typo.h4" GutterBottom="true">Service Principals</MudText>
 
     @if (_showCreate)
     {
@@ -94,7 +94,7 @@
                         else
                         {
                             <MudTooltip Text="Service principal is disabled, click to enable">
-                                <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Secondary"
+                                <MudIconButton Icon="@SnapCdIcons.Person" Color="Color.Primary"
                                                                           Size="Size.Small"
                                                OnClick="() => ActivateServicePrincipal(servicePrincipal)"/>
                             </MudTooltip>
