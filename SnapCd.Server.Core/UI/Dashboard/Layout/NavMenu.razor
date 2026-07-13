@@ -248,6 +248,7 @@
     // General Section - displayed at the top
     private List<NavLinkItem> _generalNavLinks = new()
     {
+        new NavLinkItem("Home", NavLinkMatch.All, SnapCdIcons.Dashboard, "Dashboard", typeof(OrganizationHome)),
         new NavLinkItem("Stacks", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Stacks", typeof(Stacks))
     };
 
