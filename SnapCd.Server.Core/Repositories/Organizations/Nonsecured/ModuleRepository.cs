@@ -21,6 +21,7 @@ using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
@@ -105,6 +106,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
     public override async Task<Module> ExecuteCreate(Module entity)
     {
+        NameValidator.EnsureValid(entity.Name, "Module");
+
         if (entity.Engine == StateManagementEngine.Pulumi)
             await ValidatePulumiFeatureEnabled(entity.OrganizationId);
 
@@ -134,6 +137,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
     public override async Task<Module> ExecuteUpdate(Module entity)
     {
+        NameValidator.EnsureValid(entity.Name, "Module");
+
         // First get the existing module to check for namespace changes
         var existingModule = await Get(entity.Id, entity.OrganizationId);
 

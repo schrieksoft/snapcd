@@ -31,12 +31,12 @@ else
                                          ValueChanged="@(value => OnStackSelectionChanged(stack.Id, value))"
                                          Dense="true"
                                          Style="margin: 0; padding: 0;"/>
-                            <MudLink Href="@($"/Stacks/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                            <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
                         </div>
                     }
                     else
                     {
-                        <MudLink Href="@($"/Stacks/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                        <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
                     }
                 </TitleContent>
                 <ChildContent>

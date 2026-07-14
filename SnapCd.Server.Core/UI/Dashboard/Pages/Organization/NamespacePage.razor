@@ -6,7 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Stacks/{stackName}/{namespaceName}"
+@page "/Namespace/{stackName}/{namespaceName}"
 @layout OrganizationMainLayout
 
 @using Microsoft.AspNetCore.Authorization
@@ -61,7 +61,7 @@
             </div>
             <MudText Typo="Typo.body2" Class="namespace-page-subtitle">
                 <span class="namespace-page-parents">
-                    Stack: <MudLink Href="@($"/Stacks/{StackName}{_parentQuery}")">@StackName</MudLink>
+                    Stack: <MudLink Href="@($"/Stack/{StackName}{_parentQuery}")">@StackName</MudLink>
                 </span>
             </MudText>
         </div>
@@ -630,7 +630,7 @@
 
     private void HandleNamespaceDeleted()
     {
-        NavigationManager.NavigateTo($"/Stacks/{StackName}");
+        NavigationManager.NavigateTo($"/Stack/{StackName}");
     }
 
     private async Task HandleNamespaceSaved()
@@ -683,7 +683,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
 
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}{queryString}";
+        var newUrl = $"/Namespace/{StackName}/{NamespaceName}{queryString}";
         NavigationManager.NavigateTo(newUrl, false);
     }
 

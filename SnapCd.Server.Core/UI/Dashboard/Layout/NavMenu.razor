@@ -329,7 +329,7 @@
                     m => new FavoriteLink(
                         FavoriteTargetType.Module,
                         m.Name,
-                        $"/Stacks/{m.StackName}/{m.NamespaceName}/{m.Name}",
+                        $"/Module/{m.StackName}/{m.NamespaceName}/{m.Name}",
                         $"{m.StackName}/{m.NamespaceName}/{m.Name}"));
             }
 
@@ -345,7 +345,7 @@
                     n => new FavoriteLink(
                         FavoriteTargetType.Namespace,
                         n.Name,
-                        $"/Stacks/{n.StackName}/{n.Name}",
+                        $"/Namespace/{n.StackName}/{n.Name}",
                         $"{n.StackName}/{n.Name}"));
             }
 
@@ -361,7 +361,7 @@
                     s => new FavoriteLink(
                         FavoriteTargetType.Stack,
                         s.Name,
-                        $"/Stacks/{s.Name}",
+                        $"/Stack/{s.Name}",
                         s.Name));
             }
 

@@ -32,7 +32,8 @@
             <MudItem md="12">
                 <MudTextField Label="Name" @bind-Value="Namespace.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
-                              MaxLength="255" Counter="255"/>
+                              MaxLength="255" Counter="255"
+                              Validation="@((string s) => NameValidator.Validate(s, "Namespace"))"/>
             </MudItem>
 
             <MudItem md="12">

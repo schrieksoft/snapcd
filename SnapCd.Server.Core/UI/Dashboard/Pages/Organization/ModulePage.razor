@@ -6,7 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Stacks/{stackName}/{namespaceName}/{moduleName}"
+@page "/Module/{stackName}/{namespaceName}/{moduleName}"
 @layout OrganizationMainLayout
 
 @using Microsoft.AspNetCore.Authorization
@@ -78,9 +78,9 @@
             </div>
             <MudText Typo="Typo.body2" Class="module-page-subtitle">
                 <span class="module-page-parents">
-                    Stack: <MudLink Href="@($"/Stacks/{StackName}{_parentQuery}")">@StackName</MudLink>
+                    Stack: <MudLink Href="@($"/Stack/{StackName}{_parentQuery}")">@StackName</MudLink>
                     ·
-                    Namespace: <MudLink Href="@($"/Stacks/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
+                    Namespace: <MudLink Href="@($"/Namespace/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
                 </span>
                 @if (_moduleSaga?.ActualResourceCount.HasValue == true
                      || _revisionSummary != null
@@ -1127,7 +1127,7 @@
         if (!string.IsNullOrEmpty(Search))
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
+        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
         NavigationManager.NavigateTo(newUrl, forceLoad: false, replace: true);
     }
 
@@ -1139,7 +1139,7 @@
 
     private void HandleModuleDeleted()
     {
-        NavigationManager.NavigateTo($"/Stacks/{StackName}/{NamespaceName}");
+        NavigationManager.NavigateTo($"/Namespace/{StackName}/{NamespaceName}");
     }
 
     private async Task HandleModuleSaved()
@@ -1164,7 +1164,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
         NavigationManager.NavigateTo(newUrl, false);
     }
 

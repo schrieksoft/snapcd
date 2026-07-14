@@ -33,13 +33,13 @@ else
                                          Dense="true"
                                          Style="margin: 0; padding: 0;"/>
                             <MudLink
-                                Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+                                Href="@($"/Namespace/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
                         </div>
                     }
                     else
                     {
                         <MudLink
-                            Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
+                            Href="@($"/Namespace/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
                     }
                 </TitleContent>
                 <ChildContent>

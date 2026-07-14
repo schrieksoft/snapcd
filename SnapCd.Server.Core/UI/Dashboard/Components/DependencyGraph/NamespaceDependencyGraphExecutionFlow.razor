@@ -44,7 +44,7 @@
                     <MudCard Elevation="1" Class="mb-1 dag-namespace-card" Style="@namespaceStyle">
                         <MudCardHeader Class="pa-2 pb-1">
                             <CardHeaderContent>
-                                <MudLink Href="@($"/Stacks/{namespaceGroup.Key}")"
+                                <MudLink Href="@($"/Namespace/{namespaceGroup.Key}")"
                                          Typo="Typo.body2" Class="font-weight-bold"
                                          Style="@(isExternalNamespace ? "color: white !important;" : "")">
                                     @namespaceGroup.First().NamespaceName
@@ -65,7 +65,7 @@
                                             <MudExpansionPanel Class="pa-0" Style="@moduleStyle">
                                                 <TitleContent>
                                                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                                                        <MudLink Href="@($"/Stacks/{nodeState.DisplayName}")"
+                                                        <MudLink Href="@($"/Module/{nodeState.DisplayName}")"
                                                                  Typo="Typo.caption" Class="font-weight-medium"
                                                                  Style="font-size: 0.8rem;"
                                                                  @onclick:stopPropagation="true">
@@ -97,7 +97,7 @@
                                                                     @foreach (var dep in nodeState.IncomingEdges)
                                                                     {
                                                                         <MudLink Typo="Typo.caption"
-                                                                                 Href="@($"/Stacks/{dep.DisplayName}")"
+                                                                                 Href="@($"/Module/{dep.DisplayName}")"
                                                                                  Style="font-size: 0.8rem;">
                                                                             @dep.ShortDisplayName
                                                                         </MudLink>
@@ -121,7 +121,7 @@
                                                                     @foreach (var trigger in nodeState.OutgoingEdges)
                                                                     {
                                                                         <MudLink Typo="Typo.caption"
-                                                                                 Href="@($"/Stacks/{trigger.DisplayName}")"
+                                                                                 Href="@($"/Module/{trigger.DisplayName}")"
                                                                                  Style="font-size: 0.8rem;">
                                                                             @trigger.ShortDisplayName
                                                                         </MudLink>
@@ -138,7 +138,7 @@
                                     {
                                         <div class="dag-module-nodeps" style="@moduleStyle">
                                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                                                <MudLink Href="@($"/Stacks/{nodeState.DisplayName}")"
+                                                <MudLink Href="@($"/Module/{nodeState.DisplayName}")"
                                                          Typo="Typo.caption" Class="font-weight-medium"
                                                          Style="font-size: 0.8rem;">
                                                     @nodeState.ModuleName

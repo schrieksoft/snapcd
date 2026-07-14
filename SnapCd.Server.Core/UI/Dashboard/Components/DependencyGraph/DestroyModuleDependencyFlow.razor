@@ -60,7 +60,7 @@
                                         <MudCardHeader Class="pb-2">
                                             <CardHeaderContent>
                                                 <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                                    <MudLink Href="@($"/Stacks/{node.DisplayName}")"
+                                                    <MudLink Href="@($"/Module/{node.DisplayName}")"
                                                              Typo="Typo.body2"
                                                              Class="font-weight-medium"
                                                              Style="@(isRoot ? "color: white !important;" : "")">
@@ -82,7 +82,7 @@
                                                                    Style="@(isRoot ? "background-color: var(--mud-palette-black) !important; color: white !important;" : "")">
                                                     <TitleContent>
                                                         <div style="display: flex; align-items: center;">
-                                                            <MudIcon Icon="@SnapCdIcons.AccountTree" class="mr-3" />
+                                                            <MudIcon Icon="@SnapCdIcons.AccountTree" Class="mr-3" />
                                                             <MudText Typo="Typo.body2">Dependencies</MudText>
                                                         </div>
                                                     </TitleContent>
@@ -100,7 +100,7 @@
                                                                             <MudChip T="string" Size="Size.Small"
                                                                                      Color="Color.Default"
                                                                                      Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{dep}"))">
+                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Module/{dep}"))">
                                                                                 @dep
                                                                             </MudChip>
                                                                         }
@@ -124,7 +124,7 @@
                                                                             <MudChip T="string" Size="Size.Small"
                                                                                      Color="Color.Default"
                                                                                      Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{trigger}"))">
+                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Module/{trigger}"))">
                                                                                 @trigger
                                                                             </MudChip>
                                                                         }

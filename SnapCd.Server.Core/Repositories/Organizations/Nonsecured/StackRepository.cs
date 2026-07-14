@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -100,6 +101,18 @@ public class StackRepository : GenericOrganizationChildRepository<Stack, StackRe
             .CountAsync(s => s.OrganizationId == entity.OrganizationId);
 
         return await CheckQuotaWithServiceAsync(entity.OrganizationId, nameof(Settings.QuotaLimits.StackQuota), currentCount);
+    }
+
+    public override async Task<Stack> ExecuteCreate(Stack entity)
+    {
+        NameValidator.EnsureValid(entity.Name, "Stack");
+        return await base.ExecuteCreate(entity);
+    }
+
+    public override async Task<Stack> ExecuteUpdate(Stack entity)
+    {
+        NameValidator.EnsureValid(entity.Name, "Stack");
+        return await base.ExecuteUpdate(entity);
     }
 
     public override async Task ExecuteDelete(Guid id, Guid organizationId)

@@ -48,6 +48,7 @@
                               Variant="Variant.Outlined" FullWidth="true"
                               Required="true"
                               MaxLength="100"
+                              Validation="@((string s) => NameValidator.Validate(s, "Organization"))"
                               For="@(() => Input.Name)"/>
             </MudItem>
             <MudItem xs="12">

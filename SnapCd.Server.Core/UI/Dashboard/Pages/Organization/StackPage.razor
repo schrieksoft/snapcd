@@ -6,7 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Stacks/{stackName}"
+@page "/Stack/{stackName}"
 @layout OrganizationMainLayout
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Contracts
@@ -621,7 +621,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
 
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = $"/Stacks/{StackName}{queryString}";
+        var newUrl = $"/Stack/{StackName}{queryString}";
         NavigationManager.NavigateTo(newUrl, false);
     }
 

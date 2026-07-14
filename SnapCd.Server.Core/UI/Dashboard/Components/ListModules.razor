@@ -28,13 +28,13 @@
                                      Dense="true"
                                      Style="margin: 0; padding: 0;"/>
                         <MudLink
-                            Href="@($"/Stacks/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+                            Href="@($"/Module/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
                     </div>
                 }
                 else
                 {
                     <MudLink
-                        Href="@($"/Stacks/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
+                        Href="@($"/Module/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
                 }
             </TitleContent>
             <ChildContent>

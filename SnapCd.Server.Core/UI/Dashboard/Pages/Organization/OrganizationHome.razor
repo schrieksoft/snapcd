@@ -221,10 +221,10 @@ else
                                         @PathLinks(favorite.StackName, favorite.NamespaceName!, favorite.ModuleName!)
                                         break;
                                     case FavoriteTargetType.Namespace:
-                                        <span class="dash-path"><a href="@($"/Stacks/{favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Stacks/{favorite.StackName}/{favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
+                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{favorite.StackName}/{favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
                                         break;
                                     default:
-                                        <span class="dash-path"><a href="@($"/Stacks/{favorite.StackName}")">@favorite.StackName</a></span>
+                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a></span>
                                         break;
                                 }
                             </span>
@@ -823,7 +823,7 @@ else
     }
 
     private RenderFragment PathLinks(string stack, string ns, string module) =>
-        @<span class="dash-path"><a href="@($"/Stacks/{stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Stacks/{stack}/{ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Stacks/{stack}/{ns}/{module}")">@module</a></span>;
+        @<span class="dash-path"><a href="@($"/Stack/{stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{stack}/{ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Module/{stack}/{ns}/{module}")">@module</a></span>;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1354,7 +1354,7 @@ else
         }
     }
 
-    private static string ModuleUrl(string stack, string ns, string module) => $"/Stacks/{stack}/{ns}/{module}";
+    private static string ModuleUrl(string stack, string ns, string module) => $"/Module/{stack}/{ns}/{module}";
 
     private static string GetFavoriteGroupLabel(FavoriteTargetType targetType) => targetType switch
     {
