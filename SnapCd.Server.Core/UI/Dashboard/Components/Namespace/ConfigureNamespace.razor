@@ -11,6 +11,7 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
 <MudExpansionPanels MultiExpansion="false">
     <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
@@ -95,7 +96,10 @@
         <ChildContent>
             @if (IsSection(Section.Secrets))
             {
-                <ManageNamespaceSecrets NamespaceId="Namespace.Id" StackId="Namespace.StackId"/>
+                <ManageNamespaceSecrets NamespaceId="Namespace.Id"
+                                        StackId="Namespace.StackId"
+                                        StackName="@StackName"
+                                        PrincipalProvider="@PrincipalProvider"/>
             }
         </ChildContent>
     </MudExpansionPanel>
@@ -227,6 +231,7 @@
     [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetRepoFactory { get; set; } = null!;
     [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleRepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
 
     private Section _activeSection = Section.None;
     private bool _dependencyCheckCompleted;
@@ -392,6 +397,20 @@
 
     private async Task DeleteNamespace()
     {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"This permanently deletes namespace \"{Namespace.Name}\" including all of its modules and job history. This cannot be undone. Type the namespace name to confirm." },
+            { x => x.ButtonText, "Delete" },
+            { x => x.RequireConfirmation, true },
+            { x => x.ConfirmationText, Namespace.Name }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Namespace", parameters, options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+            return;
+
         _isDeleting = true;
         StateHasChanged();
 

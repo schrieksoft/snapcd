@@ -18,14 +18,26 @@
   --snap-accent-hover: #DC5414;
   --snap-accent-deep: #C1470C;
   --snap-accent-tint: #FDEEE3;
-  --snap-on-accent: #12171D;
+  /* Text on a solid accent fill. Sourced from the palette (SecondaryContrastText in
+     SnapCdTheme.cs): white in light mode, ink in dark — flips with the theme. */
+  --snap-on-accent: var(--mud-palette-secondary-text, #FFFFFF);
 
-  --snap-apply: #00B368;
-  --snap-apply-tint: #DFF7EC;
-  --snap-plan: #D9A514;
-  --snap-plan-tint: #FBF3DB;
-  --snap-destroy: #DB4A3F;
-  --snap-destroy-tint: #FBE7E5;
+  /* Semantic colours. These mirror the MudBlazor palette in SnapCdTheme.cs and
+     drive module state (Applied -> success, ApplyFailed/DestroyFailed -> error,
+     Cancelled/Timeout/NotApproved -> warning, everything else -> neutral).
+     NOTE: warning IS the accent — amber clashes with ember, so rather than add a
+     second warm colour the app reuses the accent for the warning state. */
+  --snap-success: #00B368;
+  --snap-success-tint: #DFF7EC;
+  --snap-error: #DB4A3F;
+  --snap-error-tint: #FBE7E5;
+  --snap-info: #4E8AF4;
+  --snap-warning: #E85D1A;
+
+  /* Job status dots: warning (= accent) and error read as the same colour at
+     dot size, so running gets a lighter accent and failed a deeper red */
+  --snap-running: #EB753C;
+  --snap-failed: #C62828;
 
   --snap-bg: #FAFBFB;
   --snap-bg-raised: #FFFFFF;
@@ -60,9 +72,8 @@
   --snap-code-bg: #000000;
   --snap-code-text: #E8ECEF;
 
-  --snap-apply-tint: #0a2618;
-  --snap-plan-tint: #2a2008;
-  --snap-destroy-tint: #2a1210;
+  --snap-success-tint: #0a2618;
+  --snap-error-tint: #2a0a0a;
 
   --snap-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --snap-shadow-md: 0 2px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.2);
@@ -78,6 +89,16 @@
   border-radius: 0px !important;
 }
 
+/* Dialog action buttons never touch. .mud-dialog-actions is MudBlazor's own
+   container for them, so this catches every dialog by construction; it lays them
+   out as a flex row with no gap, leaving Cancel/Submit flush. A gap on the
+   container (rather than a margin on .mud-button-root) keeps this off the
+   elements MudBlazor builds switches out of — a blanket button margin knocked
+   the switch thumb out of its track. Other button rows already set their own gap. */
+.mud-dialog-actions {
+  gap: 8px;
+}
+
 .mud-tabs .mud-tabs-tabbar {
   text-transform: lowercase !important;
 }
@@ -88,5 +109,81 @@
 
 .mud-expand-panel .mud-expand-panel-header .mud-expand-panel-text {
   font-size: 14px !important;
+}
+
+/* Stack/namespace/module lists: expanded panel content shows the page background;
+   only the panel header keeps the surface color */
+.stack-list .mud-expand-panel,
+.namespace-list .mud-expand-panel,
+.module-list .mud-expand-panel {
+  background-color: transparent !important;
+}
+
+.stack-list .mud-expand-panel > .mud-expand-panel-header,
+.namespace-list .mud-expand-panel > .mud-expand-panel-header,
+.module-list .mud-expand-panel > .mud-expand-panel-header {
+  background-color: var(--mud-palette-surface) !important;
+}
+
+/* Compact rows: MudBlazor defaults these headers to min-height 48px / padding
+   16px 24px, which is too airy for a dense stack > namespace > module tree.
+   Halve the vertical padding and let the row size to its content. */
+.stack-list .mud-expand-panel > .mud-expand-panel-header,
+.namespace-list .mud-expand-panel > .mud-expand-panel-header,
+.module-list .mud-expand-panel > .mud-expand-panel-header {
+  min-height: 0 !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+/* Nested lists run flush to the right edge. MudBlazor's default gutters put
+   24px of padding on BOTH sides of a panel's content, so each nesting level
+   (stack > namespace > module) inset its child another 24px: the stack row
+   reached the edge, the namespace row stopped 24px short, the module row 48px.
+   Keep the left gutter — that is the indent that shows depth — and drop the
+   right one, at both the content and the header, so every row runs flush. */
+.stack-list .mud-expand-panel-content,
+.namespace-list .mud-expand-panel-content,
+.module-list .mud-expand-panel-content {
+  padding-right: 0 !important;
+}
+
+.stack-list .mud-expand-panel-header,
+.namespace-list .mud-expand-panel-header,
+.module-list .mud-expand-panel-header {
+  padding-right: 12px !important;
+}
+
+/* Dashboard starred card: the unstar affordance is hidden until its row is hovered */
+.row-star {
+  visibility: hidden;
+}
+
+.attn-row:hover .row-star {
+  visibility: visible;
+}
+
+/* Clickable breadcrumbs highlight in accent on hover (same as dashboard links) */
+.mud-breadcrumbs a:hover,
+.mud-breadcrumbs a:hover * {
+  color: var(--snap-accent) !important;
+  text-decoration: underline;
+}
+
+/* MudLink (dependency graph nodes, list links, ...) highlights in accent on hover */
+a.mud-link:hover {
+  color: var(--snap-accent) !important;
+}
+
+/* Section label above ListStacks / ListNamespaces / ListModules. The same rule
+   serves all three so a nested list (stack > namespace > module) reads as the
+   same kind of heading at every depth. */
+.list-heading {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--snap-text-3);
+  margin-bottom: 8px;
 }
 

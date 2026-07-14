@@ -21,6 +21,13 @@
 @using Microsoft.Extensions.Hosting
 @using Microsoft.Extensions.Options
 @using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Contracts
+@implements IDisposable
 @inject NavigationManager NavigationManager
 @inject IHostEnvironment HostEnvironment
 @inject IVersionService VersionService
@@ -32,6 +39,12 @@
 @inject IOrganizationActivationService OrganizationActivation
 @inject OrganizationMembershipCacheService MembershipCache
 @inject UserManager<User> UserManager
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject UserFavoriteSecuredRepositoryFactory FavoriteRepoFactory
+@inject ModuleSecuredRepositoryFactory ModuleRepoFactory
+@inject NamespaceSecuredRepositoryFactory NamespaceRepoFactory
+@inject StackSecuredRepositoryFactory StackRepoFactory
+@inject FavoritesModifiedNotificationService FavoritesModifiedNotificationService
 
 <MudNavMenu Style="background-color: var(--snap-bg-sidebar); color: var(--snap-text); padding-top: 16px; width: 100%; overflow-x: hidden;">
 
@@ -40,9 +53,10 @@
 
             <!-- Header Section -->
             <a href="/" style="display: flex; align-items: center; padding: 16px; margin-bottom: 16px; text-decoration: none; cursor: pointer;">
-                <img src="/_content/SnapCd.Server.Core/logo-inverted-32x32.png" alt="Snap CD"
-                     style="width: 32px; height: 32px; margin-right: 12px; image-rendering: -webkit-optimize-contrast; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;"/>
-                <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Snap CD</MudText>
+                @* The lockup is a single asset: cube + wordmark, with the accent already
+                   on the "CD". The sidebar is always dark, so it takes the white one. *@
+                <img src="/_content/SnapCd.Server.Core/lockup-white.svg" alt="Snap CD"
+                     style="height: 28px; width: auto;"/>
                 <MudText Typo="Typo.caption" Style="color: rgba(255, 255, 255, 0.35); margin-left: auto; font-size: 0.65rem;">
                     v@(VersionService.ShortVersion)
                 </MudText>
@@ -60,6 +74,21 @@
                     {
                         <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match"
                                     Icon="@link.Icon">@link.Text</MudNavLink>
+                    }
+
+                    @* Starred items sit below Stacks *@
+                    @if (link.Href == "Stacks" && _favoriteLinks.Any())
+                    {
+                        <MudNavGroup Title="Starred" Icon="@SnapCdIcons.Star" Expanded="false" Class="starred-nav-group">
+                            @foreach (var group in _favoriteLinks.GroupBy(f => f.TargetType).OrderBy(g => g.Key))
+                            {
+                                <div class="starred-type-label">@GetStarredGroupLabel(group.Key)</div>
+                                @foreach (var favorite in group)
+                                {
+                                    <MudNavLink Href="@favorite.Url" Match="NavLinkMatch.All" title="@favorite.FullPath">@favorite.Label</MudNavLink>
+                                }
+                            }
+                        </MudNavGroup>
                     }
                 }
             }
@@ -156,17 +185,25 @@
         box-sizing: border-box !important;
     }
 
-    .mud-nav-menu,
-    .mud-nav-menu * {
+    /* Sidebar text colour. Deliberately NOT a blanket `.mud-nav-menu *` rule: with
+       !important that beat every attempt to colour anything in the sidebar (the
+       brand accent, a status dot, a badge) and was impossible to opt out of.
+       Colour is set on the container and inherited; the rules below only target
+       the elements that do not inherit it on their own. */
+    .mud-nav-menu {
+        color: var(--snap-sidebar-text);
+    }
+
+    .mud-nav-menu .mud-nav-link,
+    .mud-nav-menu .mud-nav-group-header,
+    .mud-nav-menu .mud-nav-link .mud-icon-root {
         color: var(--snap-sidebar-text) !important;
     }
 
-    .mud-nav-menu .mud-icon-root,
-    .mud-nav-menu svg {
-        color: var(--snap-sidebar-text) !important;
-    }
-
-    .mud-nav-menu svg path:not([fill="none"]) {
+    /* Nav-link icons only. Scoped to .mud-icon-root so it cannot repaint other
+       artwork in the sidebar (the logo lockup, badges). */
+    .mud-nav-menu .mud-icon-root svg path:not([fill="none"]),
+    .mud-nav-menu svg.mud-icon-root path:not([fill="none"]) {
         fill: var(--snap-sidebar-text) !important;
     }
 
@@ -192,6 +229,24 @@
 
     .mud-divider {
         background-color: rgba(255,255,255,0.15) !important;
+    }
+
+    /* Starred group scrolls internally once it exceeds ~a third of the sidebar height */
+    .starred-nav-group .mud-collapse-container {
+        max-height: 33vh;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+    }
+
+    .mud-drawer .mud-drawer-content .starred-type-label {
+        padding: 6px 16px 2px 24px;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: rgba(255, 255, 255, 0.35) !important;
     }
 </style>
 
@@ -221,6 +276,131 @@
         if (HostEnvironment.IsDevelopment())
             _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
         _swaggerIsAllowedToNavigate = await IsAllowedToNavigateAsync(typeof(Swagger), orgId);
+
+        if (orgId != Guid.Empty
+            && HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() == PrincipalDiscriminator.User)
+        {
+            _principalId = HttpContextPrincipalProvider.GetSubjectOrDefault(orgId);
+            if (_principalId != Guid.Empty)
+            {
+                await LoadFavorites(orgId);
+                FavoritesModifiedNotificationService.Subscribe(_principalId, HandleFavoritesModified);
+                _subscribedToFavorites = true;
+            }
+        }
+    }
+
+    private List<FavoriteLink> _favoriteLinks = new();
+    private Guid _principalId;
+    private bool _subscribedToFavorites;
+
+    private record FavoriteLink(FavoriteTargetType TargetType, string Label, string Url, string FullPath);
+
+    private static string GetStarredGroupLabel(FavoriteTargetType targetType) => targetType switch
+    {
+        FavoriteTargetType.Stack => "Stacks",
+        FavoriteTargetType.Namespace => "Namespaces",
+        _ => "Modules"
+    };
+
+    private async Task LoadFavorites(Guid orgId)
+    {
+        var principal = new LiteralPrincipalProvider(_principalId, PrincipalDiscriminator.User, [orgId]);
+
+        using var favoriteRepo = FavoriteRepoFactory.Create(principal);
+        var favorites = await favoriteRepo.List(orgId);
+
+        var links = new List<FavoriteLink>();
+        if (favorites.Count > 0)
+        {
+            var moduleIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Module).Select(f => f.TargetId).ToList();
+            var namespaceIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Namespace).Select(f => f.TargetId).ToList();
+            var stackIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Stack).Select(f => f.TargetId).ToList();
+
+            var moduleLookup = new Dictionary<Guid, FavoriteLink>();
+            if (moduleIds.Any())
+            {
+                using var moduleRepo = ModuleRepoFactory.Create(principal);
+                var modules = await moduleRepo.List(orgId, q => q
+                    .Where(m => moduleIds.Contains(m.Id))
+                    .Select(m => new { m.Id, m.Name, NamespaceName = m.Namespace.Name, StackName = m.Namespace.Stack.Name }));
+                moduleLookup = modules.ToDictionary(
+                    m => m.Id,
+                    m => new FavoriteLink(
+                        FavoriteTargetType.Module,
+                        m.Name,
+                        $"/Stacks/{m.StackName}/{m.NamespaceName}/{m.Name}",
+                        $"{m.StackName}/{m.NamespaceName}/{m.Name}"));
+            }
+
+            var namespaceLookup = new Dictionary<Guid, FavoriteLink>();
+            if (namespaceIds.Any())
+            {
+                using var namespaceRepo = NamespaceRepoFactory.Create(principal);
+                var namespaces = await namespaceRepo.List(orgId, q => q
+                    .Where(n => namespaceIds.Contains(n.Id))
+                    .Select(n => new { n.Id, n.Name, StackName = n.Stack.Name }));
+                namespaceLookup = namespaces.ToDictionary(
+                    n => n.Id,
+                    n => new FavoriteLink(
+                        FavoriteTargetType.Namespace,
+                        n.Name,
+                        $"/Stacks/{n.StackName}/{n.Name}",
+                        $"{n.StackName}/{n.Name}"));
+            }
+
+            var stackLookup = new Dictionary<Guid, FavoriteLink>();
+            if (stackIds.Any())
+            {
+                using var stackRepo = StackRepoFactory.Create(principal);
+                var stacks = await stackRepo.List(orgId, q => q
+                    .Where(s => stackIds.Contains(s.Id))
+                    .Select(s => new { s.Id, s.Name }));
+                stackLookup = stacks.ToDictionary(
+                    s => s.Id,
+                    s => new FavoriteLink(
+                        FavoriteTargetType.Stack,
+                        s.Name,
+                        $"/Stacks/{s.Name}",
+                        s.Name));
+            }
+
+            foreach (var favorite in favorites)
+            {
+                var lookup = favorite.TargetType switch
+                {
+                    FavoriteTargetType.Module => moduleLookup,
+                    FavoriteTargetType.Namespace => namespaceLookup,
+                    _ => stackLookup
+                };
+                if (lookup.TryGetValue(favorite.TargetId, out var link))
+                    links.Add(link);
+            }
+        }
+
+        // Grouped by target type (same as the dashboard's Starred card), alphabetical within each group
+        _favoriteLinks = links
+            .OrderBy(l => l.TargetType)
+            .ThenBy(l => l.FullPath, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private Task HandleFavoritesModified(Guid userId)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+            if (orgId == Guid.Empty) return;
+            await LoadFavorites(orgId);
+            StateHasChanged();
+        });
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedToFavorites)
+            FavoritesModifiedNotificationService.Unsubscribe(_principalId, HandleFavoritesModified);
     }
 
     private async Task<Dictionary<Type, bool>> BuildAllowedMapAsync(IEnumerable<NavLinkItem> links, Guid orgId)
@@ -248,7 +428,7 @@
     // General Section - displayed at the top
     private List<NavLinkItem> _generalNavLinks = new()
     {
-        new NavLinkItem("Home", NavLinkMatch.All, SnapCdIcons.Dashboard, "Dashboard", typeof(OrganizationHome)),
+        new NavLinkItem("Dashboard", NavLinkMatch.All, SnapCdIcons.SpaceDashboard, "Dashboard", typeof(OrganizationHome)),
         new NavLinkItem("Stacks", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Stacks", typeof(Stacks))
     };
 

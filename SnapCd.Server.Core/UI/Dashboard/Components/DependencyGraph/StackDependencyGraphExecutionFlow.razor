@@ -39,7 +39,7 @@
 
                 @foreach (var namespaceGroup in namespaceGroups)
                 {
-                    <MudCard Elevation="1" Class="mb-1">
+                    <MudCard Elevation="1" Class="mb-1 dag-namespace-card">
                         <MudCardHeader Class="pa-2 pb-1">
                             <CardHeaderContent>
                                 <MudLink Href="@($"/Stacks/{namespaceGroup.Key}")"
@@ -66,9 +66,6 @@
                                                                  @onclick:stopPropagation="true">
                                                             @nodeState.ModuleName
                                                         </MudLink>
-                                                        <MudIcon Icon="@nodeState.StateIcon"
-                                                                 Color="@nodeState.StateColor"
-                                                                 Size="Size.Small" Style="font-size: 1rem;"/>
                                                     </div>
                                                     <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
                                                         @nodeState.StateDisplayText
@@ -132,9 +129,6 @@
                                                          Style="font-size: 0.8rem;">
                                                     @nodeState.ModuleName
                                                 </MudLink>
-                                                <MudIcon Icon="@nodeState.StateIcon"
-                                                         Color="@nodeState.StateColor"
-                                                         Size="Size.Small" Style="font-size: 1rem;"/>
                                             </div>
                                             <MudText Typo="Typo.caption" Color="@nodeState.StateColor" Style="font-size: 0.75rem;">
                                                 @nodeState.StateDisplayText
@@ -168,10 +162,16 @@
 
 <style>
     .stage-column {
-        background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-lines-default);
+        background: transparent;
+        border: none;
         border-radius: 8px;
         padding: 12px;
+    }
+
+    /* Namespace grouping cards get an inset background so they stand out from
+       the transparent stage columns and the surface-coloured module nodes */
+    .dag-namespace-card {
+        background: var(--snap-bg-inset, var(--mud-palette-background-grey));
     }
 
     .stage-arrow {

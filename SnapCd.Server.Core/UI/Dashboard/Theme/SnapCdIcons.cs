@@ -276,6 +276,12 @@ public static class SnapCdIcons
     // SpaceDashboard -> Phosphor LayoutFill
     public const string SpaceDashboard = "<g transform=\"scale(0.09375,0.09375)\"><path d=\"M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H216V96H40ZM216,200H112V112H216v88Z\"/></g>";
 
+    // Columns — two side-by-side rectangles (used for namespaces)
+    public const string Columns = "<g><rect x=\"3\" y=\"5\" width=\"8.5\" height=\"14\" rx=\"1.5\"/><rect x=\"12.5\" y=\"5\" width=\"8.5\" height=\"14\" rx=\"1.5\"/></g>";
+
+    // Star -> Phosphor StarFill
+    public const string Star = "<g transform=\"scale(0.09375,0.09375)\"><path d=\"M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,86l59-4.76,22.76-55.08a16.36,16.36,0,0,1,30.27,0l22.75,55.08,59,4.76a16.46,16.46,0,0,1,9.37,28.86Z\"/></g>";
+
     // Stop -> Phosphor StopFill
     public const string Stop = "<g transform=\"scale(0.09375,0.09375)\"><path d=\"M216,56V200a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V56A16,16,0,0,1,56,40H200A16,16,0,0,1,216,56Z\"/></g>";
 

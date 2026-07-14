@@ -79,10 +79,12 @@ else
         {
             var dotColor = job.Status switch
             {
-                ExecutionStatus.Running => "var(--mud-palette-warning)",
+                // Running gets a lighter accent and Failed a deeper red — the theme's warning
+                // (accent) and error colors are too close to tell apart at dot size
+                ExecutionStatus.Running => "var(--snap-running, #EB753C)",
                 ExecutionStatus.Completed => "var(--mud-palette-success)",
-                ExecutionStatus.Failed => "var(--mud-palette-error)",
-                ExecutionStatus.NotApproved => "var(--mud-palette-error)",
+                ExecutionStatus.Failed => "var(--snap-failed, #C62828)",
+                ExecutionStatus.NotApproved => "var(--snap-failed, #C62828)",
                 ExecutionStatus.Cancelled => "var(--mud-palette-text-disabled)",
                 _ => "var(--mud-palette-text-disabled)"
             };

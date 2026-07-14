@@ -12,10 +12,12 @@
 
 @inject PersistentComponentState ApplicationState
 
+<div class="list-heading">Modules</div>
+
 <div class="module-list">
     @foreach (var module in _paginatedModules)
     {
-        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="mb-2">
+        <MudExpansionPanel @key="module.Id" Disabled="true" HideIcon="true" Class="mb-1">
             <TitleContent>
                 @if (ShowCheckboxes)
                 {
@@ -25,18 +27,14 @@
                                      ValueChanged="@(value => OnModuleSelectionChanged(module.Id, value))"
                                      Dense="true"
                                      Style="margin: 0; padding: 0;"/>
-                        <MudTooltip Text="Module">
-                            <MudLink
-                                Href="@($"/Stacks/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
-                        </MudTooltip>
+                        <MudLink
+                            Href="@($"/Stacks/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
                     </div>
                 }
                 else
                 {
-                    <MudTooltip Text="Module">
-                        <MudLink
-                            Href="@($"/Stacks/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
-                    </MudTooltip>
+                    <MudLink
+                        Href="@($"/Stacks/{StackName}/{NamespaceName}/{module.Name}")">@GetHighlightedModuleName(module.Name)</MudLink>
                 }
             </TitleContent>
             <ChildContent>
@@ -55,10 +53,10 @@
 <style>
 
     .search-highlight {
-        background-color: var(--mud-palette-info-lighten);
-        color: white;
+        background-color: var(--snap-accent);
+        color: var(--snap-on-accent);
         padding: 0 2px;
-        border-radius: 2px;
+        border-radius: 0;
     }
 </style>
 
@@ -257,9 +255,9 @@
     }
 
     .search-highlight {
-        background-color: var(--mud-palette-info-lighten);
-        color: white;
+        background-color: var(--snap-accent);
+        color: var(--snap-on-accent);
         padding: 0 2px;
-        border-radius: 2px;
+        border-radius: 0;
     }
 </style>

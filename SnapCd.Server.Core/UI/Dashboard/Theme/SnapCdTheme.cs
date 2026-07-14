@@ -13,6 +13,11 @@ public static class SnapCdTheme
     private const string AccentHover = "#DC5414";
     private const string AccentTint = "#FDEEE3";
 
+    // Text/icons on a solid accent fill: white in light mode (Ink reads as
+    // off-brand there), Ink in dark mode.
+    private const string OnAccentLight = "#FFFFFF";
+    private const string OnAccentDark = "#12171D";
+
     public static MudTheme Default { get; } = new()
     {
         PaletteLight = new PaletteLight
@@ -23,7 +28,7 @@ public static class SnapCdTheme
             Secondary = AccentColor,
             SecondaryDarken = AccentHover,
             SecondaryLighten = AccentTint,
-            SecondaryContrastText = "#FFFFFF",
+            SecondaryContrastText = OnAccentLight,
             Tertiary = "#12171D",
             TertiaryDarken = "#0E1216",
             TertiaryLighten = "#2B333C",
@@ -57,7 +62,7 @@ public static class SnapCdTheme
             Secondary = AccentColor,
             SecondaryDarken = AccentHover,
             SecondaryLighten = AccentTint,
-            SecondaryContrastText = "#FFFFFF",
+            SecondaryContrastText = OnAccentDark,
             Tertiary = "#12171D",
             TertiaryDarken = "#0E1216",
             TertiaryLighten = "#2B333C",

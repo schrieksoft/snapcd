@@ -11,6 +11,7 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
 <MudExpansionPanels MultiExpansion="false">
     <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
@@ -98,7 +99,10 @@
             {
                 <ManageModuleSecrets ModuleId="Module.Id"
                                      NamespaceId="Module.NamespaceId"
-                                     StackId="StackId"/>
+                                     StackId="StackId"
+                                     StackName="@StackName"
+                                     NamespaceName="@NamespaceName"
+                                     PrincipalProvider="@PrincipalProvider"/>
             }
         </ChildContent>
     </MudExpansionPanel>
@@ -231,6 +235,7 @@
     [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetRepoFactory { get; set; } = null!;
     [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleRepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
 
     private Section _activeSection = Section.None;
     private bool _dependencyCheckCompleted;
@@ -384,6 +389,18 @@
 
     private async Task DeleteModule()
     {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"This permanently deletes module \"{Module.Name}\" and its job history. This cannot be undone." },
+            { x => x.ButtonText, "Delete" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Module", parameters, options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+            return;
+
         _isDeleting = true;
         StateHasChanged();
 

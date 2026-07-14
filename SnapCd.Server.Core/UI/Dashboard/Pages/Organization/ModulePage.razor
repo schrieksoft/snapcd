@@ -62,8 +62,6 @@
 <PageTitle>Module: @ModuleName</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <MudBreadcrumbs Items="_breadCrumbs"></MudBreadcrumbs>
-
     @if (_module != null)
     {
         <div class="module-page-header">
@@ -76,8 +74,20 @@
                         @FormatActualState(_actualStateSummary.State)
                     </span>
                 }
+                <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_module.Id"/>
             </div>
             <MudText Typo="Typo.body2" Class="module-page-subtitle">
+                <span class="module-page-parents">
+                    Stack: <MudLink Href="@($"/Stacks/{StackName}{_parentQuery}")">@StackName</MudLink>
+                    ·
+                    Namespace: <MudLink Href="@($"/Stacks/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
+                </span>
+                @if (_moduleSaga?.ActualResourceCount.HasValue == true
+                     || _revisionSummary != null
+                     || _runnerAvailabilitySummary != null)
+                {
+                    @: ·
+                }
                 @if (_moduleSaga?.ActualResourceCount.HasValue == true)
                 {
                     @:@_moduleSaga.ActualResourceCount.Value @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources")
@@ -126,8 +136,8 @@
                               OnJobsStateChanged="HandleJobsStateChanged"
                               IsQueued="@(_queuedSummary is { State: true })"
                               QueuedText="@(_queuedSummary?.Text)"
-                              QueuedReasonText="@(_moduleSaga.QueuedReason.HasValue ? GetQueuedReasonText(_moduleSaga.QueuedReason.Value) : null)"
-                              ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin)"
+                              QueuedReasonText="@GetQueuedReasonDisplayText()"
+                              ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
                               OnRunQueueNow="RunQueueNow"
                               OnClearQueue="ClearQueue"/>
         }
@@ -155,19 +165,6 @@
             <ViewVariables Module="_module" StackName="@StackName"/>
         }
 
-        @if (_showing == ShowingType.Dependencies)
-        {
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                <MudText Typo="Typo.h5" Class="mb-4">
-                    Dependency Graph
-                </MudText>
-
-                <ModuleDependencyGraph ModuleId="@_module.Id"
-                                       ModuleName="@_module.Name"
-                                       Direction="Apply"
-                                       DisableDirectionToggle="false"/>
-            </MudPaper>
-        }
     }
 </CascadingValue>
 
@@ -189,6 +186,16 @@
     .module-page-mono {
         font-family: 'Geist Mono', ui-monospace, monospace;
         font-size: 0.85em;
+    }
+
+    /* Parent links (Stack / Namespace) in the subtitle line, replacing the old
+       breadcrumb trail. */
+    .module-page-parents .mud-link {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .module-page-parents .mud-link:hover {
+        color: var(--snap-accent);
     }
 
     .module-status-badge {
@@ -262,7 +269,7 @@
     private Runner? _runner;
     private string? _actualDefinitiveRevision;
     private ActualStateHeadline? _actualStateHeadline;
-    private List<BreadcrumbItem> _breadCrumbs = [];
+    private string _parentQuery = "";
 
     private ShowingType _showing = ShowingType.None;
     private string? _configureSection;
@@ -270,7 +277,6 @@
     private readonly List<TabBar.TabBarItem> _tabs =
     [
         new() { Key = nameof(ShowingType.Jobs), Label = "Jobs" },
-        new() { Key = nameof(ShowingType.Dependencies), Label = "Dependencies" },
         new() { Key = nameof(ShowingType.Variables), Label = "Variables" },
         new() { Key = nameof(ShowingType.Outputs), Label = "Outputs" },
         new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
@@ -660,6 +666,22 @@
         }
     }
 
+    private string? GetQueuedReasonDisplayText()
+    {
+        if (_moduleSaga?.QueuedReason == null)
+            return null;
+
+        var text = GetQueuedReasonText(_moduleSaga.QueuedReason.Value);
+
+        // No connected runner instance is the more restrictive condition — surface it alongside
+        // whatever the job is queued on, unless that is already the runner itself.
+        if (_moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin
+            && _runnerAvailabilitySummary is { ActiveCount: 0 })
+            text += " · also waiting for an active runner";
+
+        return text;
+    }
+
     private string GetQueuedReasonText(QueuedReason reason)
     {
         return reason switch
@@ -749,7 +771,7 @@
     {
         return state switch
         {
-            RevisionState.Unknown => "None",
+            RevisionState.Unknown => "No revision yet",
             _ => state.ToString()
         };
     }
@@ -939,27 +961,6 @@
         return dependencies.Any(d => d.DefinedLatestActualState != ActualStateHeadline.Destroyed);
     }
 
-    private string GetDependenciesLink()
-    {
-        var direction = _moduleSaga.QueuedDesiredStateHeadline switch
-        {
-            DesiredStateHeadline.Applied => "Apply",
-            DesiredStateHeadline.Destroyed => "Destroy",
-            _ => "Apply"
-        };
-
-        var queryParams = new List<string>
-        {
-            $"action=Dependencies",
-            $"direction={direction}"
-        };
-
-        if (!string.IsNullOrEmpty(Search))
-            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
-
-        var queryString = "?" + string.Join("&", queryParams);
-        return $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -971,13 +972,8 @@
             ? $"?search={Uri.EscapeDataString(Search)}"
             : "";
 
-        _breadCrumbs =
-        [
-            new BreadcrumbItem("Stacks", $"/Stacks{queryString}"),
-            new BreadcrumbItem(StackName, $"/Stacks/{StackName}{queryString}"),
-            new BreadcrumbItem(NamespaceName, $"/Stacks/{StackName}/{NamespaceName}{queryString}"),
-            new BreadcrumbItem(ModuleName, $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}")
-        ];
+        // Carried onto the parent links in the header so search context survives navigation.
+        _parentQuery = queryString;
 
         var cacheKey = $"module_{StackName}_{NamespaceName}_{ModuleName}";
 
@@ -1178,7 +1174,6 @@
         Jobs,
         Outputs,
         Variables,
-        Dependencies,
         Configure
     }
 
@@ -1216,7 +1211,6 @@
             "jobs" => ShowingType.Jobs,
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
-            "dependencies" => ShowingType.Dependencies,
             "configure" => ShowingType.Configure,
             _ => null
         };
@@ -1229,7 +1223,6 @@
             ShowingType.Jobs => "Jobs",
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",
-            ShowingType.Dependencies => "Dependencies",
             ShowingType.Configure => "Configure",
             _ => null
         };

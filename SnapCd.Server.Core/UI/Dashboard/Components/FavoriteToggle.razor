@@ -1,0 +1,82 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.PrincipalProvider
+
+@inject UserFavoriteSecuredRepositoryFactory FavoriteRepoFactory
+@inject FavoritesModifiedNotificationService FavoritesModifiedNotificationService
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+
+@if (_isUser && TargetId != Guid.Empty)
+{
+    <MudTooltip Text="@(_favoriteId != null ? "Unstar" : "Star")">
+        <MudIconButton Icon="@SnapCdIcons.Star"
+                       Color="@(_favoriteId != null ? Color.Secondary : Color.Primary)"
+                       Size="Size.Small"
+                       OnClick="Toggle"/>
+    </MudTooltip>
+}
+
+@code {
+    [Parameter] public required FavoriteTargetType TargetType { get; set; }
+    [Parameter] public required Guid TargetId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private Guid? _favoriteId;
+    private bool _isUser;
+    private Guid _previousTargetId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isUser = HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() == PrincipalDiscriminator.User;
+        await LoadState();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (TargetId != _previousTargetId)
+        {
+            await LoadState();
+        }
+    }
+
+    private async Task LoadState()
+    {
+        _previousTargetId = TargetId;
+        _favoriteId = null;
+
+        if (!_isUser || TargetId == Guid.Empty || OrganizationId == Guid.Empty)
+            return;
+
+        using var repo = FavoriteRepoFactory.Create();
+        var favorite = await repo.GetByTarget(OrganizationId, TargetType, TargetId);
+        _favoriteId = favorite?.Id;
+    }
+
+    private async Task Toggle()
+    {
+        using var repo = FavoriteRepoFactory.Create();
+
+        if (_favoriteId != null)
+        {
+            await repo.Delete(_favoriteId.Value, OrganizationId);
+            _favoriteId = null;
+        }
+        else
+        {
+            var favorite = await repo.Create(OrganizationId, TargetType, TargetId);
+            _favoriteId = favorite.Id;
+        }
+
+        await FavoritesModifiedNotificationService.Notify(HttpContextPrincipalProvider.GetSubject(OrganizationId));
+    }
+}

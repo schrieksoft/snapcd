@@ -465,3 +465,10 @@ public enum LogSource
     Runner = 0,
     Server = 1
 }
+
+public enum FavoriteTargetType
+{
+    Stack,
+    Namespace,
+    Module
+}

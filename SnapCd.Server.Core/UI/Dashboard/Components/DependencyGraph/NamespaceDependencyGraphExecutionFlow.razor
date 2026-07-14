@@ -41,7 +41,7 @@
                 {
                     var namespaceStyle = GetNamespaceCardStyle(namespaceGroup.Key);
                     var isExternalNamespace = IsExternalNamespace(namespaceGroup.Key);
-                    <MudCard Elevation="1" Class="mb-1" Style="@namespaceStyle">
+                    <MudCard Elevation="1" Class="mb-1 dag-namespace-card" Style="@namespaceStyle">
                         <MudCardHeader Class="pa-2 pb-1">
                             <CardHeaderContent>
                                 <MudLink Href="@($"/Stacks/{namespaceGroup.Key}")"
@@ -71,9 +71,6 @@
                                                                  @onclick:stopPropagation="true">
                                                             @nodeState.ModuleName
                                                         </MudLink>
-                                                        <MudIcon Icon="@nodeState.StateIcon"
-                                                                 Color="@nodeState.StateColor"
-                                                                 Size="Size.Small" Style="font-size: 1rem;"/>
                                                     </div>
                                                     @if (isUninvolved)
                                                     {
@@ -146,9 +143,6 @@
                                                          Style="font-size: 0.8rem;">
                                                     @nodeState.ModuleName
                                                 </MudLink>
-                                                <MudIcon Icon="@nodeState.StateIcon"
-                                                         Color="@nodeState.StateColor"
-                                                         Size="Size.Small" Style="font-size: 1rem;"/>
                                             </div>
                                             @if (isUninvolved)
                                             {
@@ -191,10 +185,16 @@
 
 <style>
     .stage-column {
-        background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-lines-default);
+        background: transparent;
+        border: none;
         border-radius: 8px;
         padding: 12px;
+    }
+
+    /* Namespace grouping cards get an inset background so they stand out from
+       the transparent stage columns and the surface-coloured module nodes */
+    .dag-namespace-card {
+        background: var(--snap-bg-inset, var(--mud-palette-background-grey));
     }
 
     .stage-arrow {

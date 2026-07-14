@@ -134,12 +134,11 @@ else
                 <tbody>
                     @foreach (var feature in Enum.GetValues<Feature>())
                     {
-                        var isEnterpriseOnly = feature == Feature.AiAgents;
                         <tr>
                             <td>@FeatureLabel(feature)</td>
-                            <td style="text-align: center;">@RenderTierCell(Tier.Community, feature, isEnterpriseOnly)</td>
-                            <td style="text-align: center;">@RenderTierCell(Tier.Lite, feature, isEnterpriseOnly)</td>
-                            <td style="text-align: center;">@RenderTierCell(Tier.Enterprise, feature, isEnterpriseOnly)</td>
+                            <td style="text-align: center;">@RenderTierCell(Tier.Community, feature)</td>
+                            <td style="text-align: center;">@RenderTierCell(Tier.Lite, feature)</td>
+                            <td style="text-align: center;">@RenderTierCell(Tier.Enterprise, feature)</td>
                         </tr>
                     }
                 </tbody>
@@ -300,19 +299,9 @@ else
         _ => feature.ToString()
     };
 
-    private RenderFragment RenderTierCell(Tier tier, Feature feature, bool isEnterpriseOnly) => __builder =>
+    private RenderFragment RenderTierCell(Tier tier, Feature feature) => __builder =>
     {
-        if (isEnterpriseOnly)
-        {
-            // AiAgents — Enterprise-only. Render a visible "Enterprise Only" chip in the Enterprise
-            // column and an invisible same-shape placeholder in the other columns so the row's cells
-            // line up horizontally with the rest of the grid.
-            var hidden = tier != Tier.Enterprise ? "visibility: hidden;" : "";
-            <span style="@hidden">
-                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">Enterprise Only</MudChip>
-            </span>
-        }
-        else if (tier.Includes(feature))
+        if (tier.Includes(feature))
         {
             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
         }

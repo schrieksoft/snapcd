@@ -53,12 +53,13 @@
 @attribute [OrganizationScopedFeature]
 
 <CascadingValue Value="OrganizationId">
-    <MudBreadcrumbs Items="_breadCrumbs"></MudBreadcrumbs>
-
     @if (_stack != null)
     {
         <div class="page-header">
-            <MudText Typo="Typo.h4" Class="page-header-title">@StackName</MudText>
+            <div class="d-flex align-center gap-2">
+                <MudText Typo="Typo.h4" Class="page-header-title">@StackName</MudText>
+                <FavoriteToggle TargetType="FavoriteTargetType.Stack" TargetId="_stack.Id"/>
+            </div>
         </div>
 
         <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
@@ -111,7 +112,7 @@
                                 <MudChip T="string"
                                          Text="@term"
                                          Size="Size.Small"
-                                         Color="Color.Primary"
+                                         Color="Color.Secondary"
                                          OnClose="@(() => RemoveSearchTerm(term))"/>
                             }
                         </div>
@@ -407,7 +408,6 @@
 
     private Stack? _stack;
     private TruncatedStack? _truncatedStack;
-    private List<BreadcrumbItem> _breadCrumbs = [];
 
     private ShowingType _showing = ShowingType.None;
     private string? _configureSection;
@@ -459,16 +459,6 @@
         {
             _searchTerms = Search.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
         }
-
-        var stacksUrl = _searchTerms.Any()
-            ? $"/Stacks?search={Uri.EscapeDataString(string.Join(",", _searchTerms))}"
-            : "/Stacks";
-
-        _breadCrumbs =
-        [
-            new BreadcrumbItem("Stacks", "/Stacks"),
-            new BreadcrumbItem(StackName, $"/Stacks/{StackName}")
-        ];
 
         using var repo = RepoFactory.Create();
         try
@@ -965,7 +955,6 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        margin-bottom: 0.5rem;
         flex-wrap: wrap;
     }
 
@@ -973,7 +962,7 @@
         display: flex;
         align-items: center;
         gap: 1rem;
-        margin-bottom: 1rem;
+        margin-top: 0.5rem;
         padding: 0.5rem;
         background-color: var(--mud-palette-background-grey);
         border-radius: 4px;

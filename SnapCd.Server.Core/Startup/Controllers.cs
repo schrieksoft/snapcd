@@ -97,6 +97,8 @@ public static class Controllers
             typeof(StateStoreRoleAssignmentController),
             typeof(StateController),
 
+            typeof(UserFavoriteController),
+
             // OpenIddict
             typeof(AuthenticationController),
             typeof(AuthorizationController),

@@ -35,8 +35,12 @@ public class LogService
         {
             var correlationId = group.Key;
 
-            // Use a transaction with Serializable isolation to ensure proper locking
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            // ReadCommitted + the UPDLOCK hint below is what serializes concurrent appenders to the
+            // same job: the second writer blocks on the row's U lock and reads the committed Logs
+            // after the first commits. Serializable adds key-range locking on top of that (the
+            // clustered PK is (Id, OrganizationId), so "WHERE Id = @0" is a prefix-range seek) and
+            // is not needed for this read-modify-write of a single existing row.
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
             try
             {

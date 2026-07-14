@@ -10,6 +10,7 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 @using Stack = SnapCd.Server.Core.Entities.Definition.Stack
 
 <MudExpansionPanels MultiExpansion="false">
@@ -93,7 +94,8 @@
         <ChildContent>
             @if (IsSection(Section.Secrets))
             {
-                <ManageStackSecrets StackId="Stack.Id"/>
+                <ManageStackSecrets StackId="Stack.Id"
+                                    PrincipalProvider="@PrincipalProvider"/>
             }
         </ChildContent>
     </MudExpansionPanel>
@@ -142,6 +144,7 @@
 
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
 
     private Section _activeSection = Section.None;
 
@@ -196,6 +199,20 @@
 
     private async Task DeleteStack()
     {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"This permanently deletes stack \"{Stack.Name}\" including all of its namespaces, modules and job history. This cannot be undone. Type the stack name to confirm." },
+            { x => x.ButtonText, "Delete" },
+            { x => x.RequireConfirmation, true },
+            { x => x.ConfirmationText, Stack.Name }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Stack", parameters, options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+            return;
+
         try
         {
             using var repo = RepoFactory.Create();

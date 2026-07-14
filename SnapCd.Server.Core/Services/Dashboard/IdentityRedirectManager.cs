@@ -52,17 +52,28 @@ public class IdentityRedirectManager(NavigationManager navigationManager)
         RedirectTo(uri);
     }
 
-    private string CurrentPath => navigationManager.ToAbsoluteUri(navigationManager.Uri).GetLeftPart(UriPartial.Path);
+    /// <summary>
+    /// The page currently being rendered, <em>including</em> its query string.
+    /// </summary>
+    /// <remarks>
+    /// The query string must be preserved: a page like /Account/CompleteInvitation
+    /// carries its invitation token in the query, and redirecting back to it on a
+    /// failed submit (a rejected password, say) has to return the user to a URL that
+    /// still has the token. Stripping it left the retry with no token, so a second
+    /// attempt failed with "No invitation token provided." even when the input was
+    /// valid.
+    /// </remarks>
+    private string CurrentPageUri => navigationManager.Uri;
 
     [DoesNotReturn]
     public void RedirectToCurrentPage()
     {
-        RedirectTo(CurrentPath);
+        RedirectTo(CurrentPageUri);
     }
 
     [DoesNotReturn]
     public void RedirectToCurrentPageWithStatus(string message, HttpContext context)
     {
-        RedirectToWithStatus(CurrentPath, message, context);
+        RedirectToWithStatus(CurrentPageUri, message, context);
     }
 }

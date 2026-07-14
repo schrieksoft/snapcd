@@ -355,6 +355,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Early exit for UPDATEs that touch none of the columns ModuleState is derived from.
+    -- This matters for the log-append hot path (UPDATE ... SET Logs = ...): without it, every
+    -- log write re-reads ModuleJobs inside the trigger, whose table scans take shared locks on
+    -- rows other concurrent log writers hold exclusively - deadlocking writers of DIFFERENT jobs.
+    -- EF Core only includes modified columns in the SET list, so UPDATE(col) is accurate here.
+    IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+       AND NOT (UPDATE(ModuleId) OR UPDATE(IsCurrent) OR UPDATE(Status)
+                OR UPDATE(ActualStateHeadline) OR UPDATE(JobType)
+                OR UPDATE(TimestampStart) OR UPDATE(TimestampEnd))
+        RETURN;
+
     SELECT DISTINCT ModuleId INTO #AffectedModules
     FROM (
         SELECT ModuleId FROM inserted

@@ -169,6 +169,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleMission> ModuleMissions { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<PreviewFeatureAcceptance> PreviewFeatureAcceptances { get; set; }
+    public DbSet<UserFavorite> UserFavorites { get; set; }
 
     public DbSet<GroupMember> GroupMembers { get; set; }
     public DbSet<UserGroupMember> UserGroupMembers { get; set; }
@@ -378,6 +379,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new VariableSetClassMap());
         modelBuilder.ApplyConfiguration(new VariableClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobClassMap());
+        modelBuilder.ApplyConfiguration(new UserFavoriteClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobMissionClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobMissionRunClassMap());

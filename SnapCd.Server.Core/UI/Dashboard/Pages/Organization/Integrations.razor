@@ -13,6 +13,8 @@
 @inject SnapCd.Server.Core.Services.OrganizationContext.IOrganizationContext OrganizationContext
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
 @using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
@@ -402,6 +404,18 @@
 
     private async Task Delete(Guid id)
     {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, "This permanently deletes the integration and its event subscriptions. This cannot be undone." },
+            { x => x.ButtonText, "Delete" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Integration", parameters, options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+            return;
+
         try
         {
             await Service.Delete(id, OrganizationId);

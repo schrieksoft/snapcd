@@ -6,12 +6,14 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Home"
+@page "/Dashboard"
 @layout OrganizationMainLayout
 @using System.Globalization
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Custom.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.Notification
@@ -38,6 +40,8 @@
 @inject JobUpdatedNotificationService JobUpdatedNotificationService
 @inject ModuleSagaModifiedNotificationService ModuleSagaModifiedNotificationService
 @inject RunnerAvailabilityModifiedNotificationService RunnerAvailabilityModifiedNotificationService
+@inject UserFavoriteSecuredRepositoryFactory FavoriteRepoFactory
+@inject FavoritesModifiedNotificationService FavoritesModifiedNotificationService
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -163,6 +167,71 @@ else
 
     <div class="dash-col">
 
+            <!-- Starred -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    Starred
+                    @if (_favorites.Any())
+                    {
+                        <span class="dash-count-chip">@_favorites.Count</span>
+                    }
+                </div>
+                @if (!_favorites.Any())
+                {
+                    <div class="attn-row">
+                        <MudIcon Icon="@SnapCdIcons.Star" Size="Size.Small" Style="color: var(--mud-palette-text-secondary);"/>
+                        <span class="attn-main" style="color: var(--mud-palette-text-secondary);">Star modules, namespaces or stacks to pin them here.</span>
+                    </div>
+                }
+                else
+                {
+                    FavoriteTargetType? previousFavoriteType = null;
+                    @foreach (var favorite in Page(_favorites, _starredPage))
+                    {
+                        @if (favorite.TargetType != previousFavoriteType)
+                        {
+                            previousFavoriteType = favorite.TargetType;
+                            <div class="attn-subheading">@GetFavoriteGroupLabel(favorite.TargetType)</div>
+                        }
+
+                        <div class="attn-row">
+                            <MudIcon Icon="@GetFavoriteIcon(favorite.TargetType)" Size="Size.Small" Style="color: var(--snap-accent, #E85D1A);"/>
+                            <span class="attn-main">
+                                @switch (favorite.TargetType)
+                                {
+                                    case FavoriteTargetType.Module:
+                                        @PathLinks(favorite.StackName, favorite.NamespaceName!, favorite.ModuleName!)
+                                        break;
+                                    case FavoriteTargetType.Namespace:
+                                        <span class="dash-path"><a href="@($"/Stacks/{favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Stacks/{favorite.StackName}/{favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
+                                        break;
+                                    default:
+                                        <span class="dash-path"><a href="@($"/Stacks/{favorite.StackName}")">@favorite.StackName</a></span>
+                                        break;
+                                }
+                            </span>
+                            @if (favorite.ModuleFleetState != null)
+                            {
+                                <span class="attn-sub">
+                                    <span class="dash-dot @GetFleetStateDotClass(favorite.ModuleFleetState.Value)" style="margin-right: 4px;"></span>@GetFleetStateLabel(favorite.ModuleFleetState.Value)
+                                </span>
+                            }
+                            <span class="row-star">
+                                <MudTooltip Text="Unstar">
+                                    <MudIconButton Icon="@SnapCdIcons.Star" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => Unstar(favorite))"/>
+                                </MudTooltip>
+                            </span>
+                        </div>
+                    }
+                    @if (_favorites.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_starredPage" TotalPages="PageCount(_favorites.Count)" PageChanged="@(p => _starredPage = p)"/>
+                        </div>
+                    }
+                }
+            </div>
+
             <!-- Needs attention -->
             <div class="dash-card">
                 <div class="dash-card-header">
@@ -173,63 +242,61 @@ else
                     }
                 </div>
 
-                @if (_pendingApprovals.Any())
+                @if (_attentionItems.Any())
                 {
-                    <div class="attn-subheading">Approval required</div>
-                    @foreach (var approval in _pendingApprovals)
+                    AttentionKind? previousKind = null;
+                    @foreach (var item in Page(_attentionItems, _attentionPage))
                     {
-                        <div class="attn-row">
-                            <span class="dash-dot dash-dot-accent"></span>
-                            <span class="attn-main">
-                                @FormatJobType(approval.JobType) @PathLinks(approval.StackName, approval.NamespaceName, approval.ModuleName)
-                            </span>
-                            <span class="attn-sub">
-                                waiting @FormatWaitTime(approval.TimestampStart) ·
-                                <a class="attn-action" href="@($"{ModuleUrl(approval.StackName, approval.NamespaceName, approval.ModuleName)}?Job={approval.JobId}&Tab=approvals")">review Job #@approval.JobNumber →</a>
-                            </span>
+                        @if (item.Kind != previousKind)
+                        {
+                            previousKind = item.Kind;
+                            <div class="attn-subheading">@GetAttentionKindLabel(item.Kind)</div>
+                        }
+
+                        @switch (item.Kind)
+                        {
+                            case AttentionKind.Approval:
+                                <div class="attn-row">
+                                    <span class="dash-dot dash-dot-accent"></span>
+                                    <span class="attn-main">
+                                        @FormatJobType(item.Approval!.JobType) @PathLinks(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)
+                                    </span>
+                                    <span class="attn-sub">
+                                        waiting @FormatWaitTime(item.Approval.TimestampStart) ·
+                                        <a class="attn-action" href="@($"{ModuleUrl(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)}?Job={item.Approval.JobId}&Tab=approvals")">review Job #@item.Approval.JobNumber →</a>
+                                    </span>
+                                </div>
+                                break;
+                            case AttentionKind.Failed:
+                                <div class="attn-row">
+                                    <span class="dash-dot dash-dot-accent"></span>
+                                    <span class="attn-main">@PathLinks(item.Module!.StackName, item.Module.NamespaceName, item.Module.Name)</span>
+                                    <span class="attn-sub">@FormatActualState(item.Module.ActualState)</span>
+                                </div>
+                                break;
+                            case AttentionKind.OutOfSync:
+                                <div class="attn-row">
+                                    <span class="dash-dot dash-dot-accent"></span>
+                                    <span class="attn-main">@PathLinks(item.Module!.StackName, item.Module.NamespaceName, item.Module.Name)</span>
+                                    <span class="attn-sub">source ahead of deployed revision</span>
+                                </div>
+                                break;
+                            default:
+                                <div class="attn-row">
+                                    <span class="dash-dot dash-dot-accent"></span>
+                                    <span class="attn-main"><a class="dash-mono" href="/Runners">@item.RunnerName</a> has no connected instances</span>
+                                </div>
+                                break;
+                        }
+                    }
+                    @if (_attentionItems.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_attentionPage" TotalPages="PageCount(_attentionItems.Count)" PageChanged="@(p => _attentionPage = p)"/>
                         </div>
                     }
                 }
-
-                @if (_failedModules.Any())
-                {
-                    <div class="attn-subheading">Failed</div>
-                    @foreach (var module in _failedModules)
-                    {
-                        <div class="attn-row">
-                            <span class="dash-dot dash-dot-error"></span>
-                            <span class="attn-main">@PathLinks(module.StackName, module.NamespaceName, module.Name)</span>
-                            <span class="attn-sub">@FormatActualState(module.ActualState)</span>
-                        </div>
-                    }
-                }
-
-                @if (_outOfSyncModules.Any())
-                {
-                    <div class="attn-subheading">Out of sync</div>
-                    @foreach (var module in _outOfSyncModules)
-                    {
-                        <div class="attn-row">
-                            <span class="dash-dot dash-dot-warning"></span>
-                            <span class="attn-main">@PathLinks(module.StackName, module.NamespaceName, module.Name)</span>
-                            <span class="attn-sub">source ahead of deployed revision</span>
-                        </div>
-                    }
-                }
-
-                @if (_runnersWithoutInstances.Any())
-                {
-                    <div class="attn-subheading">Runners</div>
-                    @foreach (var runner in _runnersWithoutInstances)
-                    {
-                        <div class="attn-row">
-                            <span class="dash-dot dash-dot-neutral"></span>
-                            <span class="attn-main"><a class="dash-mono" href="/Runners">@runner</a> has no connected instances</span>
-                        </div>
-                    }
-                }
-
-                @if (AttentionCount == 0)
+                else
                 {
                     <div class="attn-row">
                         <span class="dash-dot dash-dot-success"></span>
@@ -259,7 +326,7 @@ else
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach (var job in _recentJobs)
+                        @foreach (var job in Page(_recentJobs, _activityPage))
                         {
                             <tr>
                                 <td>
@@ -278,6 +345,12 @@ else
                         }
                         </tbody>
                     </table>
+                    @if (_recentJobs.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_activityPage" TotalPages="PageCount(_recentJobs.Count)" PageChanged="@(p => _activityPage = p)"/>
+                        </div>
+                    }
                 }
             </div>
 
@@ -286,7 +359,7 @@ else
             {
                 <div class="dash-card">
                     <div class="dash-card-header">Running Now <span class="dash-count-chip">@_runningModules.Count</span></div>
-                    @foreach (var module in _runningModules)
+                    @foreach (var module in Page(_runningModules, _runningPage))
                     {
                         <div class="attn-row">
                             <span class="dash-dot dash-dot-running"></span>
@@ -297,6 +370,12 @@ else
                             }
                         </div>
                     }
+                    @if (_runningModules.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_runningPage" TotalPages="PageCount(_runningModules.Count)" PageChanged="@(p => _runningPage = p)"/>
+                        </div>
+                    }
                 </div>
             }
 
@@ -304,13 +383,19 @@ else
             @if (_queuedModules.Any())
             {
                 <div class="dash-card">
-                    <div class="dash-card-header">Queued <span class="dash-count-chip dash-chip-neutral">@_queuedModules.Count</span></div>
-                    @foreach (var module in _queuedModules)
+                    <div class="dash-card-header">Queued <span class="dash-count-chip">@_queuedModules.Count</span></div>
+                    @foreach (var module in Page(_queuedModules, _queuedPage))
                     {
                         <div class="attn-row">
-                            <span class="dash-dot dash-dot-neutral"></span>
+                            <span class="dash-dot dash-dot-accent"></span>
                             <span class="attn-main">@PathLinks(module.StackName, module.NamespaceName, module.Name)</span>
                             <span class="attn-sub">@FormatQueuedReason(module.QueuedReasonValue)</span>
+                        </div>
+                    }
+                    @if (_queuedModules.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_queuedPage" TotalPages="PageCount(_queuedModules.Count)" PageChanged="@(p => _queuedPage = p)"/>
                         </div>
                     }
                 </div>
@@ -379,14 +464,12 @@ else
 
     .dash-count-chip {
         background: var(--snap-accent, #E85D1A);
-        color: var(--snap-ink, #12171D);
+        color: var(--snap-on-accent, #FFFFFF);
         font-weight: 600;
         padding: 0 7px;
         line-height: 16px;
         font-size: 11px;
     }
-
-    .dash-chip-neutral { background: var(--snap-fog, #8B96A0); color: var(--snap-ink, #12171D); }
 
     .dash-mono {
         font-family: var(--snap-font-mono, monospace);
@@ -465,6 +548,11 @@ else
         flex-direction: column;
         gap: 16px;
         min-width: 0;
+    }
+
+    .dash-pagination {
+        padding: 6px 12px;
+        border-top: 1px solid var(--mud-palette-lines-default);
     }
 
     .attn-subheading {
@@ -585,6 +673,7 @@ else
         color: var(--mud-palette-text-secondary);
         margin-top: 12px;
     }
+
 </style>
 
 @code {
@@ -606,6 +695,7 @@ else
     private int _integrationCount;
 
     private List<ModuleRow> _modules = new();
+    private List<FavoriteRow> _favorites = new();
     private List<ModuleRow> _runningModules = new();
     private List<ModuleRow> _queuedModules = new();
     private List<ModuleRow> _failedModules = new();
@@ -624,11 +714,75 @@ else
     private Timer? _timer;
     private int _reloadQueued;
 
-    private int AttentionCount =>
-        _pendingApprovals.Count
-        + _failedModules.Count
-        + _outOfSyncModules.Count
-        + _runnersWithoutInstances.Count;
+    private const int DashboardPageSize = 10;
+    private int _starredPage = 1;
+    private int _attentionPage = 1;
+    private int _activityPage = 1;
+    private int _runningPage = 1;
+    private int _queuedPage = 1;
+
+    private List<AttentionItem> _attentionItems = new();
+
+    private int AttentionCount => _attentionItems.Count;
+
+    private static IEnumerable<T> Page<T>(List<T> items, int page) =>
+        items.Skip((page - 1) * DashboardPageSize).Take(DashboardPageSize);
+
+    private static int PageCount(int count) =>
+        Math.Max(1, (int)Math.Ceiling(count / (double)DashboardPageSize));
+
+    private enum AttentionKind
+    {
+        Approval,
+        Failed,
+        OutOfSync,
+        Runner
+    }
+
+    private class AttentionItem
+    {
+        public AttentionKind Kind { get; set; }
+        public PendingApprovalRow? Approval { get; set; }
+        public ModuleRow? Module { get; set; }
+        public string? RunnerName { get; set; }
+    }
+
+    private static string GetAttentionKindLabel(AttentionKind kind) => kind switch
+    {
+        AttentionKind.Approval => "Approval required",
+        AttentionKind.Failed => "Failed",
+        AttentionKind.OutOfSync => "Out of sync",
+        _ => "Runners"
+    };
+
+    private void BuildAttentionItems()
+    {
+        var items = new List<AttentionItem>();
+        items.AddRange(_pendingApprovals.Select(a => new AttentionItem { Kind = AttentionKind.Approval, Approval = a }));
+        items.AddRange(_failedModules.Select(m => new AttentionItem { Kind = AttentionKind.Failed, Module = m }));
+        items.AddRange(_outOfSyncModules.Select(m => new AttentionItem { Kind = AttentionKind.OutOfSync, Module = m }));
+        items.AddRange(_runnersWithoutInstances.Select(r => new AttentionItem { Kind = AttentionKind.Runner, RunnerName = r }));
+        _attentionItems = items;
+    }
+
+    private void ClampPages()
+    {
+        _starredPage = Math.Min(_starredPage, PageCount(_favorites.Count));
+        _attentionPage = Math.Min(_attentionPage, PageCount(_attentionItems.Count));
+        _activityPage = Math.Min(_activityPage, PageCount(_recentJobs.Count));
+        _runningPage = Math.Min(_runningPage, PageCount(_runningModules.Count));
+        _queuedPage = Math.Min(_queuedPage, PageCount(_queuedModules.Count));
+    }
+
+    private async Task Unstar(FavoriteRow row)
+    {
+        using var favoriteRepo = FavoriteRepoFactory.Create(Principal());
+        await favoriteRepo.Delete(row.Id, OrganizationId);
+
+        _favorites.Remove(row);
+        _starredPage = Math.Min(_starredPage, PageCount(_favorites.Count));
+        await FavoritesModifiedNotificationService.Notify(_principalId);
+    }
 
     private RenderFragment PathLinks(string stack, string ns, string module) =>
         @<span class="dash-path"><a href="@($"/Stacks/{stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Stacks/{stack}/{ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Stacks/{stack}/{ns}/{module}")">@module</a></span>;
@@ -647,6 +801,8 @@ else
         await ReloadAll();
         _loading = false;
 
+        FavoritesModifiedNotificationService.Subscribe(_principalId, HandleFavoritesModified);
+
         // periodic refresh keeps relative times fresh and picks up anything a notification missed
         _timer = new Timer(_ => _ = ScheduleReload(), null, 60000, 60000);
     }
@@ -656,6 +812,7 @@ else
     private async Task ReloadAll()
     {
         await LoadModules();
+        await LoadFavorites();
         await LoadApprovals();
         await LoadRecentActivity();
         await LoadWeekActivity();
@@ -663,6 +820,8 @@ else
         await LoadCounts();
 
         BuildFleetSegments();
+        BuildAttentionItems();
+        ClampPages();
         SyncSubscriptions();
     }
 
@@ -712,6 +871,12 @@ else
         return Task.CompletedTask;
     }
 
+    private Task HandleFavoritesModified(Guid userId)
+    {
+        _ = ScheduleReload();
+        return Task.CompletedTask;
+    }
+
     private void SyncSubscriptions()
     {
         var currentModules = _modules.Select(m => m.Id).ToHashSet();
@@ -749,6 +914,8 @@ else
     {
         _disposed = true;
         _timer?.Dispose();
+
+        FavoritesModifiedNotificationService.Unsubscribe(_principalId, HandleFavoritesModified);
 
         foreach (var id in _subscribedModuleIds)
         {
@@ -812,6 +979,90 @@ else
             .ToList();
     }
 
+    private async Task LoadFavorites()
+    {
+        using var favoriteRepo = FavoriteRepoFactory.Create(Principal());
+        var favorites = await favoriteRepo.List(OrganizationId);
+
+        var rows = new List<FavoriteRow>();
+        if (favorites.Count == 0)
+        {
+            _favorites = rows;
+            return;
+        }
+
+        // Namespace and stack favorites need name resolution through the secured repos;
+        // module favorites resolve against the already-loaded (secured) module list.
+        var namespaceIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Namespace).Select(f => f.TargetId).ToList();
+        var stackIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Stack).Select(f => f.TargetId).ToList();
+
+        var namespaceLookup = new Dictionary<Guid, NamespaceNameRow>();
+        if (namespaceIds.Any())
+        {
+            using var namespaceRepo = NamespaceRepoFactory.Create(Principal());
+            var namespaces = await namespaceRepo.List(OrganizationId, q => q
+                .Where(n => namespaceIds.Contains(n.Id))
+                .Select(n => new NamespaceNameRow { Id = n.Id, Name = n.Name, StackName = n.Stack.Name }));
+            namespaceLookup = namespaces.ToDictionary(n => n.Id);
+        }
+
+        var stackLookup = new Dictionary<Guid, string>();
+        if (stackIds.Any())
+        {
+            using var stackRepo = StackRepoFactory.Create(Principal());
+            var stacks = await stackRepo.List(OrganizationId, q => q
+                .Where(s => stackIds.Contains(s.Id))
+                .Select(s => new StackNameRow { Id = s.Id, Name = s.Name }));
+            stackLookup = stacks.ToDictionary(s => s.Id, s => s.Name);
+        }
+
+        var moduleLookup = _modules.ToDictionary(m => m.Id);
+
+        foreach (var favorite in favorites)
+        {
+            switch (favorite.TargetType)
+            {
+                case FavoriteTargetType.Module when moduleLookup.TryGetValue(favorite.TargetId, out var module):
+                    rows.Add(new FavoriteRow
+                    {
+                        Id = favorite.Id,
+                        TargetType = FavoriteTargetType.Module,
+                        StackName = module.StackName,
+                        NamespaceName = module.NamespaceName,
+                        ModuleName = module.Name,
+                        ModuleFleetState = Classify(module)
+                    });
+                    break;
+                case FavoriteTargetType.Namespace when namespaceLookup.TryGetValue(favorite.TargetId, out var ns):
+                    rows.Add(new FavoriteRow
+                    {
+                        Id = favorite.Id,
+                        TargetType = FavoriteTargetType.Namespace,
+                        StackName = ns.StackName,
+                        NamespaceName = ns.Name
+                    });
+                    break;
+                case FavoriteTargetType.Stack when stackLookup.TryGetValue(favorite.TargetId, out var stackName):
+                    rows.Add(new FavoriteRow
+                    {
+                        Id = favorite.Id,
+                        TargetType = FavoriteTargetType.Stack,
+                        StackName = stackName
+                    });
+                    break;
+                // Unresolvable favorites (target deleted or no longer readable) are silently omitted
+            }
+        }
+
+        // Same presentation as the nav menu: grouped by target type, alphabetical within each group
+        _favorites = rows
+            .OrderBy(r => r.TargetType)
+            .ThenBy(r => r.StackName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.NamespaceName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.ModuleName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     private async Task LoadApprovals()
     {
         using var jobRepo = JobRepoFactory.Create(Principal());
@@ -849,7 +1100,7 @@ else
                 }),
             orderBy: q => q.OrderByDescending(x => x.TimestampStart),
             pageNumber: 1,
-            pageSize: 8);
+            pageSize: 100);
     }
 
     private async Task LoadWeekActivity()
@@ -989,6 +1240,39 @@ else
 
     private static string ModuleUrl(string stack, string ns, string module) => $"/Stacks/{stack}/{ns}/{module}";
 
+    private static string GetFavoriteGroupLabel(FavoriteTargetType targetType) => targetType switch
+    {
+        FavoriteTargetType.Stack => "Stacks",
+        FavoriteTargetType.Namespace => "Namespaces",
+        _ => "Modules"
+    };
+
+    private static string GetFavoriteIcon(FavoriteTargetType targetType) => targetType switch
+    {
+        FavoriteTargetType.Stack => SnapCdIcons.Layers,
+        FavoriteTargetType.Namespace => SnapCdIcons.Columns,
+        _ => SnapCdIcons.ViewModule
+    };
+
+    private static string GetFleetStateDotClass(FleetState state) => state switch
+    {
+        FleetState.Applied => "dash-dot-success",
+        FleetState.OutOfSync => "dash-dot-warning",
+        FleetState.Failed => "dash-dot-error",
+        FleetState.Running => "dash-dot-running",
+        _ => "dash-dot-neutral"
+    };
+
+    private static string GetFleetStateLabel(FleetState state) => state switch
+    {
+        FleetState.Applied => "applied",
+        FleetState.OutOfSync => "out of sync",
+        FleetState.Failed => "failed",
+        FleetState.Running => "running",
+        FleetState.Destroyed => "destroyed",
+        _ => "not deployed"
+    };
+
     private static string FormatJobType(string jobType) => jobType switch
     {
         "ApplyJobSaga" => "Apply",
@@ -1102,6 +1386,29 @@ else
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;
         public bool IsDisabled { get; set; }
+    }
+
+    private class FavoriteRow
+    {
+        public Guid Id { get; set; }
+        public FavoriteTargetType TargetType { get; set; }
+        public string StackName { get; set; } = null!;
+        public string? NamespaceName { get; set; }
+        public string? ModuleName { get; set; }
+        public FleetState? ModuleFleetState { get; set; }
+    }
+
+    private class NamespaceNameRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string StackName { get; set; } = null!;
+    }
+
+    private class StackNameRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
     }
 
     private class WeekJob

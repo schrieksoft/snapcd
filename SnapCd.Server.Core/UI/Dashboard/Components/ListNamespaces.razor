@@ -17,10 +17,12 @@
 }
 else
 {
+    <div class="list-heading">Namespaces</div>
+
     <div class="namespace-list">
         @foreach (var ns in _namespaces)
         {
-            <MudExpansionPanel @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)" Class="mb-2">
+            <MudExpansionPanel @key="ns.Id" Expanded="_expandedNamespaces.Contains(ns.Id)" Class="mb-1">
                 <TitleContent>
                     @if (ShowCheckboxes)
                     {
@@ -30,26 +32,24 @@ else
                                          ValueChanged="@(value => OnNamespaceSelectionChanged(ns.Id, value))"
                                          Dense="true"
                                          Style="margin: 0; padding: 0;"/>
-                            <MudTooltip Text="Namespace">
-                                <MudLink
-                                    Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
-                            </MudTooltip>
+                            <MudLink
+                                Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
                         </div>
                     }
                     else
                     {
-                        <MudTooltip Text="Namespace">
-                            <MudLink
-                                Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
-                        </MudTooltip>
+                        <MudLink
+                            Href="@($"/Stacks/{StackName}/{ns.Name}")">@GetHighlightedNamespaceName(ns.Name)</MudLink>
                     }
                 </TitleContent>
                 <ChildContent>
-                    <ListModules
-                        NamespaceId="@ns.Id"
-                        NamespaceName="@ns.Name"
-                        StackName="@StackName"
-                        SearchTerms="@SearchTerms"/>
+                    <div class="mt-2">
+                        <ListModules
+                            NamespaceId="@ns.Id"
+                            NamespaceName="@ns.Name"
+                            StackName="@StackName"
+                            SearchTerms="@SearchTerms"/>
+                    </div>
                 </ChildContent>
             </MudExpansionPanel>
         }
@@ -66,10 +66,10 @@ else
 
 <style>
     .search-highlight {
-        background-color: var(--mud-palette-info-lighten);
-        color: white;
+        background-color: var(--snap-accent);
+        color: var(--snap-on-accent);
         padding: 0 2px;
-        border-radius: 2px;
+        border-radius: 0;
     }
 </style>
 

@@ -42,7 +42,7 @@
 
                 @foreach (var namespaceGroup in namespaceGroups)
                 {
-                    <MudCard Elevation="1" Class="mb-2">
+                    <MudCard Elevation="1" Class="mb-2 dag-namespace-card">
                         <MudCardHeader Class="pb-2">
                             <CardHeaderContent>
                                 <MudText Typo="Typo.body1" Class="font-weight-bold">
@@ -66,9 +66,6 @@
                                                              Style="@(isRoot ? "color: white !important;" : "")">
                                                         @node.ModuleName@(isRoot ? " (This module)" : "")
                                                     </MudLink>
-                                                    <MudIcon Icon="@GetStateIcon(node)"
-                                                             Color="@GetStateColor(node)"
-                                                             Size="Size.Small" />
                                                 </MudStack>
                                                 <MudText Typo="Typo.caption"
                                                          Style="@(isRoot ? "color: white;" : "")"
@@ -167,10 +164,16 @@
 
 <style>
     .stage-column {
-        background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-lines-default);
+        background: transparent;
+        border: none;
         border-radius: 8px;
         padding: 16px;
+    }
+
+    /* Namespace grouping cards get an inset background so they stand out from
+       the transparent stage columns and the surface-coloured module nodes */
+    .dag-namespace-card {
+        background: var(--snap-bg-inset, var(--mud-palette-background-grey));
     }
 
     .stage-arrow {
