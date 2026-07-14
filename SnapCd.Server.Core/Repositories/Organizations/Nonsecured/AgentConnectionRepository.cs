@@ -138,6 +138,20 @@ public class AgentConnectionRepository : GenericOrganizationChildRepository<Agen
     }
 
     /// <summary>
+    /// Gets the ids of agents that have at least one active connection in the organization.
+    /// Used by the dashboard to compute connected counts in one query instead of one per agent.
+    /// </summary>
+    public async Task<HashSet<Guid>> GetConnectedAgentIds(Guid organizationId)
+    {
+        var agentIds = await DbContext.AgentConnections
+            .Where(ac => ac.OrganizationId == organizationId)
+            .Select(ac => ac.AgentId)
+            .Distinct()
+            .ToListAsync();
+        return agentIds.ToHashSet();
+    }
+
+    /// <summary>
     /// Gets all connections owned by a specific server instance.
     /// </summary>
     public async Task<List<AgentConnection>> GetConnectionsByServerInstanceId(Guid serverInstanceId)

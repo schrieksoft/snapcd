@@ -140,6 +140,20 @@ public class RunnerConnectionRepository : GenericOrganizationChildRepository<Run
     }
 
     /// <summary>
+    /// Gets the ids of runners that have at least one active connection in the organization.
+    /// Used by the dashboard to compute connected counts in one query instead of one per runner.
+    /// </summary>
+    public async Task<HashSet<Guid>> GetConnectedRunnerIds(Guid organizationId)
+    {
+        var runnerIds = await DbContext.RunnerConnections
+            .Where(rc => rc.OrganizationId == organizationId)
+            .Select(rc => rc.RunnerId)
+            .Distinct()
+            .ToListAsync();
+        return runnerIds.ToHashSet();
+    }
+
+    /// <summary>
     /// Gets all connections owned by a specific server instance.
     /// Used by heartbeat consumer to check active connections.
     /// </summary>

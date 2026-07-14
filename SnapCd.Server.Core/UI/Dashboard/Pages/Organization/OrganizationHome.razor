@@ -30,10 +30,6 @@
 @inject ModuleJobSecuredRepositoryFactory JobRepoFactory
 @inject StackSecuredRepositoryFactory StackRepoFactory
 @inject NamespaceSecuredRepositoryFactory NamespaceRepoFactory
-@inject RunnerSecuredRepositoryFactory RunnerRepoFactory
-@inject AgentSecuredRepositoryFactory AgentRepoFactory
-@inject StateStoreSecuredRepositoryFactory StateStoreRepoFactory
-@inject IntegrationSecuredRepositoryFactory IntegrationRepoFactory
 @inject RunnerConnectionRepositoryFactory RunnerConnectionRepoFactory
 @inject AgentConnectionRepositoryFactory AgentConnectionRepoFactory
 @inject JobCreatedNotificationService JobCreatedNotificationService
@@ -42,6 +38,18 @@
 @inject RunnerAvailabilityModifiedNotificationService RunnerAvailabilityModifiedNotificationService
 @inject UserFavoriteSecuredRepositoryFactory FavoriteRepoFactory
 @inject FavoritesModifiedNotificationService FavoritesModifiedNotificationService
+
+@* Nonsecured repositories: the Modules / Infrastructure / Activity summary cards always
+   show organization-wide totals, not what the current user is permitted to see. The
+   actionable lists (Needs Attention, Recent Activity, Running, Queued, Starred) stay secured. *@
+@inject ModuleRepositoryFactory NonsecuredModuleRepoFactory
+@inject ModuleJobRepositoryFactory NonsecuredJobRepoFactory
+@inject RunnerRepositoryFactory NonsecuredRunnerRepoFactory
+@inject AgentRepositoryFactory NonsecuredAgentRepoFactory
+@inject StateStoreRepositoryFactory NonsecuredStateStoreRepoFactory
+@inject IntegrationRepositoryFactory NonsecuredIntegrationRepoFactory
+@inject StackRepositoryFactory NonsecuredStackRepoFactory
+@inject NamespaceRepositoryFactory NonsecuredNamespaceRepoFactory
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -71,14 +79,14 @@ else
         <div class="dash-card" style="height: 100%;">
             <div class="dash-card-header">Modules</div>
             <div class="pa-4">
-                @if (_modules.Count == 0)
+                @if (_fleetTotal == 0)
                 {
                     <MudText Typo="Typo.body2">No modules yet. Create a stack, namespace and module to get started.</MudText>
                 }
                 else
                 {
                     <div class="fleet-topline">
-                        <span class="fleet-count">@_modules.Count module@(_modules.Count == 1 ? "" : "s")</span>
+                        <span class="fleet-count">@_fleetTotal module@(_fleetTotal == 1 ? "" : "s")</span>
                         <span class="fleet-scope">
                             <a href="/Stacks">@_stackCount stack@(_stackCount == 1 ? "" : "s")</a> · @_namespaceCount namespace@(_namespaceCount == 1 ? "" : "s")
                         </span>
@@ -136,7 +144,12 @@ else
                 <div class="week-bars">
                     @foreach (var day in _weekDays)
                     {
-                        <div class="week-day @(day.IsToday ? "today" : "")">
+                        <div class="week-day @(day.IsToday ? "today" : "")" title="@($"{day.Label}: {day.OkCount} succeeded · {day.FailCount} failed · {day.OtherCount} other")">
+                            <div class="week-day-count">@(day.OkCount + day.FailCount + day.OtherCount > 0 ? (day.OkCount + day.FailCount + day.OtherCount).ToString() : "")</div>
+                            @if (day.OtherHeight > 0)
+                            {
+                                <div class="wb wb-other" style="height: @day.OtherHeight%"></div>
+                            }
                             @if (day.FailedHeight > 0)
                             {
                                 <div class="wb wb-fail" style="height: @day.FailedHeight%"></div>
@@ -153,6 +166,11 @@ else
                     {
                         <span class="@(day.IsToday ? "today" : "")">@day.Label</span>
                     }
+                </div>
+                <div class="week-legend">
+                    <span class="week-legend-item"><span class="dash-dot" style="background: var(--snap-accent, #E85D1A);"></span> succeeded</span>
+                    <span class="week-legend-item"><span class="dash-dot dash-dot-error"></span> failed</span>
+                    <span class="week-legend-item"><span class="dash-dot dash-dot-neutral"></span> other</span>
                 </div>
                 <div class="week-caption">
                     <span class="dash-mono">@_weekTotal</span> job@(_weekTotal == 1 ? "" : "s") this week@(_weekSuccessRate != null ? $" · " : "")@if (_weekSuccessRate != null)
@@ -274,13 +292,6 @@ else
                                     <span class="attn-sub">@FormatActualState(item.Module.ActualState)</span>
                                 </div>
                                 break;
-                            case AttentionKind.OutOfSync:
-                                <div class="attn-row">
-                                    <span class="dash-dot dash-dot-accent"></span>
-                                    <span class="attn-main">@PathLinks(item.Module!.StackName, item.Module.NamespaceName, item.Module.Name)</span>
-                                    <span class="attn-sub">source ahead of deployed revision</span>
-                                </div>
-                                break;
                             default:
                                 <div class="attn-row">
                                     <span class="dash-dot dash-dot-accent"></span>
@@ -308,7 +319,7 @@ else
             <!-- Recent activity -->
             <div class="dash-card">
                 <div class="dash-card-header">Recent Activity</div>
-                @if (_recentJobs.Count == 0)
+                @if (!_activityHasAny)
                 {
                     <div class="attn-row"><span class="attn-main">No jobs have run yet.</span></div>
                 }
@@ -326,7 +337,7 @@ else
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach (var job in Page(_recentJobs, _activityPage))
+                        @foreach (var job in CurrentActivityRows)
                         {
                             <tr>
                                 <td>
@@ -345,10 +356,10 @@ else
                         }
                         </tbody>
                     </table>
-                    @if (_recentJobs.Count > DashboardPageSize)
+                    @if (_activityTotalPages > 1)
                     {
                         <div class="dash-pagination">
-                            <Pagination CurrentPage="_activityPage" TotalPages="PageCount(_recentJobs.Count)" PageChanged="@(p => _activityPage = p)"/>
+                            <Pagination CurrentPage="_activityPage" TotalPages="_activityTotalPages" PageChanged="OnActivityPageChanged"/>
                         </div>
                     }
                 }
@@ -652,6 +663,7 @@ else
     .wb { width: 100%; }
     .wb-ok { background: var(--snap-accent, #E85D1A); opacity: 0.75; }
     .wb-fail { background: var(--mud-palette-error); }
+    .wb-other { background: var(--snap-fog, #8B96A0); opacity: 0.55; }
     .week-day.today .wb-ok { opacity: 1; }
 
     .week-labels { display: flex; gap: 8px; margin-top: 6px; }
@@ -667,6 +679,30 @@ else
     }
 
     .week-labels span.today { color: var(--mud-palette-text-primary); font-weight: 700; }
+
+    .week-day-count {
+        text-align: center;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 10px;
+        line-height: 1;
+        color: var(--mud-palette-text-secondary);
+        margin-bottom: 3px;
+        min-height: 10px;
+    }
+
+    .week-legend {
+        display: flex;
+        gap: 16px;
+        margin-top: 10px;
+    }
+
+    .week-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+    }
 
     .week-caption {
         font-size: 12px;
@@ -695,13 +731,18 @@ else
     private int _integrationCount;
 
     private List<ModuleRow> _modules = new();
+    private Dictionary<FleetState, int> _fleetCounts = new();
+    private int _fleetTotal;
     private List<FavoriteRow> _favorites = new();
     private List<ModuleRow> _runningModules = new();
     private List<ModuleRow> _queuedModules = new();
     private List<ModuleRow> _failedModules = new();
-    private List<ModuleRow> _outOfSyncModules = new();
     private List<PendingApprovalRow> _pendingApprovals = new();
-    private List<ActivityRow> _recentJobs = new();
+    private const int RecentActivityMaxRows = 50;
+    private Dictionary<int, List<ActivityRow>> _activityPages = new();
+    private int _activityTotalPages = 1;
+    private bool _activityHasAny;
+    private List<ActivityRow> CurrentActivityRows => _activityPages.TryGetValue(_activityPage, out var rows) ? rows : new List<ActivityRow>();
     private List<string> _runnersWithoutInstances = new();
     private List<Guid> _runnerIds = new();
     private List<FleetSegment> _fleetSegments = new();
@@ -735,7 +776,6 @@ else
     {
         Approval,
         Failed,
-        OutOfSync,
         Runner
     }
 
@@ -751,7 +791,6 @@ else
     {
         AttentionKind.Approval => "Approval required",
         AttentionKind.Failed => "Failed",
-        AttentionKind.OutOfSync => "Out of sync",
         _ => "Runners"
     };
 
@@ -760,7 +799,6 @@ else
         var items = new List<AttentionItem>();
         items.AddRange(_pendingApprovals.Select(a => new AttentionItem { Kind = AttentionKind.Approval, Approval = a }));
         items.AddRange(_failedModules.Select(m => new AttentionItem { Kind = AttentionKind.Failed, Module = m }));
-        items.AddRange(_outOfSyncModules.Select(m => new AttentionItem { Kind = AttentionKind.OutOfSync, Module = m }));
         items.AddRange(_runnersWithoutInstances.Select(r => new AttentionItem { Kind = AttentionKind.Runner, RunnerName = r }));
         _attentionItems = items;
     }
@@ -769,7 +807,7 @@ else
     {
         _starredPage = Math.Min(_starredPage, PageCount(_favorites.Count));
         _attentionPage = Math.Min(_attentionPage, PageCount(_attentionItems.Count));
-        _activityPage = Math.Min(_activityPage, PageCount(_recentJobs.Count));
+        _activityPage = Math.Min(_activityPage, _activityTotalPages);
         _runningPage = Math.Min(_runningPage, PageCount(_runningModules.Count));
         _queuedPage = Math.Min(_queuedPage, PageCount(_queuedModules.Count));
     }
@@ -811,13 +849,22 @@ else
 
     private async Task ReloadAll()
     {
-        await LoadModules();
-        await LoadFavorites();
-        await LoadApprovals();
-        await LoadRecentActivity();
-        await LoadWeekActivity();
-        await LoadInfrastructure();
-        await LoadCounts();
+        // Loaders each use their own DbContext, so they can run concurrently; only
+        // LoadFavorites depends on LoadModules (it resolves module favorites against _modules)
+        async Task LoadModulesThenFavorites()
+        {
+            await LoadModules();
+            await LoadFavorites();
+        }
+
+        await Task.WhenAll(
+            LoadModulesThenFavorites(),
+            LoadFleetTotals(),
+            LoadApprovals(),
+            LoadRecentActivity(),
+            LoadWeekActivity(),
+            LoadInfrastructure(),
+            LoadCounts());
 
         BuildFleetSegments();
         BuildAttentionItems();
@@ -947,13 +994,6 @@ else
                 .OrderByDescending(j => j.TimestampEnd)
                 .Select(j => j.ActualStateHeadline)
                 .FirstOrDefault(),
-            // Deployed revision: most recent successfully completed job
-            ActualRevision = m.ModuleJobs
-                .Where(j => j.Status == ExecutionStatus.Completed && j.TimestampEnd != null)
-                .OrderByDescending(j => j.TimestampEnd)
-                .Select(j => j.DefinitiveRevision)
-                .FirstOrDefault(),
-            DesiredRevision = m.ModuleSaga != null ? m.ModuleSaga.DesiredDefinitiveRevision : null,
             QueuedDesired = m.ModuleSaga != null ? m.ModuleSaga.QueuedDesiredStateHeadline : null,
             QueuedReasonValue = m.ModuleSaga != null ? m.ModuleSaga.QueuedReason : null
         }));
@@ -972,11 +1012,53 @@ else
             .Where(m => Classify(m) == FleetState.Failed)
             .OrderBy(m => m.StackName).ThenBy(m => m.NamespaceName).ThenBy(m => m.Name)
             .ToList();
+    }
 
-        _outOfSyncModules = _modules
-            .Where(m => Classify(m) == FleetState.OutOfSync)
-            .OrderBy(m => m.StackName).ThenBy(m => m.NamespaceName).ThenBy(m => m.Name)
-            .ToList();
+    private async Task LoadFleetTotals()
+    {
+        // Org-wide totals for the Modules card (fleet bar): nonsecured on purpose, read as a
+        // handful of GROUP BY buckets from the trigger-maintained ModuleState table instead of
+        // per-module job subqueries
+        using var moduleRepo = NonsecuredModuleRepoFactory.Create(Principal());
+        var stateCounts = await moduleRepo.GetModuleStateCounts(OrganizationId);
+        _fleetTotal = await moduleRepo.Count(OrganizationId);
+
+        var counts = new Dictionary<FleetState, int>();
+        foreach (var bucket in stateCounts)
+        {
+            var state = ClassifyHeadline(bucket.StateHeadline, bucket.IsRunning);
+            counts[state] = counts.GetValueOrDefault(state) + bucket.Count;
+        }
+
+        // Modules without a ModuleState row yet (never had a job or saga) count as not deployed
+        var classified = stateCounts.Sum(b => b.Count);
+        if (_fleetTotal > classified)
+            counts[FleetState.NotDeployed] = counts.GetValueOrDefault(FleetState.NotDeployed) + (_fleetTotal - classified);
+
+        _fleetCounts = counts;
+    }
+
+    // Fleet classification from a ModuleState row. The headline column is a string: usually an
+    // ActualStateHeadline name, but the trigger synthesizes "<JobType><Status>" when a finished
+    // job recorded no headline — anything unparseable counts as failed rather than hidden.
+    private static FleetState ClassifyHeadline(string? headline, bool isRunning)
+    {
+        if (isRunning)
+            return FleetState.Running;
+
+        if (string.IsNullOrEmpty(headline))
+            return FleetState.NotDeployed;
+
+        if (!Enum.TryParse<ActualStateHeadline>(headline, out var state))
+            return FleetState.Failed;
+
+        return state switch
+        {
+            ActualStateHeadline.Applied => FleetState.Applied,
+            ActualStateHeadline.Destroyed => FleetState.Destroyed,
+            ActualStateHeadline.None => FleetState.NotDeployed,
+            _ => FleetState.Failed
+        };
     }
 
     private async Task LoadFavorites()
@@ -1083,8 +1165,26 @@ else
 
     private async Task LoadRecentActivity()
     {
+        // Server-side paging: only the visible page (10 rows) is loaded; further pages load
+        // on navigation. The feed is capped at 50 rows (5 pages).
         using var jobRepo = JobRepoFactory.Create(Principal());
-        _recentJobs = await jobRepo.List(OrganizationId, q => q
+        var cappedCount = await jobRepo.Count(OrganizationId, q => q.Take(RecentActivityMaxRows));
+        _activityTotalPages = Math.Max(1, (int)Math.Ceiling(cappedCount / (double)DashboardPageSize));
+        _activityHasAny = cappedCount > 0;
+        _activityPage = Math.Min(_activityPage, _activityTotalPages);
+
+        // Real-time reloads refresh whichever page the user is looking at; other cached
+        // pages are dropped so stale rows never linger
+        _activityPages = new Dictionary<int, List<ActivityRow>>
+        {
+            [_activityPage] = await FetchActivityPage(_activityPage)
+        };
+    }
+
+    private async Task<List<ActivityRow>> FetchActivityPage(int page)
+    {
+        using var jobRepo = JobRepoFactory.Create(Principal());
+        return await jobRepo.List(OrganizationId, q => q
                 .Select(j => new ActivityRow
                 {
                     JobId = j.Id,
@@ -1099,28 +1199,52 @@ else
                     StackName = j.Module.Namespace.Stack.Name
                 }),
             orderBy: q => q.OrderByDescending(x => x.TimestampStart),
-            pageNumber: 1,
-            pageSize: 100);
+            pageNumber: page,
+            pageSize: DashboardPageSize);
+    }
+
+    private async Task OnActivityPageChanged(int page)
+    {
+        _activityPage = page;
+        if (!_activityPages.ContainsKey(page))
+        {
+            _activityPages[page] = await FetchActivityPage(page);
+        }
     }
 
     private async Task LoadWeekActivity()
     {
-        var cutoff = DateTimeOffset.UtcNow.Date.AddDays(-6);
-        using var jobRepo = JobRepoFactory.Create(Principal());
-        var jobs = await jobRepo.List(OrganizationId, q => q
-            .Where(j => j.TimestampStart >= cutoff)
-            .Select(j => new WeekJob { TimestampStart = j.TimestampStart, Status = j.Status }));
+        // Window = the 7 displayed UTC days. The cutoff must be an explicit UTC DateTimeOffset:
+        // comparing a bare DateTime against TimestampStart would convert using the server's
+        // LOCAL offset, letting jobs from before the window into the totals but not the bars.
+        var windowStart = DateTime.UtcNow.Date.AddDays(-6);
+        var cutoff = new DateTimeOffset(windowStart, TimeSpan.Zero);
 
-        _weekTotal = jobs.Count;
-        var succeeded = jobs.Count(j => j.Status == ExecutionStatus.Completed);
-        var failed = jobs.Count(j => j.Status == ExecutionStatus.Failed);
+        using var jobRepo = NonsecuredJobRepoFactory.Create(Principal());
+        // Aggregate in SQL: ~14 (day, status) buckets instead of one row per job
+        var buckets = await jobRepo.List(OrganizationId, q => q
+            .Where(j => j.TimestampStart >= cutoff)
+            .GroupBy(j => new { j.TimestampStart.Date, j.Status })
+            .Select(g => new WeekBucket { Date = g.Key.Date, Status = g.Key.Status, Count = g.Count() }));
+
+        // Defensive clamp so the caption always equals the sum of the bars
+        buckets = buckets.Where(b => b.Date >= windowStart && b.Date <= DateTime.UtcNow.Date).ToList();
+
+        _weekTotal = buckets.Sum(b => b.Count);
+        var succeeded = buckets.Where(b => b.Status == ExecutionStatus.Completed).Sum(b => b.Count);
+        var failed = buckets.Where(b => b.Status == ExecutionStatus.Failed).Sum(b => b.Count);
         _weekSuccessRate = succeeded + failed > 0 ? (int)Math.Round(100.0 * succeeded / (succeeded + failed)) : null;
 
-        var byDay = jobs
-            .GroupBy(j => j.TimestampStart.UtcDateTime.Date)
-            .ToDictionary(g => g.Key, g => (Ok: g.Count(j => j.Status == ExecutionStatus.Completed), Fail: g.Count(j => j.Status == ExecutionStatus.Failed)));
+        // Every job in the window lands in exactly one of ok/fail/other, so the bars
+        // always sum to the caption's total
+        var byDay = buckets
+            .GroupBy(b => b.Date)
+            .ToDictionary(g => g.Key, g => (
+                Ok: g.Where(b => b.Status == ExecutionStatus.Completed).Sum(b => b.Count),
+                Fail: g.Where(b => b.Status == ExecutionStatus.Failed).Sum(b => b.Count),
+                Other: g.Where(b => b.Status != ExecutionStatus.Completed && b.Status != ExecutionStatus.Failed).Sum(b => b.Count)));
 
-        var maxCount = byDay.Values.Select(v => v.Ok + v.Fail).DefaultIfEmpty(0).Max();
+        var maxCount = byDay.Values.Select(v => v.Ok + v.Fail + v.Other).DefaultIfEmpty(0).Max();
 
         _weekDays = Enumerable.Range(0, 7)
             .Select(i =>
@@ -1131,8 +1255,12 @@ else
                 {
                     Label = date.ToString("ddd", CultureInfo.InvariantCulture),
                     IsToday = i == 6,
+                    OkCount = counts.Ok,
+                    FailCount = counts.Fail,
+                    OtherCount = counts.Other,
                     SucceededHeight = maxCount > 0 ? (int)Math.Round(90.0 * counts.Ok / maxCount) : 0,
-                    FailedHeight = maxCount > 0 ? (int)Math.Round(90.0 * counts.Fail / maxCount) : 0
+                    FailedHeight = maxCount > 0 ? (int)Math.Round(90.0 * counts.Fail / maxCount) : 0,
+                    OtherHeight = maxCount > 0 ? (int)Math.Round(90.0 * counts.Other / maxCount) : 0
                 };
             })
             .ToList();
@@ -1140,71 +1268,61 @@ else
 
     private async Task LoadInfrastructure()
     {
-        using var runnerRepo = RunnerRepoFactory.Create(Principal());
+        using var runnerRepo = NonsecuredRunnerRepoFactory.Create(Principal());
         var runners = await runnerRepo.List(OrganizationId, q => q.Select(r => new RunnerRow { Id = r.Id, Name = r.Name, IsDisabled = r.IsDisabled }));
         _runnerCount = runners.Count;
         _runnerIds = runners.Select(r => r.Id).ToList();
 
         using var connectionRepo = RunnerConnectionRepoFactory.Create();
-        _connectedRunnerCount = 0;
-        _runnersWithoutInstances = new List<string>();
-        foreach (var runner in runners)
-        {
-            var connections = await connectionRepo.GetActiveConnectionsByRunnerId(runner.Id, OrganizationId);
-            if (connections.Count > 0)
-                _connectedRunnerCount++;
-            else if (!runner.IsDisabled)
-                _runnersWithoutInstances.Add(runner.Name);
-        }
+        var connectedRunnerIds = await connectionRepo.GetConnectedRunnerIds(OrganizationId);
+        _connectedRunnerCount = runners.Count(r => connectedRunnerIds.Contains(r.Id));
+        _runnersWithoutInstances = runners
+            .Where(r => !connectedRunnerIds.Contains(r.Id) && !r.IsDisabled)
+            .Select(r => r.Name)
+            .ToList();
 
-        using var agentRepo = AgentRepoFactory.Create(Principal());
+        using var agentRepo = NonsecuredAgentRepoFactory.Create(Principal());
         var agents = await agentRepo.List(OrganizationId, q => q.Select(a => new RunnerRow { Id = a.Id, Name = a.Name, IsDisabled = a.IsDisabled }));
         _agentCount = agents.Count;
 
         using var agentConnectionRepo = AgentConnectionRepoFactory.Create();
-        _connectedAgentCount = 0;
-        foreach (var agent in agents)
-        {
-            var connections = await agentConnectionRepo.GetActiveConnectionsByAgentId(agent.Id, OrganizationId);
-            if (connections.Count > 0)
-                _connectedAgentCount++;
-        }
+        var connectedAgentIds = await agentConnectionRepo.GetConnectedAgentIds(OrganizationId);
+        _connectedAgentCount = agents.Count(a => connectedAgentIds.Contains(a.Id));
 
-        using var stateStoreRepo = StateStoreRepoFactory.Create(Principal());
+        using var stateStoreRepo = NonsecuredStateStoreRepoFactory.Create(Principal());
         _stateStoreCount = await stateStoreRepo.Count(OrganizationId);
 
-        using var integrationRepo = IntegrationRepoFactory.Create(Principal());
+        using var integrationRepo = NonsecuredIntegrationRepoFactory.Create(Principal());
         _integrationCount = await integrationRepo.Count(OrganizationId);
     }
 
     private async Task LoadCounts()
     {
-        using var stackRepo = StackRepoFactory.Create(Principal());
+        using var stackRepo = NonsecuredStackRepoFactory.Create(Principal());
         _stackCount = await stackRepo.Count(OrganizationId);
 
-        using var namespaceRepo = NamespaceRepoFactory.Create(Principal());
+        using var namespaceRepo = NonsecuredNamespaceRepoFactory.Create(Principal());
         _namespaceCount = await namespaceRepo.Count(OrganizationId);
     }
 
     private void BuildFleetSegments()
     {
-        var total = _modules.Count;
+        var total = _fleetTotal;
         if (total == 0)
         {
             _fleetSegments = new List<FleetSegment>();
             return;
         }
 
-        var counts = _modules.GroupBy(Classify).ToDictionary(g => g.Key, g => g.Count());
+        var counts = _fleetCounts;
 
         _fleetSegments = new List<(FleetState State, string Label, string Color)>
             {
                 (FleetState.Applied, "applied", "var(--mud-palette-success)"),
-                (FleetState.OutOfSync, "out of sync", "var(--mud-palette-warning)"),
                 (FleetState.Failed, "failed", "var(--mud-palette-error)"),
-                (FleetState.Running, "running", "var(--mud-palette-info)"),
+                (FleetState.Running, "running", "var(--snap-accent, #E85D1A)"),
                 (FleetState.Destroyed, "destroyed", "var(--snap-fog, #8B96A0)"),
-                (FleetState.NotDeployed, "not deployed", "var(--snap-mist, #DDE3E8)")
+                (FleetState.NotDeployed, "not deployed", "var(--snap-steel, #4A5561)")
             }
             .Where(s => counts.ContainsKey(s.State))
             .Select(s => new FleetSegment
@@ -1225,9 +1343,7 @@ else
         switch (module.ActualState)
         {
             case ActualStateHeadline.Applied:
-                return module.DesiredRevision != null && module.ActualRevision != module.DesiredRevision
-                    ? FleetState.OutOfSync
-                    : FleetState.Applied;
+                return FleetState.Applied;
             case ActualStateHeadline.Destroyed:
                 return FleetState.Destroyed;
             case null:
@@ -1257,7 +1373,6 @@ else
     private static string GetFleetStateDotClass(FleetState state) => state switch
     {
         FleetState.Applied => "dash-dot-success",
-        FleetState.OutOfSync => "dash-dot-warning",
         FleetState.Failed => "dash-dot-error",
         FleetState.Running => "dash-dot-running",
         _ => "dash-dot-neutral"
@@ -1266,7 +1381,6 @@ else
     private static string GetFleetStateLabel(FleetState state) => state switch
     {
         FleetState.Applied => "applied",
-        FleetState.OutOfSync => "out of sync",
         FleetState.Failed => "failed",
         FleetState.Running => "running",
         FleetState.Destroyed => "destroyed",
@@ -1359,7 +1473,6 @@ else
     private enum FleetState
     {
         Applied,
-        OutOfSync,
         Failed,
         Running,
         Destroyed,
@@ -1374,9 +1487,7 @@ else
         public string StackName { get; set; } = null!;
         public ExecutionStatus? CurrentStatus { get; set; }
         public ActualStateHeadline? ActualState { get; set; }
-        public string? ActualRevision { get; set; }
         public DateTimeOffset? CurrentJobStart { get; set; }
-        public string? DesiredRevision { get; set; }
         public DesiredStateHeadline? QueuedDesired { get; set; }
         public QueuedReason? QueuedReasonValue { get; set; }
     }
@@ -1411,10 +1522,11 @@ else
         public string Name { get; set; } = null!;
     }
 
-    private class WeekJob
+    private class WeekBucket
     {
-        public DateTimeOffset TimestampStart { get; set; }
+        public DateTime Date { get; set; }
         public ExecutionStatus Status { get; set; }
+        public int Count { get; set; }
     }
 
     private class PendingApprovalRow
@@ -1454,7 +1566,11 @@ else
     {
         public string Label { get; set; } = null!;
         public bool IsToday { get; set; }
+        public int OkCount { get; set; }
+        public int FailCount { get; set; }
+        public int OtherCount { get; set; }
         public int SucceededHeight { get; set; }
         public int FailedHeight { get; set; }
+        public int OtherHeight { get; set; }
     }
 }

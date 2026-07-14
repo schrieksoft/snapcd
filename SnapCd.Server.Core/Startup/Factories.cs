@@ -47,6 +47,7 @@ public static class Factories
 {
     public static IServiceCollection AddSnapCdFactories(this IServiceCollection services)
     {
+        services.AddScoped<StackRepositoryFactory>();
         services.AddScoped<StackSecuredRepositoryFactory>();
         services.AddScoped<ModuleRepositoryFactory>();
         services.AddScoped<ModuleSecuredRepositoryFactory>();
@@ -54,6 +55,7 @@ public static class Factories
         services.AddScoped<SourceRefresherPreselectionSecuredRepositoryFactory>();
         services.AddScoped<NamespaceRepositoryFactory>();
         services.AddScoped<NamespaceSecuredRepositoryFactory>();
+        services.AddScoped<RunnerRepositoryFactory>();
         services.AddScoped<RunnerSecuredRepositoryFactory>();
         services.AddScoped<ModuleSagaRepositoryFactory>();
         services.AddScoped<ModuleSagaSecuredRepositoryFactory>();

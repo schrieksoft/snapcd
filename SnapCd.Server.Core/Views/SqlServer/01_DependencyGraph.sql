@@ -440,6 +440,34 @@ END;
 GO
 
 -- ============================================================================
+-- 9b. Trigger on Modules to clean up ModuleState on module deletion
+--
+-- ModuleState has no FK to Modules (it is maintained by triggers), so deleting a
+-- module used to leave an orphaned row behind: the cascade-delete of its ModuleJobs
+-- fires trg_ModuleJobs_ModuleState, which nulls the state but keeps the row.
+-- ============================================================================
+
+CREATE OR ALTER TRIGGER trg_Modules_ModuleState
+ON Modules
+AFTER DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE ms
+    FROM ModuleState ms
+    INNER JOIN deleted d ON d.Id = ms.ModuleId;
+END;
+GO
+
+-- One-time cleanup of orphaned rows accumulated before trg_Modules_ModuleState existed
+-- (idempotent — a no-op once clean)
+DELETE ms
+FROM ModuleState ms
+WHERE NOT EXISTS (SELECT 1 FROM Modules m WHERE m.Id = ms.ModuleId);
+GO
+
+-- ============================================================================
 -- 10. Initial population (only on first deploy when tables are empty)
 -- ============================================================================
 
