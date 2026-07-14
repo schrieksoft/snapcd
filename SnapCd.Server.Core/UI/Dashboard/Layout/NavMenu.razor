@@ -6,7 +6,6 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@implements IDisposable
 @using SnapCd.Server.Core.UI.Dashboard.Components.Organization
 @using Microsoft.AspNetCore.WebUtilities
 @using SnapCd.Server.Core.UI.Dashboard.Pages.Account.Interactive
@@ -21,8 +20,17 @@
 @using SnapCd.Server.Core.UI.Dashboard.Pages.SystemAdmin
 @using Microsoft.Extensions.Hosting
 @using Microsoft.Extensions.Options
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Contracts
+@implements IDisposable
 @inject NavigationManager NavigationManager
 @inject IHostEnvironment HostEnvironment
+@inject IVersionService VersionService
 @inject IEditionNavProvider EditionNavProvider
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -31,19 +39,27 @@
 @inject IOrganizationActivationService OrganizationActivation
 @inject OrganizationMembershipCacheService MembershipCache
 @inject UserManager<User> UserManager
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject UserFavoriteSecuredRepositoryFactory FavoriteRepoFactory
+@inject ModuleSecuredRepositoryFactory ModuleRepoFactory
+@inject NamespaceSecuredRepositoryFactory NamespaceRepoFactory
+@inject StackSecuredRepositoryFactory StackRepoFactory
+@inject FavoritesModifiedNotificationService FavoritesModifiedNotificationService
 
-<MudNavMenu Style="background-color: #000; color: white; padding-top: 16px; width: 100%; overflow-x: hidden;">
+<MudNavMenu Style="background-color: var(--snap-bg-sidebar); color: var(--snap-text); padding-top: 16px; width: 100%; overflow-x: hidden;">
 
     <AuthorizeView>
         <Authorized>
-            <link rel="stylesheet"
-                  href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0"/>
 
             <!-- Header Section -->
             <a href="/" style="display: flex; align-items: center; padding: 16px; margin-bottom: 16px; text-decoration: none; cursor: pointer;">
-                <img src="/_content/SnapCd.Server.Core/logo-inverted-32x32.png" alt="Snap CD"
-                     style="width: 32px; height: 32px; margin-right: 12px; image-rendering: -webkit-optimize-contrast; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;"/>
-                <MudText Typo="Typo.h5" Style="color: white; font-weight: 600;">Snap CD</MudText>
+                @* The lockup is a single asset: cube + wordmark, with the accent already
+                   on the "CD". The sidebar is always dark, so it takes the white one. *@
+                <img src="/_content/SnapCd.Server.Core/lockup-white.svg" alt="Snap CD"
+                     style="height: 28px; width: auto;"/>
+                <MudText Typo="Typo.caption" Style="color: rgba(255, 255, 255, 0.35); margin-left: auto; font-size: 0.65rem;">
+                    v@(VersionService.ShortVersion)
+                </MudText>
             </a>
 
             <!-- Organization Selector -->
@@ -59,13 +75,28 @@
                         <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match"
                                     Icon="@link.Icon">@link.Text</MudNavLink>
                     }
+
+                    @* Starred items sit below Stacks *@
+                    @if (link.Href == "Stacks" && _favoriteLinks.Any())
+                    {
+                        <MudNavGroup Title="Starred" Icon="@SnapCdIcons.Star" Expanded="false" Class="starred-nav-group">
+                            @foreach (var group in _favoriteLinks.GroupBy(f => f.TargetType).OrderBy(g => g.Key))
+                            {
+                                <div class="starred-type-label">@GetStarredGroupLabel(group.Key)</div>
+                                @foreach (var favorite in group)
+                                {
+                                    <MudNavLink Href="@favorite.Url" Match="NavLinkMatch.All" title="@favorite.FullPath">@favorite.Label</MudNavLink>
+                                }
+                            }
+                        </MudNavGroup>
+                    }
                 }
             }
 
             <!-- Identity Access Section -->
             @if (_identityAccessIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
-                <MudNavGroup Title="Identity Access" Icon="@Icons.Material.Filled.SupervisedUserCircle"
+                <MudNavGroup Title="Identity Access" Icon="@SnapCdIcons.SupervisedUserCircle"
                              Expanded="false">
                     @foreach (var link in _identityAccessNavLinks)
                     {
@@ -82,7 +113,7 @@
             <!-- System Section (gated by Cloud subscription status on SaaS) -->
             @if (_organizationActivated && _systemIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
-                <MudNavGroup Title="System" Icon="@Icons.Material.Filled.Settings" Expanded="false">
+                <MudNavGroup Title="System" Icon="@SnapCdIcons.Settings" Expanded="false">
                     @foreach (var link in _systemNavLinks)
                     {
                         @if (_systemIsAllowedToNavigateMap[link.PageType])
@@ -102,17 +133,21 @@
             }
 
             <!-- Tests Section (dev only — surfaces dev-mode test tools like the Mission test bench). -->
-            @if (HostEnvironment.IsDevelopment() && _testsIsAllowedToNavigateMap.Any(entry => entry.Value))
+            @if (HostEnvironment.IsDevelopment())
             {
-                <MudNavGroup Title="Tests" Icon="@Icons.Material.Filled.Science" Expanded="false">
+                <MudNavGroup Title="Tests" Icon="@SnapCdIcons.Science" Expanded="false">
                     @foreach (var link in _testsNavLinks)
                     {
-                        @if (_testsIsAllowedToNavigateMap[link.PageType])
+                        @if (_testsIsAllowedToNavigateMap.TryGetValue(link.PageType, out var allowed) && allowed)
                         {
                             <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
                                 @link.Text
                             </MudNavLink>
                         }
+                    }
+                    @if (_organizationActivated && _swaggerIsAllowedToNavigate)
+                    {
+                        <MudNavLink Href="@GetNavigationUrl("Swagger")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">Swagger</MudNavLink>
                     }
                 </MudNavGroup>
             }
@@ -123,67 +158,56 @@
                 @EditionNavItems
             }
 
-            <MudDivider/>
-
-            <!-- Account Section -->
-            @if (_accountIsAllowedToNavigateMap.Any(entry => entry.Value))
-            {
-                @foreach (var link in _accountNavLinks)
-                {
-                    @if (_accountIsAllowedToNavigateMap[link.PageType])
-                    {
-                        <MudNavLink Href="@GetNavigationUrl(link.Href)" Match="@link.Match" Icon="@link.Icon">
-                            @link.Text
-                        </MudNavLink>
-                    }
-                }
-            }
-
             <!-- Edition-specific account nav items (Organizations, etc.) -->
             @if (EditionAccountNavItems != null)
             {
                 @EditionAccountNavItems
             }
 
-            <!-- Swagger (gated by Cloud subscription status on SaaS) -->
-            @if (_organizationActivated && _swaggerIsAllowedToNavigate)
-            {
-                <MudNavLink Href="@GetNavigationUrl("Swagger")" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Api">Swagger
-                </MudNavLink>
-            }
-
-            <form action="Account/Logout" method="post" style="margin: 0; padding: 0;">
-                <AntiforgeryToken/>
-                <input type="hidden" name="ReturnUrl" value="@_currentUrl"/>
-                <button type="submit" class="mud-nav-link mud-ripple" style="width: 100%; text-align: left; background: none; border: none; font-family: inherit; font-size: inherit; display: flex; align-items: center; padding: 8px 16px;">
-                    <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-3"></MudIcon>
-                    Logout
-                </button>
-            </form>
 
         </Authorized>
         <NotAuthorized>
-            <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">
+            <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Person">
                 Register
             </MudNavLink>
-            <MudNavLink Href="Account/Login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Password">Login
+            <MudNavLink Href="Account/Login" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Password">Login
             </MudNavLink>
         </NotAuthorized>
     </AuthorizeView>
 </MudNavMenu>
 
 <style>
-    /* Override MudNavMenu styles for pitch black theme */
     .mud-nav-menu {
-        background-color: #000 !important;
+        background-color: var(--snap-bg-sidebar) !important;
         width: 100% !important;
         max-width: 100% !important;
         overflow-x: hidden !important;
         box-sizing: border-box !important;
     }
 
+    /* Sidebar text colour. Deliberately NOT a blanket `.mud-nav-menu *` rule: with
+       !important that beat every attempt to colour anything in the sidebar (the
+       brand accent, a status dot, a badge) and was impossible to opt out of.
+       Colour is set on the container and inherited; the rules below only target
+       the elements that do not inherit it on their own. */
+    .mud-nav-menu {
+        color: var(--snap-sidebar-text);
+    }
+
+    .mud-nav-menu .mud-nav-link,
+    .mud-nav-menu .mud-nav-group-header,
+    .mud-nav-menu .mud-nav-link .mud-icon-root {
+        color: var(--snap-sidebar-text) !important;
+    }
+
+    /* Nav-link icons only. Scoped to .mud-icon-root so it cannot repaint other
+       artwork in the sidebar (the logo lockup, badges). */
+    .mud-nav-menu .mud-icon-root svg path:not([fill="none"]),
+    .mud-nav-menu svg.mud-icon-root path:not([fill="none"]) {
+        fill: var(--snap-sidebar-text) !important;
+    }
+
     .mud-nav-link {
-        color: white !important;
         max-width: 100% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -191,114 +215,42 @@
         box-sizing: border-box !important;
     }
 
-    .mud-nav-link:hover {
-        background-color: rgba(135, 206, 235, 0.2) !important; /* Light blue with opacity */
-        color: white !important;
-    }
-
-    .mud-nav-link.mud-nav-link-active {
-        background-color: rgba(135, 206, 235, 0.3) !important; /* Light blue with higher opacity */
-        color: white !important;
-    }
-
-    .mud-nav-link .mud-icon {
-        color: white !important;
-    }
-
-    .mud-nav-group .mud-nav-group-header {
-        color: white !important;
-    }
-
-    .mud-nav-group .mud-nav-group-header .mud-icon {
-        color: white !important;
-    }
-
+    .mud-nav-link:hover,
     .mud-nav-group .mud-nav-group-header:hover {
-        background-color: rgba(135, 206, 235, 0.2) !important;
-        color: white !important;
+        background-color: rgba(232,236,239,0.1) !important;
     }
 
-    /* Ensure dropdown arrows are white */
-    .mud-nav-group .mud-nav-group-header .mud-expand-icon {
-        color: white !important;
-    }
-
-    .mud-nav-group .mud-nav-group-header .mud-expand-icon svg {
-        color: white !important;
-        fill: white !important;
+    .mud-nav-link.mud-nav-link-active,
+    .mud-navmenu .mud-nav-link.active {
+        background-color: rgba(232,236,239,0.15) !important;
+        border-left: 3px solid var(--snap-accent, #E85D1A) !important;
+        padding-left: calc(var(--mud-nav-link-padding-left, 16px) - 3px);
     }
 
     .mud-divider {
-        background-color: rgba(255, 255, 255, 0.2) !important;
+        background-color: rgba(255,255,255,0.15) !important;
     }
 
-    /* Override any theme-specific styles */
-    .mud-nav-menu * {
-        color: white !important;
+    /* Starred group scrolls internally once it exceeds ~a third of the sidebar height */
+    .starred-nav-group .mud-collapse-container {
+        max-height: 33vh;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
     }
 
-    .mud-nav-menu .mud-icon {
-        color: white !important;
-    }
-
-    /* Ensure all SVG icons are white */
-    .mud-nav-menu svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Target all MudBlazor icon classes */
-    .mud-nav-menu .mud-icon-root {
-        color: white !important;
-    }
-
-    .mud-nav-menu .mud-icon-root svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Ensure button icons are white */
-    .mud-nav-menu .mud-button .mud-icon {
-        color: white !important;
-    }
-
-    .mud-nav-menu .mud-button .mud-icon svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Force override for light mode - more specific selectors */
-    .mud-theme-light .mud-nav-menu .mud-icon,
-    .mud-theme-light .mud-nav-menu .mud-icon-root,
-    .mud-theme-light .mud-nav-menu .mud-expand-icon {
-        color: white !important;
-    }
-
-    .mud-theme-light .mud-nav-menu svg,
-    .mud-theme-light .mud-nav-menu .mud-icon svg,
-    .mud-theme-light .mud-nav-menu .mud-icon-root svg,
-    .mud-theme-light .mud-nav-menu .mud-expand-icon svg {
-        color: white !important;
-        fill: white !important;
-    }
-
-    /* Target the specific MudBlazor icon classes used in light mode */
-    .mud-nav-menu .mud-nav-link .mud-icon,
-    .mud-nav-menu .mud-nav-group-header .mud-icon,
-    .mud-nav-menu .mud-button-root .mud-icon {
-        color: white !important;
-    }
-
-    .mud-nav-menu .mud-nav-link .mud-icon svg,
-    .mud-nav-menu .mud-nav-group-header .mud-icon svg,
-    .mud-nav-menu .mud-button-root .mud-icon svg {
-        color: white !important;
-        fill: white !important;
+    .mud-drawer .mud-drawer-content .starred-type-label {
+        padding: 6px 16px 2px 24px;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: rgba(255, 255, 255, 0.35) !important;
     }
 </style>
 
 @code {
-    private string? _currentUrl;
     private Guid? _currentOrganizationId => OrganizationContext.CurrentOrganizationId;
     [Parameter] public required Type CurrentPageType { get; set; }
     private RenderFragment? EditionSystemNavItems => EditionNavProvider.EditionSystemNavItems;
@@ -307,9 +259,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        NavigationManager.LocationChanged += OnLocationChanged;
-
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         _organizationActivated = await OrganizationActivation.IsActivatedAsync(orgId);
 
@@ -317,17 +266,141 @@
         {
             _systemNavLinks.Add(new NavLinkItem(
                 "SecretMigrator", NavLinkMatch.All,
-                Icons.Material.Filled.SyncAlt, "Secret Migrator",
+                SnapCdIcons.SyncAlt, "Secret Migrator",
                 typeof(SecretMigrator)));
         }
 
         _generalIsAllowedToNavigateMap = await BuildAllowedMapAsync(_generalNavLinks, orgId);
         _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
-        _accountIsAllowedToNavigateMap = await BuildAllowedMapAsync(_accountNavLinks, orgId);
         _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
         if (HostEnvironment.IsDevelopment())
             _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
         _swaggerIsAllowedToNavigate = await IsAllowedToNavigateAsync(typeof(Swagger), orgId);
+
+        if (orgId != Guid.Empty
+            && HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() == PrincipalDiscriminator.User)
+        {
+            _principalId = HttpContextPrincipalProvider.GetSubjectOrDefault(orgId);
+            if (_principalId != Guid.Empty)
+            {
+                await LoadFavorites(orgId);
+                FavoritesModifiedNotificationService.Subscribe(_principalId, HandleFavoritesModified);
+                _subscribedToFavorites = true;
+            }
+        }
+    }
+
+    private List<FavoriteLink> _favoriteLinks = new();
+    private Guid _principalId;
+    private bool _subscribedToFavorites;
+
+    private record FavoriteLink(FavoriteTargetType TargetType, string Label, string Url, string FullPath);
+
+    private static string GetStarredGroupLabel(FavoriteTargetType targetType) => targetType switch
+    {
+        FavoriteTargetType.Stack => "Stacks",
+        FavoriteTargetType.Namespace => "Namespaces",
+        _ => "Modules"
+    };
+
+    private async Task LoadFavorites(Guid orgId)
+    {
+        var principal = new LiteralPrincipalProvider(_principalId, PrincipalDiscriminator.User, [orgId]);
+
+        using var favoriteRepo = FavoriteRepoFactory.Create(principal);
+        var favorites = await favoriteRepo.List(orgId);
+
+        var links = new List<FavoriteLink>();
+        if (favorites.Count > 0)
+        {
+            var moduleIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Module).Select(f => f.TargetId).ToList();
+            var namespaceIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Namespace).Select(f => f.TargetId).ToList();
+            var stackIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Stack).Select(f => f.TargetId).ToList();
+
+            var moduleLookup = new Dictionary<Guid, FavoriteLink>();
+            if (moduleIds.Any())
+            {
+                using var moduleRepo = ModuleRepoFactory.Create(principal);
+                var modules = await moduleRepo.List(orgId, q => q
+                    .Where(m => moduleIds.Contains(m.Id))
+                    .Select(m => new { m.Id, m.Name, NamespaceName = m.Namespace.Name, StackName = m.Namespace.Stack.Name }));
+                moduleLookup = modules.ToDictionary(
+                    m => m.Id,
+                    m => new FavoriteLink(
+                        FavoriteTargetType.Module,
+                        m.Name,
+                        $"/Module/{m.StackName}/{m.NamespaceName}/{m.Name}",
+                        $"{m.StackName}/{m.NamespaceName}/{m.Name}"));
+            }
+
+            var namespaceLookup = new Dictionary<Guid, FavoriteLink>();
+            if (namespaceIds.Any())
+            {
+                using var namespaceRepo = NamespaceRepoFactory.Create(principal);
+                var namespaces = await namespaceRepo.List(orgId, q => q
+                    .Where(n => namespaceIds.Contains(n.Id))
+                    .Select(n => new { n.Id, n.Name, StackName = n.Stack.Name }));
+                namespaceLookup = namespaces.ToDictionary(
+                    n => n.Id,
+                    n => new FavoriteLink(
+                        FavoriteTargetType.Namespace,
+                        n.Name,
+                        $"/Namespace/{n.StackName}/{n.Name}",
+                        $"{n.StackName}/{n.Name}"));
+            }
+
+            var stackLookup = new Dictionary<Guid, FavoriteLink>();
+            if (stackIds.Any())
+            {
+                using var stackRepo = StackRepoFactory.Create(principal);
+                var stacks = await stackRepo.List(orgId, q => q
+                    .Where(s => stackIds.Contains(s.Id))
+                    .Select(s => new { s.Id, s.Name }));
+                stackLookup = stacks.ToDictionary(
+                    s => s.Id,
+                    s => new FavoriteLink(
+                        FavoriteTargetType.Stack,
+                        s.Name,
+                        $"/Stack/{s.Name}",
+                        s.Name));
+            }
+
+            foreach (var favorite in favorites)
+            {
+                var lookup = favorite.TargetType switch
+                {
+                    FavoriteTargetType.Module => moduleLookup,
+                    FavoriteTargetType.Namespace => namespaceLookup,
+                    _ => stackLookup
+                };
+                if (lookup.TryGetValue(favorite.TargetId, out var link))
+                    links.Add(link);
+            }
+        }
+
+        // Grouped by target type (same as the dashboard's Starred card), alphabetical within each group
+        _favoriteLinks = links
+            .OrderBy(l => l.TargetType)
+            .ThenBy(l => l.FullPath, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private Task HandleFavoritesModified(Guid userId)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+            if (orgId == Guid.Empty) return;
+            await LoadFavorites(orgId);
+            StateHasChanged();
+        });
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedToFavorites)
+            FavoritesModifiedNotificationService.Unsubscribe(_principalId, HandleFavoritesModified);
     }
 
     private async Task<Dictionary<Type, bool>> BuildAllowedMapAsync(IEnumerable<NavLinkItem> links, Guid orgId)
@@ -338,11 +411,6 @@
             map[link.PageType] = await IsAllowedToNavigateAsync(link.PageType, orgId);
         }
         return map;
-    }
-
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    {
-        _currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
     }
 
     private bool HasOrganizationSelected()
@@ -357,49 +425,39 @@
         return $"/{baseHref}";
     }
 
-    public void Dispose()
-    {
-        NavigationManager.LocationChanged -= OnLocationChanged;
-    }
-
     // General Section - displayed at the top
     private List<NavLinkItem> _generalNavLinks = new()
     {
-        new NavLinkItem("Stacks", NavLinkMatch.Prefix, Icons.Material.Filled.Layers, "Stacks", typeof(Stacks))
+        new NavLinkItem("Dashboard", NavLinkMatch.All, SnapCdIcons.SpaceDashboard, "Dashboard", typeof(OrganizationHome)),
+        new NavLinkItem("Stacks", NavLinkMatch.Prefix, SnapCdIcons.Layers, "Stacks", typeof(Stacks))
     };
 
     // System Section - collapsible group
     private List<NavLinkItem> _systemNavLinks = new()
     {
-        new NavLinkItem("Runners", NavLinkMatch.All, "material-symbols-outlined/manufacturing", "Runners", typeof(Runners)),
-        new NavLinkItem("Agents", NavLinkMatch.All, Icons.Material.Filled.SmartToy, "Agents", typeof(Agents)),
-        new NavLinkItem("Integrations", NavLinkMatch.All, Icons.Material.Filled.Hub, "Integrations", typeof(Integrations)),
-        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, "material-symbols-outlined/code", "Source Refreshers", typeof(SourceRefresherPreselections)),
-        new NavLinkItem("StateStores", NavLinkMatch.All, Icons.Material.Filled.Storage, "State Stores", typeof(StateStores)),
-        new NavLinkItem("PreviewFeatures", NavLinkMatch.All, Icons.Material.Filled.Science, "Preview Features", typeof(PreviewFeatures))
+        new NavLinkItem("Runners", NavLinkMatch.All, SnapCdIcons.Manufacturing, "Runners", typeof(Runners)),
+        new NavLinkItem("Agents", NavLinkMatch.All, SnapCdIcons.SmartToy, "Agents", typeof(Agents)),
+        new NavLinkItem("Integrations", NavLinkMatch.All, SnapCdIcons.Hub, "Integrations", typeof(Integrations)),
+        new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, SnapCdIcons.Code, "Source Refreshers", typeof(SourceRefresherPreselections)),
+        new NavLinkItem("StateStores", NavLinkMatch.All, SnapCdIcons.Storage, "State Stores", typeof(StateStores)),
+        new NavLinkItem("PreviewFeatures", NavLinkMatch.All, SnapCdIcons.Science, "Preview Features", typeof(PreviewFeatures))
     };
 
     // Tests Section - collapsible group, dev only
     private List<NavLinkItem> _testsNavLinks = new()
     {
-        new NavLinkItem("MissionTestBench", NavLinkMatch.All, Icons.Material.Filled.Science, "Mission test bench", typeof(MissionTestBench)),
-        new NavLinkItem("IntegrationTestBench", NavLinkMatch.All, Icons.Material.Filled.Hub, "Integration test bench", typeof(IntegrationTestBench))
+        new NavLinkItem("MissionTestBench", NavLinkMatch.All, SnapCdIcons.Science, "Mission test bench", typeof(MissionTestBench)),
+        new NavLinkItem("IntegrationTestBench", NavLinkMatch.All, SnapCdIcons.Hub, "Integration test bench", typeof(IntegrationTestBench))
     };
 
     // Identity Access Section - collapsible group
     private List<NavLinkItem> _identityAccessNavLinks = new()
     {
-        new NavLinkItem("Users", NavLinkMatch.All, Icons.Material.Filled.Person, "Users", typeof(Users)),
-        new NavLinkItem("Groups", NavLinkMatch.All, @Icons.Material.Filled.Group, "Groups", typeof(Groups)),
-        new NavLinkItem("ServicePrincipals", NavLinkMatch.All, Icons.Material.Filled.Terminal, "Service Principals", typeof(ServicePrincipals))
+        new NavLinkItem("Users", NavLinkMatch.All, SnapCdIcons.Person, "Users", typeof(Users)),
+        new NavLinkItem("Groups", NavLinkMatch.All, @SnapCdIcons.Group, "Groups", typeof(Groups)),
+        new NavLinkItem("ServicePrincipals", NavLinkMatch.All, SnapCdIcons.Terminal, "Service Principals", typeof(ServicePrincipals))
     };
 
-
-    // Account Section - collapsible group
-    private List<NavLinkItem> _accountNavLinks = new()
-    {
-        new NavLinkItem("Account", NavLinkMatch.Prefix, Icons.Material.Filled.AccountCircle, "Account", typeof(Index))
-    };
 
     private record NavLinkItem(string Href, NavLinkMatch Match, string Icon, string Text, Type PageType);
 
@@ -407,7 +465,6 @@
     private Dictionary<Type, bool> _systemIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _testsIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _identityAccessIsAllowedToNavigateMap = new();
-    private Dictionary<Type, bool> _accountIsAllowedToNavigateMap = new();
     private bool _swaggerIsAllowedToNavigate;
     private bool _organizationActivated;
 

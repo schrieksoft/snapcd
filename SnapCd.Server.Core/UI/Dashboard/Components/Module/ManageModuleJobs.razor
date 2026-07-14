@@ -29,14 +29,38 @@
 @implements IDisposable
 
 
+@if (IsQueued)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4" Dense="true">
+        <div class="d-flex align-center gap-2">
+            <MudText Typo="Typo.body2">
+                <strong>Queued: @QueuedText</strong>
+                @if (!string.IsNullOrEmpty(QueuedReasonText))
+                {
+                    @: — @QueuedReasonText
+                }
+            </MudText>
+            @if (ShowRunNow)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           OnClick="OnRunQueueNow">run now</MudButton>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       OnClick="OnClearQueue">clear</MudButton>
+        </div>
+    </MudAlert>
+}
+
 <MudPaper Elevation="1" Class="pa-4 mb-4">
-    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply">Apply</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy">Destroy</MudButton>
+    <MudStack Row Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply" Size="Size.Small">apply</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy" Size="Size.Small">destroy</MudButton>
+    </MudStack>
 </MudPaper>
 
 
 @* <MudTooltip Text="Refresh"> *@
-@*     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium" *@
+@*     <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium" *@
 @*                    OnClick="() => ReloadModuleJobs()"/> *@
 @* </MudTooltip> *@
 
@@ -53,64 +77,58 @@ else
     <MudExpansionPanels>
         @foreach (var job in _moduleJobs.OrderByDescending(j => j.TimestampStart))
         {
-            var iconColor = job.Status switch
+            var dotColor = job.Status switch
             {
-                ExecutionStatus.Running => Color.Warning,
-                ExecutionStatus.Completed => Color.Success,
-                ExecutionStatus.Failed => Color.Error,
-                ExecutionStatus.NotApproved => Color.Error,
-                //ExecutionStatus.Cancelled => Color.Default,
-                _ => Color.Default
+                // Running gets a lighter accent and Failed a deeper red — the theme's warning
+                // (accent) and error colors are too close to tell apart at dot size
+                ExecutionStatus.Running => "var(--snap-running, #EB753C)",
+                ExecutionStatus.Completed => "var(--mud-palette-success)",
+                ExecutionStatus.Failed => "var(--snap-failed, #C62828)",
+                ExecutionStatus.NotApproved => "var(--snap-failed, #C62828)",
+                ExecutionStatus.Cancelled => "var(--mud-palette-text-disabled)",
+                _ => "var(--mud-palette-text-disabled)"
             };
 
-            var iconType = job.Status switch
+            var statusLabel = job.Status switch
             {
-                ExecutionStatus.Running => Icons.Material.Filled.RunCircle,
-                ExecutionStatus.Completed => Icons.Material.Filled.CheckCircle,
-                ExecutionStatus.Failed => Icons.Material.Filled.Error,
-                ExecutionStatus.NotApproved => Icons.Material.Filled.ThumbDownAlt,
-                ExecutionStatus.Cancelled => Icons.Material.Filled.StopCircle,
-                _ => Icons.Material.Filled.RunCircle
+                ExecutionStatus.Running => "Running",
+                ExecutionStatus.Completed => FormatJobType(job.JobType) == "Apply" ? "Applied" : "Destroyed",
+                ExecutionStatus.Failed => "Failed",
+                ExecutionStatus.NotApproved => "Not Approved",
+                ExecutionStatus.Cancelled => "Cancelled",
+                _ => job.Status.ToString()
             };
 
             var elapsedTime = DateTimeOffset.UtcNow - job.TimestampStart;
-            var elapsedDisplay = elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes} minutes ago"
-                : elapsedTime.TotalHours < 24 ? $"{(int)elapsedTime.TotalHours} hours ago"
-                : elapsedTime.TotalHours >= 24 && elapsedTime.TotalHours < 48 ? "yesterday"
-                : $"{(int)elapsedTime.TotalDays} days ago";
+            var elapsedDisplay = elapsedTime.TotalMinutes < 1 ? "just now"
+                : elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes}m ago"
+                : elapsedTime.TotalHours < 24 ? $"{(int)elapsedTime.TotalHours}h ago"
+                : elapsedTime.TotalHours < 48 ? "yesterday"
+                : $"{(int)elapsedTime.TotalDays}d ago";
 
+            var durationDisplay = FormatDuration(job.TimestampStart, job.TimestampEnd);
 
             <MudExpansionPanel Class="mb-2" @key="job.Id"
                                Expanded="@(job.Id == _expandedJobId)"
                                ExpandedChanged="@(async (isExpanded) => await OnPanelExpanded(isExpanded, job.Id))">
                 <TitleContent>
-                    <MudGrid>
-                        <MudItem md="1">
-                            <MudGrid>
-                                <MudItem md="6">
-                                    <MudTooltip Text="@job.Status.ToString()">
-                                        <MudIcon Icon="@iconType" Color="@iconColor"></MudIcon>
-                                    </MudTooltip>
-                                </MudItem>
-                                @if (job.Status == ExecutionStatus.Running)
-                                {
-                                    <MudItem md="6">
-                                        <MudTooltip Text="Cancel Job">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Cancel"
-                                                           Color="Color.Primary" Size="Size.Small"
-                                                           OnClick="() => CancelJob(job.Id)"/>
-                                        </MudTooltip>
-                                    </MudItem>
-                                }
-                            </MudGrid>
-                        </MudItem>
-                        <MudItem xs="3">
-                            <MudText Typo="Typo.body2">@elapsedDisplay</MudText>
-                        </MudItem>
-                        <MudItem xs="3">
-                            <MudText Typo="Typo.body2">@FormatJobType(job.JobType)</MudText>
-                        </MudItem>
-                    </MudGrid>
+                    <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                        <MudTooltip Text="@job.Status.ToString()">
+                            <span class="job-status-dot" style="background-color: @dotColor;"></span>
+                        </MudTooltip>
+                        <span style="font-weight: 500; font-size: 14px; flex: 1;">Job #@job.JobNumber</span>
+                        <span style="font-size: 14px; color: var(--mud-palette-text-secondary); white-space: nowrap;">
+                            @statusLabel · @elapsedDisplay@(!string.IsNullOrEmpty(durationDisplay) ? $" · {durationDisplay}" : "")
+                        </span>
+                        @if (job.Status == ExecutionStatus.Running)
+                        {
+                            <MudTooltip Text="Cancel Job">
+                                <MudIconButton Icon="@SnapCdIcons.Cancel"
+                                               Color="Color.Primary" Size="Size.Small"
+                                               OnClick="() => CancelJob(job.Id)"/>
+                            </MudTooltip>
+                        }
+                    </div>
                 </TitleContent>
                 <ChildContent>
                     @if (job.FailedOnServerSideStep != null)
@@ -137,7 +155,7 @@ else
                             @if (job.WaitingForApproval == true)
                             {
                                 <MudAlert Severity="Severity.Info" Class="mt-4">
-                                    <MudIcon Icon="@Icons.Material.Filled.Approval" Class="mr-2"/>
+                                    <MudIcon Icon="@SnapCdIcons.Approval" Class="mr-2"/>
                                     This job is waiting for approval. Please review and approve in the Approvals tab.
                                 </MudAlert>
                             }
@@ -163,12 +181,29 @@ else
                 PageChanged="HandlePageChanged"/>
 }
 
+<style>
+    .job-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+</style>
+
 @code {
     [Parameter] public required Module Module { get; set; }
     [Parameter] public Guid? InitialJobId { get; set; }
     [Parameter] public string? InitialTab { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public EventCallback<(Guid? JobId, string? Tab, string? Task)> OnJobsStateChanged { get; set; }
+    [Parameter] public string? QueuedText { get; set; }
+    [Parameter] public string? QueuedReasonText { get; set; }
+    [Parameter] public bool IsQueued { get; set; }
+    [Parameter] public bool ShowRunNow { get; set; }
+    [Parameter] public EventCallback OnRunQueueNow { get; set; }
+    [Parameter] public EventCallback OnClearQueue { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] ModuleJobRepositoryFactory JobRepoFactory { get; set; } = null!;
@@ -258,7 +293,9 @@ else
                     q => q.Select(j => new ModuleJobView
                     {
                         Id = j.Id,
+                        JobNumber = j.JobNumber,
                         TimestampStart = j.TimestampStart,
+                        TimestampEnd = j.TimestampEnd,
                         Status = j.Status,
                         JobType = j.JobType,
                         FailedOnServerSideStep = j.FailedOnServerSideStep,
@@ -306,6 +343,7 @@ else
                         q => q.Select(j => new ModuleJobView
                         {
                             Id = j.Id,
+                            JobNumber = j.JobNumber,
                             TimestampStart = j.TimestampStart,
                             Status = j.Status,
                             JobType = j.JobType,
@@ -325,6 +363,7 @@ else
             if (updated != null)
             {
                 job.Status = updated.Status;
+                job.TimestampEnd = updated.TimestampEnd;
                 job.WaitingForApproval = updated.WaitingForApproval;
                 job.FailedOnServerSideStep = updated.FailedOnServerSideStep;
                 job.ServerSideErrorHeader = updated.ServerSideErrorHeader;
@@ -398,6 +437,7 @@ else
             projection: q => q.Select(j => new ModuleJobView
             {
                 Id = j.Id,
+                JobNumber = j.JobNumber,
                 TimestampStart = j.TimestampStart,
                 Status = j.Status,
                 JobType = j.JobType,
@@ -620,6 +660,16 @@ else
         "DestroyJobSaga" => "Destroy",
         _ => jobType
     };
+
+    private static string? FormatDuration(DateTimeOffset start, DateTimeOffset? end)
+    {
+        var endTime = end ?? DateTimeOffset.UtcNow;
+        var duration = endTime - start;
+        if (duration.TotalSeconds < 1) return null;
+        if (duration.TotalSeconds < 60) return $"{(int)duration.TotalSeconds}s";
+        if (duration.TotalMinutes < 60) return $"{(int)duration.TotalMinutes}m {duration.Seconds}s";
+        return $"{(int)duration.TotalHours}h {duration.Minutes}m";
+    }
 
     public void Dispose()
     {

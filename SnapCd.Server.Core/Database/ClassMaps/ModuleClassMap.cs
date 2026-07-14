@@ -17,6 +17,9 @@ public class ModuleClassMap : IEntityTypeConfiguration<Module>
 {
     public void Configure(EntityTypeBuilder<Module> entity)
     {
+        // Modules has a trigger (trg_Modules_ModuleState), so EF must not use the OUTPUT clause
+        entity.ToTable("Modules", t => t.UseSqlOutputClause(false));
+
         // Composite Primary Key
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 

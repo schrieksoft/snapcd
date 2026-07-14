@@ -66,7 +66,7 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Color="Color.Primary"
+                    <MudButton Color="Color.Secondary"
                                Variant="Variant.Filled"
                                OnClick="@CreateUserRoleAssignment"
                                Size="Size.Small"
@@ -94,7 +94,7 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetUserDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="@(async () => await DeleteUserRoleAssignment(assignment))"/>
@@ -147,7 +147,7 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Color="Color.Primary"
+                    <MudButton Color="Color.Secondary"
                                Variant="Variant.Filled"
                                OnClick="@CreateSpRoleAssignment"
                                Size="Size.Small"
@@ -175,7 +175,7 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetServicePrincipalDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="@(async () => await DeleteSpRoleAssignment(assignment))"/>
@@ -256,7 +256,7 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetGroupDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="@(async () => await DeleteGroupRoleAssignment(assignment))"/>

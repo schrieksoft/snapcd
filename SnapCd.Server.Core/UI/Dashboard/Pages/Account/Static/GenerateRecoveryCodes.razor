@@ -31,7 +31,7 @@
 
         <MudAlert Severity="Severity.Warning" Class="mb-4">
             <MudText Typo="Typo.h6" Class="mb-2">
-                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
+                <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-2"/>
                 Generate new recovery codes
             </MudText>
             <MudText Typo="Typo.body1">
@@ -56,7 +56,7 @@
             <AntiforgeryToken/>
             <div class="complete-button-container">
                 <div class="divider-line"></div>
-                <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                  FormAction="FormAction.Submit" Class="complete-btn">
                     Generate Recovery Codes
                 </MudStaticButton>
@@ -94,13 +94,13 @@
 
     .complete-btn {
         flex-shrink: 0;
-        background-color: #000 !important;
+        background-color: var(--snap-accent) !important;
         color: white !important;
         border-radius: 24px !important;
     }
 
     .complete-btn:hover {
-        background-color: #333 !important;
+        background-color: var(--snap-accent-hover) !important;
         color: white !important;
     }
 
@@ -115,32 +115,32 @@
     }
 
     .back-btn-link {
-        color: #ffffff !important;
+        color: var(--snap-on-accent) !important;
         text-decoration: none !important;
-        background-color: #000000 !important;
-        border: 1px solid #000000;
-        padding: 8px 16px;
+        background-color: var(--snap-accent) !important;
+        border: 1px solid var(--snap-accent);
+        padding: 5px 14px;
         cursor: pointer;
         font-size: 14px;
-        border-radius: 24px;
+        border-radius: 0;
         display: inline-block;
     }
 
     .back-btn-link:hover {
-        background-color: #333333 !important;
-        color: #ffffff !important;
+        background-color: var(--snap-accent-hover) !important;
+        color: var(--snap-on-accent) !important;
         text-decoration: none !important;
     }
 
     .mud-dark .back-btn-link {
-        color: #000000 !important;
-        background-color: #ffffff !important;
-        border: 1px solid #ffffff;
+        color: var(--snap-on-accent) !important;
+        background-color: var(--snap-accent) !important;
+        border: 1px solid var(--snap-accent);
     }
 
     .mud-dark .back-btn-link:hover {
-        background-color: #e0e0e0 !important;
-        color: #000000 !important;
+        background-color: var(--snap-accent-hover) !important;
+        color: var(--snap-on-accent) !important;
         text-decoration: none !important;
     }
 </style>

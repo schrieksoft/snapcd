@@ -46,7 +46,7 @@
 @if (!HostEnvironment.IsDevelopment())
 {
     <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Class="mb-4">
-        <MudIcon Icon="@Icons.Material.Filled.Lock" Class="mr-2" />
+        <MudIcon Icon="@SnapCdIcons.Lock" Class="mr-2" />
         The integration test bench is only available when the host runs in the Development environment.
     </MudAlert>
 }
@@ -77,7 +77,7 @@ else
                         @if (_debugModuleExists is false)
                         {
                             <MudText Typo="Typo.body2" Class="mt-1">
-                                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" />
+                                <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-1" />
                                 The <code>debug</code> module isn't seeded in this org. Restart the
                                 server in Development so <code>DebugDataSeeder</code> runs.
                             </MudText>
@@ -85,7 +85,7 @@ else
                         @if (_debugIntegrationExists is false)
                         {
                             <MudText Typo="Typo.body2" Class="mt-1">
-                                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" />
+                                <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-1" />
                                 The <code>debug-slack</code> integration isn't seeded in this org. Restart the
                                 server in Development so <code>DebugDataSeeder</code> runs.
                             </MudText>
@@ -108,10 +108,11 @@ else
                     }
 
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
                                Disabled="_debugModuleExists is not true || _triggering"
                                OnClick="TriggerEvent">
-                        <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-2" />
+                        <MudIcon Icon="@SnapCdIcons.PlayArrow" Class="mr-2" />
                         Trigger
                     </MudButton>
 
@@ -140,10 +141,11 @@ else
                     </MudText>
 
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
                                Disabled="_debugModuleExists is not true || _dryRunning"
                                OnClick="DryRun">
-                        <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-2" />
+                        <MudIcon Icon="@SnapCdIcons.Search" Class="mr-2" />
                         Dry run
                     </MudButton>
 
@@ -173,7 +175,7 @@ else
                 <MudCardContent>
                     <MudText Typo="Typo.h6" GutterBottom="true">
                         Recent deliveries
-                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="RefreshDeliveriesAsync" />
+                        <MudIconButton Icon="@SnapCdIcons.Refresh" Size="Size.Small" OnClick="RefreshDeliveriesAsync" />
                     </MudText>
 
                     @if (_recentDeliveries.Count == 0)
@@ -423,10 +425,10 @@ else
 
     private static string DeliveryStatusIcon(IntegrationDeliveryStatus s) => s switch
     {
-        IntegrationDeliveryStatus.Pending => Icons.Material.Filled.HourglassEmpty,
-        IntegrationDeliveryStatus.Sent => Icons.Material.Filled.CheckCircle,
-        IntegrationDeliveryStatus.Failed => Icons.Material.Filled.Error,
-        _ => Icons.Material.Filled.HelpOutline
+        IntegrationDeliveryStatus.Pending => SnapCdIcons.HourglassEmpty,
+        IntegrationDeliveryStatus.Sent => SnapCdIcons.CheckCircle,
+        IntegrationDeliveryStatus.Failed => SnapCdIcons.Error,
+        _ => SnapCdIcons.HelpOutline
     };
 
     private static string TimeRelative(DateTime t)

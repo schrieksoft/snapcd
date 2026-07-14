@@ -30,14 +30,6 @@
             @{
                 var executionOrder = stagesList.IndexOf(stage) + 1;
             }
-            <MudText Typo="Typo.subtitle1" Class="mb-2" Align="Align.Center">
-                Stage @executionOrder
-            </MudText>
-            <MudText Typo="Typo.caption" Class="mb-2" Align="Align.Center" Style="font-size: 0.8rem;">
-                Must
-                be @(DependencyGraphWithStates.Direction == "Destroy" ? "destroyed" : "applied") @(executionOrder == 1 ? "first" : stage.First().StageOrdinal)
-            </MudText>
-
             <MudStack Spacing="1">
                 @{
                     var namespaceGroups = stage.GroupBy(n => n.NamespaceDisplayName)
@@ -47,10 +39,10 @@
                 @foreach (var namespaceGroup in namespaceGroups)
                 {
                     var namespaceStyle = GetNamespaceCardStyle(namespaceGroup.Key);
-                    <MudCard Elevation="1" Class="mb-1" Style="@namespaceStyle">
+                    <MudCard Elevation="1" Class="mb-1 dag-namespace-card" Style="@namespaceStyle">
                         <MudCardHeader Class="pa-2 pb-1">
                             <CardHeaderContent>
-                                <MudLink Href="@($"/Stacks/{namespaceGroup.Key}")"
+                                <MudLink Href="@($"/Namespace/{namespaceGroup.Key}")"
                                          Typo="Typo.body2" Class="font-weight-bold">
                                     @namespaceGroup.First().NamespaceName
                                 </MudLink>
@@ -71,15 +63,12 @@
                                             <MudExpansionPanel Class="pa-0" Style="@moduleStyle">
                                                 <TitleContent>
                                                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                                                        <MudLink Href="@($"/Stacks/{nodeState.DisplayName}")"
+                                                        <MudLink Href="@($"/Module/{nodeState.DisplayName}")"
                                                                  Typo="Typo.caption" Class="font-weight-medium"
                                                                  Style="@(isRoot ? "color: white !important; font-size: 0.8rem;" : "font-size: 0.8rem;")"
                                                                  @onclick:stopPropagation="true">
                                                             @nodeState.ModuleName@(isRoot ? " (This module)" : "")
                                                         </MudLink>
-                                                        <MudIcon Icon="@nodeState.StateIcon"
-                                                                 Color="@nodeState.StateColor"
-                                                                 Size="Size.Small" Style="font-size: 1rem;"/>
                                                     </div>
                                                     @if (isRoot)
                                                     {
@@ -112,7 +101,7 @@
                                                                     @foreach (var dep in nodeState.IncomingEdges)
                                                                     {
                                                                         <MudLink Typo="Typo.caption"
-                                                                                 Href="@($"/Stacks/{dep.DisplayName}")"
+                                                                                 Href="@($"/Module/{dep.DisplayName}")"
                                                                                  Style="font-size: 0.8rem;">
                                                                             @dep.ShortDisplayName
                                                                         </MudLink>
@@ -136,7 +125,7 @@
                                                                     @foreach (var trigger in nodeState.OutgoingEdges)
                                                                     {
                                                                         <MudLink Typo="Typo.caption"
-                                                                                 Href="@($"/Stacks/{trigger.DisplayName}")"
+                                                                                 Href="@($"/Module/{trigger.DisplayName}")"
                                                                                  Style="font-size: 0.8rem;">
                                                                             @trigger.ShortDisplayName
                                                                         </MudLink>
@@ -153,14 +142,11 @@
                                     {
                                         <div class="dag-module-nodeps" style="@moduleStyle">
                                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-                                                <MudLink Href="@($"/Stacks/{nodeState.DisplayName}")"
+                                                <MudLink Href="@($"/Module/{nodeState.DisplayName}")"
                                                          Typo="Typo.caption" Class="font-weight-medium"
                                                          Style="@(isRoot ? "color: white !important; font-size: 0.8rem;" : "font-size: 0.8rem;")">
                                                     @nodeState.ModuleName@(isRoot ? " (This module)" : "")
                                                 </MudLink>
-                                                <MudIcon Icon="@nodeState.StateIcon"
-                                                         Color="@nodeState.StateColor"
-                                                         Size="Size.Small" Style="font-size: 1rem;"/>
                                             </div>
                                             @if (isRoot)
                                             {
@@ -194,7 +180,7 @@
         {
             <div class="stage-arrow"
                  style="display: flex; align-items: center; justify-content: center; min-width: 32px; height: 100%;">
-                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Medium" Color="Color.Default"/>
+                <MudIcon Icon="@SnapCdIcons.ArrowForward" Size="Size.Medium" Color="Color.Default"/>
             </div>
         }
     }
@@ -209,10 +195,16 @@
 
 <style>
     .stage-column {
-        background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-lines-default);
+        background: transparent;
+        border: none;
         border-radius: 8px;
         padding: 12px;
+    }
+
+    /* Namespace grouping cards get an inset background so they stand out from
+       the transparent stage columns and the surface-coloured module nodes */
+    .dag-namespace-card {
+        background: var(--snap-bg-inset, var(--mud-palette-background-grey));
     }
 
     .stage-arrow {

@@ -30,11 +30,11 @@ public sealed class PostAuthRedirectResolver(
                 new Dictionary<string, object?>
                 {
                     ["token"] = pendingToken,
-                    ["returnUrl"] = "/Home"
+                    ["returnUrl"] = "/Dashboard"
                 });
         }
 
-        redirectManager.RedirectTo("/Home");
+        redirectManager.RedirectTo("/Dashboard");
     }
 
     private static bool IsSafeLocalUrl(string? url) =>

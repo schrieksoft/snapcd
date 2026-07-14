@@ -38,7 +38,20 @@
 
 <PageTitle>Account</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Account</MudText>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+    <MudText Typo="Typo.h4">Account</MudText>
+    <form action="/Account/Logout" method="post" data-enhance="false" style="margin: 0;">
+        <AntiforgeryToken/>
+        <input type="hidden" name="ReturnUrl" value="/Account/Login"/>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   ButtonType="ButtonType.Submit"
+                   Size="Size.Small"
+                   StartIcon="@SnapCdIcons.Logout">
+            Logout
+        </MudButton>
+    </form>
+</div>
 
 @if (!string.IsNullOrEmpty(_statusMessage))
 {
@@ -51,7 +64,7 @@
 <MudExpansionPanels MultiExpansion="true" Class="mb-4">
     <!-- Basic Information Section -->
     <MudExpansionPanel Text="Basic Information">
-        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" GutterBottom="true">
             Update your personal information and view your account details.
         </MudText>
 
@@ -76,7 +89,7 @@
                               HelperText="Your last name as it appears on your account."/>
 
                 <div>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" ButtonType="ButtonType.Submit">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" ButtonType="ButtonType.Submit" Size="Size.Small">
                         Save Changes
                     </MudButton>
                 </div>
@@ -86,7 +99,7 @@
 
     <!-- Password Section -->
     <MudExpansionPanel Text="Password">
-        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" GutterBottom="true">
             Manage your password authentication settings.
         </MudText>
 
@@ -106,6 +119,7 @@
         <div class="button-group mt-4">
             <MudButton Variant="Variant.Filled"
                        Color="Color.Secondary"
+                       Size="Size.Small"
                        OnClick="NavigateToResetPassword"
                        Class="profile-btn">
                 Reset Password
@@ -115,6 +129,7 @@
             {
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToRemovePassword"
                            Class="profile-btn">
                     Remove Password
@@ -125,7 +140,7 @@
 
     <!-- Two-Factor Authentication Section -->
     <MudExpansionPanel Text="Two-Factor Authentication">
-        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" GutterBottom="true">
             Enhance your account security with two-factor authentication.
         </MudText>
 
@@ -181,6 +196,7 @@
             {
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToRegisterAuthenticator"
                            Class="profile-btn">
                     Add Authenticator
@@ -192,6 +208,7 @@
                 {
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="NavigateToDisable2fa"
                                Class="profile-btn">
                         Disable 2FA
@@ -201,6 +218,7 @@
                 {
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="NavigateToEnable2fa"
                                Class="profile-btn">
                         Enable 2FA
@@ -209,6 +227,7 @@
 
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToResetAuthenticator"
                            Class="profile-btn">
                     Reset Authenticator
@@ -219,6 +238,7 @@
             {
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="NavigateToGenerateRecoveryCodes"
                            Class="profile-btn">
                     Generate Recovery Codes
@@ -229,7 +249,7 @@
 
     <!-- External Logins Section -->
     <MudExpansionPanel Text="External Logins">
-        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" GutterBottom="true">
             Manage external login providers connected to your account
         </MudText>
 
@@ -251,7 +271,7 @@
                                     <span class="provider-icon">@((MarkupString)iconHtml)</span>
                                 </MudTooltip>
                             </button>
-                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                            <MudIconButton Icon="@SnapCdIcons.Close"
                                            Color="Color.Error"
                                            Size="Size.Small"
                                            OnClick="() => NavigateToRemoveLogin(login.LoginProvider, login.ProviderKey)"
@@ -296,7 +316,7 @@
 
     <!-- Access Token Management Section -->
     <MudExpansionPanel Text="Access Tokens">
-        <MudText Typo="Typo.body1" Color="Color.Secondary" GutterBottom="true">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" GutterBottom="true">
             Generate and manage API access tokens for programmatic access to your account.
         </MudText>
 
@@ -306,7 +326,7 @@
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
                     <MudText Typo="Typo.subtitle2" GutterBottom="true">Generated Token</MudText>
                     <MudIconButton
-                        Icon="@Icons.Material.Filled.Close"
+                        Icon="@SnapCdIcons.Close"
                         OnClick="CloseTokenPanel"
                         Color="Color.Inherit"
                         Size="Size.Small"
@@ -319,20 +339,20 @@
                         InputType="@DisplayedTokenType"
                         Style="width: 600px; margin-right: 1rem;"/>
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
                                Size="Size.Small"
                                OnClick="ToggleShowToken">
                         @ShowTokenText
                     </MudButton>
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
                                Size="Size.Small"
                                OnClick="CopyToken">
                         Copy Token
                     </MudButton>
                 </MudStack>
 
-                <MudText Typo="Typo.body1" GutterBottom="true" Style="font-style: italic; font-size: 0.875rem;">
+                <MudText Typo="Typo.body2" GutterBottom="true" Style="font-style: italic;">
                     Make sure you save it - you won't be able to access it again!
                 </MudText>
             </MudPaper>
@@ -340,6 +360,7 @@
 
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
+                   Size="Size.Small"
                    OnClick="ToggleTokenForm"
                    Class="profile-btn mt-4 mb-4">
             Generate New Token
@@ -358,6 +379,7 @@
                 </MudStack>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="GenerateToken"
                            Class="profile-btn mt-4 mb-4">
                     Submit
@@ -380,8 +402,8 @@
                     }
                 </MudTd>
                 <MudTd DataLabel="Actions">
-                    <MudButton OnClick="() => RevokeToken(context.Id)" Variant="Variant.Text" Color="Color.Info">
-                        <MudIcon Icon="@Icons.Material.Filled.Delete"/>
+                    <MudButton OnClick="() => RevokeToken(context.Id)" Variant="Variant.Text" Color="Color.Default">
+                        <MudIcon Icon="@SnapCdIcons.Delete"/>
                     </MudButton>
                 </MudTd>
             </RowTemplate>

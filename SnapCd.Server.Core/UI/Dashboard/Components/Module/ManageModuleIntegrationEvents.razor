@@ -23,7 +23,8 @@
         <MudTabPanel Text="Module" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)
             {
-                <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
                            OnClick="ShowCreate" Class="mb-3">
                     Add Event
                 </MudButton>
@@ -65,15 +66,16 @@
                         </MudItem>
 
                         <MudItem xs="12">
-                            <MudSwitch T="bool" @bind-Value="Input.IsDisabled" Label="Disabled" Color="Color.Info"/>
+                            <MudSwitch T="bool" @bind-Value="Input.IsDisabled" Label="Disabled" Color="Color.Secondary"/>
                         </MudItem>
 
                         <MudItem xs="12" Class="d-flex justify-end gap-2">
                             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
-                                       Style="background-color: #000; color: #fff;">
+                                       Color="Color.Secondary" Size="Size.Small">
                                 @(_editing is null ? "Create" : "Save")
                             </MudButton>
-                            <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                                Size="Size.Small"
                                        OnClick="CancelEdit">
                                 Cancel
                             </MudButton>
@@ -106,7 +108,7 @@
             <MudTabPanel Text="Inherited from Namespace" Style="text-transform: none">
                 <div style="opacity: 0.6;">
                     <MudText Typo="Typo.caption" Class="mb-2">
-                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="@($"/Stacks/{StackName}/{NamespaceName}?action=configure&section=integrationevents")">here</MudLink>.
+                        Manage these from <MudLink Typo="Typo.caption" Style="font-weight: bold; color: var(--snap-accent, #E85D1A); text-decoration: underline;" Href="@($"/Namespace/{StackName}/{NamespaceName}?action=configure&section=integrationevents")">here</MudLink>.
                     </MudText>
                     <MudDivider Class="mb-3"/>
                     <IntegrationGroupedEvents TRow="NamespaceIntegrationEvent"
@@ -126,7 +128,7 @@
             <MudTabPanel Text="Inherited from Stack" Style="text-transform: none">
                 <div style="opacity: 0.6;">
                     <MudText Typo="Typo.caption" Class="mb-2">
-                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="@($"/Stacks/{StackName}?action=configure&section=integrationevents")">here</MudLink>.
+                        Manage these from <MudLink Typo="Typo.caption" Style="font-weight: bold; color: var(--snap-accent, #E85D1A); text-decoration: underline;" Href="@($"/Stack/{StackName}?action=configure&section=integrationevents")">here</MudLink>.
                     </MudText>
                     <MudDivider Class="mb-3"/>
                     <IntegrationGroupedEvents TRow="StackIntegrationEvent"
@@ -146,7 +148,7 @@
             <MudTabPanel Text="Inherited from Organization" Style="text-transform: none">
                 <div style="opacity: 0.6;">
                     <MudText Typo="Typo.caption" Class="mb-2">
-                        Manage these from <MudLink Typo="Typo.caption" Color="Color.Info" Style="font-weight: bold;" Href="/Integrations?action=integrationevents">here</MudLink>.
+                        Manage these from <MudLink Typo="Typo.caption" Style="font-weight: bold; color: var(--snap-accent, #E85D1A); text-decoration: underline;" Href="/Integrations?action=integrationevents">here</MudLink>.
                     </MudText>
                     <MudDivider Class="mb-3"/>
                     <IntegrationGroupedEvents TRow="OrganizationIntegrationEvent"

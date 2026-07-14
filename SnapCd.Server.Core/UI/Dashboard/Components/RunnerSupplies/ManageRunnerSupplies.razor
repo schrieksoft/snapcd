@@ -24,6 +24,7 @@
         {
             <MudButton Variant="Variant.Filled"
                        Color="Color.Secondary"
+                       Size="Size.Small"
                        Class="mt-2 mb-2"
                        OnClick="ShowCreateStackSupply">
                 Create New
@@ -48,7 +49,7 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Delete supply">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => DeleteStackSupply(supply)"/>
                         </MudTooltip>
                     </ChildContent>
@@ -61,6 +62,7 @@
         {
             <MudButton Variant="Variant.Filled"
                        Color="Color.Secondary"
+                       Size="Size.Small"
                        Class="mt-2 mb-2"
                        OnClick="ShowCreateNamespaceSupply">
                 Create New
@@ -86,7 +88,7 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Delete supply">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => DeleteNamespaceSupply(supply)"/>
                         </MudTooltip>
                     </ChildContent>
@@ -99,6 +101,7 @@
         {
             <MudButton Variant="Variant.Filled"
                        Color="Color.Secondary"
+                       Size="Size.Small"
                        Class="mt-2 mb-2"
                        OnClick="ShowCreateModuleSupply">
                 Create New
@@ -123,7 +126,7 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Delete supply">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => DeleteModuleSupply(supply)"/>
                         </MudTooltip>
                     </ChildContent>
@@ -131,12 +134,6 @@
             }
         </MudExpansionPanels>
     </MudTabPanel>
-    <MudButton
-        Variant="Variant.Filled"
-        Color="Color.Secondary"
-        Class="mt-2 mb-2"
-        OnClick="Close">Close
-    </MudButton>
 </MudTabs>
 
 @code {

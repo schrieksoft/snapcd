@@ -56,7 +56,7 @@
 
         <div class="button-container">
             <EditForm Model="@_emptyModel" FormName="accept-invitation" OnValidSubmit="OnAcceptAsync" method="post">
-                <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" Size="Size.Large"
+                <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large"
                                  FormAction="FormAction.Submit" Class="action-btn">
                     Accept Invitation
                 </MudStaticButton>
@@ -65,7 +65,7 @@
 
         <div class="button-container mt-3">
             <EditForm Model="@_emptyModel" FormName="decline-invitation" OnValidSubmit="OnDeclineAsync" method="post">
-                <MudStaticButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" Size="Size.Medium"
+                <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Medium"
                                  FormAction="FormAction.Submit" Class="action-btn">
                     Decline
                 </MudStaticButton>
@@ -92,20 +92,20 @@
     }
 
     .login-btn-link {
-        color: #ffffff !important;
+        color: var(--snap-on-accent) !important;
         text-decoration: none !important;
-        background-color: #000000 !important;
-        border: 1px solid #000000;
-        padding: 8px 16px;
+        background-color: var(--snap-accent) !important;
+        border: 1px solid var(--snap-accent);
+        padding: 5px 14px;
         cursor: pointer;
         font-size: 14px;
-        border-radius: 24px;
+        border-radius: 0;
         display: inline-block;
     }
 
     .login-btn-link:hover {
-        background-color: #333333 !important;
-        color: #ffffff !important;
+        background-color: var(--snap-accent-hover) !important;
+        color: var(--snap-on-accent) !important;
         text-decoration: none !important;
     }
 
@@ -204,7 +204,7 @@
         Guid? orgId = await ProcessInvitationActionAsync(accept: true);
         if (orgId is { } id)
         {
-            var target = string.IsNullOrEmpty(ReturnUrl) ? "/Home" : ReturnUrl;
+            var target = string.IsNullOrEmpty(ReturnUrl) ? "/Dashboard" : ReturnUrl;
             RedirectManager.RedirectTo($"/api/organization/switch/{id}?returnUrl={Uri.EscapeDataString(target)}");
         }
     }

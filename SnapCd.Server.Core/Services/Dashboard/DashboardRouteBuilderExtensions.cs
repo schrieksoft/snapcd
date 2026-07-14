@@ -132,7 +132,21 @@ public static class DashboardRouteBuilderExtensions
             [FromForm] string? returnUrl) =>
         {
             await signInManager.SignOutAsync();
-            return TypedResults.LocalRedirect($"~/{returnUrl ?? ""}");
+
+            // returnUrl comes off the posted form, so it is untrusted: only honour it
+            // when it is a rooted path with no authority. A value starting with "//"
+            // (or "/\") is protocol-relative and would redirect off-site, and blindly
+            // interpolating it into "~/{returnUrl}" produces exactly that.
+            var target = "~/";
+            if (!string.IsNullOrEmpty(returnUrl)
+                && returnUrl.StartsWith('/')
+                && !returnUrl.StartsWith("//", StringComparison.Ordinal)
+                && !returnUrl.StartsWith("/\\", StringComparison.Ordinal))
+            {
+                target = $"~{returnUrl}";
+            }
+
+            return TypedResults.LocalRedirect(target);
         }).ExcludeFromDescription();
 
         var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();

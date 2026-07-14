@@ -36,6 +36,10 @@ public class ModuleJobClassMap : IEntityTypeConfiguration<ModuleJob>
             .OnDelete(DeleteBehavior.Restrict);
 
         entity
+            .Property(p => p.JobNumber)
+            .UseIdentityColumn();
+
+        entity
             .HasIndex(p => new { p.ModuleId, p.TimestampStart, p.OrganizationId })
             .IsUnique();
 
@@ -50,6 +54,21 @@ public class ModuleJobClassMap : IEntityTypeConfiguration<ModuleJob>
             .HasIndex(m => new { m.ModuleId, m.IsCurrent, m.OrganizationId })
             .IsUnique()
             .HasFilter("[IsCurrent] = 1");
+
+        // Org-wide activity feeds (dashboard Recent Activity / 7-day chart): newest-first
+        // range reads without scanning the org's whole job history.
+        // NOTE: both dashboard indexes share the same key columns, so they must use the
+        // named HasIndex overload — otherwise EF merges them into one index definition.
+        entity
+            .HasIndex(m => new { m.OrganizationId, m.TimestampStart }, "IX_ModuleJobs_Organization_Activity")
+            .IsDescending(false, true)
+            .IncludeProperties(m => new { m.ModuleId, m.JobNumber, m.JobType, m.Status, m.WaitingForApproval, m.TimestampEnd });
+
+        // Pending approvals (dashboard Needs Attention): near-empty filtered index
+        entity
+            .HasIndex(m => new { m.OrganizationId, m.TimestampStart }, "IX_ModuleJobs_PendingApprovals")
+            .HasFilter("[WaitingForApproval] = 1")
+            .IncludeProperties(m => new { m.ModuleId, m.JobNumber, m.JobType, m.Status });
 
         entity
             .Property(d => d.Status)

@@ -15,8 +15,8 @@
     <MudPaper Class="login-card" Elevation="0">
         <div class="login-header">
             <div class="logo-section">
-                <img src="/_content/SnapCd.Server.Core/login-logo.png" alt="Snap CD" width="64" height="64" class="login-logo"/>
-                <MudText Typo="Typo.h3" Class="login-title">Snap CD</MudText>
+                <img src="/_content/SnapCd.Server.Core/@(_isDarkMode ? "logo-inverted-64x64.png" : "logo-64x64.png")" alt="Snap CD" width="64" height="64" class="login-logo"/>
+                <MudText Typo="Typo.h3" Class="login-title">Snap <span class="login-title-cd">CD</span></MudText>
             </div>
             @if (!string.IsNullOrEmpty(Subtitle))
             {
@@ -33,7 +33,7 @@
                     Style="box-shadow: none; min-width: unset; padding: 8px; background-color: var(--mud-palette-surface); border-radius: 50%;"
                     Variant="Variant.Text"
                     OnClick="@(_ => ToggleDarkMode())">
-                    <MudIcon Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                    <MudIcon Icon="@(_isDarkMode ? SnapCdIcons.LightMode : SnapCdIcons.DarkMode)"
                              Size="Size.Small"/>
                 </MudButton>
             </MudTooltip>
@@ -55,7 +55,7 @@
         max-width: 500px;
         width: 100%;
         padding: 3rem;
-        border-radius: 8px;
+        border-radius: 0;
         position: relative;
         background-color: var(--mud-palette-surface);
     }
@@ -80,6 +80,11 @@
     .login-title {
         font-weight: 600;
         margin-bottom: 0;
+    }
+
+    /* "CD" carries the brand accent; "Snap" stays in the text colour. */
+    .login-title-cd {
+        color: var(--snap-accent);
     }
 
     .login-subtitle {
@@ -112,15 +117,15 @@
     .sign-in-btn {
         flex-shrink: 0;
         text-transform: lowercase !important;
-        background-color: #000 !important;
-        color: white !important;
-        padding: 8px 24px;
-        border-radius: 24px;
+        background-color: var(--snap-accent) !important;
+        color: var(--snap-on-accent) !important;
+        padding: 5px 14px;
+        border-radius: 0;
     }
 
     .sign-in-btn:hover {
-        background-color: #333 !important;
-        color: white !important;
+        background-color: var(--snap-accent-hover) !important;
+        color: var(--snap-on-accent) !important;
     }
 
     .login-btn-link {
@@ -128,11 +133,11 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 8px 24px;
-        background-color: #000 !important;
-        color: white !important;
+        padding: 5px 14px;
+        background-color: var(--snap-accent) !important;
+        color: var(--snap-on-accent) !important;
         text-decoration: none;
-        border-radius: 24px;
+        border-radius: 0;
         font-weight: 500;
         font-size: 0.875rem;
         line-height: 1.75;
@@ -144,8 +149,8 @@
     }
 
     .login-btn-link:hover {
-        background-color: #333 !important;
-        color: white !important;
+        background-color: var(--snap-accent-hover) !important;
+        color: var(--snap-on-accent) !important;
         text-decoration: none;
     }
 
@@ -181,7 +186,7 @@
     {
         // Get initial theme from cookie via server-side value
         var themeCookie = HttpContextAccessor.HttpContext?.Request.Cookies["theme"];
-        _isDarkMode = themeCookie == "dark";
+        _isDarkMode = themeCookie != "light";
 
         ThemeService.Initialize(_isDarkMode);
         ThemeService.OnThemeChanged += ThemeChanged;

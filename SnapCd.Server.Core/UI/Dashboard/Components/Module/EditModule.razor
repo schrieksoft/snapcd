@@ -32,7 +32,8 @@
             <MudItem md="12">
                 <MudTextField Label="Name" @bind-Value="Module.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
-                              MaxLength="255" Counter="255"/>
+                              MaxLength="255" Counter="255"
+                              Validation="@((string s) => NameValidator.Validate(s, "Module"))"/>
             </MudItem>
 
             <MudItem md="12">
@@ -119,10 +120,10 @@
 
             @* <!-- Cache Settings --> *@
             @* <MudItem md="12"> *@
-            @*     <MudSwitch T="bool" @bind-Value="Module.ProviderCacheEnabled" Label="Provider Cache Enabled" Color="Color.Info"/> *@
+            @*     <MudSwitch T="bool" @bind-Value="Module.ProviderCacheEnabled" Label="Provider Cache Enabled" Color="Color.Secondary"/> *@
             @* </MudItem> *@
             @* <MudItem md="12"> *@
-            @*     <MudSwitch T="bool" @bind-Value="Module.ModuleCacheEnabled" Label="Module Cache Enabled" Color="Color.Info"/> *@
+            @*     <MudSwitch T="bool" @bind-Value="Module.ModuleCacheEnabled" Label="Module Cache Enabled" Color="Color.Secondary"/> *@
             @* </MudItem> *@
 
             <EeApprovalFieldsModule
@@ -157,50 +158,50 @@
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="Module.TriggerOnDefinitionChanged"
-                           Label="Trigger on Definition Changed" Color="Color.Info"/>
+                           Label="Trigger on Definition Changed" Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="Module.TriggerOnUpstreamOutputChanged"
-                           Label="Trigger on Upstream Output Changed" Color="Color.Info"/>
+                           Label="Trigger on Upstream Output Changed" Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="Module.TriggerOnSourceChanged" Label="Trigger on Source Changed"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="Module.TriggerOnSourceChangedNotification"
                            Label="Trigger on Source Changed Notification"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="Module.IgnoreNamespaceExtraFiles" Label="Ignore Namespace Extra Files"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="Module.IgnoreNamespaceFlags" Label="Ignore Namespace Flags"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudText Typo="Typo.body1">Clean Init Enabled</MudText>
                 <MudRadioGroup T="bool?" @bind-Value="Module.CleanInitEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                    <MudRadio Value="@((bool?)null)" Color="Color.Secondary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Secondary">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Secondary">false</MudRadio>
                 </MudRadioGroup>
             </MudItem>
 
             <MudItem md="12">
                 <MudText Typo="Typo.body1">Drift Check Enabled</MudText>
                 <MudRadioGroup T="bool?" @bind-Value="Module.DriftCheckEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                    <MudRadio Value="@((bool?)null)" Color="Color.Secondary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Secondary">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Secondary">false</MudRadio>
                 </MudRadioGroup>
             </MudItem>
 
@@ -442,8 +443,8 @@
 
             <!-- Action Buttons -->
             <MudItem md="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveModule">Save</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel">Cancel</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveModule" Size="Size.Small">Save</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel" Size="Size.Small">Cancel</MudButton>
             </MudItem>
     </MudGrid>
 </MudForm>

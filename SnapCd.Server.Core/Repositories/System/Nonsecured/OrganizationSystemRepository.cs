@@ -24,6 +24,7 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Mappers.Repositories;
 using SnapCd.Server.Core.Mappers.RoleAssignments;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -105,8 +106,16 @@ public class OrganizationSystemRepository : GenericSystemRepository<Organization
         return true;
     }
 
+    public override async Task<Organization> ExecuteUpdate(Organization entity)
+    {
+        NameValidator.EnsureValid(entity.Name, "Organization");
+        return await base.ExecuteUpdate(entity);
+    }
+
     public async Task<Organization> CreateWithOwner(string name, Guid createdByUserId)
     {
+        NameValidator.EnsureValid(name, "Organization");
+
         await using var transaction = await DbContext.Database.BeginTransactionAsync();
 
         try

@@ -1,0 +1,57 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft. *@
+
+<div class="tab-bar">
+    @foreach (var tab in Tabs)
+    {
+        var isActive = tab.Key == ActiveKey;
+        <button class="tab-bar-item @(isActive ? "tab-bar-item--active" : "")"
+                @onclick="() => OnTabChanged.InvokeAsync(tab.Key)">
+            @tab.Label
+        </button>
+    }
+</div>
+
+<style>
+    .tab-bar {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        margin-bottom: 16px;
+    }
+
+    .tab-bar-item {
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: inherit;
+        color: var(--mud-palette-text-secondary);
+        cursor: pointer;
+        border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        background: none;
+        transition: color 0.1s;
+    }
+
+    .tab-bar-item:hover {
+        color: var(--mud-palette-text-primary);
+    }
+
+    .tab-bar-item--active {
+        color: var(--mud-palette-text-primary);
+        border-bottom-color: var(--snap-accent, #E85D1A);
+    }
+</style>
+
+@code {
+    [Parameter] public required List<TabBarItem> Tabs { get; set; }
+    [Parameter] public string? ActiveKey { get; set; }
+    [Parameter] public EventCallback<string> OnTabChanged { get; set; }
+
+    public class TabBarItem
+    {
+        public required string Key { get; set; }
+        public required string Label { get; set; }
+    }
+}

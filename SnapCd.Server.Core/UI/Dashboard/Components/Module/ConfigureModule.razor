@@ -11,13 +11,14 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
 <MudExpansionPanels MultiExpansion="false">
     <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Edit, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Edit" Size="Size.Small"/>
                 <MudText>Edit Module</MudText>
             </div>
         </TitleContent>
@@ -37,7 +38,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Roles, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Shield" Size="Size.Small"/>
                 <MudText>Manage Roles</MudText>
             </div>
         </TitleContent>
@@ -55,7 +56,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Missions, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="material-symbols-outlined/automation" Size="Size.Small" Style="font-size: 1.25rem"/>
+                <MudIcon Icon="@SnapCdIcons.Automation" Size="Size.Small"/>
                 <MudText>Manage Missions</MudText>
             </div>
         </TitleContent>
@@ -72,7 +73,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.IntegrationEvents, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Bolt" Size="Size.Small"/>
                 <MudText>Manage Integration Events</MudText>
             </div>
         </TitleContent>
@@ -89,7 +90,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Secrets, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Password" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Password" Size="Size.Small"/>
                 <MudText>Manage Secrets</MudText>
             </div>
         </TitleContent>
@@ -98,7 +99,10 @@
             {
                 <ManageModuleSecrets ModuleId="Module.Id"
                                      NamespaceId="Module.NamespaceId"
-                                     StackId="StackId"/>
+                                     StackId="StackId"
+                                     StackName="@StackName"
+                                     NamespaceName="@NamespaceName"
+                                     PrincipalProvider="@PrincipalProvider"/>
             }
         </ChildContent>
     </MudExpansionPanel>
@@ -107,7 +111,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Delete, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Delete" Size="Size.Small"/>
                 <MudText>Delete Module</MudText>
             </div>
         </TitleContent>
@@ -148,7 +152,7 @@
                                 <MudList T="string" Dense="true">
                                     @foreach (var dep in _externalDependencies)
                                     {
-                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Block">
+                                        <MudListItem T="string" Icon="@SnapCdIcons.Block">
                                             <MudText Typo="Typo.body2" Color="Color.Error">@dep</MudText>
                                         </MudListItem>
                                     }
@@ -161,7 +165,7 @@
                                 <MudList T="string" Dense="true">
                                     @foreach (var dep in _internalDependencies)
                                     {
-                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Link">
+                                        <MudListItem T="string" Icon="@SnapCdIcons.Link">
                                             <MudText Typo="Typo.body2" Color="Color.Success">@dep</MudText>
                                         </MudListItem>
                                     }
@@ -173,7 +177,7 @@
                     {
                         <MudPaper Elevation="1" Class="pa-3 mb-3">
                             <MudList T="string" Dense="true">
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                                <MudListItem T="string" Icon="@SnapCdIcons.Check">
                                     <MudText Typo="Typo.body2" Color="Color.Success">No dependencies found</MudText>
                                 </MudListItem>
                             </MudList>
@@ -182,7 +186,8 @@
 
                     <div class="d-flex gap-2">
                         <MudButton Variant="Variant.Filled"
-                                   Style="background-color: #000; color: #fff;"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="DeleteModule"
                                    Disabled="@(!_canDelete || _isDeleting)">
                             @if (_isDeleting)
@@ -199,7 +204,8 @@
                             }
                         </MudButton>
                         <MudButton Variant="Variant.Filled"
-                                   Style="background-color: #000; color: #fff;"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="@(() => CollapseSection())"
                                    Disabled="@_isDeleting">
                             Cancel
@@ -229,6 +235,7 @@
     [Inject] private ModuleInputFromOutputSetSecuredRepositoryFactory<ModuleParamFromOutputSet> ModuleParamFromOutputSetRepoFactory { get; set; } = null!;
     [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleRepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
 
     private Section _activeSection = Section.None;
     private bool _dependencyCheckCompleted;
@@ -382,6 +389,18 @@
 
     private async Task DeleteModule()
     {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"This permanently deletes module \"{Module.Name}\" and its job history. This cannot be undone." },
+            { x => x.ButtonText, "Delete" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Module", parameters, options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+            return;
+
         _isDeleting = true;
         StateHasChanged();
 

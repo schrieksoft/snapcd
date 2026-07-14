@@ -6,7 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Stacks/{stackName}/{namespaceName}"
+@page "/Namespace/{stackName}/{namespaceName}"
 @layout OrganizationMainLayout
 
 @using Microsoft.AspNetCore.Authorization
@@ -52,66 +52,57 @@
 @attribute [OrganizationScopedFeature]
 
 <CascadingValue Value="OrganizationId">
-    <MudBreadcrumbs Items="_breadCrumbs"></MudBreadcrumbs>
-
     @if (_namespace != null)
     {
-        @if (_showCreate)
-        {
-            <MudItem Class="mb-2">
-                <CreateModule OnCreated="HandleCreated"
-                              OnCancel="HandleCreateCanceled"
-                              NamespaceId="@_namespace.Id"
-                              PrincipalProvider="_literalPrincipalProvider"
-                />
-            </MudItem>
-        }
+        <div class="page-header">
+            <div class="d-flex align-center gap-2">
+                <MudText Typo="Typo.h4" Class="page-header-title">@NamespaceName</MudText>
+                <FavoriteToggle TargetType="FavoriteTargetType.Namespace" TargetId="_namespace.Id"/>
+            </div>
+            <MudText Typo="Typo.body2" Class="namespace-page-subtitle">
+                <span class="namespace-page-parents">
+                    Stack: <MudLink Href="@($"/Stack/{StackName}{_parentQuery}")">@StackName</MudLink>
+                </span>
+            </MudText>
+        </div>
 
-        else
-        {
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       OnClick="ShowCreate"
-                       Class="mt-2 mb-2"
-            >
-                Create Module
-            </MudButton>
-        }
-
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudTooltip Text="Manage Modules">
-                <MudIconButton Icon="@Icons.Material.Filled.SpaceDashboard" Color="GetColor(ShowingType.Modules)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Modules)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="View Dependency Graph">
-                <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.DependencyGraph)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.DependencyGraph)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Configure">
-                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
-            </MudTooltip>
-        </MudPaper>
+        <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
         @if (_showing == ShowingType.Modules)
         {
+            @if (_showCreate)
+            {
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <CreateModule OnCreated="HandleCreated"
+                                  OnCancel="HandleCreateCanceled"
+                                  NamespaceId="@_namespace.Id"
+                                  PrincipalProvider="_literalPrincipalProvider"/>
+                </MudPaper>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-4 mb-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="ShowCreate">
+                        Create
+                    </MudButton>
+                </MudPaper>
+            }
+
             <MudPaper Elevation="1" Class="pa-4 mb-4">
                 <div class="module-header">
                     <MudTooltip Text="Select multiple">
-                        <MudIconButton Icon="@Icons.Material.Filled.Checklist"
-                                       Color="@(_showSelectionMode ? Color.Info : Color.Primary)"
+                        <MudIconButton Icon="@SnapCdIcons.Checklist"
+                                       Color="@(_showSelectionMode ? Color.Secondary : Color.Primary)"
                                        Size="Size.Small"
                                        OnClick="() => ToggleSelectionMode()"/>
                     </MudTooltip>
 
                     <MudTooltip Text="Search modules">
-                        <MudIconButton Icon="@Icons.Material.Filled.Search"
-                                       Color="@(_showModuleSearch ? Color.Info : Color.Primary)"
+                        <MudIconButton Icon="@SnapCdIcons.Search"
+                                       Color="@(_showModuleSearch ? Color.Secondary : Color.Primary)"
                                        Size="Size.Small"
                                        OnClick="() => _showModuleSearch = !_showModuleSearch"/>
                     </MudTooltip>
@@ -124,7 +115,7 @@
                                 <MudChip T="string"
                                          Text="@term"
                                          Size="Size.Small"
-                                         Color="Color.Primary"
+                                         Color="Color.Secondary"
                                          OnClose="@(() => RemoveSearchTerm(term))"/>
                             }
                         </div>
@@ -138,7 +129,7 @@
                                           HelperText="Press Enter to search (minimum 2 characters)"
                                           Variant="Variant.Outlined"
                                           Adornment="Adornment.End"
-                                          AdornmentIcon="@Icons.Material.Filled.Search"
+                                          AdornmentIcon="@SnapCdIcons.Search"
                                           OnKeyDown="@HandleKeyDown"
                                           Immediate="true"
                                           Class="search-field-inline"/>
@@ -152,14 +143,14 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_selectAllModules"
                                      Label="Select all Modules"
-                                     Color="Color.Info"
+                                     Color="Color.Secondary"
                                      Dense="true"/>
 
                         @if (_selectedModules.Any())
                         {
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Secondary"
+                                       StartIcon="@SnapCdIcons.Delete"
                                        OnClick="DeleteSelectedModules"
                                        Size="Size.Small">
                                 Delete Selected (@_selectedModules.Count)
@@ -167,6 +158,8 @@
                         }
                     </div>
                 }
+
+            </MudPaper>
 
                 @if (_truncatedNamespace != null)
                 {
@@ -179,7 +172,6 @@
                                  SelectAll="@_selectAllModules"
                                  OnSelectionChanged="@HandleModuleSelectionChanged"/>
                 }
-            </MudPaper>
         }
 
         @if (_showing == ShowingType.Configure)
@@ -199,22 +191,26 @@
 
                 @if (!_showApplyComponent && !_showDestroyComponent)
                 {
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowApplyComponent">
-                        Apply All Modules
-                    </MudButton>
+                    <MudStack Row Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="ShowApplyComponent">
+                            Apply All
+                        </MudButton>
 
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowDestroyComponent">
-                        Destroy All Modules
-                    </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="ShowDestroyComponent">
+                            Destroy All
+                        </MudButton>
+                    </MudStack>
                 }
 
                 @if (_showApplyComponent)
                 {
-                    <MudText Typo="Typo.h6" Class="mb-3">Apply All Modules</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-3">Apply All</MudText>
 
                     @if (_modulesToApply.Any())
                     {
@@ -225,12 +221,12 @@
                             @foreach (var module in _modulesToApply)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -248,12 +244,12 @@
                             @foreach (var module in _alreadyAppliedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -271,19 +267,19 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_applyExternalModules"
                                      Label="Also apply these prerequisite modules"
-                                     Color="Color.Info"
+                                     Color="Color.Secondary"
                                      Class="mb-3"/>
 
                         <div class="d-flex flex-column gap-1 mb-3">
                             @foreach (var module in _externalModulesToApply)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -320,7 +316,7 @@
 
                 @if (_showDestroyComponent)
                 {
-                    <MudText Typo="Typo.h6" Class="mb-3">Destroy All Modules</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-3">Destroy All</MudText>
 
                     @if (_alreadyDestroyedModules.Any())
                     {
@@ -331,12 +327,12 @@
                             @foreach (var module in _alreadyDestroyedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -354,12 +350,12 @@
                             @foreach (var module in _modulesToDestroy)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -377,19 +373,19 @@
                         <MudCheckBox T="bool"
                                      @bind-Value="_destroyDependentModules"
                                      Label="Also destroy these dependent modules"
-                                     Color="Color.Info"
+                                     Color="Color.Secondary"
                                      Class="mb-3"/>
 
                         <div class="d-flex flex-column gap-1 mb-3">
                             @foreach (var module in _dependentModulesToDestroy)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                            <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                                      Size="Size.Small"/>
                                         </MudTooltip>
                                     }
@@ -428,6 +424,7 @@
                     <MudStack Row>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="ExecuteDestroy"
                                    Disabled="@_isDestroying">
                             @if (_isDestroying)
@@ -455,8 +452,6 @@
                     Dependency Graph
                 </MudText>
 
-                @* <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="mt-8" PanelClass="pa-6"> *@
-                @* <MudTabPanel Text="Apply Dependency Graph" Style="text-transform: none"> *@
                 <MudText Typo="Typo.body2" Class="mb-4">
                     Modules within this namespace and their apply dependencies across the stack:
                 </MudText>
@@ -466,18 +461,6 @@
                                           Direction="@GetGraphDirection()"
                                           UninvolvedModuleIds="@GetUninvolvedModuleIds()"
                                           DisableDirectionToggle="@(_showApplyComponent || _showDestroyComponent)"/>
-                @* </MudTabPanel> *@
-                @* *@
-                @* <MudTabPanel Text="Destroy Depedency Graph" Style="text-transform: none"> *@
-                @*     <MudText Typo="Typo.body2" Class="mb-4"> *@
-                @*         Modules within this namespace and their destroy dependencies across the stack: *@
-                @*     </MudText> *@
-                @*      *@
-                @*     <NamespaceDependencyGraph NamespaceId="@_namespace.Id"  *@
-                @*                               NamespaceName="@_namespace.Name"  *@
-                @*                               Direction="Destroy" /> *@
-                @* </MudTabPanel> *@
-                @* </MudTabs> *@
             </MudPaper>
         }
     }
@@ -494,8 +477,15 @@
 
     private Namespace _namespace = null!;
     private TruncatedNamespace? _truncatedNamespace;
-    private List<BreadcrumbItem> _breadCrumbs = [];
+    private string _parentQuery = "";
     private ShowingType _showing = ShowingType.None;
+
+    private readonly List<TabBar.TabBarItem> _tabs =
+    [
+        new() { Key = nameof(ShowingType.Modules), Label = "Modules" },
+        new() { Key = nameof(ShowingType.DependencyGraph), Label = "Dependencies" },
+        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+    ];
     private string? _configureSection;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
@@ -550,12 +540,8 @@
             ? $"?search={Uri.EscapeDataString(string.Join(",", _searchTerms))}"
             : "";
 
-        _breadCrumbs =
-        [
-            new BreadcrumbItem("Stacks", $"/Stacks{queryString}"),
-            new BreadcrumbItem($"{StackName} (Stack)", $"/Stacks/{StackName}{queryString}"),
-            new BreadcrumbItem($"{NamespaceName} (Namespace)", $"/Stacks/{StackName}/{NamespaceName}")
-        ];
+        // Carried onto the parent link in the header so search context survives navigation.
+        _parentQuery = queryString;
 
         using var repo = RepoFactory.Create();
         try
@@ -603,7 +589,7 @@
 
     private Color GetColor(ShowingType showTypeToMatch)
     {
-        return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
     }
 
     private void SwitchShowing(ShowingType newShowing)
@@ -615,6 +601,17 @@
             _configureSection = null;
 
         UpdateUrl();
+    }
+
+    private void HandleTabChanged(string key)
+    {
+        if (Enum.TryParse<ShowingType>(key, out var parsed))
+        {
+            _showing = parsed;
+            if (parsed != ShowingType.Configure)
+                _configureSection = null;
+            UpdateUrl();
+        }
     }
 
     private enum ShowingType
@@ -633,7 +630,7 @@
 
     private void HandleNamespaceDeleted()
     {
-        NavigationManager.NavigateTo($"/Stacks/{StackName}");
+        NavigationManager.NavigateTo($"/Stack/{StackName}");
     }
 
     private async Task HandleNamespaceSaved()
@@ -686,7 +683,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(string.Join(",", _searchTerms))}");
 
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}{queryString}";
+        var newUrl = $"/Namespace/{StackName}/{NamespaceName}{queryString}";
         NavigationManager.NavigateTo(newUrl, false);
     }
 
@@ -1146,7 +1143,6 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        margin-bottom: 0.5rem;
         flex-wrap: wrap;
     }
 
@@ -1154,7 +1150,7 @@
         display: flex;
         align-items: center;
         gap: 1rem;
-        margin-bottom: 1rem;
+        margin-top: 0.5rem;
         padding: 0.5rem;
         background-color: var(--mud-palette-background-grey);
         border-radius: 4px;
@@ -1174,5 +1170,29 @@
 
     .search-field-inline {
         margin-bottom: 0;
+    }
+
+    .page-header {
+        margin-bottom: 16px;
+    }
+
+    .page-header-title {
+        font-weight: 600;
+        letter-spacing: -0.015em;
+    }
+
+    .namespace-page-subtitle {
+        color: var(--mud-palette-text-secondary);
+        margin-top: 2px;
+    }
+
+    /* Parent link (Stack) in the subtitle line, replacing the old breadcrumb
+       trail. */
+    .namespace-page-parents .mud-link {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .namespace-page-parents .mud-link:hover {
+        color: var(--snap-accent);
     }
 </style>

@@ -6,7 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Stacks/{stackName}/{namespaceName}/{moduleName}"
+@page "/Module/{stackName}/{namespaceName}/{moduleName}"
 @layout OrganizationMainLayout
 
 @using Microsoft.AspNetCore.Authorization
@@ -62,117 +62,70 @@
 <PageTitle>Module: @ModuleName</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <MudBreadcrumbs Items="_breadCrumbs"></MudBreadcrumbs>
-
     @if (_module != null)
     {
+        <div class="module-page-header">
+            <div class="d-flex align-center gap-3">
+                <MudText Typo="Typo.h4" Class="module-page-title">@ModuleName</MudText>
+                @if (_actualStateSummary != null)
+                {
+                    <span class="module-status-badge module-status-badge--@GetStatusBadgeClass(_actualStateSummary.State)">
+                        <span class="module-status-dot"></span>
+                        @FormatActualState(_actualStateSummary.State)
+                    </span>
+                }
+                <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_module.Id"/>
+            </div>
+            <MudText Typo="Typo.body2" Class="module-page-subtitle">
+                <span class="module-page-parents">
+                    Stack: <MudLink Href="@($"/Stack/{StackName}{_parentQuery}")">@StackName</MudLink>
+                    ·
+                    Namespace: <MudLink Href="@($"/Namespace/{StackName}/{NamespaceName}{_parentQuery}")">@NamespaceName</MudLink>
+                </span>
+                @if (_moduleSaga?.ActualResourceCount.HasValue == true
+                     || _revisionSummary != null
+                     || _runnerAvailabilitySummary != null)
+                {
+                    @: ·
+                }
+                @if (_moduleSaga?.ActualResourceCount.HasValue == true)
+                {
+                    @:@_moduleSaga.ActualResourceCount.Value @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources")
+                    @: ·
+                }
+                @if (_revisionSummary != null)
+                {
+                    @:@FormatRevisionState(_revisionSummary.State)
+                    @if (!string.IsNullOrEmpty(_revisionSummary.Subtext))
+                    {
+                        @: <span class="module-page-mono">@ShortenRevision(_revisionSummary.Subtext)</span>
+                    }
+                }
+                @if (_runnerAvailabilitySummary != null)
+                {
+                    @: · @_runnerAvailabilitySummary.Text
+                }
+            </MudText>
+        </div>
+
+        @if (_runnerAvailabilitySummary is { ActiveCount: 0 })
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+                No active runners are connected. Jobs for this module will remain queued until a runner instance
+                checks in.
+            </MudAlert>
+        }
+
         @if (_runner != null && _runner.IsDisabled)
         {
             <MudAlert Severity="Severity.Warning" Class="mb-4">
-                <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2"/>
+                <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-2"/>
                 The Runner "@_runner.Name" assigned to this module is currently inactive and will not process new
                 jobs.
             </MudAlert>
         }
 
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <div class="module-status-grid">
-                @if (_actualStateSummary != null)
-                {
-                    <MudText Typo="Typo.body2" Class="module-status-label">State</MudText>
-                    <div class="d-flex align-center gap-2">
-                        <MudTooltip Text="@_actualStateSummary.Icon.Tooltip">
-                            <MudIcon Icon="@_actualStateSummary.Icon.Name" Size="Size.Small"
-                                     Color="@_actualStateSummary.Icon.Color"/>
-                        </MudTooltip>
-                        <MudText Typo="Typo.body1">@_actualStateSummary.State</MudText>
-                        @if (_moduleSaga.ActualResourceCount.HasValue)
-                        {
-                            <MudText Typo="Typo.caption">(@_moduleSaga.ActualResourceCount.Value @(_moduleSaga.ActualResourceCount.Value == 1 ? "resource" : "resources"))</MudText>
-                        }
-                    </div>
-                }
-
-                @if (_revisionSummary != null)
-                {
-                    <MudText Typo="Typo.body2" Class="module-status-label">Revision</MudText>
-                    <div class="d-flex align-center gap-2">
-                        <MudTooltip Text="@_revisionSummary.Icon.Tooltip">
-                            <MudIcon Icon="@_revisionSummary.Icon.Name" Size="Size.Small"
-                                     Color="@_revisionSummary.Icon.Color"/>
-                        </MudTooltip>
-                        <MudText Typo="Typo.body1">@FormatRevisionState(_revisionSummary.State)</MudText>
-                        <MudText Typo="Typo.caption">@_revisionSummary.Subtext</MudText>
-                    </div>
-                }
-
-                @if (_queuedSummary != null)
-                {
-                    <MudText Typo="Typo.body2" Class="module-status-label">Queued</MudText>
-                    <div class="d-flex align-center gap-2">
-                        <MudIcon Icon="@_queuedSummary.Icon.Name" Size="Size.Small"
-                                 Color="@_queuedSummary.Icon.Color"/>
-                        <MudText Typo="Typo.body1">@_queuedSummary.Text</MudText>
-                        @if (_moduleSaga.QueuedDesiredStateHeadline.HasValue && _moduleSaga.QueuedReason.HasValue)
-                        {
-                            <MudText Typo="Typo.caption">@GetQueuedReasonText(_moduleSaga.QueuedReason.Value)</MudText>
-                        }
-                        @if (_queuedSummary is { State: true })
-                        {
-                            @if (_moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin)
-                            {
-                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                           OnClick="RunQueueNow">Run Now</MudButton>
-                            }
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       OnClick="ClearQueue">Clear</MudButton>
-                        }
-                    </div>
-                }
-
-                @if (_runnerAvailabilitySummary != null)
-                {
-                    <MudText Typo="Typo.body2" Class="module-status-label">Runners</MudText>
-                    <div class="d-flex align-center gap-2">
-                        <MudIcon Icon="@_runnerAvailabilitySummary.Icon.Name" Size="Size.Small"
-                                 Color="@_runnerAvailabilitySummary.Icon.Color"/>
-                        <MudText Typo="Typo.body1">@_runnerAvailabilitySummary.Text</MudText>
-                    </div>
-                }
-            </div>
-        </MudPaper>
-
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudTooltip Text="Manage Jobs">
-                <MudIconButton Icon="@Icons.Material.Filled.RunCircle" Color="GetColor(ShowingType.Jobs)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Jobs)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="View Dependencies">
-                <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Color="GetColor(ShowingType.Dependencies)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Dependencies)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="View Variables">
-                <MudIconButton Icon="@Icons.Material.Filled.DataObject" Color="GetColor(ShowingType.Variables)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Variables)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="View Outputs">
-                <MudIconButton Icon="@Icons.Material.Filled.Output" Color="GetColor(ShowingType.Outputs)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Outputs)"/>
-            </MudTooltip>
-
-            <MudTooltip Text="Configure">
-                <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="GetColor(ShowingType.Configure)"
-                               Size="Size.Small"
-                               OnClick="() => SwitchShowing(ShowingType.Configure)"/>
-            </MudTooltip>
-        </MudPaper>
+        <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
         @if (_showing == ShowingType.Jobs)
         {
@@ -180,7 +133,13 @@
                               InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
                               InitialTab="@Tab"
                               InitialTask="@Task"
-                              OnJobsStateChanged="HandleJobsStateChanged"/>
+                              OnJobsStateChanged="HandleJobsStateChanged"
+                              IsQueued="@(_queuedSummary is { State: true })"
+                              QueuedText="@(_queuedSummary?.Text)"
+                              QueuedReasonText="@GetQueuedReasonDisplayText()"
+                              ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
+                              OnRunQueueNow="RunQueueNow"
+                              OnClearQueue="ClearQueue"/>
         }
 
         @if (_showing == ShowingType.Configure)
@@ -206,299 +165,83 @@
             <ViewVariables Module="_module" StackName="@StackName"/>
         }
 
-        @if (_showing == ShowingType.Dependencies)
-        {
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-
-                @if (!_showApplyComponent && !_showDestroyComponent)
-                {
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowApplyComponent">
-                        Apply Module
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="ShowDestroyComponent">
-                        Destroy Module
-                    </MudButton>
-                }
-
-                @if (_showApplyComponent)
-                {
-                    <MudText Typo="Typo.h6" Class="mb-3">Apply Module</MudText>
-
-                    @if (_moduleCanBeApplied)
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Module to be applied:</strong>
-                        </MudText>
-                        <div class="d-flex align-center gap-2 mb-3">
-                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
-                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
-                            @if (!_hasApplyPermission)
-                            {
-                                <MudTooltip Text="You do not have permission to apply this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
-                                             Size="Size.Small"/>
-                                </MudTooltip>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Module that is already applied:</strong>
-                        </MudText>
-                        <div class="d-flex align-center gap-2 mb-3">
-                            <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
-                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
-                            <MudTooltip Text="This module has already been applied">
-                                <MudIcon Icon="Icons.Material.Filled.CheckCircle" Color="Color.Success"
-                                         Size="Size.Small"/>
-                            </MudTooltip>
-                        </div>
-                    }
-
-                    @if (_prerequisiteModules.Any())
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Modules that must be applied first (dependencies):</strong>
-                        </MudText>
-
-                        <MudCheckBox T="bool"
-                                     @bind-Value="_applyPrerequisiteModules"
-                                     Label="Also apply these prerequisite modules"
-                                     Color="Color.Info"
-                                     Class="mb-3"/>
-
-                        <div class="d-flex flex-column gap-1 mb-3">
-                            @foreach (var module in _prerequisiteModules)
-                            {
-                                <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
-                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
-                                    {
-                                        <MudTooltip Text="You do not have permission to apply this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
-                                                     Size="Size.Small"/>
-                                        </MudTooltip>
-                                    }
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    @if (_alreadyAppliedPrerequisiteModules.Any())
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Prerequisite modules that are already applied:</strong>
-                        </MudText>
-                        <div class="d-flex flex-column gap-1 mb-3">
-                            @foreach (var module in _alreadyAppliedPrerequisiteModules)
-                            {
-                                <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
-                                    <MudTooltip Text="This prerequisite module has already been applied">
-                                        <MudIcon Icon="Icons.Material.Filled.CheckCircle" Color="Color.Success"
-                                                 Size="Size.Small"/>
-                                    </MudTooltip>
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    <MudDivider Class="my-4"/>
-
-                    <MudStack Row>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   OnClick="ExecuteApply"
-                                   Disabled="@(_isApplying || !CanExecuteApply())">
-                            @if (_isApplying)
-                            {
-                                @:Applying...
-                            }
-                            else
-                            {
-                                var involvedCount = GetApplyModuleCount();
-                                @:Apply (@involvedCount module(s))
-                            }
-                        </MudButton>
-
-                        <MudButton Variant="Variant.Text"
-                                   OnClick="CancelApply"
-                                   Disabled="@_isApplying">
-                            Cancel
-                        </MudButton>
-                    </MudStack>
-                }
-
-                @if (_showDestroyComponent)
-                {
-                    <MudText Typo="Typo.h6" Class="mb-3">Destroy Module</MudText>
-
-                    @if (_moduleCanBeDestroyed)
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Module to be destroyed:</strong>
-                        </MudText>
-                        <div class="d-flex align-center gap-2 mb-3">
-                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
-                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
-                            @if (!_hasDestroyPermission)
-                            {
-                                <MudTooltip Text="You do not have permission to destroy this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
-                                             Size="Size.Small"/>
-                                </MudTooltip>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Module that is already destroyed:</strong>
-                        </MudText>
-                        <div class="d-flex align-center gap-2 mb-3">
-                            <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
-                                     Size="Size.Medium">@GetCurrentModuleDisplayName()</MudChip>
-                            <MudTooltip Text="This module has already been destroyed">
-                                <MudIcon Icon="Icons.Material.Filled.StopCircle" Color="Color.Default"
-                                         Size="Size.Small"/>
-                            </MudTooltip>
-                        </div>
-                    }
-
-                    @if (_dependentModules.Any())
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Modules that depend on this module and must be destroyed first:</strong>
-                        </MudText>
-
-                        <MudCheckBox T="bool"
-                                     @bind-Value="_destroyDependentModules"
-                                     Label="Also destroy these dependent modules"
-                                     Color="Color.Info"
-                                     Class="mb-3"/>
-
-                        <div class="d-flex flex-column gap-1 mb-3">
-                            @foreach (var module in _dependentModules)
-                            {
-                                <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
-                                    @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
-                                    {
-                                        <MudTooltip Text="You do not have permission to destroy this module">
-                                            <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
-                                                     Size="Size.Small"/>
-                                        </MudTooltip>
-                                    }
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    @if (_alreadyDestroyedDependentModules.Any())
-                    {
-                        <MudText Typo="Typo.body1" Class="mb-2">
-                            <strong>Dependent modules that are already destroyed:</strong>
-                        </MudText>
-                        <div class="d-flex flex-column gap-1 mb-3">
-                            @foreach (var module in _alreadyDestroyedDependentModules)
-                            {
-                                <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
-                                    <MudTooltip Text="This dependent module has already been destroyed">
-                                        <MudIcon Icon="Icons.Material.Filled.StopCircle" Color="Color.Default"
-                                                 Size="Size.Small"/>
-                                    </MudTooltip>
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    <MudDivider Class="my-4"/>
-
-                    <MudText Typo="Typo.body1" Class="mb-3">
-                        Enter <strong>DESTROY</strong> in the box below to confirm:
-                    </MudText>
-
-                    <MudTextField T="string"
-                                  Value="_destroyConfirmationText"
-                                  ValueChanged="@((string value) =>
-                                                {
-                                                    _destroyConfirmationText = value;
-                                                    _destroyValidationError = null;
-                                                    StateHasChanged();
-                                                })"
-                                  Label="Confirmation"
-                                  Placeholder="Type DESTROY to confirm"
-                                  Variant="Variant.Outlined"
-                                  Class="mb-3"
-                                  Disabled="@_isDestroying"/>
-
-                    @if (!string.IsNullOrEmpty(_destroyValidationError))
-                    {
-                        <MudAlert Severity="Severity.Error" Class="mb-3">
-                            @_destroyValidationError
-                        </MudAlert>
-                    }
-
-                    <MudStack Row>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   OnClick="ExecuteDestroy"
-                                   Disabled="@(_isDestroying || !CanExecuteDestroy())">
-                            @if (_isDestroying)
-                            {
-                                @:Destroying...
-                            }
-                            else
-                            {
-                                var involvedCount = GetDestroyModuleCount();
-                                @:Destroy (@involvedCount module(s))
-                            }
-                        </MudButton>
-
-                        <MudButton Variant="Variant.Text"
-                                   OnClick="CancelDestroy"
-                                   Disabled="@_isDestroying">
-                            Cancel
-                        </MudButton>
-                    </MudStack>
-                }
-            </MudPaper>
-
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                <MudText Typo="Typo.h5" Class="mb-4">
-                    Dependency Graph
-                </MudText>
-
-                <ModuleDependencyGraph ModuleId="@_module.Id"
-                                       ModuleName="@_module.Name"
-                                       Direction="@GetGraphDirection()"
-                                       UninvolvedModuleIds="@GetUninvolvedModuleIds()"
-                                       DisableDirectionToggle="@(_showApplyComponent || _showDestroyComponent)"/>
-            </MudPaper>
-        }
     }
 </CascadingValue>
 
 <style>
-    .module-status-grid {
-        display: grid;
-        grid-template-columns: 100px 1fr;
-        row-gap: 0.5rem;
-        align-items: center;
+    .module-page-header {
+        margin-bottom: 16px;
     }
 
-    .module-status-label {
+    .module-page-title {
+        font-weight: 600;
+        letter-spacing: -0.015em;
+    }
+
+    .module-page-subtitle {
+        color: var(--mud-palette-text-secondary);
+        margin-top: 2px;
+    }
+
+    .module-page-mono {
+        font-family: 'Geist Mono', ui-monospace, monospace;
+        font-size: 0.85em;
+    }
+
+    /* Parent links (Stack / Namespace) in the subtitle line, replacing the old
+       breadcrumb trail. */
+    .module-page-parents .mud-link {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .module-page-parents .mud-link:hover {
+        color: var(--snap-accent);
+    }
+
+    .module-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 10px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 4px;
+    }
+
+    .module-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .module-status-badge--success {
+        background: #DFF7EC;
+        color: #00B368;
+    }
+
+    .module-status-badge--error {
+        background: #FDEAEA;
+        color: #D32F2F;
+    }
+
+    .module-status-badge--default {
+        background: var(--mud-palette-background-grey);
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .mud-dark .module-status-badge--success {
+        background: #0a2618;
+        color: #34D399;
+    }
+
+    .mud-dark .module-status-badge--error {
+        background: #2a0a0a;
+        color: #EF5350;
+    }
+
+    .mud-dark .module-status-badge--default {
+        background: rgba(255, 255, 255, 0.08);
         color: var(--mud-palette-text-secondary);
     }
 </style>
@@ -526,10 +269,18 @@
     private Runner? _runner;
     private string? _actualDefinitiveRevision;
     private ActualStateHeadline? _actualStateHeadline;
-    private List<BreadcrumbItem> _breadCrumbs = [];
+    private string _parentQuery = "";
 
     private ShowingType _showing = ShowingType.None;
     private string? _configureSection;
+
+    private readonly List<TabBar.TabBarItem> _tabs =
+    [
+        new() { Key = nameof(ShowingType.Jobs), Label = "Jobs" },
+        new() { Key = nameof(ShowingType.Variables), Label = "Variables" },
+        new() { Key = nameof(ShowingType.Outputs), Label = "Outputs" },
+        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+    ];
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private Guid _stackId;
@@ -624,7 +375,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -637,7 +388,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -650,7 +401,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -663,7 +414,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -675,7 +426,7 @@
         public Icon Icon { get; set; } = new()
         {
             Color = Color.Default,
-            Name = Icons.Material.Filled.StopCircle,
+            Name = SnapCdIcons.StopCircle,
             Tooltip = "Unknown"
         };
     }
@@ -783,7 +534,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No currently connected runners"
                 };
 
@@ -791,7 +542,7 @@
                 return new Icon
                 {
                     Color = Color.Success,
-                    Name = Icons.Material.Filled.CheckCircle,
+                    Name = SnapCdIcons.CheckCircle,
                     Tooltip = "Runners currently connected"
                 };
         }
@@ -836,7 +587,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "There are currently no running jobs."
                 };
 
@@ -844,7 +595,7 @@
                 return new Icon
                 {
                     Color = Color.Warning,
-                    Name = Icons.Material.Filled.RunCircle,
+                    Name = SnapCdIcons.RunCircle,
                     Tooltip = "A job is currently running"
                 };
 
@@ -852,7 +603,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Unknown"
                 };
         }
@@ -887,7 +638,7 @@
                 return new Icon
                 {
                     Color = Color.Warning,
-                    Name = Icons.Material.Filled.AccessTimeFilled,
+                    Name = SnapCdIcons.AccessTimeFilled,
                     Tooltip = "A job is currently queued"
                 };
 
@@ -895,7 +646,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No jobs currently queued"
                 };
         }
@@ -915,6 +666,22 @@
         }
     }
 
+    private string? GetQueuedReasonDisplayText()
+    {
+        if (_moduleSaga?.QueuedReason == null)
+            return null;
+
+        var text = GetQueuedReasonText(_moduleSaga.QueuedReason.Value);
+
+        // No connected runner instance is the more restrictive condition — surface it alongside
+        // whatever the job is queued on, unless that is already the runner itself.
+        if (_moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin
+            && _runnerAvailabilitySummary is { ActiveCount: 0 })
+            text += " · also waiting for an active runner";
+
+        return text;
+    }
+
     private string GetQueuedReasonText(QueuedReason reason)
     {
         return reason switch
@@ -927,6 +694,11 @@
     }
 
     # endregion
+
+    private string ShortenRevision(string text)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(text, @"[0-9a-fA-F]{12,}", m => m.Value[..12]);
+    }
 
     # region revision
 
@@ -965,7 +737,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No revision information yet"
                 };
 
@@ -973,7 +745,7 @@
                 return new Icon
                 {
                     Color = Color.Success,
-                    Name = Icons.Material.Filled.CheckCircle,
+                    Name = SnapCdIcons.CheckCircle,
                     Tooltip = "Synced"
                 };
 
@@ -981,7 +753,7 @@
                 return new Icon
                 {
                     Color = Color.Warning,
-                    Name = Icons.Material.Filled.ChangeCircle,
+                    Name = SnapCdIcons.ChangeCircle,
                     Tooltip = "Out of sync"
                 };
 
@@ -989,7 +761,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No revision information yet"
                 };
         }
@@ -999,12 +771,39 @@
     {
         return state switch
         {
-            RevisionState.Unknown => "None",
+            RevisionState.Unknown => "No revision yet",
             _ => state.ToString()
         };
     }
 
     # endregion
+
+    private string FormatActualState(ActualStateHeadline state) => state switch
+    {
+        ActualStateHeadline.Applied => "Applied",
+        ActualStateHeadline.Destroyed => "Destroyed",
+        ActualStateHeadline.ApplyFailed => "Apply Failed",
+        ActualStateHeadline.DestroyFailed => "Destroy Failed",
+        ActualStateHeadline.ApplyCancelled => "Apply Cancelled",
+        ActualStateHeadline.DestroyCancelled => "Destroy Cancelled",
+        ActualStateHeadline.ApplyTimeout => "Apply Timeout",
+        ActualStateHeadline.DestroyTimeout => "Destroy Timeout",
+        ActualStateHeadline.ApplyNotApproved => "Apply Not Approved",
+        ActualStateHeadline.DestroyNotApproved => "Destroy Not Approved",
+        ActualStateHeadline.ApplyOrphaned => "Apply Orphaned",
+        ActualStateHeadline.DestroyOrphaned => "Destroy Orphaned",
+        ActualStateHeadline.ApplyUnknown => "No state available yet",
+        ActualStateHeadline.DestroyUnknown => "No state available yet",
+        ActualStateHeadline.None => "None",
+        _ => state.ToString()
+    };
+
+    private string GetStatusBadgeClass(ActualStateHeadline state) => state switch
+    {
+        ActualStateHeadline.Applied => "success",
+        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => "error",
+        _ => "default"
+    };
 
     # region actual state
 
@@ -1024,7 +823,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No jobs have been run yet"
                 };
 
@@ -1032,7 +831,7 @@
                 return new Icon
                 {
                     Color = Color.Success,
-                    Name = Icons.Material.Filled.CheckCircle,
+                    Name = SnapCdIcons.CheckCircle,
                     Tooltip = "Most recent job sucessfully applied the Module"
                 };
 
@@ -1040,7 +839,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Most recent job sucessfully destroyed the Module"
                 };
 
@@ -1048,7 +847,7 @@
                 return new Icon
                 {
                     Color = Color.Error,
-                    Name = Icons.Material.Filled.Error,
+                    Name = SnapCdIcons.Error,
                     Tooltip = "Most recent job failed to apply the Module"
                 };
 
@@ -1056,7 +855,7 @@
                 return new Icon
                 {
                     Color = Color.Error,
-                    Name = Icons.Material.Filled.Error,
+                    Name = SnapCdIcons.Error,
                     Tooltip = "Most recent job failed to destroy the Module"
                 };
 
@@ -1064,7 +863,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Most recent job was cancelled."
                 };
 
@@ -1072,7 +871,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "Most recent job was cancelled."
                 };
 
@@ -1080,7 +879,7 @@
                 return new Icon
                 {
                     Color = Color.Default,
-                    Name = Icons.Material.Filled.StopCircle,
+                    Name = SnapCdIcons.StopCircle,
                     Tooltip = "No jobs have been run yet"
                 };
         }
@@ -1162,27 +961,6 @@
         return dependencies.Any(d => d.DefinedLatestActualState != ActualStateHeadline.Destroyed);
     }
 
-    private string GetDependenciesLink()
-    {
-        var direction = _moduleSaga.QueuedDesiredStateHeadline switch
-        {
-            DesiredStateHeadline.Applied => "Apply",
-            DesiredStateHeadline.Destroyed => "Destroy",
-            _ => "Apply"
-        };
-
-        var queryParams = new List<string>
-        {
-            $"action=Dependencies",
-            $"direction={direction}"
-        };
-
-        if (!string.IsNullOrEmpty(Search))
-            queryParams.Add($"search={Uri.EscapeDataString(Search)}");
-
-        var queryString = "?" + string.Join("&", queryParams);
-        return $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -1194,13 +972,8 @@
             ? $"?search={Uri.EscapeDataString(Search)}"
             : "";
 
-        _breadCrumbs =
-        [
-            new BreadcrumbItem("Stacks", $"/Stacks{queryString}"),
-            new BreadcrumbItem($"{StackName} (Stack)", $"/Stacks/{StackName}{queryString}"),
-            new BreadcrumbItem($"{NamespaceName} (Namespace)", $"/Stacks/{StackName}/{NamespaceName}{queryString}"),
-            new BreadcrumbItem($"{ModuleName} (Module)", $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}")
-        ];
+        // Carried onto the parent links in the header so search context survives navigation.
+        _parentQuery = queryString;
 
         var cacheKey = $"module_{StackName}_{NamespaceName}_{ModuleName}";
 
@@ -1313,7 +1086,7 @@
 
     private Color GetColor(ShowingType showTypeToMatch)
     {
-        return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+        return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
     }
 
     private void SwitchShowing(ShowingType newShowing)
@@ -1325,6 +1098,17 @@
             _configureSection = null;
 
         UpdateUrl();
+    }
+
+    private void HandleTabChanged(string key)
+    {
+        if (Enum.TryParse<ShowingType>(key, out var parsed))
+        {
+            _showing = parsed;
+            if (parsed != ShowingType.Configure)
+                _configureSection = null;
+            UpdateUrl();
+        }
     }
 
     private void HandleJobsStateChanged((Guid? JobId, string? Tab, string? Task) state)
@@ -1343,7 +1127,7 @@
         if (!string.IsNullOrEmpty(Search))
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
+        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}?" + string.Join("&", queryParams);
         NavigationManager.NavigateTo(newUrl, forceLoad: false, replace: true);
     }
 
@@ -1355,7 +1139,7 @@
 
     private void HandleModuleDeleted()
     {
-        NavigationManager.NavigateTo($"/Stacks/{StackName}/{NamespaceName}");
+        NavigationManager.NavigateTo($"/Namespace/{StackName}/{NamespaceName}");
     }
 
     private async Task HandleModuleSaved()
@@ -1380,7 +1164,7 @@
             queryParams.Add($"search={Uri.EscapeDataString(Search)}");
 
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = $"/Stacks/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
+        var newUrl = $"/Module/{StackName}/{NamespaceName}/{ModuleName}{queryString}";
         NavigationManager.NavigateTo(newUrl, false);
     }
 
@@ -1390,7 +1174,6 @@
         Jobs,
         Outputs,
         Variables,
-        Dependencies,
         Configure
     }
 
@@ -1428,7 +1211,6 @@
             "jobs" => ShowingType.Jobs,
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
-            "dependencies" => ShowingType.Dependencies,
             "configure" => ShowingType.Configure,
             _ => null
         };
@@ -1441,7 +1223,6 @@
             ShowingType.Jobs => "Jobs",
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",
-            ShowingType.Dependencies => "Dependencies",
             ShowingType.Configure => "Configure",
             _ => null
         };

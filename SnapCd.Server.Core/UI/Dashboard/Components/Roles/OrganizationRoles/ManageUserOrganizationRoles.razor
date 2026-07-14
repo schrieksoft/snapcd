@@ -47,13 +47,13 @@
             </MudSelect>
 
             <MudStack Row Class="mt-2">
-                <MudButton Color="Color.Primary"
+                <MudButton Color="Color.Secondary"
                            Variant="Variant.Filled"
                            OnClick="@CreateRoleAssignment"
                            Size="Size.Small">
                     Assign
                 </MudButton>
-                <MudButton Color="Color.Primary"
+                <MudButton Color="Color.Secondary"
                            Variant="Variant.Filled"
                            OnClick="@CancelCreate"
                            Size="Size.Small">
@@ -67,7 +67,7 @@
         @foreach (var assignment in _roleAssignments)
         {
             <MudExpansionPanel Text="@assignment.RoleName.ToString()" Class="mb-2">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                <MudIconButton Icon="@SnapCdIcons.Delete"
                                Color="Color.Secondary"
                                Size="Size.Small"
                                OnClick="@(async () => await DeleteRoleAssignment(assignment))"/>

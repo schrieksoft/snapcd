@@ -21,12 +21,23 @@ using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+
+/// <summary>
+/// One (state, running) bucket from the ModuleState table with its module count.
+/// </summary>
+public class ModuleStateCount
+{
+    public string? StateHeadline { get; set; }
+    public bool IsRunning { get; set; }
+    public int Count { get; set; }
+}
 
 public class ModuleRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IPublishEndpoint bus, IOptions<ModuleRepositorySettings> options)
 {
@@ -59,6 +70,25 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
         return await CheckQuotaWithServiceAsync(entity.OrganizationId, nameof(Settings.QuotaLimits.ModuleQuota), currentCount);
     }
 
+    /// <summary>
+    /// Aggregated per-state module counts for the organization, read from the trigger-maintained
+    /// ModuleState table — no per-module job subqueries. Joined against Modules because
+    /// ModuleState has no FK and may hold orphaned rows for deleted modules. Modules without a
+    /// ModuleState row yet (never had a job or saga) are not included; callers backfill against
+    /// Count(organizationId).
+    /// </summary>
+    public async Task<List<ModuleStateCount>> GetModuleStateCounts(Guid organizationId)
+    {
+        return await DbContext.Database
+            .SqlQuery<ModuleStateCount>($@"
+                SELECT ms.LatestActualStateHeadline AS StateHeadline, ms.IsRunning, COUNT(*) AS [Count]
+                FROM ModuleState ms
+                INNER JOIN Modules m ON m.Id = ms.ModuleId
+                WHERE ms.OrganizationId = {organizationId}
+                GROUP BY ms.LatestActualStateHeadline, ms.IsRunning")
+            .ToListAsync();
+    }
+
     protected override List<object> AdditionalCreateMessages(Module entity)
     {
         var messages = new List<object>();
@@ -76,6 +106,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
     public override async Task<Module> ExecuteCreate(Module entity)
     {
+        NameValidator.EnsureValid(entity.Name, "Module");
+
         if (entity.Engine == StateManagementEngine.Pulumi)
             await ValidatePulumiFeatureEnabled(entity.OrganizationId);
 
@@ -105,6 +137,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
     public override async Task<Module> ExecuteUpdate(Module entity)
     {
+        NameValidator.EnsureValid(entity.Name, "Module");
+
         // First get the existing module to check for namespace changes
         var existingModule = await Get(entity.Id, entity.OrganizationId);
 

@@ -29,8 +29,8 @@
     <MudTabPanel Text="Users" Style="text-transform: none">
         @if (!_showUserCreateForm)
         {
-            <MudButton Style="background-color: #000; color: #fff;"
-                       Variant="Variant.Filled"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
                        OnClick="@ShowUserCreateForm"
                        Size="Size.Small"
                        Class="mb-4">
@@ -66,15 +66,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Style="background-color: #000; color: #fff;"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CreateUserRoleAssignment"
                                Size="Size.Small"
                                Disabled="@(_selectedUser == null)">
                         Create
                     </MudButton>
-                    <MudButton Style="background-color: #000; color: #fff;"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CancelUserCreate"
                                Size="Size.Small">
                         Cancel
@@ -94,7 +94,7 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetUserDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="@(async () => await DeleteUserRoleAssignment(assignment))"/>
@@ -110,8 +110,8 @@
     <MudTabPanel Text="Service Principals" Style="text-transform: none">
         @if (!_showSpCreateForm)
         {
-            <MudButton Style="background-color: #000; color: #fff;"
-                       Variant="Variant.Filled"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
                        OnClick="@ShowSpCreateForm"
                        Size="Size.Small"
                        Class="mb-4">
@@ -147,15 +147,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Style="background-color: #000; color: #fff;"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CreateSpRoleAssignment"
                                Size="Size.Small"
                                Disabled="@(_selectedServicePrincipal == null)">
                         Create
                     </MudButton>
-                    <MudButton Style="background-color: #000; color: #fff;"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CancelSpCreate"
                                Size="Size.Small">
                         Cancel
@@ -175,7 +175,7 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetServicePrincipalDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="@(async () => await DeleteSpRoleAssignment(assignment))"/>
@@ -191,8 +191,8 @@
     <MudTabPanel Text="Groups" Style="text-transform: none">
         @if (!_showGroupCreateForm)
         {
-            <MudButton Style="background-color: #000; color: #fff;"
-                       Variant="Variant.Filled"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
                        OnClick="@ShowGroupCreateForm"
                        Size="Size.Small"
                        Class="mb-4">
@@ -228,15 +228,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Style="background-color: #000; color: #fff;"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CreateGroupRoleAssignment"
                                Size="Size.Small"
                                Disabled="@(_selectedGroup == null)">
                         Create
                     </MudButton>
-                    <MudButton Style="background-color: #000; color: #fff;"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CancelGroupCreate"
                                Size="Size.Small">
                         Cancel
@@ -256,7 +256,7 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetGroupDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="@(async () => await DeleteGroupRoleAssignment(assignment))"/>

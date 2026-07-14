@@ -36,13 +36,13 @@
                 </MudItem>
                 <MudItem xs="3" Class="d-flex gap-2">
                     <MudTooltip Text="Generate a new random secret">
-                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                        <MudIconButton Icon="@SnapCdIcons.Refresh"
                                        Color="Color.Secondary"
                                        Size="Size.Small"
                                        OnClick="GenerateClientSecret"/>
                     </MudTooltip>
                     <MudTooltip Text="Copy the secret">
-                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                        <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                        Color="Color.Secondary"
                                        Size="Size.Small"
                                        OnClick="CopyClientSecret"/>
@@ -53,11 +53,13 @@
             <div class="d-flex justify-end gap-2 mt-4">
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="HandleValidSubmit">
                     Save Changes
                 </MudButton>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="Cancel">
                     Discard Changes
                 </MudButton>

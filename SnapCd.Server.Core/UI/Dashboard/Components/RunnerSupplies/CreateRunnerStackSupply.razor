@@ -24,7 +24,7 @@
                                      RequiredError="Runner is required"
                                      SearchFunc="@SearchRunners"
                                      ToStringFunc="@(s => s?.Name ?? string.Empty)"
-                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentIcon="@SnapCdIcons.Search"
                                      Variant="Variant.Outlined">
                     </MudAutocomplete>
                 </MudItem>
@@ -39,7 +39,7 @@
                                      RequiredError="Stack is required"
                                      SearchFunc="@SearchStacks"
                                      ToStringFunc="@(m => m?.Name ?? string.Empty)"
-                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentIcon="@SnapCdIcons.Search"
                                      Variant="Variant.Outlined">
                     </MudAutocomplete>
                 </MudItem>
@@ -49,12 +49,14 @@
             <MudItem xs="12">
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="SaveSupply"
                            Class="mr-2">
                     Create
                 </MudButton>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="Cancel">
                     Cancel
                 </MudButton>

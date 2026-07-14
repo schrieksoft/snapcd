@@ -43,21 +43,21 @@
 
     @if (_showCreateSourceRefresherPreselection)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateSourceRefresherPreselection OnCreated="HandleSourceRefresherPreselectionCreated"
                                                OnCancel="HandleCancelCreate"/>
-        </MudItem>
+        </MudPaper>
     }
-
     else
     {
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   OnClick="ShowCreateSourceRefresherPreselection"
-                   Class="mt-2 mb-2"
-        >
-            Create New
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreateSourceRefresherPreselection">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_sourceRefresherPreselections == null)
@@ -76,13 +76,13 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Edit SourceRefresherPreselection">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(sourceRefresherPreselection.Id, ShowingType.Edit)"
                                            Size="Size.Small" OnClick="() => Edit(sourceRefresherPreselection)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete SourceRefresherPreselection">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Delete(sourceRefresherPreselection)"/>
                         </MudTooltip>
 
@@ -133,7 +133,7 @@
         if (_selectedSourceRefresherPreselection == null)
             return Color.Primary;
         if (sourceRefresherPreselectionId == _selectedSourceRefresherPreselection.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 

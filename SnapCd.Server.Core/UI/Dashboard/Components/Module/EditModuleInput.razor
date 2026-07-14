@@ -99,7 +99,7 @@
                                  RequiredError="Output module is required"
                                  SearchFunc="@SearchModules"
                                  ToStringFunc="@(m => m?.Name ?? string.Empty)"
-                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentIcon="@SnapCdIcons.Search"
                                  Variant="Variant.Outlined"
                                  FullWidth="true">
                     <ItemTemplate Context="moduleContext">
@@ -134,7 +134,7 @@
                                  RequiredError="Output module is required"
                                  SearchFunc="@SearchModules"
                                  ToStringFunc="@(m => m?.Name ?? string.Empty)"
-                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentIcon="@SnapCdIcons.Search"
                                  Variant="Variant.Outlined"
                                  FullWidth="true">
                     <ItemTemplate Context="moduleContext">
@@ -188,12 +188,14 @@
             @if (IsCreateMode)
             {
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
                            OnClick="CreateItem">
                     Create
                 </MudButton>
 
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
                            OnClick="Cancel">
                     Cancel
@@ -202,6 +204,7 @@
             else
             {
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
                            Disabled="@(!HasChanges)"
                            OnClick="UpdateItem">
@@ -209,8 +212,9 @@
                 </MudButton>
 
                 <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
                            Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.Delete"
+                           StartIcon="@SnapCdIcons.Delete"
                            OnClick="DeleteItem">
                     Delete
                 </MudButton>

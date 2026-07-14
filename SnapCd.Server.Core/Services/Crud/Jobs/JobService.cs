@@ -360,7 +360,7 @@ public class JobService : IDisposable
             .FirstOrDefaultAsync();
 
         if (existingCurrentJob != null) existingCurrentJob.IsCurrent = false;
-        
+
         if (runInTransaction)
             await _moduleJobRepository.Create(new ModuleJob
             {

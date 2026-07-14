@@ -39,7 +39,7 @@
                         @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
                         {
                             <MudTooltip Text="You do not have permission to apply this module">
-                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                                <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning" Size="Size.Small"/>
                             </MudTooltip>
                         }
                     </div>
@@ -61,7 +61,7 @@
                         @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
                         {
                             <MudTooltip Text="You do not have permission to apply this module">
-                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                                <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning" Size="Size.Small"/>
                             </MudTooltip>
                         }
                     </div>
@@ -70,8 +70,8 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
                    OnClick="ConfirmApplication"
                    Disabled="@_isApplying">
             @if (_isApplying)
@@ -84,8 +84,9 @@
             }
         </MudButton>
 
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="Cancel"
                    Disabled="@_isApplying">
             Cancel

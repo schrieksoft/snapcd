@@ -1,4 +1,4 @@
-﻿@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
    Copyright (c) 2026 Karl Schriek / Schrieksoft.
    No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
    embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
@@ -6,23 +6,1571 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@page "/Home"
+@page "/Dashboard"
 @layout OrganizationMainLayout
+@using System.Globalization
 @using Microsoft.AspNetCore.Authorization
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Nonsecured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.Notification
 @using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Services.PrincipalProvider
 
 @attribute [Authorize]
 
+@implements IDisposable
+
 @inject IOrganizationContext OrganizationContext
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject ModuleSecuredRepositoryFactory ModuleRepoFactory
+@inject ModuleJobSecuredRepositoryFactory JobRepoFactory
+@inject StackSecuredRepositoryFactory StackRepoFactory
+@inject NamespaceSecuredRepositoryFactory NamespaceRepoFactory
+@inject RunnerConnectionRepositoryFactory RunnerConnectionRepoFactory
+@inject AgentConnectionRepositoryFactory AgentConnectionRepoFactory
+@inject JobCreatedNotificationService JobCreatedNotificationService
+@inject JobUpdatedNotificationService JobUpdatedNotificationService
+@inject ModuleSagaModifiedNotificationService ModuleSagaModifiedNotificationService
+@inject RunnerAvailabilityModifiedNotificationService RunnerAvailabilityModifiedNotificationService
+@inject UserFavoriteSecuredRepositoryFactory FavoriteRepoFactory
+@inject FavoritesModifiedNotificationService FavoritesModifiedNotificationService
 
-<PageTitle>Home</PageTitle>
+@* Nonsecured repositories: the Modules / Infrastructure / Activity summary cards always
+   show organization-wide totals, not what the current user is permitted to see. The
+   actionable lists (Needs Attention, Recent Activity, Running, Queued, Starred) stay secured. *@
+@inject ModuleRepositoryFactory NonsecuredModuleRepoFactory
+@inject ModuleJobRepositoryFactory NonsecuredJobRepoFactory
+@inject RunnerRepositoryFactory NonsecuredRunnerRepoFactory
+@inject AgentRepositoryFactory NonsecuredAgentRepoFactory
+@inject StateStoreRepositoryFactory NonsecuredStateStoreRepoFactory
+@inject IntegrationRepositoryFactory NonsecuredIntegrationRepoFactory
+@inject StackRepositoryFactory NonsecuredStackRepoFactory
+@inject NamespaceRepositoryFactory NonsecuredNamespaceRepoFactory
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-    <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
-        <MudText Typo="Typo.h3" GutterBottom="true">Welcome to SnapCD</MudText>
-    </MudPaper>
-</MudContainer>
+<PageTitle>Dashboard</PageTitle>
+
+@if (OrganizationId == Guid.Empty)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
+            <MudText Typo="Typo.h4" GutterBottom="true">Welcome to Snap CD</MudText>
+            <MudText Typo="Typo.body2">Select or create an organization to get started.</MudText>
+        </MudPaper>
+    </MudContainer>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else
+{
+    <div class="dash-header">
+        <MudText Typo="Typo.h4" Class="dash-title">Dashboard</MudText>
+    </div>
+
+    <MudGrid Spacing="4" Class="mb-4">
+
+        <!-- Modules: every module in the organization, grouped by its current state -->
+        <MudItem xs="12" md="4">
+        <div class="dash-card" style="height: 100%;">
+            <div class="dash-card-header">Modules</div>
+            <div class="pa-4">
+                @if (_fleetTotal == 0)
+                {
+                    <MudText Typo="Typo.body2">No modules yet. Create a stack, namespace and module to get started.</MudText>
+                }
+                else
+                {
+                    <div class="fleet-topline">
+                        <span class="fleet-count">@_fleetTotal module@(_fleetTotal == 1 ? "" : "s")</span>
+                        <span class="fleet-scope">
+                            <a href="/Stacks">@_stackCount stack@(_stackCount == 1 ? "" : "s")</a> · @_namespaceCount namespace@(_namespaceCount == 1 ? "" : "s")
+                        </span>
+                    </div>
+                    <div class="fleet-bar">
+                        @foreach (var seg in _fleetSegments)
+                        {
+                            <div class="fleet-seg" style="width: @seg.Percent; background: @seg.Color;" title="@seg.Count @seg.Label"></div>
+                        }
+                    </div>
+                    <div class="fleet-legend">
+                        @foreach (var seg in _fleetSegments)
+                        {
+                            <span class="fleet-legend-item">
+                                <span class="dash-dot" style="background: @seg.Color;"></span>
+                                <span class="fleet-n">@seg.Count</span> <span class="fleet-lbl">@seg.Label</span>
+                            </span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        </MudItem>
+
+        <!-- Infrastructure -->
+        <MudItem xs="12" md="4">
+        <div class="dash-card" style="height: 100%;">
+            <div class="dash-card-header">Infrastructure</div>
+            <div class="attn-row">
+                <span class="dash-dot dash-dot-accent"></span>
+                <span class="attn-main"><a href="/Runners"><span class="attn-n">@_runnerCount</span> runner@(_runnerCount == 1 ? "" : "s")</a></span>
+                <span class="attn-sub">@_connectedRunnerCount connected</span>
+            </div>
+            <div class="attn-row">
+                <span class="dash-dot dash-dot-accent"></span>
+                <span class="attn-main"><a href="/Agents"><span class="attn-n">@_agentCount</span> agent@(_agentCount == 1 ? "" : "s")</a></span>
+                <span class="attn-sub">@_connectedAgentCount connected</span>
+            </div>
+            <div class="attn-row">
+                <span class="dash-dot dash-dot-accent"></span>
+                <span class="attn-main"><a href="/Integrations"><span class="attn-n">@_integrationCount</span> integration@(_integrationCount == 1 ? "" : "s")</a></span>
+            </div>
+            <div class="attn-row">
+                <span class="dash-dot dash-dot-accent"></span>
+                <span class="attn-main"><a href="/StateStores"><span class="attn-n">@_stateStoreCount</span> state store@(_stateStoreCount == 1 ? "" : "s")</a></span>
+            </div>
+        </div>
+        </MudItem>
+
+        <!-- 7-day activity -->
+        <MudItem xs="12" md="4">
+        <div class="dash-card" style="height: 100%;">
+            <div class="dash-card-header">Activity — Last 7 Days</div>
+            <div class="pa-4">
+                <div class="week-bars">
+                    @foreach (var day in _weekDays)
+                    {
+                        <div class="week-day @(day.IsToday ? "today" : "")" title="@($"{day.Label}: {day.OkCount} succeeded · {day.FailCount} failed · {day.OtherCount} other")">
+                            <div class="week-day-count">@(day.OkCount + day.FailCount + day.OtherCount > 0 ? (day.OkCount + day.FailCount + day.OtherCount).ToString() : "")</div>
+                            @if (day.OtherHeight > 0)
+                            {
+                                <div class="wb wb-other" style="height: @day.OtherHeight%"></div>
+                            }
+                            @if (day.FailedHeight > 0)
+                            {
+                                <div class="wb wb-fail" style="height: @day.FailedHeight%"></div>
+                            }
+                            @if (day.SucceededHeight > 0)
+                            {
+                                <div class="wb wb-ok" style="height: @day.SucceededHeight%"></div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="week-labels">
+                    @foreach (var day in _weekDays)
+                    {
+                        <span class="@(day.IsToday ? "today" : "")">@day.Label</span>
+                    }
+                </div>
+                <div class="week-legend">
+                    <span class="week-legend-item"><span class="dash-dot" style="background: var(--snap-accent, #E85D1A);"></span> succeeded</span>
+                    <span class="week-legend-item"><span class="dash-dot dash-dot-error"></span> failed</span>
+                    <span class="week-legend-item"><span class="dash-dot dash-dot-neutral"></span> other</span>
+                </div>
+                <div class="week-caption">
+                    <span class="dash-mono">@_weekTotal</span> job@(_weekTotal == 1 ? "" : "s") this week@(_weekSuccessRate != null ? $" · " : "")@if (_weekSuccessRate != null)
+                    {
+                        <span class="dash-mono">@_weekSuccessRate%</span><span> succeeded</span>
+                    }
+                </div>
+            </div>
+        </div>
+        </MudItem>
+    </MudGrid>
+
+    <div class="dash-col">
+
+            <!-- Starred -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    Starred
+                    @if (_favorites.Any())
+                    {
+                        <span class="dash-count-chip">@_favorites.Count</span>
+                    }
+                </div>
+                @if (!_favorites.Any())
+                {
+                    <div class="attn-row">
+                        <MudIcon Icon="@SnapCdIcons.Star" Size="Size.Small" Style="color: var(--mud-palette-text-secondary);"/>
+                        <span class="attn-main" style="color: var(--mud-palette-text-secondary);">Star modules, namespaces or stacks to pin them here.</span>
+                    </div>
+                }
+                else
+                {
+                    FavoriteTargetType? previousFavoriteType = null;
+                    @foreach (var favorite in Page(_favorites, _starredPage))
+                    {
+                        @if (favorite.TargetType != previousFavoriteType)
+                        {
+                            previousFavoriteType = favorite.TargetType;
+                            <div class="attn-subheading">@GetFavoriteGroupLabel(favorite.TargetType)</div>
+                        }
+
+                        <div class="attn-row">
+                            <MudIcon Icon="@GetFavoriteIcon(favorite.TargetType)" Size="Size.Small" Style="color: var(--snap-accent, #E85D1A);"/>
+                            <span class="attn-main">
+                                @switch (favorite.TargetType)
+                                {
+                                    case FavoriteTargetType.Module:
+                                        @PathLinks(favorite.StackName, favorite.NamespaceName!, favorite.ModuleName!)
+                                        break;
+                                    case FavoriteTargetType.Namespace:
+                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{favorite.StackName}/{favorite.NamespaceName}")">@favorite.NamespaceName</a></span>
+                                        break;
+                                    default:
+                                        <span class="dash-path"><a href="@($"/Stack/{favorite.StackName}")">@favorite.StackName</a></span>
+                                        break;
+                                }
+                            </span>
+                            @if (favorite.ModuleFleetState != null)
+                            {
+                                <span class="attn-sub">
+                                    <span class="dash-dot @GetFleetStateDotClass(favorite.ModuleFleetState.Value)" style="margin-right: 4px;"></span>@GetFleetStateLabel(favorite.ModuleFleetState.Value)
+                                </span>
+                            }
+                            <span class="row-star">
+                                <MudTooltip Text="Unstar">
+                                    <MudIconButton Icon="@SnapCdIcons.Star" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => Unstar(favorite))"/>
+                                </MudTooltip>
+                            </span>
+                        </div>
+                    }
+                    @if (_favorites.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_starredPage" TotalPages="PageCount(_favorites.Count)" PageChanged="@(p => _starredPage = p)"/>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Needs attention -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    Needs Attention
+                    @if (AttentionCount > 0)
+                    {
+                        <span class="dash-count-chip">@AttentionCount</span>
+                    }
+                </div>
+
+                @if (_attentionItems.Any())
+                {
+                    AttentionKind? previousKind = null;
+                    @foreach (var item in Page(_attentionItems, _attentionPage))
+                    {
+                        @if (item.Kind != previousKind)
+                        {
+                            previousKind = item.Kind;
+                            <div class="attn-subheading">@GetAttentionKindLabel(item.Kind)</div>
+                        }
+
+                        @switch (item.Kind)
+                        {
+                            case AttentionKind.Approval:
+                                <div class="attn-row">
+                                    <span class="dash-dot dash-dot-accent"></span>
+                                    <span class="attn-main">
+                                        @FormatJobType(item.Approval!.JobType) @PathLinks(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)
+                                    </span>
+                                    <span class="attn-sub">
+                                        waiting @FormatWaitTime(item.Approval.TimestampStart) ·
+                                        <a class="attn-action" href="@($"{ModuleUrl(item.Approval.StackName, item.Approval.NamespaceName, item.Approval.ModuleName)}?Job={item.Approval.JobId}&Tab=approvals")">review Job #@item.Approval.JobNumber →</a>
+                                    </span>
+                                </div>
+                                break;
+                            case AttentionKind.Failed:
+                                <div class="attn-row">
+                                    <span class="dash-dot dash-dot-accent"></span>
+                                    <span class="attn-main">@PathLinks(item.Module!.StackName, item.Module.NamespaceName, item.Module.Name)</span>
+                                    <span class="attn-sub">@FormatActualState(item.Module.ActualState)</span>
+                                </div>
+                                break;
+                            default:
+                                <div class="attn-row">
+                                    <span class="dash-dot dash-dot-accent"></span>
+                                    <span class="attn-main"><a class="dash-mono" href="/Runners">@item.RunnerName</a> has no connected instances</span>
+                                </div>
+                                break;
+                        }
+                    }
+                    @if (_attentionItems.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_attentionPage" TotalPages="PageCount(_attentionItems.Count)" PageChanged="@(p => _attentionPage = p)"/>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="attn-row">
+                        <span class="dash-dot dash-dot-success"></span>
+                        <span class="attn-main">Nothing needs your attention.</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Recent activity -->
+            <div class="dash-card">
+                <div class="dash-card-header">Recent Activity</div>
+                @if (!_activityHasAny)
+                {
+                    <div class="attn-row"><span class="attn-main">No jobs have run yet.</span></div>
+                }
+                else
+                {
+                    <table class="dash-table">
+                        <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Job</th>
+                            <th>Module</th>
+                            <th>Action</th>
+                            <th>When</th>
+                            <th>Duration</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var job in CurrentActivityRows)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="dash-status">
+                                        <span class="dash-dot @GetJobDotClass(job)"></span> @GetJobStatusLabel(job)
+                                    </span>
+                                </td>
+                                <td class="dash-mono">
+                                    <a href="@($"{ModuleUrl(job.StackName, job.NamespaceName, job.ModuleName)}?Job={job.JobId}")">#@job.JobNumber</a>
+                                </td>
+                                <td>@PathLinks(job.StackName, job.NamespaceName, job.ModuleName)</td>
+                                <td>@FormatJobType(job.JobType)</td>
+                                <td>@FormatTimeAgo(job.TimestampStart)</td>
+                                <td class="dash-mono">@(FormatDuration(job.TimestampStart, job.TimestampEnd) ?? "—")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    @if (_activityTotalPages > 1)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_activityPage" TotalPages="_activityTotalPages" PageChanged="OnActivityPageChanged"/>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Running now -->
+            @if (_runningModules.Any())
+            {
+                <div class="dash-card">
+                    <div class="dash-card-header">Running Now <span class="dash-count-chip">@_runningModules.Count</span></div>
+                    @foreach (var module in Page(_runningModules, _runningPage))
+                    {
+                        <div class="attn-row">
+                            <span class="dash-dot dash-dot-running"></span>
+                            <span class="attn-main">@PathLinks(module.StackName, module.NamespaceName, module.Name)</span>
+                            @if (module.CurrentJobStart != null)
+                            {
+                                <span class="attn-sub dash-mono">@(FormatDuration(module.CurrentJobStart.Value, null))</span>
+                            }
+                        </div>
+                    }
+                    @if (_runningModules.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_runningPage" TotalPages="PageCount(_runningModules.Count)" PageChanged="@(p => _runningPage = p)"/>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Queued -->
+            @if (_queuedModules.Any())
+            {
+                <div class="dash-card">
+                    <div class="dash-card-header">Queued <span class="dash-count-chip">@_queuedModules.Count</span></div>
+                    @foreach (var module in Page(_queuedModules, _queuedPage))
+                    {
+                        <div class="attn-row">
+                            <span class="dash-dot dash-dot-accent"></span>
+                            <span class="attn-main">@PathLinks(module.StackName, module.NamespaceName, module.Name)</span>
+                            <span class="attn-sub">@FormatQueuedReason(module.QueuedReasonValue)</span>
+                        </div>
+                    }
+                    @if (_queuedModules.Count > DashboardPageSize)
+                    {
+                        <div class="dash-pagination">
+                            <Pagination CurrentPage="_queuedPage" TotalPages="PageCount(_queuedModules.Count)" PageChanged="@(p => _queuedPage = p)"/>
+                        </div>
+                    }
+                </div>
+            }
+    </div>
+}
+
+<style>
+    .dash-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .dash-title {
+        font-weight: 600;
+        letter-spacing: -0.015em;
+    }
+
+    .dash-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+    .dash-dot-success { background: var(--mud-palette-success); }
+    .dash-dot-error { background: var(--mud-palette-error); }
+    .dash-dot-warning { background: var(--mud-palette-warning); }
+    .dash-dot-neutral { background: var(--snap-fog, #8B96A0); }
+    .dash-dot-accent { background: var(--snap-accent, #E85D1A); }
+
+    @@keyframes dash-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(232, 93, 26, 0.45); }
+        70% { box-shadow: 0 0 0 6px rgba(232, 93, 26, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(232, 93, 26, 0); }
+    }
+
+    .dash-dot-running {
+        background: var(--snap-accent, #E85D1A);
+        animation: dash-pulse 2s infinite;
+    }
+
+    .dash-card {
+        background: var(--mud-palette-surface);
+        box-shadow: var(--mud-elevation-1);
+        overflow: hidden;
+    }
+
+    .dash-card-header {
+        padding: 12px 16px;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #E8ECEF;
+        background: var(--snap-ink, #12171D);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .dash-count-chip {
+        background: var(--snap-accent, #E85D1A);
+        color: var(--snap-on-accent, #FFFFFF);
+        font-weight: 600;
+        padding: 0 7px;
+        line-height: 16px;
+        font-size: 11px;
+    }
+
+    .dash-mono {
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 13px;
+    }
+
+    .dash-path {
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 13px;
+    }
+
+    .dash-path a {
+        color: var(--mud-palette-text-primary);
+    }
+
+    .dash-path a:hover {
+        color: var(--snap-accent, #E85D1A);
+        text-decoration: underline;
+    }
+
+    .dash-path-sep {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .attn-action {
+        color: var(--snap-accent, #E85D1A);
+    }
+
+    .fleet-topline {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .fleet-count { font-size: 15px; font-weight: 600; }
+
+    .fleet-scope {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .fleet-scope a { color: var(--mud-palette-text-secondary); }
+    .fleet-scope a:hover { color: var(--snap-accent, #E85D1A); }
+
+    .fleet-bar {
+        display: flex;
+        height: 12px;
+        width: 100%;
+        background: var(--mud-palette-background-grey);
+        overflow: hidden;
+    }
+
+    .fleet-seg { height: 100%; }
+    .fleet-seg + .fleet-seg { margin-left: 2px; }
+
+    .fleet-legend {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+
+    .fleet-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 14px;
+    }
+
+    .fleet-n { font-weight: 700; }
+    .fleet-lbl { color: var(--mud-palette-text-secondary); }
+
+    .dash-col {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+    }
+
+    .dash-pagination {
+        padding: 6px 12px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .attn-subheading {
+        padding: 10px 16px 4px;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .attn-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        font-size: 14px;
+    }
+
+    .attn-row:last-child { border-bottom: none; }
+
+    .attn-main {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .attn-main a { color: var(--mud-palette-text-primary); }
+    .attn-main a:hover { color: var(--snap-accent, #E85D1A); text-decoration: underline; }
+
+    .attn-sub {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+    }
+
+    .attn-n { font-weight: 700; }
+
+    .dash-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .dash-table th {
+        text-align: left;
+        padding: 8px 16px;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #E8ECEF;
+        background: var(--snap-ink, #12171D);
+        white-space: nowrap;
+    }
+
+    .dash-table td {
+        padding: 10px 16px;
+        font-size: 14px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        vertical-align: middle;
+    }
+
+    .dash-table tr:last-child td { border-bottom: none; }
+    .dash-table tr:hover td { background: var(--mud-palette-background-grey); }
+    .dash-table a { color: var(--mud-palette-text-primary); }
+    .dash-table a:hover { color: var(--snap-accent, #E85D1A); text-decoration: underline; }
+
+    .dash-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .week-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        height: 72px;
+    }
+
+    .week-day {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 2px;
+        height: 100%;
+    }
+
+    .wb { width: 100%; }
+    .wb-ok { background: var(--snap-accent, #E85D1A); opacity: 0.75; }
+    .wb-fail { background: var(--mud-palette-error); }
+    .wb-other { background: var(--snap-fog, #8B96A0); opacity: 0.55; }
+    .week-day.today .wb-ok { opacity: 1; }
+
+    .week-labels { display: flex; gap: 8px; margin-top: 6px; }
+
+    .week-labels span {
+        flex: 1;
+        text-align: center;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--mud-palette-text-secondary);
+        text-transform: uppercase;
+    }
+
+    .week-labels span.today { color: var(--mud-palette-text-primary); font-weight: 700; }
+
+    .week-day-count {
+        text-align: center;
+        font-family: var(--snap-font-mono, monospace);
+        font-size: 10px;
+        line-height: 1;
+        color: var(--mud-palette-text-secondary);
+        margin-bottom: 3px;
+        min-height: 10px;
+    }
+
+    .week-legend {
+        display: flex;
+        gap: 16px;
+        margin-top: 10px;
+    }
+
+    .week-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .week-caption {
+        font-size: 12px;
+        color: var(--mud-palette-text-secondary);
+        margin-top: 12px;
+    }
+
+</style>
 
 @code {
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+
+    private bool _loading = true;
+    private bool _disposed;
+
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+
+    private int _stackCount;
+    private int _namespaceCount;
+    private int _runnerCount;
+    private int _connectedRunnerCount;
+    private int _agentCount;
+    private int _connectedAgentCount;
+    private int _stateStoreCount;
+    private int _integrationCount;
+
+    private List<ModuleRow> _modules = new();
+    private Dictionary<FleetState, int> _fleetCounts = new();
+    private int _fleetTotal;
+    private List<FavoriteRow> _favorites = new();
+    private List<ModuleRow> _runningModules = new();
+    private List<ModuleRow> _queuedModules = new();
+    private List<ModuleRow> _failedModules = new();
+    private List<PendingApprovalRow> _pendingApprovals = new();
+    private const int RecentActivityMaxRows = 50;
+    private Dictionary<int, List<ActivityRow>> _activityPages = new();
+    private int _activityTotalPages = 1;
+    private bool _activityHasAny;
+    private List<ActivityRow> CurrentActivityRows => _activityPages.TryGetValue(_activityPage, out var rows) ? rows : new List<ActivityRow>();
+    private List<string> _runnersWithoutInstances = new();
+    private List<Guid> _runnerIds = new();
+    private List<FleetSegment> _fleetSegments = new();
+    private List<WeekDay> _weekDays = new();
+    private int _weekTotal;
+    private int? _weekSuccessRate;
+
+    private readonly HashSet<Guid> _subscribedModuleIds = new();
+    private readonly HashSet<Guid> _subscribedRunnerIds = new();
+    private Timer? _timer;
+    private int _reloadQueued;
+
+    private const int DashboardPageSize = 10;
+    private int _starredPage = 1;
+    private int _attentionPage = 1;
+    private int _activityPage = 1;
+    private int _runningPage = 1;
+    private int _queuedPage = 1;
+
+    private List<AttentionItem> _attentionItems = new();
+
+    private int AttentionCount => _attentionItems.Count;
+
+    private static IEnumerable<T> Page<T>(List<T> items, int page) =>
+        items.Skip((page - 1) * DashboardPageSize).Take(DashboardPageSize);
+
+    private static int PageCount(int count) =>
+        Math.Max(1, (int)Math.Ceiling(count / (double)DashboardPageSize));
+
+    private enum AttentionKind
+    {
+        Approval,
+        Failed,
+        Runner
+    }
+
+    private class AttentionItem
+    {
+        public AttentionKind Kind { get; set; }
+        public PendingApprovalRow? Approval { get; set; }
+        public ModuleRow? Module { get; set; }
+        public string? RunnerName { get; set; }
+    }
+
+    private static string GetAttentionKindLabel(AttentionKind kind) => kind switch
+    {
+        AttentionKind.Approval => "Approval required",
+        AttentionKind.Failed => "Failed",
+        _ => "Runners"
+    };
+
+    private void BuildAttentionItems()
+    {
+        var items = new List<AttentionItem>();
+        items.AddRange(_pendingApprovals.Select(a => new AttentionItem { Kind = AttentionKind.Approval, Approval = a }));
+        items.AddRange(_failedModules.Select(m => new AttentionItem { Kind = AttentionKind.Failed, Module = m }));
+        items.AddRange(_runnersWithoutInstances.Select(r => new AttentionItem { Kind = AttentionKind.Runner, RunnerName = r }));
+        _attentionItems = items;
+    }
+
+    private void ClampPages()
+    {
+        _starredPage = Math.Min(_starredPage, PageCount(_favorites.Count));
+        _attentionPage = Math.Min(_attentionPage, PageCount(_attentionItems.Count));
+        _activityPage = Math.Min(_activityPage, _activityTotalPages);
+        _runningPage = Math.Min(_runningPage, PageCount(_runningModules.Count));
+        _queuedPage = Math.Min(_queuedPage, PageCount(_queuedModules.Count));
+    }
+
+    private async Task Unstar(FavoriteRow row)
+    {
+        using var favoriteRepo = FavoriteRepoFactory.Create(Principal());
+        await favoriteRepo.Delete(row.Id, OrganizationId);
+
+        _favorites.Remove(row);
+        _starredPage = Math.Min(_starredPage, PageCount(_favorites.Count));
+        await FavoritesModifiedNotificationService.Notify(_principalId);
+    }
+
+    private RenderFragment PathLinks(string stack, string ns, string module) =>
+        @<span class="dash-path"><a href="@($"/Stack/{stack}")">@stack</a><span class="dash-path-sep">/</span><a href="@($"/Namespace/{stack}/{ns}")">@ns</a><span class="dash-path-sep">/</span><a href="@($"/Module/{stack}/{ns}/{module}")">@module</a></span>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (OrganizationId == Guid.Empty)
+        {
+            _loading = false;
+            return;
+        }
+
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+
+        await ReloadAll();
+        _loading = false;
+
+        FavoritesModifiedNotificationService.Subscribe(_principalId, HandleFavoritesModified);
+
+        // periodic refresh keeps relative times fresh and picks up anything a notification missed
+        _timer = new Timer(_ => _ = ScheduleReload(), null, 60000, 60000);
+    }
+
+    private LiteralPrincipalProvider Principal() => new(_principalId, _principalDiscriminator, [OrganizationId]);
+
+    private async Task ReloadAll()
+    {
+        // Loaders each use their own DbContext, so they can run concurrently; only
+        // LoadFavorites depends on LoadModules (it resolves module favorites against _modules)
+        async Task LoadModulesThenFavorites()
+        {
+            await LoadModules();
+            await LoadFavorites();
+        }
+
+        await Task.WhenAll(
+            LoadModulesThenFavorites(),
+            LoadFleetTotals(),
+            LoadApprovals(),
+            LoadRecentActivity(),
+            LoadWeekActivity(),
+            LoadInfrastructure(),
+            LoadCounts());
+
+        BuildFleetSegments();
+        BuildAttentionItems();
+        ClampPages();
+        SyncSubscriptions();
+    }
+
+    private async Task ScheduleReload()
+    {
+        if (_disposed) return;
+        if (Interlocked.CompareExchange(ref _reloadQueued, 1, 0) == 1) return;
+
+        try
+        {
+            await Task.Delay(400); // coalesce notification bursts into one reload
+            Interlocked.Exchange(ref _reloadQueued, 0);
+            if (_disposed) return;
+            await InvokeAsync(async () =>
+            {
+                await ReloadAll();
+                StateHasChanged();
+            });
+        }
+        catch (Exception)
+        {
+            Interlocked.Exchange(ref _reloadQueued, 0);
+        }
+    }
+
+    private Task HandleJobCreated(Guid jobId, Guid moduleId)
+    {
+        _ = ScheduleReload();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleJobUpdated(Guid jobId, Guid moduleId, ExecutionStatus status)
+    {
+        _ = ScheduleReload();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSagaModified(Guid moduleId)
+    {
+        _ = ScheduleReload();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleRunnerAvailabilityModified(Guid runnerId, string runnerInstanceName)
+    {
+        _ = ScheduleReload();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleFavoritesModified(Guid userId)
+    {
+        _ = ScheduleReload();
+        return Task.CompletedTask;
+    }
+
+    private void SyncSubscriptions()
+    {
+        var currentModules = _modules.Select(m => m.Id).ToHashSet();
+        foreach (var id in _subscribedModuleIds.Except(currentModules).ToList())
+        {
+            JobCreatedNotificationService.Unsubscribe(id, HandleJobCreated);
+            JobUpdatedNotificationService.Unsubscribe(id, HandleJobUpdated);
+            ModuleSagaModifiedNotificationService.Unsubscribe(id, HandleSagaModified);
+            _subscribedModuleIds.Remove(id);
+        }
+
+        foreach (var id in currentModules.Except(_subscribedModuleIds).ToList())
+        {
+            JobCreatedNotificationService.Subscribe(id, HandleJobCreated);
+            JobUpdatedNotificationService.Subscribe(id, HandleJobUpdated);
+            ModuleSagaModifiedNotificationService.Subscribe(id, HandleSagaModified);
+            _subscribedModuleIds.Add(id);
+        }
+
+        var currentRunners = _runnerIds.ToHashSet();
+        foreach (var id in _subscribedRunnerIds.Except(currentRunners).ToList())
+        {
+            RunnerAvailabilityModifiedNotificationService.Unsubscribe(id, HandleRunnerAvailabilityModified);
+            _subscribedRunnerIds.Remove(id);
+        }
+
+        foreach (var id in currentRunners.Except(_subscribedRunnerIds).ToList())
+        {
+            RunnerAvailabilityModifiedNotificationService.Subscribe(id, HandleRunnerAvailabilityModified);
+            _subscribedRunnerIds.Add(id);
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _timer?.Dispose();
+
+        FavoritesModifiedNotificationService.Unsubscribe(_principalId, HandleFavoritesModified);
+
+        foreach (var id in _subscribedModuleIds)
+        {
+            JobCreatedNotificationService.Unsubscribe(id, HandleJobCreated);
+            JobUpdatedNotificationService.Unsubscribe(id, HandleJobUpdated);
+            ModuleSagaModifiedNotificationService.Unsubscribe(id, HandleSagaModified);
+        }
+
+        foreach (var id in _subscribedRunnerIds)
+        {
+            RunnerAvailabilityModifiedNotificationService.Unsubscribe(id, HandleRunnerAvailabilityModified);
+        }
+    }
+
+    private async Task LoadModules()
+    {
+        using var moduleRepo = ModuleRepoFactory.Create(Principal());
+        _modules = await moduleRepo.List(OrganizationId, q => q.Select(m => new ModuleRow
+        {
+            Id = m.Id,
+            Name = m.Name,
+            NamespaceName = m.Namespace.Name,
+            StackName = m.Namespace.Stack.Name,
+            CurrentStatus = m.ModuleJobs.Where(j => j.IsCurrent == true).Select(j => (ExecutionStatus?)j.Status).FirstOrDefault(),
+            CurrentJobStart = m.ModuleJobs.Where(j => j.IsCurrent == true).Select(j => (DateTimeOffset?)j.TimestampStart).FirstOrDefault(),
+            // Actual state: most recent finished job that recorded a state headline (same semantics as ModulePage)
+            ActualState = m.ModuleJobs
+                .Where(j => j.ActualStateHeadline != null && j.TimestampEnd != null)
+                .OrderByDescending(j => j.TimestampEnd)
+                .Select(j => j.ActualStateHeadline)
+                .FirstOrDefault(),
+            QueuedDesired = m.ModuleSaga != null ? m.ModuleSaga.QueuedDesiredStateHeadline : null,
+            QueuedReasonValue = m.ModuleSaga != null ? m.ModuleSaga.QueuedReason : null
+        }));
+
+        _runningModules = _modules
+            .Where(m => m.CurrentStatus == ExecutionStatus.Running)
+            .OrderBy(m => m.CurrentJobStart)
+            .ToList();
+
+        _queuedModules = _modules
+            .Where(m => m.QueuedDesired != null)
+            .OrderBy(m => m.StackName).ThenBy(m => m.NamespaceName).ThenBy(m => m.Name)
+            .ToList();
+
+        _failedModules = _modules
+            .Where(m => Classify(m) == FleetState.Failed)
+            .OrderBy(m => m.StackName).ThenBy(m => m.NamespaceName).ThenBy(m => m.Name)
+            .ToList();
+    }
+
+    private async Task LoadFleetTotals()
+    {
+        // Org-wide totals for the Modules card (fleet bar): nonsecured on purpose, read as a
+        // handful of GROUP BY buckets from the trigger-maintained ModuleState table instead of
+        // per-module job subqueries
+        using var moduleRepo = NonsecuredModuleRepoFactory.Create(Principal());
+        var stateCounts = await moduleRepo.GetModuleStateCounts(OrganizationId);
+        _fleetTotal = await moduleRepo.Count(OrganizationId);
+
+        var counts = new Dictionary<FleetState, int>();
+        foreach (var bucket in stateCounts)
+        {
+            var state = ClassifyHeadline(bucket.StateHeadline, bucket.IsRunning);
+            counts[state] = counts.GetValueOrDefault(state) + bucket.Count;
+        }
+
+        // Modules without a ModuleState row yet (never had a job or saga) count as not deployed
+        var classified = stateCounts.Sum(b => b.Count);
+        if (_fleetTotal > classified)
+            counts[FleetState.NotDeployed] = counts.GetValueOrDefault(FleetState.NotDeployed) + (_fleetTotal - classified);
+
+        _fleetCounts = counts;
+    }
+
+    // Fleet classification from a ModuleState row. The headline column is a string: usually an
+    // ActualStateHeadline name, but the trigger synthesizes "<JobType><Status>" when a finished
+    // job recorded no headline — anything unparseable counts as failed rather than hidden.
+    private static FleetState ClassifyHeadline(string? headline, bool isRunning)
+    {
+        if (isRunning)
+            return FleetState.Running;
+
+        if (string.IsNullOrEmpty(headline))
+            return FleetState.NotDeployed;
+
+        if (!Enum.TryParse<ActualStateHeadline>(headline, out var state))
+            return FleetState.Failed;
+
+        return state switch
+        {
+            ActualStateHeadline.Applied => FleetState.Applied,
+            ActualStateHeadline.Destroyed => FleetState.Destroyed,
+            ActualStateHeadline.None => FleetState.NotDeployed,
+            _ => FleetState.Failed
+        };
+    }
+
+    private async Task LoadFavorites()
+    {
+        using var favoriteRepo = FavoriteRepoFactory.Create(Principal());
+        var favorites = await favoriteRepo.List(OrganizationId);
+
+        var rows = new List<FavoriteRow>();
+        if (favorites.Count == 0)
+        {
+            _favorites = rows;
+            return;
+        }
+
+        // Namespace and stack favorites need name resolution through the secured repos;
+        // module favorites resolve against the already-loaded (secured) module list.
+        var namespaceIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Namespace).Select(f => f.TargetId).ToList();
+        var stackIds = favorites.Where(f => f.TargetType == FavoriteTargetType.Stack).Select(f => f.TargetId).ToList();
+
+        var namespaceLookup = new Dictionary<Guid, NamespaceNameRow>();
+        if (namespaceIds.Any())
+        {
+            using var namespaceRepo = NamespaceRepoFactory.Create(Principal());
+            var namespaces = await namespaceRepo.List(OrganizationId, q => q
+                .Where(n => namespaceIds.Contains(n.Id))
+                .Select(n => new NamespaceNameRow { Id = n.Id, Name = n.Name, StackName = n.Stack.Name }));
+            namespaceLookup = namespaces.ToDictionary(n => n.Id);
+        }
+
+        var stackLookup = new Dictionary<Guid, string>();
+        if (stackIds.Any())
+        {
+            using var stackRepo = StackRepoFactory.Create(Principal());
+            var stacks = await stackRepo.List(OrganizationId, q => q
+                .Where(s => stackIds.Contains(s.Id))
+                .Select(s => new StackNameRow { Id = s.Id, Name = s.Name }));
+            stackLookup = stacks.ToDictionary(s => s.Id, s => s.Name);
+        }
+
+        var moduleLookup = _modules.ToDictionary(m => m.Id);
+
+        foreach (var favorite in favorites)
+        {
+            switch (favorite.TargetType)
+            {
+                case FavoriteTargetType.Module when moduleLookup.TryGetValue(favorite.TargetId, out var module):
+                    rows.Add(new FavoriteRow
+                    {
+                        Id = favorite.Id,
+                        TargetType = FavoriteTargetType.Module,
+                        StackName = module.StackName,
+                        NamespaceName = module.NamespaceName,
+                        ModuleName = module.Name,
+                        ModuleFleetState = Classify(module)
+                    });
+                    break;
+                case FavoriteTargetType.Namespace when namespaceLookup.TryGetValue(favorite.TargetId, out var ns):
+                    rows.Add(new FavoriteRow
+                    {
+                        Id = favorite.Id,
+                        TargetType = FavoriteTargetType.Namespace,
+                        StackName = ns.StackName,
+                        NamespaceName = ns.Name
+                    });
+                    break;
+                case FavoriteTargetType.Stack when stackLookup.TryGetValue(favorite.TargetId, out var stackName):
+                    rows.Add(new FavoriteRow
+                    {
+                        Id = favorite.Id,
+                        TargetType = FavoriteTargetType.Stack,
+                        StackName = stackName
+                    });
+                    break;
+                // Unresolvable favorites (target deleted or no longer readable) are silently omitted
+            }
+        }
+
+        // Same presentation as the nav menu: grouped by target type, alphabetical within each group
+        _favorites = rows
+            .OrderBy(r => r.TargetType)
+            .ThenBy(r => r.StackName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.NamespaceName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.ModuleName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task LoadApprovals()
+    {
+        using var jobRepo = JobRepoFactory.Create(Principal());
+        _pendingApprovals = await jobRepo.List(OrganizationId, q => q
+                .Where(j => j.WaitingForApproval == true && j.Status == ExecutionStatus.Running)
+                .Select(j => new PendingApprovalRow
+                {
+                    JobId = j.Id,
+                    JobNumber = j.JobNumber,
+                    JobType = j.JobType,
+                    TimestampStart = j.TimestampStart,
+                    ModuleName = j.Module.Name,
+                    NamespaceName = j.Module.Namespace.Name,
+                    StackName = j.Module.Namespace.Stack.Name
+                }),
+            orderBy: q => q.OrderBy(x => x.TimestampStart));
+    }
+
+    private async Task LoadRecentActivity()
+    {
+        // Server-side paging: only the visible page (10 rows) is loaded; further pages load
+        // on navigation. The feed is capped at 50 rows (5 pages).
+        using var jobRepo = JobRepoFactory.Create(Principal());
+        var cappedCount = await jobRepo.Count(OrganizationId, q => q.Take(RecentActivityMaxRows));
+        _activityTotalPages = Math.Max(1, (int)Math.Ceiling(cappedCount / (double)DashboardPageSize));
+        _activityHasAny = cappedCount > 0;
+        _activityPage = Math.Min(_activityPage, _activityTotalPages);
+
+        // Real-time reloads refresh whichever page the user is looking at; other cached
+        // pages are dropped so stale rows never linger
+        _activityPages = new Dictionary<int, List<ActivityRow>>
+        {
+            [_activityPage] = await FetchActivityPage(_activityPage)
+        };
+    }
+
+    private async Task<List<ActivityRow>> FetchActivityPage(int page)
+    {
+        using var jobRepo = JobRepoFactory.Create(Principal());
+        return await jobRepo.List(OrganizationId, q => q
+                .Select(j => new ActivityRow
+                {
+                    JobId = j.Id,
+                    JobNumber = j.JobNumber,
+                    JobType = j.JobType,
+                    Status = j.Status,
+                    WaitingForApproval = j.WaitingForApproval,
+                    TimestampStart = j.TimestampStart,
+                    TimestampEnd = j.TimestampEnd,
+                    ModuleName = j.Module.Name,
+                    NamespaceName = j.Module.Namespace.Name,
+                    StackName = j.Module.Namespace.Stack.Name
+                }),
+            orderBy: q => q.OrderByDescending(x => x.TimestampStart),
+            pageNumber: page,
+            pageSize: DashboardPageSize);
+    }
+
+    private async Task OnActivityPageChanged(int page)
+    {
+        _activityPage = page;
+        if (!_activityPages.ContainsKey(page))
+        {
+            _activityPages[page] = await FetchActivityPage(page);
+        }
+    }
+
+    private async Task LoadWeekActivity()
+    {
+        // Window = the 7 displayed UTC days. The cutoff must be an explicit UTC DateTimeOffset:
+        // comparing a bare DateTime against TimestampStart would convert using the server's
+        // LOCAL offset, letting jobs from before the window into the totals but not the bars.
+        var windowStart = DateTime.UtcNow.Date.AddDays(-6);
+        var cutoff = new DateTimeOffset(windowStart, TimeSpan.Zero);
+
+        using var jobRepo = NonsecuredJobRepoFactory.Create(Principal());
+        // Aggregate in SQL: ~14 (day, status) buckets instead of one row per job
+        var buckets = await jobRepo.List(OrganizationId, q => q
+            .Where(j => j.TimestampStart >= cutoff)
+            .GroupBy(j => new { j.TimestampStart.Date, j.Status })
+            .Select(g => new WeekBucket { Date = g.Key.Date, Status = g.Key.Status, Count = g.Count() }));
+
+        // Defensive clamp so the caption always equals the sum of the bars
+        buckets = buckets.Where(b => b.Date >= windowStart && b.Date <= DateTime.UtcNow.Date).ToList();
+
+        _weekTotal = buckets.Sum(b => b.Count);
+        var succeeded = buckets.Where(b => b.Status == ExecutionStatus.Completed).Sum(b => b.Count);
+        var failed = buckets.Where(b => b.Status == ExecutionStatus.Failed).Sum(b => b.Count);
+        _weekSuccessRate = succeeded + failed > 0 ? (int)Math.Round(100.0 * succeeded / (succeeded + failed)) : null;
+
+        // Every job in the window lands in exactly one of ok/fail/other, so the bars
+        // always sum to the caption's total
+        var byDay = buckets
+            .GroupBy(b => b.Date)
+            .ToDictionary(g => g.Key, g => (
+                Ok: g.Where(b => b.Status == ExecutionStatus.Completed).Sum(b => b.Count),
+                Fail: g.Where(b => b.Status == ExecutionStatus.Failed).Sum(b => b.Count),
+                Other: g.Where(b => b.Status != ExecutionStatus.Completed && b.Status != ExecutionStatus.Failed).Sum(b => b.Count)));
+
+        var maxCount = byDay.Values.Select(v => v.Ok + v.Fail + v.Other).DefaultIfEmpty(0).Max();
+
+        _weekDays = Enumerable.Range(0, 7)
+            .Select(i =>
+            {
+                var date = DateTime.UtcNow.Date.AddDays(i - 6);
+                byDay.TryGetValue(date, out var counts);
+                return new WeekDay
+                {
+                    Label = date.ToString("ddd", CultureInfo.InvariantCulture),
+                    IsToday = i == 6,
+                    OkCount = counts.Ok,
+                    FailCount = counts.Fail,
+                    OtherCount = counts.Other,
+                    SucceededHeight = maxCount > 0 ? (int)Math.Round(90.0 * counts.Ok / maxCount) : 0,
+                    FailedHeight = maxCount > 0 ? (int)Math.Round(90.0 * counts.Fail / maxCount) : 0,
+                    OtherHeight = maxCount > 0 ? (int)Math.Round(90.0 * counts.Other / maxCount) : 0
+                };
+            })
+            .ToList();
+    }
+
+    private async Task LoadInfrastructure()
+    {
+        using var runnerRepo = NonsecuredRunnerRepoFactory.Create(Principal());
+        var runners = await runnerRepo.List(OrganizationId, q => q.Select(r => new RunnerRow { Id = r.Id, Name = r.Name, IsDisabled = r.IsDisabled }));
+        _runnerCount = runners.Count;
+        _runnerIds = runners.Select(r => r.Id).ToList();
+
+        using var connectionRepo = RunnerConnectionRepoFactory.Create();
+        var connectedRunnerIds = await connectionRepo.GetConnectedRunnerIds(OrganizationId);
+        _connectedRunnerCount = runners.Count(r => connectedRunnerIds.Contains(r.Id));
+        _runnersWithoutInstances = runners
+            .Where(r => !connectedRunnerIds.Contains(r.Id) && !r.IsDisabled)
+            .Select(r => r.Name)
+            .ToList();
+
+        using var agentRepo = NonsecuredAgentRepoFactory.Create(Principal());
+        var agents = await agentRepo.List(OrganizationId, q => q.Select(a => new RunnerRow { Id = a.Id, Name = a.Name, IsDisabled = a.IsDisabled }));
+        _agentCount = agents.Count;
+
+        using var agentConnectionRepo = AgentConnectionRepoFactory.Create();
+        var connectedAgentIds = await agentConnectionRepo.GetConnectedAgentIds(OrganizationId);
+        _connectedAgentCount = agents.Count(a => connectedAgentIds.Contains(a.Id));
+
+        using var stateStoreRepo = NonsecuredStateStoreRepoFactory.Create(Principal());
+        _stateStoreCount = await stateStoreRepo.Count(OrganizationId);
+
+        using var integrationRepo = NonsecuredIntegrationRepoFactory.Create(Principal());
+        _integrationCount = await integrationRepo.Count(OrganizationId);
+    }
+
+    private async Task LoadCounts()
+    {
+        using var stackRepo = NonsecuredStackRepoFactory.Create(Principal());
+        _stackCount = await stackRepo.Count(OrganizationId);
+
+        using var namespaceRepo = NonsecuredNamespaceRepoFactory.Create(Principal());
+        _namespaceCount = await namespaceRepo.Count(OrganizationId);
+    }
+
+    private void BuildFleetSegments()
+    {
+        var total = _fleetTotal;
+        if (total == 0)
+        {
+            _fleetSegments = new List<FleetSegment>();
+            return;
+        }
+
+        var counts = _fleetCounts;
+
+        _fleetSegments = new List<(FleetState State, string Label, string Color)>
+            {
+                (FleetState.Applied, "applied", "var(--mud-palette-success)"),
+                (FleetState.Failed, "failed", "var(--mud-palette-error)"),
+                (FleetState.Running, "running", "var(--snap-accent, #E85D1A)"),
+                (FleetState.Destroyed, "destroyed", "var(--snap-fog, #8B96A0)"),
+                (FleetState.NotDeployed, "not deployed", "var(--snap-steel, #4A5561)")
+            }
+            .Where(s => counts.ContainsKey(s.State))
+            .Select(s => new FleetSegment
+            {
+                Label = s.Label,
+                Color = s.Color,
+                Count = counts[s.State],
+                Percent = (100.0 * counts[s.State] / total).ToString("0.###", CultureInfo.InvariantCulture) + "%"
+            })
+            .ToList();
+    }
+
+    private static FleetState Classify(ModuleRow module)
+    {
+        if (module.CurrentStatus == ExecutionStatus.Running)
+            return FleetState.Running;
+
+        switch (module.ActualState)
+        {
+            case ActualStateHeadline.Applied:
+                return FleetState.Applied;
+            case ActualStateHeadline.Destroyed:
+                return FleetState.Destroyed;
+            case null:
+            case ActualStateHeadline.None:
+                return FleetState.NotDeployed;
+            default:
+                return FleetState.Failed;
+        }
+    }
+
+    private static string ModuleUrl(string stack, string ns, string module) => $"/Module/{stack}/{ns}/{module}";
+
+    private static string GetFavoriteGroupLabel(FavoriteTargetType targetType) => targetType switch
+    {
+        FavoriteTargetType.Stack => "Stacks",
+        FavoriteTargetType.Namespace => "Namespaces",
+        _ => "Modules"
+    };
+
+    private static string GetFavoriteIcon(FavoriteTargetType targetType) => targetType switch
+    {
+        FavoriteTargetType.Stack => SnapCdIcons.Layers,
+        FavoriteTargetType.Namespace => SnapCdIcons.Columns,
+        _ => SnapCdIcons.ViewModule
+    };
+
+    private static string GetFleetStateDotClass(FleetState state) => state switch
+    {
+        FleetState.Applied => "dash-dot-success",
+        FleetState.Failed => "dash-dot-error",
+        FleetState.Running => "dash-dot-running",
+        _ => "dash-dot-neutral"
+    };
+
+    private static string GetFleetStateLabel(FleetState state) => state switch
+    {
+        FleetState.Applied => "applied",
+        FleetState.Failed => "failed",
+        FleetState.Running => "running",
+        FleetState.Destroyed => "destroyed",
+        _ => "not deployed"
+    };
+
+    private static string FormatJobType(string jobType) => jobType switch
+    {
+        "ApplyJobSaga" => "Apply",
+        "DestroyJobSaga" => "Destroy",
+        _ => jobType
+    };
+
+    private static string FormatActualState(ActualStateHeadline? state)
+    {
+        if (state == null) return "failed";
+
+        // "ApplyFailed" -> "apply failed"
+        var text = string.Concat(state.ToString()!.Select((c, i) => i > 0 && char.IsUpper(c) ? " " + char.ToLowerInvariant(c) : char.ToLowerInvariant(c).ToString()));
+        return text;
+    }
+
+    private static string FormatQueuedReason(QueuedReason? reason) => reason switch
+    {
+        QueuedReason.WaitingOnRunningJob => "waiting on running job",
+        QueuedReason.WaitingOnDependencies => "waiting on dependencies",
+        QueuedReason.WaitingOnRunnerCheckin => "waiting on runner check-in",
+        _ => "queued"
+    };
+
+    private static string GetJobDotClass(ActivityRow job)
+    {
+        if (job.Status == ExecutionStatus.Running && job.WaitingForApproval == true)
+            return "dash-dot-accent";
+
+        return job.Status switch
+        {
+            ExecutionStatus.Running => "dash-dot-running",
+            ExecutionStatus.Completed => job.JobType == "DestroyJobSaga" ? "dash-dot-neutral" : "dash-dot-success",
+            ExecutionStatus.Failed => "dash-dot-error",
+            ExecutionStatus.NotApproved => "dash-dot-error",
+            _ => "dash-dot-neutral"
+        };
+    }
+
+    private static string GetJobStatusLabel(ActivityRow job)
+    {
+        if (job.Status == ExecutionStatus.Running && job.WaitingForApproval == true)
+            return "Waiting for approval";
+
+        return job.Status switch
+        {
+            ExecutionStatus.Running => "Running",
+            ExecutionStatus.Completed => job.JobType == "DestroyJobSaga" ? "Destroyed" : "Applied",
+            ExecutionStatus.Failed => "Failed",
+            ExecutionStatus.NotApproved => "Not approved",
+            ExecutionStatus.Cancelled => "Cancelled",
+            _ => job.Status.ToString()
+        };
+    }
+
+    private static string FormatTimeAgo(DateTimeOffset timestamp)
+    {
+        var elapsed = DateTimeOffset.UtcNow - timestamp;
+        return elapsed.TotalMinutes < 1 ? "just now"
+            : elapsed.TotalMinutes < 60 ? $"{(int)elapsed.TotalMinutes}m ago"
+            : elapsed.TotalHours < 24 ? $"{(int)elapsed.TotalHours}h ago"
+            : elapsed.TotalHours < 48 ? "yesterday"
+            : $"{(int)elapsed.TotalDays}d ago";
+    }
+
+    private static string FormatWaitTime(DateTimeOffset timestamp)
+    {
+        var elapsed = DateTimeOffset.UtcNow - timestamp;
+        return elapsed.TotalMinutes < 1 ? "less than a minute"
+            : elapsed.TotalMinutes < 60 ? $"{(int)elapsed.TotalMinutes}m"
+            : elapsed.TotalHours < 24 ? $"{(int)elapsed.TotalHours}h"
+            : $"{(int)elapsed.TotalDays}d";
+    }
+
+    private static string? FormatDuration(DateTimeOffset start, DateTimeOffset? end)
+    {
+        var duration = (end ?? DateTimeOffset.UtcNow) - start;
+        if (duration.TotalSeconds < 1) return null;
+        if (duration.TotalSeconds < 60) return $"{(int)duration.TotalSeconds}s";
+        if (duration.TotalMinutes < 60) return $"{(int)duration.TotalMinutes}m {duration.Seconds}s";
+        return $"{(int)duration.TotalHours}h {duration.Minutes}m";
+    }
+
+    private enum FleetState
+    {
+        Applied,
+        Failed,
+        Running,
+        Destroyed,
+        NotDeployed
+    }
+
+    private class ModuleRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string NamespaceName { get; set; } = null!;
+        public string StackName { get; set; } = null!;
+        public ExecutionStatus? CurrentStatus { get; set; }
+        public ActualStateHeadline? ActualState { get; set; }
+        public DateTimeOffset? CurrentJobStart { get; set; }
+        public DesiredStateHeadline? QueuedDesired { get; set; }
+        public QueuedReason? QueuedReasonValue { get; set; }
+    }
+
+    private class RunnerRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public bool IsDisabled { get; set; }
+    }
+
+    private class FavoriteRow
+    {
+        public Guid Id { get; set; }
+        public FavoriteTargetType TargetType { get; set; }
+        public string StackName { get; set; } = null!;
+        public string? NamespaceName { get; set; }
+        public string? ModuleName { get; set; }
+        public FleetState? ModuleFleetState { get; set; }
+    }
+
+    private class NamespaceNameRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string StackName { get; set; } = null!;
+    }
+
+    private class StackNameRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+    }
+
+    private class WeekBucket
+    {
+        public DateTime Date { get; set; }
+        public ExecutionStatus Status { get; set; }
+        public int Count { get; set; }
+    }
+
+    private class PendingApprovalRow
+    {
+        public Guid JobId { get; set; }
+        public int JobNumber { get; set; }
+        public string JobType { get; set; } = null!;
+        public DateTimeOffset TimestampStart { get; set; }
+        public string ModuleName { get; set; } = null!;
+        public string NamespaceName { get; set; } = null!;
+        public string StackName { get; set; } = null!;
+    }
+
+    private class ActivityRow
+    {
+        public Guid JobId { get; set; }
+        public int JobNumber { get; set; }
+        public string JobType { get; set; } = null!;
+        public ExecutionStatus Status { get; set; }
+        public bool? WaitingForApproval { get; set; }
+        public DateTimeOffset TimestampStart { get; set; }
+        public DateTimeOffset? TimestampEnd { get; set; }
+        public string ModuleName { get; set; } = null!;
+        public string NamespaceName { get; set; } = null!;
+        public string StackName { get; set; } = null!;
+    }
+
+    private class FleetSegment
+    {
+        public string Label { get; set; } = null!;
+        public string Color { get; set; } = null!;
+        public int Count { get; set; }
+        public string Percent { get; set; } = null!;
+    }
+
+    private class WeekDay
+    {
+        public string Label { get; set; } = null!;
+        public bool IsToday { get; set; }
+        public int OkCount { get; set; }
+        public int FailCount { get; set; }
+        public int OtherCount { get; set; }
+        public int SucceededHeight { get; set; }
+        public int FailedHeight { get; set; }
+        public int OtherHeight { get; set; }
+    }
 }

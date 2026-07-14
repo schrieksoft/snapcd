@@ -13,6 +13,8 @@
 @inject SnapCd.Server.Core.Services.OrganizationContext.IOrganizationContext OrganizationContext
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 
 @using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
@@ -35,7 +37,7 @@
 
     @if (_showCreate)
     {
-        <MudPaper Class="pa-4 mb-3" Elevation="1">
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
             <MudText Typo="Typo.h6" GutterBottom="true">New Integration</MudText>
             <MudSelect T="IntegrationType" @bind-Value="_create.IntegrationType" Label="Integration Type" Class="mb-2">
                 @foreach (var t in Enum.GetValues<IntegrationType>())
@@ -49,17 +51,19 @@
                 <MudTextField @bind-Value="_create.DefaultChannel" Label="Default channel (e.g. #alerts or channel id)" Class="mb-2" />
                 <MudTextField @bind-Value="_create.BotToken" Label="Bot token (xoxb-…)" InputType="MudBlazor.InputType.Password" Class="mb-2" />
             }
-            <MudSwitch T="bool" @bind-Value="_create.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Default" />
-            <MudSwitch T="bool" @bind-Value="_create.Enabled" Label="Enabled" Color="Color.Default" />
-            <div class="mt-2">
-                <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="SubmitCreate" Class="me-2">Create</MudButton>
-                <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="@(() => _showCreate = false)">Cancel</MudButton>
-            </div>
+            <MudSwitch T="bool" @bind-Value="_create.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary" />
+            <MudSwitch T="bool" @bind-Value="_create.Enabled" Label="Enabled" Color="Color.Secondary" />
+            <MudStack Row Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="SubmitCreate">Create</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => _showCreate = false)">Cancel</MudButton>
+            </MudStack>
         </MudPaper>
     }
     else
     {
-        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="ShowCreate" Class="mt-2 mb-2">Create New</MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="ShowCreate">Create</MudButton>
+        </MudPaper>
     }
 
     @if (_integrations is null)
@@ -88,37 +92,37 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Edit Integration">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(i.Id, ShowingType.Edit)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.Edit)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Integration Events">
-                            <MudIconButton Icon="@Icons.Material.Filled.Bolt"
+                            <MudIconButton Icon="@SnapCdIcons.Bolt"
                                            Color="@GetColor(i.Id, ShowingType.IntegrationEvents)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.IntegrationEvents)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Supplies">
-                            <MudIconButton Icon="@Icons.Material.Filled.Layers"
+                            <MudIconButton Icon="@SnapCdIcons.Layers"
                                            Color="@GetColor(i.Id, ShowingType.Supplies)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.Supplies)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage Roles">
-                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(i.Id, ShowingType.Roles)" Size="Size.Small"
                                            OnClick="() => SelectShowing(i.Id, ShowingType.Roles)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Test Connection">
-                            <MudIconButton Icon="@Icons.Material.Filled.NetworkCheck"
+                            <MudIconButton Icon="@SnapCdIcons.NetworkCheck"
                                            Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Test(i.Id)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete Integration">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Delete(i.Id)"/>
                         </MudTooltip>
 
@@ -134,10 +138,10 @@
                                             <MudTextField @bind-Value="m.DefaultChannel" Label="Default channel" Class="mb-2" />
                                             <MudTextField @bind-Value="m.BotToken" Label="Bot token (leave masked to keep)" InputType="MudBlazor.InputType.Password" Class="mb-2" />
                                         }
-                                        <MudSwitch T="bool" @bind-Value="m.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Default" />
-                                        <MudSwitch T="bool" @bind-Value="m.Enabled" Label="Enabled" Color="Color.Default" />
+                                        <MudSwitch T="bool" @bind-Value="m.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary" />
+                                        <MudSwitch T="bool" @bind-Value="m.Enabled" Label="Enabled" Color="Color.Secondary" />
                                         <div class="mt-2">
-                                            <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="@(() => SaveEdit(i.Id))" Class="me-2">Save</MudButton>
+                                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => SaveEdit(i.Id))">Save</MudButton>
                                         </div>
                                     </MudPaper>
                                 }
@@ -204,7 +208,7 @@
     {
         if (_selectedIntegrationId is null) return Color.Primary;
         if (integrationId == _selectedIntegrationId)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 
@@ -400,6 +404,18 @@
 
     private async Task Delete(Guid id)
     {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, "This permanently deletes the integration and its event subscriptions. This cannot be undone." },
+            { x => x.ButtonText, "Delete" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Integration", parameters, options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+            return;
+
         try
         {
             await Service.Delete(id, OrganizationId);

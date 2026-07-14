@@ -27,8 +27,8 @@ else if (_stateFiles.Count == 0)
 else
 {
     <MudTooltip Text="Search state files">
-        <MudIconButton Icon="@Icons.Material.Filled.Search"
-                       Color="@(_showSearch ? Color.Info : Color.Primary)"
+        <MudIconButton Icon="@SnapCdIcons.Search"
+                       Color="@(_showSearch ? Color.Secondary : Color.Primary)"
                        Size="Size.Small"
                        OnClick="@(() => _showSearch = !_showSearch)"/>
     </MudTooltip>
@@ -38,7 +38,7 @@ else
         <MudTextField @bind-Value="_searchString"
                       Placeholder="Search state files"
                       Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      AdornmentIcon="@SnapCdIcons.Search"
                       IconSize="Size.Small"
                       Immediate="true"
                       Class="mb-2"
@@ -70,18 +70,18 @@ else
                 <ChildContent>
                     <div class="d-flex align-center gap-2 mb-2">
                         <MudTooltip Text="Rename">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Edit" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => RenameStateFile(stateFile)"/>
                         </MudTooltip>
                         @if (!string.IsNullOrEmpty(stateFile.LockId))
                         {
                             <MudTooltip Text="Force Unlock">
-                                <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Color="Color.Primary" Size="Size.Small"
+                                <MudIconButton Icon="@SnapCdIcons.LockOpen" Color="Color.Primary" Size="Size.Small"
                                                OnClick="() => ForceUnlock(stateFile)"/>
                             </MudTooltip>
                         }
                         <MudTooltip Text="Delete State File">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => DeleteStateFile(stateFile)"/>
                         </MudTooltip>
                     </div>
@@ -107,7 +107,7 @@ else
                                                     <MudText>@version.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
                                                     @if (version.IsLatest)
                                                     {
-                                                        <MudChip T="string" Color="Color.Info" Size="Size.Small">Current</MudChip>
+                                                        <MudChip T="string" Color="Color.Default" Size="Size.Small">Current</MudChip>
                                                     }
                                                 </div>
                                                 <div class="d-flex align-center gap-2" style="margin-right: 16px;">
@@ -118,18 +118,18 @@ else
                                         <ChildContent>
                                             <div class="d-flex align-center gap-2 mb-2">
                                                 <MudTooltip Text="Download">
-                                                    <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Primary" Size="Size.Small"
+                                                    <MudIconButton Icon="@SnapCdIcons.Download" Color="Color.Primary" Size="Size.Small"
                                                                    OnClick="() => DownloadVersion(version)"/>
                                                 </MudTooltip>
                                                 @if (!version.IsLatest)
                                                 {
                                                     <MudTooltip Text="Restore">
-                                                        <MudIconButton Icon="@Icons.Material.Filled.RestorePage" Color="Color.Primary" Size="Size.Small"
+                                                        <MudIconButton Icon="@SnapCdIcons.RestorePage" Color="Color.Primary" Size="Size.Small"
                                                                        OnClick="() => RestoreVersion(stateFile, version)"/>
                                                     </MudTooltip>
                                                 }
                                                 <MudTooltip Text="Delete Version">
-                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                                                    <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                                                    OnClick="() => DeleteVersion(stateFile, version)"/>
                                                 </MudTooltip>
                                             </div>

@@ -18,7 +18,9 @@ namespace SnapCd.Server.Core.Views;
 public class ModuleJobView
 {
     public required Guid Id { get; init; }
+    public required int JobNumber { get; init; }
     public required DateTimeOffset TimestampStart { get; init; }
+    public DateTimeOffset? TimestampEnd { get; set; }
     public required ExecutionStatus Status { get; set; }
     public required string JobType { get; init; }
     public ServerSideStep? FailedOnServerSideStep { get; set; }

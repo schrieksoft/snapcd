@@ -16,7 +16,7 @@
 
 
 @* <MudTooltip Text="Refresh"> *@
-@*     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="MudBlazor.Color.Primary" Size="Size.Medium" *@
+@*     <MudIconButton Icon="@SnapCdIcons.Refresh" Color="MudBlazor.Color.Primary" Size="Size.Medium" *@
 @*                    OnClick="() => ReloadLogs()"/> *@
 @* </MudTooltip> *@
 
@@ -35,7 +35,7 @@ else
                                Expanded="@(kvp.Key == _expandedTask)"
                                ExpandedChanged="@(isExpanded => OnTaskPanelExpanded(isExpanded, kvp.Key))">
                 <TitleContent>
-                    <MudText>@kvp.Key</MudText>
+                    <MudText Typo="Typo.body2">@kvp.Key</MudText>
                 </TitleContent>
                 <ChildContent>
                     <div

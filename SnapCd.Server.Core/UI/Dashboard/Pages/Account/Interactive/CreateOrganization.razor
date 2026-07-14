@@ -48,12 +48,13 @@
                               Variant="Variant.Outlined" FullWidth="true"
                               Required="true"
                               MaxLength="100"
+                              Validation="@((string s) => NameValidator.Validate(s, "Organization"))"
                               For="@(() => Input.Name)"/>
             </MudItem>
             <MudItem xs="12">
                 <div class="sign-in-container">
                     <div class="divider-line"></div>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large"
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                ButtonType="ButtonType.Submit" Class="sign-in-btn">
                         Create Organization
                     </MudButton>

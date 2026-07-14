@@ -100,7 +100,7 @@
             <MudItem xs="12">
                 <div class="complete-button-container">
                     <div class="divider-line"></div>
-                    <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                    <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                      FormAction="FormAction.Submit" Class="complete-btn">
                         Create Account
                     </MudStaticButton>
@@ -145,12 +145,12 @@
 
     .complete-btn {
         flex-shrink: 0;
-        background-color: #000 !important;
+        background-color: var(--snap-accent) !important;
         color: white !important;
     }
 
     .complete-btn:hover {
-        background-color: #333 !important;
+        background-color: var(--snap-accent-hover) !important;
         color: white !important;
     }
 

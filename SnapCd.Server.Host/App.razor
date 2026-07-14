@@ -11,13 +11,13 @@
 @inject NavigationManager NavigationManager
 
 <!DOCTYPE html>
-<html lang="en" class="@((HttpContext.Request.Cookies["theme"] ?? "light") == "dark" ? "mud-dark" : "")">
+<html lang="en" class="@((HttpContext.Request.Cookies["theme"] ?? "dark") == "dark" ? "mud-dark" : "")">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <base href="/"/>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet"/>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet"/>
+    <link href="_content/SnapCd.Server.Core/snapcd-theme.css" rel="stylesheet"/>
     <link rel="icon" type="image/svg+xml" href="_content/SnapCd.Server.Core/favicon.svg"/>
     <link href="_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.css" rel="stylesheet"/>
     <HeadOutlet @rendermode="RenderModeForPage"/>
@@ -25,7 +25,7 @@
     <script>
         // Immediate cookie-based theme setup
         (function () {
-            const theme = document.cookie.replace(/(?:(?:^|.*;\s*)theme\s*=\s*([^;]*).*$)|^.*$/, '$1') || 'light';
+            const theme = document.cookie.replace(/(?:(?:^|.*;\s*)theme\s*=\s*([^;]*).*$)|^.*$/, '$1') || 'dark';
             document.documentElement.classList.toggle('mud-dark', theme === 'dark');
 
             window.setThemeCookie = (theme) => {
@@ -36,37 +36,6 @@
     </script>
 </head>
 
-<style>
-    .mud-button-root .mud-button-label {
-        text-transform: lowercase !important;
-    }
-
-    .mud-button-root {
-        border-radius: 24px !important;
-    }
-
-    .mud-tabs .mud-tabs-tabbar {
-        text-transform: lowercase !important;
-    }
-
-    /* Force all Secondary buttons to be black with white text in both modes */
-    .mud-button-filled.mud-button-filled-secondary {
-        background-color: #000 !important;
-        color: white !important;
-    }
-
-    .mud-button-filled.mud-button-filled-secondary:hover {
-        background-color: #333 !important;
-        color: white !important;
-    }
-
-    /* Also handle focus states */
-    .mud-button-filled.mud-button-filled-secondary:focus {
-        background-color: #000 !important;
-        color: white !important;
-    }
-
-</style>
 <body>
 
 <Routes @rendermode="RenderModeForPage"/>

@@ -10,6 +10,7 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 @using Stack = SnapCd.Server.Core.Entities.Definition.Stack
 
 <MudExpansionPanels MultiExpansion="false">
@@ -17,7 +18,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Edit, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Edit" Size="Size.Small"/>
                 <MudText>Edit Stack</MudText>
             </div>
         </TitleContent>
@@ -36,7 +37,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Roles, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Shield" Size="Size.Small"/>
                 <MudText>Manage Roles</MudText>
             </div>
         </TitleContent>
@@ -54,7 +55,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Missions, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="material-symbols-outlined/automation" Size="Size.Small" Style="font-size: 1.25rem"/>
+                <MudIcon Icon="@SnapCdIcons.Automation" Size="Size.Small"/>
                 <MudText>Manage Missions</MudText>
             </div>
         </TitleContent>
@@ -70,7 +71,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.IntegrationEvents, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Bolt" Size="Size.Small"/>
                 <MudText>Manage Integration Events</MudText>
             </div>
         </TitleContent>
@@ -86,14 +87,15 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Secrets, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Password" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Password" Size="Size.Small"/>
                 <MudText>Manage Secrets</MudText>
             </div>
         </TitleContent>
         <ChildContent>
             @if (IsSection(Section.Secrets))
             {
-                <ManageStackSecrets StackId="Stack.Id"/>
+                <ManageStackSecrets StackId="Stack.Id"
+                                    PrincipalProvider="@PrincipalProvider"/>
             }
         </ChildContent>
     </MudExpansionPanel>
@@ -102,7 +104,7 @@
                        ExpandedChanged="@(e => HandleSectionChanged(Section.Delete, e))">
         <TitleContent>
             <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small"/>
+                <MudIcon Icon="@SnapCdIcons.Delete" Size="Size.Small"/>
                 <MudText>Delete Stack</MudText>
             </div>
         </TitleContent>
@@ -114,12 +116,14 @@
                 </MudAlert>
                 <div class="d-flex gap-2">
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="DeleteStack">
                         Delete
                     </MudButton>
                     <MudButton Variant="Variant.Filled"
-                               Style="background-color: #000; color: #fff;"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="@(() => CollapseSection())">
                         Cancel
                     </MudButton>
@@ -140,6 +144,7 @@
 
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
 
     private Section _activeSection = Section.None;
 
@@ -194,6 +199,20 @@
 
     private async Task DeleteStack()
     {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"This permanently deletes stack \"{Stack.Name}\" including all of its namespaces, modules and job history. This cannot be undone. Type the stack name to confirm." },
+            { x => x.ButtonText, "Delete" },
+            { x => x.RequireConfirmation, true },
+            { x => x.ConfirmationText, Stack.Name }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Stack", parameters, options);
+        var result = await dialog.Result;
+        if (result is not { Canceled: false })
+            return;
+
         try
         {
             using var repo = RepoFactory.Create();

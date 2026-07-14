@@ -75,7 +75,7 @@
                             @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
                             {
                                 <MudTooltip Text="You do not have permission to destroy this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                    <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                              Size="Size.Small"/>
                                 </MudTooltip>
                             }
@@ -93,7 +93,7 @@
                 <MudCheckBox T="bool"
                              Value="@_destroyExternalModules"
                              Label="Also destroy these dependent modules"
-                             Color="Color.Info"
+                             Color="Color.Secondary"
                              Class="mb-3"
                              Disabled="@_isDestroying"
                              ValueChanged="@OnDestroyExternalModulesChanged"
@@ -107,7 +107,7 @@
                             @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
                             {
                                 <MudTooltip Text="You do not have permission to destroy this module">
-                                    <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning"
+                                    <MudIcon Icon="SnapCdIcons.Warning" Color="Color.Warning"
                                              Size="Size.Small"/>
                                 </MudTooltip>
                             }
@@ -124,7 +124,7 @@
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     <MudList T="string" Dense="true">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                        <MudListItem T="string" Icon="@SnapCdIcons.Check">
                             <MudText Typo="Typo.body2" Color="Color.Success">No modules outside this namespace depend on
                                 ones within it
                             </MudText>
@@ -163,8 +163,8 @@
             var filteredGraph = GetFilteredGraph();
             var uninvolvedCount = GetUninvolvedModuleIds().Count;
             var involvedCount = filteredGraph.NodeStates.Count - uninvolvedCount;
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="ExecuteNamespaceDestruction"
                        Disabled="@_isDestroying">
                 @if (_isDestroying)
@@ -178,8 +178,9 @@
             </MudButton>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Style="background-color: black; color: white;"
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                            Size="Size.Small"
+                   
                    OnClick="Cancel"
                    Disabled="@_isDestroying">
             Cancel

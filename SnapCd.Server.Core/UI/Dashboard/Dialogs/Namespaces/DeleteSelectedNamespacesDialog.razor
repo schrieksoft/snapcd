@@ -62,7 +62,7 @@
                             <MudExpansionPanel Class="mb-1">
                                 <TitleContent>
                                     <div style="display: flex; align-items: center; gap: 8px;">
-                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                        <MudIcon Icon="@SnapCdIcons.CheckCircle" Color="Color.Success"
                                                  Size="Size.Small"/>
                                         <MudText>@namespaceStatus.Namespace.Name</MudText>
                                     </div>
@@ -74,14 +74,14 @@
                                             <MudListSubheader>Dependencies within deletion list:</MudListSubheader>
                                             @foreach (var dep in namespaceStatus.InternalDependencies)
                                             {
-                                                <MudListItem T="string" Icon="@Icons.Material.Filled.Link">
+                                                <MudListItem T="string" Icon="@SnapCdIcons.Link">
                                                     <MudText Typo="Typo.body2" Color="Color.Success">@dep</MudText>
                                                 </MudListItem>
                                             }
                                         }
                                         else
                                         {
-                                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check">
+                                            <MudListItem T="string" Icon="@SnapCdIcons.Check">
                                                 <MudText Typo="Typo.body2" Color="Color.Success">No cross-namespace
                                                     dependencies
                                                 </MudText>
@@ -103,7 +103,7 @@
                             <MudExpansionPanel Class="mb-1">
                                 <TitleContent>
                                     <div style="display: flex; align-items: center; gap: 8px;">
-                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error"
+                                        <MudIcon Icon="@SnapCdIcons.Error" Color="Color.Error"
                                                  Size="Size.Small"/>
                                         <MudText>@namespaceStatus.Namespace.Name</MudText>
                                     </div>
@@ -113,7 +113,7 @@
                                         <MudListSubheader>External Dependencies (blocking deletion):</MudListSubheader>
                                         @foreach (var dep in namespaceStatus.ExternalDependencies)
                                         {
-                                            <MudListItem T="string" Icon="@Icons.Material.Filled.Block">
+                                            <MudListItem T="string" Icon="@SnapCdIcons.Block">
                                                 <MudText Typo="Typo.body2" Color="Color.Error">@dep</MudText>
                                             </MudListItem>
                                         }
@@ -140,7 +140,7 @@
                    Color="Color.Error"
                    OnClick="Delete"
                    Disabled="@(!_dependencyCheckCompleted || !_canDeleteAll || _isDeleting)"
-                   StartIcon="@Icons.Material.Filled.Delete">
+                   StartIcon="@SnapCdIcons.Delete">
             @if (_isDeleting)
             {
                 @:Deleting...
@@ -160,6 +160,7 @@
         </MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
+                   Size="Size.Small"
                    OnClick="Cancel"
                    Disabled="@_isDeleting">
             Cancel

@@ -28,7 +28,7 @@
             <MudList T="string" Dense="true">
                 @foreach (var stack in Stacks)
                 {
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.FolderDelete">
+                    <MudListItem T="string" Icon="@SnapCdIcons.FolderDelete">
                         @stack.Name
                     </MudListItem>
                 }
@@ -49,11 +49,12 @@
                    Color="Color.Error"
                    OnClick="Delete"
                    Disabled="@_isDeleting"
-                   StartIcon="@Icons.Material.Filled.Delete">
+                   StartIcon="@SnapCdIcons.Delete">
             @(_isDeleting ? "Deleting..." : "Delete All")
         </MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
+                   Size="Size.Small"
                    OnClick="Cancel"
                    Disabled="@_isDeleting">
             Cancel

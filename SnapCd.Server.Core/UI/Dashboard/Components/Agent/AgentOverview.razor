@@ -29,7 +29,7 @@
 
         @if (_agent?.IsSuppliedToAllModules == true)
         {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3" Icon="@Icons.Material.Filled.AllInclusive">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3" Icon="@SnapCdIcons.AllInclusive">
                 <strong>Supplied to all modules in this organization.</strong>
                 Every <code>{Scope}Mission</code> referencing this Agent will be supplied at dispatch regardless of per-scope supply rows.
             </MudAlert>
@@ -37,13 +37,13 @@
         else
         {
             <div class="mb-2">
-                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Layers">
+                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@SnapCdIcons.Layers">
                     Stacks: @_stackAssignments.Count
                 </MudChip>
-                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.FolderOpen">
+                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@SnapCdIcons.FolderOpen">
                     Namespaces: @_namespaceAssignments.Count
                 </MudChip>
-                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Inventory2">
+                <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@SnapCdIcons.Inventory2">
                     Modules: @_moduleAssignments.Count
                 </MudChip>
             </div>
@@ -127,12 +127,12 @@
                             <td>
                                 @if (row.Supplied)
                                 {
-                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/>
+                                    <MudIcon Icon="@SnapCdIcons.CheckCircle" Color="Color.Success" Size="Size.Small"/>
                                 }
                                 else
                                 {
                                     <MudTooltip Text="@row.ResolutionHint">
-                                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small"/>
+                                        <MudIcon Icon="@SnapCdIcons.Warning" Color="Color.Warning" Size="Size.Small"/>
                                     </MudTooltip>
                                 }
                             </td>
@@ -169,9 +169,6 @@
         }
     }
 
-    <div class="d-flex justify-end mt-3">
-        <MudButton Variant="Variant.Filled" Style="background-color: #000; color: #fff;" OnClick="Close">Close</MudButton>
-    </div>
 </MudPaper>
 
 @code {

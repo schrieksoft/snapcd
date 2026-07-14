@@ -31,6 +31,7 @@
         else
         {
             <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="() => CreateMember(GroupMemberDiscriminator.User)"
                        Class="mt-2 mb-2">Add Member
             </MudButton>
@@ -43,7 +44,7 @@
                         </TitleContent>
                         <ChildContent>
                             <MudTooltip Text="Delete member">
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary"
+                                <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary"
                                                Size="Size.Small" OnClick="() => DeleteMember(principal)"/>
                             </MudTooltip>
                         </ChildContent>
@@ -70,6 +71,7 @@
         else
         {
             <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                        OnClick="() => CreateMember(GroupMemberDiscriminator.ServicePrincipal)" Class="mt-2 mb-2">Add
                 Member
             </MudButton>
@@ -82,7 +84,7 @@
                         </TitleContent>
                         <ChildContent>
                             <MudTooltip Text="Delete member">
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary"
+                                <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary"
                                                Size="Size.Small" OnClick="() => DeleteMember(principal)"/>
                             </MudTooltip>
                         </ChildContent>
@@ -104,12 +106,6 @@
 </MudTabs>
 
 
-<MudButton
-    Variant="Variant.Filled"
-    Color="Color.Secondary"
-    Class="mt-2 mb-2"
-    OnClick="Close">Close
-</MudButton>
 
 @code {
     [Parameter] public Guid GroupId { get; set; }

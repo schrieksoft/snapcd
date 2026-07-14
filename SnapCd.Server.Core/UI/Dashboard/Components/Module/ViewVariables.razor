@@ -14,7 +14,7 @@
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudTooltip Text="Refresh">
-        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Size="Size.Medium"
+        <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium"
                        OnClick="() => ReloadVariableSets()"/>
     </MudTooltip>
 
@@ -39,8 +39,8 @@
                             <div class="d-flex align-center justify-space-between">
                                 <MudText>Variable Set @dateTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
                                 <MudTooltip Text="Delete Variable Set">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                   Color="Color.Dark"
+                                    <MudIconButton Icon="@SnapCdIcons.Delete"
+                                                   Color="Color.Primary"
                                                    Size="Size.Small"
                                                    OnClick="@(async () => await ShowDeleteDialog(variableSet))"/>
                                 </MudTooltip>
@@ -98,7 +98,7 @@
                                                 @if (context.Sensitive)
                                                 {
                                                     <MudTooltip Text="Sensitive">
-                                                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning"/>
+                                                        <MudIcon Icon="@SnapCdIcons.Lock" Size="Size.Small" Color="Color.Warning"/>
                                                     </MudTooltip>
                                                 }
                                             </MudTd>
@@ -106,7 +106,7 @@
                                                 @if (context.Nullable)
                                                 {
                                                     <MudTooltip Text="Nullable">
-                                                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Color="Color.Info"/>
+                                                        <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
                                                     </MudTooltip>
                                                 }
                                             </MudTd>
@@ -138,7 +138,7 @@
                                                 @if (context.Sensitive)
                                                 {
                                                     <MudTooltip Text="Sensitive">
-                                                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning"/>
+                                                        <MudIcon Icon="@SnapCdIcons.Lock" Size="Size.Small" Color="Color.Warning"/>
                                                     </MudTooltip>
                                                 }
                                             </MudTd>
@@ -146,7 +146,7 @@
                                                 @if (context.Nullable)
                                                 {
                                                     <MudTooltip Text="Nullable">
-                                                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Color="Color.Info"/>
+                                                        <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
                                                     </MudTooltip>
                                                 }
                                             </MudTd>

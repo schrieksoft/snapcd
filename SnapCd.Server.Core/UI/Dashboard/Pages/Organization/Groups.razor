@@ -39,27 +39,28 @@
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
 @attribute [OrganizationScopedIAM]
-<PageTitle>Manage Groups</PageTitle>
+<PageTitle>Groups</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    <MudText Typo="Typo.h4" GutterBottom="true">Manage Groups</MudText>
+    <MudText Typo="Typo.h4" GutterBottom="true">Groups</MudText>
 
     @if (_showCreateGroup)
     {
-        <MudItem Class="mb-2">
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
             <CreateGroup OnCreated="HandleGroupCreated"
                          OnCancel="HandleCancelCreate"/>
-        </MudItem>
+        </MudPaper>
     }
-
     else
     {
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   OnClick="ShowCreateGroup"
-                   Class="mt-2 mb-2">
-            Create New
-        </MudButton>
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreateGroup">
+                Create
+            </MudButton>
+        </MudPaper>
     }
 
     @if (_groups == null)
@@ -78,25 +79,25 @@
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Edit group">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                            <MudIconButton Icon="@SnapCdIcons.Edit"
                                            Color="@GetColor(group.Id, ShowingType.Edit)"
                                            Size="Size.Small" OnClick="() => Edit(group)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage groups's roles">
-                            <MudIconButton Icon="@Icons.Material.Filled.Shield"
+                            <MudIconButton Icon="@SnapCdIcons.Shield"
                                            Color="@GetColor(group.Id, ShowingType.Roles)" Size="Size.Small"
                                            OnClick="() => ManageRoles(group)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Manage groups's members">
-                            <MudIconButton Icon="@Icons.Material.Filled.Group"
+                            <MudIconButton Icon="@SnapCdIcons.Group"
                                            Color="@GetColor(group.Id, ShowingType.Members)" Size="Size.Small"
                                            OnClick="() => ManageMembers(group)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete group">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Primary" Size="Size.Small"
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
                                            OnClick="() => Delete(group)"/>
                         </MudTooltip>
 
@@ -166,7 +167,7 @@
         if (_selectedGroup == null)
             return Color.Primary;
         if (groupId == _selectedGroup.Id)
-            return _showing == showTypeToMatch ? Color.Info : Color.Primary;
+            return _showing == showTypeToMatch ? Color.Secondary : Color.Primary;
         return Color.Primary;
     }
 

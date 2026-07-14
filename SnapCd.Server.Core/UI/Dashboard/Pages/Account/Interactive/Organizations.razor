@@ -44,13 +44,15 @@
                     <MudTextField Label="Organization Name" @bind-Value="_createModel.Name"
                                   Variant="Variant.Outlined" Required RequiredError="Name is required"
                                   MaxLength="255" Counter="255"
+                                  Validation="@((string s) => NameValidator.Validate(s, "Organization"))"
                                   HelperText="Enter a unique name for your organization"/>
                 </MudItem>
 
-                <MudItem md="12" class="d-flex justify-end gap-2">
+                <MudItem md="12" Class="d-flex justify-end gap-2">
                     <MudButton ButtonType="ButtonType.Submit"
                                Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                Disabled="@_isCreating">
                         @if (_isCreating)
                         {
@@ -60,6 +62,7 @@
                     </MudButton>
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
+                               Size="Size.Small"
                                OnClick="HandleCreateCanceled"
                                Disabled="@_isCreating">
                         Cancel
@@ -73,6 +76,7 @@ else
 {
     <MudButton Variant="Variant.Filled"
                Color="Color.Secondary"
+               Size="Size.Small"
                OnClick="ShowCreate"
                Class="mt-2 mb-2">
         Create Organization
@@ -95,7 +99,7 @@ else
                 <MudExpansionPanel>
                     <TitleContent>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <MudIcon Icon="@Icons.Material.Filled.Mail" Size="Size.Small" />
+                            <MudIcon Icon="@SnapCdIcons.Mail" Size="Size.Small" />
                             <MudText>@invitation.Organization.Name</MudText>
                             @if (IsExpired(invitation))
                             {
@@ -152,12 +156,12 @@ else
                 <MudExpansionPanel>
                     <TitleContent>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                            <MudIcon Icon="@SnapCdIcons.Business" Size="Size.Small" />
                             <MudText>@membership.Organization.Name</MudText>
                             <MudText Typo="Typo.caption" Style="font-family: monospace; color: var(--mud-palette-text-secondary);">@membership.OrganizationId</MudText>
                             <MudTooltip Text="Copy Organization ID">
                                 <span @onclick:stopPropagation="true">
-                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                    <MudIconButton Icon="@SnapCdIcons.ContentCopy"
                                                    Size="Size.Small"
                                                    OnClick="() => CopyOrganizationId(membership.OrganizationId)"/>
                                 </span>

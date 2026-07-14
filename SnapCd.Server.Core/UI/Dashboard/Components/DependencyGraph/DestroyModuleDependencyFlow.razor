@@ -42,7 +42,7 @@
 
                 @foreach (var namespaceGroup in namespaceGroups)
                 {
-                    <MudCard Elevation="1" Class="mb-2">
+                    <MudCard Elevation="1" Class="mb-2 dag-namespace-card">
                         <MudCardHeader Class="pb-2">
                             <CardHeaderContent>
                                 <MudText Typo="Typo.body1" Class="font-weight-bold">
@@ -60,15 +60,12 @@
                                         <MudCardHeader Class="pb-2">
                                             <CardHeaderContent>
                                                 <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                                    <MudLink Href="@($"/Stacks/{node.DisplayName}")"
+                                                    <MudLink Href="@($"/Module/{node.DisplayName}")"
                                                              Typo="Typo.body2"
                                                              Class="font-weight-medium"
                                                              Style="@(isRoot ? "color: white !important;" : "")">
                                                         @node.ModuleName@(isRoot ? " (This module)" : "")
                                                     </MudLink>
-                                                    <MudIcon Icon="@GetStateIcon(node)"
-                                                             Color="@GetStateColor(node)"
-                                                             Size="Size.Small" />
                                                 </MudStack>
                                                 <MudText Typo="Typo.caption"
                                                          Style="@(isRoot ? "color: white;" : "")"
@@ -85,7 +82,7 @@
                                                                    Style="@(isRoot ? "background-color: var(--mud-palette-black) !important; color: white !important;" : "")">
                                                     <TitleContent>
                                                         <div style="display: flex; align-items: center;">
-                                                            <MudIcon Icon="@Icons.Material.Filled.AccountTree" class="mr-3" />
+                                                            <MudIcon Icon="@SnapCdIcons.AccountTree" Class="mr-3" />
                                                             <MudText Typo="Typo.body2">Dependencies</MudText>
                                                         </div>
                                                     </TitleContent>
@@ -101,9 +98,9 @@
                                                                         @foreach (var dep in node.DependentModules)
                                                                         {
                                                                             <MudChip T="string" Size="Size.Small"
-                                                                                     Color="Color.Info"
+                                                                                     Color="Color.Default"
                                                                                      Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{dep}"))">
+                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Module/{dep}"))">
                                                                                 @dep
                                                                             </MudChip>
                                                                         }
@@ -125,9 +122,9 @@
                                                                         @foreach (var trigger in node.DependencyModules)
                                                                         {
                                                                             <MudChip T="string" Size="Size.Small"
-                                                                                     Color="Color.Info"
+                                                                                     Color="Color.Default"
                                                                                      Variant="Variant.Text"
-                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Stacks/{trigger}"))">
+                                                                                     OnClick="@(() => Navigation.NavigateTo($"/Module/{trigger}"))">
                                                                                 @trigger
                                                                             </MudChip>
                                                                         }
@@ -152,7 +149,7 @@
         {
             <div class="stage-arrow"
                  style="display: flex; align-items: center; justify-content: center; min-width: 40px; height: 100%;">
-                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Large" Color="Color.Default" />
+                <MudIcon Icon="@SnapCdIcons.ArrowForward" Size="Size.Large" Color="Color.Default" />
             </div>
         }
     }
@@ -167,10 +164,16 @@
 
 <style>
     .stage-column {
-        background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-lines-default);
+        background: transparent;
+        border: none;
         border-radius: 8px;
         padding: 16px;
+    }
+
+    /* Namespace grouping cards get an inset background so they stand out from
+       the transparent stage columns and the surface-coloured module nodes */
+    .dag-namespace-card {
+        background: var(--snap-bg-inset, var(--mud-palette-background-grey));
     }
 
     .stage-arrow {
@@ -202,13 +205,13 @@
 
     private static string GetStateIcon(DestroyModuleNodeDto node) => node.ActualState switch
     {
-        ActualStateHeadline.Applied => Icons.Material.Filled.CheckCircle,
-        ActualStateHeadline.Destroyed => Icons.Material.Filled.RemoveCircleOutline,
-        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => Icons.Material.Filled.Error,
-        ActualStateHeadline.ApplyCancelled or ActualStateHeadline.DestroyCancelled => Icons.Material.Filled.Cancel,
-        ActualStateHeadline.ApplyTimeout or ActualStateHeadline.DestroyTimeout => Icons.Material.Filled.Schedule,
-        ActualStateHeadline.ApplyNotApproved or ActualStateHeadline.DestroyNotApproved => Icons.Material.Filled.Block,
-        _ => Icons.Material.Filled.HelpOutline
+        ActualStateHeadline.Applied => SnapCdIcons.CheckCircle,
+        ActualStateHeadline.Destroyed => SnapCdIcons.RemoveCircleOutline,
+        ActualStateHeadline.ApplyFailed or ActualStateHeadline.DestroyFailed => SnapCdIcons.Error,
+        ActualStateHeadline.ApplyCancelled or ActualStateHeadline.DestroyCancelled => SnapCdIcons.Cancel,
+        ActualStateHeadline.ApplyTimeout or ActualStateHeadline.DestroyTimeout => SnapCdIcons.Schedule,
+        ActualStateHeadline.ApplyNotApproved or ActualStateHeadline.DestroyNotApproved => SnapCdIcons.Block,
+        _ => SnapCdIcons.HelpOutline
     };
 
     private static Color GetStateColor(DestroyModuleNodeDto node) => node.ActualState switch

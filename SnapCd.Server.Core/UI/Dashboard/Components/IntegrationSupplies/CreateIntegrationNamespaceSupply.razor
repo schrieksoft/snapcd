@@ -23,7 +23,7 @@
                                      RequiredError="Integration is required"
                                      SearchFunc="@SearchIntegrations"
                                      ToStringFunc="@(s => s?.Name ?? string.Empty)"
-                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentIcon="@SnapCdIcons.Search"
                                      Variant="Variant.Outlined">
                     </MudAutocomplete>
                 </MudItem>
@@ -37,7 +37,7 @@
                                      RequiredError="Namespace is required"
                                      SearchFunc="@SearchNamespaces"
                                      ToStringFunc="@(m => m?.Name ?? string.Empty)"
-                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentIcon="@SnapCdIcons.Search"
                                      Variant="Variant.Outlined">
                     </MudAutocomplete>
                 </MudItem>
@@ -45,13 +45,15 @@
 
             <MudItem xs="12">
                 <MudButton Variant="Variant.Filled"
-                           Style="background-color: #000; color: #fff;"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="SaveSupply"
                            Class="mr-2">
                     Create
                 </MudButton>
                 <MudButton Variant="Variant.Filled"
-                           Style="background-color: #000; color: #fff;"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="Cancel">
                     Cancel
                 </MudButton>

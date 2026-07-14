@@ -29,13 +29,13 @@
                     </MudItem>
                     <MudItem xs="3">
                         <MudTooltip Text="Generate a new random secret">
-                            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Secondary"
-                                           Size="Size.Small" OnClick="GenerateClientSecret"
+                            <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary"
+                                                                       Size="Size.Small" OnClick="GenerateClientSecret"
                                            Class="d-flex align-center justify-center mud-width-full py-8"/>
                         </MudTooltip>
                         <MudTooltip Text="Copy the secret">
-                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Secondary"
-                                           Size="Size.Small" OnClick="CopyClientSecret"
+                            <MudIconButton Icon="@SnapCdIcons.ContentCopy" Color="Color.Primary"
+                                                                           Size="Size.Small" OnClick="CopyClientSecret"
                                            Class="d-flex align-center justify-center mud-width-full py-8"/>
                         </MudTooltip>
                     </MudItem>
@@ -43,8 +43,8 @@
                 <MudSpacer/>
 
                 <MudItem md="12">
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Create">Save</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Create" Size="Size.Small">Save</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
                 </MudItem>
 
 

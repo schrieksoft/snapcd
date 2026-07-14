@@ -93,9 +93,9 @@
     {
         if (organization != null && organization != selectedOrganization)
         {
-            // Switching orgs always lands on /Home — staying on the current page would
+            // Switching orgs always lands on /Dashboard — staying on the current page would
             // typically show the previous org's data (stack/module/etc. ids in the URL).
-            NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl=/Home", forceLoad: true);
+            NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl=/Dashboard", forceLoad: true);
         }
     }
 }

@@ -67,6 +67,7 @@ else
                         {
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Secondary"
+                                       Size="Size.Small"
                                        OnClick="() => OptIn(feature)"
                                        Class="mt-2 mb-2 align-self-start">
                                 Opt In
@@ -146,7 +147,7 @@ else
     {
         return feature switch
         {
-            PreviewFeature.Pulumi => "Enable Pulumi as a state management engine for modules and namespaces.",
+            PreviewFeature.Pulumi => "Enable Pulumi as a state management engine.",
             _ => "No description available."
         };
     }

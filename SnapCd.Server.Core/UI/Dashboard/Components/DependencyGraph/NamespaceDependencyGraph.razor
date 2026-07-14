@@ -32,13 +32,12 @@ else if (_dependencyGraph != null)
     var filteredGraph = GetFilteredGraph();
 
     <MudStack Class="mb-3">
-        <MudSwitch @bind-Value="_showOnlyNamespaceModules" Color="Color.Info">
+        <MudSwitch @bind-Value="_showOnlyNamespaceModules" Color="Color.Secondary">
             Only Show Modules within Namespace
         </MudSwitch>
         <MudTooltip Text="@GetToggleTooltipText()">
-            <MudSwitch Value="_showDestroyGraph"
+            <MudSwitch Color="Color.Secondary" Value="_showDestroyGraph"
                        ValueChanged="@(async (bool val) => await OnShowDestroyGraphChanged(val))"
-                       Color="Color.Info"
                        Disabled="DisableDirectionToggle">
                 Show Destroy Graph
             </MudSwitch>

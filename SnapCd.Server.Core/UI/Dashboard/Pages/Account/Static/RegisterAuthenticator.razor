@@ -96,7 +96,7 @@
                 <MudDivider Class="my-3"/>
 
                 <MudText Typo="Typo.body2" Class="mb-2">Or enter this key manually:</MudText>
-                <MudAlert Variant="Variant.Outlined" Severity="Severity.Info" Icon="@Icons.Material.Filled.Key"
+                <MudAlert Variant="Variant.Outlined" Severity="Severity.Info" Icon="@SnapCdIcons.Key"
                           Class="mb-3">
                     <div style="font-family: monospace; font-size: 1.1rem; letter-spacing: 0.1em;">@_sharedKey</div>
                 </MudAlert>
@@ -122,7 +122,7 @@
                         <MudItem xs="12">
                             <div class="complete-button-container">
                                 <div class="divider-line"></div>
-                                <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                <MudStaticButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                                  FormAction="FormAction.Submit" Class="complete-btn">
                                     Verify
                                 </MudStaticButton>
@@ -161,13 +161,13 @@
 
     .complete-btn {
         flex-shrink: 0;
-        background-color: #000 !important;
+        background-color: var(--snap-accent) !important;
         color: white !important;
         border-radius: 24px !important;
     }
 
     .complete-btn:hover {
-        background-color: #333 !important;
+        background-color: var(--snap-accent-hover) !important;
         color: white !important;
     }
 

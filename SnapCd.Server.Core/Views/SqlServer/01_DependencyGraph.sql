@@ -355,6 +355,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Early exit for UPDATEs that touch none of the columns ModuleState is derived from.
+    -- This matters for the log-append hot path (UPDATE ... SET Logs = ...): without it, every
+    -- log write re-reads ModuleJobs inside the trigger, whose table scans take shared locks on
+    -- rows other concurrent log writers hold exclusively - deadlocking writers of DIFFERENT jobs.
+    -- EF Core only includes modified columns in the SET list, so UPDATE(col) is accurate here.
+    IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+       AND NOT (UPDATE(ModuleId) OR UPDATE(IsCurrent) OR UPDATE(Status)
+                OR UPDATE(ActualStateHeadline) OR UPDATE(JobType)
+                OR UPDATE(TimestampStart) OR UPDATE(TimestampEnd))
+        RETURN;
+
     SELECT DISTINCT ModuleId INTO #AffectedModules
     FROM (
         SELECT ModuleId FROM inserted
@@ -426,6 +437,34 @@ BEGIN
     INNER JOIN deleted d ON d.CorrelationId = ms.ModuleId
     WHERE NOT EXISTS (SELECT 1 FROM inserted i WHERE i.CorrelationId = d.CorrelationId);
 END;
+GO
+
+-- ============================================================================
+-- 9b. Trigger on Modules to clean up ModuleState on module deletion
+--
+-- ModuleState has no FK to Modules (it is maintained by triggers), so deleting a
+-- module used to leave an orphaned row behind: the cascade-delete of its ModuleJobs
+-- fires trg_ModuleJobs_ModuleState, which nulls the state but keeps the row.
+-- ============================================================================
+
+CREATE OR ALTER TRIGGER trg_Modules_ModuleState
+ON Modules
+AFTER DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE ms
+    FROM ModuleState ms
+    INNER JOIN deleted d ON d.Id = ms.ModuleId;
+END;
+GO
+
+-- One-time cleanup of orphaned rows accumulated before trg_Modules_ModuleState existed
+-- (idempotent — a no-op once clean)
+DELETE ms
+FROM ModuleState ms
+WHERE NOT EXISTS (SELECT 1 FROM Modules m WHERE m.Id = ms.ModuleId);
 GO
 
 -- ============================================================================

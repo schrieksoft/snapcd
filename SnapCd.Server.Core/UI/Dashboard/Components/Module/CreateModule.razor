@@ -24,7 +24,8 @@
             <MudItem md="12">
                 <MudTextField Label="Name" @bind-Value="NewModule.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
-                              MaxLength="255" Counter="255"/>
+                              MaxLength="255" Counter="255"
+                              Validation="@((string s) => NameValidator.Validate(s, "Module"))"/>
             </MudItem>
 
             <MudItem md="12">
@@ -141,53 +142,53 @@
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnDefinitionChanged"
-                           Label="Trigger on Definition Changed" Color="Color.Info"/>
+                           Label="Trigger on Definition Changed" Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnUpstreamOutputChanged"
-                           Label="Trigger on Upstream Output Changed" Color="Color.Info"/>
+                           Label="Trigger on Upstream Output Changed" Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnSourceChanged" Label="Trigger on Source Changed"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnSourceChangedNotification"
                            Label="Trigger on Source Changed Notification"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceExtraFiles"
                            Label="Ignore Namespace Extra Files"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceFlags"
                            Label="Ignore Namespace Flags"
-                           Color="Color.Info"/>
+                           Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
                 <MudText Typo="Typo.body1">Clean Init Enabled</MudText>
                 <MudRadioGroup T="bool?" @bind-Value="NewModule.CleanInitEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                    <MudRadio Value="@((bool?)null)" Color="Color.Secondary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Secondary">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Secondary">false</MudRadio>
                 </MudRadioGroup>
             </MudItem>
 
             <MudItem md="12">
                 <MudText Typo="Typo.body1">Drift Check Enabled</MudText>
                 <MudRadioGroup T="bool?" @bind-Value="NewModule.DriftCheckEnabled">
-                    <MudRadio Value="@((bool?)null)" Color="Color.Primary">null</MudRadio>
-                    <MudRadio Value="@((bool?)true)" Color="Color.Info">true</MudRadio>
-                    <MudRadio Value="@((bool?)false)" Color="Color.Info">false</MudRadio>
+                    <MudRadio Value="@((bool?)null)" Color="Color.Secondary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Secondary">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Secondary">false</MudRadio>
                 </MudRadioGroup>
             </MudItem>
 
@@ -279,14 +280,15 @@
             </MudItem>
 
             <!-- Action Buttons -->
-            <MudItem md="12" class="d-flex justify-end gap-2">
+            <MudItem md="12" Class="d-flex justify-end gap-2">
                 <MudButton ButtonType="ButtonType.Submit"
                            Variant="Variant.Filled"
-                           Color="Color.Secondary">
+                           Color="Color.Secondary" Size="Size.Small">
                     Create
                 </MudButton>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="OnCancel">
                     Cancel
                 </MudButton>

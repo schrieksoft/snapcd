@@ -32,7 +32,8 @@
             <MudStack Row Class="mt-2">
                 <MudButton ButtonType="ButtonType.Submit"
                            Variant="Variant.Filled"
-                           Style="background-color: #000; color: #fff;"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
                            Disabled="@_isSubmitting">
                     @if (_isSubmitting)
                     {
@@ -41,7 +42,8 @@
                     Send Invitation
                 </MudButton>
                 <MudButton Variant="Variant.Filled"
-                           Style="background-color: #000; color: #fff;"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
                            OnClick="HandleCancel"
                            Disabled="@_isSubmitting">
                     Cancel
@@ -60,11 +62,12 @@
         <MudTextField @bind-Value="_noOpInvitationLink" ReadOnly="true" Variant="Variant.Outlined"
                       Label="Invitation link" Class="mb-2" />
         <MudStack Row Class="mt-2">
-            <MudButton OnClick="CopyLink" Variant="Variant.Filled" Style="background-color: #000; color: #fff;"
-                       StartIcon="@Icons.Material.Filled.ContentCopy">
+            <MudButton OnClick="CopyLink" Variant="Variant.Filled" Color="Color.Secondary"
+                                                                   Size="Size.Small"
+                       StartIcon="@SnapCdIcons.ContentCopy">
                 Copy link
             </MudButton>
-            <MudButton OnClick="DismissAfterNoOp" Variant="Variant.Filled" Style="background-color: #000; color: #fff;">
+            <MudButton OnClick="DismissAfterNoOp" Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small">
                 Done
             </MudButton>
         </MudStack>

@@ -1,0 +1,311 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@inject PersistentComponentState ApplicationState
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Views
+
+@if (_stacks == null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else
+{
+    <div class="list-heading">Stacks</div>
+
+    <div class="stack-list">
+        @foreach (var stack in _stacks)
+        {
+            <MudExpansionPanel @key="stack.Id" Expanded="_expandedStacks.Contains(stack.Id)" Class="mb-1">
+                <TitleContent>
+                    @if (ShowCheckboxes)
+                    {
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <MudCheckBox Color="Color.Secondary" T="bool"
+                                         Value="@_selectedStacks.Contains(stack.Id)"
+                                         ValueChanged="@(value => OnStackSelectionChanged(stack.Id, value))"
+                                         Dense="true"
+                                         Style="margin: 0; padding: 0;"/>
+                            <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudLink Href="@($"/Stack/{stack.Name}")">@GetHighlightedStackName(stack.Name)</MudLink>
+                    }
+                </TitleContent>
+                <ChildContent>
+                    <div class="mt-2">
+                        <ListNamespaces StackName="@stack.Name" StackId="@stack.Id" SearchTerms="@SearchTerms"/>
+                    </div>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </div>
+
+    @if (_totalPages > 1)
+    {
+        <Pagination CurrentPage="_currentPage"
+                    TotalPages="_totalPages"
+                    PageChanged="HandlePageChanged"/>
+    }
+}
+
+<style>
+    .stack-list {
+        margin-bottom: 2rem;
+    }
+
+    .search-highlight {
+        background-color: var(--snap-accent);
+        color: var(--snap-on-accent);
+        padding: 0 2px;
+        border-radius: 0;
+    }
+</style>
+
+@code {
+    [Parameter] public List<string> SearchTerms { get; set; } = new();
+    [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
+    [Parameter] public bool SelectAll { get; set; }
+    [Parameter] public bool ShowCheckboxes { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    private List<TruncatedStack>? _stacks;
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    private const int PageSize = 10;
+    private List<string> _previousSearchTerms = new();
+    private HashSet<Guid> _expandedStacks = new();
+    private HashSet<Guid> _selectedStacks = new();
+    private bool _previousSelectAll;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _previousSearchTerms = new List<string>(SearchTerms);
+        await LoadStacks();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!SearchTerms.SequenceEqual(_previousSearchTerms))
+        {
+            _previousSearchTerms = new List<string>(SearchTerms);
+            await LoadStacks();
+        }
+
+        if (SelectAll != _previousSelectAll)
+        {
+            _previousSelectAll = SelectAll;
+            if (SelectAll && _stacks != null)
+            {
+                _selectedStacks = new HashSet<Guid>(_stacks.Select(s => s.Id));
+            }
+            else
+            {
+                _selectedStacks.Clear();
+            }
+
+            if (OnSelectionChanged.HasDelegate)
+            {
+                await OnSelectionChanged.InvokeAsync(_selectedStacks);
+            }
+        }
+    }
+
+    public async Task LoadStacks(bool resetPage = true)
+    {
+        using var repo = RepoFactory.Create();
+        using var namespaceRepo = NamespaceRepoFactory.Create();
+        using var moduleRepo = ModuleRepoFactory.Create();
+
+        if (resetPage)
+        {
+            _currentPage = 1; // Reset to first page when searching
+        }
+
+        _expandedStacks.Clear(); // Clear expanded state
+
+        if (SearchTerms.Any())
+        {
+            // When searching, we need to:
+            // 1. Find stacks that match the search terms directly
+            // 2. Find namespaces that match the search terms across ALL stacks
+            // 3. Find modules that match the search terms across ALL stacks
+            // 4. Combine and deduplicate the stack results
+            // 5. Expand stacks that contain matching namespaces or modules
+
+            // Find stacks matching directly
+            var stacksMatchingDirectly = await repo.List(
+                OrganizationId,
+                q => q
+                    .Where(s => SearchTerms.All(term => s.Name.Contains(term)))
+                    .Select(s => new TruncatedStack
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Namespaces = new List<TruncatedNamespace>()
+                    })
+            );
+
+            // Find all namespaces that match search terms
+            var namespacesWithStacks = await namespaceRepo.List(
+                OrganizationId,
+                q => q
+                    .Where(ns => SearchTerms.All(term => ns.Name.Contains(term)))
+                    .Select(ns => new
+                    {
+                        NamespaceId = ns.Id,
+                        NamespaceName = ns.Name,
+                        ns.StackId,
+                        StackName = ns.Stack.Name
+                    })
+            );
+
+            // Get unique stacks that contain matching namespaces
+            var stacksWithMatchingNamespaces = namespacesWithStacks
+                .GroupBy(ns => ns.StackId)
+                .Select(g => new TruncatedStack
+                {
+                    Id = g.Key,
+                    Name = g.First().StackName,
+                    Namespaces = new List<TruncatedNamespace>()
+                })
+                .ToList();
+
+            // Find all modules that match search terms
+            var modulesWithStacksAndNamespaces = await moduleRepo.List(
+                OrganizationId,
+                q => q
+                    .Where(m => SearchTerms.All(term => m.Name.Contains(term)))
+                    .Select(m => new
+                    {
+                        ModuleId = m.Id,
+                        ModuleName = m.Name,
+                        m.NamespaceId,
+                        NamespaceName = m.Namespace.Name,
+                        m.Namespace.StackId,
+                        StackName = m.Namespace.Stack.Name
+                    })
+            );
+
+            // Get unique stacks that contain matching modules
+            var stacksWithMatchingModules = modulesWithStacksAndNamespaces
+                .GroupBy(m => m.StackId)
+                .Select(g => new TruncatedStack
+                {
+                    Id = g.Key,
+                    Name = g.First().StackName,
+                    Namespaces = new List<TruncatedNamespace>()
+                })
+                .ToList();
+
+            // Auto-expand stacks that contain matching namespaces or modules
+            foreach (var stack in stacksWithMatchingNamespaces.Concat(stacksWithMatchingModules))
+            {
+                _expandedStacks.Add(stack.Id);
+            }
+
+            // Combine and deduplicate stacks
+            var allMatchingStacks = stacksMatchingDirectly
+                .Concat(stacksWithMatchingNamespaces)
+                .Concat(stacksWithMatchingModules)
+                .GroupBy(s => s.Id)
+                .Select(g => g.First())
+                .OrderBy(s => s.Name)
+                .ToList();
+
+            var totalCount = allMatchingStacks.Count;
+            _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+            // Apply pagination
+            _stacks = allMatchingStacks
+                .Skip((_currentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToList();
+        }
+        else
+        {
+            // No search terms, use normal pagination
+            var totalCount = await repo.Count(OrganizationId);
+            _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+            var stacks = await repo.List(
+                OrganizationId,
+                queryModifier: q => q
+                    .Select(s => new TruncatedStack
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Namespaces = new List<TruncatedNamespace>()
+                    }),
+                orderBy: q => q.OrderBy(s => s.Name),
+                pageNumber: _currentPage,
+                pageSize: PageSize
+            );
+            _stacks = stacks.OrderBy(s => s.Name).ToList();
+        }
+    }
+
+    private async Task HandlePageChanged(int newPage)
+    {
+        _currentPage = newPage;
+        await LoadStacks(false);
+    }
+
+    private async Task OnStackSelectionChanged(Guid stackId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedStacks.Add(stackId);
+        }
+        else
+        {
+            _selectedStacks.Remove(stackId);
+        }
+
+        if (OnSelectionChanged.HasDelegate)
+        {
+            await OnSelectionChanged.InvokeAsync(_selectedStacks);
+        }
+    }
+
+    public List<TruncatedStack> GetSelectedStacks()
+    {
+        return _stacks?.Where(s => _selectedStacks.Contains(s.Id)).ToList() ?? new List<TruncatedStack>();
+    }
+
+    public void TriggerStateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    private MarkupString GetHighlightedStackName(string stackName)
+    {
+        if (!SearchTerms.Any())
+            return new MarkupString(System.Web.HttpUtility.HtmlEncode(stackName));
+
+        var highlightedName = System.Web.HttpUtility.HtmlEncode(stackName);
+
+        foreach (var term in SearchTerms.OrderByDescending(t => t.Length))
+        {
+            var escapedTerm = System.Text.RegularExpressions.Regex.Escape(term);
+            highlightedName = System.Text.RegularExpressions.Regex.Replace(
+                highlightedName,
+                escapedTerm,
+                match => $"<mark class=\"search-highlight\">{match.Value}</mark>",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        return new MarkupString(highlightedName);
+    }
+}

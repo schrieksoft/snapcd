@@ -19,6 +19,7 @@ public static class ModuleJobMapper
         {
             Id = entity.Id,
             ModuleId = entity.ModuleId,
+            JobNumber = entity.JobNumber,
             TimestampStart = entity.TimestampStart,
             TimestampEnd = entity.TimestampEnd,
             Status = entity.Status,

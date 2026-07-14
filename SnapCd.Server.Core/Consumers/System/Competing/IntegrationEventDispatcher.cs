@@ -134,7 +134,7 @@ public class IntegrationEventDispatcher :
         if (moduleScope is not null && jobId is not null)
         {
             var tab = trigger == IntegrationTrigger.JobAwaitingApproval ? "approvals" : "logs";
-            ctx["jobUrl"] = $"{_serverHost}/Stacks/{Uri.EscapeDataString(moduleScope.StackName)}/{Uri.EscapeDataString(moduleScope.NamespaceName)}/{Uri.EscapeDataString(moduleScope.Name)}?action=Jobs&job={jobId}&tab={tab}";
+            ctx["jobUrl"] = $"{_serverHost}/Module/{Uri.EscapeDataString(moduleScope.StackName)}/{Uri.EscapeDataString(moduleScope.NamespaceName)}/{Uri.EscapeDataString(moduleScope.Name)}?action=Jobs&job={jobId}&tab={tab}";
         }
         else
         {

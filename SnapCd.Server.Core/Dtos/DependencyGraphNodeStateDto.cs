@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.UI.Dashboard.Theme;
 
 namespace SnapCd.Server.Core.Dtos;
 
@@ -44,7 +45,7 @@ public class DependencyGraphNodeStateDto
     public string NodeBorderStyle { get; set; } = "border-left: 4px solid var(--mud-palette-info);";
 
     // Pre-calculated state icon
-    public string StateIcon { get; set; } = MudBlazor.Icons.Material.Filled.StopCircle;
+    public string StateIcon { get; set; } = SnapCdIcons.StopCircle;
 
     // Ordinal stage display (1st, 2nd, 3rd, etc.)
     public string StageOrdinal { get; set; } = "1st";

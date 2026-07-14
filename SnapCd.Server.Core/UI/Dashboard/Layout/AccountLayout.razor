@@ -46,7 +46,7 @@ else
     {
         // Get theme from cookie for SSR pages
         var themeCookie = HttpContext?.Request.Cookies["theme"];
-        _isDarkMode = themeCookie == "dark";
+        _isDarkMode = themeCookie != "light";
 
         // Subscribe to theme changes for interactive pages
         ThemeService.Initialize(_isDarkMode);
@@ -64,30 +64,6 @@ else
         ThemeService.OnThemeChanged -= HandleThemeChanged;
     }
 
-    private readonly MudTheme _myCustomTheme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary = Colors.Blue.Default,
-            Secondary = Colors.Orange.Default,
-            AppbarBackground = Colors.Blue.Default,
-            Background = Colors.Gray.Lighten5,
-            DrawerBackground = "#FFF",
-            DrawerText = "rgba(0,0,0, 0.7)",
-            Success = "#06D6A0"
-        },
-        PaletteDark = new PaletteDark
-        {
-            Primary = Colors.Blue.Lighten1,
-            Secondary = Colors.Orange.Lighten1,
-            AppbarBackground = Colors.Gray.Darken4,
-            Background = Colors.Gray.Darken4,
-            Surface = Colors.Gray.Darken3,
-            DrawerBackground = "#1a1a1a",
-            DrawerText = "rgba(255,255,255, 0.7)",
-            Success = "#06D6A0"
-        },
-        Typography = new Typography()
-    };
+    private readonly MudTheme _myCustomTheme = SnapCdTheme.Default;
 
 }
