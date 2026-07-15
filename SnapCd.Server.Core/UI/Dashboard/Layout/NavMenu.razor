@@ -303,6 +303,7 @@
         _ => "Modules"
     };
 
+
     private async Task LoadFavorites(Guid orgId)
     {
         var principal = new LiteralPrincipalProvider(_principalId, PrincipalDiscriminator.User, [orgId]);

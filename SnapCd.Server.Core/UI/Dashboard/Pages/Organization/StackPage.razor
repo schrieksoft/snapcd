@@ -64,6 +64,16 @@
 
         <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
+        @* Everything stack-scoped lives inside this keyed container. When the route
+           switches to a different stack, @key changes, so Blazor tears down and
+           recreates every child here — running each one's Dispose and OnInitialized
+           automatically.
+
+           IMPORTANT: any component you add that loads data for THIS stack (typically
+           in OnInitialized) MUST go inside this container. Placed outside it, it would
+           be reused across stack switches and show stale data. *@
+        <div @key="_stack.Id">
+
         @if (_showing == ShowingType.Namespaces && _stack != null)
         {
             @if (_showCreate)
@@ -394,6 +404,7 @@
                     DisableDirectionToggle="@(_showApplyComponent || _showDestroyComponent)"/>
             </MudPaper>
         }
+        </div>
     }
 </CascadingValue>
 

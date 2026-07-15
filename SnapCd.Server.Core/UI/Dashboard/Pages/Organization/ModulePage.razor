@@ -127,43 +127,53 @@
 
         <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
-        @if (_showing == ShowingType.Jobs)
-        {
-            <ManageModuleJobs Module="_module"
-                              InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
-                              InitialTab="@Tab"
-                              InitialTask="@Task"
-                              OnJobsStateChanged="HandleJobsStateChanged"
-                              IsQueued="@(_queuedSummary is { State: true })"
-                              QueuedText="@(_queuedSummary?.Text)"
-                              QueuedReasonText="@GetQueuedReasonDisplayText()"
-                              ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
-                              OnRunQueueNow="RunQueueNow"
-                              OnClearQueue="ClearQueue"/>
-        }
+        @* Everything module-scoped lives inside this keyed container. When the route
+           switches to a different module, @key changes, so Blazor tears down and
+           recreates every child here — running each one's Dispose (clean teardown of
+           timers/subscriptions) and OnInitialized (fresh load) automatically.
 
-        @if (_showing == ShowingType.Configure)
-        {
-            <ConfigureModule Module="_module"
-                             StackId="_stackId"
-                             StackName="@StackName"
-                             NamespaceName="@NamespaceName"
-                             PrincipalProvider="_literalPrincipalProvider"
-                             InitialSection="@_configureSection"
-                             OnSectionChanged="HandleConfigureSectionChanged"
-                             OnModuleDeleted="HandleModuleDeleted"
-                             OnModuleSaved="HandleModuleSaved"/>
-        }
+           IMPORTANT: any component you add that loads data for THIS module (typically
+           in OnInitialized) MUST go inside this container. Placed outside it, it would
+           be reused across module switches and show stale data. *@
+        <div @key="_module.Id">
+            @if (_showing == ShowingType.Jobs)
+            {
+                <ManageModuleJobs Module="_module"
+                                  InitialJobId="@(Guid.TryParse(Job, out var __jid) ? __jid : (Guid?)null)"
+                                  InitialTab="@Tab"
+                                  InitialTask="@Task"
+                                  OnJobsStateChanged="HandleJobsStateChanged"
+                                  IsQueued="@(_queuedSummary is { State: true })"
+                                  QueuedText="@(_queuedSummary?.Text)"
+                                  QueuedReasonText="@GetQueuedReasonDisplayText()"
+                                  ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
+                                  OnRunQueueNow="RunQueueNow"
+                                  OnClearQueue="ClearQueue"/>
+            }
 
-        @if (_showing == ShowingType.Outputs)
-        {
-            <ViewOutputs Module="_module" StackName="@StackName"/>
-        }
+            @if (_showing == ShowingType.Configure)
+            {
+                <ConfigureModule Module="_module"
+                                 StackId="_stackId"
+                                 StackName="@StackName"
+                                 NamespaceName="@NamespaceName"
+                                 PrincipalProvider="_literalPrincipalProvider"
+                                 InitialSection="@_configureSection"
+                                 OnSectionChanged="HandleConfigureSectionChanged"
+                                 OnModuleDeleted="HandleModuleDeleted"
+                                 OnModuleSaved="HandleModuleSaved"/>
+            }
 
-        @if (_showing == ShowingType.Variables)
-        {
-            <ViewVariables Module="_module" StackName="@StackName"/>
-        }
+            @if (_showing == ShowingType.Outputs)
+            {
+                <ViewOutputs Module="_module" StackName="@StackName"/>
+            }
+
+            @if (_showing == ShowingType.Variables)
+            {
+                <ViewVariables Module="_module" StackName="@StackName"/>
+            }
+        </div>
 
     }
 </CascadingValue>
