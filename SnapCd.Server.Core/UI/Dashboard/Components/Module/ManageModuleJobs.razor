@@ -106,19 +106,36 @@ else
                 : elapsedTime.TotalHours < 48 ? "yesterday"
                 : $"{(int)elapsedTime.TotalDays}d ago";
 
-            var durationDisplay = FormatDuration(job.TimestampStart, job.TimestampEnd);
-
             <MudExpansionPanel Class="mb-2" @key="job.Id"
                                Expanded="@(job.Id == _expandedJobId)"
                                ExpandedChanged="@(async (isExpanded) => await OnPanelExpanded(isExpanded, job.Id))">
                 <TitleContent>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <MudTooltip Text="@job.Status.ToString()">
-                            <span class="job-status-dot" style="background-color: @dotColor;"></span>
+                            @if (job.Status == ExecutionStatus.Running)
+                            {
+                                <span class="job-status-running" style="color: @dotColor;">
+                                    <span class="job-status-dot" style="background-color: @dotColor;"></span>
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="job-status-dot" style="background-color: @dotColor;"></span>
+                            }
                         </MudTooltip>
-                        <span style="font-weight: 500; font-size: 14px; flex: 1;">Job #@job.JobNumber</span>
+                        <span style="font-weight: 500; font-size: 14px;">Job #@job.JobNumber</span>
+                        @if (job.WaitingForApproval == true)
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="Color.Secondary"
+                                     Class="ma-0">
+                                Awaiting approval
+                            </MudChip>
+                        }
+                        <span style="flex: 1;"></span>
                         <span style="font-size: 14px; color: var(--mud-palette-text-secondary); white-space: nowrap;">
-                            @statusLabel · @elapsedDisplay@(!string.IsNullOrEmpty(durationDisplay) ? $" · {durationDisplay}" : "")
+                            @statusLabel · @elapsedDisplay
                         </span>
                         @if (job.Status == ExecutionStatus.Running)
                         {
@@ -188,6 +205,41 @@ else
         border-radius: 50%;
         display: inline-block;
         flex-shrink: 0;
+    }
+
+    /* Running jobs keep the exact same solid dot in the exact same place. The wrapper
+       has the SAME 6px footprint as a plain dot, so the dot's centre lines up perfectly
+       with the dots on every other row. The spinning ring is drawn by ::after, which
+       overflows the footprint (centred on the dot) without affecting layout.
+       `currentColor` picks up the inline `color` set on the wrapper (= dotColor). */
+    .job-status-running {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 6px;
+        height: 6px;
+        flex-shrink: 0;
+    }
+
+    .job-status-running::after {
+        content: "";
+        position: absolute;
+        /* 14px ring centred on the 6px dot: -4px inset on every side keeps it
+           symmetric around the wrapper (and therefore around the dot), with a small
+           gap between the thicker ring and the dot. */
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        border-radius: 50%;
+        border: 3px solid rgba(128, 128, 128, 0.25);
+        border-top-color: currentColor;
+        animation: job-status-spin 1.1s linear infinite;
+    }
+
+    @@keyframes job-status-spin {
+        to { transform: rotate(360deg); }
     }
 
 </style>
@@ -660,16 +712,6 @@ else
         "DestroyJobSaga" => "Destroy",
         _ => jobType
     };
-
-    private static string? FormatDuration(DateTimeOffset start, DateTimeOffset? end)
-    {
-        var endTime = end ?? DateTimeOffset.UtcNow;
-        var duration = endTime - start;
-        if (duration.TotalSeconds < 1) return null;
-        if (duration.TotalSeconds < 60) return $"{(int)duration.TotalSeconds}s";
-        if (duration.TotalMinutes < 60) return $"{(int)duration.TotalMinutes}m {duration.Seconds}s";
-        return $"{(int)duration.TotalHours}h {duration.Minutes}m";
-    }
 
     public void Dispose()
     {
