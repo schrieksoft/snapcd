@@ -409,6 +409,11 @@
     private Stack? _stack;
     private TruncatedStack? _truncatedStack;
 
+    // Name of the stack currently loaded into _stack. Blazor reuses this component
+    // when navigating between two /Stack/... routes, so OnInitializedAsync does not
+    // re-run — we reload in OnParametersSetAsync whenever this changes.
+    private string? _loadedStackName;
+
     private ShowingType _showing = ShowingType.None;
     private string? _configureSection;
 
@@ -452,12 +457,36 @@
         _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
         _literalPrincipalProvider = new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]);
 
-        var cacheKey = $"module_{StackName}";
+        await LoadStackAsync();
+    }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        // Blazor reuses this component when navigating between two /Stack/... routes
+        // (e.g. via a favourites link), so OnInitializedAsync does not re-run. If the
+        // route now points at a different stack, reload it here. Skipped on the very
+        // first render, where OnInitializedAsync has already loaded the stack.
+        if (_loadedStackName != null && _loadedStackName != StackName)
+        {
+            await LoadStackAsync();
+        }
+
+        await base.OnParametersSetAsync();
+    }
+
+    // Loads (or reloads) everything tied to the route's stack. Called once from
+    // OnInitializedAsync and again from OnParametersSetAsync whenever the route
+    // switches to a different stack on the same reused component instance.
+    private async Task LoadStackAsync()
+    {
         // Parse search terms from URL query parameter
         if (!string.IsNullOrEmpty(Search))
         {
             _searchTerms = Search.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        }
+        else
+        {
+            _searchTerms = new List<string>();
         }
 
         using var repo = RepoFactory.Create();
@@ -478,6 +507,8 @@
             Name = _stack.Name,
             Namespaces = new List<TruncatedNamespace>()
         };
+
+        _loadedStackName = StackName;
 
         // Pre-rendering persistence - commented out since pre-rendering is disabled
         // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>

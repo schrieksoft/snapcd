@@ -81,6 +81,16 @@
 }
 
 /* Global overrides */
+
+/* Blazor's <FocusOnNavigate Selector="h1"> moves focus to the page heading after
+   navigation so screen readers announce the new page. On a fresh page load (typed
+   URL, refresh) browsers treat that programmatic focus as :focus-visible and draw
+   a focus ring around the heading; suppress the visual ring, as the stock Blazor
+   template does. */
+h1:focus {
+  outline: none;
+}
+
 .mud-button-root .mud-button-label {
   text-transform: lowercase !important;
 }

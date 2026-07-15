@@ -480,6 +480,11 @@
     private string _parentQuery = "";
     private ShowingType _showing = ShowingType.None;
 
+    // Identity of the namespace currently loaded into _namespace. Blazor reuses this
+    // component when navigating between two /Namespace/... routes, so OnInitializedAsync
+    // does not re-run — we reload in OnParametersSetAsync whenever this changes.
+    private string? _loadedNamespaceKey;
+
     private readonly List<TabBar.TabBarItem> _tabs =
     [
         new() { Key = nameof(ShowingType.Modules), Label = "Modules" },
@@ -528,12 +533,39 @@
         _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
         _literalPrincipalProvider = new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]);
 
-        var cacheKey = $"namespace_{StackName}_{NamespaceName}";
+        await LoadNamespaceAsync();
+    }
 
+    // Route identity of the namespace currently requested by the URL.
+    private string NamespaceKey => $"{StackName}/{NamespaceName}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Blazor reuses this component when navigating between two /Namespace/... routes
+        // (e.g. via a favourites link), so OnInitializedAsync does not re-run. If the
+        // route now points at a different namespace, reload it here. Skipped on the very
+        // first render, where OnInitializedAsync has already loaded the namespace.
+        if (_loadedNamespaceKey != null && _loadedNamespaceKey != NamespaceKey)
+        {
+            await LoadNamespaceAsync();
+        }
+
+        await base.OnParametersSetAsync();
+    }
+
+    // Loads (or reloads) everything tied to the route's namespace. Called once from
+    // OnInitializedAsync and again from OnParametersSetAsync whenever the route
+    // switches to a different namespace on the same reused component instance.
+    private async Task LoadNamespaceAsync()
+    {
         // Parse search terms from URL query parameter
         if (!string.IsNullOrEmpty(Search))
         {
             _searchTerms = Search.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        }
+        else
+        {
+            _searchTerms = new List<string>();
         }
 
         var queryString = _searchTerms.Any()
@@ -561,6 +593,8 @@
             Name = _namespace.Name,
             Modules = new List<TruncatedModule>()
         };
+
+        _loadedNamespaceKey = NamespaceKey;
 
         // Pre-rendering persistence - commented out since pre-rendering is disabled
         // _persistenceSubscription = ApplicationState.RegisterOnPersisting(() =>
