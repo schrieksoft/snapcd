@@ -144,6 +144,18 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
         // Proceed with the base update
         var updated = await base.ExecuteUpdate(entity);
 
+        // Publish approval threshold event if changed. Modules that don't override the
+        // threshold inherit this default, so lowering it can make an already-waiting job
+        // approved — NamespaceApprovalThresholdModifiedCompetingConsumer fans this out to
+        // every module in the namespace, which re-evaluates their waiting jobs. Mirrors
+        // ModuleRepository.ExecuteUpdate.
+        if (updated.DefaultApplyApprovalThreshold != existingNamespace.DefaultApplyApprovalThreshold ||
+            updated.DefaultDestroyApprovalThreshold != existingNamespace.DefaultDestroyApprovalThreshold)
+            await EnqueueOrPublish(() => Bus.Publish(new NamespaceApprovalThresholdModifiedEvent
+            {
+                NamespaceId = updated.Id
+            }, context => { context.TimeToLive = TimeSpan.FromSeconds(60); }));
+
         return updated;
     }
 

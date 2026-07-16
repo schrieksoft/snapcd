@@ -18,6 +18,13 @@ namespace SnapCd.Server.Core.Consumers.System.Fanout;
 /// Fanout consumer that responds to server heartbeat requests.
 /// Each server instance has its own temporary queue with this consumer.
 /// Used to verify if a specific runner connection is still active on this server.
+///
+/// A heartbeat request is addressed to exactly one server, via
+/// <see cref="ServerHeartbeatRequest.ServerInstanceId"/>. Because this is a fanout,
+/// every live server receives every request — so each one MUST ignore requests that
+/// are not addressed to it. Callers rely on a <c>RequestTimeoutException</c> to mean
+/// "that server is gone": if any server answers on a dead server's behalf, the caller
+/// concludes it is alive and never cleans up after it.
 /// </summary>
 public class ServerHeartbeatConsumer : IConsumer<ServerHeartbeatRequest>
 {
@@ -38,6 +45,17 @@ public class ServerHeartbeatConsumer : IConsumer<ServerHeartbeatRequest>
     public async Task Consume(ConsumeContext<ServerHeartbeatRequest> context)
     {
         var request = context.Message;
+
+        // Only the addressed server may answer. Every other server stays silent so the
+        // caller's request times out — which is exactly how it detects a dead server.
+        if (request.ServerInstanceId != _serverSettings.InstanceId)
+        {
+            _logger.LogTrace(
+                "Ignoring heartbeat request addressed to server {TargetServerInstanceId}; this is server {ServerInstanceId}",
+                request.ServerInstanceId,
+                _serverSettings.InstanceId);
+            return;
+        }
 
         _logger.LogDebug(
             "Received heartbeat request for runner {RunnerInstanceName} (ID: {RunnerId}) on server {ServerInstanceId}",
