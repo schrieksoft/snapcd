@@ -81,4 +81,5 @@ public static class ControllerEndpoints
     public const string StateFile = "api/{organizationId}/StateFile";
     public const string StateStoreRoleAssignment = "api/{organizationId}/StateStoreRoleAssignment";
     public const string UserFavorite = "api/{organizationId}/UserFavorite";
+    public const string UserColor = "api/{organizationId}/UserColor";
 }

@@ -192,6 +192,8 @@ public static class Factories
         services.AddScoped<PreviewFeatureAcceptanceSecuredRepositoryFactory>();
         services.AddScoped<UserFavoriteRepositoryFactory>();
         services.AddScoped<UserFavoriteSecuredRepositoryFactory>();
+        services.AddScoped<UserColorRepositoryFactory>();
+        services.AddScoped<UserColorSecuredRepositoryFactory>();
         services.AddScoped<ModuleTerraformFlagSecuredRepositoryFactory>();
         services.AddScoped<ModuleTerraformArrayFlagSecuredRepositoryFactory>();
         services.AddScoped<NamespaceTerraformFlagSecuredRepositoryFactory>();

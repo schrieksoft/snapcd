@@ -472,3 +472,16 @@ public enum FavoriteTargetType
     Namespace,
     Module
 }
+
+/// <summary>
+/// What a <c>UserColor</c> is attached to. Deliberately separate from
+/// <see cref="FavoriteTargetType"/> despite having the same members today: the two are
+/// independent features and should be free to diverge (colouring a Runner would make sense;
+/// starring one is a different question).
+/// </summary>
+public enum ColorTargetType
+{
+    Stack,
+    Namespace,
+    Module
+}

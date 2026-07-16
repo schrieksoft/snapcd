@@ -73,6 +73,7 @@ public static class MiscService
         services.AddSingleton<ModuleApprovalThresholdModifiedNotificationService>();
         services.AddSingleton<LicenseUsageModifiedNotificationService>();
         services.AddSingleton<FavoritesModifiedNotificationService>();
+        services.AddSingleton<ColorsModifiedNotificationService>();
 
 
         //services.AddScoped<ModuleJobApprovalRepository>(); // currently doesn't exist

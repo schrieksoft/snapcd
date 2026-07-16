@@ -203,23 +203,22 @@ public abstract class ModuleGraphServiceBase
     }
 
     /// <summary>
-    /// Gets the background style for namespace cards based on their relationship to the primary namespace
+    /// Gets the CSS class for namespace cards based on their relationship to the primary namespace.
+    ///
+    /// Returns a class rather than an inline style because the treatment is theme-dependent: an
+    /// external namespace is rendered *inverted* against the current surface (dark card in light
+    /// mode, light card in dark mode), and a static method cannot know which theme is active.
+    /// The rule lives with .dag-namespace-card in the graph flow components.
     /// </summary>
     /// <param name="namespaceId">The namespace ID to evaluate</param>
     /// <param name="primaryNamespaceId">The primary namespace ID (the one being operated on)</param>
     /// <param name="uninvolvedNamespaceIds">Set of namespace IDs that are uninvolved in the operation</param>
-    /// <returns>CSS style string for the namespace card background</returns>
-    public static string GetNamespaceCardStyle(Guid namespaceId, Guid? primaryNamespaceId, HashSet<Guid>? uninvolvedNamespaceIds = null)
+    /// <returns>CSS class for the namespace card, or empty for the primary namespace</returns>
+    public static string GetNamespaceCardClass(Guid namespaceId, Guid? primaryNamespaceId, HashSet<Guid>? uninvolvedNamespaceIds = null)
     {
-        var isUninvolved = uninvolvedNamespaceIds?.Contains(namespaceId) ?? false;
-        var isPrimaryNamespace = primaryNamespaceId.HasValue && namespaceId == primaryNamespaceId.Value;
         var isExternalNamespace = primaryNamespaceId.HasValue && namespaceId != primaryNamespaceId.Value;
 
-        if (isExternalNamespace)
-            // ALWAYS black background with white text for external namespaces (regardless of involvement)
-            return "background-color: black; color: white;";
-        else
-            // Default styling for the primary namespace
-            return "";
+        // Applies regardless of involvement.
+        return isExternalNamespace ? "dag-namespace-card-external" : "";
     }
 }

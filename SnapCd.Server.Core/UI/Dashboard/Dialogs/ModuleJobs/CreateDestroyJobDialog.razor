@@ -114,7 +114,9 @@
 
 
                 <div style="max-height: 400px; overflow-y: auto;">
-                    <DestroyModuleDependencyFlow DestroyGraph="_destroyGraph"/>
+                    @* OrganizationId is passed explicitly: this renders in a dialog, which is
+                       outside the page's CascadingValue tree, so a cascade would be empty. *@
+                    <DestroyModuleDependencyFlow DestroyGraph="_destroyGraph" OrganizationId="@OrganizationId"/>
                 </div>
             }
         }

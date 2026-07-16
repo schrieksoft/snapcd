@@ -98,6 +98,7 @@ public static class Controllers
             typeof(StateController),
 
             typeof(UserFavoriteController),
+            typeof(UserColorController),
 
             // OpenIddict
             typeof(AuthenticationController),

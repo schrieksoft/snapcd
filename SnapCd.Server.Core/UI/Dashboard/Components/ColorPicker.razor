@@ -1,0 +1,196 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.PrincipalProvider
+
+@implements IDisposable
+
+@inject UserColorSecuredRepositoryFactory ColorRepoFactory
+@inject ColorsModifiedNotificationService ColorsModifiedNotificationService
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+
+@if (_isUser && TargetId != Guid.Empty)
+{
+    <MudMenu Dense="true" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+        <ActivatorContent>
+            <MudTooltip Text="@(_color != null ? "Change or remove your colour" : "Set a personal colour")">
+                <span class="color-swatch @(_color == null ? "color-swatch-empty" : "")"
+                      style="@(_color != null ? $"background-color: {_color};" : "")"></span>
+            </MudTooltip>
+        </ActivatorContent>
+        <ChildContent>
+            <div class="color-palette">
+                @foreach (var swatch in Palette)
+                {
+                    <span class="color-palette-swatch @(_color == swatch ? "color-palette-swatch-selected" : "")"
+                          style="background-color: @swatch;"
+                          @onclick="@(() => Set(swatch))"></span>
+                }
+            </div>
+            @* An explicit, labelled action rather than a "no colour" swatch: clearing is a
+               different kind of thing from picking, and a hatched square doesn't say so. *@
+            @if (_color != null)
+            {
+                <MudDivider Class="my-1"/>
+                <MudMenuItem OnClick="@(() => Set(null))" Dense="true">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="color-swatch color-swatch-empty"></span>
+                        <span>Remove colour</span>
+                    </div>
+                </MudMenuItem>
+            }
+        </ChildContent>
+    </MudMenu>
+}
+
+<style>
+    /* Lives here rather than in each consumer: the picker owns its own look. The chosen
+       colour is applied by the consumer (as a tint on whatever it is colouring), since
+       only the consumer knows what that is. */
+    .color-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        display: inline-block;
+        cursor: pointer;
+        flex-shrink: 0;
+        border: 1px solid var(--snap-border, rgba(128,128,128,0.4));
+    }
+
+    /* "No colour": hatched, so an unset swatch can't read as a grey one. */
+    .color-swatch-empty {
+        background: repeating-linear-gradient(
+            45deg,
+            transparent 0 3px,
+            var(--snap-border, rgba(128,128,128,0.5)) 3px 4px
+        );
+    }
+
+    .color-palette {
+        display: grid;
+        grid-template-columns: repeat(5, 18px);
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .color-palette-swatch {
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        cursor: pointer;
+        border: 1px solid var(--snap-border, rgba(128,128,128,0.4));
+    }
+
+    .color-palette-swatch-selected {
+        outline: 2px solid var(--snap-text, currentColor);
+        outline-offset: 1px;
+    }
+</style>
+
+@code {
+    [Parameter] public required ColorTargetType TargetType { get; set; }
+    [Parameter] public required Guid TargetId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    /// <summary>
+    /// Neon: fully saturated, one per hue, spread around the wheel. Rendered at full
+    /// opacity as a bar across the top of the card — nothing sits on it, so there is no
+    /// contrast constraint and no tinting. That is the point of using a line: a background
+    /// has text on it and forces a compromise between "visible colour" and "readable
+    /// text"; a line has neither problem.
+    ///
+    /// Being a marker rather than a fill is also why red and green are safe here despite
+    /// error/success owning those hues elsewhere on the screen.
+    /// </summary>
+    private static readonly string[] Palette =
+    [
+        "#FF3B3B", // red
+        "#FF7A18", // orange
+        "#FFD400", // yellow
+        "#B6FF00", // lime
+        "#00FF85", // green
+        "#00FFD1", // aqua
+        "#00D4FF", // cyan
+        "#2E7BFF", // blue
+        "#7C4DFF", // indigo
+        "#B44DFF", // violet
+        "#FF3BD4", // magenta
+        "#FF1F6B", // pink
+        "#9AA5B0"  // neutral
+    ];
+
+    private string? _color;
+    private bool _isUser;
+    private Guid _previousTargetId;
+    private Guid _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isUser = HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() == PrincipalDiscriminator.User;
+        await LoadState();
+
+        // The same namespace appears once per stage it has modules in, so a graph renders
+        // several pickers for the same target. Without this, setting a colour on one leaves
+        // the others showing a stale swatch until the page is reloaded.
+        if (_isUser && OrganizationId != Guid.Empty)
+        {
+            _userId = HttpContextPrincipalProvider.GetSubjectOrDefault(OrganizationId);
+            if (_userId != Guid.Empty)
+                ColorsModifiedNotificationService.Subscribe(_userId, OnColorsModified);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (TargetId != _previousTargetId)
+        {
+            await LoadState();
+        }
+    }
+
+    private async Task OnColorsModified(Guid userId)
+    {
+        await LoadState();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadState()
+    {
+        _previousTargetId = TargetId;
+        _color = null;
+
+        if (!_isUser || TargetId == Guid.Empty || OrganizationId == Guid.Empty)
+            return;
+
+        using var repo = ColorRepoFactory.Create();
+        var color = await repo.GetByTarget(OrganizationId, TargetType, TargetId);
+        _color = color?.Color;
+    }
+
+    private async Task Set(string? color)
+    {
+        using var repo = ColorRepoFactory.Create();
+
+        // A null/empty colour clears it — same call either way.
+        await repo.Set(OrganizationId, TargetType, TargetId, color);
+        _color = color;
+
+        // Repaints the graph and every other picker pointing at this same target.
+        await ColorsModifiedNotificationService.Notify(HttpContextPrincipalProvider.GetSubject(OrganizationId));
+    }
+
+    public void Dispose()
+    {
+        if (_userId != Guid.Empty)
+            ColorsModifiedNotificationService.Unsubscribe(_userId, OnColorsModified);
+    }
+}

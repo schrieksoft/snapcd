@@ -11,6 +11,15 @@
 @using MudBlazor
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Dtos
+
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Services.Notification
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@implements IDisposable
+
+@inject UserColorSecuredRepositoryFactory ColorRepoFactory
+@inject ColorsModifiedNotificationService ColorsModifiedNotificationService
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject NavigationManager Navigation
 
 <div class="dag-stages"
@@ -38,14 +47,20 @@
 
                 @foreach (var namespaceGroup in namespaceGroups)
                 {
-                    var namespaceStyle = GetNamespaceCardStyle(namespaceGroup.Key);
-                    <MudCard Elevation="1" Class="mb-1 dag-namespace-card" Style="@namespaceStyle">
+                    var nsId = namespaceGroup.First().NamespaceId;
+                    var nsColor = GetColor(nsId);
+                    var namespaceClass = GetNamespaceCardClass(namespaceGroup.Key);
+                    <MudCard Elevation="1" Class="@($"mb-1 dag-namespace-card {namespaceClass}")"
+                             Style="@(nsColor != null ? $"--ns-color: {nsColor};" : "")">
                         <MudCardHeader Class="pa-2 pb-1">
                             <CardHeaderContent>
-                                <MudLink Href="@($"/Namespace/{namespaceGroup.Key}")"
-                                         Typo="Typo.body2" Class="font-weight-bold">
-                                    @namespaceGroup.First().NamespaceName
-                                </MudLink>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <MudLink Href="@($"/Namespace/{namespaceGroup.Key}")"
+                                             Typo="Typo.body2" Class="font-weight-bold">
+                                        @namespaceGroup.First().NamespaceName
+                                    </MudLink>
+                                    <ColorPicker TargetType="ColorTargetType.Namespace" TargetId="@nsId"/>
+                                </div>
                             </CardHeaderContent>
                         </MudCardHeader>
                         <MudCardContent Class="pa-2 pt-0">
@@ -207,6 +222,87 @@
         background: var(--snap-bg-inset, var(--mud-palette-background-grey));
     }
 
+    /* A personal colour (--ns-color, set by ColorPicker) is painted as a wash at the top
+       of the card: full strength at the top-left, fading out downwards (gone by 38px, a
+       little past the ~32px header) and out to the right edge.
+
+       It lives on a ::before layer rather than on the card's own background because the two
+       axes need different tools — a colour gradient down, a mask across — and a mask on the
+       card itself would fade the module rows out with it. On its own layer it cannot touch
+       real content: the module cards inside must look identical whether or not the
+       namespace is coloured or external.
+
+       Fading via color-mix keeps the hue constant; interpolating to `transparent` would
+       drag it through black (rgba(0,0,0,0) in sRGB) and muddy the midtones on light
+       surfaces. Eased, not linear, so it reads as a band rather than a wash. Nothing but
+       the heading sits in the opaque part, so it can be full neon with no contrast cost. */
+    .dag-namespace-card[style*="--ns-color"] {
+        position: relative;
+    }
+
+    .dag-namespace-card[style*="--ns-color"]::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 38px;
+        pointer-events: none;
+        z-index: 0;
+        background-image: linear-gradient(
+            to bottom,
+            color-mix(in srgb, var(--ns-color) 100%, transparent) 0,
+            color-mix(in srgb, var(--ns-color) 40%, transparent) 13px,
+            color-mix(in srgb, var(--ns-color) 10%, transparent) 26px,
+            color-mix(in srgb, var(--ns-color) 0%, transparent) 38px
+        );
+        -webkit-mask-image: linear-gradient(to right, black 0, black 25%, transparent 100%);
+        mask-image: linear-gradient(to right, black 0, black 25%, transparent 100%);
+    }
+
+    /* Header content sits above the wash. */
+    .dag-namespace-card[style*="--ns-color"] > .mud-card-header {
+        position: relative;
+        z-index: 1;
+    }
+
+
+    /* A namespace outside the one being viewed is rendered INVERTED against the current
+       surface, so the whole card reads as "not from here" at a glance. It flips with the
+       theme — dark card in light mode, light card in dark mode — which is why this is a
+       class and not an inline style (a static helper cannot know the theme). */
+    .dag-namespace-card-external {
+        background: var(--snap-ink, #12171D) !important;
+    }
+
+    .mud-dark .dag-namespace-card-external {
+        background: var(--snap-mist, #DDE3E8) !important;
+    }
+
+    /* Only the card's own header text inverts. Scoped with `>` so it cannot reach the
+       module rows: those must look identical whether or not the namespace is external. */
+    .dag-namespace-card-external > .mud-card-header,
+    .dag-namespace-card-external > .mud-card-header .mud-typography,
+    .dag-namespace-card-external > .mud-card-header a {
+        color: var(--snap-paper, #FAFBFB) !important;
+    }
+
+    .mud-dark .dag-namespace-card-external > .mud-card-header,
+    .mud-dark .dag-namespace-card-external > .mud-card-header .mud-typography,
+    .mud-dark .dag-namespace-card-external > .mud-card-header a {
+        color: var(--snap-ink, #12171D) !important;
+    }
+
+    /* The module rows carry no background of their own (GetModuleCardStyle returns
+       border-only styling for a normal module), so on an inverted card they would inherit
+       it and their text would become unreadable. Give them back the surface they expect —
+       this is what keeps module content identical inside and outside the namespace. */
+    .dag-namespace-card-external > .mud-card-content .mud-expand-panel,
+    .dag-namespace-card-external > .mud-card-content .dag-module-nodeps {
+        background: var(--snap-bg-raised, var(--mud-palette-surface)) !important;
+        color: var(--snap-text, var(--mud-palette-text-primary)) !important;
+    }
+
     .stage-arrow {
         opacity: 0.5;
     }
@@ -237,7 +333,7 @@
     [Parameter] public Guid RootModuleId { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    private string GetNamespaceCardStyle(string namespaceDisplayName)
+    private string GetNamespaceCardClass(string namespaceDisplayName)
     {
         // All namespace cards use the same styling (no special styling for external namespaces)
         return "";
@@ -262,4 +358,44 @@
         }
     }
 
+    // The caller's personal colours, keyed by target id. Fetched once for the whole graph —
+    // the cards resolve against this in memory rather than each hitting the database.
+    private Dictionary<Guid, string> _colors = new();
+    private Guid _colorUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadColors();
+
+        if (_colorUserId != Guid.Empty)
+            ColorsModifiedNotificationService.Subscribe(_colorUserId, OnColorsModified);
+    }
+
+    private async Task LoadColors()
+    {
+        if (OrganizationId == Guid.Empty) return;
+
+        _colorUserId = HttpContextPrincipalProvider.GetSubjectOrDefault(OrganizationId);
+
+        using var repo = ColorRepoFactory.Create();
+        var colors = await repo.List(OrganizationId);
+        _colors = colors.ToDictionary(c => c.TargetId, c => c.Color);
+    }
+
+    private async Task OnColorsModified(Guid userId)
+    {
+        await LoadColors();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string? GetColor(Guid targetId)
+    {
+        return _colors.GetValueOrDefault(targetId);
+    }
+
+    public void Dispose()
+    {
+        if (_colorUserId != Guid.Empty)
+            ColorsModifiedNotificationService.Unsubscribe(_colorUserId, OnColorsModified);
+    }
 }
