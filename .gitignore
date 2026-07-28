@@ -210,3 +210,5 @@ CLAUDE.local.md
 .augment/
 AGENTS.md
 .agent/
+schemas/*.schema.json
+schemas/openapi.json

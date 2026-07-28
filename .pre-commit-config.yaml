@@ -41,7 +41,7 @@ repos:
             | SnapCd\.Contracts/Dto/.*\.cs
             | SnapCd\.Server\.Core/Startup/(Scalar|Controllers|CurrentOrganizationOperationTransformer)\.cs
             | generators/SnapCd\.OpenApi\.Generator/.*\.(cs|csproj)
-            | schemas/openapi\.json
+            | schemas/openapi\.yaml
           )$
       - id: settings-schemas
         name: Settings schemas (regenerated if stale)
@@ -57,5 +57,5 @@ repos:
             | SnapCd\.Server\.Core/Settings/.*\.cs
             | SnapCd\.Utils/Settings/.*\.cs
             | generators/SnapCd\.Settings\.Generator\..+/.*\.(cs|csproj)
-            | schemas/.*\.schema\.json
+            | schemas/.*\.schema\.yaml
           )$

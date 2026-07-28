@@ -92,10 +92,10 @@ jobs:
         # this repo. They are kept current by the pre-commit hooks
         # (scripts/check-settings-schemas.sh, scripts/check-openapi-document.sh).
         run: |
-          cp schemas/server.schema.json \
-             schemas/runner.schema.json \
-             schemas/agent.schema.json \
-             schemas/openapi.json \
+          cp schemas/server.schema.yaml \
+             schemas/runner.schema.yaml \
+             schemas/agent.schema.yaml \
+             schemas/openapi.yaml \
              release-assets/
           ls -la release-assets
 
@@ -213,7 +213,7 @@ jobs:
             --notes "Release ${{ steps.gitversion.outputs.SemVer }}" \
             -R https://github.com/schrieksoft/snapcd \
             release-assets/*.zip \
-            release-assets/*.json
+            release-assets/*.yaml
 
       - name: Notify downstream consumers
         # Fires repository_dispatch on every repo that pins a snapcd-published
