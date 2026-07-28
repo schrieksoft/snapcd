@@ -60,12 +60,20 @@ public class StackSecuredRepository : GenericSecuredRepository<
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader]
+    };
+
+    public override PermissionMap ReverseInheritedReadPermissionMap => new()
+    {
+        NamespaceRoles = [.. Enum.GetValues<NamespaceRole>()],
+        ModuleRoles = [.. Enum.GetValues<ModuleRole>()]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor]
     };
 
     public override PermissionMap CreatePermissionMap => new()
@@ -75,7 +83,8 @@ public class StackSecuredRepository : GenericSecuredRepository<
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor]
     };
 
     #region overrides
@@ -123,7 +132,7 @@ public class StackSecuredRepository : GenericSecuredRepository<
         return RoleQueryDispatch(
             organizationId,
             ReadPermissionMap.OrganizationRoles,
-            [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
+            ReadPermissionMap.StackRoles,
             true);
     }
 
@@ -132,7 +141,7 @@ public class StackSecuredRepository : GenericSecuredRepository<
         return RoleQueryDispatch(
             organizationId,
             UpdatePermissionMap.OrganizationRoles,
-            [StackRole.Owner, StackRole.Contributor],
+            UpdatePermissionMap.StackRoles,
             false);
     }
 
@@ -141,7 +150,7 @@ public class StackSecuredRepository : GenericSecuredRepository<
         return RoleQueryDispatch(
             organizationId,
             DeletePermissionMap.OrganizationRoles,
-            [StackRole.Owner, StackRole.Contributor],
+            DeletePermissionMap.StackRoles,
             false);
     }
 
@@ -279,43 +288,39 @@ public class StackSecuredRepository : GenericSecuredRepository<
             select stack;
     }
 
+    // Any role on a contained Namespace or Module suffices, so these queries do not
+    // filter on role names (see ReverseInheritedReadPermissionMap).
     private IQueryable<Stack> ReverseInheritanceQuery<TGroupMember>(
         Guid organizationId,
         Guid principalId)
         where TGroupMember : class, IGroupMember
     {
-        var namespaceRoles = new List<NamespaceRole> { NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader };
-        var moduleRoles = new List<ModuleRole> { ModuleRole.Owner, ModuleRole.Reader };
-
-        return ReverseInheritanceDirectNamespaceRoleQuery(organizationId, principalId, namespaceRoles)
-            .Concat(ReverseInheritanceGroupNamespaceRoleQuery<TGroupMember>(organizationId, principalId, namespaceRoles))
-            .Concat(ReverseInheritanceDirectModuleRoleQuery(organizationId, principalId, moduleRoles))
-            .Concat(ReverseInheritanceGroupModuleRoleQuery<TGroupMember>(organizationId, principalId, moduleRoles));
+        return ReverseInheritanceDirectNamespaceRoleQuery(organizationId, principalId)
+            .Concat(ReverseInheritanceGroupNamespaceRoleQuery<TGroupMember>(organizationId, principalId))
+            .Concat(ReverseInheritanceDirectModuleRoleQuery(organizationId, principalId))
+            .Concat(ReverseInheritanceGroupModuleRoleQuery<TGroupMember>(organizationId, principalId));
     }
 
     private IQueryable<Stack> ReverseInheritanceDirectNamespaceRoleQuery(
         Guid organizationId,
-        Guid principalId,
-        List<NamespaceRole> namespaceRoles)
+        Guid principalId)
     {
         return PrincipalDiscriminator switch
         {
-            PrincipalDiscriminator.User => ReverseInheritanceDirectNamespaceRoleQuery<UserNamespaceRoleAssignment>(organizationId, principalId, namespaceRoles),
-            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectNamespaceRoleQuery<ServicePrincipalNamespaceRoleAssignment>(organizationId, principalId, namespaceRoles),
+            PrincipalDiscriminator.User => ReverseInheritanceDirectNamespaceRoleQuery<UserNamespaceRoleAssignment>(organizationId, principalId),
+            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectNamespaceRoleQuery<ServicePrincipalNamespaceRoleAssignment>(organizationId, principalId),
             _ => throw new InvalidOperationException($"Unsupported principal discriminator: {PrincipalDiscriminator}")
         };
     }
 
     private IQueryable<Stack> ReverseInheritanceDirectNamespaceRoleQuery<TNamespaceRoleAssignment>(
         Guid organizationId,
-        Guid principalId,
-        List<NamespaceRole> namespaceRoles)
+        Guid principalId)
         where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
     {
         return from assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
             where assignment.PrincipalId == principalId
                   && assignment.OrganizationId == organizationId
-                  && namespaceRoles.Contains(assignment.RoleName)
             join ns in Repository.DbContext.Namespaces
                 on new { assignment.NamespaceId, assignment.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
             join stack in Repository.DbContext.Stacks
@@ -325,8 +330,7 @@ public class StackSecuredRepository : GenericSecuredRepository<
 
     private IQueryable<Stack> ReverseInheritanceGroupNamespaceRoleQuery<TGroupMember>(
         Guid organizationId,
-        Guid principalId,
-        List<NamespaceRole> namespaceRoles)
+        Guid principalId)
         where TGroupMember : class, IGroupMember
     {
         return from groupMember in Repository.DbContext.Set<TGroupMember>()
@@ -337,7 +341,6 @@ public class StackSecuredRepository : GenericSecuredRepository<
             join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
-            where namespaceRoles.Contains(assignment.RoleName)
             join ns in Repository.DbContext.Namespaces
                 on new { assignment.NamespaceId, assignment.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
             join stack in Repository.DbContext.Stacks
@@ -347,27 +350,24 @@ public class StackSecuredRepository : GenericSecuredRepository<
 
     private IQueryable<Stack> ReverseInheritanceDirectModuleRoleQuery(
         Guid organizationId,
-        Guid principalId,
-        List<ModuleRole> moduleRoles)
+        Guid principalId)
     {
         return PrincipalDiscriminator switch
         {
-            PrincipalDiscriminator.User => ReverseInheritanceDirectModuleRoleQuery<UserModuleRoleAssignment>(organizationId, principalId, moduleRoles),
-            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectModuleRoleQuery<ServicePrincipalModuleRoleAssignment>(organizationId, principalId, moduleRoles),
+            PrincipalDiscriminator.User => ReverseInheritanceDirectModuleRoleQuery<UserModuleRoleAssignment>(organizationId, principalId),
+            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectModuleRoleQuery<ServicePrincipalModuleRoleAssignment>(organizationId, principalId),
             _ => throw new InvalidOperationException($"Unsupported principal discriminator: {PrincipalDiscriminator}")
         };
     }
 
     private IQueryable<Stack> ReverseInheritanceDirectModuleRoleQuery<TModuleRoleAssignment>(
         Guid organizationId,
-        Guid principalId,
-        List<ModuleRole> moduleRoles)
+        Guid principalId)
         where TModuleRoleAssignment : class, IModuleRoleAssignment
     {
         return from assignment in Repository.DbContext.Set<TModuleRoleAssignment>()
             where assignment.PrincipalId == principalId
                   && assignment.OrganizationId == organizationId
-                  && moduleRoles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces
@@ -379,8 +379,7 @@ public class StackSecuredRepository : GenericSecuredRepository<
 
     private IQueryable<Stack> ReverseInheritanceGroupModuleRoleQuery<TGroupMember>(
         Guid organizationId,
-        Guid principalId,
-        List<ModuleRole> moduleRoles)
+        Guid principalId)
         where TGroupMember : class, IGroupMember
     {
         return from groupMember in Repository.DbContext.Set<TGroupMember>()
@@ -391,7 +390,6 @@ public class StackSecuredRepository : GenericSecuredRepository<
             join assignment in Repository.DbContext.GroupModuleRoleAssignments
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
-            where moduleRoles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces

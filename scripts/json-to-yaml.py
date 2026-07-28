@@ -17,8 +17,24 @@ import sys
 
 import yaml
 
+
+class Dumper(yaml.SafeDumper):
+    pass
+
+
+def _str_representer(dumper, value):
+    # Multi-line strings (markdown descriptions) as literal blocks: real single
+    # line breaks in the source instead of quoted-and-folded blank-line pairs.
+    if "\n" in value:
+        value = "\n".join(line.rstrip() for line in value.splitlines())
+        return dumper.represent_scalar("tag:yaml.org,2002:str", value, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", value)
+
+
+Dumper.add_representer(str, _str_representer)
+
 with open(sys.argv[1]) as f:
     data = json.load(f)
 
 with open(sys.argv[2], "w") as f:
-    yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True, width=120)
+    yaml.dump(data, f, Dumper=Dumper, sort_keys=False, allow_unicode=True, width=120)

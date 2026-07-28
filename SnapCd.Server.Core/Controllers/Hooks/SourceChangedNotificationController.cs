@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Services;
 
 namespace SnapCd.Server.Core.Controllers.Hooks;
@@ -19,6 +20,7 @@ namespace SnapCd.Server.Core.Controllers.Hooks;
 [ApiController]
 [Authorize("BearerPolicy")]
 [OrganizationScopedFeature]
+[PermissionSource(Repository = typeof(SourceChangedService), Verb = PermissionVerb.Create)]
 public class SourceChangedNotificationController : ControllerBase
 {
     private readonly SourceChangedService _sourceChangedService;

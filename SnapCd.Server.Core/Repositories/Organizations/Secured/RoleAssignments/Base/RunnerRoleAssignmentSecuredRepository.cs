@@ -38,7 +38,7 @@ public class RunnerRoleAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class RunnerRoleAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class RunnerRoleAssignmentSecuredRepository : GenericRunnerChildSecuredRepository<
     RunnerRoleAssignment,
     RunnerRoleAssignmentReadDto,
     RunnerRoleAssignmentRepository,
@@ -56,22 +56,26 @@ public class RunnerRoleAssignmentSecuredRepository : GenericOrganizationChildSec
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public override async Task<RunnerRoleAssignment> Create(RunnerRoleAssignment entity, bool inTransaction = true)

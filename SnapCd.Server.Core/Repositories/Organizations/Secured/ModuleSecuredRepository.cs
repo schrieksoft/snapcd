@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -42,6 +43,37 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
 
     # region overrides
 
+    public override PermissionMap CreatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.ModuleCreator]
+    };
+
+    public override PermissionMap ReadPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Reader]
+    };
+
+    public override PermissionMap UpdatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        ModuleRoles = [ModuleRole.Owner]
+    };
+
+    public override PermissionMap DeletePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        ModuleRoles = [ModuleRole.Owner]
+    };
+
     public override bool CanCreate(Guid parentId, Guid organizationId)
     {
         var principalId = PrincipalProvider.GetSubject(organizationId);
@@ -62,10 +94,10 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.ModuleCreator],
-            []
+            CreatePermissionMap.OrganizationRoles,
+            CreatePermissionMap.StackRoles,
+            CreatePermissionMap.NamespaceRoles,
+            CreatePermissionMap.ModuleRoles
         );
     }
 
@@ -73,10 +105,10 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader],
-            [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
-            [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
-            [ModuleRole.Owner, ModuleRole.Reader]
+            ReadPermissionMap.OrganizationRoles,
+            ReadPermissionMap.StackRoles,
+            ReadPermissionMap.NamespaceRoles,
+            ReadPermissionMap.ModuleRoles
         );
     }
 
@@ -84,10 +116,10 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner, NamespaceRole.Contributor],
-            [ModuleRole.Owner]
+            UpdatePermissionMap.OrganizationRoles,
+            UpdatePermissionMap.StackRoles,
+            UpdatePermissionMap.NamespaceRoles,
+            UpdatePermissionMap.ModuleRoles
         );
     }
 
@@ -95,10 +127,10 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner, NamespaceRole.Contributor],
-            [ModuleRole.Owner]
+            DeletePermissionMap.OrganizationRoles,
+            DeletePermissionMap.StackRoles,
+            DeletePermissionMap.NamespaceRoles,
+            DeletePermissionMap.ModuleRoles
         );
     }
 
@@ -164,7 +196,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         var hasOrgPermission = Repository.DbContext.Set<TOrganizationRoleAssignment>()
             .Any(ra => ra.OrganizationId == organizationId
                        && ra.PrincipalId == principalId
-                       && (ra.RoleName == OrganizationRole.Owner || ra.RoleName == OrganizationRole.Contributor));
+                       && CreatePermissionMap.OrganizationRoles.Contains(ra.RoleName));
 
         if (hasOrgPermission)
             return true;
@@ -181,7 +213,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                 join assignment in Repository.DbContext.GroupOrganizationRoleAssignments
                     on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == OrganizationRole.Owner || assignment.RoleName == OrganizationRole.Contributor
+                where CreatePermissionMap.OrganizationRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             PrincipalDiscriminator.ServicePrincipal => (
@@ -193,7 +225,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                 join assignment in Repository.DbContext.GroupOrganizationRoleAssignments
                     on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == OrganizationRole.Owner || assignment.RoleName == OrganizationRole.Contributor
+                where CreatePermissionMap.OrganizationRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             _ => false
@@ -211,7 +243,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
             join assignment in Repository.DbContext.Set<TStackRoleAssignment>()
                 on new { StackId = stack.Id, stack.OrganizationId } equals new { assignment.StackId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
-                  && (assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor)
+                  && CreatePermissionMap.StackRoles.Contains(assignment.RoleName)
             select stack
         ).Any();
 
@@ -235,7 +267,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                     on new { StackId = stack.Id, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.StackId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
                 where gum.UserId == principalId
-                      && (assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor)
+                      && CreatePermissionMap.StackRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             PrincipalDiscriminator.ServicePrincipal => (
@@ -252,7 +284,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                     on new { StackId = stack.Id, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.StackId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
                 where gspm.ServicePrincipalId == principalId
-                      && (assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor)
+                      && CreatePermissionMap.StackRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             _ => false
@@ -266,9 +298,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
             .Any(ra => ra.NamespaceId == namespaceId
                        && ra.OrganizationId == organizationId
                        && ra.PrincipalId == principalId
-                       && (ra.RoleName == NamespaceRole.Owner
-                           || ra.RoleName == NamespaceRole.Contributor
-                           || ra.RoleName == NamespaceRole.ModuleCreator));
+                       && CreatePermissionMap.NamespaceRoles.Contains(ra.RoleName));
 
         if (hasNamespacePermission)
             return true;
@@ -285,9 +315,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
                     on new { NamespaceId = namespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == NamespaceRole.Owner
-                      || assignment.RoleName == NamespaceRole.Contributor
-                      || assignment.RoleName == NamespaceRole.ModuleCreator
+                where CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             PrincipalDiscriminator.ServicePrincipal => (
@@ -299,9 +327,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
                     on new { NamespaceId = namespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == NamespaceRole.Owner
-                      || assignment.RoleName == NamespaceRole.Contributor
-                      || assignment.RoleName == NamespaceRole.ModuleCreator
+                where CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             _ => false

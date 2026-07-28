@@ -39,7 +39,7 @@ public class StateStoreRoleAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class StateStoreRoleAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class StateStoreRoleAssignmentSecuredRepository : GenericStateStoreChildSecuredRepository<
     StateStoreRoleAssignment,
     StateStoreRoleAssignmentDto,
     StateStoreRoleAssignmentRepository,
@@ -57,22 +57,26 @@ public class StateStoreRoleAssignmentSecuredRepository : GenericOrganizationChil
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public override async Task<StateStoreRoleAssignment> Create(StateStoreRoleAssignment entity, bool inTransaction = true)

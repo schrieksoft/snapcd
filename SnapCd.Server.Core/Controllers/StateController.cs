@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Misc.Attributes;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,8 @@ namespace SnapCd.Server.Core.Controllers;
 [Route("api/state/{stateStoreId}/{stateFileName}")]
 [ApiController]
 [AllowAnonymous]
+[PermissionSource(Skip = true,
+    Notes = "Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.")]
 public class StateController : ControllerBase
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;

@@ -62,6 +62,8 @@ public static class Scalar
             });
 
             options.AddOperationTransformer<CurrentOrganizationOperationTransformer>();
+            options.AddOperationTransformer<PermissionsOperationTransformer>();
+            options.AddDocumentTransformer<PermissionsCoverageDocumentTransformer>();
         });
 
         return services;

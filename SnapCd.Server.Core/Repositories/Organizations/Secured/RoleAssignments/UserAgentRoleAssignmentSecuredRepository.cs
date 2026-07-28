@@ -57,25 +57,25 @@ public class UserAgentRoleAssignmentSecuredRepository : GenericAgentChildSecured
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.IdentityAccessManager]
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.IdentityAccessManager]
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.IdentityAccessManager]
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.IdentityAccessManager]
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 
     public async Task<List<UserAgentRoleAssignment>> ListByUser(Guid userId, Guid organizationId)

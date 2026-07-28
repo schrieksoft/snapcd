@@ -12,7 +12,10 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Runners;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition.GroupMembers;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
@@ -58,12 +61,14 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.RunnerContributor, OrganizationRole.RunnerReader]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.RunnerContributor, OrganizationRole.RunnerReader],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.RunnerContributor]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.RunnerContributor],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor]
     };
 
     public override PermissionMap CreatePermissionMap => new()
@@ -73,8 +78,65 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.RunnerContributor]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.RunnerContributor],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor]
     };
+
+    public override IQueryable<Runner> ReadQuery(Guid organizationId)
+        => base.ReadQuery(organizationId).Concat(RunnerRoleQuery(organizationId, ReadPermissionMap.RunnerRoles));
+
+    public override IQueryable<Runner> UpdateQuery(Guid organizationId)
+        => base.UpdateQuery(organizationId).Concat(RunnerRoleQuery(organizationId, UpdatePermissionMap.RunnerRoles));
+
+    public override IQueryable<Runner> DeleteQuery(Guid organizationId)
+        => base.DeleteQuery(organizationId).Concat(RunnerRoleQuery(organizationId, DeletePermissionMap.RunnerRoles));
+
+    private IQueryable<Runner> RunnerRoleQuery(Guid organizationId, List<RunnerRole> roles)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return PrincipalDiscriminator switch
+        {
+            PrincipalDiscriminator.User => RunnerRoleQuery<UserRunnerRoleAssignment, UserGroupMember>(organizationId, principalId, roles),
+            PrincipalDiscriminator.ServicePrincipal => RunnerRoleQuery<ServicePrincipalRunnerRoleAssignment, ServicePrincipalGroupMember>(organizationId, principalId, roles),
+            _ => throw new InvalidOperationException($"Unsupported principal discriminator: {PrincipalDiscriminator}")
+        };
+    }
+
+    private IQueryable<Runner> RunnerRoleQuery<TRoleAssignment, TGroupMember>(
+        Guid organizationId,
+        Guid principalId,
+        List<RunnerRole> roles)
+        where TRoleAssignment : class, IRunnerRoleAssignment
+        where TGroupMember : class, IGroupMember
+    {
+        var direct =
+            from entity in Repository.DbContext.Runners
+            join assignment in Repository.DbContext.Set<TRoleAssignment>()
+                on new { RunnerId = entity.Id, entity.OrganizationId } equals new { assignment.RunnerId, assignment.OrganizationId }
+            where entity.OrganizationId == organizationId
+                  && assignment.PrincipalId == principalId
+                  && roles.Contains(assignment.RoleName)
+            select entity;
+
+        var group =
+            from entity in Repository.DbContext.Runners
+            join groupMember in Repository.DbContext.Set<TGroupMember>()
+                .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
+                on entity.OrganizationId equals groupMember.OrganizationId
+            join rgm in Repository.DbContext.RecursiveGroupMembers
+                on new { RootGroupId = groupMember.GroupId, RootOrganizationId = groupMember.OrganizationId }
+                equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+            join assignment in Repository.DbContext.GroupRunnerRoleAssignments
+                on new { RunnerId = entity.Id, OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
+                equals new { assignment.RunnerId, assignment.OrganizationId, assignment.PrincipalId }
+            where entity.OrganizationId == organizationId
+                  && roles.Contains(assignment.RoleName)
+            select entity;
+
+        return direct.Concat(group);
+    }
+
 
     public async Task<Runner> GetByName(string name, Guid organizationId)
     {

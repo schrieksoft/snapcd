@@ -61,6 +61,7 @@ public static class MiscService
         services.AddScoped<OrganizationService>();
 
         // Notification Services (Singletons)
+        services.AddSingleton<RoleCapabilitiesService>();
         services.AddSingleton<JobCreatedNotificationService>();
         services.AddSingleton<JobUpdatedNotificationService>();
         services.AddSingleton<LogReceivedNotificationService>();

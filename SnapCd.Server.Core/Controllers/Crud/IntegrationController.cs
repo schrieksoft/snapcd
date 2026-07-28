@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Misc.Attributes;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -158,6 +159,7 @@ public class IntegrationController : ControllerBase
     }
 
     [HttpPost("{id}/test")]
+    [PermissionSource(Skip = true)]
     public async Task<ActionResult<IntegrationTestResult>> Test(Guid organizationId, Guid id)
     {
         try

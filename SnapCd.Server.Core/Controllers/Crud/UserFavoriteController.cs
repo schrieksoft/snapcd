@@ -13,6 +13,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.UserFavorites;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
@@ -30,6 +31,8 @@ namespace SnapCd.Server.Core.Controllers.Crud;
 [ApiController]
 [Authorize("BearerPolicy")]
 [OrganizationScopedFeature]
+[PermissionSource(Skip = true,
+    Notes = "Per-user data: any authenticated member of the organization; rows are scoped to the calling principal.")]
 public class UserFavoriteController : ControllerBase
 {
     private readonly UserFavoriteSecuredRepositoryFactory _repositoryFactory;

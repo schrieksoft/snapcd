@@ -15,7 +15,9 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Missions;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Helpers;
+using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Ai.Missions;
 
 namespace SnapCd.Server.Core.Controllers.Jobs;
@@ -28,23 +30,40 @@ namespace SnapCd.Server.Core.Controllers.Jobs;
 [ApiController]
 [Authorize("BearerPolicy")]
 [OrganizationScopedFeature]
+[PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
 public class MissionRunController : ControllerBase
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IBus _bus;
     private readonly MissionDispatcher _dispatcher;
+    private readonly ModuleJobSecuredRepositoryFactory _moduleJobSecuredRepositoryFactory;
     private readonly ILogger<MissionRunController> _logger;
 
     public MissionRunController(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IBus bus,
         MissionDispatcher dispatcher,
+        ModuleJobSecuredRepositoryFactory moduleJobSecuredRepositoryFactory,
         ILogger<MissionRunController> logger)
     {
         _dbContextFactory = dbContextFactory;
         _bus = bus;
         _dispatcher = dispatcher;
+        _moduleJobSecuredRepositoryFactory = moduleJobSecuredRepositoryFactory;
         _logger = logger;
+    }
+
+    private bool CanRunJobForModuleJob(SnapCdDbContext db, Guid moduleJobId, Guid organizationId)
+    {
+        var moduleId = db.ModuleJobs
+            .Where(j => j.Id == moduleJobId && j.OrganizationId == organizationId)
+            .Select(j => j.ModuleId)
+            .FirstOrDefault();
+        if (moduleId == Guid.Empty)
+            return false;
+
+        using var repo = _moduleJobSecuredRepositoryFactory.Create();
+        return repo.CanRunJob(moduleId, organizationId);
     }
 
     /// <summary>Cancel an in-flight run: flag it and ask the owning instance to abort the agent.</summary>
@@ -56,6 +75,10 @@ public class MissionRunController : ControllerBase
             .FirstOrDefaultAsync(r => r.Id == runId && r.OrganizationId == organizationId);
         if (run is null)
             return NotFound($"Run '{runId}' not found");
+
+        if (!CanRunJobForModuleJob(db, run.ModuleJobId, organizationId))
+            return StatusCode(StatusCodes.Status403Forbidden,
+                "Not permitted to manage runs for this module's jobs.");
 
         if (run.Status is MissionStatus.Succeeded or MissionStatus.Failed
             or MissionStatus.Cancelled or MissionStatus.TimedOut)
@@ -89,6 +112,10 @@ public class MissionRunController : ControllerBase
             .FirstOrDefaultAsync(m => m.Id == missionId && m.OrganizationId == organizationId);
         if (mission is null)
             return NotFound($"Mission '{missionId}' not found");
+
+        if (!CanRunJobForModuleJob(db, mission.ModuleJobId, organizationId))
+            return StatusCode(StatusCodes.Status403Forbidden,
+                "Not permitted to manage runs for this module's jobs.");
 
         var maxAttempt = await db.ModuleJobMissionRuns
             .Where(r => r.ModuleJobMissionId == missionId && r.OrganizationId == organizationId)

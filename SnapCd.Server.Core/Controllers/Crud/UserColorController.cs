@@ -13,6 +13,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.UserColors;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
 using SnapCd.Server.Core.Services.Notification;
@@ -32,6 +33,8 @@ namespace SnapCd.Server.Core.Controllers.Crud;
 [ApiController]
 [Authorize("BearerPolicy")]
 [OrganizationScopedFeature]
+[PermissionSource(Skip = true,
+    Notes = "Per-user data: any authenticated member of the organization; rows are scoped to the calling principal.")]
 public class UserColorController : ControllerBase
 {
     private readonly UserColorSecuredRepositoryFactory _repositoryFactory;

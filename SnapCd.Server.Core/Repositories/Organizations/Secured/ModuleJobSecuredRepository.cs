@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.Crud.Jobs;
@@ -88,6 +89,14 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
     }
     
 
+    public PermissionMap RunJobPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor, OrganizationRole.JobManager],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.JobManager],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.JobManager],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Contributor, ModuleRole.JobManager]
+    };
+
     public bool CanRunJob(Guid parentId, Guid organizationId)
     {
         var principalId = PrincipalProvider.GetSubject(organizationId);
@@ -121,10 +130,10 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
     {
         // Check direct module role assignment
         var hasModulePermission = Repository.DbContext.Set<TModuleRoleAssignment>()
-            .Any(ra => (ra.ModuleId == moduleId
-                        && ra.OrganizationId == organizationId
-                        && ra.PrincipalId == principalId
-                        && ra.RoleName == ModuleRole.Owner) || ra.RoleName == ModuleRole.JobManager);
+            .Any(ra => ra.ModuleId == moduleId
+                       && ra.OrganizationId == organizationId
+                       && ra.PrincipalId == principalId
+                       && RunJobPermissionMap.ModuleRoles.Contains(ra.RoleName));
 
         if (hasModulePermission)
             return true;
@@ -136,7 +145,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
                 on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
-                  && (assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor || assignment.RoleName == NamespaceRole.JobManager)
+                  && RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
             select assignment
         ).Any();
 
@@ -152,7 +161,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
             join assignment in Repository.DbContext.Set<TStackRoleAssignment>()
                 on new { StackId = ns.StackId, ns.OrganizationId } equals new { assignment.StackId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
-                  && (assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor || assignment.RoleName == StackRole.JobManager)
+                  && RunJobPermissionMap.StackRoles.Contains(assignment.RoleName)
             select assignment
         ).Any();
 
@@ -163,7 +172,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
         var hasOrgPermission = Repository.DbContext.Set<TOrganizationRoleAssignment>()
             .Any(ra => ra.OrganizationId == organizationId
                        && ra.PrincipalId == principalId
-                       && (ra.RoleName == OrganizationRole.Owner || ra.RoleName == OrganizationRole.Contributor || ra.RoleName == OrganizationRole.JobManager));
+                       && RunJobPermissionMap.OrganizationRoles.Contains(ra.RoleName));
 
         if (hasOrgPermission)
             return true;
@@ -181,7 +190,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupModuleRoleAssignments
                     on new { ModuleId = moduleId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.ModuleId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == ModuleRole.Owner
+                where RunJobPermissionMap.ModuleRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any() || (
                 // Namespace role via group
@@ -196,7 +205,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
                     on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor
+                where RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any() || (
                 // Stack role via group
@@ -213,7 +222,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupStackRoleAssignments
                     on new { StackId = ns.StackId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.StackId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor
+                where RunJobPermissionMap.StackRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any() || (
                 // Organization role via group
@@ -225,7 +234,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupOrganizationRoleAssignments
                     on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == OrganizationRole.Owner || assignment.RoleName == OrganizationRole.Contributor
+                where RunJobPermissionMap.OrganizationRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             PrincipalDiscriminator.ServicePrincipal => (
@@ -238,7 +247,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupModuleRoleAssignments
                     on new { ModuleId = moduleId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.ModuleId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == ModuleRole.Owner
+                where RunJobPermissionMap.ModuleRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any() || (
                 // Namespace role via group
@@ -253,7 +262,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
                     on new { NamespaceId = module.NamespaceId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.NamespaceId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor
+                where RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any() || (
                 // Stack role via group
@@ -270,7 +279,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupStackRoleAssignments
                     on new { StackId = ns.StackId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.StackId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor
+                where RunJobPermissionMap.StackRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any() || (
                 // Organization role via group
@@ -282,7 +291,7 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
                 join assignment in Repository.DbContext.GroupOrganizationRoleAssignments
                     on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == OrganizationRole.Owner || assignment.RoleName == OrganizationRole.Contributor
+                where RunJobPermissionMap.OrganizationRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             _ => false
@@ -295,10 +304,10 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.JobManager],
-            [StackRole.Owner, StackRole.Contributor, StackRole.JobManager],
-            [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.JobManager],
-            [ModuleRole.Owner, ModuleRole.Contributor, ModuleRole.JobManager]);
+            RunJobPermissionMap.OrganizationRoles,
+            RunJobPermissionMap.StackRoles,
+            RunJobPermissionMap.NamespaceRoles,
+            RunJobPermissionMap.ModuleRoles);
     }
 
     public async Task<List<RunJobPermission>> ListHasRunJobPermission(List<ModuleNamespaceIdTuple> toCheck, Guid organizationId)

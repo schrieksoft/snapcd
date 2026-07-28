@@ -38,7 +38,7 @@ public class AgentRoleAssignmentSecuredRepositoryFactory(
     }
 }
 
-public class AgentRoleAssignmentSecuredRepository : GenericOrganizationChildSecuredRepository<
+public class AgentRoleAssignmentSecuredRepository : GenericAgentChildSecuredRepository<
     AgentRoleAssignment,
     AgentRoleAssignmentReadDto,
     AgentRoleAssignmentRepository,
@@ -56,21 +56,25 @@ public class AgentRoleAssignmentSecuredRepository : GenericOrganizationChildSecu
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
+        AgentRoles = [AgentRole.Owner, AgentRole.IdentityAccessManager]
     };
 }

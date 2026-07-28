@@ -13,7 +13,6 @@ using SnapCd.Server.Core.Controllers.Crud;
 using SnapCd.Server.Core.Controllers.Crud.Secrets;
 using SnapCd.Server.Core.Controllers.Hooks;
 using SnapCd.Server.Core.Controllers.Jobs;
-using SnapCd.Server.Core.Controllers.Logs;
 using SnapCd.Server.Core.Controllers.OpenIddict;
 
 namespace SnapCd.Server.Core.Startup;
@@ -31,7 +30,6 @@ public static class Controllers
             typeof(ModuleController),
             typeof(IntegrationController),
             typeof(IntegrationRoleAssignmentController),
-            typeof(IntegrationEventController),
             typeof(OrganizationIntegrationEventController),
             typeof(StackIntegrationEventController),
             typeof(NamespaceIntegrationEventController),
@@ -48,7 +46,6 @@ public static class Controllers
             typeof(NamespaceInputFromLiteralController),
             typeof(NamespaceInputFromDefinitionController),
             typeof(NamespaceInputFromSecretController),
-            typeof(LogsController),
             typeof(RunnerController),
             typeof(AgentController),
             typeof(ServicePrincipalController),

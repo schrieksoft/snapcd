@@ -280,8 +280,7 @@ public enum StackRole
     Reader,
     NamespaceCreator,
     IdentityAccessManager,
-    JobManager,
-    SourceChangeNotifier
+    JobManager
 }
 
 public enum NamespaceRole
@@ -291,8 +290,7 @@ public enum NamespaceRole
     Reader,
     ModuleCreator,
     IdentityAccessManager,
-    JobManager,
-    SourceChangeNotifier
+    JobManager
 }
 
 public enum ModuleRole
@@ -301,8 +299,7 @@ public enum ModuleRole
     Contributor,
     Reader,
     IdentityAccessManager,
-    JobManager,
-    SourceChangeNotifier
+    JobManager
 }
 
 public enum RunnerRole

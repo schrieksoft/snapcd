@@ -291,7 +291,6 @@ public static class Factories
         services.AddScoped<NamespaceIntegrationEventSecuredRepositoryFactory>();
         services.AddScoped<ModuleIntegrationEventRepositoryFactory>();
         services.AddScoped<ModuleIntegrationEventSecuredRepositoryFactory>();
-        services.AddScoped<Services.Integrations.IntegrationEventService>();
         services.AddScoped<Services.Integrations.IntegrationEventMatcher>();
 
         // Mission family (4 scopes, raw + secured)
