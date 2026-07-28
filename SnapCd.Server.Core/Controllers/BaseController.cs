@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SnapCd.Server.Core.Controllers;
 
+[ApiController]
 public abstract class BaseController : ControllerBase
 {
 }
