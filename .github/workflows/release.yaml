@@ -233,6 +233,7 @@ jobs:
               snapcd-deployment-kubernetes \
               snapcd-deployment-local \
               snapcd-docs \
+              terraform-provider-snapcd \
               module-snapcd-runner-app; do
             echo "Dispatching snapcd-released to schrieksoft/${repo}"
             gh api "repos/schrieksoft/${repo}/dispatches" \
