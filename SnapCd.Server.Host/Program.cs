@@ -125,7 +125,7 @@ builder.Services.AddScoped<IUserQuotaProvider, NoOpUserQuotaProvider>();
 builder.Services.AddSnapCdAuthConfiguration(builder.Configuration, allowHttp);
 
 builder.Services.AddSnapCdBackgroundJobs(connectionString);
-builder.Services.AddSnapCdSwaggerConfiguration(builder.Configuration);
+builder.Services.AddSnapCdScalarConfiguration(builder.Configuration);
 builder.Services.AddSnapCdCorsConfiguration();
 builder.Services.AddSnapCdMassTransitConfiguration(builder.Configuration);
 builder.Services.AddSnapCdRunnerHub();
@@ -255,13 +255,9 @@ RecurringJob.AddOrUpdate<LicensePublicKeyRefreshJob>(
     "0 4 * * *" // daily at 04:00 UTC
 );
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "SnapCd Api");
-    c.OAuthClientId("SwaggerClient");
-    c.OAuthUsePkce();
-});
+// Serves the OpenAPI document at /openapi/v1.json — consumed by the
+// Scalar reference (/ApiReference).
+app.MapOpenApi();
 if (Debugger.IsAttached)
 {
     app.UseMigrationsEndPoint();
@@ -284,6 +280,7 @@ app.MapRazorComponents<SnapCd.Server.Host.App>()
         typeof(SnapCd.Server.Core.Marker).Assembly);
 app.MapAdditionalIdentityEndpoints(); // Add additional endpoints required by the Identity / Account Razor components.
 app.MapAdditionalFormEndpoints();
+app.MapApiReferenceStandalone();
 app.UseRouting();
 app.UseCors("AllowAnyOriginCorsPolicy");
 app.UseAuthentication();

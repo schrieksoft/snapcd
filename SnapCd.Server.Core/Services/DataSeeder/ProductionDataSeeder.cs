@@ -60,13 +60,13 @@ public class ProductionDataSeeder : IDataSeeder
 
         await CreateOrUpdateApplication(new ServicePrincipalToSeed
             {
-                ClientId = "SwaggerClient",
+                ClientId = "ScalarClient",
                 ClientType = "public",
-                DisplayName = "Swagger Client",
+                DisplayName = "Scalar Client",
                 Scopes = ["snapcd_scope"],
                 ConsentType = "implicit",
-                LoginRedirectUri = $"{_serverSettings.Host}/swagger/oauth2-redirect.html",
-                LogoutRedirectUri = $"{_serverSettings.Host}/swagger/index.html",
+                LoginRedirectUri = $"{_serverSettings.Host}/ApiReference/Standalone",
+                LogoutRedirectUri = $"{_serverSettings.Host}/ApiReference/Standalone",
                 OrganizationId = platformOrganizationId,
                 IsServicePrincipal = false
             }
@@ -183,7 +183,7 @@ public class ProductionDataSeeder : IDataSeeder
     protected async Task CreateOrUpdateApplication(ServicePrincipalToSeed spToSeed)
     {
         // Only prefix ClientId for actual service principals (client_credentials flow)
-        // System applications like SwaggerClient don't need organization scoping
+        // System applications like ScalarClient don't need organization scoping
         var storedClientId = spToSeed.IsServicePrincipal
             ? $"{spToSeed.OrganizationId}:{spToSeed.ClientId}"
             : spToSeed.ClientId;
