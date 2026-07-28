@@ -1,0 +1,23 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/ApiReference"
+
+@layout SnapCd.Server.Core.UI.Dashboard.Layout.AccountInteractiveLayout
+
+<PageTitle>API Reference - Snap CD</PageTitle>
+
+@* Scalar assumes it owns its document (window scrolling, document-coordinate
+   popovers, body theme classes), so it runs on its own page — served by
+   ApiReferenceEndpoints — and is framed here. The framed page is ours: it loads
+   snapcd-theme.css and the theme cookie stamp, so branding is identical. *@
+@* Flush to the top, right, and bottom: negative margins cancel the layout's pa-4
+   on those three sides (this layout has no app bar); only the left buffer next
+   to the nav drawer remains. *@
+<iframe src="ApiReference/Standalone"
+        style="display:block;width:calc(100% + 16px);height:100vh;margin:-16px -16px -16px 0;border:none;"/>

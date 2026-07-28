@@ -193,6 +193,125 @@ a.mud-link:hover {
   color: var(--snap-accent) !important;
 }
 
+/* Scalar API reference (/ApiReference): map Scalar's theme variables onto the
+   snap tokens so the reference is indistinguishable from the rest of the app.
+   The --snap-* values flip via .mud-dark on <html>, so one block covers both
+   modes. Scalar puts its mode class (light-mode/dark-mode) on <body> and
+   re-declares variables closer to some consumers (.t-doc__sidebar, .scalar-card),
+   so the override must land on body level AND on those re-declaration points —
+   a rule on the mount div alone is beaten by any closer re-declaration. */
+body.light-mode,
+body.dark-mode,
+#scalar-api-reference,
+#scalar-api-reference .t-doc__sidebar,
+body.light-mode .scalar-card,
+body.dark-mode .scalar-card {
+  --scalar-background-1: var(--snap-bg);
+  --scalar-background-2: var(--snap-bg-inset);
+  --scalar-background-3: var(--snap-bg-raised);
+  --scalar-color-1: var(--snap-text);
+  --scalar-color-2: var(--snap-text-2);
+  --scalar-color-3: var(--snap-text-3);
+  --scalar-color-accent: var(--snap-accent);
+  --scalar-background-accent: color-mix(in srgb, var(--snap-accent) 12%, transparent);
+  --scalar-border-color: var(--snap-border);
+
+  --scalar-sidebar-background-1: var(--snap-bg);
+  --scalar-sidebar-color-1: var(--snap-text);
+  --scalar-sidebar-color-2: var(--snap-text-2);
+  --scalar-sidebar-color-active: var(--snap-accent);
+  --scalar-sidebar-item-hover-background: var(--snap-bg-inset);
+  --scalar-sidebar-item-active-background: color-mix(in srgb, var(--snap-accent) 12%, transparent);
+  --scalar-sidebar-border-color: var(--snap-border);
+  --scalar-sidebar-search-background: var(--snap-bg-inset);
+  --scalar-sidebar-search-color: var(--snap-text-2);
+  --scalar-sidebar-search-border-color: var(--snap-border);
+
+  --scalar-font: var(--snap-font-sans);
+  --scalar-font-code: var(--snap-font-mono);
+
+  --scalar-sidebar-width: 340px;
+
+  --scalar-button-1: var(--snap-accent);
+  --scalar-button-1-color: var(--snap-on-accent);
+  --scalar-button-1-hover: var(--snap-accent-hover);
+
+  --scalar-color-green: var(--snap-success);
+  --scalar-color-red: var(--snap-error);
+  --scalar-color-blue: var(--snap-info);
+  --scalar-color-orange: var(--snap-accent);
+  --scalar-color-yellow: var(--snap-warning);
+  --scalar-color-purple: var(--snap-fog);
+
+  /* Scalar derives -md/-2xl/... from --scalar-radius where THEY are declared,
+     so zeroing the base alone doesn't reach them — zero the derived set too.
+     --scalar-radius-full is left alone: it draws the genuinely-circular bits. */
+  --scalar-radius: 0;
+  --scalar-radius-md: 0;
+  --scalar-radius-lg: 0;
+  --scalar-radius-xl: 0;
+  --scalar-radius-2xl: 0;
+  --scalar-radius-3xl: 0;
+}
+
+/* Scalar action buttons (Test Request, Authorize, ...) follow the app's button
+   idiom (lowercase labels). Scoped to .scalar-button: schema rows, enum values,
+   and paths are also <button> elements and must keep their casing. */
+#scalar-api-reference .scalar-button {
+  text-transform: lowercase;
+}
+
+/* Squared corners, unconditionally: Scalar rounds through several independent
+   paths (radius variables, utility classes, scoped component rules), so the
+   variable overrides above aren't sufficient on their own. Spared: genuinely
+   circular elements (rounded-full) and the header badges (version / spec
+   chips), which stay chips. */
+#scalar-api-reference *:not([class*="rounded-full"]):not(.badge),
+.z-context *:not([class*="rounded-full"]):not(.badge),
+.scalar-app *:not([class*="rounded-full"]):not(.badge) {
+  border-radius: 0 !important;
+}
+
+/* Client Libraries: no "...more" overflow tile; the selected library gets the
+   same treatment as an active tab (accent slider + accent label) instead of
+   Scalar's 1px text-colored underline. */
+#scalar-api-reference .client-libraries-more,
+#scalar-api-reference a[href="https://www.scalar.com"] {
+  display: none !important;
+}
+
+#scalar-api-reference .client-libraries__active {
+  border-bottom: 2px solid var(--snap-accent);
+}
+
+#scalar-api-reference .client-libraries__active .client-libraries-text {
+  color: var(--snap-accent);
+}
+
+/* Outlined Scalar buttons (Authorize, Clear) follow the app's only button
+   variant: filled accent. */
+#scalar-api-reference .scalar-button-outlined {
+  background: var(--snap-accent) !important;
+  color: var(--snap-on-accent) !important;
+  border-color: transparent !important;
+}
+
+/* "required" markers (authentication card, schema properties) in accent */
+#scalar-api-reference .required,
+#scalar-api-reference .property-required,
+#scalar-api-reference .request-body-required {
+  color: var(--snap-accent) !important;
+}
+
+/* "Authentication required" badges — the intro card one (.authenticationRequired)
+   and the per-operation "auth required" indicator: accented, and clickable
+   (scalar-interop.js forwards the click to the Authorize button). */
+#scalar-api-reference .authenticationRequired,
+#scalar-api-reference [data-testid="auth-indicator"] {
+  color: var(--snap-accent) !important;
+  cursor: pointer;
+}
+
 /* Section label above ListStacks / ListNamespaces / ListModules. The same rule
    serves all three so a nested list (stack > namespace > module) reads as the
    same kind of heading at every depth. */
