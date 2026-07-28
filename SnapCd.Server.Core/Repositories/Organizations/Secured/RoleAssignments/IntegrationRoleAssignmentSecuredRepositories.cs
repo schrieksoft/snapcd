@@ -36,14 +36,14 @@ public class IntegrationRoleAssignmentSecuredRepositoryFactory(IDbContextFactory
 }
 
 public class IntegrationRoleAssignmentSecuredRepository(IntegrationRoleAssignmentRepository repository, IPrincipalProvider principalProvider)
-    : GenericOrganizationChildSecuredRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto, IntegrationRoleAssignmentRepository,
+    : GenericIntegrationChildSecuredRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto, IntegrationRoleAssignmentRepository,
         IntegrationRoleAssignmentCreatedEvent, IntegrationRoleAssignmentUpdatedEvent, IntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {
-    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager] };
-    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager] };
-    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager] };
-    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager] };
+    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
 }
 
 // ---- User ----
@@ -62,10 +62,10 @@ public class UserIntegrationRoleAssignmentSecuredRepository(UserIntegrationRoleA
         UserIntegrationRoleAssignmentCreatedEvent, UserIntegrationRoleAssignmentUpdatedEvent, UserIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {
-    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
 }
 
 // ---- ServicePrincipal ----
@@ -84,10 +84,10 @@ public class ServicePrincipalIntegrationRoleAssignmentSecuredRepository(ServiceP
         ServicePrincipalIntegrationRoleAssignmentCreatedEvent, ServicePrincipalIntegrationRoleAssignmentUpdatedEvent, ServicePrincipalIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {
-    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
 }
 
 // ---- Group ----
@@ -106,8 +106,8 @@ public class GroupIntegrationRoleAssignmentSecuredRepository(GroupIntegrationRol
         GroupIntegrationRoleAssignmentCreatedEvent, GroupIntegrationRoleAssignmentUpdatedEvent, GroupIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {
-    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
-    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap ReadPermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap UpdatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap CreatePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
+    public override PermissionMap DeletePermissionMap => new() { OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager], IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.IdentityAccessManager] };
 }

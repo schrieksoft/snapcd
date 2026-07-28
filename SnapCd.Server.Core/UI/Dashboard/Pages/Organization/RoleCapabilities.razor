@@ -1,0 +1,62 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/RoleCapabilities"
+@layout OrganizationMainLayout
+
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Filters
+@using SnapCd.Server.Core.Services
+
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.IdentityAccessManager)]
+@attribute [OrganizationScopedIAM]
+
+<PageTitle>Role Capabilities</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Role Capabilities</MudText>
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudSelect T="string"
+               @bind-Value="_selectedRole"
+               Label="Role"
+               Dense="true"
+               Style="max-width: 420px;">
+        @foreach (var role in Service.AllRoles)
+        {
+            <MudSelectItem T="string" Value="@role"><code>@role</code></MudSelectItem>
+        }
+    </MudSelect>
+</MudPaper>
+
+@if (_selectedRole is not null)
+{
+    var granted = Service.OperationsGrantedTo(_selectedRole);
+    <MudText Typo="Typo.body2" Class="mb-2">
+        Grants @granted.Count of @Service.Operations.Count documented operations.
+    </MudText>
+    <MudTable Items="granted" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Method</MudTh>
+            <MudTh>Path</MudTh>
+            <MudTh>Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Method"><code>@context.Method</code></MudTd>
+            <MudTd DataLabel="Path"><code>@context.Path</code></MudTd>
+            <MudTd DataLabel="Action">@context.Verb</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Inject] private RoleCapabilitiesService Service { get; set; } = null!;
+
+    private string? _selectedRole;
+}

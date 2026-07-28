@@ -18,6 +18,7 @@ using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -86,48 +87,76 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         return await Repository.ListByJob(moduleJobId, organizationId);
     }
 
+    public override PermissionMap CreatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Contributor]
+    };
+
+    public override PermissionMap ReadPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Contributor, ModuleRole.Reader]
+    };
+
+    public override PermissionMap UpdatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Contributor]
+    };
+
+    public override PermissionMap DeletePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Contributor]
+    };
+
     public override IQueryable<ModuleJobApproval> CreateQuery(Guid organizationId)
     {
-        // Users can create approvals on modules where they have Contributor+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner, NamespaceRole.Contributor],
-            [ModuleRole.Owner, ModuleRole.Contributor]);
+            CreatePermissionMap.OrganizationRoles,
+            CreatePermissionMap.StackRoles,
+            CreatePermissionMap.NamespaceRoles,
+            CreatePermissionMap.ModuleRoles);
     }
 
     public override IQueryable<ModuleJobApproval> ReadQuery(Guid organizationId)
     {
-        // Users can read approvals on modules where they have Reader+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
-            [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
-            [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader],
-            [ModuleRole.Owner, ModuleRole.Contributor, ModuleRole.Reader]);
+            ReadPermissionMap.OrganizationRoles,
+            ReadPermissionMap.StackRoles,
+            ReadPermissionMap.NamespaceRoles,
+            ReadPermissionMap.ModuleRoles);
     }
 
     public override IQueryable<ModuleJobApproval> UpdateQuery(Guid organizationId)
     {
-        // Users can update approvals on modules where they have Contributor+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner, NamespaceRole.Contributor],
-            [ModuleRole.Owner, ModuleRole.Contributor]);
+            UpdatePermissionMap.OrganizationRoles,
+            UpdatePermissionMap.StackRoles,
+            UpdatePermissionMap.NamespaceRoles,
+            UpdatePermissionMap.ModuleRoles);
     }
 
     public override IQueryable<ModuleJobApproval> DeleteQuery(Guid organizationId)
     {
-        // Users can delete approvals on modules where they have Contributor+ permission
         return ApprovalQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner, NamespaceRole.Contributor],
-            [ModuleRole.Owner, ModuleRole.Contributor]);
+            DeletePermissionMap.OrganizationRoles,
+            DeletePermissionMap.StackRoles,
+            DeletePermissionMap.NamespaceRoles,
+            DeletePermissionMap.ModuleRoles);
     }
 
     public override bool CanCreate(Guid parentId, Guid organizationId)
@@ -174,7 +203,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
             .Any(ra => ra.ModuleId == moduleId
                         && ra.OrganizationId == organizationId
                         && ra.PrincipalId == principalId
-                        && (ra.RoleName == ModuleRole.Owner || ra.RoleName == ModuleRole.Contributor));
+                        && CreatePermissionMap.ModuleRoles.Contains(ra.RoleName));
         if (hasModuleRole) return true;
 
         var hasNamespaceRole = (
@@ -183,7 +212,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
             join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
                 on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
-                  && (assignment.RoleName == NamespaceRole.Owner || assignment.RoleName == NamespaceRole.Contributor)
+                  && CreatePermissionMap.NamespaceRoles.Contains(assignment.RoleName)
             select assignment
         ).Any();
         if (hasNamespaceRole) return true;
@@ -196,7 +225,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
             join assignment in Repository.DbContext.Set<TStackRoleAssignment>()
                 on new { StackId = ns.StackId, ns.OrganizationId } equals new { assignment.StackId, assignment.OrganizationId }
             where assignment.PrincipalId == principalId
-                  && (assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor)
+                  && CreatePermissionMap.StackRoles.Contains(assignment.RoleName)
             select assignment
         ).Any();
         if (hasStackRole) return true;
@@ -204,7 +233,7 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         var hasOrgRole = Repository.DbContext.Set<TOrganizationRoleAssignment>()
             .Any(ra => ra.OrganizationId == organizationId
                         && ra.PrincipalId == principalId
-                        && (ra.RoleName == OrganizationRole.Owner || ra.RoleName == OrganizationRole.Contributor));
+                        && CreatePermissionMap.OrganizationRoles.Contains(ra.RoleName));
 
         return hasOrgRole;
     }

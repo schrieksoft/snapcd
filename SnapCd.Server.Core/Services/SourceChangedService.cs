@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Services;
@@ -58,6 +59,11 @@ public class SourceChangedService
         _principalProvider = principalProvider;
     }
 
+    public PermissionMap CreatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.SourceChangeNotifier]
+    };
+
     public bool CanNotify(PrincipalDiscriminator principalDiscriminator, Guid principalId, List<OrganizationRole> validRoles, Guid organizationId)
     {
         return principalDiscriminator switch
@@ -78,7 +84,7 @@ public class SourceChangedService
 
     public async Task NotifyChange(SourceChangedDto dto, Guid organizationId)
     {
-        var validRoles = new List<OrganizationRole> { OrganizationRole.SourceChangeNotifier, OrganizationRole.Owner, OrganizationRole.Contributor };
+        var validRoles = CreatePermissionMap.OrganizationRoles;
         if (!CanNotify(_principalProvider.GetPrincipalDiscriminator(), _principalProvider.GetSubject(organizationId), validRoles, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"{_principalProvider.GetPrincipalDiscriminator()} with ID {_principalProvider.GetSubject(organizationId)} does not have permission to notify source changes");

@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -44,7 +45,37 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
 
     #region overrides
 
+    public override PermissionMap CreatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.NamespaceCreator]
+    };
 
+    public override PermissionMap ReadPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
+    };
+
+    public override PermissionMap ReverseInheritedReadPermissionMap => new()
+    {
+        ModuleRoles = [.. Enum.GetValues<ModuleRole>()]
+    };
+
+    public override PermissionMap UpdatePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner]
+    };
+
+    public override PermissionMap DeletePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner]
+    };
 
     public override bool CanCreate(Guid parentId, Guid organizationId)
     {
@@ -80,9 +111,9 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
-            [StackRole.Owner, StackRole.Contributor],
-            []
+            CreatePermissionMap.OrganizationRoles,
+            CreatePermissionMap.StackRoles,
+            CreatePermissionMap.NamespaceRoles
         );
     }
 
@@ -90,15 +121,12 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         var baseQuery = RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
-            [StackRole.Owner, StackRole.Contributor, StackRole.Reader],
-            [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
+            ReadPermissionMap.OrganizationRoles,
+            ReadPermissionMap.StackRoles,
+            ReadPermissionMap.NamespaceRoles
         );
 
-        var reverseInheritanceQuery = ReverseInheritanceQuery(
-            organizationId,
-            [ModuleRole.Owner, ModuleRole.Reader]
-        );
+        var reverseInheritanceQuery = ReverseInheritanceQuery(organizationId);
 
         if (reverseInheritanceQuery == null)
             return baseQuery;
@@ -109,9 +137,9 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner]
+            UpdatePermissionMap.OrganizationRoles,
+            UpdatePermissionMap.StackRoles,
+            UpdatePermissionMap.NamespaceRoles
         );
     }
 
@@ -119,9 +147,9 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     {
         return RoleQueryDispatch(
             organizationId,
-            [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
-            [StackRole.Owner, StackRole.Contributor],
-            [NamespaceRole.Owner]
+            DeletePermissionMap.OrganizationRoles,
+            DeletePermissionMap.StackRoles,
+            DeletePermissionMap.NamespaceRoles
         );
     }
 
@@ -287,30 +315,30 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             select ns;
     }
 
-    private IQueryable<Namespace>? ReverseInheritanceQuery(Guid organizationId, List<ModuleRole> moduleRoles)
+    // Any role on a contained Module suffices, so these queries do not filter on
+    // role names (see ReverseInheritedReadPermissionMap).
+    private IQueryable<Namespace>? ReverseInheritanceQuery(Guid organizationId)
     {
         var principalId = PrincipalProvider.GetSubject(organizationId);
 
         return PrincipalDiscriminator switch
         {
-            PrincipalDiscriminator.User => ReverseInheritanceDirectQuery<UserModuleRoleAssignment>(organizationId, principalId, moduleRoles)
-                .Concat(ReverseInheritanceGroupQuery<UserGroupMember>(organizationId, principalId, moduleRoles)),
-            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectQuery<ServicePrincipalModuleRoleAssignment>(organizationId, principalId, moduleRoles)
-                .Concat(ReverseInheritanceGroupQuery<ServicePrincipalGroupMember>(organizationId, principalId, moduleRoles)),
+            PrincipalDiscriminator.User => ReverseInheritanceDirectQuery<UserModuleRoleAssignment>(organizationId, principalId)
+                .Concat(ReverseInheritanceGroupQuery<UserGroupMember>(organizationId, principalId)),
+            PrincipalDiscriminator.ServicePrincipal => ReverseInheritanceDirectQuery<ServicePrincipalModuleRoleAssignment>(organizationId, principalId)
+                .Concat(ReverseInheritanceGroupQuery<ServicePrincipalGroupMember>(organizationId, principalId)),
             _ => null
         };
     }
 
     private IQueryable<Namespace> ReverseInheritanceDirectQuery<TModuleRoleAssignment>(
         Guid organizationId,
-        Guid principalId,
-        List<ModuleRole> moduleRoles)
+        Guid principalId)
         where TModuleRoleAssignment : class, IModuleRoleAssignment
     {
         return from assignment in Repository.DbContext.Set<TModuleRoleAssignment>()
             where assignment.PrincipalId == principalId
                   && assignment.OrganizationId == organizationId
-                  && moduleRoles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces
@@ -320,8 +348,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
 
     private IQueryable<Namespace> ReverseInheritanceGroupQuery<TGroupMember>(
         Guid organizationId,
-        Guid principalId,
-        List<ModuleRole> moduleRoles)
+        Guid principalId)
         where TGroupMember : class, IGroupMember
     {
         return from groupMember in Repository.DbContext.Set<TGroupMember>()
@@ -332,7 +359,6 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             join assignment in Repository.DbContext.GroupModuleRoleAssignments
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
-            where moduleRoles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces
@@ -351,7 +377,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         var hasOrgPermission = Repository.DbContext.Set<TOrganizationRoleAssignment>()
             .Any(ra => ra.OrganizationId == organizationId
                        && ra.PrincipalId == principalId
-                       && (ra.RoleName == OrganizationRole.Owner || ra.RoleName == OrganizationRole.Contributor));
+                       && CreatePermissionMap.OrganizationRoles.Contains(ra.RoleName));
 
         if (hasOrgPermission)
             return true;
@@ -368,7 +394,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 join assignment in Repository.DbContext.GroupOrganizationRoleAssignments
                     on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == OrganizationRole.Owner || assignment.RoleName == OrganizationRole.Contributor
+                where CreatePermissionMap.OrganizationRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             PrincipalDiscriminator.ServicePrincipal => (
@@ -380,7 +406,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 join assignment in Repository.DbContext.GroupOrganizationRoleAssignments
                     on new { OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == OrganizationRole.Owner || assignment.RoleName == OrganizationRole.Contributor
+                where CreatePermissionMap.OrganizationRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             _ => false
@@ -394,7 +420,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             .Any(ra => ra.StackId == stackId
                        && ra.OrganizationId == organizationId
                        && ra.PrincipalId == principalId
-                       && (ra.RoleName == StackRole.Owner || ra.RoleName == StackRole.Contributor || ra.RoleName == StackRole.NamespaceCreator));
+                       && CreatePermissionMap.StackRoles.Contains(ra.RoleName));
 
         if (hasStackPermission)
             return true;
@@ -411,7 +437,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 join assignment in Repository.DbContext.GroupStackRoleAssignments
                     on new { StackId = stackId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.StackId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor || assignment.RoleName == StackRole.NamespaceCreator
+                where CreatePermissionMap.StackRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             PrincipalDiscriminator.ServicePrincipal => (
@@ -423,7 +449,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
                 join assignment in Repository.DbContext.GroupStackRoleAssignments
                     on new { StackId = stackId, OrganizationId = rgm.OrganizationId, GroupId = rgm.GroupId }
                     equals new { assignment.StackId, assignment.OrganizationId, GroupId = assignment.PrincipalId }
-                where assignment.RoleName == StackRole.Owner || assignment.RoleName == StackRole.Contributor || assignment.RoleName == StackRole.NamespaceCreator
+                where CreatePermissionMap.StackRoles.Contains(assignment.RoleName)
                 select assignment
             ).Any(),
             _ => false

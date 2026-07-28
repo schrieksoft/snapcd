@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Services.OrganizationContext;
 
 namespace SnapCd.Server.Core.Controllers;
@@ -17,6 +18,8 @@ namespace SnapCd.Server.Core.Controllers;
 [ApiController]
 [Route("api/organization")]
 [Authorize]
+[PermissionSource(Skip = true,
+    Notes = "Session helper: requires only membership of the target organization.")]
 public class OrganizationSwitchController : ControllerBase
 {
     private readonly UserManager<User> _userManager;

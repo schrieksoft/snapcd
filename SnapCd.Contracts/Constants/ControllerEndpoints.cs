@@ -25,12 +25,10 @@ public static class ControllerEndpoints
     public const string Stack = "api/{organizationId}/Stack";
     public const string Module = "api/{organizationId}/Module";
     public const string Integration = "api/{organizationId}/Integration";
-    public const string IntegrationEvent = "api/{organizationId}/IntegrationEvent";
     public const string OrganizationIntegrationEvent = "api/{organizationId}/OrganizationIntegrationEvent";
     public const string StackIntegrationEvent = "api/{organizationId}/StackIntegrationEvent";
     public const string NamespaceIntegrationEvent = "api/{organizationId}/NamespaceIntegrationEvent";
     public const string ModuleIntegrationEvent = "api/{organizationId}/ModuleIntegrationEvent";
-    public const string Logs = "api/{organizationId}/Logs";
     public const string ServicePrincipal = "api/{organizationId}/ServicePrincipal";
     public const string User = "api/{organizationId}/User";
     public const string Group = "api/{organizationId}/Group";

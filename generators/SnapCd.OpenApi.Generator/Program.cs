@@ -23,6 +23,10 @@ using SnapCd.Server.Core.Startup;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 
+// The committed artifact must be gap-free: unresolved permission coverage fails
+// generation here (and so pre-commit), while the live server only warns.
+PermissionsCoverageDocumentTransformer.Strict = true;
+
 // Server:Host feeds the OAuth URLs in the security scheme. No request is ever made
 // against it, but it lands in the emitted document, so it stays overridable.
 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>

@@ -57,25 +57,25 @@ public class ServicePrincipalStateStoreRoleAssignmentSecuredRepository : Generic
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.Contributor, StateStoreRole.IdentityAccessManager]
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.Contributor, StateStoreRole.IdentityAccessManager]
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.Contributor, StateStoreRole.IdentityAccessManager]
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.Contributor, StateStoreRole.IdentityAccessManager]
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.IdentityAccessManager]
     };
 
     public async Task<List<ServicePrincipalStateStoreRoleAssignment>> ListByServicePrincipal(Guid servicePrincipalId, Guid organizationId)

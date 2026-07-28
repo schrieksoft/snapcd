@@ -60,12 +60,14 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
 
     public override PermissionMap ReadPermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StateStoreContributor, OrganizationRole.StateStoreReader]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StateStoreContributor, OrganizationRole.StateStoreReader],
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.Contributor, StateStoreRole.Reader]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StateStoreContributor]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StateStoreContributor],
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.Contributor]
     };
 
     public override PermissionMap CreatePermissionMap => new()
@@ -75,7 +77,8 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
 
     public override PermissionMap DeletePermissionMap => new()
     {
-        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StateStoreContributor]
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StateStoreContributor],
+        StateStoreRoles = [StateStoreRole.Owner, StateStoreRole.Contributor]
     };
 
     #region overrides
@@ -114,7 +117,7 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
         return RoleQueryDispatch(
             organizationId,
             CreatePermissionMap.OrganizationRoles,
-            []);
+            CreatePermissionMap.StateStoreRoles);
     }
 
     public override IQueryable<StateStore> ReadQuery(Guid organizationId)
@@ -122,7 +125,7 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
         return RoleQueryDispatch(
             organizationId,
             ReadPermissionMap.OrganizationRoles,
-            [StateStoreRole.Owner, StateStoreRole.Contributor, StateStoreRole.Reader]);
+            ReadPermissionMap.StateStoreRoles);
     }
 
     public override IQueryable<StateStore> UpdateQuery(Guid organizationId)
@@ -130,7 +133,7 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
         return RoleQueryDispatch(
             organizationId,
             UpdatePermissionMap.OrganizationRoles,
-            [StateStoreRole.Owner, StateStoreRole.Contributor]);
+            UpdatePermissionMap.StateStoreRoles);
     }
 
     public override IQueryable<StateStore> DeleteQuery(Guid organizationId)
@@ -138,7 +141,7 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
         return RoleQueryDispatch(
             organizationId,
             DeletePermissionMap.OrganizationRoles,
-            [StateStoreRole.Owner, StateStoreRole.Contributor]);
+            DeletePermissionMap.StateStoreRoles);
     }
 
     public override string GetParentEntityName()

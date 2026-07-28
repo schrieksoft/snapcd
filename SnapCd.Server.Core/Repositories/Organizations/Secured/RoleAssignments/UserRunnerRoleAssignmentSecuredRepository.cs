@@ -57,25 +57,25 @@ public class UserRunnerRoleAssignmentSecuredRepository : GenericRunnerChildSecur
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap CreatePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public override PermissionMap DeletePermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager],
-        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.IdentityAccessManager]
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.IdentityAccessManager]
     };
 
     public async Task<List<UserRunnerRoleAssignment>> ListByUser(Guid userId, Guid organizationId)
