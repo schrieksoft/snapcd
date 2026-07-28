@@ -8,6 +8,7 @@
 
 @using Microsoft.Extensions.Options
 @using SnapCd.Server.Core.Licensing.Services
+@using SnapCd.Server.Core.Services.Dashboard
 @using SnapCd.Server.Core.Settings
 @inject IOptions<TurnstileSettings> TurnstileOptions
 @inject IServiceProvider ServiceProvider
@@ -45,8 +46,7 @@
 
         if (configuredTheme == "auto")
         {
-            var themeCookie = HttpContext?.Request.Cookies["theme"];
-            return themeCookie == "dark" ? "dark" : "light";
+            return ThemeCookie.ColorMode(HttpContext);
         }
 
         return configuredTheme;

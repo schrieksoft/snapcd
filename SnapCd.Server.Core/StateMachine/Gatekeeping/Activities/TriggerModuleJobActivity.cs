@@ -145,34 +145,43 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                     await next.Execute(context).ConfigureAwait(false);
                 }
             }
-            else if (currentJob == null && context.Saga.QueuedDesiredStateHeadline.HasValue) // No currently job but still queued, so waiting on depedencies
+            else if (currentJob == null && context.Saga.QueuedDesiredStateHeadline.HasValue) // No current job but still queued, so waiting on dependencies
             {
                 if (canExecute)
                 {
                     var hasActiveRunner = await _executionService.CheckRunnerAvailabilityAsync(context.Saga.CorrelationId);
                     if (!hasActiveRunner)
                     {
+                        if (context.Message.SetNewDesiredState)
+                        {
+                            context.Saga.QueuedDesiredStateHeadline = context.Message.DesiredStateHeadline;
+                            context.Saga.QueuedReason = QueuedReason.WaitingOnRunnerCheckin;
+                        }
+
                         _logger.LogInformation(
                             "No active runners available for module {ModuleId}, keeping queued",
                             context.Saga.CorrelationId);
                     }
                     else
                     {
-                        // Dependencies are met and runner is available, dequeue and execute
-                        context.Saga.DesiredStateHeadline = context.Saga.QueuedDesiredStateHeadline.Value;
+                        // Dequeue and execute. An explicit request (SetNewDesiredState) OVERRIDES
+                        // whatever is queued
+                        context.Saga.DesiredStateHeadline = context.Message.SetNewDesiredState
+                            ? context.Message.DesiredStateHeadline
+                            : context.Saga.QueuedDesiredStateHeadline.Value;
                         context.Saga.QueuedDesiredStateHeadline = null;
                         context.Saga.QueuedReason = null;
 
                         if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Applied)
                         {
-                            await _executionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
+                            await _executionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
                             _logger.LogInformation(
                                 "Dependencies met and runner available, dequeued and running Apply for module {ModuleId}",
                                 context.Saga.CorrelationId);
                         }
                         else if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Destroyed)
                         {
-                            await _executionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
+                            await _executionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
                             _logger.LogInformation(
                                 "Dependencies met and runner available, dequeued and running Destroy for module {ModuleId}",
                                 context.Saga.CorrelationId);
@@ -181,10 +190,20 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 }
                 else
                 {
+                    // Dependencies still unmet — but an explicit request still replaces what is
+                    // queued, so it runs once they are met rather than the stale opposite.
+                    if (context.Message.SetNewDesiredState)
+                    {
+                        context.Saga.QueuedDesiredStateHeadline = context.Message.DesiredStateHeadline;
+                        context.Saga.QueuedReason = QueuedReason.WaitingOnDependencies;
+                    }
+
                     _logger.LogInformation(
                         "Dependencies not yet met for module {ModuleId}, keeping queued",
                         context.Saga.CorrelationId);
                 }
+
+                await next.Execute(context).ConfigureAwait(false);
             }
             else
             {

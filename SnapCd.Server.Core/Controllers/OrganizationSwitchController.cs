@@ -59,7 +59,7 @@ public class OrganizationSwitchController : ControllerBase
             user.Id, organizationId);
 
         // Redirect to the destination
-        var redirectTo = string.IsNullOrEmpty(returnUrl) ? "/Dashboard" : returnUrl;
+        var redirectTo = Url.IsLocalUrl(returnUrl) ? returnUrl! : "/Dashboard";
 
         return Redirect(redirectTo);
     }

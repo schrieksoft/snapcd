@@ -33,7 +33,7 @@ public class ThemeService
     public async Task ToggleThemeAsync()
     {
         _isDarkMode = !_isDarkMode;
-        await _jsRuntime.InvokeVoidAsync("setThemeCookie", _isDarkMode ? "dark" : "light");
+        await _jsRuntime.InvokeVoidAsync("setThemeCookie", ThemeCookie.ColorMode(_isDarkMode));
         OnThemeChanged?.Invoke();
     }
 

@@ -41,5 +41,6 @@ public sealed class PostAuthRedirectResolver(
         !string.IsNullOrWhiteSpace(url)
         && url.StartsWith('/')
         && !url.StartsWith("//", StringComparison.Ordinal)
+        && !url.StartsWith("/\\", StringComparison.Ordinal)
         && !url.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase);
 }

@@ -82,6 +82,14 @@
 
 /* Global overrides */
 
+/* Until the circuit's first render (prerender is off) the MudBlazor palette vars
+   don't exist yet, so body has no background — without this the viewport flashes
+   white on every full page load in dark mode. */
+html {
+  background-color: var(--snap-bg);
+  color: var(--snap-text);
+}
+
 /* Blazor's <FocusOnNavigate Selector="h1"> moves focus to the page heading after
    navigation so screen readers announce the new page. On a fresh page load (typed
    URL, refresh) browsers treat that programmatic focus as :focus-visible and draw

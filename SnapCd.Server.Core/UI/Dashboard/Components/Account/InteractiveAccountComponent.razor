@@ -185,8 +185,7 @@
     protected override void OnInitialized()
     {
         // Get initial theme from cookie via server-side value
-        var themeCookie = HttpContextAccessor.HttpContext?.Request.Cookies["theme"];
-        _isDarkMode = themeCookie != "light";
+        _isDarkMode = ThemeCookie.IsDark(HttpContextAccessor.HttpContext);
 
         ThemeService.Initialize(_isDarkMode);
         ThemeService.OnThemeChanged += ThemeChanged;

@@ -11,9 +11,12 @@
 @inject NavigationManager NavigationManager
 
 <!DOCTYPE html>
-<html lang="en" class="@((HttpContext.Request.Cookies["theme"] ?? "dark") == "dark" ? "mud-dark" : "")">
+<html lang="en" class="@(ThemeCookie.HtmlClass(HttpContext))">
 <head>
     <meta charset="utf-8"/>
+    @* Painted by the browser before any CSS arrives — without this a cold load
+       shows the default white canvas while the stylesheets download. *@
+    <meta name="color-scheme" content="@ThemeCookie.ColorMode(HttpContext)"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <base href="/"/>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet"/>
@@ -31,6 +34,7 @@
             window.setThemeCookie = (theme) => {
                 document.cookie = `theme=${theme}; path=/; max-age=${31536000}`;
                 document.documentElement.classList.toggle('mud-dark', theme === 'dark');
+                document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', theme);
             };
         })();
     </script>

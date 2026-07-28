@@ -158,8 +158,7 @@
 
     protected override void OnInitialized()
     {
-        var themeCookie = HttpContextAccessor.HttpContext?.Request.Cookies["theme"];
-        ThemeService.Initialize(themeCookie != "light");
+        ThemeService.Initialize(ThemeCookie.IsDark(HttpContextAccessor.HttpContext));
         _isDarkMode = ThemeService.IsDarkMode;
         ThemeService.OnThemeChanged += ThemeChanged;
     }

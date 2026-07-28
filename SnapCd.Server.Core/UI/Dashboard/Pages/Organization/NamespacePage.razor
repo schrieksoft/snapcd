@@ -46,6 +46,7 @@
 @inject OrganizationServiceFactory OrganizationServiceFactory
 @inject ModuleJobSecuredRepositoryFactory ModuleJobSecuredRepositoryFactory
 @inject IOrganizationContext OrganizationContext
+@inject ILogger<NamespacePage> Logger
 
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission]
@@ -816,7 +817,8 @@
             _modulesToApply = dependencyGraph.NodeStates
                 .Where(n => n.NamespaceId == _namespace.Id &&
                             n.LatestActualState != ActualStateHeadline.Applied &&
-                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Applied))
+                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Applied ||
+                             !(n.IsRunning || n.IsQueued)))
                 .ToList();
 
             _alreadyAppliedModules = dependencyGraph.NodeStates
@@ -856,7 +858,8 @@
             _modulesToDestroy = dependencyGraph.NodeStates
                 .Where(n => n.NamespaceId == _namespace.Id &&
                             n.LatestActualState != ActualStateHeadline.Destroyed &&
-                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Destroyed))
+                            (n.DesiredState == null || n.DesiredState != DesiredStateHeadline.Destroyed ||
+                             !(n.IsRunning || n.IsQueued)))
                 .ToList();
 
             _alreadyDestroyedModules = dependencyGraph.NodeStates
@@ -951,14 +954,38 @@
                 Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
             }
 
+            var failed = new List<string>();
+
             foreach (var nodeState in modulesToActuallyApply)
             {
-                using var securedJobService = SecuredJobServiceFactory.Create();
-                await securedJobService.Apply(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+                try
+                {
+                    using var securedJobService = SecuredJobServiceFactory.Create();
+                    await securedJobService.Apply(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+                }
+                catch (Exception ex)
+                {
+                    failed.Add(nodeState.DisplayName);
+                    Logger.LogError(ex, "Failed to initiate apply for module {ModuleId} ({ModuleName})", nodeState.ModuleId, nodeState.DisplayName);
+                }
             }
 
-            Snackbar.Add($"Apply initiated for {modulesToActuallyApply.Count} modules", Severity.Success);
-            _showApplyComponent = false;
+            var succeeded = modulesToActuallyApply.Count - failed.Count;
+
+            if (failed.Count == 0)
+            {
+                Snackbar.Add($"Apply initiated for {succeeded} modules", Severity.Success);
+                _showApplyComponent = false;
+            }
+            else if (succeeded == 0)
+            {
+                Snackbar.Add($"Apply failed for all {failed.Count} module(s): {string.Join(", ", failed)}", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add($"Apply initiated for {succeeded} module(s); failed for {failed.Count}: {string.Join(", ", failed)}", Severity.Warning);
+                _showApplyComponent = false;
+            }
         }
         catch (Exception ex)
         {
@@ -1014,14 +1041,38 @@
                 Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
             }
 
+            var failed = new List<string>();
+
             foreach (var nodeState in modulesToActuallyDestroy)
             {
-                using var securedJobService = SecuredJobServiceFactory.Create();
-                await securedJobService.Destroy(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+                try
+                {
+                    using var securedJobService = SecuredJobServiceFactory.Create();
+                    await securedJobService.Destroy(nodeState.ModuleId, OrganizationId, Guid.NewGuid());
+                }
+                catch (Exception ex)
+                {
+                    failed.Add(nodeState.DisplayName);
+                    Logger.LogError(ex, "Failed to initiate destroy for module {ModuleId} ({ModuleName})", nodeState.ModuleId, nodeState.DisplayName);
+                }
             }
 
-            Snackbar.Add($"Destruction initiated for {modulesToActuallyDestroy.Count} modules", Severity.Success);
-            _showDestroyComponent = false;
+            var succeeded = modulesToActuallyDestroy.Count - failed.Count;
+
+            if (failed.Count == 0)
+            {
+                Snackbar.Add($"Destruction initiated for {succeeded} modules", Severity.Success);
+                _showDestroyComponent = false;
+            }
+            else if (succeeded == 0)
+            {
+                Snackbar.Add($"Destroy failed for all {failed.Count} module(s): {string.Join(", ", failed)}", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add($"Destruction initiated for {succeeded} module(s); failed for {failed.Count}: {string.Join(", ", failed)}", Severity.Warning);
+                _showDestroyComponent = false;
+            }
         }
         catch (Exception ex)
         {

@@ -94,7 +94,7 @@ public class ExternalLoginProvider
 
     /// <summary>
     /// Redirect URI registered with the provider. Must match the URI configured at the provider's
-    /// end exactly; typically <c>{Server.Host}/signin-{provider}</c>.
+    /// end exactly; typically <c>{Server.Host}/callback/login/{provider}</c>.
     /// </summary>
     public string RedirectUri { get; set; } = string.Empty;
 }

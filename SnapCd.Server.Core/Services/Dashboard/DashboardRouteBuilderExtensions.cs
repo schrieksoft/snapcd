@@ -29,12 +29,9 @@ public static class DashboardRouteBuilderExtensions
         themeGroup.MapPost("/ToggleDarkMode", (
             HttpContext context) =>
         {
-            // Validate the mode input
-            var currentTheme = context.Request.Cookies["theme"];
-            var newTheme = currentTheme?.ToLower() == "dark" ? "light" : "dark";
+            var newTheme = ThemeCookie.ColorMode(!ThemeCookie.IsDark(context));
 
-            // Set the theme cookie
-            context.Response.Cookies.Append("theme", newTheme, new CookieOptions
+            context.Response.Cookies.Append(ThemeCookie.Name, newTheme, new CookieOptions
             {
                 Expires = DateTime.UtcNow.AddYears(1),
                 HttpOnly = false,

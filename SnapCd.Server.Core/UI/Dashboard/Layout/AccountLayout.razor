@@ -45,8 +45,7 @@ else
     protected override void OnInitialized()
     {
         // Get theme from cookie for SSR pages
-        var themeCookie = HttpContext?.Request.Cookies["theme"];
-        _isDarkMode = themeCookie != "light";
+        _isDarkMode = ThemeCookie.IsDark(HttpContext);
 
         // Subscribe to theme changes for interactive pages
         ThemeService.Initialize(_isDarkMode);

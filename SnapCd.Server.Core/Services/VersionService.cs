@@ -22,7 +22,7 @@ public class VersionService : IVersionService
 
     public VersionService()
     {
-        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var assembly = typeof(VersionService).Assembly;
         var versionAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
         _version = versionAttribute?.InformationalVersion ?? "0.0.0";
