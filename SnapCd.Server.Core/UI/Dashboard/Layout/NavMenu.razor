@@ -145,12 +145,9 @@
                             </MudNavLink>
                         }
                     }
-                    @if (_organizationActivated && _apiReferenceIsAllowedToNavigate)
-                    {
-                        <MudNavLink Href="@GetNavigationUrl("ApiReference")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">API Reference</MudNavLink>
-                    }
                 </MudNavGroup>
             }
+            <MudNavLink Href="@GetNavigationUrl("ApiReference")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">API Reference</MudNavLink>
 
             <!-- Edition-specific standalone nav items, after System (SaaS Subscriptions group). -->
             @if (EditionNavItems != null)
@@ -275,7 +272,6 @@
         _systemIsAllowedToNavigateMap = await BuildAllowedMapAsync(_systemNavLinks, orgId);
         if (HostEnvironment.IsDevelopment())
             _testsIsAllowedToNavigateMap = await BuildAllowedMapAsync(_testsNavLinks, orgId);
-        _apiReferenceIsAllowedToNavigate = await IsAllowedToNavigateAsync(typeof(ApiReference), orgId);
 
         if (orgId != Guid.Empty
             && HttpContextPrincipalProvider.GetPrincipalDiscriminatorOrDefault() == PrincipalDiscriminator.User)
@@ -466,7 +462,6 @@
     private Dictionary<Type, bool> _systemIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _testsIsAllowedToNavigateMap = new();
     private Dictionary<Type, bool> _identityAccessIsAllowedToNavigateMap = new();
-    private bool _apiReferenceIsAllowedToNavigate;
     private bool _organizationActivated;
 
     private async Task<bool> IsAllowedToNavigateAsync(Type pageType, Guid orgId)
