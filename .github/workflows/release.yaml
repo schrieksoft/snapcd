@@ -86,6 +86,19 @@ jobs:
           done
           ls -la release-assets
 
+      - name: Stage docs artifacts
+        # The committed settings schemas and OpenAPI document are published as loose
+        # release assets so snapcd-docs can fetch them by tag without checking out
+        # this repo. They are kept current by the pre-commit hooks
+        # (scripts/check-settings-schemas.sh, scripts/check-openapi-document.sh).
+        run: |
+          cp schemas/server.schema.json \
+             schemas/runner.schema.json \
+             schemas/agent.schema.json \
+             schemas/openapi.json \
+             release-assets/
+          ls -la release-assets
+
       - name: Pack libraries
         env:
           SEMVER: ${{ steps.gitversion.outputs.SemVer }}
@@ -199,7 +212,8 @@ jobs:
           gh release create ${{ steps.gitversion.outputs.SemVer }} \
             --notes "Release ${{ steps.gitversion.outputs.SemVer }}" \
             -R https://github.com/schrieksoft/snapcd \
-            release-assets/*.zip
+            release-assets/*.zip \
+            release-assets/*.json
 
       - name: Notify downstream consumers
         # Fires repository_dispatch on every repo that pins a snapcd-published
@@ -218,6 +232,7 @@ jobs:
               snapcd-deployment-docker \
               snapcd-deployment-kubernetes \
               snapcd-deployment-local \
+              snapcd-docs \
               module-snapcd-runner-app; do
             echo "Dispatching snapcd-released to schrieksoft/${repo}"
             gh api "repos/schrieksoft/${repo}/dispatches" \

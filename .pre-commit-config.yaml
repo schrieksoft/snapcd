@@ -28,6 +28,21 @@ repos:
             | generators/SnapCd\.Mcp\.Generator/.*\.(cs|csproj)
             | SnapCd\.Server\.Core/AI/Mcp/Generated/.*\.cs
           )$
+      - id: openapi-document
+        name: OpenAPI document (regenerated if stale)
+        entry: scripts/check-openapi-document.sh --write
+        language: system
+        pass_filenames: false
+        # Run when anything that shapes the API surface or the emitted document
+        # changes: controllers, the DTOs they expose, or the OpenAPI setup.
+        files: |
+          (?x)^(
+              SnapCd\.Server\.Core/Controllers/.*\.cs
+            | SnapCd\.Contracts/Dto/.*\.cs
+            | SnapCd\.Server\.Core/Startup/(Scalar|Controllers|CurrentOrganizationOperationTransformer)\.cs
+            | generators/SnapCd\.OpenApi\.Generator/.*\.(cs|csproj)
+            | schemas/openapi\.json
+          )$
       - id: settings-schemas
         name: Settings schemas (regenerated if stale)
         entry: scripts/check-settings-schemas.sh --write

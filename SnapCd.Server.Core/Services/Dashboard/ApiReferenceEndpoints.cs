@@ -30,6 +30,10 @@ public static class ApiReferenceEndpoints
             {
                 ["url"] = "/openapi/v1.json",
                 ["withDefaultFonts"] = false,
+                // Label sidebar and search entries by path. The alternative ("summary")
+                // falls back to the path only when a summary is absent, so a partially
+                // documented API gets an inconsistent mix of paths and prose sentences.
+                ["operationTitleSource"] = "path",
                 ["hideClientButton"] = true,
                 ["showDeveloperTools"] = "never",
                 ["agent"] = new Dictionary<string, object> { ["disabled"] = true },
