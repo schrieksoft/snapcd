@@ -336,7 +336,10 @@ public class JobService : IDisposable
     {
         var dependencies = await _dependencyService.ListForDefinedModule(moduleId);
 
-        if (dependencies.Any(x => x.ReferencedLatestActualState != ActualStateHeadline.Applied))
+        // vw_Dependencies emits a placeholder row with a NULL referenced module for
+        // standalone modules so they still appear in the dependency graph; only rows
+        // with an actual referenced module are real dependencies.
+        if (dependencies.Any(x => x.ReferencedModuleId != null && x.ReferencedLatestActualState != ActualStateHeadline.Applied))
             return false;
 
         return true;
