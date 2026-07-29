@@ -4,7 +4,6 @@
   Snap CD
 </h1>
 
-## Overview
 [README.md](README.md)
 Snap CD is a self-hostable GitOps orchestrator for Terraform, OpenTofu, and Pulumi. It was built according to (and delivers on!) the following goals:
 
