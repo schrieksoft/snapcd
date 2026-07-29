@@ -13,7 +13,9 @@ namespace SnapCd.Contracts.Dto.DependsOnModules;
 /// </summary>
 public class DependsOnModuleCreateDto
 {
+    /// <summary>ID of the module that depends on another module.</summary>
     public Guid ModuleId { get; set; }
 
+    /// <summary>ID of the module that this module depends on.</summary>
     public Guid DependsOnModuleId { get; set; }
 }

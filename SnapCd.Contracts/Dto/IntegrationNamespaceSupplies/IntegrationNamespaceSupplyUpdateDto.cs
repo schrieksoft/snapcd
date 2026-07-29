@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.IntegrationNamespaceSupplies;
 
+/// <summary>DTO for updating an existing IntegrationNamespaceSupply (PUT operations).</summary>
 public class IntegrationNamespaceSupplyUpdateDto : IntegrationNamespaceSupplyCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Integration Namespace Supply.</summary>
     public Guid Id { get; set; }
 }

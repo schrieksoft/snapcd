@@ -14,11 +14,15 @@ namespace SnapCd.Contracts.Dto.Missions;
 /// </summary>
 public class OrganizationMissionCreateDto
 {
+    /// <summary>ID of the Agent that runs this Mission.</summary>
     public Guid AgentId { get; set; }
 
+    /// <summary>Which named mission definition this row references.</summary>
     public MissionType MissionType { get; set; }
 
+    /// <summary>Optional named-sidecar override sent to the agent at dispatch. When unset (null), the agent invokes its only registered sidecar; the run fails if the agent has zero or multiple sidecars and no name was supplied.</summary>
     public string? SidecarName { get; set; }
 
+    /// <summary>Indicates whether or not the Mission is disabled.</summary>
     public bool IsDisabled { get; set; }
 }

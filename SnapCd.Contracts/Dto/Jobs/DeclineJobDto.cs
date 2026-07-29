@@ -14,5 +14,6 @@ namespace SnapCd.Contracts.Dto.Jobs;
 /// </summary>
 public class DeclineJobDto
 {
+    /// <summary>Free-text reason recorded with the decline. Required.</summary>
     public string Reason { get; set; } = null!;
 }

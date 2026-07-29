@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceExtraFiles;
 
+/// <summary>DTO for NamespaceExtraFile responses (GET operations).</summary>
 public class NamespaceExtraFileReadDto : NamespaceExtraFileCreateDto, IDto
 {
+    /// <summary>Unique ID of the Namespace Extra File.</summary>
     public Guid Id { get; set; }
 }

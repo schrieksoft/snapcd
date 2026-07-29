@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.GroupMembers.Base;
 
+/// <summary>DTO for updating an existing GroupMember (PUT operations).</summary>
 public class GroupMemberUpdateDto : GroupMemberCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Group Member.</summary>
     public Guid Id { get; set; }
 }

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceInputs;
 
+/// <summary>DTO for updating an existing NamespaceInputFromLiteral (PUT operations).</summary>
 public class NamespaceInputFromLiteralUpdateDto : NamespaceInputFromLiteralCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Namespace Input (From Literal).</summary>
     public Guid Id { get; set; }
 }

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.RunnerStackSupplies;
 
+/// <summary>DTO for updating an existing RunnerStackSupply (PUT operations).</summary>
 public class RunnerStackSupplyUpdateDto : RunnerStackSupplyCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Runner Stack Supply.</summary>
     public Guid Id { get; set; }
 }

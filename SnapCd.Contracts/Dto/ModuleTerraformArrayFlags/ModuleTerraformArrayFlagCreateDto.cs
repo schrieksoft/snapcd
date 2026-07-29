@@ -10,13 +10,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SnapCd.Contracts.Dto.ModuleTerraformArrayFlags;
 
+/// <summary>DTO for creating a new ModuleTerraformArrayFlag (POST operations).</summary>
 public class ModuleTerraformArrayFlagCreateDto
 {
+    /// <summary>The command task this flag applies to.</summary>
     public TerraformCommandTask Task { get; set; }
 
+    /// <summary>The Terraform CLI array flag name.</summary>
     public TerraformArrayFlag Flag { get; set; }
 
+    /// <summary>The value for the flag.</summary>
     [Required] [MaxLength(1000)] public string Value { get; set; } = null!;
 
+    /// <summary>ID of the parent Module.</summary>
     public Guid ModuleId { get; set; }
 }

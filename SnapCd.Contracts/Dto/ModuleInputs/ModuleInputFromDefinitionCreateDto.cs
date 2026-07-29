@@ -10,7 +10,9 @@ using SnapCd.Contracts.Dto.ModuleInputs.Base;
 
 namespace SnapCd.Contracts.Dto.ModuleInputs;
 
+/// <summary>DTO for creating a new ModuleInputFromDefinition (POST operations).</summary>
 public class ModuleInputFromDefinitionCreateDto : ModuleInputCreateDto
 {
+    /// <summary>Name of the Definition from which to get take the input.</summary>
     public DefinitionInputType DefinitionName { get; set; }
 }

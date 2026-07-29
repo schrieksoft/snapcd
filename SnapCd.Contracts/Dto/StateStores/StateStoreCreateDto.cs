@@ -8,7 +8,9 @@
 
 namespace SnapCd.Contracts.Dto.StateStores;
 
+/// <summary>DTO for creating a new StateStore (POST operations).</summary>
 public class StateStoreCreateDto
 {
+    /// <summary>Unique name of the State Store.</summary>
     public string Name { get; set; } = null!;
 }

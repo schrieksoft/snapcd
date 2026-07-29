@@ -22,7 +22,7 @@ using SnapCd.Server.Core.Settings.Repositories;
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.NamespaceMission)]
-[McpEntity(Singular = "Namespace Mission", Plural = "Namespace Missions")]
+[McpEntity(Singular = "NamespaceMission", Plural = "NamespaceMissions")]
 public class NamespaceMissionController : GenericCrudController<
     NamespaceMission,
     NamespaceMissionCreateDto,
@@ -40,17 +40,12 @@ public class NamespaceMissionController : GenericCrudController<
     {
     }
 
-    /// <summary>Create a new Namespace Mission. Fires for events on modules within the targeted Namespace.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="dto">The Namespace Mission to create</param>
     [HttpPost]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "Fires for events on modules within the targeted Namespace.")]
     public override Task<ActionResult<NamespaceMissionReadDto>> Create(Guid organizationId, NamespaceMissionCreateDto dto)
         => base.Create(organizationId, dto);
 
-    /// <summary>List Namespace Missions assigned to a specific Agent.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="agentId">Agent ID</param>
+    [EndpointSummary("List NamespaceMissions assigned to a specific Agent")]
     [HttpGet("ByAgent/{agentId}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<NamespaceMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)
@@ -70,9 +65,7 @@ public class NamespaceMissionController : GenericCrudController<
         }
     }
 
-    /// <summary>List Namespace Missions targeting a specific Namespace.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="namespaceId">Namespace ID</param>
+    [EndpointSummary("List NamespaceMissions targeting a specific Namespace")]
     [HttpGet("ByNamespace/{namespaceId}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<NamespaceMissionReadDto>>> ListByNamespace(Guid organizationId, Guid namespaceId)

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespacePulumiFlags;
 
+/// <summary>DTO for updating an existing NamespacePulumiFlag (PUT operations).</summary>
 public class NamespacePulumiFlagUpdateDto : NamespacePulumiFlagCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Namespace Pulumi Flag.</summary>
     public Guid Id { get; set; }
 }

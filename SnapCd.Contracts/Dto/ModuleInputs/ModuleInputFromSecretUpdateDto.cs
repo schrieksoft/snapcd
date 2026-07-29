@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.ModuleInputs;
 
+/// <summary>DTO for updating an existing ModuleInputFromSecret (PUT operations).</summary>
 public class ModuleInputFromSecretUpdateDto : ModuleInputFromSecretCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Module Input (From Secret).</summary>
     public Guid Id { get; set; }
 }

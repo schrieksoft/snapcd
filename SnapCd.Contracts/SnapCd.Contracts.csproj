@@ -4,6 +4,10 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <!-- The OpenAPI generator ingests DTO XML doc comments into components/schemas
+             descriptions; the doc file is how they reach it. -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
 
         <!-- NuGet Package Metadata -->
         <PackageId>SnapCd.Contracts</PackageId>

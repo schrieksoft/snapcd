@@ -8,7 +8,9 @@
 
 namespace SnapCd.Contracts.Dto.Secrets.Scoped;
 
+/// <summary>DTO for NamespaceSecret responses (GET operations).</summary>
 public class NamespaceSecretDto : SecretDto
 {
+    /// <summary>Id of the Namespace to scope the Secret to</summary>
     public Guid NamespaceId { get; set; }
 }

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.AgentStackSupplies;
 
+/// <summary>DTO for AgentStackSupply responses (GET operations).</summary>
 public class AgentStackSupplyReadDto : AgentStackSupplyCreateDto, IDto
 {
+    /// <summary>Unique ID of the Agent Stack Supply.</summary>
     public Guid Id { get; set; }
 }

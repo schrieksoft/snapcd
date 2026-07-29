@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.RunnerNamespaceSupplies;
 
+/// <summary>DTO for updating an existing RunnerNamespaceSupply (PUT operations).</summary>
 public class RunnerNamespaceSupplyUpdateDto : RunnerNamespaceSupplyCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Runner Namespace Supply.</summary>
     public Guid Id { get; set; }
 }

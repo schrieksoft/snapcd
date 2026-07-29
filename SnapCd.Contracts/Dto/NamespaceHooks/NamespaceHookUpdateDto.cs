@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceHooks;
 
+/// <summary>DTO for updating an existing NamespaceHook (PUT operations).</summary>
 public class NamespaceHookUpdateDto : NamespaceHookCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Namespace Hook.</summary>
     public Guid Id { get; set; }
 }

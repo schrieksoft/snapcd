@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceInputs;
 
+/// <summary>DTO for NamespaceInputFromDefinition responses (GET operations).</summary>
 public class NamespaceInputFromDefinitionReadDto : NamespaceInputFromDefinitionCreateDto, IDto
 {
+    /// <summary>Unique ID of the Namespace Input (From Definition).</summary>
     public Guid Id { get; set; }
 }

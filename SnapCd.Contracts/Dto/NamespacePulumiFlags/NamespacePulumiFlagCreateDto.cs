@@ -10,13 +10,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SnapCd.Contracts.Dto.NamespacePulumiFlags;
 
+/// <summary>DTO for creating a new NamespacePulumiFlag (POST operations).</summary>
 public class NamespacePulumiFlagCreateDto
 {
+    /// <summary>The command task this flag applies to.</summary>
     public PulumiCommandTask Task { get; set; }
 
+    /// <summary>The Pulumi CLI flag name.</summary>
     public PulumiFlag Flag { get; set; }
 
+    /// <summary>The value for the flag. Optional for boolean flags.</summary>
     [MaxLength(1000)] public string? Value { get; set; }
 
+    /// <summary>ID of the parent Namespace.</summary>
     public Guid NamespaceId { get; set; }
 }

@@ -10,9 +10,12 @@ using SnapCd.Contracts.Dto.ModuleInputs.Base;
 
 namespace SnapCd.Contracts.Dto.ModuleInputs;
 
+/// <summary>DTO for creating a new ModuleInputFromOutput (POST operations).</summary>
 public class ModuleInputFromOutputCreateDto : ModuleInputCreateDto
 {
+    /// <summary>ID of the Module from which to take the Output.</summary>
     public Guid OutputModuleId { get; set; }
 
+    /// <summary>Name of Output to take as input.</summary>
     public string OutputName { get; set; } = null!;
 }

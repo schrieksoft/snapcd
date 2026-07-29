@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.AgentNamespaceSupplies;
 
+/// <summary>DTO for creating a new AgentNamespaceSupply (POST operations).</summary>
 public class AgentNamespaceSupplyCreateDto
 {
+    /// <summary>ID of the Namespace to which the Agent is assigned.</summary>
     public Guid NamespaceId { get; set; }
 
+    /// <summary>ID of the Agent that is assigned to the Namespace.</summary>
     public Guid AgentId { get; set; }
 }

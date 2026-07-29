@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.Modules;
 /// </summary>
 public class ModuleReadDto : ModuleCreateDto, IDto
 {
+    /// <summary>Unique ID of the Module.</summary>
     public Guid Id { get; set; }
 }

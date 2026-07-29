@@ -21,7 +21,7 @@ namespace SnapCd.Server.Core.Controllers.Crud;
 [Route(ControllerEndpoints.AgentRoleAssignment)]
 [ApiController]
 [Authorize("BearerPolicy")]
-[McpEntity(Singular = "Agent Role Assignment", Plural = "Agent Role Assignments")]
+[McpEntity(Singular = "AgentRoleAssignment", Plural = "AgentRoleAssignments")]
 public class AgentRoleAssignmentController : ControllerBase
 {
     protected readonly AgentRoleAssignmentService Service;
@@ -31,11 +31,8 @@ public class AgentRoleAssignmentController : ControllerBase
         Service = service;
     }
 
-    /// <summary>Create a new Agent Role Assignment. PrincipalDiscriminator selects the variant (User / ServicePrincipal / Group).</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="dto">The Agent Role Assignment to create</param>
     [HttpPost]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "PrincipalDiscriminator selects the variant (User / ServicePrincipal / Group).")]
     public virtual async Task<ActionResult<AgentRoleAssignmentReadDto>> Create(Guid organizationId, AgentRoleAssignmentReadDto dto)
     {
         try
@@ -61,8 +58,6 @@ public class AgentRoleAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>List all Agent Role Assignments in the organization.</summary>
-    /// <param name="organizationId">Organization ID</param>
     [HttpGet]
     [ExposeAsMcpTool]
     public virtual async Task<ActionResult<List<AgentRoleAssignmentReadDto>>> List(Guid organizationId)
@@ -82,9 +77,6 @@ public class AgentRoleAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>Get a single Agent Role Assignment by ID.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Agent Role Assignment ID</param>
     [HttpGet("{id}")]
     [ExposeAsMcpTool]
     public virtual async Task<ActionResult<AgentRoleAssignmentReadDto>> Get(Guid organizationId, Guid id)
@@ -108,12 +100,8 @@ public class AgentRoleAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>Update an existing Agent Role Assignment. PrincipalDiscriminator cannot be changed; delete and recreate to switch principal type.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="dto">The new Agent Role Assignment values</param>
-    /// <param name="id">Agent Role Assignment ID</param>
     [HttpPut("{id}")]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "PrincipalDiscriminator cannot be changed; delete and recreate to switch principal type.")]
     public virtual async Task<ActionResult<AgentRoleAssignmentReadDto>> Update(Guid organizationId, AgentRoleAssignmentUpdateDto dto, Guid id)
     {
         try
@@ -147,9 +135,6 @@ public class AgentRoleAssignmentController : ControllerBase
         }
     }
 
-    /// <summary>Delete the Agent Role Assignment.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Agent Role Assignment ID</param>
     [HttpDelete("{id}")]
     [ExposeAsMcpTool]
     public virtual async Task<IActionResult> Delete(Guid organizationId, Guid id)

@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.RunnerNamespaceSupplies;
 
+/// <summary>DTO for creating a new RunnerNamespaceSupply (POST operations).</summary>
 public class RunnerNamespaceSupplyCreateDto
 {
+    /// <summary>ID of the Namespace to which the Runner is assigned.</summary>
     public Guid NamespaceId { get; set; }
 
+    /// <summary>ID of the Runner that is assigned to the Namespace.</summary>
     public Guid RunnerId { get; set; }
 }

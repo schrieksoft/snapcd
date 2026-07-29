@@ -10,7 +10,9 @@ using SnapCd.Contracts.Dto.ModuleInputs.Base;
 
 namespace SnapCd.Contracts.Dto.ModuleInputs;
 
+/// <summary>DTO for creating a new ModuleInputFromNamespace (POST operations).</summary>
 public class ModuleInputFromNamespaceCreateDto : ModuleInputCreateDto
 {
+    /// <summary>Id of the Namespace Input to pull take as input.</summary>
     public Guid NamespaceInputId { get; set; }
 }

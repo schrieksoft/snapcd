@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.Secrets;
 /// </summary>
 public class SecretDto : SecretCreateDto, IDto
 {
+    /// <summary>Unique ID of the Secret.</summary>
     public Guid Id { get; set; }
 }

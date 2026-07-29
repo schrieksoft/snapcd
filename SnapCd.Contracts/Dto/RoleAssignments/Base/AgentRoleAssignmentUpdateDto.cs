@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.RoleAssignments.Base;
 
+/// <summary>DTO for updating an existing AgentRoleAssignment (PUT operations).</summary>
 public class AgentRoleAssignmentUpdateDto : AgentRoleAssignmentCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Agent Role Assignment.</summary>
     public Guid Id { get; set; }
 }

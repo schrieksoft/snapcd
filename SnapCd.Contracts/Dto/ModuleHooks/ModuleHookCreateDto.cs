@@ -10,13 +10,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SnapCd.Contracts.Dto.ModuleHooks;
 
+/// <summary>DTO for creating a new ModuleHook (POST operations).</summary>
 public class ModuleHookCreateDto
 {
+    /// <summary>The lifecycle task this hook applies to.</summary>
     public HookTask Task { get; set; }
 
+    /// <summary>When the hook runs relative to the task.</summary>
     public HookPhase Phase { get; set; }
 
+    /// <summary>The shell script that runs at the configured task and phase.</summary>
     [MaxLength(8000)] public string Script { get; set; } = null!;
 
+    /// <summary>ID of the parent Module.</summary>
     public Guid ModuleId { get; set; }
 }

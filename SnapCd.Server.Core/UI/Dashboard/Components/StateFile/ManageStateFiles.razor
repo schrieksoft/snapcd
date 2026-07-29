@@ -90,11 +90,11 @@ else
                         {
                             <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
                         }
-                        else if (_versions != null && _versions.Count == 0)
+                        else if (_expandedStateFileId == stateFile.Id && _versions != null && _versions.Count == 0)
                         {
                             <MudText Typo="Typo.body2">No versions found.</MudText>
                         }
-                        else if (_versions != null)
+                        else if (_expandedStateFileId == stateFile.Id && _versions != null)
                         {
                             <MudExpansionPanels>
                                 @foreach (var version in _versions)

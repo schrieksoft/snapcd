@@ -10,13 +10,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SnapCd.Contracts.Dto.NamespaceTerraformFlags;
 
+/// <summary>DTO for creating a new NamespaceTerraformFlag (POST operations).</summary>
 public class NamespaceTerraformFlagCreateDto
 {
+    /// <summary>The command task this flag applies to.</summary>
     public TerraformCommandTask Task { get; set; }
 
+    /// <summary>The Terraform CLI flag name.</summary>
     public TerraformFlag Flag { get; set; }
 
+    /// <summary>The value for the flag. Optional for boolean flags.</summary>
     [MaxLength(1000)] public string? Value { get; set; }
 
+    /// <summary>ID of the parent Namespace.</summary>
     public Guid NamespaceId { get; set; }
 }

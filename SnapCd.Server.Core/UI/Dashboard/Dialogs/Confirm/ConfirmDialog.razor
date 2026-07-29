@@ -14,8 +14,8 @@
         <MudText>@ContentText</MudText>
         @if (RequireConfirmation)
         {
-            <MudTextField @bind-Value="userInput" Label="Type to confirm" Variant="Variant.Outlined" 
-                          Class="mt-4" FullWidth="true" />
+            <MudTextField @bind-Value="userInput" Label="Type to confirm" Variant="Variant.Outlined"
+                          Immediate="true" Class="mt-4" FullWidth="true" />
         }
     </DialogContent>
     <DialogActions>

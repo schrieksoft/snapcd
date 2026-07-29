@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.ServicePrincipals;
 /// </summary>
 public class ServicePrincipalUpdateDto : ServicePrincipalCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Service Principal.</summary>
     public Guid Id { get; set; }
 }

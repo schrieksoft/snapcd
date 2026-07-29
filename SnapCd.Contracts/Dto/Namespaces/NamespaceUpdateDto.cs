@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.Namespaces;
 
+/// <summary>DTO for updating an existing Namespace (PUT operations).</summary>
 public class NamespaceUpdateDto : NamespaceCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Namespace</summary>
     public Guid Id { get; set; }
 }

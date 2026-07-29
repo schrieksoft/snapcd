@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.SourceRefresherPreselections;
 
+/// <summary>DTO for SourceRefresherPreselection responses (GET operations).</summary>
 public class SourceRefresherPreselectionReadDto : SourceRefresherPreselectionCreateDto, IDto
 {
+    /// <summary>Unique ID of the Source Refresher Preselection.</summary>
     public Guid Id { get; set; }
 }

@@ -13,11 +13,15 @@ namespace SnapCd.Contracts.Dto.ModuleExtraFiles;
 /// </summary>
 public class ModuleExtraFileCreateDto
 {
+    /// <summary>ID of the Module Extra File's parent Module.</summary>
     public Guid ModuleId { get; set; }
 
+    /// <summary>Name of the Module Extra File. This name will be use as the name of the file that is created. Must be unique in combination with `module_id`.</summary>
     public string FileName { get; set; } = null!;
 
+    /// <summary>Contents of the Module Extra File</summary>
     public string Contents { get; set; } = null!;
 
+    /// <summary>If true any pre-existing file with the same name will be overwritten.</summary>
     public bool? Overwrite { get; set; }
 }

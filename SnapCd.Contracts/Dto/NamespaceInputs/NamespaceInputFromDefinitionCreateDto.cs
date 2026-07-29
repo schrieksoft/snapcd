@@ -10,7 +10,9 @@ using SnapCd.Contracts.Dto.NamespaceInputs.Base;
 
 namespace SnapCd.Contracts.Dto.NamespaceInputs;
 
+/// <summary>DTO for creating a new NamespaceInputFromDefinition (POST operations).</summary>
 public class NamespaceInputFromDefinitionCreateDto : NamespaceInputCreateDto
 {
+    /// <summary>Name of the Definition from which to get take the input.</summary>
     public DefinitionInputType DefinitionName { get; set; }
 }

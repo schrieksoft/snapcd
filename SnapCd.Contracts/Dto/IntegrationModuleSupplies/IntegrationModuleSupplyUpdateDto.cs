@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.IntegrationModuleSupplies;
 
+/// <summary>DTO for updating an existing IntegrationModuleSupply (PUT operations).</summary>
 public class IntegrationModuleSupplyUpdateDto : IntegrationModuleSupplyCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Integration Module Supply.</summary>
     public Guid Id { get; set; }
 }

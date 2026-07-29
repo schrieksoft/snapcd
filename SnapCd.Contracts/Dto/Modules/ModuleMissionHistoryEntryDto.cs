@@ -18,15 +18,24 @@ namespace SnapCd.Contracts.Dto.Modules;
 /// </summary>
 public class ModuleMissionHistoryEntryDto
 {
+    /// <summary>ID of the mission run.</summary>
     public Guid RunId { get; init; }
+    /// <summary>ID of the Job the mission ran against.</summary>
     public Guid ModuleJobId { get; init; }
+    /// <summary>Type of the underlying Job: Apply or Destroy.</summary>
     public string JobType { get; init; } = string.Empty;
     public MissionType MissionType { get; init; }
     public MissionStatus Status { get; init; }
+    /// <summary>What the mission concluded about the run, when it produced a diagnosis.</summary>
     public DiagnosisCategory? DiagnosisCategory { get; init; }
+    /// <summary>The mission's result summary — contains that run's facts block, including any PR url.</summary>
     public string? ResultSummary { get; init; }
+    /// <summary>The resolved commit the underlying Job ran against.</summary>
     public string? DefinitiveRevision { get; init; }
+    /// <summary>When the mission run started (UTC).</summary>
     public DateTime? StartedAt { get; init; }
+    /// <summary>When the mission run completed (UTC), if finished.</summary>
     public DateTime? CompletedAt { get; init; }
+    /// <summary>The run's milestone timeline, oldest first.</summary>
     public List<ModuleJobMissionRunMilestoneReadDto> Milestones { get; set; } = new();
 }

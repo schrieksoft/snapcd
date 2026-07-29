@@ -13,7 +13,9 @@ namespace SnapCd.Contracts.Dto.Groups;
 /// </summary>
 public class GroupCreateDto
 {
+    /// <summary>Unique Name of the Group.</summary>
     public string Name { get; set; } = null!;
 
+    /// <summary>Description of the Group.</summary>
     public string? Description { get; set; }
 }

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.RoleAssignments.Base;
 
+/// <summary>DTO for updating an existing RunnerRoleAssignment (PUT operations).</summary>
 public class RunnerRoleAssignmentUpdateDto : RunnerRoleAssignmentCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Runner Role Assignment.</summary>
     public Guid Id { get; set; }
 }

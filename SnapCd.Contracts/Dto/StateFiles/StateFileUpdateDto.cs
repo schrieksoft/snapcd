@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.StateFiles;
 
+/// <summary>DTO for updating an existing StateFile (PUT operations).</summary>
 public class StateFileUpdateDto : StateFileCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the State File.</summary>
     public Guid Id { get; set; }
 }

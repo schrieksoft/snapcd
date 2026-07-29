@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceHooks;
 
+/// <summary>DTO for NamespaceHook responses (GET operations).</summary>
 public class NamespaceHookReadDto : NamespaceHookCreateDto, IDto
 {
+    /// <summary>Unique ID of the Namespace Hook.</summary>
     public Guid Id { get; set; }
 }

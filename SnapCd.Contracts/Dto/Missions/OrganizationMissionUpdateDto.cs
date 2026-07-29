@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.Missions;
 
+/// <summary>DTO for updating an existing OrganizationMission (PUT operations).</summary>
 public class OrganizationMissionUpdateDto : OrganizationMissionCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Mission.</summary>
     public Guid Id { get; set; }
 }

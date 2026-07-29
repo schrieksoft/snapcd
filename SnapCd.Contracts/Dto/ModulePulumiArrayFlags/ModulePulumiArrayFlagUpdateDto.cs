@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.ModulePulumiArrayFlags;
 
+/// <summary>DTO for updating an existing ModulePulumiArrayFlag (PUT operations).</summary>
 public class ModulePulumiArrayFlagUpdateDto : ModulePulumiArrayFlagCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Module Pulumi Array Flag.</summary>
     public Guid Id { get; set; }
 }

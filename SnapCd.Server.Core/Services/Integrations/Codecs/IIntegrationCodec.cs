@@ -51,6 +51,9 @@ public interface IIntegrationCodec
 
 public sealed record IntegrationSendResult(bool Success, string? MessageId, string? Error);
 
+/// <summary>Result of an Integration connectivity test.</summary>
+/// <param name="Success">Whether the connection test succeeded.</param>
+/// <param name="Error">Error message when the test failed; null on success.</param>
 public sealed record IntegrationTestResult(bool Success, string? Error);
 
 /// <summary>Resolves the codec for an <see cref="IntegrationType"/>.</summary>

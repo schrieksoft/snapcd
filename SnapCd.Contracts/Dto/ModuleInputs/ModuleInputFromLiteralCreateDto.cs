@@ -10,9 +10,12 @@ using SnapCd.Contracts.Dto.ModuleInputs.Base;
 
 namespace SnapCd.Contracts.Dto.ModuleInputs;
 
+/// <summary>DTO for creating a new ModuleInputFromLiteral (POST operations).</summary>
 public class ModuleInputFromLiteralCreateDto : ModuleInputCreateDto
 {
+    /// <summary>Literal value of the input.</summary>
     public string LiteralValue { get; set; } = null!;
 
+    /// <summary>Type of literal input. Must be one of 'String' and 'NotString'. Use 'NotString' for values such as numbers, bools, list, maps etc.</summary>
     public InputType Type { get; set; }
 }

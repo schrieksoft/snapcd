@@ -21,14 +21,6 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
-/// <summary>
-/// Colors the calling user has assigned to stacks/namespaces/modules. Strictly personal: all
-/// operations are scoped to the authenticated principal, and only user principals may read or
-/// write (service principals get 403 on writes and an empty list on reads).
-///
-/// Setting a color is a PUT, not a POST: there is at most one color per target, so assigning is
-/// an upsert. Sending a null/empty color clears it.
-/// </summary>
 [Route(ControllerEndpoints.UserColor)]
 [ApiController]
 [Authorize("BearerPolicy")]

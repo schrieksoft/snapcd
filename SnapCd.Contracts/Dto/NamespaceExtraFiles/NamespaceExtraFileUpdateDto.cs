@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceExtraFiles;
 
+/// <summary>DTO for updating an existing NamespaceExtraFile (PUT operations).</summary>
 public class NamespaceExtraFileUpdateDto : NamespaceExtraFileCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Namespace Extra File.</summary>
     public Guid Id { get; set; }
 }

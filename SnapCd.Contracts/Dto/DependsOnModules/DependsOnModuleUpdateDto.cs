@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.DependsOnModules;
 /// </summary>
 public class DependsOnModuleUpdateDto : DependsOnModuleCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the dependency relationship.</summary>
     public Guid Id { get; set; }
 }

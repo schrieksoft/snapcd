@@ -10,8 +10,9 @@ namespace SnapCd.Contracts.Mcp;
 
 /// <summary>
 /// Marks a controller action as visible to MCP-connected agents. The codegen (see
-/// <c>SnapCd.Mcp.Generator</c>) emits a matching <c>[McpServerTool]</c> wrapper at build time;
-/// the controller's XML doc <c>&lt;summary&gt;</c> becomes the tool's <c>[Description]</c>.
+/// <c>SnapCd.Mcp.Generator</c>) emits a matching <c>[McpServerTool]</c> wrapper at build time.
+/// The tool's <c>[Description]</c> is the action's summary ([EndpointSummary] override, else
+/// the <c>EndpointDocConvention</c> text) with <see cref="Instructions"/> appended when set.
 /// Opt-in by design — unannotated actions are invisible to the agent.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
@@ -23,4 +24,10 @@ public sealed class ExposeAsMcpToolAttribute : Attribute
     /// Example: <c>AgentController.List</c> with <c>[McpEntity(Plural = "Agents")]</c> → <c>agents_list</c>.
     /// </summary>
     public string? Name { get; init; }
+
+    /// <summary>
+    /// Agent-facing usage guidance appended to the tool's <c>[Description]</c> after the
+    /// endpoint summary. MCP-only — never surfaces in the OpenAPI document.
+    /// </summary>
+    public string? Instructions { get; init; }
 }

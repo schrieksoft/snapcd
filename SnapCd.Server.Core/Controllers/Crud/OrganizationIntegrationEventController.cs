@@ -22,7 +22,7 @@ using SnapCd.Server.Core.Settings.Repositories;
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.OrganizationIntegrationEvent)]
-[McpEntity(Singular = "Organization Integration Event", Plural = "Organization Integration Events")]
+[McpEntity(Singular = "OrganizationIntegrationEvent", Plural = "OrganizationIntegrationEvents")]
 public class OrganizationIntegrationEventController : GenericCrudController<
     OrganizationIntegrationEvent,
     OrganizationIntegrationEventCreateDto,

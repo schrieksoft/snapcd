@@ -17,11 +17,17 @@ namespace SnapCd.Contracts.Dto.Integrations;
 /// </summary>
 public class IntegrationReadDto : IDto
 {
+    /// <summary>Unique ID of the integration.</summary>
     public Guid Id { get; set; }
+    /// <summary>ID of the Organization the Integration belongs to.</summary>
     public Guid OrganizationId { get; set; }
+    /// <summary>Name of the integration.</summary>
     public string Name { get; set; } = null!;
+    /// <summary>Integration type (e.g. Slack).</summary>
     public IntegrationType IntegrationType { get; set; }
+    /// <summary>Whether the integration is enabled.</summary>
     public bool Enabled { get; set; }
+    /// <summary>Whether the integration is supplied org-wide.</summary>
     public bool IsSuppliedToAllModules { get; set; }
 }
 

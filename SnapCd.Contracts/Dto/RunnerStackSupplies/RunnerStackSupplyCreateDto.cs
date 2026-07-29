@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.RunnerStackSupplies;
 
+/// <summary>DTO for creating a new RunnerStackSupply (POST operations).</summary>
 public class RunnerStackSupplyCreateDto
 {
+    /// <summary>ID of the Stack to which the Runner is assigned.</summary>
     public Guid StackId { get; set; }
 
+    /// <summary>ID of the Runner that is assigned to the Stack.</summary>
     public Guid RunnerId { get; set; }
 }

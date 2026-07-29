@@ -22,7 +22,7 @@ using SnapCd.Server.Core.Settings.Repositories;
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.ModuleMission)]
-[McpEntity(Singular = "Module Mission", Plural = "Module Missions")]
+[McpEntity(Singular = "ModuleMission", Plural = "ModuleMissions")]
 public class ModuleMissionController : GenericCrudController<
     ModuleMission,
     ModuleMissionCreateDto,
@@ -40,17 +40,12 @@ public class ModuleMissionController : GenericCrudController<
     {
     }
 
-    /// <summary>Create a new Module Mission. Fires for events on the targeted Module.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="dto">The Module Mission to create</param>
     [HttpPost]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "Fires for events on the targeted Module.")]
     public override Task<ActionResult<ModuleMissionReadDto>> Create(Guid organizationId, ModuleMissionCreateDto dto)
         => base.Create(organizationId, dto);
 
-    /// <summary>List Module Missions assigned to a specific Agent.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="agentId">Agent ID</param>
+    [EndpointSummary("List ModuleMissions assigned to a specific Agent")]
     [HttpGet("ByAgent/{agentId}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<ModuleMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)
@@ -70,9 +65,7 @@ public class ModuleMissionController : GenericCrudController<
         }
     }
 
-    /// <summary>List Module Missions targeting a specific Module.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="moduleId">Module ID</param>
+    [EndpointSummary("List ModuleMissions targeting a specific Module")]
     [HttpGet("ByModule/{moduleId}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<ModuleMissionReadDto>>> ListByModule(Guid organizationId, Guid moduleId)

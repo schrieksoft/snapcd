@@ -14,8 +14,10 @@ namespace SnapCd.Contracts.Dto.Integrations;
 /// <see cref="Scope"/> says which, <see cref="ScopeId"/> is the stack/namespace/module id.</summary>
 public class IntegrationSupplyDto : IDto
 {
+    /// <summary>Unique ID of the Integration Supply.</summary>
     public Guid Id { get; set; }
     public IntegrationSupplyScope Scope { get; set; }
+    /// <summary>ID of the Stack, Namespace or Module the Integration is supplied to.</summary>
     public Guid ScopeId { get; set; }
 }
 
@@ -23,5 +25,6 @@ public class IntegrationSupplyDto : IDto
 public class IntegrationSupplyCreateDto
 {
     public IntegrationSupplyScope Scope { get; set; }
+    /// <summary>ID of the Stack, Namespace or Module the Integration is supplied to.</summary>
     public Guid ScopeId { get; set; }
 }

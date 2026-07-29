@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.StateStores;
 
+/// <summary>DTO for StateStore responses (GET operations).</summary>
 public class StateStoreReadDto : StateStoreCreateDto, IDto
 {
+    /// <summary>Unique ID of the State Store.</summary>
     public Guid Id { get; set; }
 }

@@ -10,9 +10,12 @@ using SnapCd.Contracts;
 
 namespace SnapCd.Server.Core.Dtos;
 
+/// <summary>Notification payload marking a remote source as changed (POST operations).</summary>
 public class SourceChangedDto
 {
+    /// <summary>Remote URL of the source that changed.</summary>
     public string SourceUrl { get; set; } = null!;
+    /// <summary>Revision (branch, tag or commit) that changed.</summary>
     public string SourceRevision { get; set; } = null!;
 
     public SourceType SourceType { get; set; } = SourceType.Git;

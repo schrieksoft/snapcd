@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.RoleAssignments.Base;
 
+/// <summary>DTO for OrganizationRoleAssignment responses (GET operations).</summary>
 public class OrganizationRoleAssignmentReadDto : OrganizationRoleAssignmentCreateDto, IDto
 {
+    /// <summary>Unique ID of the Organization Role Assignment.</summary>
     public Guid Id { get; set; }
 }

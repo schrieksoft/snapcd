@@ -34,6 +34,7 @@ public static class ApiReferenceEndpoints
                 // falls back to the path only when a summary is absent, so a partially
                 // documented API gets an inconsistent mix of paths and prose sentences.
                 ["operationTitleSource"] = "path",
+                ["tagsSorter"] = "alpha",
                 ["hideClientButton"] = true,
                 ["showDeveloperTools"] = "never",
                 ["agent"] = new Dictionary<string, object> { ["disabled"] = true },

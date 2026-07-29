@@ -8,15 +8,21 @@
 
 namespace SnapCd.Contracts.Dto.IntegrationEvents;
 
+/// <summary>DTO for creating a new OrganizationIntegrationEvent (POST operations).</summary>
 public class OrganizationIntegrationEventCreateDto
 {
+    /// <summary>ID of the target integration.</summary>
     public Guid IntegrationId { get; set; }
 
+    /// <summary>Trigger this subscription fires on.</summary>
     public IntegrationTrigger Trigger { get; set; }
 
+    /// <summary>Optional message template ({{token}} substitution). Omit to use the default for the trigger.</summary>
     public string? Template { get; set; }
 
+    /// <summary>Optional filter expression.</summary>
     public string? Filter { get; set; }
 
+    /// <summary>Whether the subscription is disabled.</summary>
     public bool IsDisabled { get; set; }
 }
