@@ -22202,11 +22202,7 @@ components:
       - Stack
       - Namespace
       - Module
-      description: |-
-        What a `UserColor` is attached to. Deliberately separate from
-        FavoriteTargetType despite having the same members today: the two are
-        independent features and should be free to diverge (colouring a Runner would make sense;
-        starring one is a different question).
+      description: What a UserColor is attached to.
     DeclineJobDto:
       type: object
       properties:
@@ -22284,10 +22280,8 @@ components:
       - DeclinedApproval
       - ExternalMutation
       - null
-      description: What kind of thing AutoDiagnose / AutoFix concluded about an unsuccessful run. Wire-stable string values
-        (enum is stored via HasConversion<string> and round-tripped from the sidecar's report_diagnosis_category MCP tool);
-        add values at the end, never rename. The agent picks exactly one before terminating;  is the fallback when nothing
-        else fits.
+      description: What kind of thing AutoDiagnose / AutoFix concluded about an unsuccessful run. The mission picks exactly
+        one; 'Unknown' is the fallback when nothing else fits.
     FavoriteTargetType:
       enum:
       - Stack
@@ -22692,15 +22686,11 @@ components:
       - MissionMilestoneReported
       - MissionCompleted
       - MissionFaulted
-      description: |-
-        The stable catalog of occurrences an `IntegrationEvent` can subscribe to — the job-saga lifecycle
-        plus the mission milestone events. Stored as a string; add at the end, never rename.
+      description: 'The occurrences an IntegrationEvent can subscribe to: the job lifecycle plus the mission milestone events.'
     IntegrationType:
       enum:
       - Slack
-      description: |-
-        The kind of outbound integration. Stored as a string, so add values at the end and never rename.
-        Each value has a matching `IIntegrationCodec` on the server that knows its connection shape.
+      description: The kind of outbound integration.
     IntegrationUpdateDto:
       type: object
       properties:

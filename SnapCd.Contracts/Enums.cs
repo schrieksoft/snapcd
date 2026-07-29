@@ -342,12 +342,9 @@ public enum MissionType
     AutoFix
 }
 
-/// <summary>
-/// What kind of thing AutoDiagnose / AutoFix concluded about an unsuccessful run. Wire-stable string
-/// values (enum is stored via HasConversion&lt;string&gt; and round-tripped from the sidecar's
-/// <c>report_diagnosis_category</c> MCP tool); add values at the end, never rename. The agent picks
-/// exactly one before terminating; <see cref="Unknown"/> is the fallback when nothing else fits.
-/// </summary>
+/// <summary>What kind of thing AutoDiagnose / AutoFix concluded about an unsuccessful run. The mission picks exactly one; 'Unknown' is the fallback when nothing else fits.</summary>
+// Wire-stable string values (stored via HasConversion<string> and round-tripped from the sidecar's
+// report_diagnosis_category MCP tool); add values at the end, never rename.
 public enum DiagnosisCategory
 {
     Unknown,
@@ -470,12 +467,10 @@ public enum FavoriteTargetType
     Module
 }
 
-/// <summary>
-/// What a <c>UserColor</c> is attached to. Deliberately separate from
-/// <see cref="FavoriteTargetType"/> despite having the same members today: the two are
-/// independent features and should be free to diverge (colouring a Runner would make sense;
-/// starring one is a different question).
-/// </summary>
+/// <summary>What a UserColor is attached to.</summary>
+// Deliberately separate from FavoriteTargetType despite having the same members today: the two
+// are independent features and should be free to diverge (colouring a Runner would make sense;
+// starring one is a different question).
 public enum ColorTargetType
 {
     Stack,

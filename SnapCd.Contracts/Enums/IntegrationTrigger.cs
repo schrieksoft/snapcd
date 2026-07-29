@@ -8,10 +8,8 @@
 
 namespace SnapCd.Contracts;
 
-/// <summary>
-/// The stable catalog of occurrences an <c>IntegrationEvent</c> can subscribe to — the job-saga lifecycle
-/// plus the mission milestone events. Stored as a string; add at the end, never rename.
-/// </summary>
+/// <summary>The occurrences an IntegrationEvent can subscribe to: the job lifecycle plus the mission milestone events.</summary>
+// Stored as a string; add at the end, never rename.
 public enum IntegrationTrigger
 {
     JobSucceeded,

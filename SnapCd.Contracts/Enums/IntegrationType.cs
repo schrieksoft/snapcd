@@ -8,10 +8,9 @@
 
 namespace SnapCd.Contracts;
 
-/// <summary>
-/// The kind of outbound integration. Stored as a string, so add values at the end and never rename.
-/// Each value has a matching <c>IIntegrationCodec</c> on the server that knows its connection shape.
-/// </summary>
+/// <summary>The kind of outbound integration.</summary>
+// Stored as a string, so add values at the end and never rename. Each value has a matching
+// IIntegrationCodec on the server that knows its connection shape.
 public enum IntegrationType
 {
     Slack = 0
