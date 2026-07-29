@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.IntegrationEvents;
 
+/// <summary>DTO for updating an existing OrganizationIntegrationEvent (PUT operations).</summary>
 public class OrganizationIntegrationEventUpdateDto : OrganizationIntegrationEventCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Integration Event.</summary>
     public Guid Id { get; set; }
 }

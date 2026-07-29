@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.ModuleInputs;
 
+/// <summary>DTO for ModuleInputFromDefinition responses (GET operations).</summary>
 public class ModuleInputFromDefinitionReadDto : ModuleInputFromDefinitionCreateDto, IDto
 {
+    /// <summary>Unique ID of the Module Input (From Definition).</summary>
     public Guid Id { get; set; }
 }

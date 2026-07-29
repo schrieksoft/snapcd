@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceTerraformFlags;
 
+/// <summary>DTO for NamespaceTerraformFlag responses (GET operations).</summary>
 public class NamespaceTerraformFlagReadDto : NamespaceTerraformFlagCreateDto, IDto
 {
+    /// <summary>Unique ID of the Namespace Terraform Flag.</summary>
     public Guid Id { get; set; }
 }

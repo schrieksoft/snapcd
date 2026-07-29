@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.Runners;
 /// </summary>
 public class RunnerReadDto : RunnerCreateDto, IDto
 {
+    /// <summary>Unique ID of the Runner.</summary>
     public Guid Id { get; set; }
 }

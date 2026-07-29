@@ -22,7 +22,7 @@ using SnapCd.Server.Core.Settings.Repositories;
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.OrganizationMission)]
-[McpEntity(Singular = "Organization Mission", Plural = "Organization Missions")]
+[McpEntity(Singular = "OrganizationMission", Plural = "OrganizationMissions")]
 public class OrganizationMissionController : GenericCrudController<
     OrganizationMission,
     OrganizationMissionCreateDto,
@@ -40,17 +40,12 @@ public class OrganizationMissionController : GenericCrudController<
     {
     }
 
-    /// <summary>Create a new Organization Mission. Fires for any matching event in the organization.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="dto">The Organization Mission to create</param>
     [HttpPost]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "Fires for any matching event in the organization.")]
     public override Task<ActionResult<OrganizationMissionReadDto>> Create(Guid organizationId, OrganizationMissionCreateDto dto)
         => base.Create(organizationId, dto);
 
-    /// <summary>List Organization Missions assigned to a specific Agent.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="agentId">Agent ID</param>
+    [EndpointSummary("List OrganizationMissions assigned to a specific Agent")]
     [HttpGet("ByAgent/{agentId}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<OrganizationMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)

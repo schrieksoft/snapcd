@@ -22,10 +22,6 @@ using SnapCd.Server.Core.Services.Ai.Missions;
 
 namespace SnapCd.Server.Core.Controllers.Jobs;
 
-/// <summary>
-/// Operator surface for mission runs: cancel an in-flight run, or rerun a mission. Both go through
-/// the same run-claim lock as automatic dispatch, so neither can double-run.
-/// </summary>
 [Route(ControllerEndpoints.MissionRun)]
 [ApiController]
 [Authorize("BearerPolicy")]
@@ -66,7 +62,7 @@ public class MissionRunController : ControllerBase
         return repo.CanRunJob(moduleId, organizationId);
     }
 
-    /// <summary>Cancel an in-flight run: flag it and ask the owning instance to abort the agent.</summary>
+    [EndpointSummary("Cancel an in-flight mission run")]
     [HttpPost("{runId}/cancel")]
     public async Task<IActionResult> Cancel(Guid organizationId, Guid runId)
     {
@@ -103,7 +99,7 @@ public class MissionRunController : ControllerBase
         return Ok($"Cancellation requested for run '{runId}'.");
     }
 
-    /// <summary>Rerun a mission: claim a fresh run (next attempt) under the lock. 409 if one is already active.</summary>
+    [EndpointSummary("Rerun a mission")]
     [HttpPost("rerun/{missionId}")]
     public async Task<IActionResult> Rerun(Guid organizationId, Guid missionId)
     {

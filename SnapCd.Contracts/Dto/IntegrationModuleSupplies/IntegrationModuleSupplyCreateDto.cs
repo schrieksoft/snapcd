@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.IntegrationModuleSupplies;
 
+/// <summary>DTO for creating a new IntegrationModuleSupply (POST operations).</summary>
 public class IntegrationModuleSupplyCreateDto
 {
+    /// <summary>ID of the Module the integration is supplied to.</summary>
     public Guid ModuleId { get; set; }
 
+    /// <summary>ID of the Integration that is supplied to the Module.</summary>
     public Guid IntegrationId { get; set; }
 }

@@ -13,11 +13,15 @@ namespace SnapCd.Contracts.Dto.ServicePrincipals;
 /// </summary>
 public class ServicePrincipalCreateDto
 {
+    /// <summary>Client Id of the Service Principal. This value must be unique.</summary>
     public string ClientId { get; set; } = null!;
 
+    /// <summary>Client Secret credential. Write-only: supplied on create or update, never returned on reads.</summary>
     public string? ClientSecret { get; set; }
 
+    /// <summary>Indicates whether the Service Principal is disabled.</summary>
     public bool IsDisabled { get; set; }
 
+    /// <summary>OAuth scopes granted to tokens issued for this Service Principal. Defaults to `snapcd_scope`.</summary>
     public List<string>? Scopes { get; set; } = ["snapcd_scope"];
 }

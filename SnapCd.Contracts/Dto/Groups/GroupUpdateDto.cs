@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.Groups;
 /// </summary>
 public class GroupUpdateDto : GroupCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Group.</summary>
     public Guid Id { get; set; }
 }

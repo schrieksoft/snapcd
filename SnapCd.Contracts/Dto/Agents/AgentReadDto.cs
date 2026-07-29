@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.Agents;
 /// </summary>
 public class AgentReadDto : AgentCreateDto, IDto
 {
+    /// <summary>Unique ID of the Agent.</summary>
     public Guid Id { get; set; }
 }

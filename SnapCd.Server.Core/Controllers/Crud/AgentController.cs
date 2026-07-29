@@ -46,25 +46,17 @@ public class AgentController : GenericCrudController<
     {
     }
 
-    /// <summary>Create a new Agent. Requires Owner role on the organization.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="dto">The Agent to create</param>
     [HttpPost]
     [ExposeAsMcpTool]
     public override Task<ActionResult<AgentReadDto>> Create(Guid organizationId, AgentCreateDto dto)
         => base.Create(organizationId, dto);
 
-    /// <summary>Delete the Agent. The Agent's bound ServicePrincipal is not deleted.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Agent ID</param>
     [HttpDelete("{id}")]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "The Agent's bound ServicePrincipal is not deleted.")]
     public override Task<IActionResult> Delete(Guid organizationId, Guid id)
         => base.Delete(organizationId, id);
 
-    /// <summary>Look up an Agent by its unique name within the organization.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="name">Agent name (unique within the organization)</param>
+    [EndpointSummary("Look up an Agent by name")]
     [HttpGet($"{AgentCustomEndpointNames.GetAgentByName}/{{name}}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<AgentReadDto>> GetByName(Guid organizationId, string name)

@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.AgentModuleSupplies;
 
+/// <summary>DTO for creating a new AgentModuleSupply (POST operations).</summary>
 public class AgentModuleSupplyCreateDto
 {
+    /// <summary>ID of the Module to which the Agent is assigned.</summary>
     public Guid ModuleId { get; set; }
 
+    /// <summary>ID of the Agent that is assigned to the Module.</summary>
     public Guid AgentId { get; set; }
 }

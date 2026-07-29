@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.UserFavorites;
 /// </summary>
 public class UserFavoriteReadDto : UserFavoriteCreateDto, IDto
 {
+    /// <summary>Unique ID of the UserFavorite row.</summary>
     public Guid Id { get; set; }
 }

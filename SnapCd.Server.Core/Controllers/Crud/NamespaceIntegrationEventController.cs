@@ -22,7 +22,7 @@ using SnapCd.Server.Core.Settings.Repositories;
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.NamespaceIntegrationEvent)]
-[McpEntity(Singular = "Namespace Integration Event", Plural = "Namespace Integration Events")]
+[McpEntity(Singular = "NamespaceIntegrationEvent", Plural = "NamespaceIntegrationEvents")]
 public class NamespaceIntegrationEventController : GenericCrudController<
     NamespaceIntegrationEvent,
     NamespaceIntegrationEventCreateDto,

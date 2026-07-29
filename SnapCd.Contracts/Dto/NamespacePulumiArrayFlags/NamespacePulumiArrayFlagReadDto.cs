@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespacePulumiArrayFlags;
 
+/// <summary>DTO for NamespacePulumiArrayFlag responses (GET operations).</summary>
 public class NamespacePulumiArrayFlagReadDto : NamespacePulumiArrayFlagCreateDto, IDto
 {
+    /// <summary>Unique ID of the Namespace Pulumi Array Flag.</summary>
     public Guid Id { get; set; }
 }

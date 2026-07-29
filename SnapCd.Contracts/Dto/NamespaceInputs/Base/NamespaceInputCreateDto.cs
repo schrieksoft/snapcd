@@ -10,9 +10,14 @@ namespace SnapCd.Contracts.Dto.NamespaceInputs.Base;
 
 public class NamespaceInputCreateDto
 {
+    /// <summary>ID of the Namespace Input's parent Namespace.</summary>
     public Guid NamespaceId { get; set; }
+    /// <summary>Name of the Namespace Input. Must be unique in combination with `namespaceId`.</summary>
     public string Name { get; set; } = null!;
 
+    /// <summary>Whether the input should be used by default on all Modules, or only when explicitly selected on the Module itself.</summary>
     public NamespaceInputUsageMode UsageMode { get; set; }
+
+    /// <summary>The kind of input.</summary>
     public InputKind InputKind { get; set; }
 }

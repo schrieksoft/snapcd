@@ -10,7 +10,10 @@ namespace SnapCd.Contracts.Dto.ModuleInputs.Base;
 
 public class ModuleInputCreateDto
 {
+    /// <summary>ID of the Module Input's parent Module.</summary>
     public Guid ModuleId { get; set; }
+    /// <summary>Name of the Module Input. Must be unique in combination with `moduleId`.</summary>
     public string Name { get; set; } = null!;
+    /// <summary>The kind of input.</summary>
     public InputKind InputKind { get; set; }
 }

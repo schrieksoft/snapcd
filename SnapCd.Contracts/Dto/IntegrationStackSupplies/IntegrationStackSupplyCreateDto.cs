@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.IntegrationStackSupplies;
 
+/// <summary>DTO for creating a new IntegrationStackSupply (POST operations).</summary>
 public class IntegrationStackSupplyCreateDto
 {
+    /// <summary>ID of the Stack the integration is supplied to.</summary>
     public Guid StackId { get; set; }
 
+    /// <summary>ID of the Integration that is supplied to the Stack.</summary>
     public Guid IntegrationId { get; set; }
 }

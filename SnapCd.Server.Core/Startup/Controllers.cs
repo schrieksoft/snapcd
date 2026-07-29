@@ -24,6 +24,7 @@ public static class Controllers
         var controllers = new List<Type>();
         controllers.AddRange(new[]
         {
+            typeof(JobController),
             typeof(MissionRunController),
             typeof(StackController),
             typeof(NamespaceController),
@@ -129,6 +130,10 @@ public static class Controllers
                 }
             })
             .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
+
+        // The OpenAPI generator reads these options (not MVC's) when building schemas; without
+        // this, enums document as bare integers while the wire format is strings.
+        services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
         services.AddControllersWithViews(); // This is needed for the Authorization and Error controllers, both of which use Views.
 

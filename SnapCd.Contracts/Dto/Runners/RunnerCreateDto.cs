@@ -13,13 +13,18 @@ namespace SnapCd.Contracts.Dto.Runners;
 /// </summary>
 public class RunnerCreateDto
 {
+    /// <summary>ID of the Service Principal associated with the Runner.</summary>
     public Guid ServicePrincipalId { get; set; }
 
+    /// <summary>Unique name of the Runner.</summary>
     public string Name { get; set; } = null!;
 
+    /// <summary>Indicates whether or not the Runner is disabled</summary>
     public bool IsDisabled { get; set; }
 
+    /// <summary>Indicates whether or not the Runner is disabled</summary>
     public bool AllowMultipleInstances { get; set; }
 
+    /// <summary>Setting this to 'true' allows this Runner to be selected for deployment by any Module in the system.</summary>
     public bool IsSuppliedToAllModules { get; set; } = false;
 }

@@ -13,5 +13,6 @@ namespace SnapCd.Contracts.Dto.Secrets;
 /// </summary>
 public class SecretCreateDto
 {
+    /// <summary>Name of the Secret. Must be unique within its scope.</summary>
     public string Name { get; set; } = null!;
 }

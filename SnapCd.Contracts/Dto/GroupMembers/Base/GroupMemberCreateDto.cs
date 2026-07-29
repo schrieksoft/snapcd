@@ -10,9 +10,12 @@ namespace SnapCd.Contracts.Dto.GroupMembers.Base;
 
 public class GroupMemberCreateDto
 {
+    /// <summary>ID of the Group to assign membership of.</summary>
     public Guid GroupId { get; set; }
 
+    /// <summary>ID of the Principal to assign to the Group.</summary>
     public Guid PrincipalId { get; set; }
 
+    /// <summary>Type of Principal to assign to the Group. Must be one of 'User' and 'ServicePrincipal'</summary>
     public GroupMemberDiscriminator GroupMemberDiscriminator { get; set; }
 }

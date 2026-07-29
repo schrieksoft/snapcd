@@ -22,7 +22,7 @@ using SnapCd.Server.Core.Settings.Repositories;
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.StackMission)]
-[McpEntity(Singular = "Stack Mission", Plural = "Stack Missions")]
+[McpEntity(Singular = "StackMission", Plural = "StackMissions")]
 public class StackMissionController : GenericCrudController<
     StackMission,
     StackMissionCreateDto,
@@ -40,17 +40,12 @@ public class StackMissionController : GenericCrudController<
     {
     }
 
-    /// <summary>Create a new Stack Mission. Fires for events on modules within the targeted Stack.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="dto">The Stack Mission to create</param>
     [HttpPost]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "Fires for events on modules within the targeted Stack.")]
     public override Task<ActionResult<StackMissionReadDto>> Create(Guid organizationId, StackMissionCreateDto dto)
         => base.Create(organizationId, dto);
 
-    /// <summary>List Stack Missions assigned to a specific Agent.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="agentId">Agent ID</param>
+    [EndpointSummary("List StackMissions assigned to a specific Agent")]
     [HttpGet("ByAgent/{agentId}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<StackMissionReadDto>>> ListByAgent(Guid organizationId, Guid agentId)
@@ -70,9 +65,7 @@ public class StackMissionController : GenericCrudController<
         }
     }
 
-    /// <summary>List Stack Missions targeting a specific Stack.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="stackId">Stack ID</param>
+    [EndpointSummary("List StackMissions targeting a specific Stack")]
     [HttpGet("ByStack/{stackId}")]
     [ExposeAsMcpTool]
     public async Task<ActionResult<List<StackMissionReadDto>>> ListByStack(Guid organizationId, Guid stackId)

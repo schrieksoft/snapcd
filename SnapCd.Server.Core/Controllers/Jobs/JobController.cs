@@ -14,7 +14,9 @@ using SnapCd.Contracts.Dto.Jobs;
 using SnapCd.Contracts.Dto.ModuleJobApprovals;
 using SnapCd.Contracts.Mcp;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 
 namespace SnapCd.Server.Core.Controllers.Jobs;
@@ -33,17 +35,15 @@ public class JobController : ControllerBase
         Service = service;
     }
 
-    /// <summary>Start an Apply job for a Module. Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Module ID to apply</param>
-    /// <param name="correlationId">Optional correlation ID to use as Job ID</param>
-    [HttpPost("apply/{id}")]
-    [ExposeAsMcpTool]
-    public async Task<ActionResult<Guid>> Apply(Guid organizationId, Guid id, [FromQuery] Guid? correlationId)
+    [EndpointSummary("Start an Apply job for a Module")]
+    [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
+    [HttpPost("apply/{moduleId}")]
+    [ExposeAsMcpTool(Instructions = "Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.")]
+    public async Task<ActionResult<Guid>> Apply(Guid organizationId, Guid moduleId, [FromQuery] Guid? correlationId)
     {
         try
         {
-            return await Service.Apply(id, organizationId, correlationId);
+            return await Service.Apply(moduleId, organizationId, correlationId);
         }
         catch (EntityNotFoundException e)
         {
@@ -55,17 +55,15 @@ public class JobController : ControllerBase
         }
     }
 
-    /// <summary>Start a Destroy job for a Module. Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Module ID to destroy</param>
-    /// <param name="correlationId">Optional correlation ID to use as Job ID</param>
-    [HttpPost("destroy/{id}")]
-    [ExposeAsMcpTool]
-    public async Task<ActionResult<Guid>> Destroy(Guid organizationId, Guid id, [FromQuery] Guid? correlationId)
+    [EndpointSummary("Start a Destroy job for a Module")]
+    [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
+    [HttpPost("destroy/{moduleId}")]
+    [ExposeAsMcpTool(Instructions = "Returns the Job ID. If correlationId is provided, that ID is used; otherwise a new GUID is generated.")]
+    public async Task<ActionResult<Guid>> Destroy(Guid organizationId, Guid moduleId, [FromQuery] Guid? correlationId)
     {
         try
         {
-            return await Service.Destroy(id, organizationId, correlationId);
+            return await Service.Destroy(moduleId, organizationId, correlationId);
         }
         catch (EntityNotFoundException e)
         {
@@ -77,12 +75,10 @@ public class JobController : ControllerBase
         }
     }
 
-    /// <summary>Record an approval decision on a Job pending approval. The calling principal (the Agent) is recorded as the approver.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Job ID to approve</param>
-    /// <param name="dto">Optional approval payload (reason)</param>
+    [EndpointSummary("Record an approval decision on a Job")]
+    [PermissionSource(Repository = typeof(ModuleJobApprovalSecuredRepository), Verb = PermissionVerb.Create)]
     [HttpPost("{id}/approve")]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "The Job must be pending approval. The calling principal is recorded as the approver.")]
     public async Task<IActionResult> Approve(Guid organizationId, Guid id, [FromBody] ApproveJobDto? dto = null)
     {
         try
@@ -104,12 +100,10 @@ public class JobController : ControllerBase
         }
     }
 
-    /// <summary>Record a decline decision on a Job pending approval. The calling principal (the Agent) is recorded as the decliner. A reason is required.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Job ID to decline</param>
-    /// <param name="dto">Decline payload (reason required)</param>
+    [EndpointSummary("Record a decline decision on a Job")]
+    [PermissionSource(Repository = typeof(ModuleJobApprovalSecuredRepository), Verb = PermissionVerb.Create)]
     [HttpPost("{id}/decline")]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "The Job must be pending approval. The calling principal is recorded as the decliner. A reason is required.")]
     public async Task<IActionResult> Decline(Guid organizationId, Guid id, [FromBody] DeclineJobDto dto)
     {
         if (dto is null || string.IsNullOrWhiteSpace(dto.Reason))
@@ -134,13 +128,13 @@ public class JobController : ControllerBase
         }
     }
 
-    /// <summary>Redacted log entries of a SnapCd ModuleJob, as a JSON array of LogEntryDto. Partition by TaskName (Init / Validate / Variables / Plan / ApplyFromPlan / DestroyFromPlan etc.) to focus on a single phase. Secrets and likely-credential patterns are replaced with [REDACTED:type] markers.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="jobId">Job ID</param>
+    [EndpointSummary("Get redacted log entries of a Job")]
+    [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.Read)]
     [HttpGet("{jobId}/logs")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/jobs/{jobId}/logs",
-        Name = "module_job_logs")]
+        Name = "module_job_logs",
+        Instructions = "Returned as a JSON array of LogEntryDto. Partition by TaskName (Init / Validate / Variables / Plan / ApplyFromPlan / DestroyFromPlan etc.) to focus on a single phase. Secrets and likely-credential patterns are replaced with [REDACTED:type] markers.")]
     public async Task<ActionResult<string>> GetLogs(Guid organizationId, Guid jobId)
     {
         try
@@ -151,19 +145,23 @@ public class JobController : ControllerBase
         {
             return NotFound(e.Message);
         }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
         catch (Exception e)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
 
-    /// <summary>Status metadata for a SnapCd ModuleJob: JobType (Apply/Destroy), DefinitiveRevision (the resolved commit SHA the job ran against), WaitingForApproval, ActualStateHeadline, server-side error fields, and output deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action plan body or the apply output — those are in module_job_logs filtered by TaskName.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="jobId">Job ID</param>
+    [EndpointSummary("Get status metadata for a Job")]
+    [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.Read)]
     [HttpGet("{jobId}/status")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/jobs/{jobId}/status",
-        Name = "module_job_status")]
+        Name = "module_job_status",
+        Instructions = "Covers JobType (Apply/Destroy), DefinitiveRevision (the resolved commit SHA the job ran against), WaitingForApproval, ActualStateHeadline, server-side error fields, and output deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action plan body or the apply output — those are in module_job_logs filtered by TaskName.")]
     public async Task<ActionResult<ModuleJobStatusDto>> GetStatus(Guid organizationId, Guid jobId)
     {
         try
@@ -174,19 +172,23 @@ public class JobController : ControllerBase
         {
             return NotFound(e.Message);
         }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
         catch (Exception e)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
 
-    /// <summary>Approval history for a SnapCd ModuleJob: who decided, when, and whether they declined. Returns an empty array if no decisions have been recorded (i.e. the job either auto-applied or is still awaiting approval). The principal-resolution details (name/email) are not returned — only the principal id and discriminator (User / ServicePrincipal).</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="jobId">Job ID</param>
+    [EndpointSummary("Get approval history for a Job")]
+    [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.Read)]
     [HttpGet("{jobId}/approvals")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/jobs/{jobId}/approvals",
-        Name = "module_job_approvals")]
+        Name = "module_job_approvals",
+        Instructions = "Shows who decided, when, and whether they declined. Returns an empty array if no decisions have been recorded (i.e. the job either auto-applied or is still awaiting approval). The principal-resolution details (name/email) are not returned — only the principal id and discriminator (User / ServicePrincipal).")]
     public async Task<ActionResult<List<ModuleJobApprovalReadDto>>> GetApprovals(Guid organizationId, Guid jobId)
     {
         try
@@ -197,18 +199,20 @@ public class JobController : ControllerBase
         {
             return NotFound(e.Message);
         }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
         catch (Exception e)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
 
-    /// <summary>Cancel a running Job. CancellationType: AfterCurrent (let current step finish), ImmediateGraceful (signal runner to stop), ImmediateKill (force terminate).</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="id">Job ID to cancel</param>
-    /// <param name="cancellationType">Cancellation strategy</param>
+    [EndpointSummary("Cancel a running Job")]
+    [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
     [HttpPost("{id}/cancel")]
-    [ExposeAsMcpTool]
+    [ExposeAsMcpTool(Instructions = "CancellationType: AfterCurrent (let current step finish), ImmediateGraceful (signal runner to stop), ImmediateKill (force terminate).")]
     public async Task<IActionResult> Cancel(
         Guid organizationId,
         Guid id,

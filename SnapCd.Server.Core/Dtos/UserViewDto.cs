@@ -8,8 +8,11 @@
 
 namespace SnapCd.Server.Core.Dtos;
 
+/// <summary>Minimal view of a User: ID and username.</summary>
 public class UserViewDto
 {
+    /// <summary>Unique ID of the User.</summary>
     public Guid Id { get; set; }
+    /// <summary>Username of the User.</summary>
     public string UserName { get; set; } = string.Empty;
 }

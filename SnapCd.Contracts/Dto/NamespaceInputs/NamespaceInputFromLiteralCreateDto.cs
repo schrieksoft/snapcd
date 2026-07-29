@@ -10,9 +10,12 @@ using SnapCd.Contracts.Dto.NamespaceInputs.Base;
 
 namespace SnapCd.Contracts.Dto.NamespaceInputs;
 
+/// <summary>DTO for creating a new NamespaceInputFromLiteral (POST operations).</summary>
 public class NamespaceInputFromLiteralCreateDto : NamespaceInputCreateDto
 {
+    /// <summary>Literal value of the input.</summary>
     public string LiteralValue { get; set; } = null!;
 
+    /// <summary>Type of literal input. Must be one of 'String' and 'NotString'. Use 'NotString' for values such as numbers, bools, list, maps etc.</summary>
     public InputType Type { get; set; }
 }

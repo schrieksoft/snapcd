@@ -8,9 +8,11 @@
 
 namespace SnapCd.Contracts.Dto.UserColors;
 
+/// <summary>DTO for creating a new UserColor (POST operations).</summary>
 public class UserColorCreateDto
 {
     public ColorTargetType TargetType { get; set; }
+    /// <summary>ID of the Stack, Namespace or Module the colour applies to.</summary>
     public Guid TargetId { get; set; }
 
     /// <summary>Hex colour, e.g. "#E85D1A". Null or empty clears the colour.</summary>

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.ModuleHooks;
 
+/// <summary>DTO for updating an existing ModuleHook (PUT operations).</summary>
 public class ModuleHookUpdateDto : ModuleHookCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Module Hook.</summary>
     public Guid Id { get; set; }
 }

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.IntegrationNamespaceSupplies;
 
+/// <summary>DTO for IntegrationNamespaceSupply responses (GET operations).</summary>
 public class IntegrationNamespaceSupplyReadDto : IntegrationNamespaceSupplyCreateDto, IDto
 {
+    /// <summary>Unique ID of the Integration Namespace Supply.</summary>
     public Guid Id { get; set; }
 }

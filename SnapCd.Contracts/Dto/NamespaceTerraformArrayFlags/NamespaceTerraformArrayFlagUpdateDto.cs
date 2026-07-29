@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.NamespaceTerraformArrayFlags;
 
+/// <summary>DTO for updating an existing NamespaceTerraformArrayFlag (PUT operations).</summary>
 public class NamespaceTerraformArrayFlagUpdateDto : NamespaceTerraformArrayFlagCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Namespace Terraform Array Flag.</summary>
     public Guid Id { get; set; }
 }

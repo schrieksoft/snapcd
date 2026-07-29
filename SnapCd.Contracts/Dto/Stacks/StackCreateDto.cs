@@ -14,7 +14,9 @@ namespace SnapCd.Contracts.Dto.Stacks;
 /// </summary>
 public class StackCreateDto
 {
+    /// <summary>Unique name of the Stack.</summary>
     public string Name { get; set; } = null!;
 
+    /// <summary>Behaviour with respect to applying modules within the Stack if any of the fields on the Stack resource has changed. Must be one of 'TriggerAllImmediately' or 'DoNotTrigger'. Setting to 'TriggerAllImmediately' will trigger *all* Modules within the Stack to run an apply Job simultaneously. Setting to 'DoNotTrigger' will do nothing. The default (and recommended) setting is 'DoNotTrigger'.</summary>
     public StackTriggerBehaviour? TriggerBehaviourOnModified { get; set; }
 }

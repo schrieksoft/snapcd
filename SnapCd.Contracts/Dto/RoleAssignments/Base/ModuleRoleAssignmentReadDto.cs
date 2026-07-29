@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.RoleAssignments.Base;
 
+/// <summary>DTO for ModuleRoleAssignment responses (GET operations).</summary>
 public class ModuleRoleAssignmentReadDto : ModuleRoleAssignmentCreateDto, IDto
 {
+    /// <summary>Unique ID of the Module Role Assignment.</summary>
     public Guid Id { get; set; }
 }

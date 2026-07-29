@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.ModuleHooks;
 
+/// <summary>DTO for ModuleHook responses (GET operations).</summary>
 public class ModuleHookReadDto : ModuleHookCreateDto, IDto
 {
+    /// <summary>Unique ID of the Module Hook.</summary>
     public Guid Id { get; set; }
 }

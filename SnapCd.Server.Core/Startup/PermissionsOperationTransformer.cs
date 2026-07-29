@@ -57,6 +57,8 @@ public class PermissionsOperationTransformer : IOpenApiOperationTransformer
         var builder = new StringBuilder();
         builder.AppendLine("##### Required permissions");
         builder.AppendLine();
+        builder.AppendLine("---");
+        builder.AppendLine();
 
         if (doc.RolesByDimension.Count > 0)
         {

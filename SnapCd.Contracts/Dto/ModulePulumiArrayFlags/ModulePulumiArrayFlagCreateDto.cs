@@ -10,13 +10,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SnapCd.Contracts.Dto.ModulePulumiArrayFlags;
 
+/// <summary>DTO for creating a new ModulePulumiArrayFlag (POST operations).</summary>
 public class ModulePulumiArrayFlagCreateDto
 {
+    /// <summary>The command task this flag applies to.</summary>
     public PulumiCommandTask Task { get; set; }
 
+    /// <summary>The Pulumi CLI array flag name.</summary>
     public PulumiArrayFlag Flag { get; set; }
 
+    /// <summary>The value for the flag.</summary>
     [Required] [MaxLength(1000)] public string Value { get; set; } = null!;
 
+    /// <summary>ID of the parent Module.</summary>
     public Guid ModuleId { get; set; }
 }

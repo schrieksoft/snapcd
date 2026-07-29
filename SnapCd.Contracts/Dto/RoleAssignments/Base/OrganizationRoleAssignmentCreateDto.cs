@@ -11,9 +11,12 @@ namespace SnapCd.Contracts.Dto.RoleAssignments.Base;
 public class OrganizationRoleAssignmentCreateDto
 {
 
+    /// <summary>ID of the Principal to which the role is assigned.</summary>
     public Guid PrincipalId { get; set; }
 
+    /// <summary>Type of Principal that the `principal_id` identifies. Must be one of 'User', 'ServicePrincipal' and 'Group'</summary>
     public RoleAssignmentPrincipalDiscriminator PrincipalDiscriminator { get; set; }
 
+    /// <summary>Name of the Role that is assigned.</summary>
     public OrganizationRole RoleName { get; set; }
 }

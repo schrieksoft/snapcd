@@ -8,7 +8,9 @@
 
 namespace SnapCd.Contracts.Dto.Secrets.Scoped;
 
+/// <summary>DTO for StackSecret responses (GET operations).</summary>
 public class StackSecretDto : SecretDto
 {
+    /// <summary>Id of the Stack to scope the Secret to</summary>
     public Guid StackId { get; set; }
 }

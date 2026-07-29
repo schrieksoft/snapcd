@@ -13,13 +13,18 @@ namespace SnapCd.Contracts.Dto.Agents;
 /// </summary>
 public class AgentCreateDto
 {
+    /// <summary>ID of the Service Principal that the Agent authenticates as.</summary>
     public Guid ServicePrincipalId { get; set; }
 
+    /// <summary>Unique name of the Agent.</summary>
     public string Name { get; set; } = null!;
 
+    /// <summary>Indicates whether or not the Agent is disabled.</summary>
     public bool IsDisabled { get; set; }
 
+    /// <summary>Setting this to 'true' allows you to connect multiple instances of this Agent simultaneously.</summary>
     public bool AllowMultipleInstances { get; set; }
 
+    /// <summary>Supplies this Agent to every Module in the organization, without requiring per-scope supplies.</summary>
     public bool IsSuppliedToAllModules { get; set; }
 }

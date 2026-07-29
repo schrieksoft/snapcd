@@ -16,5 +16,6 @@ namespace SnapCd.Contracts.Dto.Stacks;
 /// </summary>
 public class StackReadDto : StackCreateDto, IDto
 {
+    /// <summary>Unique ID of the Stack.</summary>
     public Guid Id { get; set; }
 }

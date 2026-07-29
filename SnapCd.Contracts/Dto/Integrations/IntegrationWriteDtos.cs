@@ -16,9 +16,13 @@ namespace SnapCd.Contracts.Dto.Integrations;
 /// </summary>
 public class IntegrationCreateDto
 {
+    /// <summary>Name of the integration.</summary>
     public string Name { get; set; } = null!;
+    /// <summary>Integration type (e.g. Slack).</summary>
     public IntegrationType IntegrationType { get; set; }
+    /// <summary>Whether the integration is enabled.</summary>
     public bool Enabled { get; set; } = true;
+    /// <summary>Whether the integration is supplied org-wide.</summary>
     public bool IsSuppliedToAllModules { get; set; }
     public JsonElement Connection { get; set; }
 }
@@ -29,8 +33,11 @@ public class IntegrationCreateDto
 /// </summary>
 public class IntegrationUpdateDto
 {
+    /// <summary>Name of the integration.</summary>
     public string Name { get; set; } = null!;
+    /// <summary>Whether the integration is enabled.</summary>
     public bool Enabled { get; set; } = true;
+    /// <summary>Whether the integration is supplied org-wide.</summary>
     public bool IsSuppliedToAllModules { get; set; }
     public JsonElement Connection { get; set; }
 }

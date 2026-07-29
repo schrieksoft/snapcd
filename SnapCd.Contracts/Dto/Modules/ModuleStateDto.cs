@@ -14,14 +14,23 @@ namespace SnapCd.Contracts.Dto.Modules;
 /// </summary>
 public class ModuleStateDto
 {
+    /// <summary>Unique ID of the Module.</summary>
     public Guid Id { get; init; }
+    /// <summary>Name of the Module.</summary>
     public string Name { get; init; } = string.Empty;
+    /// <summary>ID of the Module's parent Namespace.</summary>
     public Guid NamespaceId { get; init; }
 
+    /// <summary>ID of the Module's most recent Job.</summary>
     public Guid? LastJobId { get; init; }
+    /// <summary>Type of the most recent Job: Apply or Destroy.</summary>
     public string? LastJobType { get; init; }
+    /// <summary>Headline of the Module's actual state after the most recent Job.</summary>
     public string? LastActualStateHeadline { get; init; }
+    /// <summary>True if the most recent Job ran against the Module's current definition and source revision.</summary>
     public bool? LastIsCurrent { get; init; }
+    /// <summary>True if the most recent Job is waiting for an approval decision.</summary>
     public bool? LastWaitingForApproval { get; init; }
+    /// <summary>Short server-side error header of the most recent Job, when it failed server-side.</summary>
     public string? LastServerSideErrorHeader { get; init; }
 }

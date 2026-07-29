@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.IntegrationEvents;
 
+/// <summary>DTO for NamespaceIntegrationEvent responses (GET operations).</summary>
 public class NamespaceIntegrationEventReadDto : NamespaceIntegrationEventCreateDto, IDto
 {
+    /// <summary>Unique ID of the Integration Event.</summary>
     public Guid Id { get; set; }
 }

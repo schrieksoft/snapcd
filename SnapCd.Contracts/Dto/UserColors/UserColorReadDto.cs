@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.UserColors;
 
+/// <summary>DTO for UserColor responses (GET operations).</summary>
 public class UserColorReadDto : UserColorCreateDto, IDto
 {
+    /// <summary>Unique ID of the UserColor row.</summary>
     public Guid Id { get; set; }
 }

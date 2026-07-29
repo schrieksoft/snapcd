@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.RoleAssignments.Base;
 
+/// <summary>DTO for RunnerRoleAssignment responses (GET operations).</summary>
 public class RunnerRoleAssignmentReadDto : RunnerRoleAssignmentCreateDto, IDto
 {
+    /// <summary>Unique ID of the Runner Role Assignment.</summary>
     public Guid Id { get; set; }
 }

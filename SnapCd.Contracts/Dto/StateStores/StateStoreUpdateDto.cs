@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.StateStores;
 
+/// <summary>DTO for updating an existing StateStore (PUT operations).</summary>
 public class StateStoreUpdateDto : StateStoreCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the State Store.</summary>
     public Guid Id { get; set; }
 }

@@ -10,8 +10,9 @@ namespace SnapCd.Contracts.Mcp;
 
 /// <summary>
 /// Marks a controller action as an MCP Resource. The codegen emits a matching
-/// <c>[McpServerResource]</c> wrapper that JSON-serialises the controller's return DTO;
-/// the description comes from the action's XML doc <c>&lt;summary&gt;</c>.
+/// <c>[McpServerResource]</c> wrapper that JSON-serialises the controller's return DTO.
+/// The resource's <c>[Description]</c> is the action's summary ([EndpointSummary] override,
+/// else the <c>EndpointDocConvention</c> text) with <see cref="Instructions"/> appended when set.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class ExposeAsMcpResourceAttribute : Attribute
@@ -34,4 +35,10 @@ public sealed class ExposeAsMcpResourceAttribute : Attribute
     /// (e.g. <c>text/plain</c> for raw log dumps, <c>application/yaml</c> for manifests).
     /// </summary>
     public string? MimeType { get; init; }
+
+    /// <summary>
+    /// Agent-facing usage guidance appended to the resource's <c>[Description]</c> after the
+    /// endpoint summary. MCP-only — never surfaces in the OpenAPI document.
+    /// </summary>
+    public string? Instructions { get; init; }
 }

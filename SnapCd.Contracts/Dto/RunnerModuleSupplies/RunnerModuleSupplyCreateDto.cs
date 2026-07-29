@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.RunnerModuleSupplies;
 
+/// <summary>DTO for creating a new RunnerModuleSupply (POST operations).</summary>
 public class RunnerModuleSupplyCreateDto
 {
+    /// <summary>ID of the Module to which the Runner is assigned.</summary>
     public Guid ModuleId { get; set; }
 
+    /// <summary>ID of the Runner that is assigned to the Module.</summary>
     public Guid RunnerId { get; set; }
 }

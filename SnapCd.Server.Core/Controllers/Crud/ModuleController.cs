@@ -63,13 +63,12 @@ public class ModuleController : GenericCrudController<
         }
     }
 
-    /// <summary>Source-repo coordinates for a Module: SourceType, SourceUrl, SourceRevision, SourceSubdirectory. The actual file contents are not returned by SnapCd — clone the repo directly using these coordinates.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="moduleId">Module ID</param>
+    [EndpointSummary("Get source-repo coordinates for a Module")]
     [HttpGet("{moduleId}/source")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/source",
-        Name = "module_source")]
+        Name = "module_source",
+        Instructions = "Returns SourceType, SourceUrl, SourceRevision and SourceSubdirectory. The actual file contents are not returned by SnapCd — clone the repo directly using these coordinates.")]
     public async Task<ActionResult<ModuleSourceDto>> GetSource(Guid organizationId, Guid moduleId)
     {
         try
@@ -90,13 +89,12 @@ public class ModuleController : GenericCrudController<
         }
     }
 
-    /// <summary>Module state-status summary: latest actual state, desired state, current execution status, last job. Does NOT return the underlying state file (may contain secrets).</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="moduleId">Module ID</param>
+    [EndpointSummary("Get the state-status summary for a Module")]
     [HttpGet("{moduleId}/state")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/state",
-        Name = "module_state")]
+        Name = "module_state",
+        Instructions = "Covers latest actual state, desired state, current execution status and last job. Does NOT return the underlying state file (may contain secrets).")]
     public async Task<ActionResult<ModuleStateDto>> GetState(Guid organizationId, Guid moduleId)
     {
         try
@@ -117,13 +115,12 @@ public class ModuleController : GenericCrudController<
         }
     }
 
-    /// <summary>Recent mission history for a Module — the last few AutoDiagnose / ApprovalRecommend / SummarizeJob / AutoFix runs, newest first. Each entry carries MissionType, Status, DiagnosisCategory, ResultSummary (which contains that run's facts block, including any PR url), the job's DefinitiveRevision (resolved commit) and JobType, timestamps, and the milestone timeline. Read this first to learn what past missions found and did for this module — treat it as priors to verify against current state, not facts to trust.</summary>
-    /// <param name="organizationId">Organization ID</param>
-    /// <param name="moduleId">Module ID</param>
+    [EndpointSummary("Get recent mission history for a Module")]
     [HttpGet("{moduleId}/history")]
     [ExposeAsMcpResource(
         UriTemplate = "snapcd://orgs/{organizationId}/modules/{moduleId}/history",
-        Name = "module_history")]
+        Name = "module_history",
+        Instructions = "The last few AutoDiagnose / ApprovalRecommend / SummarizeJob / AutoFix runs, newest first. Each entry carries MissionType, Status, DiagnosisCategory, ResultSummary (which contains that run's facts block, including any PR url), the job's DefinitiveRevision (resolved commit) and JobType, timestamps, and the milestone timeline. Read this first to learn what past missions found and did for this module — treat it as priors to verify against current state, not facts to trust.")]
     public async Task<ActionResult<List<ModuleMissionHistoryEntryDto>>> GetMissionHistory(Guid organizationId, Guid moduleId)
     {
         try

@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.ModuleJobApprovals;
 
+/// <summary>DTO for ModuleJobApproval responses (GET operations).</summary>
 public class ModuleJobApprovalReadDto : ModuleJobApprovalCreateDto, IDto
 {
+    /// <summary>Unique ID of the ModuleJobApproval.</summary>
     public Guid Id { get; set; }
 }

@@ -13,19 +13,27 @@ namespace SnapCd.Contracts.Dto.RoleAssignments;
 // Base (principal-agnostic) — what the controller/service speak.
 public class IntegrationRoleAssignmentCreateDto
 {
+    /// <summary>ID of the integration the role is granted on.</summary>
     public Guid IntegrationId { get; set; }
+    /// <summary>ID of the principal (user / group / service principal).</summary>
     public Guid PrincipalId { get; set; }
+    /// <summary>Principal type: User, Group, or ServicePrincipal.</summary>
     public RoleAssignmentPrincipalDiscriminator PrincipalDiscriminator { get; set; }
+    /// <summary>Integration role: Owner, Contributor, Reader, or IdentityAccessManager.</summary>
     public IntegrationRole RoleName { get; set; }
 }
 
+/// <summary>DTO for IntegrationRoleAssignment responses (GET operations).</summary>
 public class IntegrationRoleAssignmentReadDto : IntegrationRoleAssignmentCreateDto, IDto
 {
+    /// <summary>Unique ID of the role assignment.</summary>
     public Guid Id { get; set; }
 }
 
+/// <summary>DTO for updating an existing IntegrationRoleAssignment (PUT operations).</summary>
 public class IntegrationRoleAssignmentUpdateDto : IntegrationRoleAssignmentCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the role assignment.</summary>
     public Guid Id { get; set; }
 }
 

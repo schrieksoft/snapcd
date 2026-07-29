@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.ModuleExtraFiles;
 /// </summary>
 public class ModuleExtraFileUpdateDto : ModuleExtraFileCreateDto, IUpdateDto
 {
+    /// <summary>Unique ID of the Module Extra File.</summary>
     public Guid Id { get; set; }
 }

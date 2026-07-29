@@ -29,6 +29,7 @@ public class JobOrchestrationService
     private readonly SecuredJobServiceFactory _securedJobServiceFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ModuleJobApprovalSecuredRepositoryFactory _approvalRepoFactory;
+    private readonly ModuleJobSecuredRepositoryFactory _moduleJobRepoFactory;
     private readonly IPrincipalProvider _principalProvider;
     private readonly ILogRedactor _logRedactor;
 
@@ -36,12 +37,14 @@ public class JobOrchestrationService
         SecuredJobServiceFactory securedJobServiceFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         ModuleJobApprovalSecuredRepositoryFactory approvalRepoFactory,
+        ModuleJobSecuredRepositoryFactory moduleJobRepoFactory,
         IPrincipalProvider principalProvider,
         ILogRedactor logRedactor)
     {
         _securedJobServiceFactory = securedJobServiceFactory;
         _dbContextFactory = dbContextFactory;
         _approvalRepoFactory = approvalRepoFactory;
+        _moduleJobRepoFactory = moduleJobRepoFactory;
         _principalProvider = principalProvider;
         _logRedactor = logRedactor;
     }
@@ -93,6 +96,7 @@ public class JobOrchestrationService
             .FirstOrDefaultAsync();
 
         if (logs is null) throw new EntityNotFoundException($"Job '{jobId}' not found");
+        EnsureCanReadJob(jobId, organizationId);
         return _logRedactor.Redact(logs);
     }
 
@@ -120,6 +124,7 @@ public class JobOrchestrationService
             .FirstOrDefaultAsync();
 
         if (dto is null) throw new EntityNotFoundException($"Job '{jobId}' not found");
+        EnsureCanReadJob(jobId, organizationId);
         return dto;
     }
 
@@ -132,6 +137,7 @@ public class JobOrchestrationService
         var jobExists = await dbContext.ModuleJobs
             .AnyAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
         if (!jobExists) throw new EntityNotFoundException($"Job '{jobId}' not found");
+        EnsureCanReadJob(jobId, organizationId);
 
         return await dbContext.ModuleJobApprovals
             .Where(a => a.ModuleJobId == jobId && a.OrganizationId == organizationId)
@@ -146,6 +152,13 @@ public class JobOrchestrationService
                 Declined = a.Declined
             })
             .ToListAsync();
+    }
+
+    private void EnsureCanReadJob(Guid jobId, Guid organizationId)
+    {
+        using var repo = _moduleJobRepoFactory.Create();
+        if (!repo.CanRead(jobId, organizationId))
+            throw new PrincipalNotAuthorizedException($"Principal is not allowed to read Job with Id {jobId}");
     }
 
     private async Task EnsureModuleExists(Guid moduleId, Guid organizationId)

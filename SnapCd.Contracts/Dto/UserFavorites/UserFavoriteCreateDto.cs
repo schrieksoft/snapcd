@@ -16,5 +16,6 @@ public class UserFavoriteCreateDto
 {
     public FavoriteTargetType TargetType { get; set; }
 
+    /// <summary>ID of the Stack, Namespace or Module being favourited.</summary>
     public Guid TargetId { get; set; }
 }

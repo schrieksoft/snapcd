@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.AgentStackSupplies;
 
+/// <summary>DTO for creating a new AgentStackSupply (POST operations).</summary>
 public class AgentStackSupplyCreateDto
 {
+    /// <summary>ID of the Stack to which the Agent is assigned.</summary>
     public Guid StackId { get; set; }
 
+    /// <summary>ID of the Agent that is assigned to the Stack.</summary>
     public Guid AgentId { get; set; }
 }

@@ -8,9 +8,13 @@
 
 namespace SnapCd.Contracts.Dto.StateFiles;
 
+/// <summary>DTO for creating a new StateFile (POST operations).</summary>
 public class StateFileCreateDto
 {
+    /// <summary>ID of the State Store the State File belongs to.</summary>
     public Guid StateStoreId { get; set; }
+    /// <summary>Name of the State File. Must be unique within the State Store.</summary>
     public string Name { get; set; } = null!;
+    /// <summary>The state document content, as a JSON string.</summary>
     public string? Data { get; set; }
 }

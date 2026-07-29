@@ -15,5 +15,6 @@ namespace SnapCd.Contracts.Dto.Jobs;
 /// </summary>
 public class ApproveJobDto
 {
+    /// <summary>Optional free-text reason recorded with the approval.</summary>
     public string? Reason { get; set; }
 }

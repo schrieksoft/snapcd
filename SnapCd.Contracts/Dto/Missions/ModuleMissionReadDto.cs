@@ -10,7 +10,9 @@ using SnapCd.Contracts.Interfaces;
 
 namespace SnapCd.Contracts.Dto.Missions;
 
+/// <summary>DTO for ModuleMission responses (GET operations).</summary>
 public class ModuleMissionReadDto : ModuleMissionCreateDto, IDto
 {
+    /// <summary>Unique ID of the Mission.</summary>
     public Guid Id { get; set; }
 }

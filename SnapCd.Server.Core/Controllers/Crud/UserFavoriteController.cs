@@ -22,11 +22,6 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
-/// <summary>
-/// Favorites (starred stacks/namespaces/modules) of the calling user. Favorites are strictly
-/// personal: all operations are scoped to the authenticated principal, and only user principals
-/// may read or write (service principals get 403 on writes and an empty list on reads).
-/// </summary>
 [Route(ControllerEndpoints.UserFavorite)]
 [ApiController]
 [Authorize("BearerPolicy")]

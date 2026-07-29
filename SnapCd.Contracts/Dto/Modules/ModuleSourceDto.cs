@@ -14,13 +14,20 @@ namespace SnapCd.Contracts.Dto.Modules;
 /// </summary>
 public class ModuleSourceDto
 {
+    /// <summary>Unique ID of the Module.</summary>
     public Guid Id { get; init; }
+    /// <summary>Name of the Module.</summary>
     public string Name { get; init; } = string.Empty;
+    /// <summary>ID of the Module's parent Namespace.</summary>
     public Guid NamespaceId { get; init; }
     public SourceType SourceType { get; init; }
+    /// <summary>Remote URL where the source module code is found.</summary>
     public string SourceUrl { get; init; } = string.Empty;
+    /// <summary>Remote revision (e.g. version number, branch, commit or tag) where the source module code is found.</summary>
     public string SourceRevision { get; init; } = string.Empty;
     public SourceRevisionType SourceRevisionType { get; init; }
+    /// <summary>Subdirectory where the source module code is found.</summary>
     public string SourceSubdirectory { get; init; } = string.Empty;
+    /// <summary>The engine the Module deploys with ('OpenTofu', 'Terraform' or 'Pulumi'), when explicitly set.</summary>
     public StateManagementEngine? Engine { get; init; }
 }

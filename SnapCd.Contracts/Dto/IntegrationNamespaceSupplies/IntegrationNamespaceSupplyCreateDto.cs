@@ -8,9 +8,12 @@
 
 namespace SnapCd.Contracts.Dto.IntegrationNamespaceSupplies;
 
+/// <summary>DTO for creating a new IntegrationNamespaceSupply (POST operations).</summary>
 public class IntegrationNamespaceSupplyCreateDto
 {
+    /// <summary>ID of the Namespace the integration is supplied to.</summary>
     public Guid NamespaceId { get; set; }
 
+    /// <summary>ID of the Integration that is supplied to the Namespace.</summary>
     public Guid IntegrationId { get; set; }
 }

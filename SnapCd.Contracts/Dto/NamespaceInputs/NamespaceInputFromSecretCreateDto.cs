@@ -10,9 +10,12 @@ using SnapCd.Contracts.Dto.NamespaceInputs.Base;
 
 namespace SnapCd.Contracts.Dto.NamespaceInputs;
 
+/// <summary>DTO for creating a new NamespaceInputFromSecret (POST operations).</summary>
 public class NamespaceInputFromSecretCreateDto : NamespaceInputCreateDto
 {
+    /// <summary>ID of the Secret to take as input.</summary>
     public Guid SecretId { get; set; }
 
+    /// <summary>Type of literal input the secret value should be formatted as. Must be one of 'String' and 'NotString'. Use 'NotString' for values such as numbers, bools, list, maps etc.</summary>
     public InputType Type { get; set; }
 }
