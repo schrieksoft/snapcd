@@ -1,11 +1,11 @@
-# Snap CD
 
-## TL;DR
-
-See what its all about by following the [self-hosted quickstart](https://docs.snapcd.io/quickstart/self-hosted/) guide.
+<h1>
+  <img src="logo.png" alt="Logo" width="100" valign="middle">
+  Snap CD
+</h1>
 
 ## Overview
-
+[README.md](README.md)
 Snap CD is a self-hostable GitOps orchestrator for Terraform, OpenTofu, and Pulumi. It was built according to (and delivers on!) the following goals:
 
 1. **Break infrastructure into small modules, wired together**, each with its own state file, its own lifecycle, its own blast radius. Outputs from any module automatically become available as inputs to other modules, creating a declarative dependency system across my entire infrastructure.
@@ -18,6 +18,11 @@ Snap CD is a self-hostable GitOps orchestrator for Terraform, OpenTofu, and Pulu
 Those were the initial goals. As the use of AI Coding agents is rapidly becoming the norm (also in the world of infrastructure management) we added a seventh goal:
 
 7. **Use AI to move faster, on a leash I control**. AI should accelerate the tedious parts — diagnosing a failed apply, recommending an approval, putting in a PR for a fix, informing about what is going on — but I decide how much it may do on its own. An agent is just another principal, granted the same scoped permissions as any user, so it never acts beyond the authority I've given it.
+
+<p align="center">
+  <img src="./screenshot.png" alt="SnapCD Logo" >
+</p>
+
 
 ## Getting started
 
