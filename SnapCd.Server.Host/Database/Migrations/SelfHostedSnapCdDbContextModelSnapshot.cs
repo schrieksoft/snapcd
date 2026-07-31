@@ -1995,6 +1995,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("TriggerOnUpstreamOutputChanged")
                         .HasColumnType("bit");
 
+                    b.Property<bool?>("TriggerPathFilterEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("WaitForApplyDependencies")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2031,6 +2034,65 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("Modules", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleAdditionalTriggerPath", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "Path")
+                        .IsUnique();
+
+                    b.ToTable("ModuleAdditionalTriggerPaths");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleExtraFile", b =>
@@ -2191,6 +2253,10 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DefinitiveClosureHash")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("DefinitiveRevision")
                         .HasMaxLength(255)
@@ -2976,6 +3042,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<bool?>("DefaultTriggerPathFilterEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -3019,6 +3088,65 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("Namespaces");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceAdditionalTriggerPath", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("NamespaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("NamespaceId", "OrganizationId");
+
+                    b.HasIndex("NamespaceId", "Path")
+                        .IsUnique();
+
+                    b.ToTable("NamespaceAdditionalTriggerPaths");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceExtraFile", b =>
@@ -6291,6 +6419,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("DesiredClosureHash")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("DesiredDefinitiveRevision")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -8278,6 +8410,25 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Runner");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleAdditionalTriggerPath", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("ModuleAdditionalTriggerPaths")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany("AdditionalTriggerPaths")
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleExtraFile", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -8502,6 +8653,25 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
 
                     b.Navigation("Stack");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceAdditionalTriggerPath", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("NamespaceAdditionalTriggerPaths")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "Namespace")
+                        .WithMany("AdditionalTriggerPaths")
+                        .HasForeignKey("NamespaceId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Namespace");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceExtraFile", b =>
@@ -10006,6 +10176,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Module", b =>
                 {
+                    b.Navigation("AdditionalTriggerPaths");
+
                     b.Navigation("AgentModuleSupplies");
 
                     b.Navigation("ApplyModuleSaga");
@@ -10081,6 +10253,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Namespace", b =>
                 {
+                    b.Navigation("AdditionalTriggerPaths");
+
                     b.Navigation("AgentNamespaceSupplies");
 
                     b.Navigation("Hooks");
@@ -10136,6 +10310,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("Groups");
 
+                    b.Navigation("ModuleAdditionalTriggerPaths");
+
                     b.Navigation("ModuleExtraFiles");
 
                     b.Navigation("ModuleJobApprovals");
@@ -10151,6 +10327,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("ModuleRoleAssignments");
 
                     b.Navigation("Modules");
+
+                    b.Navigation("NamespaceAdditionalTriggerPaths");
 
                     b.Navigation("NamespaceExtraFiles");
 

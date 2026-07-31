@@ -31,6 +31,8 @@ public class ModuleSaga : SagaStateMachineInstance
 
     [MaxLength(255)] public string? DesiredDefinitiveRevision { get; set; }
 
+    [MaxLength(100)] public string? DesiredClosureHash { get; set; }
+
     [JsonIgnore] public Module Module { get; set; } = null!;
 
     public int? ActualResourceCount { get; set; }

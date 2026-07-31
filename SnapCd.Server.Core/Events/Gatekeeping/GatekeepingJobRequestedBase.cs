@@ -24,5 +24,7 @@ public class GatekeepingJobRequestedBase
 
     public string? DefinitiveRevision { get; set; }
 
+    public string? DesiredClosureHash { get; set; }
+
     public string? RunnerInstanceNameOverride { get; set; }
 }

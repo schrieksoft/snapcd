@@ -189,6 +189,8 @@ public static class Factories
         services.AddScoped<DependsOnModuleSecuredRepositoryFactory>();
         services.AddScoped<ModuleExtraFileSecuredRepositoryFactory>();
         services.AddScoped<NamespaceExtraFileSecuredRepositoryFactory>();
+        services.AddScoped<ModuleAdditionalTriggerPathSecuredRepositoryFactory>();
+        services.AddScoped<NamespaceAdditionalTriggerPathSecuredRepositoryFactory>();
         services.AddScoped<PreviewFeatureAcceptanceSecuredRepositoryFactory>();
         services.AddScoped<UserFavoriteRepositoryFactory>();
         services.AddScoped<UserFavoriteSecuredRepositoryFactory>();

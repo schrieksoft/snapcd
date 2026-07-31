@@ -87,6 +87,8 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 {
                     if (x.Message.DefinitiveRevision != null)
                         x.Saga.DesiredDefinitiveRevision = x.Message.DefinitiveRevision;
+                    if (x.Message.DesiredClosureHash != null)
+                        x.Saga.DesiredClosureHash = x.Message.DesiredClosureHash;
                 })
                 .Activity(x => x.OfType<TriggerModuleJobActivity<GatekeepingJobRequested>>())
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })

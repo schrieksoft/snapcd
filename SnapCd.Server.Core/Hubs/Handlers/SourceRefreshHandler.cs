@@ -8,6 +8,7 @@
 
 using MassTransit;
 using SnapCd.Contracts;
+using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Events.System;
 
 namespace SnapCd.Server.Core.Hubs.Handlers;
@@ -52,6 +53,36 @@ public class SourceRefreshHandler
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing source refresh completion for {SourceUrl} @ {SourceRevision}",
+                sourceUrl, sourceRevision);
+            throw;
+        }
+    }
+
+    public async Task CompleteV2(string sourceUrl, string sourceRevision, SourceType sourceType, SourceRevisionType sourceRevisionType, SourceRefreshResult result)
+    {
+        try
+        {
+            _logger.LogInformation("Runner completed path-aware source refresh for {SourceUrl} @ {SourceRevision} ({PathCount} paths)",
+                sourceUrl, sourceRevision, result.PathHashes.Count);
+
+            await _bus.Publish(new SourceRefreshCompleted
+            {
+                SourceUrl = sourceUrl,
+                SourceRevision = sourceRevision,
+                SourceType = sourceType,
+                SourceRevisionType = sourceRevisionType,
+                DefinitiveRevision = result.DefinitiveRevision,
+                PathHashes = result.PathHashes,
+                ModuleClosures = result.ModuleClosures,
+                TriggeredByNotification = result.TriggeredByNotification
+            });
+
+            _logger.LogInformation("Published SourceRefreshCompleted for {SourceUrl} @ {SourceRevision} -> {DefinitiveRevision} with {PathCount} path hashes",
+                sourceUrl, sourceRevision, result.DefinitiveRevision, result.PathHashes.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing path-aware source refresh completion for {SourceUrl} @ {SourceRevision}",
                 sourceUrl, sourceRevision);
             throw;
         }

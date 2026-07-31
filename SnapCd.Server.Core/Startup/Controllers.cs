@@ -72,6 +72,8 @@ public static class Controllers
             typeof(SourceRefresherPreselectionController),
             typeof(NamespaceExtraFileController),
             typeof(ModuleExtraFileController),
+            typeof(NamespaceAdditionalTriggerPathController),
+            typeof(ModuleAdditionalTriggerPathController),
             typeof(DependsOnModuleController),
             typeof(NamespacePulumiFlagController),
             typeof(NamespacePulumiArrayFlagController),

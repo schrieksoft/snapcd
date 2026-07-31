@@ -63,6 +63,8 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
     public virtual ICollection<ModuleJobMission> ModuleJobMissions { get; set; } = new List<ModuleJobMission>();
     public virtual ICollection<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; } = new List<ModuleJobMissionRun>();
     public virtual ICollection<ModuleExtraFile> ModuleExtraFiles { get; set; } = new List<ModuleExtraFile>();
+    public virtual ICollection<ModuleAdditionalTriggerPath> ModuleAdditionalTriggerPaths { get; set; } = new List<ModuleAdditionalTriggerPath>();
+    public virtual ICollection<NamespaceAdditionalTriggerPath> NamespaceAdditionalTriggerPaths { get; set; } = new List<NamespaceAdditionalTriggerPath>();
     public virtual ICollection<NamespaceExtraFile> NamespaceExtraFiles { get; set; } = new List<NamespaceExtraFile>();
 
     public virtual ICollection<Group> Groups { get; set; } = new List<Group>();

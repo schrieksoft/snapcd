@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>SnapCd.Generators</RootNamespace>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Internal codegen tool, not a NuGet artifact. -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Syntax-only parsing of the controller sources (ControllerSyntaxIndex); no workspace,
+             no compilation — everything else the MCP emitter needs comes from reflection over the
+             referenced SnapCd.Server.Core assembly. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\SnapCd.Contracts\SnapCd.Contracts.csproj" />
+        <ProjectReference Include="..\..\SnapCd.Utils\SnapCd.Utils.csproj" />
+        <ProjectReference Include="..\..\SnapCd.Runner\SnapCd.Runner.csproj" />
+        <ProjectReference Include="..\..\SnapCd.Agent\SnapCd.Agent.csproj" />
+        <ProjectReference Include="..\..\SnapCd.Server.Core\SnapCd.Server.Core.csproj" />
+    </ItemGroup>
+
+</Project>

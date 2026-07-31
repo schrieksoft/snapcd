@@ -278,6 +278,7 @@
     private List<RunnerConnection> _activeRunners = new();
     private Runner? _runner;
     private string? _actualDefinitiveRevision;
+    private string? _actualDefinitiveClosureHash;
     private ActualStateHeadline? _actualStateHeadline;
     private string _parentQuery = "";
 
@@ -460,7 +461,7 @@
         using var jobRepo = JobRepoFactory.Create(
             new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])
         );
-        _actualDefinitiveRevision = await jobRepo.GetActualDefinitiveRevision(_module.Id, OrganizationId);
+        (_actualDefinitiveRevision, _actualDefinitiveClosureHash) = await jobRepo.GetActualDefinitiveState(_module.Id, OrganizationId);
         _actualStateHeadline = await jobRepo.GetCurrentActualStateHeadline(_module.Id, OrganizationId);
 
         var revisionState = GetRevisionState();
@@ -738,6 +739,13 @@
     {
         if (_moduleSaga.DesiredDefinitiveRevision == null)
             return RevisionState.Unknown;
+
+        // When both sides carry a closure hash (path-scoped triggering), content fingerprints are the sync
+        // criterion: revisions may differ while every watched directory is byte-identical, and vice versa.
+        if (_moduleSaga.DesiredClosureHash != null && _actualDefinitiveClosureHash != null)
+            return _actualDefinitiveClosureHash == _moduleSaga.DesiredClosureHash
+                ? RevisionState.Synced
+                : RevisionState.OutOfSync;
 
         if (_actualDefinitiveRevision == _moduleSaga.DesiredDefinitiveRevision)
             return RevisionState.Synced;

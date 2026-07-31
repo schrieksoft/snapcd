@@ -13,6 +13,14 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- Built by CI (release.yaml) before publish; absent in local dev builds, where discovery
+             falls back to a snapcd-inspect binary on PATH. -->
+        <EmbeddedResource Include="EmbeddedTools/snapcd-inspect"
+                          Condition="Exists('EmbeddedTools/snapcd-inspect')"
+                          LogicalName="SnapCd.Runner.EmbeddedTools.snapcd-inspect" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Google.Protobuf" Version="3.33.1" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
         <ProjectReference Include="..\SnapCd.Contracts\SnapCd.Contracts.csproj" />

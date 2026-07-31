@@ -1524,6 +1524,30 @@ properties:
             type: string
             pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
         description: Shared tuning for the three integration supply-assignment repositories.
+      ModuleAdditionalTriggerPath:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModuleAdditionalTriggerPath is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModuleAdditionalTriggerPath is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModuleAdditionalTriggerPath is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Per-ModuleAdditionalTriggerPath repository tuning. Almost always left at defaults — operators override
+          only when they need to opt out of bus events or change the event TTL for the ModuleAdditionalTriggerPath entity
+          specifically.
       ModuleExtraFile:
         type: object
         properties:
@@ -2023,6 +2047,31 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-ModuleTerraformFlag repository tuning. Almost always left at defaults — operators override only when
           they need to opt out of bus events or change the event TTL for the ModuleTerraformFlag entity specifically.
+      NamespaceAdditionalTriggerPath:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespaceAdditionalTriggerPath is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespaceAdditionalTriggerPath is
+              updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespaceAdditionalTriggerPath is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Per-NamespaceAdditionalTriggerPath repository tuning. Almost always left at defaults — operators override
+          only when they need to opt out of bus events or change the event TTL for the NamespaceAdditionalTriggerPath entity
+          specifically.
       NamespaceExtraFile:
         type: object
         properties:

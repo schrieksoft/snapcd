@@ -33,6 +33,7 @@ public class DebugDataSeeder : ProductionDataSeeder
     // A second module in the debug namespace, backed by the real snapcd-samples/mock-module-vpc repo
     // (branch autofixtest), used by the Mission Test Bench AutoFix test so the mission fixes a real repo.
     private static readonly Guid MockModuleVpcId = new("99999999-9999-9999-9999-999999999910");
+    private static readonly Guid MonorepoTestingModuleId = new("99999999-9999-9999-9999-999999999911");
 
     private static readonly Guid DebugUserId = new("99999999-9999-9999-9999-999999999990");
 
@@ -293,6 +294,62 @@ public class DebugDataSeeder : ProductionDataSeeder
             existingMockModule.SourceUrl = mockSourceUrl;
             existingMockModule.SourceRevision = mockSourceRevision;
             existingMockModule.SourceSubdirectory = "";
+        }
+
+        // A third module on the public monorepo-testing fixture repo with the trigger path filter enabled, so
+        // the full path-scoped refresh loop (watched-path union -> runner hashing + discovery -> closure
+        // decision) is exercisable in any dev environment. Watches modules/app-a, which references
+        // shared/network -> shared/naming; commits to the fixture's docs/ must not trigger it.
+        const string monorepoTestingUrl = "https://github.com/schrieksoft/monorepo-testing.git";
+        var existingMonorepoModule = await dbContext.Modules.FirstOrDefaultAsync(m => m.Id == MonorepoTestingModuleId);
+        if (existingMonorepoModule == null)
+        {
+            var monorepoModule = new Module
+            {
+                Id = MonorepoTestingModuleId,
+                OrganizationId = _preseededOrganizationId,
+                NamespaceId = DebugEntityId,
+                RunnerId = DebugEntityId,
+                Name = "monorepo-testing-app-a",
+                SourceUrl = monorepoTestingUrl,
+                SourceRevision = "main",
+                SourceSubdirectory = "modules/app-a",
+                SourceType = SourceType.Git,
+                SourceRevisionType = SourceRevisionType.Default,
+                TriggerOnSourceChanged = true,
+                TriggerPathFilterEnabled = true,
+                CreatedDateTime = DateTime.UtcNow
+            };
+            monorepoModule.ModuleSaga = new ModuleSaga
+            {
+                CorrelationId = monorepoModule.Id,
+                OrganizationId = _preseededOrganizationId,
+                RowVersion = [],
+                CurrentState = nameof(ModuleStateMachine.Gatekeeping),
+                DesiredStateHeadline = DesiredStateHeadline.Applied,
+                QueuedDesiredStateHeadline = null
+            };
+            monorepoModule.ModuleModifiedSaga = new ModuleModifiedSaga
+            {
+                CorrelationId = monorepoModule.Id,
+                OrganizationId = _preseededOrganizationId,
+                RowVersion = [],
+                CurrentState = nameof(ModuleModifiedStateMachine.Idle),
+                LastUpdated = null,
+                TimeoutTokenId = null
+            };
+            dbContext.Modules.Add(monorepoModule);
+        }
+        else
+        {
+            existingMonorepoModule.Name = "monorepo-testing-app-a";
+            existingMonorepoModule.NamespaceId = DebugEntityId;
+            existingMonorepoModule.RunnerId = DebugEntityId;
+            existingMonorepoModule.OrganizationId = _preseededOrganizationId;
+            existingMonorepoModule.SourceUrl = monorepoTestingUrl;
+            existingMonorepoModule.SourceRevision = "main";
+            existingMonorepoModule.SourceSubdirectory = "modules/app-a";
+            existingMonorepoModule.TriggerPathFilterEnabled = true;
         }
 
         // AutoFix is scoped to the mock module (not org-wide) so the existing AutoDiagnose harness tests

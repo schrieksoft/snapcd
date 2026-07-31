@@ -98,6 +98,19 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
             .FirstOrDefaultAsync();
     }
 
+    public async Task<(string? DefinitiveRevision, string? DefinitiveClosureHash)> GetActualDefinitiveState(Guid moduleId, Guid organizationId)
+    {
+        var job = await DbContext.ModuleJobs
+            .Where(j => j.ModuleId == moduleId &&
+                        j.Status == ExecutionStatus.Completed &&
+                        j.TimestampEnd != null && j.OrganizationId == organizationId)
+            .OrderByDescending(j => j.TimestampEnd)
+            .Select(j => new { j.DefinitiveRevision, j.DefinitiveClosureHash })
+            .FirstOrDefaultAsync();
+
+        return (job?.DefinitiveRevision, job?.DefinitiveClosureHash);
+    }
+
     public async Task<string?> GetLastAttemptedDefinitiveRevision(Guid moduleId, Guid organizationId)
     {
         return await DbContext.ModuleJobs

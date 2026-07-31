@@ -3,8 +3,8 @@ set -euo pipefail
 
 export PATH="$HOME/.dotnet:$PATH"
 
-# Verifies that applications/snapcd/schemas/<component>.schema.yaml matches what the
-# matching SnapCd.Settings.Generator.<Component> would emit from the current settings
+# Verifies that applications/snapcd/schemas/<component>.schema.yaml matches what
+# the settings command of generators/SnapCd.Generators would emit from the current settings
 # POCOs and their XML doc summaries. Exits non-zero if any schema file would change —
 # call with --write to regenerate, then commit the result.
 #
@@ -25,17 +25,16 @@ if [[ ${1:-} == "--write" ]]; then
     MODE="--write"
 fi
 
-GENERATORS=(
-    "generators/SnapCd.Settings.Generator.Runner/SnapCd.Settings.Generator.Runner.csproj"
-    "generators/SnapCd.Settings.Generator.Agent/SnapCd.Settings.Generator.Agent.csproj"
-    "generators/SnapCd.Settings.Generator.Server/SnapCd.Settings.Generator.Server.csproj"
-)
+# check-generated-artifacts.sh builds the generator upfront in one MSBuild invocation and
+# sets SNAPCD_GENERATORS_PREBUILT so the run here skips its own build.
+NO_BUILD=()
+if [[ ${SNAPCD_GENERATORS_PREBUILT:-0} == 1 ]]; then
+    NO_BUILD=(--no-build)
+fi
 
 # Always regenerate the JSON intermediates; the YAML comparison below decides
 # staleness against the committed artifacts.
-for project in "${GENERATORS[@]}"; do
-    dotnet run --project "$project" -c Release
-done
+dotnet run "${NO_BUILD[@]}" --project generators/SnapCd.Generators/SnapCd.Generators.csproj -c Release -- settings
 
 failed=0
 for component in runner agent server; do

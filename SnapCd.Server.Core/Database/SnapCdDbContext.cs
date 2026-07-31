@@ -97,6 +97,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<ModuleInput> ModuleInputs { get; set; }
     public DbSet<ModuleExtraFile> ModuleExtraFiles { get; set; }
+    public DbSet<ModuleAdditionalTriggerPath> ModuleAdditionalTriggerPaths { get; set; }
+    public DbSet<NamespaceAdditionalTriggerPath> NamespaceAdditionalTriggerPaths { get; set; }
     public DbSet<NamespaceExtraFile> NamespaceExtraFiles { get; set; }
     public DbSet<DependsOnModule> DependsOnModules { get; set; }
 
@@ -373,6 +375,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.ApplyConfiguration(new NamespaceExtraFileClassMap());
         modelBuilder.ApplyConfiguration(new ModuleExtraFileClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleAdditionalTriggerPathClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceAdditionalTriggerPathClassMap());
         modelBuilder.ApplyConfiguration(new DependsOnModuleClassMap());
 
         modelBuilder.ApplyConfiguration(new OutputSetClassMap());

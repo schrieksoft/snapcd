@@ -108,6 +108,29 @@ properties:
     description: Tunables for the per-Job log shipping pipeline that streams engine output back to the Server over SignalR.
       Defaults are sensible for typical workloads; tune BatchSizeLimit and PeriodSeconds together if you need lower per-log
       latency at the cost of more frequent network round-trips.
+  SourceCache:
+    type: object
+    properties:
+      MaxSizeMb:
+        type: integer
+        description: Maximum total size of the bare-clone cache in megabytes. When exceeded, least-recently-used clones are
+          evicted (and re-cloned on next use). 0 (default) disables eviction.
+      BlobFilterEnabled:
+        type: boolean
+        description: 'When true, clones are blob-filtered (--filter=blob:none): smaller on disk and faster to create for repositories
+          carrying large binary artifacts, at the cost of referenced-folder discovery lazily fetching each previously-unseen
+          terraform file over the network one round trip at a time whenever a commit changes it. False (default) uses full
+          bare clones: new blobs arrive batched in the regular fetch, keeping discovery entirely local — the right trade for
+          typical text-only terraform repositories.'
+      InspectBinaryPath:
+        type: string
+        description: Executable used for referenced-folder discovery during path-aware refreshes. By default the Runner uses
+          the snapcd-inspect binary embedded in its own build (extracted to &lt;WorkingDirectory&gt;/tools on first use),
+          falling back to "snapcd-inspect" on PATH when no binary is embedded. Set an explicit path to override both; when
+          no binary is available at all, refreshes proceed without discovery (declared paths only).
+        default: snapcd-inspect
+    description: Tuning for the bare-clone cache the Runner keeps for path-aware source refreshes. Clones live under &lt;WorkingDirectory&gt;/sourcecache
+      and are metadata-only (blob-filtered) where the git host supports it.
   Logging:
     type: object
     description: Standard .NET Logging configuration. See https://learn.microsoft.com/dotnet/core/extensions/logging-configuration

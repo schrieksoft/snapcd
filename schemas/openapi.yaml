@@ -4917,6 +4917,394 @@ paths:
         - Organization.Owner
         - Integration.Contributor
         - Integration.Owner
+  /api/{organizationId}/ModuleAdditionalTriggerPath/{moduleId}/{path}:
+    get:
+      tags:
+      - ModuleAdditionalTriggerPath
+      summary: Get a single ModuleAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleAdditionalTriggerPath:
+    post:
+      tags:
+      - ModuleAdditionalTriggerPath
+      summary: Create a new ModuleAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModuleAdditionalTriggerPath to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleAdditionalTriggerPathCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleAdditionalTriggerPathCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleAdditionalTriggerPathCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModuleAdditionalTriggerPath
+      summary: List all ModuleAdditionalTriggerPaths
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleAdditionalTriggerPath/{id}:
+    get:
+      tags:
+      - ModuleAdditionalTriggerPath
+      summary: Get a single ModuleAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleAdditionalTriggerPath ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModuleAdditionalTriggerPath
+      summary: Update an existing ModuleAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleAdditionalTriggerPath ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModuleAdditionalTriggerPath values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleAdditionalTriggerPathUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleAdditionalTriggerPathUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleAdditionalTriggerPathUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModuleAdditionalTriggerPath
+      summary: Delete a ModuleAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleAdditionalTriggerPath ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
   /api/{organizationId}/Module/{namespaceId}/{name}:
     get:
       tags:
@@ -10827,6 +11215,376 @@ paths:
         - Namespace.Contributor
         - Namespace.Owner
         - Module.Owner
+  /api/{organizationId}/NamespaceAdditionalTriggerPath/{namespaceId}/{path}:
+    get:
+      tags:
+      - NamespaceAdditionalTriggerPath
+      summary: Get a single NamespaceAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceAdditionalTriggerPath:
+    post:
+      tags:
+      - NamespaceAdditionalTriggerPath
+      summary: Create a new NamespaceAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespaceAdditionalTriggerPath to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceAdditionalTriggerPathCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceAdditionalTriggerPathCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceAdditionalTriggerPathCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    get:
+      tags:
+      - NamespaceAdditionalTriggerPath
+      summary: List all NamespaceAdditionalTriggerPaths
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceAdditionalTriggerPath/{id}:
+    get:
+      tags:
+      - NamespaceAdditionalTriggerPath
+      summary: Get a single NamespaceAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceAdditionalTriggerPath ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespaceAdditionalTriggerPath
+      summary: Update an existing NamespaceAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceAdditionalTriggerPath ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespaceAdditionalTriggerPath values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceAdditionalTriggerPathUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceAdditionalTriggerPathUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceAdditionalTriggerPathUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceAdditionalTriggerPathReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespaceAdditionalTriggerPath
+      summary: Delete a NamespaceAdditionalTriggerPath
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceAdditionalTriggerPath ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
   /api/{organizationId}/Namespace/{stackId}/{name}:
     get:
       tags:
@@ -22726,6 +23484,53 @@ components:
       - ApprovalRecommend
       - SummarizeJob
       - AutoFix
+    ModuleAdditionalTriggerPathCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the Module Additional Trigger Path's parent Module.
+          format: uuid
+        path:
+          type: string
+          description: Repo-root-relative directory that joins the Module's trigger watch set when path-scoped triggering
+            is enabled. Must be a normalized relative path that stays inside the repository (no leading slash, no `..` escaping
+            the root). Must be unique in combination with `module_id`.
+      description: DTO for creating a new ModuleAdditionalTriggerPath (POST operations).
+    ModuleAdditionalTriggerPathReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Additional Trigger Path.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module Additional Trigger Path's parent Module.
+          format: uuid
+        path:
+          type: string
+          description: Repo-root-relative directory that joins the Module's trigger watch set when path-scoped triggering
+            is enabled. Must be a normalized relative path that stays inside the repository (no leading slash, no `..` escaping
+            the root). Must be unique in combination with `module_id`.
+      description: DTO for ModuleAdditionalTriggerPath responses (GET operations).
+    ModuleAdditionalTriggerPathUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module Additional Trigger Path.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the Module Additional Trigger Path's parent Module.
+          format: uuid
+        path:
+          type: string
+          description: Repo-root-relative directory that joins the Module's trigger watch set when path-scoped triggering
+            is enabled. Must be a normalized relative path that stays inside the repository (no leading slash, no `..` escaping
+            the root). Must be unique in combination with `module_id`.
+      description: DTO for updating an existing ModuleAdditionalTriggerPath (PUT operations).
     ModuleCreateDto:
       type: object
       properties:
@@ -22758,15 +23563,18 @@ components:
             'Git' or 'Registry'
           $ref: '#/components/schemas/SourceType'
         sourceRevisionType:
-          description: How Snap CD should interpret the `source_revision` field. Must be one of 'Default' or 'SemanticVersionRange'.
-            Setting to 'Default' means Snap CD will interpret the revision type based on the source type (for example, for
-            a 'Git' source type it will automatically figure out whether the `source_revision` refers to a branch, tag or
-            commit). Setting to 'SemanticVersionRange' means that Snap CD will resolve the revision to a semantic version
-            line `vX.Y.Z` (alternatively witout the 'v' prefix of that is how your semantic version are tagged, i.e. 'X.Y.Z').
-            It will take the highest version within the major or minor version range that you specify. For example, specify
-            `v2.20.*` or `v2.*`. You can also specify a specific semantic version here, e.g. `v2.20.7`. In that case the behaviour
-            is the same as with when using 'Default', except that only valid semantic versions are accepted. NOTE that 'SemanticVersionRange'
-            is currently only supported in combination with the 'Git' `source_type`.
+          description: 'How Snap CD should interpret the `source_revision` field. Must be one of ''Default'' or ''SemanticVersionRange''.
+            Setting to ''Default'' means Snap CD will interpret the revision type based on the source type (for example, for
+            a ''Git'' source type it will automatically figure out whether the `source_revision` refers to a branch, tag or
+            commit). Setting to ''SemanticVersionRange'' means that Snap CD will resolve the revision to the highest tagged
+            version within the range that you specify: `v2.20.*` (patch range), `v2.*` (minor range) or `v*`/`*` (any version,
+            later majors included). The ''v'' is optional on both the range and the tags, i.e. `2.20.*` matches tags with
+            or without it. Monorepo-style component tags are supported by anchoring a literal prefix and/or suffix around
+            the wildcard core: `ui-v1.2.*`, `backend/v2.*` or `1.2.*-ui` match only tags of that shape. Pre-release tags (e.g.
+            `-rc.1`) are only matched when the suffix spells them out explicitly. You can also specify a specific tag here,
+            e.g. `v2.20.7` or `ui-v1.2.3`. In that case the behaviour is the same as when using ''Default'', except that only
+            tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
+            only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
@@ -22870,6 +23678,15 @@ components:
             endpoint is called for this Module. Use this if you want to use external tooling to inform Snap CD that a source
             has been changed. Consider setting `trigger_on_definition_changed` to 'false' when setting `trigger_on_definition_changed_hook`
             to 'true'
+        triggerPathFilterEnabled:
+          type:
+          - 'null'
+          - boolean
+          description: 'Defaults to ''false''. If ''true'', `trigger_on_source_changed` only fires when a commit actually
+            changes the Module''s watched directories — its `source_subdirectory` plus any Additional Trigger Paths declared
+            on the Module or its Namespace — instead of on every commit to the tracked source. Only literal local paths are
+            watched: dynamically computed paths, external programs and symlinked directories must be declared as Additional
+            Trigger Paths. Setting this will override any default value set on the Module''s parent Namespace.'
         driftCheckEnabled:
           type:
           - 'null'
@@ -23937,15 +24754,18 @@ components:
             'Git' or 'Registry'
           $ref: '#/components/schemas/SourceType'
         sourceRevisionType:
-          description: How Snap CD should interpret the `source_revision` field. Must be one of 'Default' or 'SemanticVersionRange'.
-            Setting to 'Default' means Snap CD will interpret the revision type based on the source type (for example, for
-            a 'Git' source type it will automatically figure out whether the `source_revision` refers to a branch, tag or
-            commit). Setting to 'SemanticVersionRange' means that Snap CD will resolve the revision to a semantic version
-            line `vX.Y.Z` (alternatively witout the 'v' prefix of that is how your semantic version are tagged, i.e. 'X.Y.Z').
-            It will take the highest version within the major or minor version range that you specify. For example, specify
-            `v2.20.*` or `v2.*`. You can also specify a specific semantic version here, e.g. `v2.20.7`. In that case the behaviour
-            is the same as with when using 'Default', except that only valid semantic versions are accepted. NOTE that 'SemanticVersionRange'
-            is currently only supported in combination with the 'Git' `source_type`.
+          description: 'How Snap CD should interpret the `source_revision` field. Must be one of ''Default'' or ''SemanticVersionRange''.
+            Setting to ''Default'' means Snap CD will interpret the revision type based on the source type (for example, for
+            a ''Git'' source type it will automatically figure out whether the `source_revision` refers to a branch, tag or
+            commit). Setting to ''SemanticVersionRange'' means that Snap CD will resolve the revision to the highest tagged
+            version within the range that you specify: `v2.20.*` (patch range), `v2.*` (minor range) or `v*`/`*` (any version,
+            later majors included). The ''v'' is optional on both the range and the tags, i.e. `2.20.*` matches tags with
+            or without it. Monorepo-style component tags are supported by anchoring a literal prefix and/or suffix around
+            the wildcard core: `ui-v1.2.*`, `backend/v2.*` or `1.2.*-ui` match only tags of that shape. Pre-release tags (e.g.
+            `-rc.1`) are only matched when the suffix spells them out explicitly. You can also specify a specific tag here,
+            e.g. `v2.20.7` or `ui-v1.2.3`. In that case the behaviour is the same as when using ''Default'', except that only
+            tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
+            only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
@@ -24049,6 +24869,15 @@ components:
             endpoint is called for this Module. Use this if you want to use external tooling to inform Snap CD that a source
             has been changed. Consider setting `trigger_on_definition_changed` to 'false' when setting `trigger_on_definition_changed_hook`
             to 'true'
+        triggerPathFilterEnabled:
+          type:
+          - 'null'
+          - boolean
+          description: 'Defaults to ''false''. If ''true'', `trigger_on_source_changed` only fires when a commit actually
+            changes the Module''s watched directories — its `source_subdirectory` plus any Additional Trigger Paths declared
+            on the Module or its Namespace — instead of on every commit to the tracked source. Only literal local paths are
+            watched: dynamically computed paths, external programs and symlinked directories must be declared as Additional
+            Trigger Paths. Setting this will override any default value set on the Module''s parent Namespace.'
         driftCheckEnabled:
           type:
           - 'null'
@@ -24391,15 +25220,18 @@ components:
             'Git' or 'Registry'
           $ref: '#/components/schemas/SourceType'
         sourceRevisionType:
-          description: How Snap CD should interpret the `source_revision` field. Must be one of 'Default' or 'SemanticVersionRange'.
-            Setting to 'Default' means Snap CD will interpret the revision type based on the source type (for example, for
-            a 'Git' source type it will automatically figure out whether the `source_revision` refers to a branch, tag or
-            commit). Setting to 'SemanticVersionRange' means that Snap CD will resolve the revision to a semantic version
-            line `vX.Y.Z` (alternatively witout the 'v' prefix of that is how your semantic version are tagged, i.e. 'X.Y.Z').
-            It will take the highest version within the major or minor version range that you specify. For example, specify
-            `v2.20.*` or `v2.*`. You can also specify a specific semantic version here, e.g. `v2.20.7`. In that case the behaviour
-            is the same as with when using 'Default', except that only valid semantic versions are accepted. NOTE that 'SemanticVersionRange'
-            is currently only supported in combination with the 'Git' `source_type`.
+          description: 'How Snap CD should interpret the `source_revision` field. Must be one of ''Default'' or ''SemanticVersionRange''.
+            Setting to ''Default'' means Snap CD will interpret the revision type based on the source type (for example, for
+            a ''Git'' source type it will automatically figure out whether the `source_revision` refers to a branch, tag or
+            commit). Setting to ''SemanticVersionRange'' means that Snap CD will resolve the revision to the highest tagged
+            version within the range that you specify: `v2.20.*` (patch range), `v2.*` (minor range) or `v*`/`*` (any version,
+            later majors included). The ''v'' is optional on both the range and the tags, i.e. `2.20.*` matches tags with
+            or without it. Monorepo-style component tags are supported by anchoring a literal prefix and/or suffix around
+            the wildcard core: `ui-v1.2.*`, `backend/v2.*` or `1.2.*-ui` match only tags of that shape. Pre-release tags (e.g.
+            `-rc.1`) are only matched when the suffix spells them out explicitly. You can also specify a specific tag here,
+            e.g. `v2.20.7` or `ui-v1.2.3`. In that case the behaviour is the same as when using ''Default'', except that only
+            tags containing a fully spelled-out `X.Y.Z` version are accepted. NOTE that ''SemanticVersionRange'' is currently
+            only supported in combination with the ''Git'' `source_type`.'
           $ref: '#/components/schemas/SourceRevisionType'
         waitForApplyDependencies:
           description: Defaults to 'OnFirstApply'. Controls when the Module should wait for dependencies during apply operations.
@@ -24503,6 +25335,15 @@ components:
             endpoint is called for this Module. Use this if you want to use external tooling to inform Snap CD that a source
             has been changed. Consider setting `trigger_on_definition_changed` to 'false' when setting `trigger_on_definition_changed_hook`
             to 'true'
+        triggerPathFilterEnabled:
+          type:
+          - 'null'
+          - boolean
+          description: 'Defaults to ''false''. If ''true'', `trigger_on_source_changed` only fires when a commit actually
+            changes the Module''s watched directories — its `source_subdirectory` plus any Additional Trigger Paths declared
+            on the Module or its Namespace — instead of on every commit to the tracked source. Only literal local paths are
+            watched: dynamically computed paths, external programs and symlinked directories must be declared as Additional
+            Trigger Paths. Setting this will override any default value set on the Module''s parent Namespace.'
         driftCheckEnabled:
           type:
           - 'null'
@@ -24521,6 +25362,53 @@ components:
             Namespace.
           format: int32
       description: DTO for updating an existing Module (PUT operations).
+    NamespaceAdditionalTriggerPathCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the Namespace Additional Trigger Path's parent Namespace.
+          format: uuid
+        path:
+          type: string
+          description: Repo-root-relative directory that joins the trigger watch set of every Module in the Namespace that
+            has path-scoped triggering enabled. Must be a normalized relative path that stays inside the repository (no leading
+            slash, no `..` escaping the root). Must be unique in combination with `namespace_id`.
+      description: DTO for creating a new NamespaceAdditionalTriggerPath (POST operations).
+    NamespaceAdditionalTriggerPathReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Namespace Additional Trigger Path.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the Namespace Additional Trigger Path's parent Namespace.
+          format: uuid
+        path:
+          type: string
+          description: Repo-root-relative directory that joins the trigger watch set of every Module in the Namespace that
+            has path-scoped triggering enabled. Must be a normalized relative path that stays inside the repository (no leading
+            slash, no `..` escaping the root). Must be unique in combination with `namespace_id`.
+      description: DTO for NamespaceAdditionalTriggerPath responses (GET operations).
+    NamespaceAdditionalTriggerPathUpdateDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Namespace Additional Trigger Path.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the Namespace Additional Trigger Path's parent Namespace.
+          format: uuid
+        path:
+          type: string
+          description: Repo-root-relative directory that joins the trigger watch set of every Module in the Namespace that
+            has path-scoped triggering enabled. Must be a normalized relative path that stays inside the repository (no leading
+            slash, no `..` escaping the root). Must be unique in combination with `namespace_id`.
+      description: DTO for updating an existing NamespaceAdditionalTriggerPath (PUT operations).
     NamespaceCreateDto:
       type: object
       properties:
@@ -24540,6 +25428,13 @@ components:
           description: Setting will remove all .terraform* files and folders (state files, locks, downloaded providers, downloaded
             modules etc.) and perform a clean init every time the Module is executed. All modules in this Namespace will use
             this value, unless explicitly overriden on the Module itself.
+        defaultTriggerPathFilterEnabled:
+          type:
+          - 'null'
+          - boolean
+          description: Defaults to 'false'. If 'true', Modules in this Namespace with `trigger_on_source_changed` only fire
+            when a commit actually changes their watched directories instead of on every commit to the tracked source. All
+            modules in this Namespace will use this value, unless explicitly overriden on the Module itself.
         defaultApplyApprovalThreshold:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -25318,6 +26213,13 @@ components:
           description: Setting will remove all .terraform* files and folders (state files, locks, downloaded providers, downloaded
             modules etc.) and perform a clean init every time the Module is executed. All modules in this Namespace will use
             this value, unless explicitly overriden on the Module itself.
+        defaultTriggerPathFilterEnabled:
+          type:
+          - 'null'
+          - boolean
+          description: Defaults to 'false'. If 'true', Modules in this Namespace with `trigger_on_source_changed` only fire
+            when a commit actually changes their watched directories instead of on every commit to the tracked source. All
+            modules in this Namespace will use this value, unless explicitly overriden on the Module itself.
         defaultApplyApprovalThreshold:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -25625,6 +26527,13 @@ components:
           description: Setting will remove all .terraform* files and folders (state files, locks, downloaded providers, downloaded
             modules etc.) and perform a clean init every time the Module is executed. All modules in this Namespace will use
             this value, unless explicitly overriden on the Module itself.
+        defaultTriggerPathFilterEnabled:
+          type:
+          - 'null'
+          - boolean
+          description: Defaults to 'false'. If 'true', Modules in this Namespace with `trigger_on_source_changed` only fire
+            when a commit actually changes their watched directories instead of on every commit to the tracked source. All
+            modules in this Namespace will use this value, unless explicitly overriden on the Module itself.
         defaultApplyApprovalThreshold:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -27044,6 +27953,7 @@ tags:
 - name: IntegrationNamespaceSupply
 - name: IntegrationRoleAssignment
 - name: IntegrationStackSupply
+- name: ModuleAdditionalTriggerPath
 - name: Module
 - name: ModuleExtraFile
 - name: ModuleHook
@@ -27060,6 +27970,7 @@ tags:
 - name: ModuleRoleAssignment
 - name: ModuleTerraformArrayFlag
 - name: ModuleTerraformFlag
+- name: NamespaceAdditionalTriggerPath
 - name: Namespace
 - name: NamespaceExtraFile
 - name: NamespaceHook
@@ -27097,8 +28008,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 362
+  documented: 374
   skipped: 15
 x-snapcd-schema-doc-coverage:
-  documented: 925
+  documented: 953
   missing: 0

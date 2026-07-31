@@ -51,6 +51,7 @@ public static class ServerEndpoints
     public const string OutputFaulted = "OutputFaulted";
 
     public const string SourceRefreshCompleted = "SourceRefreshCompleted";
+    public const string SourceRefreshCompletedV2 = "SourceRefreshCompletedV2";
     public const string SourceRefreshFaulted = "SourceRefreshFaulted";
 
     public const string AddLogs = "AddLogs";

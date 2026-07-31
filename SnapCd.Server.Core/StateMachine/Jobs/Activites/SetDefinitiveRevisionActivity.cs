@@ -33,14 +33,17 @@ public class SetDefinitiveRevisionActivity<TSaga, TMessage> :
         BehaviorContext<TSaga, TMessage> context,
         IBehavior<TSaga, TMessage> next)
     {
-        // Update the ModuleJob with the DefinitiveRevision from the saga
         var moduleJob = await _repository.Get(context.Saga.CorrelationId, context.Saga.OrganizationId);
-        moduleJob.DefinitiveRevision = context.Message.DefinitiveRevision;
-        await _repository.ExecuteUpdate(moduleJob);
 
         var moduleSaga = await _dbContext.ModuleSagas
             .FirstOrDefaultAsync(s => s.CorrelationId == moduleJob.ModuleId);
-        
+
+        // Update the ModuleJob with the DefinitiveRevision from the saga, and label it with the module's current
+        // desired closure hash so hash-based sync display can compare applied vs desired content fingerprints.
+        moduleJob.DefinitiveRevision = context.Message.DefinitiveRevision;
+        moduleJob.DefinitiveClosureHash = moduleSaga?.DesiredClosureHash;
+        await _repository.ExecuteUpdate(moduleJob);
+
         if (moduleSaga != null)
         {
             moduleSaga.DesiredDefinitiveRevision = context.Saga.DefinitiveRevision;

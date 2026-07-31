@@ -45,6 +45,8 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild
 
     [MaxLength(255)] public string? DefinitiveRevision { get; set; }
 
+    [MaxLength(100)] public string? DefinitiveClosureHash { get; set; }
+
     public ActualStateHeadline? ActualStateHeadline { get; set; }
 
     [MaxLength(4000)] public string? OutputsUnchangedList { get; set; }

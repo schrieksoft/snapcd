@@ -22,6 +22,7 @@ public static class NamespaceMapper
             StackId = dto.StackId ?? Guid.Empty,
             Name = dto.Name,
             DefaultCleanInitEnabled = dto.DefaultCleanInitEnabled,
+            DefaultTriggerPathFilterEnabled = dto.DefaultTriggerPathFilterEnabled,
             DefaultApplyApprovalThreshold = dto.DefaultApplyApprovalThreshold,
             DefaultDestroyApprovalThreshold = dto.DefaultDestroyApprovalThreshold,
             DefaultApprovalTimeoutMinutes = dto.DefaultApprovalTimeoutMinutes,
@@ -40,6 +41,7 @@ public static class NamespaceMapper
             StackId = entity.StackId,
             Name = entity.Name,
             DefaultCleanInitEnabled = entity.DefaultCleanInitEnabled,
+            DefaultTriggerPathFilterEnabled = entity.DefaultTriggerPathFilterEnabled,
             DefaultApplyApprovalThreshold = entity.DefaultApplyApprovalThreshold,
             DefaultDestroyApprovalThreshold = entity.DefaultDestroyApprovalThreshold,
             DefaultApprovalTimeoutMinutes = entity.DefaultApprovalTimeoutMinutes,
@@ -55,6 +57,7 @@ public static class NamespaceMapper
         entity.StackId = dto.StackId ?? entity.StackId;
         entity.Name = dto.Name;
         entity.DefaultCleanInitEnabled = dto.DefaultCleanInitEnabled;
+        entity.DefaultTriggerPathFilterEnabled = dto.DefaultTriggerPathFilterEnabled;
         entity.DefaultApplyApprovalThreshold = dto.DefaultApplyApprovalThreshold;
         entity.DefaultDestroyApprovalThreshold = dto.DefaultDestroyApprovalThreshold;
         entity.DefaultApprovalTimeoutMinutes = dto.DefaultApprovalTimeoutMinutes;

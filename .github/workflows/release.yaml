@@ -51,6 +51,20 @@ jobs:
           dotnet-version: 10.0.x
           dotnet-quality: preview
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/snapcd-inspect/go.mod
+
+      - name: Build snapcd-inspect
+        run: |
+          # Static linux binary for referenced-folder discovery during path-aware source
+          # refreshes. Placed in SnapCd.Runner/EmbeddedTools BEFORE dotnet publish so the
+          # runner embeds it as a resource and extracts it at runtime — every distribution
+          # channel (images, zipped binaries) carries it with no separate install.
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -C tools/snapcd-inspect -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
+
       - name: Publish binaries
         env:
           SEMVER: ${{ steps.gitversion.outputs.SemVer }}

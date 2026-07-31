@@ -19,4 +19,18 @@ public class SourceRefreshRequest
     public required string SourceRevision { get; set; }
     public SourceType SourceType { get; set; } = SourceType.Git;
     public SourceRevisionType SourceRevisionType { get; set; } = SourceRevisionType.Default;
+
+    /// <summary>
+    /// Repo-root-relative directories the server wants tree hashes for, deduplicated across all modules in the
+    /// refresh group. Empty means head-only refresh (today's behaviour); the runner then answers via the legacy
+    /// completion and never touches a clone.
+    /// </summary>
+    public List<string> WatchedPaths { get; set; } = new();
+
+    /// <summary>
+    /// True when this refresh was dispatched by a SourceChanged notification rather than the recurring refresh
+    /// schedule. Echoed back in the result so the server evaluates notification-triggered Modules for this
+    /// refresh only — a notification-only Module must never be triggered by the polling schedule.
+    /// </summary>
+    public bool TriggeredByNotification { get; set; }
 }

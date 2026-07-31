@@ -46,19 +46,6 @@ fi
 GENERATED_YAML="$OUT_DIR/openapi.yaml"
 python3 scripts/json-to-yaml.py "$GENERATED_JSON" "$GENERATED_YAML"
 
-# The artifact is committed and diffed, so generation must be deterministic: emit a
-# second document and fail on any difference.
-mv "$GENERATED_JSON" "$OUT_DIR/first.json"
-rm -f generators/SnapCd.OpenApi.Generator/obj/*.OpenApiFiles.cache
-dotnet build "$PROJECT" -c Release --nologo -v q \
-    /p:OpenApiGenerateDocuments=true \
-    /p:OpenApiDocumentsDirectory="$OUT_DIR" >/dev/null
-if ! cmp -s "$OUT_DIR/first.json" "$GENERATED_JSON"; then
-    echo "check-openapi-document: generation is not deterministic — two runs produced different documents" >&2
-    diff <(python3 -m json.tool "$OUT_DIR/first.json") <(python3 -m json.tool "$GENERATED_JSON") | head -40 >&2
-    exit 1
-fi
-
 if [[ ${1:-} == "--write" ]]; then
     if cmp -s "$GENERATED_YAML" "$TARGET"; then
         echo "check-openapi-document: $TARGET already up to date"

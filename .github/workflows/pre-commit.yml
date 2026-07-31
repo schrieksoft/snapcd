@@ -17,7 +17,7 @@ jobs:
           python-version: "3.12"
       # The schema hooks convert generator JSON to the committed YAML artifacts.
       - run: pip install pyyaml
-      # Required by the mcp-surface hook, which invokes `dotnet run --project SnapCd.Mcp.Generator`
+      # Required by the generated-artifacts hook, which invokes `dotnet run --project generators/SnapCd.Generators`
       # to verify Mcp/Generated/*.cs matches the controller annotations.
       - uses: actions/setup-dotnet@v4
         with:
