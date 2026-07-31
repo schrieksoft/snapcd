@@ -64,6 +64,8 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
 
     public List<ModuleExtraFile> ModuleExtraFiles { get; set; } = new();
 
+    public List<ModuleAdditionalTriggerPath> AdditionalTriggerPaths { get; set; } = new();
+
     public List<DependsOnModule> DependsOnModules { get; set; } = new();
 
     public List<DependsOnModule> DependentModules { get; set; } = new();
@@ -113,6 +115,8 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public bool TriggerOnSourceChanged { get; set; }
 
     public bool TriggerOnSourceChangedNotification { get; set; }
+
+    public bool? TriggerPathFilterEnabled { get; set; }
 
     public bool? DriftCheckEnabled { get; set; }
     public int? DriftCheckIntervalMinutes { get; set; }

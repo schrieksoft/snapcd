@@ -67,6 +67,15 @@
             </MudItem>
 
             <MudItem md="12">
+                <MudText Typo="Typo.body1">Default Trigger Path Filter Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="Namespace.DefaultTriggerPathFilterEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Secondary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Secondary">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Secondary">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
                 <MudText Typo="Typo.body1">Default Drift Check Enabled</MudText>
                 <MudRadioGroup T="bool?" @bind-Value="Namespace.DefaultDriftCheckEnabled">
                     <MudRadio Value="@((bool?)null)" Color="Color.Secondary">null</MudRadio>
@@ -155,6 +164,18 @@
                                                      NamespaceId="Namespace.Id"
                                                      PrincipalProvider="@PrincipalProvider"
                                                      @ref="_extraFilesRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Additional Trigger Paths"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _additionalTriggerPathsRef!.InitializeItems(); }">
+                        <EditNamespaceAdditionalTriggerPathsList Title="Additional Trigger Paths"
+                                                                 NamespaceId="Namespace.Id"
+                                                                 PrincipalProvider="@PrincipalProvider"
+                                                                 @ref="_additionalTriggerPathsRef"/>
                     </MudExpansionPanel>
                 </MudExpansionPanels>
             </MudItem>
@@ -277,6 +298,7 @@
     private EditNamespaceInputTab<NamespaceEnvVarFromSecret, NamespaceInputFromSecretSecuredRepositoryFactory<NamespaceEnvVarFromSecret>>? _envVarsSecretRef;
 
     private EditNamespaceExtraFilesList? _extraFilesRef;
+    private EditNamespaceAdditionalTriggerPathsList? _additionalTriggerPathsRef;
     private EditNamespaceHooksList? _hooksRef;
     private EditNamespaceTerraformFlagsList? _terraformFlagsRef;
     private EditNamespaceTerraformArrayFlagsList? _terraformArrayFlagsRef;

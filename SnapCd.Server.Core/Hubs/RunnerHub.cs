@@ -15,6 +15,7 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.Dto.VariableSets;
+using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -644,6 +645,16 @@ public class RunnerHub : Hub
         string definitiveRevision)
     {
         await _sourceRefreshHandler.Complete(sourceUrl, sourceRevision, sourceType, sourceRevisionType, definitiveRevision);
+    }
+
+    public async Task SourceRefreshCompletedV2(
+        string sourceUrl,
+        string sourceRevision,
+        SourceType sourceType,
+        SourceRevisionType sourceRevisionType,
+        SourceRefreshResult result)
+    {
+        await _sourceRefreshHandler.CompleteV2(sourceUrl, sourceRevision, sourceType, sourceRevisionType, result);
     }
 
     public async Task SourceRefreshFaulted(

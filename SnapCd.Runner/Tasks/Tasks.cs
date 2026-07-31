@@ -30,6 +30,8 @@ public partial class Tasks
     private readonly VariableDiscoveryServiceFactory _discoveryServiceFactory;
     private readonly IModuleSourceRefresherFactory _moduleSourceRefresherFactory;
     private readonly HookPreapprovalService _hookPreapprovalService;
+    private readonly BareCloneCache _bareCloneCache;
+    private readonly SnapCdInspect _snapCdInspect;
 
     public Tasks(
         ProcessRegistry processRegistry,
@@ -40,7 +42,9 @@ public partial class Tasks
         EngineFactory engineFactory,
         VariableDiscoveryServiceFactory discoveryServiceFactory,
         IModuleSourceRefresherFactory moduleSourceRefresherFactory,
-        HookPreapprovalService hookPreapprovalService)
+        HookPreapprovalService hookPreapprovalService,
+        BareCloneCache bareCloneCache,
+        SnapCdInspect snapCdInspect)
     {
         _processRegistry = processRegistry;
         _loggerFactory = loggerFactory;
@@ -51,6 +55,8 @@ public partial class Tasks
         _discoveryServiceFactory = discoveryServiceFactory;
         _moduleSourceRefresherFactory = moduleSourceRefresherFactory;
         _hookPreapprovalService = hookPreapprovalService;
+        _bareCloneCache = bareCloneCache;
+        _snapCdInspect = snapCdInspect;
     }
 
     /// <summary>

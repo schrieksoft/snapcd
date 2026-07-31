@@ -52,6 +52,9 @@ builder.Services.AddSingleton<EngineFactory>();
 builder.Services.AddSingleton<VariableDiscoveryServiceFactory>();
 builder.Services.AddSingleton<ModuleGetterFactory>();
 builder.Services.AddSingleton<IModuleSourceRefresherFactory, ModuleSourceRefresherFactory>();
+builder.Services.Configure<SourceCacheSettings>(builder.Configuration.GetSection("SourceCache"));
+builder.Services.AddSingleton<BareCloneCache>();
+builder.Services.AddSingleton<SnapCdInspect>();
 
 
 // HTTP clients removed - runner no longer makes API calls back to server

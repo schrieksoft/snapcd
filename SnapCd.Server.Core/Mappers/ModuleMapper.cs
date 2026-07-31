@@ -42,6 +42,7 @@ public static class ModuleMapper
             TriggerOnUpstreamOutputChanged = dto.TriggerOnUpstreamOutputChanged,
             TriggerOnSourceChanged = dto.TriggerOnSourceChanged,
             TriggerOnSourceChangedNotification = dto.TriggerOnSourceChangedNotification,
+            TriggerPathFilterEnabled = dto.TriggerPathFilterEnabled,
             DriftCheckEnabled = dto.DriftCheckEnabled,
             DriftCheckIntervalMinutes = dto.DriftCheckIntervalMinutes,
         };
@@ -75,6 +76,7 @@ public static class ModuleMapper
             TriggerOnUpstreamOutputChanged = entity.TriggerOnUpstreamOutputChanged,
             TriggerOnSourceChanged = entity.TriggerOnSourceChanged,
             TriggerOnSourceChangedNotification = entity.TriggerOnSourceChangedNotification,
+            TriggerPathFilterEnabled = entity.TriggerPathFilterEnabled,
             DriftCheckEnabled = entity.DriftCheckEnabled,
             DriftCheckIntervalMinutes = entity.DriftCheckIntervalMinutes,
         };
@@ -105,6 +107,7 @@ public static class ModuleMapper
         entity.TriggerOnUpstreamOutputChanged = dto.TriggerOnUpstreamOutputChanged;
         entity.TriggerOnSourceChanged = dto.TriggerOnSourceChanged;
         entity.TriggerOnSourceChangedNotification = dto.TriggerOnSourceChangedNotification;
+        entity.TriggerPathFilterEnabled = dto.TriggerPathFilterEnabled;
         entity.DriftCheckEnabled = dto.DriftCheckEnabled;
         entity.DriftCheckIntervalMinutes = dto.DriftCheckIntervalMinutes;
     }

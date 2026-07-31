@@ -35,6 +35,57 @@ public partial class Tasks
             logger.LogInformation("Source refresh completed: {SourceUrl} @ {SourceRevision} -> {DefinitiveRevision}",
                 request.SourceUrl, request.SourceRevision, definitiveRevision);
 
+            if (request.WatchedPaths.Count > 0 && request.SourceType == SourceType.Git)
+            {
+                try
+                {
+                    var clonePath = await _bareCloneCache.GetClonePath(request.SourceUrl, definitiveRevision);
+
+                    List<ModuleClosure>? closures = null;
+                    try
+                    {
+                        closures = _snapCdInspect.Discover(clonePath, definitiveRevision, request.WatchedPaths);
+                    }
+                    catch (Exception discoveryEx)
+                    {
+                        // Discovery must never block hashing: proceed with declared paths only.
+                        logger.LogWarning(discoveryEx, "Reference discovery failed for {SourceUrl} @ {DefinitiveRevision}, continuing without discovered paths",
+                            request.SourceUrl, definitiveRevision);
+                    }
+
+                    var allPaths = request.WatchedPaths
+                        .Concat(closures?.SelectMany(c => c.ReferencedPaths) ?? Enumerable.Empty<string>())
+                        .Distinct(StringComparer.Ordinal)
+                        .ToList();
+
+                    var pathHashes = await _bareCloneCache.GetTreeHashes(request.SourceUrl, definitiveRevision, allPaths);
+
+                    await InvokeWithRetryAsync(
+                        () => runnerHubClient.InvokeSourceRefreshCompletedV2(
+                            request.SourceUrl,
+                            request.SourceRevision,
+                            request.SourceType,
+                            request.SourceRevisionType,
+                            new SourceRefreshResult
+                            {
+                                DefinitiveRevision = definitiveRevision,
+                                PathHashes = pathHashes,
+                                ModuleClosures = closures,
+                                TriggeredByNotification = request.TriggeredByNotification
+                            }),
+                        nameof(runnerHubClient.InvokeSourceRefreshCompletedV2),
+                        Guid.Empty,
+                        connection); // SourceRefresh is stateless, no JobId
+                    return;
+                }
+                catch (Exception hashEx)
+                {
+                    // Path hashing must never block triggering: degrade to the head-only completion.
+                    logger.LogWarning(hashEx, "Path hashing failed for {SourceUrl} @ {DefinitiveRevision}, falling back to head-only completion",
+                        request.SourceUrl, definitiveRevision);
+                }
+            }
+
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeSourceRefreshCompleted(
                     request.SourceUrl,

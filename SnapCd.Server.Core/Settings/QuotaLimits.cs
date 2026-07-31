@@ -37,6 +37,8 @@ public class QuotaLimits
     public int? DependsOnModuleQuota { get; set; }
     public int? ModuleExtraFileQuota { get; set; }
     public int? NamespaceExtraFileQuota { get; set; }
+    public int? ModuleAdditionalTriggerPathQuota { get; set; }
+    public int? NamespaceAdditionalTriggerPathQuota { get; set; }
     public int? ModuleBackendConfigQuota { get; set; }
     public int? NamespaceBackendConfigQuota { get; set; }
     public int? ModulePulumiFlagQuota { get; set; }

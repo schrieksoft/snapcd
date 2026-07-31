@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts;
+using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.System;
@@ -19,4 +20,22 @@ public class SourceRefreshCompleted : StepRequestBase
     public SourceRevisionType SourceRevisionType { get; set; } = SourceRevisionType.Default;
 
     public required string DefinitiveRevision { get; set; }
+
+    /// <summary>
+    /// Tree hashes of the watched directories at DefinitiveRevision, present only when the runner answered a
+    /// path-aware refresh (SourceRefreshCompletedV2). Null means head-only semantics.
+    /// </summary>
+    public List<PathHash>? PathHashes { get; set; }
+
+    /// <summary>
+    /// Discovered reference closures per watched root, when the runner ran snapcd-inspect at the refreshed
+    /// revision. Null means no discovery — closures compose over declared paths only.
+    /// </summary>
+    public List<ModuleClosure>? ModuleClosures { get; set; }
+
+    /// <summary>
+    /// True when the refresh was dispatched by a SourceChanged notification; notification-triggered Modules are
+    /// only evaluated for such refreshes.
+    /// </summary>
+    public bool TriggeredByNotification { get; set; }
 }

@@ -21,6 +21,9 @@ public class NamespaceCreateDto
     /// <summary>Setting will remove all .terraform* files and folders (state files, locks, downloaded providers, downloaded modules etc.) and perform a clean init every time the Module is executed. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself.</summary>
     public bool? DefaultCleanInitEnabled { get; set; }
 
+    /// <summary>Defaults to 'false'. If 'true', Modules in this Namespace with `trigger_on_source_changed` only fire when a commit actually changes their watched directories instead of on every commit to the tracked source. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself.</summary>
+    public bool? DefaultTriggerPathFilterEnabled { get; set; }
+
     /// <summary>The number of Users (or Service Principals) that need to approve before an 'Apply' plan is executed. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If set neither on Module nor on Namespace then a threshold of 0 is used.</summary>
     public int? DefaultApplyApprovalThreshold { get; set; }
 

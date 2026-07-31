@@ -48,6 +48,8 @@ public static class ControllerEndpoints
     public const string AgentNamespaceSupply = "api/{organizationId}/AgentNamespaceSupply";
     public const string AgentModuleSupply = "api/{organizationId}/AgentModuleSupply";
     public const string ModuleExtraFile = "api/{organizationId}/ModuleExtraFile";
+    public const string ModuleAdditionalTriggerPath = "api/{organizationId}/ModuleAdditionalTriggerPath";
+    public const string NamespaceAdditionalTriggerPath = "api/{organizationId}/NamespaceAdditionalTriggerPath";
     public const string DependsOnModule = "api/{organizationId}/DependsOnModule";
     public const string NamespaceExtraFile = "api/{organizationId}/NamespaceExtraFile";
     public const string NamespaceBackendConfig = "api/{organizationId}/NamespaceBackendConfig";

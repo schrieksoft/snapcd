@@ -40,9 +40,8 @@ public class GitModuleSourceResolverTests
     }
 
     [Theory]
-    [InlineData("2.0.1.5")]
     [InlineData("v2")]
-    [InlineData("*.1.2")]
+    [InlineData("1.*.*")]
     [InlineData("invalid")]
     public void Throws_For_Invalid_Formats(string invalidRange)
     {

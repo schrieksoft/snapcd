@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.Dto.VariableSets;
+using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 
 namespace SnapCd.Contracts.Clients;
@@ -188,6 +189,17 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SourceRefreshCompleted,
             sourceUrl, sourceRevision, sourceType, sourceRevisionType, definitiveRevision);
+    }
+
+    public async Task InvokeSourceRefreshCompletedV2(
+        string sourceUrl,
+        string sourceRevision,
+        SourceType sourceType,
+        SourceRevisionType sourceRevisionType,
+        SourceRefreshResult result)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SourceRefreshCompletedV2,
+            sourceUrl, sourceRevision, sourceType, sourceRevisionType, result);
     }
 
     public async Task InvokeSourceRefreshFaulted(

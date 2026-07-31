@@ -23,55 +23,49 @@ public class GitModuleSourceResolver : IModuleSourceRefresher
 
     public string GetRemoteSemverRangeResolvedTag(string sourceUrl, string sourceRevision)
     {
-        // Check if the sourceRevision is an exact version (no wildcards)
-        var exactVersionRegex = new Regex(@"^v?\d+\.\d+\.\d+$");
-        if (exactVersionRegex.IsMatch(sourceRevision)) return sourceRevision;
-
-        // Check if sourceRevision contains a wildcard
-        if (!sourceRevision.Contains('*')) throw new ArgumentException($"Invalid semver range format: {sourceRevision}");
-
-        // Parse the range by removing leading 'v' case-insensitively
-        var rangeWithoutV = sourceRevision.StartsWith("v", StringComparison.OrdinalIgnoreCase)
-            ? sourceRevision.Substring(1)
-            : sourceRevision;
-
-        var rangeParts = rangeWithoutV.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-
-        int requiredMajor;
-        int? requiredMinor = null;
-
-        if (rangeParts.Length == 2 && rangeParts[1] == "*")
+        // An exact revision (no wildcards) is a literal tag: pure v?X.Y.Z, or any tag containing a fully
+        // spelled-out version core (ui-v1.2.3, backend/v2.0.0). It needs no range resolution but stays valid
+        // under SemanticVersionRange; revisions with no version core at all (branch names, bare majors) are
+        // rejected so category errors still surface at parse time.
+        if (!sourceRevision.Contains('*'))
         {
-            if (!int.TryParse(rangeParts[0], out requiredMajor)) throw new ArgumentException($"Invalid major version in range: {sourceRevision}");
-        }
-        else if (rangeParts.Length == 3 && rangeParts[2] == "*")
-        {
-            if (!int.TryParse(rangeParts[0], out requiredMajor) || !int.TryParse(rangeParts[1], out var minor)) throw new ArgumentException($"Invalid minor version in range: {sourceRevision}");
-            requiredMinor = minor;
-        }
-        else
-        {
+            if (Regex.IsMatch(sourceRevision, @"(?<![0-9])v?\d+\.\d+\.\d+(?![0-9])", RegexOptions.IgnoreCase))
+                return sourceRevision;
+
             throw new ArgumentException($"Invalid semver range format: {sourceRevision}");
         }
 
-        // Fetch all remote semver tags
-        var remoteTags = GetRemoteVersionTags(sourceUrl)
-            .Select(tag => ParseSemverTag(tag))
-            .Where(tag => tag != null)
-            .Cast<SemverTag>()
-            .ToList();
+        // Monorepos tag components with a discriminator around the version core (ui-v1.2.3, backend/v2.0.0,
+        // 1.2.3-ui): the range is <prefix><v?X.* | v?X.Y.*><suffix>, where prefix and suffix are literal
+        // anchors and the wildcard core carries the range semantics.
+        var located = LocateWildcardCore(sourceRevision) ?? throw new ArgumentException($"Invalid semver range format: {sourceRevision}");
+        var (prefix, core, suffix) = located;
 
-        if (remoteTags.Count == 0) throw new Exception($"No valid semantic version tags found in remote repository {sourceUrl}");
+        if (prefix.Contains('*') || suffix.Contains('*'))
+            throw new ArgumentException($"Invalid semver range format: {sourceRevision}");
 
-        // Filter tags that match the range
-        var matchingTags = remoteTags
-            .Where(tag =>
+        var coreMatch = Regex.Match(core, @"^v?(?:(\d+)\.(?:(\d+)\.)?)?\*$", RegexOptions.IgnoreCase);
+        int? requiredMajor = coreMatch.Groups[1].Success ? int.Parse(coreMatch.Groups[1].Value) : null;
+        int? requiredMinor = coreMatch.Groups[2].Success ? int.Parse(coreMatch.Groups[2].Value) : null;
+
+        // Match remote tags against the anchored shape. The optional v is part of the core and matches
+        // case-insensitively whether or not the range spells it out; the anchors are case-sensitive literals.
+        // Pre-release tags only ever match when the suffix spells the pre-release part out — the $ anchor
+        // excludes them otherwise.
+        var tagRegex = new Regex("^" + Regex.Escape(prefix) + @"(?i:v)?(\d+)\.(\d+)\.(\d+)" + Regex.Escape(suffix) + "$");
+
+        var matchingTags = GetRemoteTags(sourceUrl)
+            .Select(tag => new { Tag = tag, Match = tagRegex.Match(tag) })
+            .Where(x => x.Match.Success)
+            .Select(x => new SemverTag
             {
-                if (requiredMinor.HasValue)
-                    return tag.Major == requiredMajor && tag.Minor == requiredMinor.Value;
-                else
-                    return tag.Major == requiredMajor;
+                Original = x.Tag,
+                Major = int.Parse(x.Match.Groups[1].Value),
+                Minor = int.Parse(x.Match.Groups[2].Value),
+                Patch = int.Parse(x.Match.Groups[3].Value)
             })
+            .Where(tag => (!requiredMajor.HasValue || tag.Major == requiredMajor.Value) &&
+                          (!requiredMinor.HasValue || tag.Minor == requiredMinor.Value))
             .ToList();
 
         if (matchingTags.Count == 0) throw new Exception($"No tags in remote repository {sourceUrl} match the range {sourceRevision}");
@@ -86,32 +80,27 @@ public class GitModuleSourceResolver : IModuleSourceRefresher
         return highestVersion.Original;
     }
 
+    /// <summary>
+    /// Locates the wildcard version core (v?*, v?X.* or v?X.Y.*) inside a range expression: the core must be
+    /// preceded by start-of-string or a non-digit and followed by end-of-string or a non-digit, so prefixes
+    /// ending in digits (release2-1.*) stay unambiguous. The last such match wins when the prefix itself
+    /// contains something version-shaped. The bare v?* core means "any version, later majors included".
+    /// </summary>
+    private static (string Prefix, string Core, string Suffix)? LocateWildcardCore(string revision)
+    {
+        var matches = Regex.Matches(revision, @"(?<![0-9])(?:v?\d+\.(?:\*|\d+\.\*)|v?\*)(?![0-9])", RegexOptions.IgnoreCase);
+        if (matches.Count == 0) return null;
+
+        var match = matches[^1];
+        return (revision[..match.Index], match.Value, revision[(match.Index + match.Length)..]);
+    }
+
     public string GetRemoteSemverRangeDefinitiveRevision(string sourceUrl, string sourceRevision)
     {
         var resolvedTag = GetRemoteSemverRangeResolvedTag(sourceUrl, sourceRevision);
 
         // Get the commit SHA for the resolved tag
         return GetRemoteDefaultDefinitiveRevision(sourceUrl, resolvedTag);
-    }
-
-    private SemverTag? ParseSemverTag(string tag)
-    {
-        var tagWithoutV = tag.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? tag.Substring(1) : tag;
-        var parts = tagWithoutV.Split('.');
-        if (parts.Length != 3) return null;
-
-        if (!int.TryParse(parts[0], out var major) ||
-            !int.TryParse(parts[1], out var minor) ||
-            !int.TryParse(parts[2], out var patch))
-            return null;
-
-        return new SemverTag
-        {
-            Original = tag,
-            Major = major,
-            Minor = minor,
-            Patch = patch
-        };
     }
 
     private class SemverTag
@@ -122,7 +111,7 @@ public class GitModuleSourceResolver : IModuleSourceRefresher
         public required int Patch { get; set; }
     }
 
-    private IEnumerable<string> GetRemoteVersionTags(string sourceUrl)
+    private IEnumerable<string> GetRemoteTags(string sourceUrl)
     {
         var process = new Process();
         process.StartInfo.FileName = "git";
@@ -156,8 +145,7 @@ public class GitModuleSourceResolver : IModuleSourceRefresher
             // Check for peeled tag
             if (tagName.EndsWith("^{}")) tagName = tagName.Substring(0, tagName.Length - 3);
 
-            // Check if it's a valid semver tag (vX.Y.Z or X.Y.Z)
-            if (Regex.IsMatch(tagName, @"^v?\d+\.\d+\.\d+$")) tags.Add(tagName);
+            tags.Add(tagName);
         }
 
         // Remove duplicates (in case of peeled tags)

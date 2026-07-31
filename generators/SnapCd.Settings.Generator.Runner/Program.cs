@@ -20,6 +20,7 @@ var sectionTypes = new Dictionary<string, Type>
     ["HooksPreapproval"] = typeof(HooksPreapprovalSettings),
     ["Engine"] = typeof(EngineSettings),
     ["JobLogStream"] = typeof(JobLogStreamSettings),
+    ["SourceCache"] = typeof(SourceCacheSettings),
 };
 
 // Section-name → pre-baked schema fragment. Used for sections whose shape isn't owned by a

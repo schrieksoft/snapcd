@@ -163,6 +163,15 @@
             </MudItem>
 
             <MudItem md="12">
+                <MudText Typo="Typo.body1">Trigger Path Filter Enabled</MudText>
+                <MudRadioGroup T="bool?" @bind-Value="NewModule.TriggerPathFilterEnabled">
+                    <MudRadio Value="@((bool?)null)" Color="Color.Secondary">null</MudRadio>
+                    <MudRadio Value="@((bool?)true)" Color="Color.Secondary">true</MudRadio>
+                    <MudRadio Value="@((bool?)false)" Color="Color.Secondary">false</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem md="12">
                 <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceExtraFiles"
                            Label="Ignore Namespace Extra Files"
                            Color="Color.Secondary"/>

@@ -91,6 +91,7 @@ public static class MiscService
 
         // Execution Services
         services.AddScoped<SourceRefreshJob>();
+        services.AddScoped<SourceRefreshDispatcher>();
 
         services.AddScoped<LogService>();
 

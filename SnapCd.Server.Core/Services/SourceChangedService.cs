@@ -22,14 +22,17 @@ public class SourceChangedServiceFactory
 {
     private readonly IBus _bus;
     private readonly IDbContextFactory<SnapCdDbContext> _dbFactory;
+    private readonly SourceRefreshDispatcher _dispatcher;
 
     public SourceChangedServiceFactory(
         IBus bus,
-        IDbContextFactory<SnapCdDbContext> dbFactory
+        IDbContextFactory<SnapCdDbContext> dbFactory,
+        SourceRefreshDispatcher dispatcher
     )
     {
         _bus = bus;
         _dbFactory = dbFactory;
+        _dispatcher = dispatcher;
     }
 
     public SourceChangedService Create(IPrincipalProvider? principalProvider = null)
@@ -38,7 +41,7 @@ public class SourceChangedServiceFactory
             principalProvider = new HttpContextPrincipalProvider(new HttpContextAccessor());
         var dbContext = _dbFactory.CreateDbContext();
 
-        return new SourceChangedService(_bus, dbContext, principalProvider);
+        return new SourceChangedService(_bus, dbContext, principalProvider, _dispatcher);
     }
 }
 
@@ -47,16 +50,19 @@ public class SourceChangedService
     private readonly IBus _bus;
     private readonly SnapCdDbContext _dbContext;
     private readonly IPrincipalProvider _principalProvider;
+    private readonly SourceRefreshDispatcher _dispatcher;
 
     public SourceChangedService(
         IBus bus,
         SnapCdDbContext dbContext,
-        IPrincipalProvider principalProvider
+        IPrincipalProvider principalProvider,
+        SourceRefreshDispatcher dispatcher
     )
     {
         _bus = bus;
         _dbContext = dbContext;
         _principalProvider = principalProvider;
+        _dispatcher = dispatcher;
     }
 
     public PermissionMap CreatePermissionMap => new()
@@ -89,7 +95,9 @@ public class SourceChangedService
             throw new PrincipalNotAuthorizedException(
                 $"{_principalProvider.GetPrincipalDiscriminator()} with ID {_principalProvider.GetSubject(organizationId)} does not have permission to notify source changes");
 
-        var moduleIds = _dbContext.Modules
+        var modules = _dbContext.Modules
+            .Include(x => x.AdditionalTriggerPaths)
+            .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
             .Where(x =>
                 x.SourceUrl == dto.SourceUrl &&
                 x.SourceRevision == dto.SourceRevision &&
@@ -97,16 +105,37 @@ public class SourceChangedService
                 x.TriggerOnSourceChangedNotification &&
                 x.OrganizationId == organizationId
             )
-            .Select(x => x.Id)
             .ToList();
 
-        foreach (var moduleId in moduleIds)
+        // Modules without path-scoped triggering keep today's behaviour: the notification IS the trigger.
+        foreach (var module in modules.Where(m => !TriggerPathClosure.FilterEnabled(m)))
             await _bus.Publish(new GatekeepingJobRequested
             {
-                ModuleId = moduleId,
+                ModuleId = module.Id,
                 OrganizationId = organizationId,
                 DesiredStateHeadline = DesiredStateHeadline.Applied,
                 SetNewDesiredState = false
             }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
+
+        // Filter-enabled modules converge on the closure-hash primitive: dispatch one targeted refresh per
+        // refresh group and let SourceRefreshCompletedCompetingConsumer decide from the reported hashes.
+        var groups = modules
+            .Where(TriggerPathClosure.FilterEnabled)
+            .GroupBy(x => new { x.SourceType, x.SourceUrl, x.SourceRevision, x.SourceRevisionType, x.OrganizationId, x.RunnerId });
+
+        foreach (var group in groups)
+            await _dispatcher.DispatchRefresh(
+                group.Key.OrganizationId,
+                group.Key.RunnerId,
+                group.Key.SourceUrl,
+                group.Key.SourceRevision,
+                group.Key.SourceType,
+                group.Key.SourceRevisionType,
+                group
+                    .SelectMany(TriggerPathClosure.WatchedPaths)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(p => p, StringComparer.Ordinal)
+                    .ToList(),
+                triggeredByNotification: true);
     }
 }

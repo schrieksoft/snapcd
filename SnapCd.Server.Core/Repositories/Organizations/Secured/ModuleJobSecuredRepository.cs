@@ -62,8 +62,16 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
     {
         if (!CanReadForModuleId(moduleId, organizationId))
             return null;
-        
+
         return await Repository.GetActualDefinitiveRevision(moduleId, organizationId);
+    }
+
+    public async Task<(string? DefinitiveRevision, string? DefinitiveClosureHash)> GetActualDefinitiveState(Guid moduleId, Guid organizationId)
+    {
+        if (!CanReadForModuleId(moduleId, organizationId))
+            return (null, null);
+
+        return await Repository.GetActualDefinitiveState(moduleId, organizationId);
     }
 
     public async Task<string?> GetLastAttemptedDefinitiveRevision(Guid moduleId, Guid organizationId)

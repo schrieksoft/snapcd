@@ -6,13 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SnapCd.Contracts.Constants;
-using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Services;
@@ -24,30 +20,30 @@ namespace SnapCd.Server.Core.Services;
 public class SourceRefreshJob
 {
     private readonly ILogger<SourceRefreshJob> _logger;
-    private readonly IHubContext<RunnerHub> _hubContext;
-    private readonly RunnerSelectionService _runnerSelection;
+    private readonly SourceRefreshDispatcher _dispatcher;
     private readonly SnapCdDbContext _dbContext;
     private readonly SourceRefreshSettings _settings;
 
     public SourceRefreshJob(
         ILogger<SourceRefreshJob> logger,
-        IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
+        SourceRefreshDispatcher dispatcher,
         SnapCdDbContext dbContext,
         IOptions<SourceRefreshSettings> settings
     )
     {
         _logger = logger;
-        _hubContext = hubContext;
-        _runnerSelection = runnerSelection;
+        _dispatcher = dispatcher;
         _dbContext = dbContext;
         _settings = settings.Value;
     }
 
     public async Task ExecuteJob()
     {
-        var modules = _dbContext.Modules
+        var groups = _dbContext.Modules
             .Include(x => x.Runner)
+            .Include(x => x.AdditionalTriggerPaths)
+            .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
+            .ToList()
             .GroupBy(x => new { x.SourceType, x.SourceUrl, x.SourceRevision, x.SourceRevisionType, x.OrganizationId, x.RunnerId })
             .Select(g => new
             {
@@ -56,45 +52,36 @@ public class SourceRefreshJob
                 g.Key.SourceRevision,
                 g.Key.SourceRevisionType,
                 g.Key.OrganizationId,
-                g.Key.RunnerId
+                g.Key.RunnerId,
+                // Union of watched directories across the group's filter-enabled members; empty keeps
+                // head-only semantics for the whole group.
+                WatchedPaths = g
+                    .Where(TriggerPathClosure.FilterEnabled)
+                    .SelectMany(TriggerPathClosure.WatchedPaths)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(p => p, StringComparer.Ordinal)
+                    .ToList()
             })
             .ToList();
 
-        _logger.LogInformation("Starting source refresh job for {Count} unique sources", modules.Count);
+        _logger.LogInformation("Starting source refresh job for {Count} unique sources", groups.Count);
 
-        foreach (var module in modules)
+        foreach (var group in groups)
             try
             {
-                // Select runner using least-loaded strategy
-                var runner = await _runnerSelection.SelectRunnerInstance(module.OrganizationId, module.RunnerId);
-
-                if (runner == null)
-                {
-                    _logger.LogWarning("No available runners in pool {PoolId} for source {SourceUrl}@{SourceRevision}",
-                        module.RunnerId, module.SourceUrl, module.SourceRevision);
-                    continue; // Skip this source, try again on next job run
-                }
-
-                _logger.LogDebug("Selected runner {RunnerName} for source refresh: {SourceUrl}@{SourceRevision}",
-                    runner.InstanceName, module.SourceUrl, module.SourceRevision);
-
-                // Dispatch to runner via SignalR (stateless - no tracking needed)
-                await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                    RunnerEndpoints.SourceRefresh,
-                    new SourceRefreshRequest
-                    {
-                        OrganizationId = module.OrganizationId,
-                        SourceUrl = module.SourceUrl,
-                        SourceRevision = module.SourceRevision,
-                        SourceRevisionType = module.SourceRevisionType,
-                        SourceType = module.SourceType
-                    }
-                );
+                await _dispatcher.DispatchRefresh(
+                    group.OrganizationId,
+                    group.RunnerId,
+                    group.SourceUrl,
+                    group.SourceRevision,
+                    group.SourceType,
+                    group.SourceRevisionType,
+                    group.WatchedPaths);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error dispatching source refresh for {SourceUrl}@{SourceRevision}",
-                    module.SourceUrl, module.SourceRevision);
+                    group.SourceUrl, group.SourceRevision);
                 // Continue with next source - don't fail entire batch
             }
 

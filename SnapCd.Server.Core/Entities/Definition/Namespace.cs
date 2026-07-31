@@ -44,6 +44,8 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public virtual ICollection<NamespaceMission> NamespaceMissions { get; set; } = new List<NamespaceMission>();
     public List<NamespaceExtraFile> NamespaceExtraFiles { get; set; } = new();
 
+    public List<NamespaceAdditionalTriggerPath> AdditionalTriggerPaths { get; set; } = new();
+
     // NEW Role Assignment navigation properties
     public virtual ICollection<UserNamespaceRoleAssignment> UserNamespaceRoleAssignments { get; set; } = new List<UserNamespaceRoleAssignment>();
     public virtual ICollection<ServicePrincipalNamespaceRoleAssignment> ServicePrincipalNamespaceRoleAssignments { get; set; } = new List<ServicePrincipalNamespaceRoleAssignment>();
@@ -56,6 +58,8 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public Stack Stack { get; set; } = null!;
 
     public bool? DefaultCleanInitEnabled { get; set; }
+
+    public bool? DefaultTriggerPathFilterEnabled { get; set; }
 
     public List<NamespaceHook> Hooks { get; set; } = new();
 

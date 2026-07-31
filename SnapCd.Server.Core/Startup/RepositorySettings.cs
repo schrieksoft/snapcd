@@ -41,6 +41,8 @@ public static class RepositorySettings
         services.Configure<ModuleTerraformArrayFlagRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformArrayFlag"));
         services.Configure<ModuleHookRepositorySettings>(configuration.GetSection("Repositories:ModuleHook"));
         services.Configure<ModuleExtraFileRepositorySettings>(configuration.GetSection("Repositories:ModuleExtraFile"));
+        services.Configure<ModuleAdditionalTriggerPathRepositorySettings>(configuration.GetSection("Repositories:ModuleAdditionalTriggerPath"));
+        services.Configure<NamespaceAdditionalTriggerPathRepositorySettings>(configuration.GetSection("Repositories:NamespaceAdditionalTriggerPath"));
         services.Configure<ModuleInputFromDefinitionRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromDefinition"));
         services.Configure<ModuleInputFromLiteralRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromLiteral"));
         services.Configure<ModuleInputFromNamespaceRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromNamespace"));
