@@ -54,6 +54,22 @@ public static class TriggerPathClosure
     }
 
     /// <summary>
+    /// The watched-path union a refresh request must carry for one refresh group: the declared paths of every
+    /// filter-enabled member. Every dispatch site must use this — the consumer evaluates all eligible members
+    /// of the group against the report, and a report missing a member's paths composes with empty hashes and
+    /// fail-opens into a spurious trigger.
+    /// </summary>
+    public static List<string> GroupWatchedPaths(IEnumerable<Module> groupMembers)
+    {
+        return groupMembers
+            .Where(FilterEnabled)
+            .SelectMany(WatchedPaths)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(p => p, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>
     /// Widens the declared watched paths with the discovered reference closure of each: for every declared path
     /// that has a reported closure, its referenced paths join the set. Null closures (no discovery in this
     /// refresh) leave the declared set unchanged.

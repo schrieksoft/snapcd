@@ -53,14 +53,8 @@ public class SourceRefreshJob
                 g.Key.SourceRevisionType,
                 g.Key.OrganizationId,
                 g.Key.RunnerId,
-                // Union of watched directories across the group's filter-enabled members; empty keeps
-                // head-only semantics for the whole group.
-                WatchedPaths = g
-                    .Where(TriggerPathClosure.FilterEnabled)
-                    .SelectMany(TriggerPathClosure.WatchedPaths)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(p => p, StringComparer.Ordinal)
-                    .ToList()
+                // Empty keeps head-only semantics for the whole group.
+                WatchedPaths = TriggerPathClosure.GroupWatchedPaths(g)
             })
             .ToList();
 

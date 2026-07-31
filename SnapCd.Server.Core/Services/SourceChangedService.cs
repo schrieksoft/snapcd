@@ -124,18 +124,30 @@ public class SourceChangedService
             .GroupBy(x => new { x.SourceType, x.SourceUrl, x.SourceRevision, x.SourceRevisionType, x.OrganizationId, x.RunnerId });
 
         foreach (var group in groups)
+        {
+            // The union covers every filter-enabled module in the refresh group — not just the
+            // notification-subscribed ones — see TriggerPathClosure.GroupWatchedPaths.
+            var key = group.Key;
+            var watchedPaths = TriggerPathClosure.GroupWatchedPaths(_dbContext.Modules
+                .Include(x => x.AdditionalTriggerPaths)
+                .Include(x => x.Namespace).ThenInclude(n => n.AdditionalTriggerPaths)
+                .Where(x => x.SourceUrl == key.SourceUrl &&
+                            x.SourceRevision == key.SourceRevision &&
+                            x.SourceType == key.SourceType &&
+                            x.SourceRevisionType == key.SourceRevisionType &&
+                            x.OrganizationId == key.OrganizationId &&
+                            x.RunnerId == key.RunnerId)
+                .ToList());
+
             await _dispatcher.DispatchRefresh(
-                group.Key.OrganizationId,
-                group.Key.RunnerId,
-                group.Key.SourceUrl,
-                group.Key.SourceRevision,
-                group.Key.SourceType,
-                group.Key.SourceRevisionType,
-                group
-                    .SelectMany(TriggerPathClosure.WatchedPaths)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(p => p, StringComparer.Ordinal)
-                    .ToList(),
+                key.OrganizationId,
+                key.RunnerId,
+                key.SourceUrl,
+                key.SourceRevision,
+                key.SourceType,
+                key.SourceRevisionType,
+                watchedPaths,
                 triggeredByNotification: true);
+        }
     }
 }
