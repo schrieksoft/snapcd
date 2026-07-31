@@ -14,48 +14,28 @@ repos:
             | .*\.generated\.cs
             | .*GlobalUsings\.g\.cs
           )$
-      - id: mcp-surface
-        name: MCP generated surface (regenerated if stale)
-        entry: scripts/check-mcp-surface.sh --write
+      - id: generated-artifacts
+        name: Generated artifacts (MCP surface, OpenAPI document, settings schemas)
+        # One shared build of all generators (single MSBuild invocation), then the three
+        # checks run --no-build in parallel.
+        entry: scripts/check-generated-artifacts.sh --write
         language: system
         pass_filenames: false
-        # Only run when something that could affect the generated output changes:
-        # controller annotations, Mcp attribute definitions, the emitter itself, or csprojs.
+        # Union of the triggers of the three underlying checks: controllers, Mcp attributes,
+        # DTOs, OpenAPI setup, settings POCOs, the generators themselves, and the committed
+        # artifacts.
         files: |
           (?x)^(
               SnapCd\.Server\.Core/Controllers/.*\.cs
             | SnapCd\.Contracts/Mcp/.*\.cs
-            | generators/SnapCd\.Mcp\.Generator/.*\.(cs|csproj)
             | SnapCd\.Server\.Core/AI/Mcp/Generated/.*\.cs
-          )$
-      - id: openapi-document
-        name: OpenAPI document (regenerated if stale)
-        entry: scripts/check-openapi-document.sh --write
-        language: system
-        pass_filenames: false
-        # Run when anything that shapes the API surface or the emitted document
-        # changes: controllers, the DTOs they expose, or the OpenAPI setup.
-        files: |
-          (?x)^(
-              SnapCd\.Server\.Core/Controllers/.*\.cs
             | SnapCd\.Contracts/Dto/.*\.cs
             | SnapCd\.Server\.Core/Startup/(Scalar|Controllers|CurrentOrganizationOperationTransformer)\.cs
-            | generators/SnapCd\.OpenApi\.Generator/.*\.(cs|csproj)
-            | schemas/openapi\.yaml
-          )$
-      - id: settings-schemas
-        name: Settings schemas (regenerated if stale)
-        entry: scripts/check-settings-schemas.sh --write
-        language: system
-        pass_filenames: false
-        # Run when any settings POCO, generator source, shared emitter, or committed schema
-        # file changes — anything that could affect the per-component schema output.
-        files: |
-          (?x)^(
-              SnapCd\.Runner/Settings/.*\.cs
+            | SnapCd\.Runner/Settings/.*\.cs
             | SnapCd\.Agent/Configuration/.*\.cs
             | SnapCd\.Server\.Core/Settings/.*\.cs
             | SnapCd\.Utils/Settings/.*\.cs
-            | generators/SnapCd\.Settings\.Generator\..+/.*\.(cs|csproj)
+            | generators/.*\.(cs|csproj|proj)
+            | schemas/openapi\.yaml
             | schemas/.*\.schema\.yaml
           )$

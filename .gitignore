@@ -215,3 +215,6 @@ schemas/openapi.json
 
 # CI-built binary embedded into the runner at publish time (see release.yaml)
 SnapCd.Runner/EmbeddedTools/
+
+# build output of the snapcd-inspect tool (CI builds it into SnapCd.Runner/EmbeddedTools)
+tools/snapcd-inspect/snapcd-inspect

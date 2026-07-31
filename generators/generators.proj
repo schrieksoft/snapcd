@@ -1,0 +1,22 @@
+<!-- Builds the generator projects (and their shared dependency graph, notably SnapCd.Server.Core)
+     in a single MSBuild invocation, so scripts/check-generated-artifacts.sh pays one project-graph
+     evaluation instead of one per generator. SnapCd.Generators is the runnable generator (settings
+     schemas + MCP surface); SnapCd.OpenApi.Generator emits the OpenAPI document at build time. -->
+<Project>
+    <PropertyGroup>
+        <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <GeneratorProject Include="SnapCd.Generators/SnapCd.Generators.csproj" />
+        <GeneratorProject Include="SnapCd.OpenApi.Generator/SnapCd.OpenApi.Generator.csproj" />
+    </ItemGroup>
+
+    <Target Name="Build">
+        <MSBuild Projects="@(GeneratorProject)" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration)" />
+    </Target>
+
+    <Target Name="Restore">
+        <MSBuild Projects="@(GeneratorProject)" Targets="Restore" Properties="Configuration=$(Configuration)" />
+    </Target>
+</Project>
