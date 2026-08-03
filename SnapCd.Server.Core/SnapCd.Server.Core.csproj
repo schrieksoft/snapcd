@@ -5,9 +5,9 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>SnapCd.Server.Core</RootNamespace>
-        <!-- Required by SnapCd.Mcp.Generator: the codegen reads <summary>/<param> XML doc off the
-             controllers it generates wrappers for, which only flows through when doc generation is
-             enabled on this project. -->
+        <!-- Required by SnapCd.Generators (mcp command): the codegen reads <summary>/<param> XML doc
+             off the controllers it generates wrappers for, which only flows through when doc
+             generation is enabled on this project. -->
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <!-- CS1591: missing XML doc on public members — we only want docs for MCP-exposed actions,
              not every type. Suppressed at project level. -->

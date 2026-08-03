@@ -10,7 +10,8 @@ namespace SnapCd.Contracts.Mcp;
 
 /// <summary>
 /// Marks a controller action as visible to MCP-connected agents. The codegen (see
-/// <c>SnapCd.Mcp.Generator</c>) emits a matching <c>[McpServerTool]</c> wrapper at build time.
+/// <c>generators/SnapCd.Generators</c>, <c>mcp</c> command) emits a matching
+/// <c>[McpServerTool]</c> wrapper into the committed MCP surface.
 /// The tool's <c>[Description]</c> is the action's summary ([EndpointSummary] override, else
 /// the <c>EndpointDocConvention</c> text) with <see cref="Instructions"/> appended when set.
 /// Opt-in by design — unannotated actions are invisible to the agent.
