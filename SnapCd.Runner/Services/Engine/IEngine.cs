@@ -31,6 +31,14 @@ public interface IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
 
+    /// <summary>
+    /// Exports the current binary plan as JSON for policy evaluation and returns the file path.
+    /// The document never leaves the runner.
+    /// </summary>
+    Task<string> ExportPlanJson(
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default);
+
     Task<string> Plan(
         Dictionary<string, string> parameters,
         string? planBeforeHook,

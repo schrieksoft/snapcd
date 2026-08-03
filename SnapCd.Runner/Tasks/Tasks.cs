@@ -16,6 +16,7 @@ using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 using SnapCd.Runner.Settings;
+using SnapCd.Runner.Services.PolicyEvaluation;
 
 namespace SnapCd.Runner.Tasks;
 
@@ -32,6 +33,7 @@ public partial class Tasks
     private readonly HookPreapprovalService _hookPreapprovalService;
     private readonly BareCloneCache _bareCloneCache;
     private readonly SnapCdInspect _snapCdInspect;
+    private readonly PolicyEvaluationService _policyEvaluationService;
 
     public Tasks(
         ProcessRegistry processRegistry,
@@ -44,7 +46,8 @@ public partial class Tasks
         IModuleSourceRefresherFactory moduleSourceRefresherFactory,
         HookPreapprovalService hookPreapprovalService,
         BareCloneCache bareCloneCache,
-        SnapCdInspect snapCdInspect)
+        SnapCdInspect snapCdInspect,
+        PolicyEvaluationService policyEvaluationService)
     {
         _processRegistry = processRegistry;
         _loggerFactory = loggerFactory;
@@ -57,6 +60,7 @@ public partial class Tasks
         _hookPreapprovalService = hookPreapprovalService;
         _bareCloneCache = bareCloneCache;
         _snapCdInspect = snapCdInspect;
+        _policyEvaluationService = policyEvaluationService;
     }
 
     /// <summary>

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
+using SnapCd.Runner.Services.PolicyEvaluation;
 
 namespace SnapCd.Runner.Tasks;
 
@@ -47,9 +48,26 @@ public partial class Tasks
         {
             taskContext.LogInformation($"Now validating policies ({request.Policies.Count} in scope)");
 
-            // Evaluation is not implemented yet on this runner version: report Passed so the
-            // state machine proceeds. Conftest/CrossGuard evaluation replaces this.
-            var outcome = PolicyOutcome.Passed;
+            var engine = _engineFactory.Create(
+                taskContext,
+                request.Engine,
+                request.Metadata
+            );
+
+            var planJsonPath = await engine.ExportPlanJson(killCts.Token, gracefulCts.Token);
+
+            var scratchDir = Path.Combine(engine.GetSnapCdDir(), "policies");
+            if (Directory.Exists(scratchDir))
+                Directory.Delete(scratchDir, recursive: true);
+            Directory.CreateDirectory(scratchDir);
+
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+            var outcome = await _policyEvaluationService.EvaluateAsync(
+                request.Policies,
+                planJsonPath,
+                scratchDir,
+                message => taskContext.LogInformation(message),
+                linkedCts.Token);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokePolicyValidateCompleted(request.JobId, outcome),

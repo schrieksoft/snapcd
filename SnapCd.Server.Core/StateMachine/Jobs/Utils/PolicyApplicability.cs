@@ -14,8 +14,15 @@ namespace SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 public static class PolicyApplicability
 {
+    /// <summary>
+    /// Whether a policy is evaluated by the PolicyValidate step of this job. Pulumi policies never
+    /// are — CrossGuard runs inside the preview itself, so they ride the Plan step instead.
+    /// </summary>
     public static bool Matches(ResolvedPolicy policy, bool isDestroyJob)
     {
+        if (policy.Engine != PolicyEngine.Terraform)
+            return false;
+
         return policy.EvaluateOn switch
         {
             PolicyEvaluateOn.ApplyOnly => !isDestroyJob,

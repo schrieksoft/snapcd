@@ -21,6 +21,15 @@ namespace SnapCd.Runner.Services;
 public class PulumiEngine : BaseEngine, IEngine
 {
     private const string PlanFileName = "plan.json";
+
+    public Task<string> ExportPlanJson(
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        // CrossGuard policies run inside the preview itself; the PolicyValidate step is never
+        // dispatched for Pulumi modules.
+        throw new NotSupportedException("Policy plan-JSON export is not applicable to the Pulumi engine.");
+    }
     private const string DestroyPreviewFileName = "destroy_preview.json";
     private const string OutputFileName = "output.json";
     private const string ExportFileName = "export.json";

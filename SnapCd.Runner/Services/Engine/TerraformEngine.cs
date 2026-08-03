@@ -334,6 +334,19 @@ public class TerraformEngine : BaseEngine, IEngine
     }
 
     private string GetTfVarsPath() => $"{SnapCdDir}/inputs.tfvars";
+    public async Task<string> ExportPlanJson(
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        var jsonPath = $"{SnapCdDir}/plan.json";
+
+        // Redirect to file: the plan JSON contains sensitive values and must not stream into logs.
+        var script = $"{_engine} show -json {GetPlanApplyPath()} > {jsonPath}";
+        await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+
+        return jsonPath;
+    }
+
     private string GetPlanApplyPath() => $"{SnapCdDir}/plan.out";
     private string GetPlanDestroyPath() => $"{SnapCdDir}/destroy.out";
 }
