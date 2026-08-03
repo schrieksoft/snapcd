@@ -20,6 +20,36 @@ namespace SnapCd.Server.Host.Database.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
+                name: "PlanCreateCount",
+                table: "ModuleJobs",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "PlanDestroyCount",
+                table: "ModuleJobs",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "PlanModifyCount",
+                table: "ModuleJobs",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "PlanRecreateCount",
+                table: "ModuleJobs",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "PlanTotalChangedCount",
+                table: "ModuleJobs",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
                 name: "PolicyOutcome",
                 table: "ModuleJobs",
                 type: "int",
@@ -784,6 +814,26 @@ namespace SnapCd.Server.Host.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "NamespaceTerraformRemotePolicies");
+
+            migrationBuilder.DropColumn(
+                name: "PlanCreateCount",
+                table: "ModuleJobs");
+
+            migrationBuilder.DropColumn(
+                name: "PlanDestroyCount",
+                table: "ModuleJobs");
+
+            migrationBuilder.DropColumn(
+                name: "PlanModifyCount",
+                table: "ModuleJobs");
+
+            migrationBuilder.DropColumn(
+                name: "PlanRecreateCount",
+                table: "ModuleJobs");
+
+            migrationBuilder.DropColumn(
+                name: "PlanTotalChangedCount",
+                table: "ModuleJobs");
 
             migrationBuilder.DropColumn(
                 name: "PolicyOutcome",

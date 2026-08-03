@@ -12,7 +12,7 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20260803115037_AddPolicyEntities")]
+    [Migration("20260803132332_AddPolicyEntities")]
     partial class AddPolicyEntities
     {
         /// <inheritdoc />
@@ -2313,6 +2313,21 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("OutputsUnchangedList")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int?>("PlanCreateCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanDestroyCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanModifyCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanRecreateCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanTotalChangedCount")
+                        .HasColumnType("int");
 
                     b.Property<int?>("PolicyOutcome")
                         .HasColumnType("int");

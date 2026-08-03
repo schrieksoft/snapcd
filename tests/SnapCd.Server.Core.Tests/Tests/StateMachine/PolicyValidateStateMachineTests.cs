@@ -417,12 +417,23 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: false, state: "PlanPending");
 
-        await _harness.Bus.Publish(new PlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1, PolicyOutcome = PolicyOutcome.SoftWarned });
+        await _harness.Bus.Publish(new PlanCompleted
+        {
+            CorrelationId = jobId, OrganizationId = _module.OrganizationId,
+            TotalChangedCount = 3, CreateCount = 1, ModifyCount = 1, DestroyCount = 1,
+            PolicyOutcome = PolicyOutcome.SoftWarned
+        });
 
         var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
 
         var job = await GetJob(jobId);
         Assert.Equal(PolicyOutcome.SoftWarned, job.PolicyOutcome);
+
+        // Plan change counts are persisted for the approvals view.
+        Assert.Equal(3, job.PlanTotalChangedCount);
+        Assert.Equal(1, job.PlanCreateCount);
+        Assert.Equal(1, job.PlanModifyCount);
+        Assert.Equal(1, job.PlanDestroyCount);
     }
 }

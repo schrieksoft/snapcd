@@ -2319,6 +2319,21 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<int?>("PlanCreateCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanDestroyCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanModifyCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanRecreateCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlanTotalChangedCount")
+                        .HasColumnType("int");
+
                     b.Property<int?>("PolicyOutcome")
                         .HasColumnType("int");
 

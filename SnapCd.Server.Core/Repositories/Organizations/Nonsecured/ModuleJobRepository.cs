@@ -234,7 +234,12 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         string? createList,
         string? modifyList,
         string? destroyList,
-        string? recreateList)
+        string? recreateList,
+        int? planTotalChangedCount = null,
+        int? planCreateCount = null,
+        int? planModifyCount = null,
+        int? planDestroyCount = null,
+        int? planRecreateCount = null)
     {
         var job = await Get(id, organizationId);
         job.OutputsUnchangedList = Truncate(unchangedList, 4000);
@@ -242,6 +247,11 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         job.OutputsModifyList = Truncate(modifyList, 4000);
         job.OutputsDestroyList = Truncate(destroyList, 4000);
         job.OutputsRecreateList = Truncate(recreateList, 4000);
+        job.PlanTotalChangedCount = planTotalChangedCount;
+        job.PlanCreateCount = planCreateCount;
+        job.PlanModifyCount = planModifyCount;
+        job.PlanDestroyCount = planDestroyCount;
+        job.PlanRecreateCount = planRecreateCount;
         await ExecuteUpdate(job);
     }
 }

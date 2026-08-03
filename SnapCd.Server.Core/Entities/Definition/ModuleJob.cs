@@ -52,6 +52,12 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild
 
     public PolicyOutcome? PolicyOutcome { get; set; }
 
+    public int? PlanTotalChangedCount { get; set; }
+    public int? PlanCreateCount { get; set; }
+    public int? PlanModifyCount { get; set; }
+    public int? PlanDestroyCount { get; set; }
+    public int? PlanRecreateCount { get; set; }
+
     [MaxLength(4000)] public string? OutputsUnchangedList { get; set; }
     [MaxLength(4000)] public string? OutputsCreateList { get; set; }
     [MaxLength(4000)] public string? OutputsModifyList { get; set; }
