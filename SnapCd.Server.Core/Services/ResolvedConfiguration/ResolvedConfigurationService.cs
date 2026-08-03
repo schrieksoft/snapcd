@@ -184,6 +184,7 @@ public class ResolvedConfigurationService : IDisposable
             SourceType = module.SourceType,
             SourceRevisionType = module.SourceRevisionType,
             DependsOnModules = dependsOnModules,
+            Policies = ResolvePolicies(module),
             // REMOVED: Output selections are now handled by client calls to OutputService
             // SelectedModuleParamsFromOutputs = paramSelectedOutputs,
             // SelectedModuleOutputEnvVars = envVarSelectedOutputs,
@@ -326,6 +327,18 @@ public class ResolvedConfigurationService : IDisposable
             .Include(m => m.PulumiArrayFlags)
             .Include(m => m.TerraformFlags)
             .Include(m => m.TerraformArrayFlags)
+            .Include(m => m.TerraformInlinePolicies)
+            .Include(m => m.TerraformRemotePolicies)
+            .Include(m => m.TerraformLocalPolicies)
+            .Include(m => m.PulumiInlinePolicies)
+            .Include(m => m.PulumiRemotePolicies)
+            .Include(m => m.PulumiLocalPolicies)
+            .Include(m => m.Namespace.TerraformInlinePolicies)
+            .Include(m => m.Namespace.TerraformRemotePolicies)
+            .Include(m => m.Namespace.TerraformLocalPolicies)
+            .Include(m => m.Namespace.PulumiInlinePolicies)
+            .Include(m => m.Namespace.PulumiRemotePolicies)
+            .Include(m => m.Namespace.PulumiLocalPolicies)
             .Include(m => m.Hooks)
             .Include(m => m.Namespace.PulumiFlags)
             .Include(m => m.Namespace.PulumiArrayFlags)
@@ -471,6 +484,45 @@ public class ResolvedConfigurationService : IDisposable
     // Output processing is now handled by client calls to OutputService endpoints:
     // - ListByModuleInputFromOutputs(Guid moduleId)
     // - ListByModuleInputFromOutputSets(Guid moduleId)
+
+    private List<ResolvedPolicy> ResolvePolicies(Module module)
+    {
+        var engine = module.Engine ?? module.Namespace.DefaultEngine ?? StateManagementEngine.OpenTofu;
+        var policies = new List<ResolvedPolicy>();
+
+        if (engine is StateManagementEngine.OpenTofu or StateManagementEngine.Terraform)
+        {
+            policies.AddRange(module.TerraformInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Inline, EvaluateOn = x.EvaluateOn, PolicyContent = x.PolicyContent }));
+            policies.AddRange(module.TerraformRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
+            policies.AddRange(module.TerraformLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
+            policies.AddRange(module.Namespace.TerraformInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Inline, EvaluateOn = x.EvaluateOn, PolicyContent = x.PolicyContent }));
+            policies.AddRange(module.Namespace.TerraformRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
+            policies.AddRange(module.Namespace.TerraformLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Terraform, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
+        }
+        else if (engine is StateManagementEngine.Pulumi)
+        {
+            policies.AddRange(module.PulumiInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Inline, EvaluateOn = x.EvaluateOn, PolicyContent = x.PolicyContent, Runtime = x.Runtime, AdditionalDependencies = x.AdditionalDependencies }));
+            policies.AddRange(module.PulumiRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
+            policies.AddRange(module.PulumiLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
+            policies.AddRange(module.Namespace.PulumiInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Inline, EvaluateOn = x.EvaluateOn, PolicyContent = x.PolicyContent, Runtime = x.Runtime, AdditionalDependencies = x.AdditionalDependencies }));
+            policies.AddRange(module.Namespace.PulumiRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
+            policies.AddRange(module.Namespace.PulumiLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
+        }
+
+        return policies;
+    }
 
     private string GetEngineString(StateManagementEngine? engine, StateManagementEngine? defaultEngine)
     {

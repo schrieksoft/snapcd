@@ -18,6 +18,7 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Contracts;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -69,6 +70,17 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         if (definitiveRevision != null) job.DefinitiveRevision = definitiveRevision;
 
         if (actualStateHeadline != null) job.ActualStateHeadline = actualStateHeadline;
+
+        if (wrapInTransaction)
+            await Update(job);
+        else
+            await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
+    }
+
+    public async Task SetPolicyOutcome(Guid id, Guid organizationId, PolicyOutcome outcome, bool wrapInTransaction = false)
+    {
+        var job = await Get(id, organizationId);
+        job.PolicyOutcome = outcome;
 
         if (wrapInTransaction)
             await Update(job);

@@ -144,7 +144,8 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
             OrganizationId = saga.OrganizationId,
             Declared = declared,
             RunnerId = saga.RunnerId,
-            RunnerInstanceName = saga.RunnerInstanceName ?? string.Empty
+            RunnerInstanceName = saga.RunnerInstanceName ?? string.Empty,
+            IsDestroyJob = typeof(TSaga).Name == "DestroyJobSaga"
         };
     }
 

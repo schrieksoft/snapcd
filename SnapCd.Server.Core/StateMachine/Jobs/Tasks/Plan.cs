@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Contracts;
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -100,9 +101,33 @@ public partial class JobStateMachine<
                                 .TransitionTo(OutputPending)
                         ),
                     ///////////////////////////////////////////////////
-                    // Something to apply (if approved)
+                    // Something to apply: policies first (if any), then approval
                     ///////////////////////////////////////////////////
-                    x => DealWithApprovalStatus(x, true)
+                    x => x
+                        .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, TPlanCompleted>>())
+                        .IfElse(
+                            ctx => PolicyApplicability.Any(ctx.Saga.DeclaredJson, IsDestroyJob),
+                            withPolicies => withPolicies
+                                .Then(_ => { _logger.LogInformation("Policies in scope, dispatching PolicyValidate."); })
+                                .Activity(a => a.OfType<SendToRunnerActivity<TSaga, TPlanCompleted, PolicyValidateRequested>>())
+                                .IfElse(
+                                    ctx => ctx.Saga.PreviousStateBeforeWaiting != null,
+                                    whenTrue => whenTrue
+                                        .Then(ctx =>
+                                        {
+                                            ctx.Saga.WaitingSince = DateTime.UtcNow;
+                                            _logger.LogWarning(
+                                                "PolicyValidate: Runner disconnected for job {CorrelationId}, entering waiting state",
+                                                ctx.Saga.CorrelationId);
+                                        })
+                                        .TransitionTo(PolicyValidateWaitingForRunner),
+                                    whenFalse => whenFalse
+                                        .Schedule(HeartbeatScheduled,
+                                            ctx => new HeartbeatScheduled { CorrelationId = ctx.Saga.CorrelationId, OrganizationId = ctx.Saga.OrganizationId })
+                                        .TransitionTo(PolicyValidatePending)
+                                ),
+                            noPolicies => DealWithApprovalStatus(noPolicies, true)
+                        )
                 )
             //// TODO! use the below to raise an event that can be used for Dashboard notifications!
             // .Publish(
@@ -125,7 +150,26 @@ public partial class JobStateMachine<
             When(PlanCancelled)
                 .ThenCancelled<TSaga, TResponseCancelled, PlanCancelled>(Cancelled),
             When(PlanFaulted)
-                .ThenFaulted<TSaga, TResponseFailed, PlanFaulted>(Failed, _logger),
+                .IfElse(
+                    x => x.Message.PolicyOutcome == PolicyOutcome.HardDenied,
+                    ///////////////////////////////////////////////////
+                    // The preview failed because a policy denied it (Pulumi/CrossGuard
+                    // runs inside the plan) — refuse the job, don't fail it.
+                    ///////////////////////////////////////////////////
+                    x => x
+                        .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, PlanFaulted>>())
+                        .Publish(context => new TResponseCancelled
+                        {
+                            ModuleId = context.Saga.ModuleId,
+                            OrganizationId = context.Saga.OrganizationId,
+                            ModuleJobId = context.Saga.CorrelationId,
+                            CancellationReason = CancellationReason.PolicyDenied
+                        })
+                        .Activity(a => a.OfType<PolicyDeniedModuleJobActivity<TSaga, PlanFaulted>>())
+                        .TransitionTo(PolicyDenied)
+                        .Finalize(),
+                    x => x.ThenFaulted<TSaga, TResponseFailed, PlanFaulted>(Failed, _logger)
+                ),
             Ignore(RunnerReconnectedEvent)
         );
 

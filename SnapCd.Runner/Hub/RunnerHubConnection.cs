@@ -170,6 +170,14 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
+        // Register handler for PolicyValidate
+        _connection.On<PolicyValidateRequestBase>(RunnerEndpoints.PolicyValidate, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.PolicyValidate(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
         // Register handler for Input
         _connection.On<VariablesRequestBase>(RunnerEndpoints.Variables, (request) =>
             {

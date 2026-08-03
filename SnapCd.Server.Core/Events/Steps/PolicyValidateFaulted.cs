@@ -6,18 +6,14 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Events.Steps.Base;
 
-namespace SnapCd.Server.Core.Events.Steps.Base;
+namespace SnapCd.Server.Core.Events.Steps;
 
-public class StepRequestBase : CorrelationBase
+/// <summary>
+/// Event indicating that policy validation has faulted with an error (evaluation breakage,
+/// not a policy denial — see <see cref="PolicyValidateCompleted"/>).
+/// </summary>
+public class PolicyValidateFaulted : StepFaultedBase
 {
-        
-    public Guid RunnerId { get; set; } 
-        
-    public string RunnerInstanceName { get; set; }  = String.Empty;
-    public ResolvedModule Declared { get; set; } = null!;
-
-    /// <summary>True when this step belongs to a destroy job — steps whose behavior depends on the job kind (e.g. EvaluateOn policy filtering) branch on this.</summary>
-    public bool IsDestroyJob { get; set; }
 }

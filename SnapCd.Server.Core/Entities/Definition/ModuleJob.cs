@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Contracts;
 
 namespace SnapCd.Server.Core.Entities.Definition;
 
@@ -48,6 +49,8 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild
     [MaxLength(100)] public string? DefinitiveClosureHash { get; set; }
 
     public ActualStateHeadline? ActualStateHeadline { get; set; }
+
+    public PolicyOutcome? PolicyOutcome { get; set; }
 
     [MaxLength(4000)] public string? OutputsUnchangedList { get; set; }
     [MaxLength(4000)] public string? OutputsCreateList { get; set; }

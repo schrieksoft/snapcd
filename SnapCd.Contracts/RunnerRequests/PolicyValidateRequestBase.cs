@@ -6,18 +6,16 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+namespace SnapCd.Contracts.RunnerRequests;
 
-namespace SnapCd.Server.Core.Events.Steps.Base;
-
-public class StepRequestBase : CorrelationBase
+/// <summary>
+/// Request sent from server to runner via SignalR to evaluate the job's policies against the plan.
+/// The policy set is resolved and job-kind-filtered server-side at dispatch; the runner never
+/// fetches policy definitions itself.
+/// </summary>
+public class PolicyValidateRequestBase : EngineJobRequestBase
 {
-        
-    public Guid RunnerId { get; set; } 
-        
-    public string RunnerInstanceName { get; set; }  = String.Empty;
-    public ResolvedModule Declared { get; set; } = null!;
+    public List<ResolvedPolicy> Policies { get; set; } = new();
 
-    /// <summary>True when this step belongs to a destroy job — steps whose behavior depends on the job kind (e.g. EvaluateOn policy filtering) branch on this.</summary>
     public bool IsDestroyJob { get; set; }
 }

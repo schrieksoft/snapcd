@@ -33,7 +33,8 @@ public static class JobExtensionMethods
             {
                 ModuleId = context.Saga.ModuleId,
                 OrganizationId = context.Saga.OrganizationId,
-                ModuleJobId = context.Saga.CorrelationId
+                ModuleJobId = context.Saga.CorrelationId,
+                CancellationReason = CancellationReason.UserRequested
             })
             .Activity(x => x.OfType<CancelOnTimeoutModuleJobActivity<TSaga, TRequestMessage>>())
             .TransitionTo(cancelled)
@@ -89,7 +90,8 @@ public static class JobExtensionMethods
             {
                 ModuleId = context.Saga.ModuleId,
                 OrganizationId = context.Saga.OrganizationId,
-                ModuleJobId = context.Saga.CorrelationId
+                ModuleJobId = context.Saga.CorrelationId,
+                CancellationReason = CancellationReason.UserRequested
             })
             .TransitionTo(cancelled)
             .Finalize();
@@ -158,6 +160,7 @@ public static class JobExtensionMethods
                 cancelled.ModuleId = context.Saga.ModuleId;
                 cancelled.ModuleJobId = context.Saga.CorrelationId;
                 cancelled.OrganizationId = context.Saga.OrganizationId;
+                cancelled.CancellationReason ??= CancellationReason.UserRequested;
                 return cancelled;
             })
             .Activity(x => x.OfType<CancelModuleJobActivity<TSaga, TEvent>>())

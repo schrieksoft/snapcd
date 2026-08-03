@@ -2319,6 +2319,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<int?>("PolicyOutcome")
+                        .HasColumnType("int");
+
                     b.Property<string>("ServerSideError")
                         .HasMaxLength(16000)
                         .HasColumnType("nvarchar(max)");

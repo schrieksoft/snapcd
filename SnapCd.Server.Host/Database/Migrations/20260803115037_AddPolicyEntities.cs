@@ -19,6 +19,12 @@ namespace SnapCd.Server.Host.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<int>(
+                name: "PolicyOutcome",
+                table: "ModuleJobs",
+                type: "int",
+                nullable: true);
+
             migrationBuilder.CreateTable(
                 name: "ModulePulumiInlinePolicies",
                 columns: table => new
@@ -778,6 +784,10 @@ namespace SnapCd.Server.Host.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "NamespaceTerraformRemotePolicies");
+
+            migrationBuilder.DropColumn(
+                name: "PolicyOutcome",
+                table: "ModuleJobs");
         }
     }
 }

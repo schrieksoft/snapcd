@@ -49,6 +49,7 @@ public class RunnerHub : Hub
     private readonly GetModuleHandler _getModuleHandler;
     private readonly InitHandler _initHandler;
     private readonly ValidateHandler _validateHandler;
+    private readonly PolicyValidateHandler _policyValidateHandler;
     private readonly VariableHandler _variableHandler;
     private readonly PlanHandler _planHandler;
     private readonly PlanDestroyHandler _planDestroyHandler;
@@ -74,6 +75,7 @@ public class RunnerHub : Hub
         GetModuleHandler getModuleHandler,
         InitHandler initHandler,
         ValidateHandler validateHandler,
+        PolicyValidateHandler policyValidateHandler,
         VariableHandler variableHandler,
         PlanHandler planHandler,
         PlanDestroyHandler planDestroyHandler,
@@ -98,6 +100,7 @@ public class RunnerHub : Hub
         _getModuleHandler = getModuleHandler;
         _initHandler = initHandler;
         _validateHandler = validateHandler;
+        _policyValidateHandler = policyValidateHandler;
         _variableHandler = variableHandler;
         _planHandler = planHandler;
         _planDestroyHandler = planDestroyHandler;
@@ -502,6 +505,33 @@ public class RunnerHub : Hub
         await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.ValidateFaulted);
 
         await _validateHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    /// <summary>
+    /// Called by runner when PolicyValidate task completes (any outcome, including a hard deny).
+    /// </summary>
+    public async Task PolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PolicyValidateCompleted);
+
+        await _policyValidateHandler.Complete(jobId, outcome);
+    }
+
+    /// <summary>
+    /// Called by runner when PolicyValidate task is cancelled.
+    /// </summary>
+    public async Task PolicyValidateCancelled(Guid jobId)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PolicyValidateCancelled);
+
+        await _policyValidateHandler.Cancel(jobId);
+    }
+
+    public async Task PolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PolicyValidateFaulted);
+
+        await _policyValidateHandler.Fault(jobId, errorMessage, stackTrace);
     }
 
     public async Task VariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)

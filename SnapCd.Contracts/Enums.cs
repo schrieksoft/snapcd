@@ -42,6 +42,40 @@ public enum PulumiPolicyRuntime
     NodeJS
 }
 
+public enum PolicyEngine
+{
+    Terraform,
+    Pulumi
+}
+
+public enum PolicySourceKind
+{
+    Inline,
+    Remote,
+    Local
+}
+
+public enum PolicyScope
+{
+    Module,
+    Namespace
+}
+
+public enum PolicyOutcome
+{
+    Passed,
+    SoftWarned,
+    HardDenied
+}
+
+public enum CancellationReason
+{
+    UserRequested,
+    ApprovalDeclined,
+    ApprovalTimeout,
+    PolicyDenied
+}
+
 public enum SourceType
 {
     Git,

@@ -74,6 +74,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ValidateCompleted, jobId);
     }
 
+    public async Task InvokePolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateCompleted, jobId, outcome);
+    }
+
+    public async Task InvokePolicyValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateCancelled, jobId);
+    }
+
+    public async Task InvokePolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeValidateCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.ValidateCancelled, jobId);

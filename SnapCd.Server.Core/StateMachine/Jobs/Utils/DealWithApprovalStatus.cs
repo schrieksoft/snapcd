@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Contracts;
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -91,7 +92,8 @@ public partial class JobStateMachine<
                             {
                                 ModuleId = context.Saga.ModuleId,
                                 OrganizationId = context.Saga.OrganizationId,
-                                ModuleJobId = context.Saga.CorrelationId
+                                ModuleJobId = context.Saga.CorrelationId,
+                                CancellationReason = CancellationReason.ApprovalDeclined
                             })
                             .Activity(z1 => z1.OfType<ApprovalDeclinedModuleJobActivity<TSaga, TMessage>>())
                             .TransitionTo(Declined)

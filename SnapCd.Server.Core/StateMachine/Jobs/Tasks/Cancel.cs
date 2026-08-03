@@ -19,6 +19,7 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Contracts;
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -90,7 +91,8 @@ public partial class JobStateMachine<
                     {
                         ModuleId = moduleJob.ModuleId,
                         ModuleJobId = context.Message.CorrelationId,
-                        OrganizationId = context.Message.OrganizationId
+                        OrganizationId = context.Message.OrganizationId,
+                        CancellationReason = CancellationReason.UserRequested
                     };
                     await publishEndpoint.Publish(cancelled);
                 }
@@ -133,7 +135,8 @@ public partial class JobStateMachine<
                     {
                         ModuleId = moduleJob.ModuleId,
                         ModuleJobId = context.Message.CorrelationId,
-                        OrganizationId = context.Message.OrganizationId
+                        OrganizationId = context.Message.OrganizationId,
+                        CancellationReason = CancellationReason.UserRequested
                     };
                     await publishEndpoint.Publish(cancelled);
                 }
@@ -175,7 +178,8 @@ public partial class JobStateMachine<
                     {
                         ModuleId = moduleJob.ModuleId,
                         ModuleJobId = context.Message.CorrelationId,
-                        OrganizationId = context.Message.OrganizationId
+                        OrganizationId = context.Message.OrganizationId,
+                        CancellationReason = CancellationReason.UserRequested
                     };
                     await publishEndpoint.Publish(cancelled);
                 }

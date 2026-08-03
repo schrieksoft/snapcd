@@ -13,6 +13,7 @@ public static class RunnerEndpoints
     public const string Init = "Init";
     public const string GetModule = "GetModule";
     public const string Validate = "Validate";
+    public const string PolicyValidate = "PolicyValidate";
     public const string Variables = "Input";
     public const string GetDefinitiveRevision = "GetDefinitiveRevision";
     public const string Plan = "Plan";

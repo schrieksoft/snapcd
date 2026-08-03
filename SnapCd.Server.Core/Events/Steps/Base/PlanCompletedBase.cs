@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts;
+
 namespace SnapCd.Server.Core.Events.Steps.Base;
 
 public class PlanCompletedBase : StepResponseBase
@@ -32,4 +34,10 @@ public class PlanCompletedBase : StepResponseBase
     public string? OutputsModifyList { get; set; }
     public string? OutputsDestroyList { get; set; }
     public string? OutputsRecreateList { get; set; }
+
+    /// <summary>
+    /// Outcome of policies evaluated inside the plan step itself (Pulumi/CrossGuard advisory
+    /// results ride the completed plan). Null when no policies were in scope.
+    /// </summary>
+    public PolicyOutcome? PolicyOutcome { get; set; }
 }
