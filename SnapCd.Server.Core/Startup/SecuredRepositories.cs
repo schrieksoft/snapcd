@@ -76,6 +76,18 @@ public static class SecuredRepositories
         services.AddScoped<NamespaceExtraFileSecuredRepository>();
         services.AddScoped<ModuleAdditionalTriggerPathSecuredRepository>();
         services.AddScoped<NamespaceAdditionalTriggerPathSecuredRepository>();
+        services.AddScoped<ModuleTerraformInlinePolicySecuredRepository>();
+        services.AddScoped<ModuleTerraformRemotePolicySecuredRepository>();
+        services.AddScoped<ModuleTerraformLocalPolicySecuredRepository>();
+        services.AddScoped<ModulePulumiInlinePolicySecuredRepository>();
+        services.AddScoped<ModulePulumiRemotePolicySecuredRepository>();
+        services.AddScoped<ModulePulumiLocalPolicySecuredRepository>();
+        services.AddScoped<NamespaceTerraformInlinePolicySecuredRepository>();
+        services.AddScoped<NamespaceTerraformRemotePolicySecuredRepository>();
+        services.AddScoped<NamespaceTerraformLocalPolicySecuredRepository>();
+        services.AddScoped<NamespacePulumiInlinePolicySecuredRepository>();
+        services.AddScoped<NamespacePulumiRemotePolicySecuredRepository>();
+        services.AddScoped<NamespacePulumiLocalPolicySecuredRepository>();
         services.AddScoped<ModulePulumiFlagSecuredRepository>();
         services.AddScoped<ModulePulumiArrayFlagSecuredRepository>();
         services.AddScoped<NamespacePulumiFlagSecuredRepository>();

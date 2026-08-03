@@ -191,6 +191,18 @@ public static class Factories
         services.AddScoped<NamespaceExtraFileSecuredRepositoryFactory>();
         services.AddScoped<ModuleAdditionalTriggerPathSecuredRepositoryFactory>();
         services.AddScoped<NamespaceAdditionalTriggerPathSecuredRepositoryFactory>();
+        services.AddScoped<ModuleTerraformInlinePolicySecuredRepositoryFactory>();
+        services.AddScoped<ModuleTerraformRemotePolicySecuredRepositoryFactory>();
+        services.AddScoped<ModuleTerraformLocalPolicySecuredRepositoryFactory>();
+        services.AddScoped<ModulePulumiInlinePolicySecuredRepositoryFactory>();
+        services.AddScoped<ModulePulumiRemotePolicySecuredRepositoryFactory>();
+        services.AddScoped<ModulePulumiLocalPolicySecuredRepositoryFactory>();
+        services.AddScoped<NamespaceTerraformInlinePolicySecuredRepositoryFactory>();
+        services.AddScoped<NamespaceTerraformRemotePolicySecuredRepositoryFactory>();
+        services.AddScoped<NamespaceTerraformLocalPolicySecuredRepositoryFactory>();
+        services.AddScoped<NamespacePulumiInlinePolicySecuredRepositoryFactory>();
+        services.AddScoped<NamespacePulumiRemotePolicySecuredRepositoryFactory>();
+        services.AddScoped<NamespacePulumiLocalPolicySecuredRepositoryFactory>();
         services.AddScoped<PreviewFeatureAcceptanceSecuredRepositoryFactory>();
         services.AddScoped<UserFavoriteRepositoryFactory>();
         services.AddScoped<UserFavoriteSecuredRepositoryFactory>();

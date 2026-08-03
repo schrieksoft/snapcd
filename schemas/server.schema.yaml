@@ -1932,6 +1932,72 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-ModulePulumiFlag repository tuning. Almost always left at defaults — operators override only when
           they need to opt out of bus events or change the event TTL for the ModulePulumiFlag entity specifically.
+      ModulePulumiInlinePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModulePulumiInlinePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModulePulumiInlinePolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModulePulumiInlinePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for ModulePulumiInlinePolicy entities.
+      ModulePulumiLocalPolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModulePulumiLocalPolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModulePulumiLocalPolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModulePulumiLocalPolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for ModulePulumiLocalPolicy entities.
+      ModulePulumiRemotePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModulePulumiRemotePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModulePulumiRemotePolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModulePulumiRemotePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for ModulePulumiRemotePolicy entities.
       Module:
         type: object
         properties:
@@ -2047,6 +2113,72 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-ModuleTerraformFlag repository tuning. Almost always left at defaults — operators override only when
           they need to opt out of bus events or change the event TTL for the ModuleTerraformFlag entity specifically.
+      ModuleTerraformInlinePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModuleTerraformInlinePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModuleTerraformInlinePolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModuleTerraformInlinePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for ModuleTerraformInlinePolicy entities.
+      ModuleTerraformLocalPolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModuleTerraformLocalPolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModuleTerraformLocalPolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModuleTerraformLocalPolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for ModuleTerraformLocalPolicy entities.
+      ModuleTerraformRemotePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a ModuleTerraformRemotePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a ModuleTerraformRemotePolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a ModuleTerraformRemotePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for ModuleTerraformRemotePolicy entities.
       NamespaceAdditionalTriggerPath:
         type: object
         properties:
@@ -2296,6 +2428,72 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-NamespacePulumiFlag repository tuning. Almost always left at defaults — operators override only when
           they need to opt out of bus events or change the event TTL for the NamespacePulumiFlag entity specifically.
+      NamespacePulumiInlinePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespacePulumiInlinePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespacePulumiInlinePolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespacePulumiInlinePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for NamespacePulumiInlinePolicy entities.
+      NamespacePulumiLocalPolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespacePulumiLocalPolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespacePulumiLocalPolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespacePulumiLocalPolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for NamespacePulumiLocalPolicy entities.
+      NamespacePulumiRemotePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespacePulumiRemotePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespacePulumiRemotePolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespacePulumiRemotePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for NamespacePulumiRemotePolicy entities.
       Namespace:
         type: object
         properties:
@@ -2412,6 +2610,74 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-NamespaceTerraformFlag repository tuning. Almost always left at defaults — operators override only
           when they need to opt out of bus events or change the event TTL for the NamespaceTerraformFlag entity specifically.
+      NamespaceTerraformInlinePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespaceTerraformInlinePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespaceTerraformInlinePolicy is
+              updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespaceTerraformInlinePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for NamespaceTerraformInlinePolicy entities.
+      NamespaceTerraformLocalPolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespaceTerraformLocalPolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespaceTerraformLocalPolicy is updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespaceTerraformLocalPolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for NamespaceTerraformLocalPolicy entities.
+      NamespaceTerraformRemotePolicy:
+        type: object
+        properties:
+          EmitCreateEvents:
+            type: boolean
+            description: When true (default), publish a CreatedEvent on the bus when a NamespaceTerraformRemotePolicy is created.
+            default: true
+          EmitUpdateEvents:
+            type: boolean
+            description: When true (default), publish an UpdatedEvent on the bus when a NamespaceTerraformRemotePolicy is
+              updated.
+            default: true
+          EmitDeleteEvents:
+            type: boolean
+            description: When true (default), publish a DeletedEvent on the bus when a NamespaceTerraformRemotePolicy is deleted.
+            default: true
+          EventTtl:
+            $comment: Represents a System.TimeSpan value.
+            type: string
+            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
+            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
+              whose downstream consumers might be offline long enough to miss the default window.
+        description: Repository event emission settings for NamespaceTerraformRemotePolicy entities.
       OrganizationIntegrationEvent:
         type: object
         properties:

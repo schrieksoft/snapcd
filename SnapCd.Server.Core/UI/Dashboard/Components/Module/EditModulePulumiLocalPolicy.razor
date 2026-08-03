@@ -1,0 +1,174 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Helpers
+@inherits ComponentBase
+
+<MudGrid>
+    <MudItem xs="12" md="8" Class="d-flex flex-column gap-4">
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="Name"
+                          @bind-Value="Context.Name"
+                          Immediate="true"
+                          FullWidth="true"/>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudTextField Label="Path"
+                          @bind-Value="Context.Path"
+                          Immediate="true"
+                          HelperText="Absolute directory on the runner host holding the policy pack"
+                          FullWidth="true"/>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudSelect T="PolicyEvaluateOn" Label="Evaluate On" @bind-Value="Context.EvaluateOn" Variant="Variant.Outlined" Immediate="true">
+                @foreach (var val in Enum.GetValues<PolicyEvaluateOn>())
+                {
+                    <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" Class="mb-4">
+            <MudSwitch T="bool" @bind-Value="Context.Enabled" Label="Enabled" Color="Color.Secondary"/>
+        </MudItem>
+
+        <MudStack Row="true" Spacing="4" Class="mt-4">
+
+            @if (IsCreateMode)
+            {
+                <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
+                           Variant="Variant.Filled"
+                           OnClick="CreateItem">
+                    Create
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
+                           Variant="Variant.Filled"
+                           OnClick="Cancel">
+                    Cancel
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
+                           Variant="Variant.Filled"
+                           Disabled="@(!HasChanges)"
+                           OnClick="UpdateItem">
+                    Save
+                </MudButton>
+
+                <MudButton Color="Color.Secondary"
+                           Size="Size.Small"
+                           Variant="Variant.Filled"
+                           StartIcon="@SnapCdIcons.Delete"
+                           OnClick="DeleteItem">
+                    Delete
+                </MudButton>
+            }
+        </MudStack>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public bool IsCreateMode { get; set; } = true;
+    [Parameter] public ModulePulumiLocalPolicy Context { get; set; } = default!;
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnUpdate { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ModulePulumiLocalPolicySecuredRepositoryFactory ModulePulumiLocalPolicySecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private ModulePulumiLocalPolicy _original = new();
+
+    protected override void OnInitialized()
+    {
+        SetOriginal();
+    }
+
+    private bool HasChanges => Context.Name != _original.Name ||
+                               Context.Path != _original.Path ||
+                               Context.Enabled != _original.Enabled ||
+                               Context.EvaluateOn != _original.EvaluateOn;
+
+    private void SetOriginal()
+    {
+        _original = new ModulePulumiLocalPolicy
+        {
+            Name = Context.Name,
+            Path = Context.Path,
+            Enabled = Context.Enabled,
+            EvaluateOn = Context.EvaluateOn
+        };
+    }
+
+    private async Task DeleteItem()
+    {
+        try
+        {
+            using var repo = ModulePulumiLocalPolicySecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Delete(Context.Id, OrganizationId);
+
+            await OnDelete.InvokeAsync();
+            Snackbar.Add("Policy deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "deleting policy");
+        }
+    }
+
+    private async Task CreateItem()
+    {
+        try
+        {
+            using var repo = ModulePulumiLocalPolicySecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Create(Context);
+            await OnCreate.InvokeAsync();
+            Snackbar.Add("Policy created successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "creating policy");
+        }
+    }
+
+    private async Task UpdateItem()
+    {
+        try
+        {
+            using var repo = ModulePulumiLocalPolicySecuredRepositoryFactory.Create(PrincipalProvider);
+            await repo.Update(Context);
+            SetOriginal();
+            await OnUpdate.InvokeAsync();
+            Snackbar.Add("Policy updated successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            ExceptionHandler.HandleException(Snackbar, ex, "updating policy");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+}

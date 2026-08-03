@@ -10290,6 +10290,1170 @@ paths:
         - Namespace.Contributor
         - Namespace.Owner
         - Module.Owner
+  /api/{organizationId}/ModulePulumiInlinePolicy/{moduleId}/{name}:
+    get:
+      tags:
+      - ModulePulumiInlinePolicy
+      summary: Get a single ModulePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModulePulumiInlinePolicy:
+    post:
+      tags:
+      - ModulePulumiInlinePolicy
+      summary: Create a new ModulePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModulePulumiInlinePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiInlinePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiInlinePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiInlinePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModulePulumiInlinePolicy
+      summary: List all ModulePulumiInlinePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModulePulumiInlinePolicy/{id}:
+    get:
+      tags:
+      - ModulePulumiInlinePolicy
+      summary: Get a single ModulePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModulePulumiInlinePolicy
+      summary: Update an existing ModulePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModulePulumiInlinePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiInlinePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiInlinePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiInlinePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModulePulumiInlinePolicy
+      summary: Delete a ModulePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModulePulumiLocalPolicy/{moduleId}/{name}:
+    get:
+      tags:
+      - ModulePulumiLocalPolicy
+      summary: Get a single ModulePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModulePulumiLocalPolicy:
+    post:
+      tags:
+      - ModulePulumiLocalPolicy
+      summary: Create a new ModulePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModulePulumiLocalPolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiLocalPolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiLocalPolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiLocalPolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModulePulumiLocalPolicy
+      summary: List all ModulePulumiLocalPolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModulePulumiLocalPolicy/{id}:
+    get:
+      tags:
+      - ModulePulumiLocalPolicy
+      summary: Get a single ModulePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModulePulumiLocalPolicy
+      summary: Update an existing ModulePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModulePulumiLocalPolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiLocalPolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiLocalPolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiLocalPolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModulePulumiLocalPolicy
+      summary: Delete a ModulePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModulePulumiRemotePolicy/{moduleId}/{name}:
+    get:
+      tags:
+      - ModulePulumiRemotePolicy
+      summary: Get a single ModulePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModulePulumiRemotePolicy:
+    post:
+      tags:
+      - ModulePulumiRemotePolicy
+      summary: Create a new ModulePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModulePulumiRemotePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiRemotePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiRemotePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiRemotePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModulePulumiRemotePolicy
+      summary: List all ModulePulumiRemotePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModulePulumiRemotePolicy/{id}:
+    get:
+      tags:
+      - ModulePulumiRemotePolicy
+      summary: Get a single ModulePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModulePulumiRemotePolicy
+      summary: Update an existing ModulePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModulePulumiRemotePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiRemotePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiRemotePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModulePulumiRemotePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModulePulumiRemotePolicy
+      summary: Delete a ModulePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModulePulumiRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
   /api/{organizationId}/ModuleRoleAssignment:
     post:
       tags:
@@ -11197,6 +12361,1170 @@ paths:
       - name: id
         in: path
         description: ModuleTerraformFlag ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModuleTerraformInlinePolicy/{moduleId}/{name}:
+    get:
+      tags:
+      - ModuleTerraformInlinePolicy
+      summary: Get a single ModuleTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleTerraformInlinePolicy:
+    post:
+      tags:
+      - ModuleTerraformInlinePolicy
+      summary: Create a new ModuleTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModuleTerraformInlinePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformInlinePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformInlinePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformInlinePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModuleTerraformInlinePolicy
+      summary: List all ModuleTerraformInlinePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleTerraformInlinePolicy/{id}:
+    get:
+      tags:
+      - ModuleTerraformInlinePolicy
+      summary: Get a single ModuleTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModuleTerraformInlinePolicy
+      summary: Update an existing ModuleTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModuleTerraformInlinePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformInlinePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformInlinePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformInlinePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModuleTerraformInlinePolicy
+      summary: Delete a ModuleTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModuleTerraformLocalPolicy/{moduleId}/{name}:
+    get:
+      tags:
+      - ModuleTerraformLocalPolicy
+      summary: Get a single ModuleTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleTerraformLocalPolicy:
+    post:
+      tags:
+      - ModuleTerraformLocalPolicy
+      summary: Create a new ModuleTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModuleTerraformLocalPolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformLocalPolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformLocalPolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformLocalPolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModuleTerraformLocalPolicy
+      summary: List all ModuleTerraformLocalPolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleTerraformLocalPolicy/{id}:
+    get:
+      tags:
+      - ModuleTerraformLocalPolicy
+      summary: Get a single ModuleTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModuleTerraformLocalPolicy
+      summary: Update an existing ModuleTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModuleTerraformLocalPolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformLocalPolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformLocalPolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformLocalPolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModuleTerraformLocalPolicy
+      summary: Delete a ModuleTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+  /api/{organizationId}/ModuleTerraformRemotePolicy/{moduleId}/{name}:
+    get:
+      tags:
+      - ModuleTerraformRemotePolicy
+      summary: Get a single ModuleTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleTerraformRemotePolicy:
+    post:
+      tags:
+      - ModuleTerraformRemotePolicy
+      summary: Create a new ModuleTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The ModuleTerraformRemotePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformRemotePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformRemotePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformRemotePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    get:
+      tags:
+      - ModuleTerraformRemotePolicy
+      summary: List all ModuleTerraformRemotePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/ModuleTerraformRemotePolicy/{id}:
+    get:
+      tags:
+      - ModuleTerraformRemotePolicy
+      summary: Get a single ModuleTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+    put:
+      tags:
+      - ModuleTerraformRemotePolicy
+      summary: Update an existing ModuleTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new ModuleTerraformRemotePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformRemotePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformRemotePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ModuleTerraformRemotePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Owner
+    delete:
+      tags:
+      - ModuleTerraformRemotePolicy
+      summary: Delete a ModuleTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ModuleTerraformRemotePolicy ID
         required: true
         schema:
           type: string
@@ -15119,6 +17447,1116 @@ paths:
         - Stack.Owner
         - Namespace.Contributor
         - Namespace.Owner
+  /api/{organizationId}/NamespacePulumiInlinePolicy/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespacePulumiInlinePolicy
+      summary: Get a single NamespacePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespacePulumiInlinePolicy:
+    post:
+      tags:
+      - NamespacePulumiInlinePolicy
+      summary: Create a new NamespacePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespacePulumiInlinePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiInlinePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiInlinePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiInlinePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    get:
+      tags:
+      - NamespacePulumiInlinePolicy
+      summary: List all NamespacePulumiInlinePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespacePulumiInlinePolicy/{id}:
+    get:
+      tags:
+      - NamespacePulumiInlinePolicy
+      summary: Get a single NamespacePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespacePulumiInlinePolicy
+      summary: Update an existing NamespacePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespacePulumiInlinePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiInlinePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiInlinePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiInlinePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespacePulumiInlinePolicy
+      summary: Delete a NamespacePulumiInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+  /api/{organizationId}/NamespacePulumiLocalPolicy/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespacePulumiLocalPolicy
+      summary: Get a single NamespacePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespacePulumiLocalPolicy:
+    post:
+      tags:
+      - NamespacePulumiLocalPolicy
+      summary: Create a new NamespacePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespacePulumiLocalPolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiLocalPolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiLocalPolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiLocalPolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    get:
+      tags:
+      - NamespacePulumiLocalPolicy
+      summary: List all NamespacePulumiLocalPolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespacePulumiLocalPolicy/{id}:
+    get:
+      tags:
+      - NamespacePulumiLocalPolicy
+      summary: Get a single NamespacePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespacePulumiLocalPolicy
+      summary: Update an existing NamespacePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespacePulumiLocalPolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiLocalPolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiLocalPolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiLocalPolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespacePulumiLocalPolicy
+      summary: Delete a NamespacePulumiLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+  /api/{organizationId}/NamespacePulumiRemotePolicy/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespacePulumiRemotePolicy
+      summary: Get a single NamespacePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespacePulumiRemotePolicy:
+    post:
+      tags:
+      - NamespacePulumiRemotePolicy
+      summary: Create a new NamespacePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespacePulumiRemotePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiRemotePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiRemotePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiRemotePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    get:
+      tags:
+      - NamespacePulumiRemotePolicy
+      summary: List all NamespacePulumiRemotePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespacePulumiRemotePolicy/{id}:
+    get:
+      tags:
+      - NamespacePulumiRemotePolicy
+      summary: Get a single NamespacePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespacePulumiRemotePolicy
+      summary: Update an existing NamespacePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespacePulumiRemotePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiRemotePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiRemotePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespacePulumiRemotePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespacePulumiRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespacePulumiRemotePolicy
+      summary: Delete a NamespacePulumiRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespacePulumiRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
   /api/{organizationId}/NamespaceRoleAssignment:
     post:
       tags:
@@ -15979,6 +19417,1116 @@ paths:
       - name: id
         in: path
         description: NamespaceTerraformFlag ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+  /api/{organizationId}/NamespaceTerraformInlinePolicy/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespaceTerraformInlinePolicy
+      summary: Get a single NamespaceTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceTerraformInlinePolicy:
+    post:
+      tags:
+      - NamespaceTerraformInlinePolicy
+      summary: Create a new NamespaceTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespaceTerraformInlinePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformInlinePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformInlinePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformInlinePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    get:
+      tags:
+      - NamespaceTerraformInlinePolicy
+      summary: List all NamespaceTerraformInlinePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceTerraformInlinePolicy/{id}:
+    get:
+      tags:
+      - NamespaceTerraformInlinePolicy
+      summary: Get a single NamespaceTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespaceTerraformInlinePolicy
+      summary: Update an existing NamespaceTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespaceTerraformInlinePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformInlinePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformInlinePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformInlinePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformInlinePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespaceTerraformInlinePolicy
+      summary: Delete a NamespaceTerraformInlinePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformInlinePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+  /api/{organizationId}/NamespaceTerraformLocalPolicy/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespaceTerraformLocalPolicy
+      summary: Get a single NamespaceTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceTerraformLocalPolicy:
+    post:
+      tags:
+      - NamespaceTerraformLocalPolicy
+      summary: Create a new NamespaceTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespaceTerraformLocalPolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformLocalPolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformLocalPolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformLocalPolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    get:
+      tags:
+      - NamespaceTerraformLocalPolicy
+      summary: List all NamespaceTerraformLocalPolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceTerraformLocalPolicy/{id}:
+    get:
+      tags:
+      - NamespaceTerraformLocalPolicy
+      summary: Get a single NamespaceTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespaceTerraformLocalPolicy
+      summary: Update an existing NamespaceTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespaceTerraformLocalPolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformLocalPolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformLocalPolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformLocalPolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformLocalPolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespaceTerraformLocalPolicy
+      summary: Delete a NamespaceTerraformLocalPolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformLocalPolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Delete
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+  /api/{organizationId}/NamespaceTerraformRemotePolicy/{namespaceId}/{name}:
+    get:
+      tags:
+      - NamespaceTerraformRemotePolicy
+      summary: Get a single NamespaceTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceTerraformRemotePolicy:
+    post:
+      tags:
+      - NamespaceTerraformRemotePolicy
+      summary: Create a new NamespaceTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The NamespaceTerraformRemotePolicy to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformRemotePolicyCreateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformRemotePolicyCreateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformRemotePolicyCreateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Create
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    get:
+      tags:
+      - NamespaceTerraformRemotePolicy
+      summary: List all NamespaceTerraformRemotePolicies
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/NamespaceTerraformRemotePolicy/{id}:
+    get:
+      tags:
+      - NamespaceTerraformRemotePolicy
+      summary: Get a single NamespaceTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+    put:
+      tags:
+      - NamespaceTerraformRemotePolicy
+      summary: Update an existing NamespaceTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformRemotePolicy ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        description: The new NamespaceTerraformRemotePolicy values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformRemotePolicyUpdateDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformRemotePolicyUpdateDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/NamespaceTerraformRemotePolicyUpdateDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceTerraformRemotePolicyReadDto'
+      x-snapcd-permissions:
+        verb: Update
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+    delete:
+      tags:
+      - NamespaceTerraformRemotePolicy
+      summary: Delete a NamespaceTerraformRemotePolicy
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: NamespaceTerraformRemotePolicy ID
         required: true
         schema:
           type: string
@@ -24718,6 +29266,270 @@ components:
           description: ID of the parent Module.
           format: uuid
       description: DTO for updating an existing ModulePulumiFlag (PUT operations).
+    ModulePulumiInlinePolicyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        policyContent:
+          type: string
+          description: Inline CrossGuard policy module (the pack's entry file, e.g. `__main__.py` defining a `PolicyPack`).
+            The Runner synthesizes the surrounding pack scaffold. Policies declare `mandatory` (blocks the job) or `advisory`
+            (warns and continues) enforcement in the pack itself.
+        runtime:
+          description: Language runtime of the policy pack. Determines the scaffold the Runner synthesizes around the policy
+            content.
+          $ref: '#/components/schemas/PulumiPolicyRuntime'
+        additionalDependencies:
+          type:
+          - 'null'
+          - string
+          description: Optional extra package dependencies required by the policy content, one per line (requirements.txt
+            semantics), installed after the pinned policy SDK. Runners configured for operator-managed environments reject
+            entities that set this.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new ModulePulumiInlinePolicy (POST operations).
+    ModulePulumiInlinePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the ModulePulumiInlinePolicy.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        policyContent:
+          type: string
+          description: Inline CrossGuard policy module (the pack's entry file, e.g. `__main__.py` defining a `PolicyPack`).
+            The Runner synthesizes the surrounding pack scaffold. Policies declare `mandatory` (blocks the job) or `advisory`
+            (warns and continues) enforcement in the pack itself.
+        runtime:
+          description: Language runtime of the policy pack. Determines the scaffold the Runner synthesizes around the policy
+            content.
+          $ref: '#/components/schemas/PulumiPolicyRuntime'
+        additionalDependencies:
+          type:
+          - 'null'
+          - string
+          description: Optional extra package dependencies required by the policy content, one per line (requirements.txt
+            semantics), installed after the pinned policy SDK. Runners configured for operator-managed environments reject
+            entities that set this.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a ModulePulumiInlinePolicy (GET operations).
+    ModulePulumiInlinePolicyUpdateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        policyContent:
+          type: string
+          description: Inline CrossGuard policy module (the pack's entry file, e.g. `__main__.py` defining a `PolicyPack`).
+            The Runner synthesizes the surrounding pack scaffold. Policies declare `mandatory` (blocks the job) or `advisory`
+            (warns and continues) enforcement in the pack itself.
+        runtime:
+          description: Language runtime of the policy pack. Determines the scaffold the Runner synthesizes around the policy
+            content.
+          $ref: '#/components/schemas/PulumiPolicyRuntime'
+        additionalDependencies:
+          type:
+          - 'null'
+          - string
+          description: Optional extra package dependencies required by the policy content, one per line (requirements.txt
+            semantics), installed after the pinned policy SDK. Runners configured for operator-managed environments reject
+            entities that set this.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing ModulePulumiInlinePolicy (PUT operations).
+    ModulePulumiLocalPolicyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the CrossGuard policy pack. Operator-managed: the
+            contents at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new ModulePulumiLocalPolicy (POST operations).
+    ModulePulumiLocalPolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the ModulePulumiLocalPolicy.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the CrossGuard policy pack. Operator-managed: the
+            contents at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a ModulePulumiLocalPolicy (GET operations).
+    ModulePulumiLocalPolicyUpdateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the CrossGuard policy pack. Operator-managed: the
+            contents at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing ModulePulumiLocalPolicy (PUT operations).
+    ModulePulumiRemotePolicyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the CrossGuard policy pack.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy pack.
+        path:
+          type: string
+          description: Repo-root-relative directory of the policy pack within the repository. Empty means the repository root.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new ModulePulumiRemotePolicy (POST operations).
+    ModulePulumiRemotePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the ModulePulumiRemotePolicy.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the CrossGuard policy pack.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy pack.
+        path:
+          type: string
+          description: Repo-root-relative directory of the policy pack within the repository. Empty means the repository root.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a ModulePulumiRemotePolicy (GET operations).
+    ModulePulumiRemotePolicyUpdateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the CrossGuard policy pack.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy pack.
+        path:
+          type: string
+          description: Repo-root-relative directory of the policy pack within the repository. Empty means the repository root.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing ModulePulumiRemotePolicy (PUT operations).
     ModuleReadDto:
       type: object
       properties:
@@ -25184,6 +29996,240 @@ components:
           description: ID of the parent Module.
           format: uuid
       description: DTO for updating an existing ModuleTerraformFlag (PUT operations).
+    ModuleTerraformInlinePolicyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        policyContent:
+          type: string
+          description: 'Inline OPA/Rego policy document evaluated with conftest against the JSON export of the plan. Severity
+            is carried by rule names: `deny`/`violation` rules block the job, `warn` rules log a warning and continue. Any
+            package name is accepted (all namespaces are evaluated).'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new ModuleTerraformInlinePolicy (POST operations).
+    ModuleTerraformInlinePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the ModuleTerraformInlinePolicy.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        policyContent:
+          type: string
+          description: 'Inline OPA/Rego policy document evaluated with conftest against the JSON export of the plan. Severity
+            is carried by rule names: `deny`/`violation` rules block the job, `warn` rules log a warning and continue. Any
+            package name is accepted (all namespaces are evaluated).'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a ModuleTerraformInlinePolicy (GET operations).
+    ModuleTerraformInlinePolicyUpdateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        policyContent:
+          type: string
+          description: 'Inline OPA/Rego policy document evaluated with conftest against the JSON export of the plan. Severity
+            is carried by rule names: `deny`/`violation` rules block the job, `warn` rules log a warning and continue. Any
+            package name is accepted (all namespaces are evaluated).'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing ModuleTerraformInlinePolicy (PUT operations).
+    ModuleTerraformLocalPolicyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the policy bundle. Operator-managed: the contents
+            at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new ModuleTerraformLocalPolicy (POST operations).
+    ModuleTerraformLocalPolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the ModuleTerraformLocalPolicy.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the policy bundle. Operator-managed: the contents
+            at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a ModuleTerraformLocalPolicy (GET operations).
+    ModuleTerraformLocalPolicyUpdateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the policy bundle. Operator-managed: the contents
+            at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing ModuleTerraformLocalPolicy (PUT operations).
+    ModuleTerraformRemotePolicyCreateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the policy bundle.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy set.
+        path:
+          type: string
+          description: 'Repo-root-relative directory of the policy bundle within the repository. Empty means the repository
+            root. The whole tree is evaluated as one bundle: files may share helper packages and ship their own tests.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new ModuleTerraformRemotePolicy (POST operations).
+    ModuleTerraformRemotePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the ModuleTerraformRemotePolicy.
+          format: uuid
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the policy bundle.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy set.
+        path:
+          type: string
+          description: 'Repo-root-relative directory of the policy bundle within the repository. Empty means the repository
+            root. The whole tree is evaluated as one bundle: files may share helper packages and ship their own tests.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a ModuleTerraformRemotePolicy (GET operations).
+    ModuleTerraformRemotePolicyUpdateDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: ID of the policy's parent Module.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `module_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the policy bundle.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy set.
+        path:
+          type: string
+          description: 'Repo-root-relative directory of the policy bundle within the repository. Empty means the repository
+            root. The whole tree is evaluated as one bundle: files may share helper packages and ship their own tests.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing ModuleTerraformRemotePolicy (PUT operations).
     ModuleUpdateDto:
       type: object
       properties:
@@ -26190,6 +31236,270 @@ components:
           description: ID of the parent Namespace.
           format: uuid
       description: DTO for updating an existing NamespacePulumiFlag (PUT operations).
+    NamespacePulumiInlinePolicyCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        policyContent:
+          type: string
+          description: Inline CrossGuard policy module (the pack's entry file, e.g. `__main__.py` defining a `PolicyPack`).
+            The Runner synthesizes the surrounding pack scaffold. Policies declare `mandatory` (blocks the job) or `advisory`
+            (warns and continues) enforcement in the pack itself.
+        runtime:
+          description: Language runtime of the policy pack. Determines the scaffold the Runner synthesizes around the policy
+            content.
+          $ref: '#/components/schemas/PulumiPolicyRuntime'
+        additionalDependencies:
+          type:
+          - 'null'
+          - string
+          description: Optional extra package dependencies required by the policy content, one per line (requirements.txt
+            semantics), installed after the pinned policy SDK. Runners configured for operator-managed environments reject
+            entities that set this.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new NamespacePulumiInlinePolicy (POST operations).
+    NamespacePulumiInlinePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the NamespacePulumiInlinePolicy.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        policyContent:
+          type: string
+          description: Inline CrossGuard policy module (the pack's entry file, e.g. `__main__.py` defining a `PolicyPack`).
+            The Runner synthesizes the surrounding pack scaffold. Policies declare `mandatory` (blocks the job) or `advisory`
+            (warns and continues) enforcement in the pack itself.
+        runtime:
+          description: Language runtime of the policy pack. Determines the scaffold the Runner synthesizes around the policy
+            content.
+          $ref: '#/components/schemas/PulumiPolicyRuntime'
+        additionalDependencies:
+          type:
+          - 'null'
+          - string
+          description: Optional extra package dependencies required by the policy content, one per line (requirements.txt
+            semantics), installed after the pinned policy SDK. Runners configured for operator-managed environments reject
+            entities that set this.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a NamespacePulumiInlinePolicy (GET operations).
+    NamespacePulumiInlinePolicyUpdateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        policyContent:
+          type: string
+          description: Inline CrossGuard policy module (the pack's entry file, e.g. `__main__.py` defining a `PolicyPack`).
+            The Runner synthesizes the surrounding pack scaffold. Policies declare `mandatory` (blocks the job) or `advisory`
+            (warns and continues) enforcement in the pack itself.
+        runtime:
+          description: Language runtime of the policy pack. Determines the scaffold the Runner synthesizes around the policy
+            content.
+          $ref: '#/components/schemas/PulumiPolicyRuntime'
+        additionalDependencies:
+          type:
+          - 'null'
+          - string
+          description: Optional extra package dependencies required by the policy content, one per line (requirements.txt
+            semantics), installed after the pinned policy SDK. Runners configured for operator-managed environments reject
+            entities that set this.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing NamespacePulumiInlinePolicy (PUT operations).
+    NamespacePulumiLocalPolicyCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the CrossGuard policy pack. Operator-managed: the
+            contents at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new NamespacePulumiLocalPolicy (POST operations).
+    NamespacePulumiLocalPolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the NamespacePulumiLocalPolicy.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the CrossGuard policy pack. Operator-managed: the
+            contents at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a NamespacePulumiLocalPolicy (GET operations).
+    NamespacePulumiLocalPolicyUpdateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the CrossGuard policy pack. Operator-managed: the
+            contents at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing NamespacePulumiLocalPolicy (PUT operations).
+    NamespacePulumiRemotePolicyCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the CrossGuard policy pack.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy pack.
+        path:
+          type: string
+          description: Repo-root-relative directory of the policy pack within the repository. Empty means the repository root.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new NamespacePulumiRemotePolicy (POST operations).
+    NamespacePulumiRemotePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the NamespacePulumiRemotePolicy.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the CrossGuard policy pack.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy pack.
+        path:
+          type: string
+          description: Repo-root-relative directory of the policy pack within the repository. Empty means the repository root.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a NamespacePulumiRemotePolicy (GET operations).
+    NamespacePulumiRemotePolicyUpdateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the CrossGuard policy pack.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy pack.
+        path:
+          type: string
+          description: Repo-root-relative directory of the policy pack within the repository. Empty means the repository root.
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing NamespacePulumiRemotePolicy (PUT operations).
     NamespaceReadDto:
       type: object
       properties:
@@ -26499,6 +31809,240 @@ components:
           description: ID of the parent Namespace.
           format: uuid
       description: DTO for updating an existing NamespaceTerraformFlag (PUT operations).
+    NamespaceTerraformInlinePolicyCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        policyContent:
+          type: string
+          description: 'Inline OPA/Rego policy document evaluated with conftest against the JSON export of the plan. Severity
+            is carried by rule names: `deny`/`violation` rules block the job, `warn` rules log a warning and continue. Any
+            package name is accepted (all namespaces are evaluated).'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new NamespaceTerraformInlinePolicy (POST operations).
+    NamespaceTerraformInlinePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the NamespaceTerraformInlinePolicy.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        policyContent:
+          type: string
+          description: 'Inline OPA/Rego policy document evaluated with conftest against the JSON export of the plan. Severity
+            is carried by rule names: `deny`/`violation` rules block the job, `warn` rules log a warning and continue. Any
+            package name is accepted (all namespaces are evaluated).'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a NamespaceTerraformInlinePolicy (GET operations).
+    NamespaceTerraformInlinePolicyUpdateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        policyContent:
+          type: string
+          description: 'Inline OPA/Rego policy document evaluated with conftest against the JSON export of the plan. Severity
+            is carried by rule names: `deny`/`violation` rules block the job, `warn` rules log a warning and continue. Any
+            package name is accepted (all namespaces are evaluated).'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing NamespaceTerraformInlinePolicy (PUT operations).
+    NamespaceTerraformLocalPolicyCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the policy bundle. Operator-managed: the contents
+            at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new NamespaceTerraformLocalPolicy (POST operations).
+    NamespaceTerraformLocalPolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the NamespaceTerraformLocalPolicy.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the policy bundle. Operator-managed: the contents
+            at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a NamespaceTerraformLocalPolicy (GET operations).
+    NamespaceTerraformLocalPolicyUpdateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        path:
+          type: string
+          description: 'Absolute directory path on the Runner host holding the policy bundle. Operator-managed: the contents
+            at evaluation time are whatever the folder holds — there is no revision pinning.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing NamespaceTerraformLocalPolicy (PUT operations).
+    NamespaceTerraformRemotePolicyCreateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the policy bundle.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy set.
+        path:
+          type: string
+          description: 'Repo-root-relative directory of the policy bundle within the repository. Empty means the repository
+            root. The whole tree is evaluated as one bundle: files may share helper packages and ship their own tests.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for creating a new NamespaceTerraformRemotePolicy (POST operations).
+    NamespaceTerraformRemotePolicyReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the NamespaceTerraformRemotePolicy.
+          format: uuid
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the policy bundle.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy set.
+        path:
+          type: string
+          description: 'Repo-root-relative directory of the policy bundle within the repository. Empty means the repository
+            root. The whole tree is evaluated as one bundle: files may share helper packages and ship their own tests.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for reading a NamespaceTerraformRemotePolicy (GET operations).
+    NamespaceTerraformRemotePolicyUpdateDto:
+      type: object
+      properties:
+        namespaceId:
+          type: string
+          description: ID of the policy's parent Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Human-readable policy name. Must be unique in combination with `namespace_id`.
+        repoUrl:
+          type: string
+          description: URL of the git repository holding the policy bundle.
+        revision:
+          type: string
+          description: Git revision (tag, branch or commit SHA) to evaluate. The revision is resolved at job dispatch, pinning
+            the evaluated policy set.
+        path:
+          type: string
+          description: 'Repo-root-relative directory of the policy bundle within the repository. Empty means the repository
+            root. The whole tree is evaluated as one bundle: files may share helper packages and ship their own tests.'
+        enabled:
+          type: boolean
+          description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
+            deleting it.
+        evaluateOn:
+          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
+          $ref: '#/components/schemas/PolicyEvaluateOn'
+      description: DTO for updating an existing NamespaceTerraformRemotePolicy (PUT operations).
     NamespaceTriggerBehaviour:
       enum:
       - DoNotTrigger
@@ -26823,6 +32367,11 @@ components:
           description: Name of the Role that is assigned.
           $ref: '#/components/schemas/OrganizationRole'
       description: DTO for updating an existing OrganizationRoleAssignment (PUT operations).
+    PolicyEvaluateOn:
+      enum:
+      - ApplyAndDestroy
+      - ApplyOnly
+      - DestroyOnly
     PrincipalDiscriminator:
       enum:
       - User
@@ -26889,6 +32438,10 @@ components:
       - Color
       - Verbose
       - Emoji
+    PulumiPolicyRuntime:
+      enum:
+      - Python
+      - NodeJS
     RoleAssignmentPrincipalDiscriminator:
       enum:
       - Base
@@ -27967,9 +33520,15 @@ tags:
 - name: ModuleMission
 - name: ModulePulumiArrayFlag
 - name: ModulePulumiFlag
+- name: ModulePulumiInlinePolicy
+- name: ModulePulumiLocalPolicy
+- name: ModulePulumiRemotePolicy
 - name: ModuleRoleAssignment
 - name: ModuleTerraformArrayFlag
 - name: ModuleTerraformFlag
+- name: ModuleTerraformInlinePolicy
+- name: ModuleTerraformLocalPolicy
+- name: ModuleTerraformRemotePolicy
 - name: NamespaceAdditionalTriggerPath
 - name: Namespace
 - name: NamespaceExtraFile
@@ -27981,9 +33540,15 @@ tags:
 - name: NamespaceMission
 - name: NamespacePulumiArrayFlag
 - name: NamespacePulumiFlag
+- name: NamespacePulumiInlinePolicy
+- name: NamespacePulumiLocalPolicy
+- name: NamespacePulumiRemotePolicy
 - name: NamespaceRoleAssignment
 - name: NamespaceTerraformArrayFlag
 - name: NamespaceTerraformFlag
+- name: NamespaceTerraformInlinePolicy
+- name: NamespaceTerraformLocalPolicy
+- name: NamespaceTerraformRemotePolicy
 - name: OrganizationIntegrationEvent
 - name: OrganizationMission
 - name: OrganizationRoleAssignment
@@ -28008,8 +33573,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 374
+  documented: 446
   skipped: 15
 x-snapcd-schema-doc-coverage:
-  documented: 953
+  documented: 1175
   missing: 0

@@ -29,6 +29,19 @@ public enum DesiredStateHeadline
     Destroyed
 }
 
+public enum PolicyEvaluateOn
+{
+    ApplyAndDestroy,
+    ApplyOnly,
+    DestroyOnly
+}
+
+public enum PulumiPolicyRuntime
+{
+    Python,
+    NodeJS
+}
+
 public enum SourceType
 {
     Git,

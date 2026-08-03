@@ -180,6 +180,52 @@
                 </MudExpansionPanels>
             </MudItem>
 
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Policies"
+                                       ExpandedChanged="async (expanded) => { if (expanded) { await _terraformInlinePoliciesRef.InitializeItems(); await _terraformRemotePoliciesRef.InitializeItems(); await _terraformLocalPoliciesRef.InitializeItems(); await _pulumiInlinePoliciesRef.InitializeItems(); await _pulumiRemotePoliciesRef.InitializeItems(); await _pulumiLocalPoliciesRef.InitializeItems(); } }">
+                        <MudTabs Elevation="0" ApplyEffectsToContainer="true" PanelClass="pt-4">
+                            <MudTabPanel Text="Terraform Inline">
+                                <EditNamespaceTerraformInlinePoliciesList Title="Terraform Inline Policies"
+                                        NamespaceId="Namespace.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_terraformInlinePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Terraform Remote">
+                                <EditNamespaceTerraformRemotePoliciesList Title="Terraform Remote Policies"
+                                        NamespaceId="Namespace.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_terraformRemotePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Terraform Local">
+                                <EditNamespaceTerraformLocalPoliciesList Title="Terraform Local Policies"
+                                        NamespaceId="Namespace.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_terraformLocalPoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Pulumi Inline">
+                                <EditNamespacePulumiInlinePoliciesList Title="Pulumi Inline Policies"
+                                        NamespaceId="Namespace.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_pulumiInlinePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Pulumi Remote">
+                                <EditNamespacePulumiRemotePoliciesList Title="Pulumi Remote Policies"
+                                        NamespaceId="Namespace.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_pulumiRemotePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Pulumi Local">
+                                <EditNamespacePulumiLocalPoliciesList Title="Pulumi Local Policies"
+                                        NamespaceId="Namespace.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_pulumiLocalPoliciesRef"/>
+                            </MudTabPanel>
+                        </MudTabs>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
             <!-- Inputs Section -->
             <MudItem md="12">
                 <MudExpansionPanels>
@@ -299,6 +345,12 @@
 
     private EditNamespaceExtraFilesList? _extraFilesRef;
     private EditNamespaceAdditionalTriggerPathsList? _additionalTriggerPathsRef;
+    private EditNamespaceTerraformInlinePoliciesList _terraformInlinePoliciesRef = new();
+    private EditNamespaceTerraformRemotePoliciesList _terraformRemotePoliciesRef = new();
+    private EditNamespaceTerraformLocalPoliciesList _terraformLocalPoliciesRef = new();
+    private EditNamespacePulumiInlinePoliciesList _pulumiInlinePoliciesRef = new();
+    private EditNamespacePulumiRemotePoliciesList _pulumiRemotePoliciesRef = new();
+    private EditNamespacePulumiLocalPoliciesList _pulumiLocalPoliciesRef = new();
     private EditNamespaceHooksList? _hooksRef;
     private EditNamespaceTerraformFlagsList? _terraformFlagsRef;
     private EditNamespaceTerraformArrayFlagsList? _terraformArrayFlagsRef;

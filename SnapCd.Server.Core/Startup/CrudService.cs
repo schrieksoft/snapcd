@@ -89,6 +89,18 @@ public static class CrudService
         services.AddScoped<NamespaceExtraFileService>();
         services.AddScoped<ModuleAdditionalTriggerPathService>();
         services.AddScoped<NamespaceAdditionalTriggerPathService>();
+        services.AddScoped<ModuleTerraformInlinePolicyService>();
+        services.AddScoped<ModuleTerraformRemotePolicyService>();
+        services.AddScoped<ModuleTerraformLocalPolicyService>();
+        services.AddScoped<ModulePulumiInlinePolicyService>();
+        services.AddScoped<ModulePulumiRemotePolicyService>();
+        services.AddScoped<ModulePulumiLocalPolicyService>();
+        services.AddScoped<NamespaceTerraformInlinePolicyService>();
+        services.AddScoped<NamespaceTerraformRemotePolicyService>();
+        services.AddScoped<NamespaceTerraformLocalPolicyService>();
+        services.AddScoped<NamespacePulumiInlinePolicyService>();
+        services.AddScoped<NamespacePulumiRemotePolicyService>();
+        services.AddScoped<NamespacePulumiLocalPolicyService>();
         services.AddScoped<ModulePulumiFlagService>();
         services.AddScoped<ModulePulumiArrayFlagService>();
         services.AddScoped<NamespacePulumiFlagService>();

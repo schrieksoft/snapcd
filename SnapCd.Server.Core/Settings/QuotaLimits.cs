@@ -39,6 +39,18 @@ public class QuotaLimits
     public int? NamespaceExtraFileQuota { get; set; }
     public int? ModuleAdditionalTriggerPathQuota { get; set; }
     public int? NamespaceAdditionalTriggerPathQuota { get; set; }
+    public int? ModuleTerraformInlinePolicyQuota { get; set; }
+    public int? ModuleTerraformRemotePolicyQuota { get; set; }
+    public int? ModuleTerraformLocalPolicyQuota { get; set; }
+    public int? ModulePulumiInlinePolicyQuota { get; set; }
+    public int? ModulePulumiRemotePolicyQuota { get; set; }
+    public int? ModulePulumiLocalPolicyQuota { get; set; }
+    public int? NamespaceTerraformInlinePolicyQuota { get; set; }
+    public int? NamespaceTerraformRemotePolicyQuota { get; set; }
+    public int? NamespaceTerraformLocalPolicyQuota { get; set; }
+    public int? NamespacePulumiInlinePolicyQuota { get; set; }
+    public int? NamespacePulumiRemotePolicyQuota { get; set; }
+    public int? NamespacePulumiLocalPolicyQuota { get; set; }
     public int? ModuleBackendConfigQuota { get; set; }
     public int? NamespaceBackendConfigQuota { get; set; }
     public int? ModulePulumiFlagQuota { get; set; }

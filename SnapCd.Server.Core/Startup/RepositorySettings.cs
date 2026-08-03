@@ -43,6 +43,18 @@ public static class RepositorySettings
         services.Configure<ModuleExtraFileRepositorySettings>(configuration.GetSection("Repositories:ModuleExtraFile"));
         services.Configure<ModuleAdditionalTriggerPathRepositorySettings>(configuration.GetSection("Repositories:ModuleAdditionalTriggerPath"));
         services.Configure<NamespaceAdditionalTriggerPathRepositorySettings>(configuration.GetSection("Repositories:NamespaceAdditionalTriggerPath"));
+        services.Configure<ModuleTerraformInlinePolicyRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformInlinePolicy"));
+        services.Configure<ModuleTerraformRemotePolicyRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformRemotePolicy"));
+        services.Configure<ModuleTerraformLocalPolicyRepositorySettings>(configuration.GetSection("Repositories:ModuleTerraformLocalPolicy"));
+        services.Configure<ModulePulumiInlinePolicyRepositorySettings>(configuration.GetSection("Repositories:ModulePulumiInlinePolicy"));
+        services.Configure<ModulePulumiRemotePolicyRepositorySettings>(configuration.GetSection("Repositories:ModulePulumiRemotePolicy"));
+        services.Configure<ModulePulumiLocalPolicyRepositorySettings>(configuration.GetSection("Repositories:ModulePulumiLocalPolicy"));
+        services.Configure<NamespaceTerraformInlinePolicyRepositorySettings>(configuration.GetSection("Repositories:NamespaceTerraformInlinePolicy"));
+        services.Configure<NamespaceTerraformRemotePolicyRepositorySettings>(configuration.GetSection("Repositories:NamespaceTerraformRemotePolicy"));
+        services.Configure<NamespaceTerraformLocalPolicyRepositorySettings>(configuration.GetSection("Repositories:NamespaceTerraformLocalPolicy"));
+        services.Configure<NamespacePulumiInlinePolicyRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiInlinePolicy"));
+        services.Configure<NamespacePulumiRemotePolicyRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiRemotePolicy"));
+        services.Configure<NamespacePulumiLocalPolicyRepositorySettings>(configuration.GetSection("Repositories:NamespacePulumiLocalPolicy"));
         services.Configure<ModuleInputFromDefinitionRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromDefinition"));
         services.Configure<ModuleInputFromLiteralRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromLiteral"));
         services.Configure<ModuleInputFromNamespaceRepositorySettings>(configuration.GetSection("Repositories:ModuleInputFromNamespace"));

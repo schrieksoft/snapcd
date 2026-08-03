@@ -449,6 +449,52 @@
 
             <MudItem md="12">
                 <MudExpansionPanels>
+                    <MudExpansionPanel Text="Policies"
+                                       ExpandedChanged="async (expanded) => { if (expanded) { await _terraformInlinePoliciesRef.InitializeItems(); await _terraformRemotePoliciesRef.InitializeItems(); await _terraformLocalPoliciesRef.InitializeItems(); await _pulumiInlinePoliciesRef.InitializeItems(); await _pulumiRemotePoliciesRef.InitializeItems(); await _pulumiLocalPoliciesRef.InitializeItems(); } }">
+                        <MudTabs Elevation="0" ApplyEffectsToContainer="true" PanelClass="pt-4">
+                            <MudTabPanel Text="Terraform Inline">
+                                <EditModuleTerraformInlinePoliciesList Title="Terraform Inline Policies"
+                                        ModuleId="Module.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_terraformInlinePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Terraform Remote">
+                                <EditModuleTerraformRemotePoliciesList Title="Terraform Remote Policies"
+                                        ModuleId="Module.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_terraformRemotePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Terraform Local">
+                                <EditModuleTerraformLocalPoliciesList Title="Terraform Local Policies"
+                                        ModuleId="Module.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_terraformLocalPoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Pulumi Inline">
+                                <EditModulePulumiInlinePoliciesList Title="Pulumi Inline Policies"
+                                        ModuleId="Module.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_pulumiInlinePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Pulumi Remote">
+                                <EditModulePulumiRemotePoliciesList Title="Pulumi Remote Policies"
+                                        ModuleId="Module.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_pulumiRemotePoliciesRef"/>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Pulumi Local">
+                                <EditModulePulumiLocalPoliciesList Title="Pulumi Local Policies"
+                                        ModuleId="Module.Id"
+                                        PrincipalProvider="@PrincipalProvider"
+                                        @ref="_pulumiLocalPoliciesRef"/>
+                            </MudTabPanel>
+                        </MudTabs>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem md="12">
+                <MudExpansionPanels>
                     <MudExpansionPanel Text="Depends on Modules"
                                        ExpandedChanged="async (expanded) => { if (expanded) await _dependenciesRef.InitializeItems(); }">
                         <EditModuleDependenciesList Title="Depends on Modules"
@@ -513,6 +559,12 @@
 
     private EditModuleExtraFilesList _extraFilesRef = new();
     private EditModuleAdditionalTriggerPathsList _additionalTriggerPathsRef = new();
+    private EditModuleTerraformInlinePoliciesList _terraformInlinePoliciesRef = new();
+    private EditModuleTerraformRemotePoliciesList _terraformRemotePoliciesRef = new();
+    private EditModuleTerraformLocalPoliciesList _terraformLocalPoliciesRef = new();
+    private EditModulePulumiInlinePoliciesList _pulumiInlinePoliciesRef = new();
+    private EditModulePulumiRemotePoliciesList _pulumiRemotePoliciesRef = new();
+    private EditModulePulumiLocalPoliciesList _pulumiLocalPoliciesRef = new();
     private EditModuleHooksList _hooksRef = new();
     private EditModuleDependenciesList _dependenciesRef = new();
     private EditModuleTerraformFlagsList _terraformFlagsRef = new();

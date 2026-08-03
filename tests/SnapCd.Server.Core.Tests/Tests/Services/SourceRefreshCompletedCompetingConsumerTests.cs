@@ -43,7 +43,7 @@ public class SourceRefreshCompletedCompetingConsumerTests : IAsyncLifetime
         _sourceUrl = $"https://github.com/test/trigger-paths-{Guid.NewGuid():N}";
 
         await using var dbContext = _fixture.CreateDbContext();
-        _namespace = dbContext.Namespaces.First();
+        _namespace = dbContext.Namespaces.First(n => n.Id == _fixture.Namespaces["000"].Id);
         _runner = dbContext.Runners.First(r => r.OrganizationId == _namespace.OrganizationId);
 
         _filterOnModule = CreateModule("filter-on", filterEnabled: true, subdirectory: "modules/app-a");
