@@ -370,6 +370,49 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Pulumi_Only_Policies_Skip_PolicyValidate_Step()
+    {
+        // Pulumi policies are enforced inside the preview; the saga must take the fast path.
+        var pulumiPolicy = new ResolvedPolicy
+        {
+            Name = "pack1",
+            Scope = PolicyScope.Module,
+            Engine = PolicyEngine.Pulumi,
+            Kind = PolicySourceKind.Inline,
+            EvaluateOn = PolicyEvaluateOn.ApplyAndDestroy,
+            PolicyContent = "# pack"
+        };
+        var jobId = await SeedJob(destroy: false, state: "PlanPending", policies: [pulumiPolicy]);
+
+        await _harness.Bus.Publish(new PlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
+
+        var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
+        Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
+        Assert.False(await _harness.Published.Any<PolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
+    }
+
+    [Fact]
+    public async Task Pulumi_Destroy_PlanDestroyFaulted_HardDenied_Routes_To_PolicyDenied()
+    {
+        var jobId = await SeedJob(destroy: true, state: "PlanPending");
+
+        await _harness.Bus.Publish(new PlanDestroyFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "preview failed", PolicyOutcome = PolicyOutcome.HardDenied });
+
+        Assert.True(await _harness.Published.Any<DestroyModuleCancelled>(x =>
+            x.Context.Message.ModuleJobId == jobId && x.Context.Message.CancellationReason == CancellationReason.PolicyDenied));
+
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        ModuleJob job = await GetJob(jobId);
+        while (job.Status != ExecutionStatus.PolicyDenied && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(100);
+            job = await GetJob(jobId);
+        }
+        Assert.Equal(ExecutionStatus.PolicyDenied, job.Status);
+        Assert.Equal(ActualStateHeadline.DestroyPolicyDenied, job.ActualStateHeadline);
+    }
+
+    [Fact]
     public async Task Pulumi_PlanCompleted_SoftWarned_Persists_And_Continues()
     {
         var jobId = await SeedJob(destroy: false, state: "PlanPending");

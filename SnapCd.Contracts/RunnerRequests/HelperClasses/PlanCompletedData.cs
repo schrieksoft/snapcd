@@ -14,6 +14,9 @@ namespace SnapCd.Contracts.RunnerRequests.HelperClasses;
 /// </summary>
 public class PlanCompletedData
 {
+    /// <summary>Outcome of policies evaluated inside the plan step itself (Pulumi/CrossGuard); null when no policies were in scope.</summary>
+    public PolicyOutcome? PolicyOutcome { get; set; }
+
     // Resource counts
     public int TotalCountAfter { get; set; }
     public int TotalCountBefore { get; set; }

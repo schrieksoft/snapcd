@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 namespace SnapCd.Server.Core.Consumers.Tasks;
 
@@ -140,7 +141,8 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
                         .ToList(),
                     TerraformArrayFlags = msg.Declared.TerraformArrayFlags
                         .Where(f => f.Task == TerraformCommandTask.Plan)
-                        .ToList()
+                        .ToList(),
+                    Policies = PolicyApplicability.ForPlanStep(msg.Declared, msg.IsDestroyJob)
                 }
             );
 

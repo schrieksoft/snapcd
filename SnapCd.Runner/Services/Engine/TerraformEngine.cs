@@ -334,6 +334,13 @@ public class TerraformEngine : BaseEngine, IEngine
     }
 
     private string GetTfVarsPath() => $"{SnapCdDir}/inputs.tfvars";
+    public void SetPolicyPacks(IReadOnlyList<string> packDirs)
+    {
+        // Terraform/OpenTofu policies are evaluated by the PolicyValidate step, not inside the plan.
+        if (packDirs.Count > 0)
+            throw new NotSupportedException("Policy packs are a Pulumi/CrossGuard concept and cannot be applied to the Terraform engine.");
+    }
+
     public async Task<string> ExportPlanJson(
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)

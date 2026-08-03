@@ -22,6 +22,18 @@ public class PulumiEngine : BaseEngine, IEngine
 {
     private const string PlanFileName = "plan.json";
 
+    private IReadOnlyList<string> _policyPacks = [];
+
+    public void SetPolicyPacks(IReadOnlyList<string> packDirs)
+    {
+        _policyPacks = packDirs;
+    }
+
+    private string PolicyPackArgs()
+    {
+        return string.Concat(_policyPacks.Select(d => $" --policy-pack {d}"));
+    }
+
     public Task<string> ExportPlanJson(
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
@@ -137,7 +149,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         var planPath = GetPlanPath();
         var phaseArgs = GetFlagArgs();
-        var baseScript = $"pulumi preview --save-plan {planPath} --non-interactive{phaseArgs}";
+        var baseScript = $"pulumi preview --save-plan {planPath} --non-interactive{PolicyPackArgs()}{phaseArgs}";
 
         var script = await CreateScriptAsync(
             baseScript,
@@ -161,7 +173,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         var destroyPreviewPath = GetDestroyPreviewPath();
         var phaseArgs = GetFlagArgs();
-        var baseScript = $"pulumi destroy --preview-only --json --non-interactive{phaseArgs} > {destroyPreviewPath}";
+        var baseScript = $"pulumi destroy --preview-only --json --non-interactive{PolicyPackArgs()}{phaseArgs} > {destroyPreviewPath}";
 
         var script = await CreateScriptAsync(
             baseScript,

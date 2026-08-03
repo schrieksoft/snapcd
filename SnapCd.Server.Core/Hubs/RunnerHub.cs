@@ -576,11 +576,11 @@ public class RunnerHub : Hub
     }
 
 
-    public async Task PlanFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task PlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
         await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanFaulted);
 
-        await _planHandler.Fault(jobId, errorMessage, stackTrace);
+        await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     public async Task PlanDestroyCompleted(Guid jobId, PlanCompletedData data)
@@ -597,11 +597,11 @@ public class RunnerHub : Hub
         await _planDestroyHandler.Cancel(jobId);
     }
 
-    public async Task PlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task PlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
         await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanDestroyFaulted);
 
-        await _planDestroyHandler.Fault(jobId, errorMessage, stackTrace);
+        await _planDestroyHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     public async Task ApplyFromPlanCompleted(Guid jobId, int? actualResourceCount)

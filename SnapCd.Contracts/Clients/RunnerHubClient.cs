@@ -125,9 +125,9 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.PlanCancelled, jobId);
     }
 
-    public async Task InvokePlanFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokePlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.PlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     // PlanDestroy
@@ -141,9 +141,9 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyCancelled, jobId);
     }
 
-    public async Task InvokePlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokePlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     // ApplyFromPlan (flat parameters)

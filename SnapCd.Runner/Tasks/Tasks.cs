@@ -34,6 +34,7 @@ public partial class Tasks
     private readonly BareCloneCache _bareCloneCache;
     private readonly SnapCdInspect _snapCdInspect;
     private readonly PolicyEvaluationService _policyEvaluationService;
+    private readonly PolicyEvaluationSettings _policyEvaluationSettings;
 
     public Tasks(
         ProcessRegistry processRegistry,
@@ -47,7 +48,8 @@ public partial class Tasks
         HookPreapprovalService hookPreapprovalService,
         BareCloneCache bareCloneCache,
         SnapCdInspect snapCdInspect,
-        PolicyEvaluationService policyEvaluationService)
+        PolicyEvaluationService policyEvaluationService,
+        IOptions<PolicyEvaluationSettings> policyEvaluationSettings)
     {
         _processRegistry = processRegistry;
         _loggerFactory = loggerFactory;
@@ -61,6 +63,7 @@ public partial class Tasks
         _bareCloneCache = bareCloneCache;
         _snapCdInspect = snapCdInspect;
         _policyEvaluationService = policyEvaluationService;
+        _policyEvaluationSettings = policyEvaluationSettings.Value;
     }
 
     /// <summary>

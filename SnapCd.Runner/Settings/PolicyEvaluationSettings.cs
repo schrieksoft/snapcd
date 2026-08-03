@@ -21,4 +21,22 @@ public class PolicyEvaluationSettings
 
     /// <summary>Timeout for materializing a remote policy source (resolving and fetching the pinned revision).</summary>
     public int MaterializeTimeoutSeconds { get; set; } = 300;
+
+    /// <summary>When true (default) the Runner provisions environments for inline CrossGuard packs (cached virtualenvs, npm installs). When false the packs run on the ambient interpreter with the policy SDK preinstalled by the operator, and inline policies declaring AdditionalDependencies fail loudly.</summary>
+    public bool PackProvisioningEnabled { get; set; } = true;
+
+    /// <summary>Python interpreter used to create virtualenvs for inline CrossGuard packs. The interpreter itself is always operator-provided.</summary>
+    public string PythonPath { get; set; } = "python3";
+
+    /// <summary>npm binary used to install dependencies for inline NodeJS CrossGuard packs.</summary>
+    public string NpmPath { get; set; } = "npm";
+
+    /// <summary>Pinned pulumi-policy SDK requirement written into synthesized inline-pack requirements.</summary>
+    public string PulumiPolicySdkRequirement { get; set; } = "pulumi-policy>=1.5.0,<2.0.0";
+
+    /// <summary>Pinned @pulumi/policy version written into synthesized inline NodeJS packs.</summary>
+    public string NodePolicySdkRequirement { get; set; } = "^1.0.0";
+
+    /// <summary>Root directory for cached inline-pack virtualenvs (keyed by requirements hash). Defaults to ~/.snapcd/policy-venvs.</summary>
+    public string? VenvCacheRoot { get; set; }
 }

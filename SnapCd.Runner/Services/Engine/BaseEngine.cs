@@ -30,6 +30,22 @@ public static class NativeMethods
     public const int Sigint = 2;
 }
 
+/// <summary>
+/// Process failure that preserves captured stdout/stderr — callers that need to classify the
+/// failure (e.g. CrossGuard policy violations printed to stdout) read them from here.
+/// </summary>
+public class ProcessFailedException : Exception
+{
+    public string Output { get; }
+    public string Error { get; }
+
+    public ProcessFailedException(string message, string output, string error) : base(message)
+    {
+        Output = output;
+        Error = error;
+    }
+}
+
 public abstract class BaseEngine
 {
     protected readonly RunnerTaskContext Context;
@@ -155,7 +171,7 @@ public abstract class BaseEngine
         var error = errorBuilder.ToString();
         if (process.ExitCode != 0 || (TreatStderrAsError && error != ""))
         {
-            throw new Exception($"Process in {InitDir} failed. \n {error}");
+            throw new ProcessFailedException($"Process in {InitDir} failed. \n {error}", outputBuilder.ToString(), error);
         }
 
         return outputBuilder.ToString();
