@@ -180,7 +180,7 @@ app.UseForwardedHeaders();
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<SnapCdDbContext>(); 
     await dbContext.Database.MigrateAsync();
 
     // Apply idempotent SQL scripts after migrations

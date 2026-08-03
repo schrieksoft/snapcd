@@ -22,6 +22,8 @@ public class ModulePulumiLocalPolicyClassMap : IEntityTypeConfiguration<ModulePu
         // Unique index on Id
         entity.HasIndex(e => e.Id).IsUnique();
 
+        entity.Property(e => e.EvaluateOn).HasConversion<string>().HasMaxLength(50);
+
         entity
             .HasIndex(p => new { p.ModuleId, p.Name })
             .IsUnique();

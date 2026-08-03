@@ -39,17 +39,17 @@ public static class PolicyApplicability
     /// <summary>
     /// Pulumi/CrossGuard policies enforced inside the plan step's preview (the counterpart of
     /// <see cref="Matches"/> — Pulumi policies never go through the PolicyValidate step).
+    /// The pulumi CLI has no policy support on destroy, so destroy jobs get no Pulumi policies
+    /// regardless of EvaluateOn.
     /// </summary>
     public static List<ResolvedPolicy> ForPlanStep(ResolvedModule declared, bool isDestroyJob)
     {
+        if (isDestroyJob)
+            return [];
+
         return declared.Policies
             .Where(p => p.Engine == PolicyEngine.Pulumi)
-            .Where(p => p.EvaluateOn switch
-            {
-                PolicyEvaluateOn.ApplyOnly => !isDestroyJob,
-                PolicyEvaluateOn.DestroyOnly => isDestroyJob,
-                _ => true
-            })
+            .Where(p => p.EvaluateOn != PolicyEvaluateOn.DestroyOnly)
             .ToList();
     }
 

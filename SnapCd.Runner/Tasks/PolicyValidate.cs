@@ -54,7 +54,7 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var planJsonPath = await engine.ExportPlanJson(killCts.Token, gracefulCts.Token);
+            var planJsonPath = await engine.ExportPlanJson(request.IsDestroyJob, killCts.Token, gracefulCts.Token);
 
             var scratchDir = Path.Combine(engine.GetSnapCdDir(), "policies");
             if (Directory.Exists(scratchDir))

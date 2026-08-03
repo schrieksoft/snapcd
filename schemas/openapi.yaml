@@ -29297,8 +29297,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for creating a new ModulePulumiInlinePolicy (POST operations).
     ModulePulumiInlinePolicyReadDto:
       type: object
@@ -29335,8 +29336,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for reading a ModulePulumiInlinePolicy (GET operations).
     ModulePulumiInlinePolicyUpdateDto:
       type: object
@@ -29369,8 +29371,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for updating an existing ModulePulumiInlinePolicy (PUT operations).
     ModulePulumiLocalPolicyCreateDto:
       type: object
@@ -29391,8 +29394,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for creating a new ModulePulumiLocalPolicy (POST operations).
     ModulePulumiLocalPolicyReadDto:
       type: object
@@ -29417,8 +29421,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for reading a ModulePulumiLocalPolicy (GET operations).
     ModulePulumiLocalPolicyUpdateDto:
       type: object
@@ -29439,8 +29444,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for updating an existing ModulePulumiLocalPolicy (PUT operations).
     ModulePulumiRemotePolicyCreateDto:
       type: object
@@ -29467,8 +29473,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for creating a new ModulePulumiRemotePolicy (POST operations).
     ModulePulumiRemotePolicyReadDto:
       type: object
@@ -29499,8 +29506,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for reading a ModulePulumiRemotePolicy (GET operations).
     ModulePulumiRemotePolicyUpdateDto:
       type: object
@@ -29527,8 +29535,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for updating an existing ModulePulumiRemotePolicy (PUT operations).
     ModuleReadDto:
       type: object
@@ -31267,8 +31276,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for creating a new NamespacePulumiInlinePolicy (POST operations).
     NamespacePulumiInlinePolicyReadDto:
       type: object
@@ -31305,8 +31315,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for reading a NamespacePulumiInlinePolicy (GET operations).
     NamespacePulumiInlinePolicyUpdateDto:
       type: object
@@ -31339,8 +31350,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for updating an existing NamespacePulumiInlinePolicy (PUT operations).
     NamespacePulumiLocalPolicyCreateDto:
       type: object
@@ -31361,8 +31373,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for creating a new NamespacePulumiLocalPolicy (POST operations).
     NamespacePulumiLocalPolicyReadDto:
       type: object
@@ -31387,8 +31400,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for reading a NamespacePulumiLocalPolicy (GET operations).
     NamespacePulumiLocalPolicyUpdateDto:
       type: object
@@ -31409,8 +31423,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for updating an existing NamespacePulumiLocalPolicy (PUT operations).
     NamespacePulumiRemotePolicyCreateDto:
       type: object
@@ -31437,8 +31452,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for creating a new NamespacePulumiRemotePolicy (POST operations).
     NamespacePulumiRemotePolicyReadDto:
       type: object
@@ -31469,8 +31485,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for reading a NamespacePulumiRemotePolicy (GET operations).
     NamespacePulumiRemotePolicyUpdateDto:
       type: object
@@ -31497,8 +31514,9 @@ components:
           description: Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without
             deleting it.
         evaluateOn:
-          description: 'Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.'
-          $ref: '#/components/schemas/PolicyEvaluateOn'
+          description: 'When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side
+            previews only — the pulumi CLI has no policy support on destroy.'
+          $ref: '#/components/schemas/PulumiPolicyEvaluateOn'
       description: DTO for updating an existing NamespacePulumiRemotePolicy (PUT operations).
     NamespaceReadDto:
       type: object
@@ -32438,6 +32456,9 @@ components:
       - Color
       - Verbose
       - Emoji
+    PulumiPolicyEvaluateOn:
+      enum:
+      - ApplyOnly
     PulumiPolicyRuntime:
       enum:
       - Python

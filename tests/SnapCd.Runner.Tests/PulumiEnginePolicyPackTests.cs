@@ -78,15 +78,16 @@ public class PulumiEnginePolicyPackTests : IDisposable
     }
 
     [Fact]
-    public async Task PlanDestroy_Appends_PolicyPack_Flags()
+    public async Task PlanDestroy_Never_Appends_PolicyPack_Flags()
     {
+        // The pulumi CLI rejects --policy-pack on destroy; CrossGuard is apply-side only.
         _engine.SetPolicyPacks(["/packs/a"]);
 
         try { await _engine.PlanDestroy(new Dictionary<string, string>(), null, null); } catch { /* expected */ }
 
         var script = await File.ReadAllTextAsync(Path.Combine(_engine.GetSnapCdDir(), "plan_destroy.sh"));
         Assert.Contains("pulumi destroy --preview-only", script);
-        Assert.Contains("--policy-pack /packs/a", script);
+        Assert.DoesNotContain("--policy-pack", script);
     }
 
     [Fact]

@@ -17,6 +17,8 @@ public class ModuleJobMissionRunClassMap : IEntityTypeConfiguration<ModuleJobMis
     public void Configure(EntityTypeBuilder<ModuleJobMissionRun> entity)
     {
         entity.HasKey(e => new { e.Id, e.OrganizationId });
+
+        entity.Property(e => e.MissionType).HasConversion<string>().HasMaxLength(50);
         entity.HasIndex(e => e.Id).IsUnique();
 
         entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);

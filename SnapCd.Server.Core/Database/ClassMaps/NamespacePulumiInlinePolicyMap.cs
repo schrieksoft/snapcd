@@ -22,6 +22,9 @@ public class NamespacePulumiInlinePolicyClassMap : IEntityTypeConfiguration<Name
         // Unique index on Id
         entity.HasIndex(e => e.Id).IsUnique();
 
+        entity.Property(e => e.EvaluateOn).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.Runtime).HasConversion<string>().HasMaxLength(50);
+
         entity
             .HasIndex(p => new { p.NamespaceId, p.Name })
             .IsUnique();

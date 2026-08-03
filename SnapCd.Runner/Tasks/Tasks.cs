@@ -36,6 +36,24 @@ public partial class Tasks
     private readonly PolicyEvaluationService _policyEvaluationService;
     private readonly PolicyEvaluationSettings _policyEvaluationSettings;
 
+    /// <summary>
+    /// Classifies a plan-step failure as a policy outcome when CrossGuard policies were in scope.
+    /// The preview's violation output may live either on the process exception or in the captured
+    /// stdout (the script wrapper can swallow the exit code); only deny/warn results are reported.
+    /// </summary>
+    private static SnapCd.Contracts.PolicyOutcome? ClassifyFaultPolicyOutcome(int policyCount, Exception ex, string planOutput)
+    {
+        if (policyCount == 0)
+            return null;
+
+        var text = ex is SnapCd.Runner.Services.ProcessFailedException pfe
+            ? pfe.Output + pfe.Error + planOutput
+            : planOutput;
+
+        var outcome = Services.PolicyEvaluation.PulumiPolicyOutputParser.Classify(text);
+        return outcome == SnapCd.Contracts.PolicyOutcome.Passed ? null : outcome;
+    }
+
     public Tasks(
         ProcessRegistry processRegistry,
         IOptions<RunnerSettings> settings,

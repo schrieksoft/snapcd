@@ -34,6 +34,6 @@ public class ModulePulumiRemotePolicyReadDto
     /// <summary>Whether this policy is evaluated. Defaults to `true`; set `false` to switch the policy off without deleting it.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Which job kinds evaluate this policy: `ApplyAndDestroy` (default), `ApplyOnly` or `DestroyOnly`.</summary>
-    public PolicyEvaluateOn EvaluateOn { get; set; } = PolicyEvaluateOn.ApplyAndDestroy;
+    /// <summary>When this policy is evaluated. Only `ApplyOnly` exists for Pulumi policies: CrossGuard evaluates apply-side previews only — the pulumi CLI has no policy support on destroy.</summary>
+    public PulumiPolicyEvaluateOn EvaluateOn { get; set; } = PulumiPolicyEvaluateOn.ApplyOnly;
 }

@@ -118,6 +118,7 @@ public enum ModuleJobSagaState
     ValidatePending,
     VariablesPending,
     PlanPending,
+    PolicyValidatePending,
     ApplyFromPlanPending,
     OutputPending,
 

@@ -64,9 +64,9 @@ public class PolicyApplicabilityTests
         Assert.All(apply, p => Assert.Equal(PolicyEngine.Pulumi, p.Engine));
         Assert.DoesNotContain(apply, p => p.EvaluateOn == PolicyEvaluateOn.DestroyOnly);
 
+        // The pulumi CLI has no policy support on destroy: destroy jobs get no Pulumi policies.
         var destroy = PolicyApplicability.ForPlanStep(declared, isDestroyJob: true);
-        Assert.Equal(2, destroy.Count);
-        Assert.DoesNotContain(destroy, p => p.EvaluateOn == PolicyEvaluateOn.ApplyOnly);
+        Assert.Empty(destroy);
     }
 
     [Fact]

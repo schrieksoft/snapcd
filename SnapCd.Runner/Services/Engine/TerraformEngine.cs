@@ -342,13 +342,15 @@ public class TerraformEngine : BaseEngine, IEngine
     }
 
     public async Task<string> ExportPlanJson(
+        bool isDestroyJob,
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
-        var jsonPath = $"{SnapCdDir}/plan.json";
+        var planPath = isDestroyJob ? GetPlanDestroyPath() : GetPlanApplyPath();
+        var jsonPath = isDestroyJob ? $"{SnapCdDir}/destroy_plan.json" : $"{SnapCdDir}/plan.json";
 
         // Redirect to file: the plan JSON contains sensitive values and must not stream into logs.
-        var script = $"{_engine} show -json {GetPlanApplyPath()} > {jsonPath}";
+        var script = $"{_engine} show -json {planPath} > {jsonPath}";
         await RunProcess(script, killCancellationToken, gracefulCancellationToken);
 
         return jsonPath;

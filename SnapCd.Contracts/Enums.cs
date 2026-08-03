@@ -36,6 +36,11 @@ public enum PolicyEvaluateOn
     DestroyOnly
 }
 
+public enum PulumiPolicyEvaluateOn
+{
+    ApplyOnly
+}
+
 public enum PulumiPolicyRuntime
 {
     Python,

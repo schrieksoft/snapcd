@@ -75,6 +75,11 @@ public static class StateHelper
         [TaskEndpoint.PlanDestroyCancelled] = ModuleJobSagaState.PlanPending,
         [TaskEndpoint.PlanDestroyFaulted] = ModuleJobSagaState.PlanPending,
 
+        // PolicyValidate step (both apply and destroy use this)
+        [TaskEndpoint.PolicyValidateCompleted] = ModuleJobSagaState.PolicyValidatePending,
+        [TaskEndpoint.PolicyValidateCancelled] = ModuleJobSagaState.PolicyValidatePending,
+        [TaskEndpoint.PolicyValidateFaulted] = ModuleJobSagaState.PolicyValidatePending,
+
         // ApplyFromPlan step (both apply and destroy use this)
         [TaskEndpoint.ApplyFromPlanCompleted] = ModuleJobSagaState.ApplyFromPlanPending,
         [TaskEndpoint.ApplyFromPlanCancelled] = ModuleJobSagaState.ApplyFromPlanPending,

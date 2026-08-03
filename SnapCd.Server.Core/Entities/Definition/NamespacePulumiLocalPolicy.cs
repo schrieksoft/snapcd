@@ -28,7 +28,7 @@ public class NamespacePulumiLocalPolicy : AuditBase, IEntity, INamespaceChild
 
     public bool Enabled { get; set; } = true;
 
-    public PolicyEvaluateOn EvaluateOn { get; set; } = PolicyEvaluateOn.ApplyAndDestroy;
+    public PulumiPolicyEvaluateOn EvaluateOn { get; set; } = PulumiPolicyEvaluateOn.ApplyOnly;
 
     public virtual Organization Organization { get; set; } = null!;
 

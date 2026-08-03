@@ -46,6 +46,8 @@ public partial class Tasks
 
         var runnerHubClient = new RunnerHubClient(connection);
 
+        var planOutput = string.Empty;
+
         try
         {
             taskContext.LogInformation("Now planning destroy");
@@ -66,7 +68,6 @@ public partial class Tasks
                 request.TerraformArrayFlags
             );
 
-            string planOutput;
             if (request.Policies.Count > 0)
             {
                 taskContext.LogInformation($"Enforcing {request.Policies.Count} CrossGuard policy pack(s) in the preview");
@@ -160,9 +161,7 @@ public partial class Tasks
                     request.JobId,
                     ex.Message,
                     ex.StackTrace,
-                    request.Policies.Count > 0 && ex is SnapCd.Runner.Services.ProcessFailedException pfe
-                        ? PulumiPolicyOutputParser.Classify(pfe.Output + pfe.Error)
-                        : null
+                    ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)
                 ),
                 nameof(runnerHubClient.InvokePlanDestroyFaulted),
                 request.JobId,

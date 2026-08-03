@@ -36,6 +36,7 @@ public interface IEngine
     /// The document never leaves the runner.
     /// </summary>
     Task<string> ExportPlanJson(
+        bool isDestroyJob,
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
 

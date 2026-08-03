@@ -12,8 +12,8 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20260803132332_AddPolicyEntities")]
-    partial class AddPolicyEntities
+    [Migration("20260803190253_ConvertEnumColumnsToText")]
+    partial class ConvertEnumColumnsToText
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -2329,8 +2329,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<int?>("PlanTotalChangedCount")
                         .HasColumnType("int");
 
-                    b.Property<int?>("PolicyOutcome")
-                        .HasColumnType("int");
+                    b.Property<string>("PolicyOutcome")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ServerSideError")
                         .HasMaxLength(16000)
@@ -2434,8 +2434,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("ModuleJobId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("PrincipalDiscriminator")
-                        .HasColumnType("int");
+                    b.Property<string>("PrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("PrincipalId")
                         .HasColumnType("uniqueidentifier");
@@ -2497,8 +2499,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("MissionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("MissionType")
-                        .HasColumnType("int");
+                    b.Property<string>("MissionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -2609,8 +2613,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("Logs")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("MissionType")
-                        .HasColumnType("int");
+                    b.Property<string>("MissionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -2906,8 +2912,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -2936,8 +2944,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(65535)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Runtime")
-                        .HasColumnType("int");
+                    b.Property<string>("Runtime")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id", "OrganizationId");
 
@@ -2979,8 +2989,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -3049,8 +3061,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -3262,8 +3276,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -3332,8 +3348,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -3402,8 +3420,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -3905,8 +3925,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -3935,8 +3957,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(65535)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Runtime")
-                        .HasColumnType("int");
+                    b.Property<string>("Runtime")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id", "OrganizationId");
 
@@ -3978,8 +4002,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4048,8 +4074,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4261,8 +4289,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4331,8 +4361,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -4401,8 +4433,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("EvaluateOn")
-                        .HasColumnType("int");
+                    b.Property<string>("EvaluateOn")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");

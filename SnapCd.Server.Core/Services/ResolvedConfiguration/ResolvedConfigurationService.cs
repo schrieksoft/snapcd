@@ -508,17 +508,17 @@ public class ResolvedConfigurationService : IDisposable
         else if (engine is StateManagementEngine.Pulumi)
         {
             policies.AddRange(module.PulumiInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
-                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Inline, EvaluateOn = x.EvaluateOn, PolicyContent = x.PolicyContent, Runtime = x.Runtime, AdditionalDependencies = x.AdditionalDependencies }));
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Inline, EvaluateOn = PolicyEvaluateOn.ApplyOnly, PolicyContent = x.PolicyContent, Runtime = x.Runtime, AdditionalDependencies = x.AdditionalDependencies }));
             policies.AddRange(module.PulumiRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
-                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = PolicyEvaluateOn.ApplyOnly, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
             policies.AddRange(module.PulumiLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
-                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
+                { Name = x.Name, Scope = PolicyScope.Module, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = PolicyEvaluateOn.ApplyOnly, Path = x.Path }));
             policies.AddRange(module.Namespace.PulumiInlinePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
-                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Inline, EvaluateOn = x.EvaluateOn, PolicyContent = x.PolicyContent, Runtime = x.Runtime, AdditionalDependencies = x.AdditionalDependencies }));
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Inline, EvaluateOn = PolicyEvaluateOn.ApplyOnly, PolicyContent = x.PolicyContent, Runtime = x.Runtime, AdditionalDependencies = x.AdditionalDependencies }));
             policies.AddRange(module.Namespace.PulumiRemotePolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
-                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = x.EvaluateOn, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Remote, EvaluateOn = PolicyEvaluateOn.ApplyOnly, RepoUrl = x.RepoUrl, Revision = x.Revision, Path = x.Path }));
             policies.AddRange(module.Namespace.PulumiLocalPolicies.Where(x => x.Enabled).Select(x => new ResolvedPolicy
-                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = x.EvaluateOn, Path = x.Path }));
+                { Name = x.Name, Scope = PolicyScope.Namespace, Engine = PolicyEngine.Pulumi, Kind = PolicySourceKind.Local, EvaluateOn = PolicyEvaluateOn.ApplyOnly, Path = x.Path }));
         }
 
         return policies;

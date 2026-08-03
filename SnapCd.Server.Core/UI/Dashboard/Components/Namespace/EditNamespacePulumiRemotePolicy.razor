@@ -44,8 +44,8 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSelect T="PolicyEvaluateOn" Label="Evaluate On" @bind-Value="Context.EvaluateOn" Variant="Variant.Outlined" Immediate="true">
-                @foreach (var val in Enum.GetValues<PolicyEvaluateOn>())
+            <MudSelect T="PulumiPolicyEvaluateOn" Label="Evaluate On" @bind-Value="Context.EvaluateOn" Variant="Variant.Outlined" Immediate="true">
+                @foreach (var val in Enum.GetValues<PulumiPolicyEvaluateOn>())
                 {
                     <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
                 }
