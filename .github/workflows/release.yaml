@@ -105,7 +105,15 @@ jobs:
         # release assets so snapcd-docs can fetch them by tag without checking out
         # this repo. They are kept current by the pre-commit hooks
         # (scripts/check-settings-schemas.sh, scripts/check-openapi-document.sh).
+        #
+        # The OpenAPI document is regenerated here rather than copied: info.version comes
+        # from the assembly, which only carries the release string in a CI build, so the
+        # committed copy always reads 1.0.0. SNAPCD_VERSION stamps the real one, which the
+        # docs site and the Terraform provider then inherit.
+        env:
+          SNAPCD_VERSION: ${{ steps.gitversion.outputs.SemVer }}
         run: |
+          ./scripts/check-openapi-document.sh --write
           cp schemas/server.schema.yaml \
              schemas/runner.schema.yaml \
              schemas/agent.schema.yaml \

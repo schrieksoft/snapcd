@@ -38,12 +38,37 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 // The org-prefill transformer takes IHttpContextAccessor; with no request in flight it
 // reads no cookie and stamps no example, which is what the committed document wants.
 builder.Services.AddHttpContextAccessor();
-// Stamps info.version. Reads the SnapCd.Server.Core assembly version, so the emitted
-// document carries the same release string the server would report.
-builder.Services.AddSingleton<IVersionService, VersionService>();
+// Stamps info.version. The assembly version is only the real release string in a CI build
+// (GitVersion stamps it); a plain `dotnet build` leaves it at the 1.0.0 default, which would
+// otherwise be baked into the committed document and every artifact derived from it. So the
+// release pipeline passes the version explicitly via SNAPCD_VERSION.
+var versionOverride = builder.Configuration["SNAPCD_VERSION"]
+                      ?? Environment.GetEnvironmentVariable("SNAPCD_VERSION");
+builder.Services.AddSingleton<IVersionService>(
+    string.IsNullOrWhiteSpace(versionOverride)
+        ? new VersionService()
+        : new FixedVersionService(versionOverride));
 builder.Services.AddSnapCdControllers();
 builder.Services.AddSnapCdScalarConfiguration((ConfigurationManager)builder.Configuration);
 
 var app = builder.Build();
 app.MapOpenApi();
 app.Run();
+
+/// <summary>
+/// Reports a version supplied by the caller rather than read from the assembly, so the emitted
+/// document carries the release being built.
+/// </summary>
+file sealed class FixedVersionService(string version) : IVersionService
+{
+    public string Version { get; } = version;
+
+    public string ShortVersion
+    {
+        get
+        {
+            var plusIndex = Version.IndexOf('+');
+            return plusIndex > 0 ? Version[..plusIndex] : Version;
+        }
+    }
+}
