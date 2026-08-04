@@ -45,11 +45,13 @@ jobs:
           fi
 
       - name: Install GitVersion
+        if: steps.norelease.outputs.skip != 'true'
         uses: gittools/actions/gitversion/setup@v3.1.11
         with:
           versionSpec: 5.x
 
       - name: Determine Version
+        if: steps.norelease.outputs.skip != 'true'
         uses: gittools/actions/gitversion/execute@v3.1.11
         id: gitversion
         with:
@@ -57,6 +59,7 @@ jobs:
           configFilePath: gitversion.yaml
 
       - name: Display GitVersion outputs
+        if: steps.norelease.outputs.skip != 'true'
         run: |
           echo "Version: ${{ steps.gitversion.outputs.SemVer }}"
 
@@ -87,6 +90,7 @@ jobs:
             go build -C tools/snapcd-inspect -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
 
       - name: Publish binaries
+        if: steps.norelease.outputs.skip != 'true'
         env:
           SEMVER: ${{ steps.gitversion.outputs.SemVer }}
           SHORT_SHA: ${{ steps.gitversion.outputs.ShortSha }}
@@ -110,6 +114,7 @@ jobs:
             /p:InformationalVersion=$SEMVER+$SHORT_SHA
 
       - name: Zip binaries
+        if: steps.norelease.outputs.skip != 'true'
         env:
           SEMVER: ${{ steps.gitversion.outputs.SemVer }}
         run: |
@@ -144,6 +149,7 @@ jobs:
           ls -la release-assets
 
       - name: Pack libraries
+        if: steps.norelease.outputs.skip != 'true'
         env:
           SEMVER: ${{ steps.gitversion.outputs.SemVer }}
         run: |
