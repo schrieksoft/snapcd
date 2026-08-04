@@ -231,8 +231,15 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
+          # Notes come from the <!-- release-notes --> block in the merge commit, which
+          # GitHub pre-fills from the PR description. Falls back to the commit subject,
+          # so a release never fails for want of a description.
+          ./scripts/release-notes.sh > "$RUNNER_TEMP/release-notes.md"
+          echo "--- release notes ---"
+          cat "$RUNNER_TEMP/release-notes.md"
+
           gh release create ${{ steps.gitversion.outputs.SemVer }} \
-            --notes "Release ${{ steps.gitversion.outputs.SemVer }}" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
             -R https://github.com/schrieksoft/snapcd \
             release-assets/*.zip \
             release-assets/*.yaml
