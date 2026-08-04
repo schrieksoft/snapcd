@@ -22,6 +22,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The checkout is written by the runner's user but every step here executes as the
+      # container's user, so git treats the workspace as unowned and refuses to read it.
+      # `go build` stamps VCS info by default and fails on that (exit 128) unless told
+      # the directory is trusted.
+      - name: Trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
@@ -35,8 +42,10 @@ jobs:
         run: go test -C tools/snapcd-inspect ./...
 
       - name: Build snapcd-inspect
+        # -buildvcs=false: the binary is embedded in the Runner and never reports its own
+        # build metadata, so stamping buys nothing and only couples the build to git state.
         run: |
-          CGO_ENABLED=0 go build -C tools/snapcd-inspect -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
+          CGO_ENABLED=0 go build -C tools/snapcd-inspect -buildvcs=false -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
 
       - name: Runner tests
         run: dotnet test tests/SnapCd.Runner.Tests/SnapCd.Runner.Tests.csproj --logger "console;verbosity=normal"

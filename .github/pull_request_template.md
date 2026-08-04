@@ -1,5 +1,8 @@
 ## Summary
 
+
+## Release Notes
+
 <!--
 The block below becomes the body of the GitHub release cut from this PR. The squash-merge
 message is pre-filled from this description, and the release workflow reads the markers
@@ -26,4 +29,3 @@ merge dialog, keep the markers.
 
 <!-- /release-notes -->
 
-## Test plan

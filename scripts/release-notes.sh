@@ -14,9 +14,19 @@ REF="${1:-HEAD}"
 
 MESSAGE="$(git log -1 --format=%B "$REF")"
 
+# Markers are only recognised on a line of their own, and only the first block is read.
+# Prose that mentions the markers inline (documentation about this very mechanism) must
+# not reopen the capture or extend it past the close.
 NOTES="$(printf '%s' "$MESSAGE" | awk '
-    /<!--[[:space:]]*release-notes[[:space:]]*-->/ { capture = 1; next }
-    /<!--[[:space:]]*\/release-notes[[:space:]]*-->/ { capture = 0; next }
+    done_capturing { next }
+    /^[[:space:]]*<!--[[:space:]]*release-notes[[:space:]]*-->[[:space:]]*$/ {
+        if (!seen_open) { seen_open = 1; capture = 1 }
+        next
+    }
+    /^[[:space:]]*<!--[[:space:]]*\/release-notes[[:space:]]*-->[[:space:]]*$/ {
+        if (capture) { capture = 0; done_capturing = 1 }
+        next
+    }
     capture { print }
 ')"
 
