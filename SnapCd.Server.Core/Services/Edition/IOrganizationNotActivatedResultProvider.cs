@@ -6,12 +6,23 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Settings;
+using Microsoft.AspNetCore.Mvc;
 
-namespace SnapCd.Server.Core.Licensing.Services;
+namespace SnapCd.Server.Core.Services.Edition;
 
-public interface IQuotaGatingService
+/// <summary>
+/// The API response returned when an organization is not activated. Null means the edition has
+/// no such state and the request proceeds.
+/// </summary>
+public interface IOrganizationNotActivatedResultProvider
 {
-    Task<QuotaAllowance> GetAllowanceAsync(Guid organizationId, string quotaName);
-    Task<QuotaLimits?> GetQuotaLimitsAsync(Guid organizationId);
+    IActionResult? CreateResult();
+}
+
+/// <summary>
+/// For editions where organizations are always activated.
+/// </summary>
+public class NoOpOrganizationNotActivatedResultProvider : IOrganizationNotActivatedResultProvider
+{
+    public IActionResult? CreateResult() => null;
 }

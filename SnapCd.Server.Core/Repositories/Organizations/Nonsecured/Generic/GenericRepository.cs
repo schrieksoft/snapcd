@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Repository.Organization.Base;
+using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Mappers.Repositories;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services;
@@ -67,14 +68,26 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
             return new QuotaCheckResult(false, 0, 0); // No quota enforcement if service not available
         }
 
-        var quotaLimit = await QuotaService.GetQuotaAsync(organizationId, quotaName);
+        var allowance = await QuotaService.GetAllowanceAsync(organizationId, quotaName);
 
-        if (quotaLimit == null)
-        {
-            return new QuotaCheckResult(false, currentCount, 0); // Unlimited
-        }
+        return new QuotaCheckResult(
+            allowance.IsExceededAt(currentCount),
+            currentCount,
+            allowance.LimitOrNull ?? 0);
+    }
 
-        return new QuotaCheckResult(currentCount >= quotaLimit.Value, currentCount, quotaLimit.Value);
+    /// <summary>
+    /// Throws when the organization is not entitled to the resource at all, as opposed to being
+    /// within or over a numeric limit.
+    /// </summary>
+    protected static void EnsureEntitled(QuotaAllowance allowance)
+    {
+        if (allowance is QuotaAllowance.DeniedAllowance)
+            throw new QuotaExceededException(
+                "Organization",
+                0,
+                0,
+                "This organization is not entitled to create resources.");
     }
 
     public void Dispose()

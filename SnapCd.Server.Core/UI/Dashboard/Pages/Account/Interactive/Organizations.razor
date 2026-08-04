@@ -18,6 +18,7 @@
 @using SnapCd.Server.Core.Factories
 @using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Services.Edition
 
 @attribute [Authorize]
 
@@ -27,6 +28,7 @@
 @inject ILogger<Organizations> Logger
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject OrganizationServiceFactory OrganizationServiceFactory
+@inject IPostOrganizationCreateRedirectPolicy PostOrganizationCreateRedirectPolicy
 @inject IJSRuntime JsRuntime
 
 <PageTitle>My Organizations - Snap CD</PageTitle>
@@ -44,8 +46,10 @@
                     <MudTextField Label="Organization Name" @bind-Value="_createModel.Name"
                                   Variant="Variant.Outlined" Required RequiredError="Name is required"
                                   MaxLength="255" Counter="255"
+                                  Immediate="true"
                                   Validation="@((string s) => NameValidator.Validate(s, "Organization"))"
-                                  HelperText="Enter a unique name for your organization"/>
+                                  HelperText="@NameValidator.RuleDescription"
+                                  HelperTextOnFocus="false"/>
                 </MudItem>
 
                 <MudItem md="12" Class="d-flex justify-end gap-2">
@@ -239,7 +243,9 @@ else
             _createModel = new CreateOrganizationModel();
 
             // Navigate to the newly created organization via API endpoint which sets the cookie
-            NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}", forceLoad: true);
+            NavigationManager.NavigateTo(PostOrganizationCreateRedirectPolicy.RedirectPath is { } redirectPath
+                ? $"/api/organization/switch/{organization.Id}?returnUrl={redirectPath}"
+                : $"/api/organization/switch/{organization.Id}", forceLoad: true);
         }
         catch (QuotaExceededException ex)
         {

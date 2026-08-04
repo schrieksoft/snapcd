@@ -6,12 +6,11 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Settings;
+using SnapCd.Server.Core.Services.Edition;
 
-namespace SnapCd.Server.Core.Licensing.Services;
+namespace SnapCd.Server.Host.Services;
 
-public interface IQuotaGatingService
+public class SelfHostedPostOrganizationCreateRedirectPolicy : IPostOrganizationCreateRedirectPolicy
 {
-    Task<QuotaAllowance> GetAllowanceAsync(Guid organizationId, string quotaName);
-    Task<QuotaLimits?> GetQuotaLimitsAsync(Guid organizationId);
+    public string? RedirectPath => null;
 }

@@ -18,6 +18,7 @@
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Factories
+@using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Edition
 @using SnapCd.Server.Core.UI.Dashboard.Components.Account
@@ -27,6 +28,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject OrganizationServiceFactory OrganizationServiceFactory
 @inject IOrganizationLimitPolicy OrganizationLimitPolicy
+@inject IPostOrganizationCreateRedirectPolicy PostOrganizationCreateRedirectPolicy
 @inject ISnackbar Snackbar
 
 <PageTitle>Create Organization - Snap CD</PageTitle>
@@ -48,6 +50,9 @@
                               Variant="Variant.Outlined" FullWidth="true"
                               Required="true"
                               MaxLength="100"
+                              Immediate="true"
+                              HelperText="@NameValidator.RuleDescription"
+                              HelperTextOnFocus="false"
                               Validation="@((string s) => NameValidator.Validate(s, "Organization"))"
                               For="@(() => Input.Name)"/>
             </MudItem>
@@ -94,9 +99,9 @@
             using var userManagerScope = UserManagerFactory.Create();
             _currentUser = await userManagerScope.UserManager.GetUserAsync(authState.User);
 
-            if (_currentUser != null && !string.IsNullOrEmpty(_currentUser.FirstName))
+            if (_currentUser != null && NameValidator.ToValidName(_currentUser.FirstName) is { } firstName)
             {
-                Input.Name = $"{_currentUser.FirstName}'s Organization";
+                Input.Name = $"{firstName}s-org";
                 StateHasChanged();
             }
         }
@@ -136,20 +141,23 @@
             Snackbar.Add($"Organization '{Input.Name}' created successfully!", Severity.Success);
 
             // Navigate to specific organization dashboard via API endpoint which sets the cookie
-            // If tier=Paid, redirect to Subscription page after switching
-            if (string.Equals(Tier, "Paid", StringComparison.OrdinalIgnoreCase))
-            {
-                NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}?returnUrl=/CloudSubscription", forceLoad: true);
-            }
-            else
-            {
-                NavigationManager.NavigateTo($"/api/organization/switch/{organization.Id}", forceLoad: true);
-            }
+            var isPaidTier = string.Equals(Tier, "Paid", StringComparison.OrdinalIgnoreCase);
+            var returnUrl = (isPaidTier ? PostOrganizationCreateRedirectPolicy.PaidTierRedirectPath : null)
+                            ?? PostOrganizationCreateRedirectPolicy.RedirectPath;
+
+            NavigationManager.NavigateTo(returnUrl is null
+                ? $"/api/organization/switch/{organization.Id}"
+                : $"/api/organization/switch/{organization.Id}?returnUrl={returnUrl}", forceLoad: true);
         }
         catch (UniqueConstraintException ex)
         {
             Logger.LogWarning(ex, "Organization name '{Name}' already exists", Input.Name);
             _errorMessage = $"Error: An organization with this name already exists. Please choose a different name.";
+        }
+        catch (InvalidNameException ex)
+        {
+            Logger.LogWarning(ex, "Organization name '{Name}' is invalid", Input.Name);
+            _errorMessage = ex.Message;
         }
         catch (Exception ex)
         {

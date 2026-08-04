@@ -188,7 +188,9 @@ public class OutputSetRepository : GenericModuleChildRepository<
         var outputCount = outputSet.Outputs.Count;
 
         // Check per-set quota
-        var perSetQuota = await _quotaService.GetQuotaAsync(organizationId, nameof(Settings.QuotaLimits.OutputPerSetQuota));
+        var perSetAllowance = await _quotaService.GetAllowanceAsync(organizationId, nameof(Settings.QuotaLimits.OutputPerSetQuota));
+        EnsureEntitled(perSetAllowance);
+        var perSetQuota = perSetAllowance.LimitOrNull;
         if (perSetQuota.HasValue && outputCount > perSetQuota.Value)
         {
             throw new QuotaExceededException(
@@ -199,7 +201,9 @@ public class OutputSetRepository : GenericModuleChildRepository<
         }
 
         // Check org-level quota
-        var outputQuota = await _quotaService.GetQuotaAsync(organizationId, nameof(Settings.QuotaLimits.OutputQuota));
+        var outputAllowance = await _quotaService.GetAllowanceAsync(organizationId, nameof(Settings.QuotaLimits.OutputQuota));
+        EnsureEntitled(outputAllowance);
+        var outputQuota = outputAllowance.LimitOrNull;
         if (outputQuota.HasValue)
         {
             var currentOrgOutputCount = await DbContext.Set<Output>()

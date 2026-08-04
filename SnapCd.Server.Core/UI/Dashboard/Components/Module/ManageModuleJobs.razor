@@ -178,7 +178,6 @@ else
                         </MudTabPanel>
                         <MudTabPanel Text="Approvals" Style="text-transform: none">
                             <ListApprovals ModuleJobId="@job.Id" ModuleId="@Module.Id" JobSagaType="@job.JobType"
-                                           OnViewLogs="@(task => ViewLogsForJob(job.Id, task))"
                                            @ref="_listApprovalRefs[job.Id]"/>
                         </MudTabPanel>
                         <MudTabPanel Text="Missions" Style="text-transform: none">
@@ -582,16 +581,6 @@ else
         _activeTab = tabName;
         if (tabName != "logs") _activeTask = null;
         await RaiseJobsStateChanged();
-    }
-
-    private async Task ViewLogsForJob(Guid jobId, string task)
-    {
-        if (jobId != _expandedJobId) return;
-
-        _activeTab = "logs";
-        _activeTask = task;
-        await RaiseJobsStateChanged();
-        StateHasChanged();
     }
 
     private async Task OnLogTaskChanged(Guid jobId, string? taskKey)

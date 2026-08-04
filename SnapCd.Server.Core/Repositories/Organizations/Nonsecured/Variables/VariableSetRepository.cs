@@ -163,7 +163,9 @@ public class VariableSetRepository : GenericModuleChildRepository<
         var variableCount = variableSet.Variables.Count;
 
         // Check per-set quota
-        var perSetQuota = await _quotaService.GetQuotaAsync(organizationId, nameof(Settings.QuotaLimits.VariablePerSetQuota));
+        var perSetAllowance = await _quotaService.GetAllowanceAsync(organizationId, nameof(Settings.QuotaLimits.VariablePerSetQuota));
+        EnsureEntitled(perSetAllowance);
+        var perSetQuota = perSetAllowance.LimitOrNull;
         if (perSetQuota.HasValue && variableCount > perSetQuota.Value)
         {
             throw new QuotaExceededException(
@@ -174,7 +176,9 @@ public class VariableSetRepository : GenericModuleChildRepository<
         }
 
         // Check org-level quota
-        var variableQuota = await _quotaService.GetQuotaAsync(organizationId, nameof(Settings.QuotaLimits.VariableQuota));
+        var variableAllowance = await _quotaService.GetAllowanceAsync(organizationId, nameof(Settings.QuotaLimits.VariableQuota));
+        EnsureEntitled(variableAllowance);
+        var variableQuota = variableAllowance.LimitOrNull;
         if (variableQuota.HasValue)
         {
             var currentOrgVariableCount = await DbContext.Set<Variable>()

@@ -29,7 +29,7 @@ else
     <MudExpansionPanels>
 
 
-        @foreach (var kvp in _htmlLogs)
+        @foreach (var kvp in _htmlLogs.Where(kvp => TaskFilter == null || TaskFilter.Contains(kvp.Key)))
         {
             <MudExpansionPanel @key="kvp.Key"
                                Expanded="@(kvp.Key == _expandedTask)"
@@ -52,6 +52,7 @@ else
 @code {
     [Parameter] public Guid ModuleJobId { get; set; }
     [Parameter] public string? InitialTask { get; set; }
+    [Parameter] public string[]? TaskFilter { get; set; }
     [Parameter] public EventCallback<string?> OnTaskChanged { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
@@ -59,6 +60,7 @@ else
     private Dictionary<string, string?> _htmlLogs = new();
     private string? _expandedTask;
     private string? _previousInitialTask;
+    private bool _initializing;
 
     protected override void OnInitialized()
     {
@@ -174,10 +176,17 @@ else
 
     public async Task InitializeLogs()
     {
-        if (_logs == null)
+        if (_logs != null || _initializing) return;
+
+        _initializing = true;
+        try
         {
             await ReloadLogs();
             StateHasChanged();
+        }
+        finally
+        {
+            _initializing = false;
         }
     }
 

@@ -14,12 +14,11 @@ namespace SnapCd.Server.Core.Services;
 public class QuotaService(IQuotaGatingService quotaGatingService)
 {
     /// <summary>
-    /// Get the quota limit for a specific organization and quota type.
-    /// Returns null if unlimited.
+    /// Get how much of a quota'd resource the organization may use.
     /// </summary>
-    public async Task<int?> GetQuotaAsync(Guid organizationId, string quotaName)
+    public async Task<QuotaAllowance> GetAllowanceAsync(Guid organizationId, string quotaName)
     {
-        return await quotaGatingService.GetQuotaAsync(organizationId, quotaName);
+        return await quotaGatingService.GetAllowanceAsync(organizationId, quotaName);
     }
 
     /// <summary>
@@ -35,11 +34,7 @@ public class QuotaService(IQuotaGatingService quotaGatingService)
     /// </summary>
     public async Task<bool> IsQuotaExceededAsync(Guid organizationId, string quotaName, int currentCount)
     {
-        var quota = await GetQuotaAsync(organizationId, quotaName);
-        if (quota == null)
-        {
-            return false; // Unlimited
-        }
-        return currentCount >= quota.Value;
+        var allowance = await GetAllowanceAsync(organizationId, quotaName);
+        return allowance.IsExceededAt(currentCount);
     }
 }

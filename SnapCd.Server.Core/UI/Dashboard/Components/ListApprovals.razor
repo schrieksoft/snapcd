@@ -30,120 +30,136 @@
 }
 else
 {
-    <MudExpansionPanels>
-        @if (_moduleJob != null)
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Approval</MudText>
+        <MudText Typo="Typo.h6">@GetApprovalCountText()</MudText>
+        @if (_approvals.Count == 0)
         {
-            <MudPaper Elevation="0" Class="pa-4 mb-4">
-                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
-                    @if (_moduleJob.PlanTotalChangedCount is { } changed)
-                    {
-                        <MudText Typo="Typo.body2">
-                            Plan: @changed changed (@(_moduleJob.PlanCreateCount ?? 0) create, @(_moduleJob.PlanModifyCount ?? 0) modify, @(_moduleJob.PlanDestroyCount ?? 0) destroy, @(_moduleJob.PlanRecreateCount ?? 0) recreate)
-                        </MudText>
-                    }
-                    @if ((_moduleJob.PlanDestroyCount ?? 0) + (_moduleJob.PlanRecreateCount ?? 0) > 0)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Class="ma-0">
-                            Destroys @((_moduleJob.PlanDestroyCount ?? 0) + (_moduleJob.PlanRecreateCount ?? 0)) resource(s)
-                        </MudChip>
-                    }
-                    @if (_moduleJob.PolicyOutcome == PolicyOutcome.SoftWarned)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ma-0">Policy warnings</MudChip>
-                    }
-                    else if (_moduleJob.PolicyOutcome == PolicyOutcome.HardDenied)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Class="ma-0">Policy denied</MudChip>
-                    }
-                    <span style="flex: 1;"></span>
-                    <MudLink Typo="Typo.body2" OnClick="@(() => ViewLogs(PlanTaskName))">Plan logs</MudLink>
-                    @if (_moduleJob.PolicyOutcome != null)
-                    {
-                        <MudLink Typo="Typo.body2" OnClick="@(() => ViewLogs(_isPulumi ? PlanTaskName : "PolicyValidate"))">Policy logs</MudLink>
-                    }
-                </MudStack>
-            </MudPaper>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">No decisions yet.</MudText>
         }
-        <MudPaper Elevation="0" Class="pa-4 mb-4">
-            <MudText>@GetApprovalCountText()</MudText>
-        </MudPaper>
-        @foreach (var approval in _approvals)
+        else
         {
-            {
-                var iconColor = approval.ModuleJobApproval.Declined ? Color.Error : Color.Success;
-                var iconType = approval.ModuleJobApproval.Declined ? SnapCdIcons.Error : SnapCdIcons.CheckCircle;
-                var iconTooltip = approval.ModuleJobApproval.Declined ? "Declined" : "Approved";
-                var isUsersApproval = _principalId == approval.ModuleJobApproval.PrincipalId;
-                var hasReason = !string.IsNullOrEmpty(approval.ModuleJobApproval.Reason);
+            <MudDivider Class="my-3"/>
+            <MudExpansionPanels Elevation="0">
+                @foreach (var approval in _approvals)
+                {
+                    {
+                        var iconColor = approval.ModuleJobApproval.Declined ? Color.Error : Color.Success;
+                        var iconType = approval.ModuleJobApproval.Declined ? SnapCdIcons.Error : SnapCdIcons.CheckCircle;
+                        var iconTooltip = approval.ModuleJobApproval.Declined ? "Declined" : "Approved";
+                        var isUsersApproval = _principalId == approval.ModuleJobApproval.PrincipalId;
+                        var hasReason = !string.IsNullOrEmpty(approval.ModuleJobApproval.Reason);
 
-                var elapsedTime = DateTime.UtcNow - approval.ModuleJobApproval.DecisionDateTime;
-                var elapsedDisplay = elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes} minutes ago"
-                    : elapsedTime.TotalHours < 24 ? $"{(int)elapsedTime.TotalHours} hours ago"
-                    : elapsedTime.TotalHours >= 24 && elapsedTime.TotalHours < 48 ? "yesterday"
-                    : $"{(int)elapsedTime.TotalDays} days ago";
+                        var elapsedTime = DateTime.UtcNow - approval.ModuleJobApproval.DecisionDateTime;
+                        var elapsedDisplay = elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes} minutes ago"
+                            : elapsedTime.TotalHours < 24 ? $"{(int)elapsedTime.TotalHours} hours ago"
+                            : elapsedTime.TotalHours >= 24 && elapsedTime.TotalHours < 48 ? "yesterday"
+                            : $"{(int)elapsedTime.TotalDays} days ago";
 
-                <MudExpansionPanel Class="custom-panel" @key="approval.ModuleJobApproval.Id" Disabled="@(!hasReason)"
-                                   HideIcon="@(!hasReason)">
-                    <TitleContent>
-                        <MudGrid>
-                            <MudItem md="3">
+                        <MudExpansionPanel Class="custom-panel" @key="approval.ModuleJobApproval.Id" Disabled="@(!hasReason)"
+                                           HideIcon="@(!hasReason)">
+                            <TitleContent>
                                 <MudGrid>
-                                    <MudItem md="2">
-                                        <MudTooltip Text="@iconTooltip">
-                                            <MudIcon Icon="@iconType" Color="@iconColor"></MudIcon>
-                                        </MudTooltip>
+                                    <MudItem md="3">
+                                        <MudGrid>
+                                            <MudItem md="2">
+                                                <MudTooltip Text="@iconTooltip">
+                                                    <MudIcon Icon="@iconType" Color="@iconColor"></MudIcon>
+                                                </MudTooltip>
+                                            </MudItem>
+                                            <MudItem md="10">
+                                                <MudText Typo="Typo.body2">@iconTooltip</MudText>
+                                            </MudItem>
+                                        </MudGrid>
                                     </MudItem>
-                                    <MudItem md="10">
-                                        <MudText Typo="Typo.body2">@iconTooltip</MudText>
+                                    <MudItem md="3">
+                                        <MudText Typo="Typo.body2">@approval.PrincipalName</MudText>
+                                    </MudItem>
+                                    <MudItem md="3">
+                                        <MudText Typo="Typo.body2">@elapsedDisplay</MudText>
+                                    </MudItem>
+                                    <MudItem md="3">
+                                        @if (isUsersApproval && _isWaitingForApproval)
+                                        {
+                                            <MudTooltip Text="Remove My Approval">
+                                                <MudIconButton Icon="@SnapCdIcons.Delete"
+                                                               Color="Color.Primary" Size="Size.Small"
+                                                               OnClick="() => RemoveApproval(approval.ModuleJobApproval.Id)"/>
+                                            </MudTooltip>
+                                        }
                                     </MudItem>
                                 </MudGrid>
-                            </MudItem>
-                            <MudItem md="3">
-                                <MudText Typo="Typo.body2">@approval.PrincipalName</MudText>
-                            </MudItem>
-                            <MudItem md="3">
-                                <MudText Typo="Typo.body2">@elapsedDisplay</MudText>
-                            </MudItem>
-                            <MudItem md="3">
-                                @if (isUsersApproval && _isWaitingForApproval)
+                            </TitleContent>
+                            <ChildContent>
+                                @if (!string.IsNullOrEmpty(approval.ModuleJobApproval.Reason))
                                 {
-                                    <MudTooltip Text="Remove My Approval">
-                                        <MudIconButton Icon="@SnapCdIcons.Delete"
-                                                       Color="Color.Primary" Size="Size.Small"
-                                                       OnClick="() => RemoveApproval(approval.ModuleJobApproval.Id)"/>
-                                    </MudTooltip>
+                                    <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">
+                                        <strong>Reason:</strong> @approval.ModuleJobApproval.Reason
+                                    </MudText>
                                 }
-                            </MudItem>
-                        </MudGrid>
-                    </TitleContent>
-                    <ChildContent>
-                        @if (!string.IsNullOrEmpty(approval.ModuleJobApproval.Reason))
-                        {
-                            <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">
-                                <strong>Reason:</strong> @approval.ModuleJobApproval.Reason
-                            </MudText>
-                        }
-                    </ChildContent>
-                </MudExpansionPanel>
-            }
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                }
+            </MudExpansionPanels>
         }
+        @if (_isWaitingForApproval)
+        {
+            <MudStack Row="true" Spacing="2" Class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Approve" Size="Size.Small">Approve</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Decline" Size="Size.Small">Decline</MudButton>
+            </MudStack>
+        }
+    </MudPaper>
 
-    </MudExpansionPanels>
-}
-
-
-<MudPaper Elevation="0" Class="pa-4 mb-4">
-    @if (_isWaitingForApproval)
+    @if (_moduleJob != null)
     {
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Approve" Size="Size.Small">Approve</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Decline" Size="Size.Small">Decline</MudButton>
-    }
+        <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Stretch" Wrap="Wrap.Wrap" Class="mb-4">
+            <MudPaper Elevation="0" Class="pa-4">
+                <MudText Typo="Typo.overline" Class="mud-text-secondary">Plan</MudText>
+                @if (_moduleJob.PlanTotalChangedCount != null)
+                {
+                    <MudStack Row="true" Spacing="8" Class="mt-2">
+                        @PlanStat("create", _moduleJob.PlanCreateCount ?? 0, Color.Success)
+                        @PlanStat("modify", _moduleJob.PlanModifyCount ?? 0, Color.Default)
+                        @PlanStat("destroy", _moduleJob.PlanDestroyCount ?? 0, Color.Error)
+                        @PlanStat("recreate", _moduleJob.PlanRecreateCount ?? 0, Color.Error)
+                    </MudStack>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">No plan summary recorded.</MudText>
+                }
+            </MudPaper>
+            @if (_moduleJob.PolicyOutcome != null)
+            {
+                var (policyIcon, policyColor, policyText) = _moduleJob.PolicyOutcome switch
+                {
+                    PolicyOutcome.SoftWarned => (SnapCdIcons.Warning, Color.Warning, "Warnings"),
+                    PolicyOutcome.HardDenied => (SnapCdIcons.Error, Color.Error, "Denied"),
+                    _ => (SnapCdIcons.CheckCircle, Color.Success, "Passed")
+                };
 
-    @* <MudTooltip Text="Refresh"> *@
-    @*     <MudIconButton Icon="@SnapCdIcons.Refresh" Color="Color.Primary" Size="Size.Medium" *@
-    @*                    OnClick="() => ReloadApprovals()"/> *@
-    @* </MudTooltip> *@
-</MudPaper>
+                <MudPaper Elevation="0" Class="pa-4">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Policy</MudText>
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-2">
+                        <MudIcon Icon="@policyIcon" Color="@policyColor"/>
+                        <MudText Typo="Typo.h6" Color="@policyColor">@policyText</MudText>
+                        @if (_moduleJob.PolicyOutcome != PolicyOutcome.Passed)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">(see detail below)</MudText>
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+
+        <MudPaper Elevation="0" Class="pa-4">
+            <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
+            <ListLogs ModuleJobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
+        </MudPaper>
+    }
+}
 
 
 
@@ -151,7 +167,6 @@ else
 
 @code {
     [Parameter] public required Guid ModuleJobId { get; set; }
-    [Parameter] public EventCallback<string> OnViewLogs { get; set; }
     [Parameter] public required Guid ModuleId { get; set; }
     [Parameter] public required string JobSagaType { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
@@ -164,6 +179,7 @@ else
 
     private List<Approval>? _approvals;
     private ModuleJob? _moduleJob;
+    private ListLogs? _inlineLogsRef;
     private bool _isPulumi;
     private int _approvalCount;
     private int? _approvalThreshold;
@@ -227,17 +243,24 @@ else
 
     private string PlanTaskName => JobSagaType == nameof(DestroyJobSaga) ? "PlanDestroy" : "Plan";
 
-    private async Task ViewLogs(string task)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await OnViewLogs.InvokeAsync(task);
+        if (_inlineLogsRef != null)
+            await _inlineLogsRef.InitializeLogs();
     }
 
     private string GetApprovalCountText()
     {
         return _approvalThreshold is { } t
-            ? $"{_approvalCount} of {t} Approvals"
-            : $"{_approvalCount} Approvals (threshold unknown)";
+            ? $"{_approvalCount} of {t} approvals"
+            : $"{_approvalCount} approvals (threshold unknown)";
     }
+
+    private RenderFragment PlanStat(string label, int count, Color colorWhenNonZero) =>
+        @<MudStack Spacing="0" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h5" Color="@(count > 0 ? colorWhenNonZero : Color.Default)" Class="@(count == 0 ? "mud-text-secondary" : null)">@count</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@label</MudText>
+        </MudStack>;
 
 
     private async Task RemoveApproval(Guid moduleJobApprovalId)

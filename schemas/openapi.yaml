@@ -45,6 +45,114 @@ paths:
           description: OK
       x-snapcd-permissions:
         notes: 'Session helper: requires only membership of the target organization.'
+  /api/{organizationId}/state/{stateStoreId}/{stateFileName}:
+    get:
+      tags:
+      - State
+      summary: Get a single State
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.
+      parameters:
+      - name: stateStoreId
+        in: path
+        description: StateStore ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stateFileName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
+          by roles on the target state store, not by this API''s bearer-token role model.'
+    post:
+      tags:
+      - State
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.
+      parameters:
+      - name: stateStoreId
+        in: path
+        description: StateStore ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stateFileName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
+          by roles on the target state store, not by this API''s bearer-token role model.'
+    delete:
+      tags:
+      - State
+      summary: Delete a State
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.
+      parameters:
+      - name: stateStoreId
+        in: path
+        description: StateStore ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stateFileName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
+          by roles on the target state store, not by this API''s bearer-token role model.'
   /api/state/{stateStoreId}/{stateFileName}:
     get:
       tags:
@@ -132,6 +240,42 @@ paths:
       x-snapcd-permissions:
         notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
           by roles on the target state store, not by this API''s bearer-token role model.'
+  /api/{organizationId}/state/{stateStoreId}/{stateFileName}/lock:
+    post:
+      tags:
+      - State
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.
+      parameters:
+      - name: stateStoreId
+        in: path
+        description: StateStore ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stateFileName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
+          by roles on the target state store, not by this API''s bearer-token role model.'
   /api/state/{stateStoreId}/{stateFileName}/lock:
     post:
       tags:
@@ -161,6 +305,42 @@ paths:
       x-snapcd-permissions:
         notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
           by roles on the target state store, not by this API''s bearer-token role model.'
+  /api/{organizationId}/state/{stateStoreId}/{stateFileName}/unlock:
+    post:
+      tags:
+      - State
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.
+      parameters:
+      - name: stateStoreId
+        in: path
+        description: StateStore ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stateFileName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
+          by roles on the target state store, not by this API''s bearer-token role model.'
   /api/state/{stateStoreId}/{stateFileName}/unlock:
     post:
       tags:
@@ -184,6 +364,42 @@ paths:
         required: true
         schema:
           type: string
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
+          by roles on the target state store, not by this API''s bearer-token role model.'
+  /api/{organizationId}/state/{stateStoreId}/{stateFileName}/force-unlock:
+    post:
+      tags:
+      - State
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.
+      parameters:
+      - name: stateStoreId
+        in: path
+        description: StateStore ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stateFileName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: OK
@@ -33595,7 +33811,7 @@ tags:
 - name: StackSecret
 x-snapcd-permission-coverage:
   documented: 446
-  skipped: 15
+  skipped: 21
 x-snapcd-schema-doc-coverage:
   documented: 1175
   missing: 0

@@ -118,6 +118,8 @@ builder.Services.AddScoped<IOrganizationActivationService, AlwaysActivatedOrgani
 builder.Services.AddSingleton<ISelfRegistrationPolicy, SelfHostedSelfRegistrationPolicy>();
 builder.Services.AddSingleton<IInvitationAutoAcceptPolicy, SelfHostedInvitationAutoAcceptPolicy>();
 builder.Services.AddSingleton<IConsentRequirementPolicy, SelfHostedConsentRequirementPolicy>();
+builder.Services.AddSingleton<IPostOrganizationCreateRedirectPolicy, SelfHostedPostOrganizationCreateRedirectPolicy>();
+builder.Services.AddSingleton<IOrganizationNotActivatedResultProvider, NoOpOrganizationNotActivatedResultProvider>();
 builder.Services.AddSingleton<IOrganizationCountValidator, SelfHostedOrganizationCountValidator>();
 builder.Services.AddSingleton<SelfHostedOrganizationIdProvider>();
 builder.Services.AddScoped<IUserQuotaProvider, NoOpUserQuotaProvider>();

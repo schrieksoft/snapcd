@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.EntityFrameworkCore;
 using Serilog.Events;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto;
@@ -35,7 +36,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _dbContext = _fixture.CreateDbContext();
-        _logService = new LogService(_dbContext);
+        _logService = new LogService(new FixtureDbContextFactory(_fixture));
 
         // Create test ModuleJobs
         _testJob1 = new ModuleJob
@@ -107,7 +108,8 @@ public class LogServiceTests : IAsyncLifetime
         await _logService.AddLogEntries(logEntries);
 
         // Assert
-        var job = await _dbContext.ModuleJobs.FindAsync(_testJob1.Id, _testJob1.OrganizationId);
+        using var verifyContext = _fixture.CreateDbContext();
+        var job = await verifyContext.ModuleJobs.FindAsync(_testJob1.Id, _testJob1.OrganizationId);
         Assert.NotNull(job);
         Assert.NotNull(job.Logs);
         Assert.Contains("Test message 1", job.Logs);
@@ -382,9 +384,7 @@ public class LogServiceTests : IAsyncLifetime
             var messageIndex = i;
             var task = Task.Run(async () =>
             {
-                // Each task needs its own dbContext and service
-                using var context = _fixture.CreateDbContext();
-                var service = new LogService(context);
+                var service = new LogService(new FixtureDbContextFactory(_fixture));
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -419,8 +419,7 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                using var context = _fixture.CreateDbContext();
-                var service = new LogService(context);
+                var service = new LogService(new FixtureDbContextFactory(_fixture));
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -461,8 +460,7 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                using var context = _fixture.CreateDbContext();
-                var service = new LogService(context);
+                var service = new LogService(new FixtureDbContextFactory(_fixture));
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -479,8 +477,7 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                using var context = _fixture.CreateDbContext();
-                var service = new LogService(context);
+                var service = new LogService(new FixtureDbContextFactory(_fixture));
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -597,4 +594,12 @@ public class LogServiceTests : IAsyncLifetime
     }
 
     #endregion
+
+    private sealed class FixtureDbContextFactory(Fixture fixture) : IDbContextFactory<SnapCdDbContext>
+    {
+        public SnapCdDbContext CreateDbContext()
+        {
+            return fixture.CreateDbContext();
+        }
+    }
 }
