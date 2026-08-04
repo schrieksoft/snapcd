@@ -45,6 +45,24 @@ jobs:
         run: |
           echo "Version: ${{ steps.gitversion.outputs.SemVer }}"
 
+      # `+semver: none` tells GitVersion not to increment, so the computed version equals the
+      # tag that already exists. Without this gate the job would go on to overwrite the
+      # published container images for that version and then fail at `gh release create` with
+      # "tag_name already exists" — a red build *and* mutated artifacts. Everything that
+      # publishes is therefore skipped when the version has not moved. Build and test still
+      # run: a no-release commit should still be verified.
+      - name: Decide whether this commit publishes a release
+        id: gate
+        run: |
+          VERSION="${{ steps.gitversion.outputs.SemVer }}"
+          if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "Version $VERSION is already tagged — nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version $VERSION is new — publishing."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -131,7 +149,7 @@ jobs:
             -c Release -o nupkgs /p:Version=$SEMVER
 
       - name: Push to GitHub Packages
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.gate.outputs.publish == 'true'
         # Pushes to schrieksoft/snapcd-lib (repo association is set via RepositoryUrl in
         # each csproj). The auto GITHUB_TOKEN is scoped to this repo (snapcd) and cannot
         # publish packages targeting a different repo, so we use a classic PAT
@@ -180,6 +198,7 @@ jobs:
           images: "ghcr.io/schrieksoft/snapcd/snapcd-agent-sidecar-claude"
 
       - name: Build and push Docker image (Server)
+        if: steps.gate.outputs.publish == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -189,6 +208,7 @@ jobs:
           labels: ${{ steps.meta-server.outputs.labels }}
 
       - name: Build and push Docker image (Runner)
+        if: steps.gate.outputs.publish == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -198,6 +218,7 @@ jobs:
           labels: ${{ steps.meta-runner.outputs.labels }}
 
       - name: Build and push Docker image (Runner Azure)
+        if: steps.gate.outputs.publish == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -207,6 +228,7 @@ jobs:
           labels: ${{ steps.meta-runner-azure.outputs.labels }}
 
       - name: Build and push Docker image (Agent)
+        if: steps.gate.outputs.publish == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -216,6 +238,7 @@ jobs:
           labels: ${{ steps.meta-agent.outputs.labels }}
 
       - name: Build and push Docker image (Agent Sidecar Claude)
+        if: steps.gate.outputs.publish == 'true'
         uses: docker/build-push-action@v5
         with:
           # Sidecar Dockerfile expects pyproject.toml at the build context root, so the
@@ -227,7 +250,7 @@ jobs:
           labels: ${{ steps.meta-agent-sidecar-claude.outputs.labels }}
 
       - name: Release
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.gate.outputs.publish == 'true'
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
@@ -238,7 +261,11 @@ jobs:
           echo "--- release notes ---"
           cat "$RUNNER_TEMP/release-notes.md"
 
+          # --title explicitly: without it the release has no name and GitHub falls back to
+          # rendering the first line of the body as the heading. The name is the bare version;
+          # the descriptive heading lives in the notes.
           gh release create ${{ steps.gitversion.outputs.SemVer }} \
+            --title "${{ steps.gitversion.outputs.SemVer }}" \
             --notes-file "$RUNNER_TEMP/release-notes.md" \
             -R https://github.com/schrieksoft/snapcd \
             release-assets/*.zip \
@@ -251,7 +278,7 @@ jobs:
         # SNAPCD_DOWNSTREAM_DISPATCH_TOKEN is a fine-grained PAT scoped to the
         # listed downstream repos with Contents: Read and write (the only
         # permission required by POST /repos/{owner}/{repo}/dispatches).
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.gate.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.SNAPCD_DOWNSTREAM_DISPATCH_TOKEN }}
           SEMVER: ${{ steps.gitversion.outputs.SemVer }}
