@@ -16,6 +16,7 @@ using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 using SnapCd.Runner.Settings;
+using SnapCd.Runner.Services.PolicyEvaluation;
 
 namespace SnapCd.Runner.Tasks;
 
@@ -32,6 +33,26 @@ public partial class Tasks
     private readonly HookPreapprovalService _hookPreapprovalService;
     private readonly BareCloneCache _bareCloneCache;
     private readonly SnapCdInspect _snapCdInspect;
+    private readonly PolicyEvaluationService _policyEvaluationService;
+    private readonly PolicyEvaluationSettings _policyEvaluationSettings;
+
+    /// <summary>
+    /// Classifies a plan-step failure as a policy outcome when CrossGuard policies were in scope.
+    /// The preview's violation output may live either on the process exception or in the captured
+    /// stdout (the script wrapper can swallow the exit code); only deny/warn results are reported.
+    /// </summary>
+    private static SnapCd.Contracts.PolicyOutcome? ClassifyFaultPolicyOutcome(int policyCount, Exception ex, string planOutput)
+    {
+        if (policyCount == 0)
+            return null;
+
+        var text = ex is SnapCd.Runner.Services.ProcessFailedException pfe
+            ? pfe.Output + pfe.Error + planOutput
+            : planOutput;
+
+        var outcome = Services.PolicyEvaluation.PulumiPolicyOutputParser.Classify(text);
+        return outcome == SnapCd.Contracts.PolicyOutcome.Passed ? null : outcome;
+    }
 
     public Tasks(
         ProcessRegistry processRegistry,
@@ -44,7 +65,9 @@ public partial class Tasks
         IModuleSourceRefresherFactory moduleSourceRefresherFactory,
         HookPreapprovalService hookPreapprovalService,
         BareCloneCache bareCloneCache,
-        SnapCdInspect snapCdInspect)
+        SnapCdInspect snapCdInspect,
+        PolicyEvaluationService policyEvaluationService,
+        IOptions<PolicyEvaluationSettings> policyEvaluationSettings)
     {
         _processRegistry = processRegistry;
         _loggerFactory = loggerFactory;
@@ -57,6 +80,8 @@ public partial class Tasks
         _hookPreapprovalService = hookPreapprovalService;
         _bareCloneCache = bareCloneCache;
         _snapCdInspect = snapCdInspect;
+        _policyEvaluationService = policyEvaluationService;
+        _policyEvaluationSettings = policyEvaluationSettings.Value;
     }
 
     /// <summary>

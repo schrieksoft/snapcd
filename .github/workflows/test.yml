@@ -1,0 +1,66 @@
+name: test
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  # Runner tests run inside the runner base image, so they see exactly the toolchain the shipped
+  # runner sees (git, terraform/tofu, conftest, python3) — no ad-hoc installs to drift.
+  # Keep the image tag in sync with SnapCd.Runner/Dockerfile.
+  runner-tests:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/schrieksoft/base-image-snapcd-runner:1.1.0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # The checkout is written by the runner's user but every step here executes as the
+      # container's user, so git treats the workspace as unowned and refuses to read it.
+      # `go build` stamps VCS info by default and fails on that (exit 128) unless told
+      # the directory is trusted.
+      - name: Trust the workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: preview
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/snapcd-inspect/go.mod
+
+      - name: Test snapcd-inspect
+        run: go test -C tools/snapcd-inspect ./...
+
+      - name: Build snapcd-inspect
+        # -buildvcs=false: the binary is embedded in the Runner and never reports its own
+        # build metadata, so stamping buys nothing and only couples the build to git state.
+        run: |
+          CGO_ENABLED=0 go build -C tools/snapcd-inspect -buildvcs=false -o "$GITHUB_WORKSPACE/SnapCd.Runner/EmbeddedTools/snapcd-inspect" .
+
+      - name: Runner tests
+        run: dotnet test tests/SnapCd.Runner.Tests/SnapCd.Runner.Tests.csproj --logger "console;verbosity=normal"
+
+  # Server tests need the host docker daemon (Testcontainers SQL Server), so they run directly on
+  # the hosted runner; they have no engine/conftest dependencies.
+  server-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: preview
+
+      - name: Server tests
+        run: dotnet test tests/SnapCd.Server.Core.Tests/SnapCd.Server.Core.Tests.csproj --logger "console;verbosity=normal"

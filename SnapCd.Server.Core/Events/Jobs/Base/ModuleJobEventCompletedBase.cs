@@ -6,9 +6,17 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts;
+
 namespace SnapCd.Server.Core.Events.Jobs.Base;
 
 public class ModuleJobEventCompletedBase : JobEventBase
 {
     public Guid ModuleJobId { get; set; }
+
+    /// <summary>
+    /// Why the job ended without applying. Only populated on the cancelled events; lives on the
+    /// base because the generic state machine publishes cancelled events through a type parameter.
+    /// </summary>
+    public CancellationReason? CancellationReason { get; set; }
 }

@@ -22,7 +22,7 @@ public static class EmailTemplateHelper
                     Thank you for registering with Snap CD. Please confirm your email address by clicking the button below:
                 </p>",
             confirmationLink,
-            "Confirm Email Address",
+            "confirm email address",
             "If you didn't create an account with Snap CD, you can safely ignore this email.",
             hostUrl
         );
@@ -43,7 +43,7 @@ public static class EmailTemplateHelper
                     Click the button below to reset your password. If you didn't make this request, you can safely ignore this email.
                 </p>",
             resetLink,
-            "Reset Password",
+            "reset password",
             $"This password reset link will expire on <strong>{expirationTime}</strong>.<br/>For security reasons, this link can only be used once.",
             hostUrl
         );
@@ -63,12 +63,12 @@ public static class EmailTemplateHelper
                 <p style='margin: 0 0 16px 0;'>
                     Click the button below to accept or decline this invitation.
                 </p>
-                <p style='margin: 0 0 8px 0; font-size: 13px; color: #666;'>
+                <p style='margin: 0 0 8px 0; font-size: 13px; color: #9AA5B0;'>
                     <strong>Privacy Notice:</strong> This is the only email you will receive from SnapCD unless you accept this invitation and create an account.
                     Your email address will not be used for any other purpose.
                 </p>",
             invitationLink,
-            "Accept or Decline",
+            "accept or decline",
             $"This invitation will expire on <strong>{expirationTime}</strong> ({expirationDays} days).<br/>If you decline or ignore this invitation, your information will be automatically deleted.",
             hostUrl
         );
@@ -102,18 +102,18 @@ public static class EmailTemplateHelper
     </noscript>
     <![endif]-->
 </head>
-<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background-color: #f4f4f4;'>
-    <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0; background: #f4f4f4;'>
+<body style='margin: 0; padding: 0; font-family: ""Geist Sans"", -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background-color: #000000;'>
+    <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0; background: #000000;'>
         <tr>
             <td align='center' style='padding: 40px 0;'>
-                <table role='presentation' style='width: 600px; border-collapse: collapse; border: 0; border-spacing: 0; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                <table role='presentation' style='width: 600px; border-collapse: collapse; border: 0; border-spacing: 0; background: #171D24; border: 1px solid #262E37; box-shadow: 0 2px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.2);'>
                     <!-- Header -->
                     <tr>
-                        <td style='padding: 40px 40px 20px 40px; text-align: center; background: #000000; border-radius: 8px 8px 0 0;'>
+                        <td style='padding: 40px 40px 20px 40px; text-align: center; background: #0E1216;'>
                             <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0;'>
                                 <tr>
                                     <td style='text-align: center;'>
-                                        <h1 style='color: #ffffff; font-size: 24px; margin: 0; font-weight: 400;'>Snap CD</h1>
+                                        <h1 style='color: #E8ECEF; font-size: 24px; margin: 0; font-weight: 600; letter-spacing: -0.015em;'>Snap <span style='color: #E85D1A;'>CD</span></h1>
                                     </td>
                                 </tr>
                             </table>
@@ -123,9 +123,9 @@ public static class EmailTemplateHelper
                     <!-- Content -->
                     <tr>
                         <td style='padding: 40px;'>
-                            <h2 style='color: #212529; font-size: 24px; margin: 0 0 24px 0; font-weight: 600; text-align: center;'>").Append(heading).Append(@"</h2>
+                            <h2 style='color: #E8ECEF; font-size: 24px; margin: 0 0 24px 0; font-weight: 600; text-align: center;'>").Append(heading).Append(@"</h2>
                             
-                            <div style='color: #495057; font-size: 16px; line-height: 1.6; margin-bottom: 32px; text-align: center;'>
+                            <div style='color: #9AA5B0; font-size: 16px; line-height: 1.6; margin-bottom: 32px; text-align: center;'>
                                 ").Append(bodyContent).Append(@"
                             </div>
                             
@@ -134,7 +134,7 @@ public static class EmailTemplateHelper
                                 <tr>
                                     <td align='center'>
                                         <a href='").Append(actionLink).Append(@"' 
-                                           style='display: inline-block; padding: 8px 32px; background: #000000; color: #ffffff; text-decoration: none; border-radius: 24px; font-weight: 600; font-size: 16px; transition: background-color 0.15s ease-in-out;'>
+                                           style='display: inline-block; padding: 8px 24px; background: #E85D1A; color: #12171D; text-decoration: none; border-radius: 0; font-weight: 500; font-size: 14px; text-transform: lowercase;'>
                                             ").Append(actionText).Append(@"
                                         </a>
                                     </td>
@@ -142,18 +142,18 @@ public static class EmailTemplateHelper
                             </table>
                             
                             <!-- Alternative Link -->
-                            <div style='background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 20px; margin: 24px 0;'>
-                                <p style='color: #6c757d; font-size: 14px; margin: 0 0 8px 0; text-align: center;'>
+                            <div style='background: #0E1216; border: 1px solid #262E37; padding: 20px; margin: 24px 0;'>
+                                <p style='color: #9AA5B0; font-size: 14px; margin: 0 0 8px 0; text-align: center;'>
                                     Or copy and paste this link into your browser:
                                 </p>
-                                <p style='color: #0d6efd; font-size: 14px; word-break: break-all; margin: 0; text-align: center;'>
-                                    <a href='").Append(actionLink).Append(@"' style='color: #0d6efd; text-decoration: none;'>").Append(actionLink).Append(@"</a>
+                                <p style='color: #E85D1A; font-size: 14px; word-break: break-all; margin: 0; text-align: center;'>
+                                    <a href='").Append(actionLink).Append(@"' style='color: #E85D1A; text-decoration: none;'>").Append(actionLink).Append(@"</a>
                                 </p>
                             </div>
                             
                             <!-- Footer Note -->
-                            <div style='border-top: 1px solid #dee2e6; margin-top: 32px; padding-top: 24px;'>
-                                <p style='color: #6c757d; font-size: 14px; line-height: 1.5; margin: 0; text-align: center;'>
+                            <div style='border-top: 1px solid #262E37; margin-top: 32px; padding-top: 24px;'>
+                                <p style='color: #9AA5B0; font-size: 14px; line-height: 1.5; margin: 0; text-align: center;'>
                                     ").Append(footerNote).Append(@"
                                 </p>
                             </div>
@@ -162,11 +162,11 @@ public static class EmailTemplateHelper
                     
                     <!-- Footer -->
                     <tr>
-                        <td style='padding: 24px 40px; background: #f8f9fa; border-top: 1px solid #dee2e6; border-radius: 0 0 8px 8px;'>
+                        <td style='padding: 24px 40px; background: #0E1216; border-top: 1px solid #262E37;'>
                             <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0;'>
                                 <tr>
                                     <td style='text-align: center;'>
-                                        <p style='color: #6c757d; font-size: 13px; margin: 0 0 4px 0;'>
+                                        <p style='color: #9AA5B0; font-size: 13px; margin: 0 0 4px 0;'>
                                             © ").Append(DateTime.UtcNow.Year).Append(@" Snap CD. All rights reserved.
                                         </p>
                                     </td>
@@ -229,7 +229,7 @@ public static class EmailTemplateHelper
     {
         return $@"
             <p>A password reset has been requested for your Snap CD account.</p>
-            <p>Your password reset code is: <strong style='font-size: 18px; color: #000;'>{resetCode}</strong></p>
+            <p>Your password reset code is: <strong style='font-size: 18px; color: #E8ECEF;'>{resetCode}</strong></p>
             <p>Please enter this code to reset your password.</p>";
     }
 
@@ -254,21 +254,21 @@ public static class EmailTemplateHelper
                 </p>
                 <table style='width: 100%; border-collapse: collapse; margin-bottom: 16px;'>
                     <tr>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600; width: 120px;'>From:</td>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6;'>{System.Net.WebUtility.HtmlEncode(fromName)}</td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #E8ECEF; font-weight: 600; width: 120px;'>From:</td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #9AA5B0;'>{System.Net.WebUtility.HtmlEncode(fromName)}</td>
                     </tr>
                     <tr>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600;'>Email:</td>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6;'><a href='mailto:{System.Net.WebUtility.HtmlEncode(fromEmail)}' style='color: #0d6efd;'>{System.Net.WebUtility.HtmlEncode(fromEmail)}</a></td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #E8ECEF; font-weight: 600;'>Email:</td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #9AA5B0;'><a href='mailto:{System.Net.WebUtility.HtmlEncode(fromEmail)}' style='color: #E85D1A;'>{System.Net.WebUtility.HtmlEncode(fromEmail)}</a></td>
                     </tr>
                     <tr>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600;'>Subject:</td>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6;'>{System.Net.WebUtility.HtmlEncode(subject)}</td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #E8ECEF; font-weight: 600;'>Subject:</td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #9AA5B0;'>{System.Net.WebUtility.HtmlEncode(subject)}</td>
                     </tr>
                 </table>
-                <div style='background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 16px; margin-top: 16px;'>
-                    <p style='margin: 0 0 8px 0; font-weight: 600;'>Message:</p>
-                    <p style='margin: 0; white-space: pre-wrap;'>{System.Net.WebUtility.HtmlEncode(message)}</p>
+                <div style='background: #0E1216; border: 1px solid #262E37; padding: 16px; margin-top: 16px;'>
+                    <p style='margin: 0 0 8px 0; color: #E8ECEF; font-weight: 600;'>Message:</p>
+                    <p style='margin: 0; color: #9AA5B0; white-space: pre-wrap;'>{System.Net.WebUtility.HtmlEncode(message)}</p>
                 </div>",
             hostUrl
         );
@@ -314,12 +314,12 @@ public static class EmailTemplateHelper
                 <p style='margin: 0 0 8px 0; font-weight: 600;'>Your message:</p>
                 <table style='width: 100%; border-collapse: collapse; margin-bottom: 16px;'>
                     <tr>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600; width: 120px;'>Subject:</td>
-                        <td style='padding: 8px 0; border-bottom: 1px solid #dee2e6;'>{System.Net.WebUtility.HtmlEncode(subject)}</td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #E8ECEF; font-weight: 600; width: 120px;'>Subject:</td>
+                        <td style='padding: 8px 0; border-bottom: 1px solid #262E37; color: #9AA5B0;'>{System.Net.WebUtility.HtmlEncode(subject)}</td>
                     </tr>
                 </table>
-                <div style='background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 16px; margin-top: 16px;'>
-                    <p style='margin: 0; white-space: pre-wrap;'>{System.Net.WebUtility.HtmlEncode(message)}</p>
+                <div style='background: #0E1216; border: 1px solid #262E37; padding: 16px; margin-top: 16px;'>
+                    <p style='margin: 0; color: #9AA5B0; white-space: pre-wrap;'>{System.Net.WebUtility.HtmlEncode(message)}</p>
                 </div>",
             hostUrl
         );
@@ -372,18 +372,18 @@ public static class EmailTemplateHelper
     </noscript>
     <![endif]-->
 </head>
-<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background-color: #f4f4f4;'>
-    <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0; background: #f4f4f4;'>
+<body style='margin: 0; padding: 0; font-family: ""Geist Sans"", -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background-color: #000000;'>
+    <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0; background: #000000;'>
         <tr>
             <td align='center' style='padding: 40px 0;'>
-                <table role='presentation' style='width: 600px; border-collapse: collapse; border: 0; border-spacing: 0; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                <table role='presentation' style='width: 600px; border-collapse: collapse; border: 0; border-spacing: 0; background: #171D24; border: 1px solid #262E37; box-shadow: 0 2px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.2);'>
                     <!-- Header -->
                     <tr>
-                        <td style='padding: 40px 40px 20px 40px; text-align: center; background: #000000; border-radius: 8px 8px 0 0;'>
+                        <td style='padding: 40px 40px 20px 40px; text-align: center; background: #0E1216;'>
                             <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0;'>
                                 <tr>
                                     <td style='text-align: center;'>
-                                        <h1 style='color: #ffffff; font-size: 24px; margin: 0; font-weight: 400;'>Snap CD</h1>
+                                        <h1 style='color: #E8ECEF; font-size: 24px; margin: 0; font-weight: 600; letter-spacing: -0.015em;'>Snap <span style='color: #E85D1A;'>CD</span></h1>
                                     </td>
                                 </tr>
                             </table>
@@ -393,9 +393,9 @@ public static class EmailTemplateHelper
                     <!-- Content -->
                     <tr>
                         <td style='padding: 40px;'>
-                            <h2 style='color: #212529; font-size: 24px; margin: 0 0 24px 0; font-weight: 600; text-align: center;'>").Append(heading).Append(@"</h2>
+                            <h2 style='color: #E8ECEF; font-size: 24px; margin: 0 0 24px 0; font-weight: 600; text-align: center;'>").Append(heading).Append(@"</h2>
 
-                            <div style='color: #495057; font-size: 16px; line-height: 1.6;'>
+                            <div style='color: #9AA5B0; font-size: 16px; line-height: 1.6;'>
                                 ").Append(bodyContent).Append(@"
                             </div>
                         </td>
@@ -403,11 +403,11 @@ public static class EmailTemplateHelper
 
                     <!-- Footer -->
                     <tr>
-                        <td style='padding: 24px 40px; background: #f8f9fa; border-top: 1px solid #dee2e6; border-radius: 0 0 8px 8px;'>
+                        <td style='padding: 24px 40px; background: #0E1216; border-top: 1px solid #262E37;'>
                             <table role='presentation' style='width: 100%; border-collapse: collapse; border: 0; border-spacing: 0;'>
                                 <tr>
                                     <td style='text-align: center;'>
-                                        <p style='color: #6c757d; font-size: 13px; margin: 0 0 4px 0;'>
+                                        <p style='color: #9AA5B0; font-size: 13px; margin: 0 0 4px 0;'>
                                             © ").Append(DateTime.UtcNow.Year).Append(@" Snap CD. All rights reserved.
                                         </p>
                                     </td>

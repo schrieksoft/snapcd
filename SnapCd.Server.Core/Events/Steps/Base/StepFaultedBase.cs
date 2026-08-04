@@ -6,6 +6,8 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts;
+
 namespace SnapCd.Server.Core.Events.Steps.Base;
 
 /// <summary>
@@ -23,4 +25,10 @@ public abstract class StepFaultedBase : StepResponseBase
     /// When false (default), indicates the error occurred on the runner side.
     /// </summary>
     public bool IsServerSideError { get; set; }
+
+    /// <summary>
+    /// Set when the fault was caused by a policy denial rather than breakage — e.g. a mandatory
+    /// CrossGuard violation failing the Pulumi preview. Routes the job to PolicyDenied instead of Failed.
+    /// </summary>
+    public PolicyOutcome? PolicyOutcome { get; set; }
 }

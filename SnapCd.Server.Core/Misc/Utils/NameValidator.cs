@@ -22,8 +22,21 @@ public static partial class NameValidator
 {
     private const int MaxLength = 255;
 
+    /// <summary>
+    /// The accepted-characters rule in one sentence, for use as field helper text next to any
+    /// name input, so the rule is stated up front rather than only on a failed submit.
+    /// </summary>
+    public const string RuleDescription =
+        "Letters, digits, dots, hyphens and underscores only — no spaces or apostrophes. Must start and end with a letter or digit.";
+
     [GeneratedRegex("^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$")]
     private static partial Regex ValidNamePattern();
+
+    [GeneratedRegex("[^a-zA-Z0-9._-]+")]
+    private static partial Regex NonNameCharacters();
+
+    [GeneratedRegex("^[._-]+|[._-]+$")]
+    private static partial Regex LeadingOrTrailingPunctuation();
 
     /// <summary>
     /// Returns an error message if the name is null, empty, too long, or contains characters
@@ -42,6 +55,25 @@ public static partial class NameValidator
             return $"{entityKind} name '{name}' is invalid. Names may only contain letters, digits, dots, hyphens and underscores, and must start and end with a letter or digit.";
 
         return null;
+    }
+
+    /// <summary>
+    /// Converts free text into a name that satisfies <see cref="Validate"/>: lowercased, with
+    /// runs of unsupported characters collapsed to a single hyphen and punctuation trimmed from
+    /// both ends. Returns null when nothing usable remains, so callers can fall back.
+    /// </summary>
+    public static string? ToValidName(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        var slug = NonNameCharacters().Replace(text.Trim().ToLowerInvariant(), "-");
+        slug = LeadingOrTrailingPunctuation().Replace(slug, string.Empty);
+
+        if (slug.Length > MaxLength)
+            slug = LeadingOrTrailingPunctuation().Replace(slug[..MaxLength], string.Empty);
+
+        return slug.Length == 0 ? null : slug;
     }
 
     /// <summary>

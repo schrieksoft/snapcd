@@ -9,6 +9,7 @@
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Services;
@@ -28,12 +29,17 @@ public class QuotaEnforcementService(
     /// </summary>
     public async Task EnforceUserQuotaAsync(Guid organizationId)
     {
-        var quota = await quotaService.GetQuotaAsync(organizationId, nameof(QuotaLimits.OrganizationUserQuota));
-        if (quota == null)
+        var allowance = await quotaService.GetAllowanceAsync(organizationId, nameof(QuotaLimits.OrganizationUserQuota));
+        if (allowance is not QuotaAllowance.LimitedAllowance limited)
         {
-            logger.LogDebug("No user quota configured for organization {OrgId}, skipping enforcement", organizationId);
+            // Unlimited has nothing to enforce. Denied deliberately does not mass-deactivate
+            // either: an unentitled organization is already blocked from the product, and
+            // deactivating its users would be destructive and hard to undo on reactivation.
+            logger.LogDebug("No user quota to enforce for organization {OrgId}, skipping enforcement", organizationId);
             return;
         }
+
+        var quota = limited.Limit;
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
@@ -42,15 +48,15 @@ public class QuotaEnforcementService(
             .Where(ou => ou.OrganizationId == organizationId && !ou.IsDeactivated)
             .ToListAsync();
 
-        if (activeUsers.Count <= quota.Value)
+        if (activeUsers.Count <= quota)
         {
             logger.LogDebug(
                 "Organization {OrgId} user count {Count} is within quota {Quota}, no enforcement needed",
-                organizationId, activeUsers.Count, quota.Value);
+                organizationId, activeUsers.Count, quota);
             return;
         }
 
-        var excessCount = activeUsers.Count - quota.Value;
+        var excessCount = activeUsers.Count - quota;
 
         // Find users with protected roles (directly assigned)
         var usersWithDirectRole = await dbContext.UserOrganizationRoleAssignments
@@ -115,19 +121,26 @@ public class QuotaEnforcementService(
     /// </summary>
     public async Task<(bool Allowed, string? Reason)> CanCreateModuleJobAsync(Guid organizationId)
     {
-        var quota = await quotaService.GetQuotaAsync(organizationId, nameof(QuotaLimits.ModuleQuota));
-        if (quota == null)
+        var allowance = await quotaService.GetAllowanceAsync(organizationId, nameof(QuotaLimits.ModuleQuota));
+
+        switch (allowance)
         {
-            return (true, null); // Unlimited
+            case QuotaAllowance.UnlimitedAllowance:
+                return (true, null);
+            case QuotaAllowance.DeniedAllowance:
+                return (false, "This organization is not entitled to run jobs.");
         }
+
+        var limit = allowance.LimitOrNull!.Value;
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var moduleCount = await dbContext.Modules
             .CountAsync(m => m.OrganizationId == organizationId);
 
-        if (moduleCount > quota.Value)
+        // Strictly greater: an organization exactly at its cap may still run jobs.
+        if (moduleCount > limit)
         {
-            var reason = $"Module quota exceeded. Current: {moduleCount}, Limit: {quota.Value}. " +
+            var reason = $"Module quota exceeded. Current: {moduleCount}, Limit: {limit}. " +
                          "Delete modules or upgrade subscription to run jobs.";
             return (false, reason);
         }

@@ -88,5 +88,9 @@ public class ModuleJobClassMap : IEntityTypeConfiguration<ModuleJob>
         entity
             .Property(d => d.ActualStateHeadline)
             .HasConversion<string>();
+
+        entity
+            .Property(d => d.PolicyOutcome)
+            .HasConversion<string>();
     }
 }

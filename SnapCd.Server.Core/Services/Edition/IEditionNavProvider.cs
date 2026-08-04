@@ -12,6 +12,9 @@ namespace SnapCd.Server.Core.Services.Edition;
 
 public interface IEditionNavProvider
 {
+    /// <summary>Rendered at the very top of the nav, above the organization selector.</summary>
+    RenderFragment? EditionTopNavItems => null;
+
     /// <summary>Rendered inside the "System" nav group (e.g. the self-hosted "License" link).</summary>
     RenderFragment? EditionSystemNavItems { get; }
 

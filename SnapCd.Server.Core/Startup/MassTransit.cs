@@ -189,6 +189,7 @@ public static class MassTransit
         typeof(GetModuleConsumer),
         typeof(InitConsumer),
         typeof(ValidateConsumer),
+        typeof(PolicyValidateConsumer),
         typeof(VariablesConsumer),
         typeof(PlanConsumer),
         typeof(PlanDestroyConsumer),

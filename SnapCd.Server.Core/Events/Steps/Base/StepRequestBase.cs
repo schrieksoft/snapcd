@@ -17,4 +17,7 @@ public class StepRequestBase : CorrelationBase
         
     public string RunnerInstanceName { get; set; }  = String.Empty;
     public ResolvedModule Declared { get; set; } = null!;
+
+    /// <summary>True when this step belongs to a destroy job — steps whose behavior depends on the job kind (e.g. EvaluateOn policy filtering) branch on this.</summary>
+    public bool IsDestroyJob { get; set; }
 }

@@ -25,5 +25,8 @@ public class PlanDestroyRequestBase : EngineJobRequestBase
     public List<PulumiArrayFlagEntry> PulumiArrayFlags { get; set; } = [];
 
     public List<TerraformFlagEntry> TerraformFlags { get; set; } = [];
+
+    /// <summary>Pulumi/CrossGuard policies to enforce inside the preview (empty for Terraform/OpenTofu — those evaluate in the PolicyValidate step).</summary>
+    public List<ResolvedPolicy> Policies { get; set; } = [];
     public List<TerraformArrayFlagEntry> TerraformArrayFlags { get; set; } = [];
 }

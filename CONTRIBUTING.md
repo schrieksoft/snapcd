@@ -21,6 +21,10 @@ Requirements:
 - .NET 10 SDK
 - Docker + Docker Compose
 - SQL Server (use the provided `docker-compose.yml`)
+- Go (for `tools/snapcd-inspect`; version per its `go.mod`)
+- [conftest](https://www.conftest.dev/) 0.68+ on `PATH` — the policy-evaluation tests shell out to the real binary, exactly as the Runner does
+- `python3` with the `venv` module — used by the CrossGuard (Pulumi policy) pack-provisioning tests
+- Pulumi CLI — only needed when working on the Pulumi engine or CrossGuard policy paths
 
 Build:
 

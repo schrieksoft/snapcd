@@ -65,6 +65,18 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
     public virtual ICollection<ModuleExtraFile> ModuleExtraFiles { get; set; } = new List<ModuleExtraFile>();
     public virtual ICollection<ModuleAdditionalTriggerPath> ModuleAdditionalTriggerPaths { get; set; } = new List<ModuleAdditionalTriggerPath>();
     public virtual ICollection<NamespaceAdditionalTriggerPath> NamespaceAdditionalTriggerPaths { get; set; } = new List<NamespaceAdditionalTriggerPath>();
+    public virtual ICollection<ModuleTerraformInlinePolicy> ModuleTerraformInlinePolicies { get; set; } = new List<ModuleTerraformInlinePolicy>();
+    public virtual ICollection<ModuleTerraformRemotePolicy> ModuleTerraformRemotePolicies { get; set; } = new List<ModuleTerraformRemotePolicy>();
+    public virtual ICollection<ModuleTerraformLocalPolicy> ModuleTerraformLocalPolicies { get; set; } = new List<ModuleTerraformLocalPolicy>();
+    public virtual ICollection<ModulePulumiInlinePolicy> ModulePulumiInlinePolicies { get; set; } = new List<ModulePulumiInlinePolicy>();
+    public virtual ICollection<ModulePulumiRemotePolicy> ModulePulumiRemotePolicies { get; set; } = new List<ModulePulumiRemotePolicy>();
+    public virtual ICollection<ModulePulumiLocalPolicy> ModulePulumiLocalPolicies { get; set; } = new List<ModulePulumiLocalPolicy>();
+    public virtual ICollection<NamespaceTerraformInlinePolicy> NamespaceTerraformInlinePolicies { get; set; } = new List<NamespaceTerraformInlinePolicy>();
+    public virtual ICollection<NamespaceTerraformRemotePolicy> NamespaceTerraformRemotePolicies { get; set; } = new List<NamespaceTerraformRemotePolicy>();
+    public virtual ICollection<NamespaceTerraformLocalPolicy> NamespaceTerraformLocalPolicies { get; set; } = new List<NamespaceTerraformLocalPolicy>();
+    public virtual ICollection<NamespacePulumiInlinePolicy> NamespacePulumiInlinePolicies { get; set; } = new List<NamespacePulumiInlinePolicy>();
+    public virtual ICollection<NamespacePulumiRemotePolicy> NamespacePulumiRemotePolicies { get; set; } = new List<NamespacePulumiRemotePolicy>();
+    public virtual ICollection<NamespacePulumiLocalPolicy> NamespacePulumiLocalPolicies { get; set; } = new List<NamespacePulumiLocalPolicy>();
     public virtual ICollection<NamespaceExtraFile> NamespaceExtraFiles { get; set; } = new List<NamespaceExtraFile>();
 
     public virtual ICollection<Group> Groups { get; set; } = new List<Group>();

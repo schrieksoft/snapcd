@@ -105,7 +105,15 @@ jobs:
         # release assets so snapcd-docs can fetch them by tag without checking out
         # this repo. They are kept current by the pre-commit hooks
         # (scripts/check-settings-schemas.sh, scripts/check-openapi-document.sh).
+        #
+        # The OpenAPI document is regenerated here rather than copied: info.version comes
+        # from the assembly, which only carries the release string in a CI build, so the
+        # committed copy always reads 1.0.0. SNAPCD_VERSION stamps the real one, which the
+        # docs site and the Terraform provider then inherit.
+        env:
+          SNAPCD_VERSION: ${{ steps.gitversion.outputs.SemVer }}
         run: |
+          ./scripts/check-openapi-document.sh --write
           cp schemas/server.schema.yaml \
              schemas/runner.schema.yaml \
              schemas/agent.schema.yaml \
@@ -223,8 +231,15 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
+          # Notes come from the <!-- release-notes --> block in the merge commit, which
+          # GitHub pre-fills from the PR description. Falls back to the commit subject,
+          # so a release never fails for want of a description.
+          ./scripts/release-notes.sh > "$RUNNER_TEMP/release-notes.md"
+          echo "--- release notes ---"
+          cat "$RUNNER_TEMP/release-notes.md"
+
           gh release create ${{ steps.gitversion.outputs.SemVer }} \
-            --notes "Release ${{ steps.gitversion.outputs.SemVer }}" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
             -R https://github.com/schrieksoft/snapcd \
             release-assets/*.zip \
             release-assets/*.yaml

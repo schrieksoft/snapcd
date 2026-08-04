@@ -334,6 +334,28 @@ public class TerraformEngine : BaseEngine, IEngine
     }
 
     private string GetTfVarsPath() => $"{SnapCdDir}/inputs.tfvars";
+    public void SetPolicyPacks(IReadOnlyList<string> packDirs)
+    {
+        // Terraform/OpenTofu policies are evaluated by the PolicyValidate step, not inside the plan.
+        if (packDirs.Count > 0)
+            throw new NotSupportedException("Policy packs are a Pulumi/CrossGuard concept and cannot be applied to the Terraform engine.");
+    }
+
+    public async Task<string> ExportPlanJson(
+        bool isDestroyJob,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        var planPath = isDestroyJob ? GetPlanDestroyPath() : GetPlanApplyPath();
+        var jsonPath = isDestroyJob ? $"{SnapCdDir}/destroy_plan.json" : $"{SnapCdDir}/plan.json";
+
+        // Redirect to file: the plan JSON contains sensitive values and must not stream into logs.
+        var script = $"{_engine} show -json {planPath} > {jsonPath}";
+        await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+
+        return jsonPath;
+    }
+
     private string GetPlanApplyPath() => $"{SnapCdDir}/plan.out";
     private string GetPlanDestroyPath() => $"{SnapCdDir}/destroy.out";
 }

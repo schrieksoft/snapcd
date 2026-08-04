@@ -21,6 +21,28 @@ namespace SnapCd.Runner.Services;
 public class PulumiEngine : BaseEngine, IEngine
 {
     private const string PlanFileName = "plan.json";
+
+    private IReadOnlyList<string> _policyPacks = [];
+
+    public void SetPolicyPacks(IReadOnlyList<string> packDirs)
+    {
+        _policyPacks = packDirs;
+    }
+
+    private string PolicyPackArgs()
+    {
+        return string.Concat(_policyPacks.Select(d => $" --policy-pack {d}"));
+    }
+
+    public Task<string> ExportPlanJson(
+        bool isDestroyJob,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        // CrossGuard policies run inside the preview itself; the PolicyValidate step is never
+        // dispatched for Pulumi modules.
+        throw new NotSupportedException("Policy plan-JSON export is not applicable to the Pulumi engine.");
+    }
     private const string DestroyPreviewFileName = "destroy_preview.json";
     private const string OutputFileName = "output.json";
     private const string ExportFileName = "export.json";
@@ -128,7 +150,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         var planPath = GetPlanPath();
         var phaseArgs = GetFlagArgs();
-        var baseScript = $"pulumi preview --save-plan {planPath} --non-interactive{phaseArgs}";
+        var baseScript = $"pulumi preview --save-plan {planPath} --non-interactive{PolicyPackArgs()}{phaseArgs}";
 
         var script = await CreateScriptAsync(
             baseScript,
@@ -152,6 +174,8 @@ public class PulumiEngine : BaseEngine, IEngine
 
         var destroyPreviewPath = GetDestroyPreviewPath();
         var phaseArgs = GetFlagArgs();
+        // The pulumi CLI has no --policy-pack support on destroy: CrossGuard evaluates apply-side
+        // previews only, so destroy previews run without policy enforcement.
         var baseScript = $"pulumi destroy --preview-only --json --non-interactive{phaseArgs} > {destroyPreviewPath}";
 
         var script = await CreateScriptAsync(

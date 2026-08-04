@@ -19,6 +19,7 @@ public static class TaskHandlers
         services.AddScoped<GetModuleHandler>();
         services.AddScoped<InitHandler>();
         services.AddScoped<ValidateHandler>();
+        services.AddScoped<PolicyValidateHandler>();
         services.AddScoped<VariableHandler>();
         services.AddScoped<PlanHandler>();
         services.AddScoped<PlanDestroyHandler>();

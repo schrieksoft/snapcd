@@ -45,6 +45,12 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
     public List<NamespaceExtraFile> NamespaceExtraFiles { get; set; } = new();
 
     public List<NamespaceAdditionalTriggerPath> AdditionalTriggerPaths { get; set; } = new();
+    public List<NamespaceTerraformInlinePolicy> TerraformInlinePolicies { get; set; } = new();
+    public List<NamespaceTerraformRemotePolicy> TerraformRemotePolicies { get; set; } = new();
+    public List<NamespaceTerraformLocalPolicy> TerraformLocalPolicies { get; set; } = new();
+    public List<NamespacePulumiInlinePolicy> PulumiInlinePolicies { get; set; } = new();
+    public List<NamespacePulumiRemotePolicy> PulumiRemotePolicies { get; set; } = new();
+    public List<NamespacePulumiLocalPolicy> PulumiLocalPolicies { get; set; } = new();
 
     // NEW Role Assignment navigation properties
     public virtual ICollection<UserNamespaceRoleAssignment> UserNamespaceRoleAssignments { get; set; } = new List<UserNamespaceRoleAssignment>();

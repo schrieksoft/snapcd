@@ -65,6 +65,12 @@
             <!-- Organization Selector -->
             <OrganizationSelector CurrentOrganizationId="_currentOrganizationId"/>
 
+            <!-- Edition-specific nav items, below the organization selector and above all other nav items. -->
+            @if (EditionTopNavItems != null)
+            {
+                @EditionTopNavItems
+            }
+
             <!-- General Section (gated by Cloud subscription status on SaaS) -->
             @if (_organizationActivated && _generalIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
@@ -147,7 +153,11 @@
                     }
                 </MudNavGroup>
             }
-            <MudNavLink Href="@GetNavigationUrl("ApiReference")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">API Reference</MudNavLink>
+            <!-- API Reference (gated by Cloud subscription status on SaaS) -->
+            @if (_organizationActivated)
+            {
+                <MudNavLink Href="@GetNavigationUrl("ApiReference")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">API Reference</MudNavLink>
+            }
 
             <!-- Edition-specific standalone nav items, after System (SaaS Subscriptions group). -->
             @if (EditionNavItems != null)
@@ -250,6 +260,7 @@
 @code {
     private Guid? _currentOrganizationId => OrganizationContext.CurrentOrganizationId;
     [Parameter] public required Type CurrentPageType { get; set; }
+    private RenderFragment? EditionTopNavItems => EditionNavProvider.EditionTopNavItems;
     private RenderFragment? EditionSystemNavItems => EditionNavProvider.EditionSystemNavItems;
     private RenderFragment? EditionNavItems => EditionNavProvider.EditionNavItems;
     private RenderFragment? EditionAccountNavItems => EditionNavProvider.EditionAccountNavItems;

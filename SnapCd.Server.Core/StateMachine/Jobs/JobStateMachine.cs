@@ -150,6 +150,7 @@ public partial class JobStateMachine<
         Configure_Validate();
         Configure_Variables();
         Configure_Plan();
+        Configure_PolicyValidate();
         Configure_ApplyFromPlan();
         Configure_Output();
         Configure_Approval();

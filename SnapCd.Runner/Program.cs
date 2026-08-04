@@ -53,7 +53,9 @@ builder.Services.AddSingleton<VariableDiscoveryServiceFactory>();
 builder.Services.AddSingleton<ModuleGetterFactory>();
 builder.Services.AddSingleton<IModuleSourceRefresherFactory, ModuleSourceRefresherFactory>();
 builder.Services.Configure<SourceCacheSettings>(builder.Configuration.GetSection("SourceCache"));
+builder.Services.Configure<PolicyEvaluationSettings>(builder.Configuration.GetSection("PolicyEvaluation"));
 builder.Services.AddSingleton<BareCloneCache>();
+builder.Services.AddSingleton<SnapCd.Runner.Services.PolicyEvaluation.PolicyEvaluationService>();
 builder.Services.AddSingleton<SnapCdInspect>();
 
 

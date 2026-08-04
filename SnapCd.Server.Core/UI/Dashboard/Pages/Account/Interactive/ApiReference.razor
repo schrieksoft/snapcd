@@ -10,6 +10,12 @@
 
 @layout SnapCd.Server.Core.UI.Dashboard.Layout.AccountInteractiveLayout
 
+@using Microsoft.AspNetCore.Authorization
+@using SnapCd.Server.Core.Filters
+
+@attribute [Authorize]
+@attribute [OrganizationScopedFeature]
+
 <PageTitle>API Reference - Snap CD</PageTitle>
 
 @* Scalar assumes it owns its document (window scrolling, document-coordinate

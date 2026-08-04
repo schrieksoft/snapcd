@@ -85,6 +85,9 @@ public class ResolvedModule
     public List<TerraformArrayFlagEntry> TerraformArrayFlags { get; set; } = new();
     public List<DependsOnModuleResolved> DependsOnModules { get; set; } = new();
 
+    /// <summary>Enabled policies matching the module's engine, module- and namespace-level, resolved at job creation.</summary>
+    public List<ResolvedPolicy> Policies { get; set; } = new();
+
     public List<SelectedModuleSecret> SelectedModuleParamsFromSecrets { get; set; } = new();
     public List<SelectedModuleSecret> SelectedModuleEnvVarsFromSecrets { get; set; } = new();
 

@@ -1,0 +1,120 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@if (_items == null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+
+else
+{
+    <MudExpansionPanels>
+
+        @foreach (var item in _items)
+        {
+            <MudExpansionPanel Text="@item.Name">
+                <EditNamespacePulumiInlinePolicy Context="@item"
+                         PrincipalProvider="@PrincipalProvider"
+                         OnDelete="() => ResetAll()"
+                         OnUpdate="() => ResetAll()"
+                         OnCreate="() => ResetAll()"
+                         OnCancel="() => ResetAll()"
+                         IsCreateMode="false"/>
+            </MudExpansionPanel>
+        }
+
+        @if (_isCreating)
+        {
+            <MudExpansionPanel Expanded="_newItemExpanded" ExpandedChanged="OnNewItemExpandedChanged">
+                <EditNamespacePulumiInlinePolicy Context="_newItem"
+                         PrincipalProvider="@PrincipalProvider"
+                         OnDelete="() => ResetAll()"
+                         OnUpdate="() => ResetAll()"
+                         OnCreate="() => ResetAll()"
+                         OnCancel="() => ResetAll()"
+                         IsCreateMode="true"/>
+            </MudExpansionPanel>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   Size="Size.Small"
+                   OnClick="StartCreate"
+                   Class="mt-2">
+            Add New
+        </MudButton>
+
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = null!;
+    [Parameter] public Guid NamespaceId { get; set; }
+    [Parameter] public EventCallback OnTabClick { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private NamespacePulumiInlinePolicySecuredRepositoryFactory NamespacePulumiInlinePolicySecuredRepositoryFactory { get; set; } = null!;
+
+    private bool _isCreating;
+    private bool _newItemExpanded;
+    private NamespacePulumiInlinePolicy? _newItem;
+    private List<NamespacePulumiInlinePolicy>? _items;
+
+    protected override Task OnInitializedAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    private void StartCreate()
+    {
+        _newItem = new NamespacePulumiInlinePolicy { Id = Guid.NewGuid(), NamespaceId = NamespaceId, OrganizationId = OrganizationId, Runtime = PulumiPolicyRuntime.Python };
+        _isCreating = true;
+        _newItemExpanded = true;
+        StateHasChanged();
+    }
+
+    private void OnNewItemExpandedChanged(bool expanded)
+    {
+        _newItemExpanded = expanded;
+        if (!expanded && _isCreating)
+        {
+            // Cancel creation when panel is collapsed
+            ResetAll();
+        }
+    }
+
+    private async void ResetAll()
+    {
+        _isCreating = false;
+        _newItemExpanded = false;
+        _newItem = null;
+        await ReloadItems();
+        StateHasChanged();
+    }
+
+    private async Task ReloadItems()
+    {
+        using var repo = NamespacePulumiInlinePolicySecuredRepositoryFactory.Create(PrincipalProvider);
+        _items = await repo.ListByParentId(NamespaceId, OrganizationId);
+    }
+
+    public async Task InitializeItems()
+    {
+        if (_items == null)
+        {
+            await ReloadItems();
+            StateHasChanged();
+        }
+    }
+
+}

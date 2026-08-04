@@ -12,6 +12,7 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Services.PolicyEvaluation;
 
 namespace SnapCd.Runner.Tasks;
 
@@ -45,6 +46,8 @@ public partial class Tasks
 
         var runnerHubClient = new RunnerHubClient(connection);
 
+        var planOutput = string.Empty;
+
         try
         {
             taskContext.LogInformation("Now planning destroy");
@@ -65,7 +68,20 @@ public partial class Tasks
                 request.TerraformArrayFlags
             );
 
-            await engine.PlanDestroy(request.ResolvedParameters, request.PlanDestroyBeforeHook, request.PlanDestroyAfterHook, killCts.Token, gracefulCts.Token);
+            if (request.Policies.Count > 0)
+            {
+                taskContext.LogInformation($"Enforcing {request.Policies.Count} CrossGuard policy pack(s) in the preview");
+                var packScratchDir = Path.Combine(engine.GetSnapCdDir(), "policy-packs");
+                if (Directory.Exists(packScratchDir))
+                    Directory.Delete(packScratchDir, recursive: true);
+                Directory.CreateDirectory(packScratchDir);
+
+                var packDirs = new List<string>();
+                foreach (var policy in request.Policies)
+                    packDirs.Add(await PulumiPackMaterializer.MaterializeAsync(policy, packScratchDir, _policyEvaluationSettings, killCts.Token));
+                engine.SetPolicyPacks(packDirs);
+            }
+            planOutput = await engine.PlanDestroy(request.ResolvedParameters, request.PlanDestroyBeforeHook, request.PlanDestroyAfterHook, killCts.Token, gracefulCts.Token);
 
             var planDestroy = engine.ParseDestroyPlan();
 
@@ -96,6 +112,7 @@ public partial class Tasks
             // Build response data
             var planData = new PlanCompletedData
             {
+                PolicyOutcome = request.Policies.Count > 0 ? PulumiPolicyOutputParser.Classify(planOutput) : null,
                 TotalCountAfter = totalResourcesCountAfter,
                 TotalCountBefore = totalResourcesCountBefore,
                 TotalChangedCount = totalChangedResourcesCount,
@@ -143,7 +160,8 @@ public partial class Tasks
                 () => runnerHubClient.InvokePlanDestroyFaulted(
                     request.JobId,
                     ex.Message,
-                    ex.StackTrace
+                    ex.StackTrace,
+                    ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)
                 ),
                 nameof(runnerHubClient.InvokePlanDestroyFaulted),
                 request.JobId,

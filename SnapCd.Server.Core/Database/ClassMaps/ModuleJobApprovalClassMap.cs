@@ -19,6 +19,8 @@ public class ModuleJobApprovalClassMap : IEntityTypeConfiguration<ModuleJobAppro
         // Composite primary key with OrganizationId
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
+        entity.Property(e => e.PrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+
         // Unique index on Id
         entity.HasIndex(e => e.Id).IsUnique();
 

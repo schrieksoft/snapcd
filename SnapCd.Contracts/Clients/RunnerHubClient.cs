@@ -74,6 +74,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ValidateCompleted, jobId);
     }
 
+    public async Task InvokePolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateCompleted, jobId, outcome);
+    }
+
+    public async Task InvokePolicyValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateCancelled, jobId);
+    }
+
+    public async Task InvokePolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeValidateCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.ValidateCancelled, jobId);
@@ -110,9 +125,9 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.PlanCancelled, jobId);
     }
 
-    public async Task InvokePlanFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokePlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.PlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     // PlanDestroy
@@ -126,9 +141,9 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyCancelled, jobId);
     }
 
-    public async Task InvokePlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokePlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     // ApplyFromPlan (flat parameters)

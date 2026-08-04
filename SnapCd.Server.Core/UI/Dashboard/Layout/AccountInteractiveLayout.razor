@@ -8,8 +8,11 @@
 
 @using Microsoft.AspNetCore.Identity
 @using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Services.Dashboard
+@using SnapCd.Server.Core.Services.Edition
+@using SnapCd.Server.Core.Services.OrganizationContext
 
 @implements IDisposable
 
@@ -21,6 +24,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<User> UserManager
 @inject OrganizationServiceFactory OrganizationServiceFactory
+@inject IOrganizationContext OrganizationContext
+@inject IOrganizationActivationService OrganizationActivation
+@inject IPostOrganizationCreateRedirectPolicy PostOrganizationCreateRedirectPolicy
 
 
 <MudThemeProvider Theme="_myCustomTheme" IsDarkMode="@_isDarkMode"/>
@@ -189,8 +195,28 @@
 
     public Type? PageType { get; set; }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         PageType = (Body!.Target as RouteView)?.RouteData.PageType;
+        await EnforceOrganizationActivationGateAsync();
+    }
+
+    // Mirrors OrganizationMainLayout: pages marked [OrganizationScopedFeature] require an
+    // activated organization. Account, billing and onboarding pages carry no such attribute and
+    // stay reachable, so a user can always reach the screen that activates the organization.
+    private async Task EnforceOrganizationActivationGateAsync()
+    {
+        var organizationId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+        if (organizationId == Guid.Empty) return;
+        if (PageType is null) return;
+
+        var billable = PageType
+            .GetCustomAttributes(typeof(OrganizationScopedFeatureAttribute), inherit: true)
+            .Any();
+        if (!billable) return;
+
+        if (!await OrganizationActivation.IsActivatedAsync(organizationId))
+            if (PostOrganizationCreateRedirectPolicy.NotActivatedRedirectPath is { } redirectPath)
+                NavigationManager.NavigateTo(redirectPath, forceLoad: false, replace: true);
     }
 }

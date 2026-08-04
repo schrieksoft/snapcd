@@ -10,6 +10,7 @@
 @layout OrganizationMainLayout
 @using System.Globalization
 @using Microsoft.AspNetCore.Authorization
+@using SnapCd.Server.Core.Filters
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Enums
 @using SnapCd.Server.Core.Entities.Definition
@@ -21,6 +22,7 @@
 @using SnapCd.Server.Core.Services.PrincipalProvider
 
 @attribute [Authorize]
+@attribute [OrganizationScopedFeature]
 
 @implements IDisposable
 

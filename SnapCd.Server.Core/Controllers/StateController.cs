@@ -18,10 +18,12 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud;
+using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Controllers;
 
+[Route("api/{organizationId:guid}/state/{stateStoreId}/{stateFileName}")]
 [Route("api/state/{stateStoreId}/{stateFileName}")]
 [ApiController]
 [AllowAnonymous]
@@ -32,21 +34,30 @@ public class StateController : ControllerBase
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IOpenIddictApplicationManager _applicationManager;
     private readonly StateFileServiceFactory _serviceFactory;
+    private readonly IOrganizationActivationService _organizationActivation;
+    private readonly IOrganizationNotActivatedResultProvider _notActivatedResultProvider;
+    private readonly ILogger<StateController> _logger;
 
     public StateController(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IOpenIddictApplicationManager applicationManager,
-        StateFileServiceFactory serviceFactory)
+        StateFileServiceFactory serviceFactory,
+        IOrganizationActivationService organizationActivation,
+        IOrganizationNotActivatedResultProvider notActivatedResultProvider,
+        ILogger<StateController> logger)
     {
         _dbContextFactory = dbContextFactory;
         _applicationManager = applicationManager;
         _serviceFactory = serviceFactory;
+        _organizationActivation = organizationActivation;
+        _notActivatedResultProvider = notActivatedResultProvider;
+        _logger = logger;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetState(Guid stateStoreId, string stateFileName)
+    public async Task<IActionResult> GetState(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId);
+        var authResult = await Authenticate(stateStoreId, organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -71,9 +82,9 @@ public class StateController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> PostState(Guid stateStoreId, string stateFileName)
+    public async Task<IActionResult> PostState(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId);
+        var authResult = await Authenticate(stateStoreId, organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -115,9 +126,9 @@ public class StateController : ControllerBase
     }
 
     [HttpDelete]
-    public async Task<IActionResult> DeleteState(Guid stateStoreId, string stateFileName)
+    public async Task<IActionResult> DeleteState(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId);
+        var authResult = await Authenticate(stateStoreId, organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -138,9 +149,9 @@ public class StateController : ControllerBase
     }
 
     [HttpPost("lock")]
-    public async Task<IActionResult> Lock(Guid stateStoreId, string stateFileName)
+    public async Task<IActionResult> Lock(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId);
+        var authResult = await Authenticate(stateStoreId, organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -192,9 +203,9 @@ public class StateController : ControllerBase
     }
 
     [HttpPost("unlock")]
-    public async Task<IActionResult> Unlock(Guid stateStoreId, string stateFileName)
+    public async Task<IActionResult> Unlock(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId);
+        var authResult = await Authenticate(stateStoreId, organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -227,9 +238,9 @@ public class StateController : ControllerBase
     }
 
     [HttpPost("force-unlock")]
-    public async Task<IActionResult> ForceUnlock(Guid stateStoreId, string stateFileName)
+    public async Task<IActionResult> ForceUnlock(Guid stateStoreId, string stateFileName, Guid? organizationId = null)
     {
-        var authResult = await Authenticate(stateStoreId);
+        var authResult = await Authenticate(stateStoreId, organizationId);
         if (authResult.ActionResult != null) return authResult.ActionResult;
 
         using var service = authResult.Service!;
@@ -256,7 +267,7 @@ public class StateController : ControllerBase
         }
     }
 
-    private async Task<AuthResult> Authenticate(Guid stateStoreId)
+    private async Task<AuthResult> Authenticate(Guid stateStoreId, Guid? routeOrganizationId = null)
     {
         var authHeader = Request.Headers.Authorization.ToString();
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
@@ -279,15 +290,30 @@ public class StateController : ControllerBase
         var username = credentials[..colonIndex];
         var password = credentials[(colonIndex + 1)..];
 
-        // Username format: "{organizationId}:{clientId}"
-        var usernameColonIndex = username.IndexOf(':');
-        if (usernameColonIndex < 0)
-            return AuthResult.Fail(Unauthorized(new { error = "Username must be in format 'organizationId:clientId'." }));
+        Guid organizationId;
+        string clientId;
 
-        if (!Guid.TryParse(username[..usernameColonIndex], out var organizationId))
-            return AuthResult.Fail(Unauthorized(new { error = "Invalid organizationId in username." }));
+        if (routeOrganizationId is { } routeOrgId)
+        {
+            // Username is the bare client id; the client id stored against the OpenIddict
+            // application is still "{organizationId}:{clientId}", so compose it here.
+            organizationId = routeOrgId;
+            clientId = $"{routeOrgId}:{username}";
+        }
+        else
+        {
+            // Legacy form: the organization arrives inside the username as
+            // "{organizationId}:{clientId}". Superseded by the organization-in-route form.
+            var usernameColonIndex = username.IndexOf(':');
+            if (usernameColonIndex < 0)
+                return AuthResult.Fail(Unauthorized(new { error = "Username must be in format 'organizationId:clientId'." }));
 
-        var clientId = username;
+            if (!Guid.TryParse(username[..usernameColonIndex], out organizationId))
+                return AuthResult.Fail(Unauthorized(new { error = "Invalid organizationId in username." }));
+
+            clientId = username;
+            WarnLegacyRoute(organizationId, clientId);
+        }
 
         var application = await _applicationManager.FindByClientIdAsync(clientId);
         if (application == null)
@@ -304,6 +330,13 @@ public class StateController : ControllerBase
         if (sp == null || sp.IsDisabled)
             return AuthResult.Fail(Unauthorized(new { error = "Invalid credentials." }));
 
+        // The organization arrives inside the Basic auth username rather than as an action
+        // argument, so the global feature filter cannot see it. Check here instead, once
+        // credentials have been established.
+        if (!await _organizationActivation.IsActivatedAsync(organizationId, HttpContext.RequestAborted)
+            && _notActivatedResultProvider.CreateResult() is { } notActivated)
+            return AuthResult.Fail(notActivated);
+
         var principalProvider = new LiteralPrincipalProvider(
             sp.Id,
             PrincipalDiscriminator.ServicePrincipal,
@@ -312,6 +345,15 @@ public class StateController : ControllerBase
         var service = _serviceFactory.Create(principalProvider);
 
         return AuthResult.Ok(sp.Id, organizationId, service);
+    }
+
+    private void WarnLegacyRoute(Guid organizationId, string clientId)
+    {
+        _logger.LogWarning(
+            "State backend called with the organization in the Basic auth username (client {ClientId}, organization {OrganizationId}). " +
+            "Use api/{{organizationId}}/state/{{stateStoreId}}/{{stateFileName}} with the bare client id as the username instead; " +
+            "the old form is deprecated.",
+            clientId, organizationId);
     }
 
     private record AuthResult(IActionResult? ActionResult, Guid ServicePrincipalId, Guid OrganizationId, StateFileService? Service)

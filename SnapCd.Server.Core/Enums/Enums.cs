@@ -98,7 +98,10 @@ public enum TaskEndpoint
     OutputFaulted,
     ReportRunningTask,
     CancelKillCompleted,
-    CancelGracefulCompleted
+    CancelGracefulCompleted,
+    PolicyValidateCompleted,
+    PolicyValidateCancelled,
+    PolicyValidateFaulted
 }
 
 /// <summary>
@@ -115,6 +118,7 @@ public enum ModuleJobSagaState
     ValidatePending,
     VariablesPending,
     PlanPending,
+    PolicyValidatePending,
     ApplyFromPlanPending,
     OutputPending,
 
@@ -139,7 +143,8 @@ public enum ExecutionStatus
     NotApproved,
     Failed,
     Orphaned,
-    Unknown
+    Unknown,
+    PolicyDenied
 }
 
 public enum ActualStateHeadline
@@ -161,7 +166,10 @@ public enum ActualStateHeadline
     DestroyNotApproved,
     DestroyOrphaned,
 
-    None
+    None,
+
+    ApplyPolicyDenied,
+    DestroyPolicyDenied
 }
 
 public enum PreviewFeature

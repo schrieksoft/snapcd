@@ -36,7 +36,12 @@ public class UpdateOutputListsActivity<TSaga, TMessage> :
             context.Message.OutputsCreateList,
             context.Message.OutputsModifyList,
             context.Message.OutputsDestroyList,
-            context.Message.OutputsRecreateList);
+            context.Message.OutputsRecreateList,
+            context.Message.TotalChangedCount,
+            context.Message.CreateCount,
+            context.Message.ModifyCount,
+            context.Message.DestroyCount,
+            context.Message.RecreateCount);
 
         await next.Execute(context).ConfigureAwait(false);
     }

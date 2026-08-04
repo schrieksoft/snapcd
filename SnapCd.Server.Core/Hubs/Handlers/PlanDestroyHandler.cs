@@ -9,6 +9,7 @@
 using MassTransit;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Contracts;
 
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
@@ -37,6 +38,7 @@ public class PlanDestroyHandler
             await _bus.Publish(new PlanDestroyCompleted
             {
                 CorrelationId = jobId,
+                PolicyOutcome = data.PolicyOutcome,
                 TotalCountAfter = data.TotalCountAfter,
                 TotalCountBefore = data.TotalCountBefore,
                 TotalChangedCount = data.TotalChangedCount,
@@ -88,7 +90,7 @@ public class PlanDestroyHandler
         }
     }
 
-    public async Task Fault(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task Fault(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
         try
         {
@@ -99,7 +101,8 @@ public class PlanDestroyHandler
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,
-                CorrelationId = jobId
+                CorrelationId = jobId,
+                PolicyOutcome = policyOutcome
             });
 
             _logger.LogInformation("Sent PlanDestroy fault response for job {JobId} to saga", jobId);

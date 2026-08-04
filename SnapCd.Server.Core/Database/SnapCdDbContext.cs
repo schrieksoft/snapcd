@@ -99,6 +99,18 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleExtraFile> ModuleExtraFiles { get; set; }
     public DbSet<ModuleAdditionalTriggerPath> ModuleAdditionalTriggerPaths { get; set; }
     public DbSet<NamespaceAdditionalTriggerPath> NamespaceAdditionalTriggerPaths { get; set; }
+    public DbSet<ModuleTerraformInlinePolicy> ModuleTerraformInlinePolicies { get; set; }
+    public DbSet<ModuleTerraformRemotePolicy> ModuleTerraformRemotePolicies { get; set; }
+    public DbSet<ModuleTerraformLocalPolicy> ModuleTerraformLocalPolicies { get; set; }
+    public DbSet<ModulePulumiInlinePolicy> ModulePulumiInlinePolicies { get; set; }
+    public DbSet<ModulePulumiRemotePolicy> ModulePulumiRemotePolicies { get; set; }
+    public DbSet<ModulePulumiLocalPolicy> ModulePulumiLocalPolicies { get; set; }
+    public DbSet<NamespaceTerraformInlinePolicy> NamespaceTerraformInlinePolicies { get; set; }
+    public DbSet<NamespaceTerraformRemotePolicy> NamespaceTerraformRemotePolicies { get; set; }
+    public DbSet<NamespaceTerraformLocalPolicy> NamespaceTerraformLocalPolicies { get; set; }
+    public DbSet<NamespacePulumiInlinePolicy> NamespacePulumiInlinePolicies { get; set; }
+    public DbSet<NamespacePulumiRemotePolicy> NamespacePulumiRemotePolicies { get; set; }
+    public DbSet<NamespacePulumiLocalPolicy> NamespacePulumiLocalPolicies { get; set; }
     public DbSet<NamespaceExtraFile> NamespaceExtraFiles { get; set; }
     public DbSet<DependsOnModule> DependsOnModules { get; set; }
 
@@ -377,6 +389,18 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ModuleExtraFileClassMap());
         modelBuilder.ApplyConfiguration(new ModuleAdditionalTriggerPathClassMap());
         modelBuilder.ApplyConfiguration(new NamespaceAdditionalTriggerPathClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleTerraformInlinePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleTerraformRemotePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new ModuleTerraformLocalPolicyClassMap());
+        modelBuilder.ApplyConfiguration(new ModulePulumiInlinePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new ModulePulumiRemotePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new ModulePulumiLocalPolicyClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceTerraformInlinePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceTerraformRemotePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new NamespaceTerraformLocalPolicyClassMap());
+        modelBuilder.ApplyConfiguration(new NamespacePulumiInlinePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new NamespacePulumiRemotePolicyClassMap());
+        modelBuilder.ApplyConfiguration(new NamespacePulumiLocalPolicyClassMap());
         modelBuilder.ApplyConfiguration(new DependsOnModuleClassMap());
 
         modelBuilder.ApplyConfiguration(new OutputSetClassMap());

@@ -47,7 +47,7 @@ public class SourceChangedServiceTests : IAsyncLifetime
         _sourceUrl = $"https://github.com/test/source-changed-{Guid.NewGuid():N}";
 
         await using var dbContext = _fixture.CreateDbContext();
-        _namespace = dbContext.Namespaces.First();
+        _namespace = dbContext.Namespaces.First(n => n.Id == _fixture.Namespaces["000"].Id);
         _runner = dbContext.Runners.First(r => r.OrganizationId == _namespace.OrganizationId);
 
         var ownerAssignment = dbContext.UserOrganizationRoleAssignments

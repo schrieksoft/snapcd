@@ -65,6 +65,12 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public List<ModuleExtraFile> ModuleExtraFiles { get; set; } = new();
 
     public List<ModuleAdditionalTriggerPath> AdditionalTriggerPaths { get; set; } = new();
+    public List<ModuleTerraformInlinePolicy> TerraformInlinePolicies { get; set; } = new();
+    public List<ModuleTerraformRemotePolicy> TerraformRemotePolicies { get; set; } = new();
+    public List<ModuleTerraformLocalPolicy> TerraformLocalPolicies { get; set; } = new();
+    public List<ModulePulumiInlinePolicy> PulumiInlinePolicies { get; set; } = new();
+    public List<ModulePulumiRemotePolicy> PulumiRemotePolicies { get; set; } = new();
+    public List<ModulePulumiLocalPolicy> PulumiLocalPolicies { get; set; } = new();
 
     public List<DependsOnModule> DependsOnModules { get; set; } = new();
 

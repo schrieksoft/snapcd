@@ -31,6 +31,21 @@ public interface IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
 
+    /// <summary>
+    /// Exports the current binary plan as JSON for policy evaluation and returns the file path.
+    /// The document never leaves the runner.
+    /// </summary>
+    Task<string> ExportPlanJson(
+        bool isDestroyJob,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default);
+
+    /// <summary>
+    /// Registers CrossGuard policy-pack directories to enforce inside subsequent plan previews.
+    /// Only meaningful for the Pulumi engine; policies run inside the preview itself.
+    /// </summary>
+    void SetPolicyPacks(IReadOnlyList<string> packDirs);
+
     Task<string> Plan(
         Dictionary<string, string> parameters,
         string? planBeforeHook,

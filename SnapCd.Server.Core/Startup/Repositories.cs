@@ -77,6 +77,18 @@ public static class Repositories
         services.AddScoped<NamespaceExtraFileRepository>();
         services.AddScoped<ModuleAdditionalTriggerPathRepository>();
         services.AddScoped<NamespaceAdditionalTriggerPathRepository>();
+        services.AddScoped<ModuleTerraformInlinePolicyRepository>();
+        services.AddScoped<ModuleTerraformRemotePolicyRepository>();
+        services.AddScoped<ModuleTerraformLocalPolicyRepository>();
+        services.AddScoped<ModulePulumiInlinePolicyRepository>();
+        services.AddScoped<ModulePulumiRemotePolicyRepository>();
+        services.AddScoped<ModulePulumiLocalPolicyRepository>();
+        services.AddScoped<NamespaceTerraformInlinePolicyRepository>();
+        services.AddScoped<NamespaceTerraformRemotePolicyRepository>();
+        services.AddScoped<NamespaceTerraformLocalPolicyRepository>();
+        services.AddScoped<NamespacePulumiInlinePolicyRepository>();
+        services.AddScoped<NamespacePulumiRemotePolicyRepository>();
+        services.AddScoped<NamespacePulumiLocalPolicyRepository>();
         services.AddScoped<ModulePulumiFlagRepository>();
         services.AddScoped<ModulePulumiArrayFlagRepository>();
         services.AddScoped<NamespacePulumiFlagRepository>();

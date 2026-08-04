@@ -16,17 +16,19 @@ namespace SnapCd.Server.Core.Services;
 
 public class LogService
 {
-    private readonly SnapCdDbContext _dbContext;
+    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
-    public LogService(SnapCdDbContext dbContext)
+    public LogService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
-        _dbContext = dbContext;
+        _dbContextFactory = dbContextFactory;
     }
 
     public async Task AddLogEntries(List<LogEntryDto> logEntries)
     {
         if (logEntries == null || logEntries.Count == 0)
             return;
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         // Group log entries by correlationId (ModuleJob Id)
         var groupedLogs = logEntries.GroupBy(l => l.JobId);
@@ -40,15 +42,15 @@ public class LogService
             // after the first commits. Serializable adds key-range locking on top of that (the
             // clustered PK is (Id, OrganizationId), so "WHERE Id = @0" is a prefix-range seek) and
             // is not needed for this read-modify-write of a single existing row.
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
             try
             {
                 // Set lock timeout to 90 seconds (90000 milliseconds)
-                await _dbContext.Database.ExecuteSqlRawAsync("SET LOCK_TIMEOUT 180000");
+                await dbContext.Database.ExecuteSqlRawAsync("SET LOCK_TIMEOUT 180000");
 
                 // Lock the row using UPDLOCK and ROWLOCK hints
-                var moduleJob = await _dbContext.ModuleJobs
+                var moduleJob = await dbContext.ModuleJobs
                     .FromSqlRaw("SELECT * FROM ModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
                     .FirstOrDefaultAsync();
 
@@ -77,7 +79,7 @@ public class LogService
                 // Serialize back to JSON
                 moduleJob.Logs = JsonSerializer.Serialize(existingLogs);
 
-                await _dbContext.SaveChangesAsync();
+                await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
             catch
@@ -90,7 +92,9 @@ public class LogService
 
     public async Task<List<LogEntryDto>> GetLogEntries(Guid correlationId)
     {
-        var moduleJob = await _dbContext.ModuleJobs
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var moduleJob = await dbContext.ModuleJobs
             .Where(j => j.Id == correlationId)
             .Select(j => j.Logs)
             .FirstOrDefaultAsync();

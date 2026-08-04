@@ -24,6 +24,7 @@
 @inject OrganizationServiceFactory OrganizationServiceFactory
 @inject IOrganizationContext OrganizationContext
 @inject IOrganizationActivationService OrganizationActivation
+@inject IPostOrganizationCreateRedirectPolicy PostOrganizationCreateRedirectPolicy
 @inject OrganizationMembershipCacheService MembershipCache
 @inject UserManager<User> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
@@ -182,11 +183,11 @@
     protected override async Task OnParametersSetAsync()
     {
         PageType = (Body!.Target as RouteView)?.RouteData.PageType;
-        await EnforceCloudSubscriptionGateAsync();
+        await EnforceOrganizationActivationGateAsync();
         await EvaluatePageRoleGateAsync();
     }
 
-    private async Task EnforceCloudSubscriptionGateAsync()
+    private async Task EnforceOrganizationActivationGateAsync()
     {
         if (OrganizationId == Guid.Empty) return;
         if (PageType is null) return;
@@ -199,7 +200,8 @@
         var activated = await OrganizationActivation.IsActivatedAsync(OrganizationId);
         if (!activated)
         {
-            NavigationManager.NavigateTo("/CloudSubscription", forceLoad: false, replace: true);
+            if (PostOrganizationCreateRedirectPolicy.NotActivatedRedirectPath is { } redirectPath)
+                NavigationManager.NavigateTo(redirectPath, forceLoad: false, replace: true);
         }
     }
 
