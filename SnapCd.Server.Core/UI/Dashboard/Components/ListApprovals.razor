@@ -19,6 +19,7 @@
 
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject SnapCd.Server.Core.Services.Notification.LogReceivedNotificationService LogReceivedNotificationService
 
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 
@@ -121,7 +122,7 @@ else
                 {
                     <MudStack Row="true" Spacing="8" Class="mt-2">
                         @PlanStat("create", _moduleJob.PlanCreateCount ?? 0, Color.Success)
-                        @PlanStat("modify", _moduleJob.PlanModifyCount ?? 0, Color.Default)
+                        @PlanStat("modify", _moduleJob.PlanModifyCount ?? 0, Color.Warning)
                         @PlanStat("destroy", _moduleJob.PlanDestroyCount ?? 0, Color.Error)
                         @PlanStat("recreate", _moduleJob.PlanRecreateCount ?? 0, Color.Error)
                     </MudStack>
@@ -197,11 +198,22 @@ else
         await ReloadApprovalThreshold();
         await ReloadModuleJobStatus();
         await ReloadApprovals();
+
+        LogReceivedNotificationService.Subscribe(ModuleId, HandleLogReceived);
+    }
+
+    private async Task HandleLogReceived(Guid jobId, Guid moduleId)
+    {
+        if (jobId != ModuleJobId) return;
+        if (_inlineLogsRef == null) return;
+
+        await _inlineLogsRef.RefreshLogs(true);
     }
 
 
     public void Dispose()
     {
+        LogReceivedNotificationService.Unsubscribe(ModuleId, HandleLogReceived);
     }
 
 

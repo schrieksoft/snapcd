@@ -6,12 +6,17 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
-@implements IDisposable
+@implements IAsyncDisposable
 
+@using System.Text
+@using System.Text.Json
+@using System.Text.RegularExpressions
 @using AnsiConsoleToHtml
+@using SnapCd.Contracts.Dto.Misc
 @using SnapCd.Server.Core.Services
 @inject LogService LogService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
 
 
@@ -26,11 +31,25 @@
 }
 else
 {
+    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-1">
+        <MudTooltip Text="Download all logs as text">
+            <MudIconButton Icon="@SnapCdIcons.Download"
+                           Size="Size.Small"
+                           OnClick="() => DownloadText(null)"/>
+        </MudTooltip>
+        <MudTooltip Text="Download all logs as JSON">
+            <MudIconButton Icon="@SnapCdIcons.Code"
+                           Size="Size.Small"
+                           OnClick="() => DownloadJson(null)"/>
+        </MudTooltip>
+    </MudStack>
+
     <MudExpansionPanels>
 
 
         @foreach (var kvp in _htmlLogs.Where(kvp => TaskFilter == null || TaskFilter.Contains(kvp.Key)))
         {
+            var taskName = kvp.Key;
             <MudExpansionPanel @key="kvp.Key"
                                Expanded="@(kvp.Key == _expandedTask)"
                                ExpandedChanged="@(isExpanded => OnTaskPanelExpanded(isExpanded, kvp.Key))">
@@ -38,10 +57,22 @@ else
                     <MudText Typo="Typo.body2">@kvp.Key</MudText>
                 </TitleContent>
                 <ChildContent>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-1">
+                        <MudTooltip Text="@($"Download {taskName} as text")">
+                            <MudIconButton Icon="@SnapCdIcons.Download"
+                                           Size="Size.Small"
+                                           OnClick="@(() => DownloadText(taskName))"/>
+                        </MudTooltip>
+                        <MudTooltip Text="@($"Download {taskName} as JSON")">
+                            <MudIconButton Icon="@SnapCdIcons.Code"
+                                           Size="Size.Small"
+                                           OnClick="@(() => DownloadJson(taskName))"/>
+                        </MudTooltip>
+                    </MudStack>
+                    @* No whitespace between the tags and the content: white-space: pre-wrap renders
+                       the surrounding newlines as blank lines above and below the log. *@
                     <div
-                        style="padding: 1em; background: #000000; color: white; font-family: monospace; white-space: pre-wrap;">
-                        @((MarkupString)(kvp.Value ?? string.Empty))
-                    </div>
+                        style="padding: 1em; background: #000000; color: white; font-family: monospace; white-space: pre-wrap;">@((MarkupString)(kvp.Value ?? string.Empty))</div>
                 </ChildContent>
             </MudExpansionPanel>
         }
@@ -109,7 +140,7 @@ else
             return count;
         }
 
-        var html = AnsiConsole.ToHtml(ansiText);
+        var html = AnsiConsole.ToHtml(ansiText.Trim('\r', '\n'));
 
         // replace <pre> with <div>, since otherwise lines will not wrap properly
         const string preOpenTag = "<pre style='color:#FFFFFF;background:#000000'>";
@@ -117,6 +148,10 @@ else
 
         const string divOpenTag = "<div style='color:#FFFFFF;background:#000000'>";
         const string divCloseTag = "</div>";
+
+        // The converter puts a newline immediately inside its opening and closing tags. Under
+        // white-space: pre-wrap those render as blank lines above and below the log.
+        html = html.Replace(preOpenTag + "\n", preOpenTag).Replace("\n" + preCloseTag, preCloseTag);
 
         // Verify we have matching tags
         var openCount = CountOccurrences(html, preOpenTag);
@@ -147,8 +182,74 @@ else
         return html;
     }
 
-    public void Dispose()
+    // Terraform emits SGR colour codes; they render in the panel but are noise in a downloaded file.
+    private static readonly Regex AnsiEscape = new(@"\x1B\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
+
+    private IJSObjectReference? _downloadModule;
+
+    private async Task<IJSObjectReference> GetDownloadModuleAsync() =>
+        _downloadModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import", "./_content/SnapCd.Server.Core/snapcd-download.js");
+
+    private async Task<List<LogEntryDto>> EntriesFor(string? taskName)
     {
+        var entries = await LogService.GetLogEntries(ModuleJobId);
+
+        if (taskName is not null)
+            return entries.Where(e => (e.TaskName ?? "Default") == taskName).ToList();
+
+        if (TaskFilter is not null)
+            return entries.Where(e => TaskFilter.Contains(e.TaskName ?? "Default")).ToList();
+
+        return entries;
+    }
+
+    private string FileNameFor(string? taskName, string extension)
+        => taskName is null
+            ? $"job-{ModuleJobId}-logs.{extension}"
+            : $"job-{ModuleJobId}-{taskName}.{extension}";
+
+    private async Task DownloadText(string? taskName)
+    {
+        var entries = await EntriesFor(taskName);
+
+        var builder = new StringBuilder();
+        foreach (var entry in entries.OrderBy(e => e.Timestamp))
+        {
+            builder.Append(entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"))
+                .Append(" [").Append(entry.TaskName ?? "Default").Append("] ")
+                .AppendLine(AnsiEscape.Replace(entry.Message ?? string.Empty, string.Empty));
+        }
+
+        await Download(FileNameFor(taskName, "log"), "text/plain", builder.ToString());
+    }
+
+    private async Task DownloadJson(string? taskName)
+    {
+        var entries = await EntriesFor(taskName);
+        var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
+
+        await Download(FileNameFor(taskName, "json"), "application/json", json);
+    }
+
+    private async Task Download(string fileName, string contentType, string content)
+    {
+        var module = await GetDownloadModuleAsync();
+        await module.InvokeVoidAsync("downloadFile", fileName, contentType, content);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_downloadModule is not null)
+        {
+            try
+            {
+                await _downloadModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
     }
 
     private async Task ReloadLogs()
