@@ -47,7 +47,11 @@ public class OrganizationContext : IOrganizationContext
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Strict,
+            // Lax, matching the Identity cookie. An external login returns through a redirect
+            // chain that began on the provider's site; the browser treats every hop in that
+            // chain as cross-site, so a Strict cookie set mid-chain is not sent on the request
+            // that follows it. The organization gate then sees no cookie and redirects back.
+            SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddYears(1)
         });
     }

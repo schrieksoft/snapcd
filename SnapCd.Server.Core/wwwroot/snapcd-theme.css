@@ -1,10 +1,10 @@
 /* Snap CD theme v2.4 — derived from design/brand/tokens/tokens.json */
 
-@font-face { font-family: 'Geist Sans'; font-weight: 400; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-Regular.woff2') format('woff2'); }
-@font-face { font-family: 'Geist Sans'; font-weight: 500; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-Medium.woff2') format('woff2'); }
-@font-face { font-family: 'Geist Sans'; font-weight: 600; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-SemiBold.woff2') format('woff2'); }
-@font-face { font-family: 'Geist Sans'; font-weight: 700; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistSans-Bold.woff2') format('woff2'); }
-@font-face { font-family: 'Geist Mono'; font-weight: 400; font-style: normal; font-display: swap; src: url('_content/SnapCd.Server.Core/fonts/GeistMono-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Sans'; font-weight: 400; font-style: normal; font-display: swap; src: url('/_content/SnapCd.Server.Core/fonts/GeistSans-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Sans'; font-weight: 500; font-style: normal; font-display: swap; src: url('/_content/SnapCd.Server.Core/fonts/GeistSans-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Sans'; font-weight: 600; font-style: normal; font-display: swap; src: url('/_content/SnapCd.Server.Core/fonts/GeistSans-SemiBold.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Sans'; font-weight: 700; font-style: normal; font-display: swap; src: url('/_content/SnapCd.Server.Core/fonts/GeistSans-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-weight: 400; font-style: normal; font-display: swap; src: url('/_content/SnapCd.Server.Core/fonts/GeistMono-Regular.woff2') format('woff2'); }
 
 :root {
   --snap-ink: #12171D;

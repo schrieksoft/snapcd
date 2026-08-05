@@ -37,8 +37,8 @@
             @if (!string.IsNullOrEmpty(unconfirmedEmail))
             {
                 <div class="mt-3">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                Size="Size.Small"
                                OnClick="ResendConfirmationEmail"
                                Disabled="@_isResending">

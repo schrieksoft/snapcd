@@ -26,7 +26,8 @@ public class OrganizationValidationMiddleware
     public async Task InvokeAsync(
         HttpContext context,
         OrganizationMembershipCacheService membershipCache,
-        IOrganizationCountValidator organizationCountValidator)
+        IOrganizationCountValidator organizationCountValidator,
+        ILogger<OrganizationValidationMiddleware> logger)
     {
         // Check runtime organization limit
         if (await organizationCountValidator.IsOverLimitAsync())
@@ -48,6 +49,12 @@ public class OrganizationValidationMiddleware
 
         if (!Guid.TryParse(cookieValue, out var organizationId) || organizationId == Guid.Empty)
         {
+            // A redirect here that repeats is the signature of the cookie not surviving the
+            // round trip (SameSite, Secure over http, Path/Domain mismatch), so record which
+            // cookies did arrive — the browser will not tell you what it withheld.
+            logger.LogDebug(
+                "Organization cookie missing or unparseable on {Path}; redirecting to select. Cookies received: {Cookies}",
+                context.Request.Path, string.Join(",", context.Request.Cookies.Keys));
             RedirectToSelectOrganization(context);
             return;
         }
@@ -58,9 +65,18 @@ public class OrganizationValidationMiddleware
             var isValid = await membershipCache.IsActiveMemberAsync(userId, organizationId);
             if (!isValid)
             {
+                logger.LogDebug(
+                    "User {UserId} is not an active member of organization {OrganizationId}; redirecting to select.",
+                    userId, organizationId);
                 RedirectToSelectOrganization(context);
                 return;
             }
+        }
+        else
+        {
+            logger.LogDebug(
+                "NameIdentifier claim {Claim} is not a Guid; membership check skipped for {Path}.",
+                userIdClaim ?? "(null)", context.Request.Path);
         }
 
         await _next(context);
