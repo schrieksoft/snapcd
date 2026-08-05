@@ -124,6 +124,10 @@ builder.Services.AddSingleton<IOrganizationCountValidator, SelfHostedOrganizatio
 builder.Services.AddSingleton<SelfHostedOrganizationIdProvider>();
 builder.Services.AddScoped<IUserQuotaProvider, NoOpUserQuotaProvider>();
 
+// AddSnapCdAuthConfiguration resolves ISsoPolicy -> LicenseService -> IPrincipalProvider ->
+// HttpContextPrincipalProvider during registration, so the accessor must already be registered.
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddSnapCdAuthConfiguration(builder.Configuration, allowHttp);
 
 builder.Services.AddSnapCdBackgroundJobs(connectionString);
@@ -135,7 +139,6 @@ builder.Services.AddSnapCdMcpServer();
 builder.Services.AddSnapCdHeaderForwardingConfiguration();
     
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddCascadingAuthenticationState();

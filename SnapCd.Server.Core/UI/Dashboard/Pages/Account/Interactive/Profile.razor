@@ -402,9 +402,11 @@
                     }
                 </MudTd>
                 <MudTd DataLabel="Actions">
-                    <MudButton OnClick="() => RevokeToken(context.Id)" Variant="Variant.Text" Color="Color.Default">
-                        <MudIcon Icon="@SnapCdIcons.Delete"/>
-                    </MudButton>
+                    <MudIconButton Icon="@SnapCdIcons.Delete"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="() => RevokeToken(context.Id)"
+                                   title="Revoke this token"/>
                 </MudTd>
             </RowTemplate>
         </MudTable>

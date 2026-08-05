@@ -182,9 +182,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Clear any invalid organization cookie
-        OrganizationContext.ClearOrganizationCookie(HttpContext.Response);
-
         var user = await UserManager.GetUserAsync(HttpContext.User);
         if (user == null)
         {
@@ -214,6 +211,12 @@
             NavigationManager.NavigateTo(switchUrl, forceLoad: true);
             return;
         }
+
+        // The user is being shown the picker, so drop whatever organization was current.
+        // This sits after the auto-switch return above: clearing on entry would wipe the
+        // cookie the switch endpoint had just set, leaving a failed hand-off to bounce
+        // between here and the organization gate indefinitely.
+        OrganizationContext.ClearOrganizationCookie(HttpContext.Response);
 
         // Pre-select first organization if available
         if (_organizations.Any() && Input.OrganizationId == Guid.Empty)

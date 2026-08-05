@@ -61,6 +61,11 @@ public class OrganizationSwitchController : ControllerBase
         _logger.LogInformation("User {UserId} switched to organization {OrganizationId}",
             user.Id, organizationId);
 
+        // Pairs with the organization gate's Debug line: this is what was sent, that is what
+        // came back. The attributes are the difference when a cookie is written but not stored.
+        _logger.LogDebug("Set organization cookie: {SetCookie}",
+            string.Join(" | ", Response.Headers.SetCookie.ToArray()));
+
         // Redirect to the destination
         var redirectTo = Url.IsLocalUrl(returnUrl) ? returnUrl! : "/Dashboard";
 

@@ -16,21 +16,32 @@ public class SelfHostedSsoPolicy : ISsoPolicy
 {
     public async Task<bool> ShouldEnableSsoAsync(IServiceProvider serviceProvider)
     {
+        var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger<SelfHostedSsoPolicy>();
+
         try
         {
             using var scope = serviceProvider.CreateScope();
 
             var orgIdProvider = scope.ServiceProvider.GetRequiredService<SelfHostedOrganizationIdProvider>();
             var orgId = await orgIdProvider.GetOrganizationIdAsync();
-            if (orgId is null) return false;
+            if (orgId is null)
+            {
+                logger?.LogInformation(
+                    "No organization resolved; external login providers will be disabled.");
+                return false;
+            }
 
             var licenseService = scope.ServiceProvider.GetRequiredService<LicenseService>();
             var licenseInfo = await licenseService.GetLicenseInfoAsync(orgId.Value);
             return licenseInfo.Includes(Feature.Sso);
         }
-        catch
+        catch (Exception ex)
         {
-            // DB not available (e.g. design-time EF tooling) — default to SSO disabled
+            // DB not available (e.g. design-time EF tooling) — default to SSO disabled.
+            // Anything else here silently disables every external login provider for the
+            // lifetime of the process, so it must not vanish without a trace.
+            logger?.LogError(ex,
+                "SSO gating check failed; external login providers will be disabled.");
             return false;
         }
     }
