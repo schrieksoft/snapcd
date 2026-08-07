@@ -107,6 +107,7 @@ builder.Services.PostConfigure<Microsoft.AspNetCore.Mvc.MvcOptions>(o =>
 
 // Edition policies (self-hosted; must be after AddSnapCdMiscServices, before AddSnapCdAuthConfiguration)
 builder.Services.AddScoped<IOrganizationLimitPolicy, SelfHostedOrganizationLimitPolicy>();
+builder.Services.AddSingleton<IOrganizationSwitchingPolicy, SelfHostedOrganizationSwitchingPolicy>();
 builder.Services.AddScoped<ILicenseVerificationPolicy, SelfHostedLicenseVerificationPolicy>();
 builder.Services.AddScoped<ILicenseInfoProvider>(sp => sp.GetRequiredService<LicenseService>());
 builder.Services.AddScoped<ISsoPolicy, SelfHostedSsoPolicy>();

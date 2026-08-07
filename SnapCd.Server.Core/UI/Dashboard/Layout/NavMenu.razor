@@ -32,6 +32,7 @@
 @inject IHostEnvironment HostEnvironment
 @inject IVersionService VersionService
 @inject IEditionNavProvider EditionNavProvider
+@inject IOrganizationSwitchingPolicy OrganizationSwitchingPolicy
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IOrganizationContext OrganizationContext
@@ -62,8 +63,11 @@
                 </MudText>
             </a>
 
-            <!-- Organization Selector -->
-            <OrganizationSelector CurrentOrganizationId="_currentOrganizationId"/>
+            <!-- Organization Selector: hidden where the edition has a single organization. -->
+            @if (OrganizationSwitchingPolicy.AllowsOrganizationSwitching)
+            {
+                <OrganizationSelector CurrentOrganizationId="_currentOrganizationId"/>
+            }
 
             <!-- Edition-specific nav items, below the organization selector and above all other nav items. -->
             @if (EditionTopNavItems != null)
