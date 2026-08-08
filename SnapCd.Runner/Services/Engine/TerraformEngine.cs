@@ -194,6 +194,20 @@ public class TerraformEngine : BaseEngine, IEngine
         return lines.Length;
     }
 
+    public async Task<bool> HasNothingToDestroy(CancellationToken killCancellationToken = default, CancellationToken gracefulCancellationToken = default)
+    {
+        try
+        {
+            return await Statistics(killCancellationToken, gracefulCancellationToken) == 0;
+        }
+        catch (ProcessFailedException) when (!killCancellationToken.IsCancellationRequested && !gracefulCancellationToken.IsCancellationRequested)
+        {
+            // `state list` exits non-zero when no state file exists at all, which is the
+            // never-applied module — nothing to destroy.
+            return true;
+        }
+    }
+
     public async Task<string> Plan(
         Dictionary<string, string> parameters,
         string? planBeforeHook,

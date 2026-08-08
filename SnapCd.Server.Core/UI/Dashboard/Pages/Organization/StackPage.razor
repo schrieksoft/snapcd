@@ -226,7 +226,7 @@
                             @foreach (var module in _modulesToApply)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -249,7 +249,7 @@
                             @foreach (var module in _alreadyAppliedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -304,7 +304,7 @@
                             @foreach (var module in _alreadyDestroyedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -327,7 +327,7 @@
                             @foreach (var module in _modulesToDestroy)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Default" Variant="Variant.Filled"
+                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                              Size="Size.Medium">@module.DisplayName</MudChip>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -901,7 +901,10 @@
 
             if (!modulesToActuallyApply.Any())
             {
-                Snackbar.Add("No modules to apply - insufficient permissions", Severity.Warning);
+                if (_modulesToApply.Any())
+                    Snackbar.Add("No modules to apply - you do not have permission on any of them", Severity.Warning);
+                else
+                    Snackbar.Add("No modules to apply", Severity.Info);
                 _isApplying = false;
                 StateHasChanged();
                 return;
@@ -913,7 +916,7 @@
 
             if (modulesWithoutPermission.Any())
             {
-                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
+                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) you do not have permission to run jobs on", Severity.Warning);
             }
 
             var failed = new List<string>();
@@ -982,7 +985,10 @@
 
             if (!modulesToActuallyDestroy.Any())
             {
-                Snackbar.Add("No modules to destroy - insufficient permissions", Severity.Warning);
+                if (_modulesToDestroy.Any())
+                    Snackbar.Add("No modules to destroy - you do not have permission on any of them", Severity.Warning);
+                else
+                    Snackbar.Add("No modules to destroy", Severity.Info);
                 _isDestroying = false;
                 StateHasChanged();
                 return;
@@ -994,7 +1000,7 @@
 
             if (modulesWithoutPermission.Any())
             {
-                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
+                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) you do not have permission to run jobs on", Severity.Warning);
             }
 
             var failed = new List<string>();

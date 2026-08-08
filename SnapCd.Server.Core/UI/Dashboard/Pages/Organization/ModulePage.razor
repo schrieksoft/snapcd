@@ -1490,7 +1490,7 @@
 
             if (skipped > 0)
             {
-                Snackbar.Add($"Skipped {skipped} module(s) due to insufficient permissions", Severity.Warning);
+                Snackbar.Add($"Skipped {skipped} module(s) you do not have permission to run jobs on", Severity.Warning);
             }
 
             if (totalApplied == 0 && skipped == 0)
@@ -1566,7 +1566,7 @@
 
             if (skipped > 0)
             {
-                Snackbar.Add($"Skipped {skipped} module(s) due to insufficient permissions", Severity.Warning);
+                Snackbar.Add($"Skipped {skipped} module(s) you do not have permission to run jobs on", Severity.Warning);
             }
 
             if (totalDestroyed == 0 && skipped == 0)
