@@ -76,7 +76,7 @@ public sealed class AgentHubConnection : IAsyncDisposable
                      $"?organization_id={_options.OrganizationId}&agent_id={_options.AgentId}" +
                      (string.IsNullOrEmpty(_options.InstanceName) ? "" : $"&agent_instance={Uri.EscapeDataString(_options.InstanceName)}");
 
-        _logger.LogInformation("Connecting to agent hub at {HubUrl}", hubUrl);
+        _logger.LogDebug("Connecting to agent hub at {HubUrl}", hubUrl);
 
         _connection = new HubConnectionBuilder()
             .WithUrl(hubUrl, options =>

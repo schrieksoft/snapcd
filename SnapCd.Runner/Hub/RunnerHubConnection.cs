@@ -80,7 +80,7 @@ public class RunnerHubConnection : IAsyncDisposable
                      $"&runner_id={_runnerSettings.Id}" +
                      $"&runner_instance={Uri.EscapeDataString(_runnerSettings.Instance)}";
 
-        _logger.LogInformation("Connecting to SignalR hub at {HubUrl}", hubUrl);
+        _logger.LogDebug("Connecting to SignalR hub at {HubUrl}", hubUrl);
 
         _connection = new HubConnectionBuilder()
             .WithUrl(hubUrl, options =>
@@ -406,7 +406,7 @@ public class RunnerHubConnection : IAsyncDisposable
 
         if (logsToSend.Count > 0)
         {
-            _logger.LogInformation("Flushing {Count} buffered log entries", logsToSend.Count);
+            _logger.LogDebug("Flushing {Count} buffered log entries", logsToSend.Count);
             try
             {
                 await _connection.InvokeAsync("SendLogs", logsToSend);

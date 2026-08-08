@@ -38,7 +38,7 @@ public class AccessTokenCacheQuartzJob : IJob
 
     public async Task Execute(IJobExecutionContext context)
     {
-        _logger.LogInformation("Refreshing token");
+        _logger.LogDebug("Refreshing token");
 
         try
         {
@@ -61,12 +61,12 @@ public class AccessTokenCacheQuartzJob : IJob
 
                     if (triggerTime > DateTime.UtcNow)
                     {
-                        _logger.LogInformation("Next token refresh scheduled for {TriggerTime}", triggerTime);
+                        _logger.LogDebug("Next token refresh scheduled for {TriggerTime}", triggerTime);
                         await ScheduleNextExecution(context, triggerTime);
                     }
                     else
                     {
-                        _logger.LogInformation("Trigger time is in the past. Immediate re-run scheduled.");
+                        _logger.LogDebug("Trigger time is in the past. Immediate re-run scheduled.");
                         await context.Scheduler.TriggerJob(context.JobDetail.Key);
                     }
                 }
