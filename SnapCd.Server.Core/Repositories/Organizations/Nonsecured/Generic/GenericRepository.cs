@@ -403,11 +403,16 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
 
         if (queryModifier != null) query = queryModifier(query);
 
+        // Distinct precedes ordering and paging: the permission joins can fan a row out, and
+        // deduplicating after the page has been cut both loses the ordering and leaves duplicates
+        // that straddle a page boundary.
+        query = query.Distinct();
+
         if (orderBy != null) query = orderBy(query);
 
         if (pageNumber.HasValue && pageSize.HasValue) query = query.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value);
 
-        return query.Distinct().ToList();
+        return query.ToList();
     }
 
     public virtual async Task<List<TProjection>> List<TProjection>(
@@ -421,13 +426,13 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         query ??= DbContext.Set<TEntity>();
         query = query.Where(m => m.OrganizationId == organizationId);
 
-        var projected = projection(query);
+        var projected = projection(query).Distinct();
 
         if (orderBy != null) projected = orderBy(projected);
 
         if (pageNumber.HasValue && pageSize.HasValue) projected = projected.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value);
 
-        return projected.Distinct().ToList();
+        return projected.ToList();
     }
 
     public virtual async Task<List<TEntity>> ListByParentId(
@@ -473,13 +478,13 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         // Apply parent ID filter
         query = ByParentIdQueryModifier(parentId)(query);
 
-        var projected = projection(query);
+        var projected = projection(query).Distinct();
 
         if (orderBy != null) projected = orderBy(projected);
 
         if (pageNumber.HasValue && pageSize.HasValue) projected = projected.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value);
 
-        return projected.Distinct().ToList();
+        return projected.ToList();
     }
 
     protected abstract Func<IQueryable<TEntity>, IQueryable<TEntity>> ByParentIdQueryModifier(Guid parentId);
