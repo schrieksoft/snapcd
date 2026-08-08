@@ -7,8 +7,10 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 
 namespace SnapCd.Server.Core.Repositories.Custom.Nonsecured;
@@ -38,11 +40,53 @@ public class ModuleSagaRepository : IDisposable
         var entity = await query
             .FirstOrDefaultAsync(i => i.CorrelationId == correlationId && i.OrganizationId == organizationId);
 
-        if (entity == null)
+        if (entity != null)
+            return entity;
+
+        // The saga is written in the same transaction as the module, so its absence means the row
+        // was lost rather than never created. Without one the state machine correlates no events
+        // and the module is inert, so it is restored in the state creation would have given it.
+        var module = await _dbContext.Modules
+            .FirstOrDefaultAsync(m => m.Id == correlationId && m.OrganizationId == organizationId);
+
+        if (module == null)
             throw new EntityNotFoundException(
                 $"{nameof(ModuleSaga)} with CorrelationId {correlationId} in Organization {organizationId} not found.");
 
+        entity = new ModuleSaga
+        {
+            CorrelationId = correlationId,
+            OrganizationId = organizationId,
+            RowVersion = [],
+            CurrentState = "Gatekeeping",
+            DesiredStateHeadline = await LastCompletedDesiredState(correlationId, organizationId),
+            QueuedDesiredStateHeadline = null
+        };
+
+        _dbContext.Set<ModuleSaga>().Add(entity);
+        await _dbContext.SaveChangesAsync();
+
         return entity;
+    }
+
+    /// <summary>
+    /// What the module was last known to be driving towards, so a restored saga does not assert an
+    /// intent the module never had. Null where it has never completed a job.
+    /// </summary>
+    private async Task<DesiredStateHeadline?> LastCompletedDesiredState(Guid moduleId, Guid organizationId)
+    {
+        var lastHeadline = await _dbContext.ModuleJobs
+            .Where(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.ActualStateHeadline != null)
+            .OrderByDescending(j => j.TimestampEnd)
+            .Select(j => j.ActualStateHeadline)
+            .FirstOrDefaultAsync();
+
+        return lastHeadline switch
+        {
+            ActualStateHeadline.Destroyed => DesiredStateHeadline.Destroyed,
+            null => null,
+            _ => DesiredStateHeadline.Applied
+        };
     }
 
     public void Dispose()

@@ -449,7 +449,7 @@ GO
 
 CREATE OR ALTER TRIGGER trg_Modules_ModuleState
 ON Modules
-AFTER DELETE
+AFTER INSERT, DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -457,6 +457,14 @@ BEGIN
     DELETE ms
     FROM ModuleState ms
     INNER JOIN deleted d ON d.Id = ms.ModuleId;
+
+    -- A module carries a row from the moment it exists, with NULL state until it has run
+    -- something. The job and saga triggers only insert on first activity, so without this
+    -- the table is short of every never-run module and any INNER JOIN to it drops them.
+    INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+    SELECT i.Id, i.OrganizationId, CAST(0 AS BIT), NULL, NULL, NULL
+    FROM inserted i
+    WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = i.Id);
 END;
 GO
 
@@ -466,6 +474,7 @@ DELETE ms
 FROM ModuleState ms
 WHERE NOT EXISTS (SELECT 1 FROM Modules m WHERE m.Id = ms.ModuleId);
 GO
+
 
 -- ============================================================================
 -- 10. Initial population (only on first deploy when tables are empty)
@@ -487,4 +496,13 @@ IF NOT EXISTS (SELECT TOP 1 1 FROM ModuleState)
 BEGIN
     EXEC sp_RecomputeModuleState;
 END;
+GO
+
+-- Backfill modules created before the trigger inserted on creation. Runs after the initial
+-- population above: seeding NULL-state rows first would satisfy that guard and suppress the
+-- recompute, leaving every module without the state its jobs already establish.
+INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+SELECT m.Id, m.OrganizationId, CAST(0 AS BIT), NULL, NULL, NULL
+FROM Modules m
+WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = m.Id);
 GO

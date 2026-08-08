@@ -193,7 +193,13 @@
 @if (!DependencyGraphWithStates.NodeStates.Any())
 {
     <MudAlert Severity="Severity.Info">
-        No modules with dependencies found in this namespace.
+        No modules in this namespace.
+    </MudAlert>
+}
+else if (DependencyGraphWithStates.NodeStates.All(n => !n.IncomingEdges.Any() && !n.OutgoingEdges.Any()))
+{
+    <MudAlert Severity="Severity.Info">
+        No dependencies between the modules in this namespace, so they can all run at once.
     </MudAlert>
 }
 
