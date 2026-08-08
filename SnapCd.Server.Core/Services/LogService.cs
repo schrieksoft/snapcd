@@ -49,10 +49,11 @@ public class LogService
                 // Set lock timeout to 90 seconds (90000 milliseconds)
                 await dbContext.Database.ExecuteSqlRawAsync("SET LOCK_TIMEOUT 180000");
 
-                // Lock the row using UPDLOCK and ROWLOCK hints
+                // Lock the row using UPDLOCK and ROWLOCK hints. Single, not First: Id is the primary
+                // key, so at most one row can match, and EF cannot see the filter inside raw SQL.
                 var moduleJob = await dbContext.ModuleJobs
                     .FromSqlRaw("SELECT * FROM ModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
-                    .FirstOrDefaultAsync();
+                    .SingleOrDefaultAsync();
 
                 if (moduleJob == null)
                     continue;
