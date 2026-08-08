@@ -8,6 +8,7 @@
 
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Gatekeeping;
@@ -20,13 +21,16 @@ public class ScheduleDriftCheckActivity<TMessage> :
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly QuotaService _quotaService;
+    private readonly ILogger<ScheduleDriftCheckActivity<TMessage>> _logger;
 
     public ScheduleDriftCheckActivity(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        QuotaService quotaService)
+        QuotaService quotaService,
+        ILogger<ScheduleDriftCheckActivity<TMessage>> logger)
     {
         _dbContextFactory = dbContextFactory;
         _quotaService = quotaService;
+        _logger = logger;
     }
 
     public async Task Execute(
@@ -50,7 +54,7 @@ public class ScheduleDriftCheckActivity<TMessage> :
 
             if (moduleData == null)
             {
-                Console.WriteLine($"Module {context.Saga.CorrelationId} not found, skipping drift check scheduling");
+                _logger.LogDebug("Module {ModuleId} not found, skipping drift check scheduling", context.Saga.CorrelationId);
                 await next.Execute(context).ConfigureAwait(false);
                 return;
             }
@@ -58,7 +62,7 @@ public class ScheduleDriftCheckActivity<TMessage> :
             var enabled = moduleData.DriftCheckEnabled ?? moduleData.NamespaceDefaultDriftCheckEnabled ?? false;
             if (!enabled)
             {
-                Console.WriteLine($"Drift check not enabled for module {context.Saga.CorrelationId}, skipping");
+                _logger.LogDebug("Drift check not enabled for module {ModuleId}, skipping", context.Saga.CorrelationId);
                 await next.Execute(context).ConfigureAwait(false);
                 return;
             }
@@ -86,11 +90,11 @@ public class ScheduleDriftCheckActivity<TMessage> :
 
             context.Saga.DriftCheckScheduleTokenId = scheduledMessage.TokenId;
 
-            Console.WriteLine($"Scheduled drift check for module {context.Saga.CorrelationId} in {effectiveInterval} minutes");
+            _logger.LogDebug("Scheduled drift check for module {ModuleId} in {Minutes} minutes", context.Saga.CorrelationId, effectiveInterval);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error scheduling drift check for module {context.Saga.CorrelationId}: {ex.Message}");
+            _logger.LogError(ex, "Error scheduling drift check for module {ModuleId}", context.Saga.CorrelationId);
         }
 
         await next.Execute(context).ConfigureAwait(false);

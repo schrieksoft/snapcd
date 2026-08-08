@@ -66,23 +66,23 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
                 if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Applied)
                 {
                     await ExecutionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
-                    Console.WriteLine($"Dequeued and running Apply for module {context.Saga.CorrelationId}");
+                    _logger.LogDebug("Dequeued and running Apply for module {ModuleId}", context.Saga.CorrelationId);
                 }
                 else if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Destroyed)
                 {
                     await ExecutionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
-                    Console.WriteLine($"Dequeued and running Destroy for module {context.Saga.CorrelationId}");
+                    _logger.LogDebug("Dequeued and running Destroy for module {ModuleId}", context.Saga.CorrelationId);
                 }
             }
             else if (!hasCurrentJob)
             {
                 // No current job and no queued requests, clear NextJobId
-                Console.WriteLine($"No current job and no queued requests for module {context.Saga.CorrelationId}");
+                _logger.LogDebug("No current job and no queued requests for module {ModuleId}", context.Saga.CorrelationId);
             }
             else
             {
                 // There's still a current job, do nothing
-                Console.WriteLine($"Current job still running for module {context.Saga.CorrelationId}, not dequeuing");
+                _logger.LogDebug("Current job still running for module {ModuleId}, not dequeuing", context.Saga.CorrelationId);
             }
 
             // Proceed to the next activity
@@ -90,7 +90,7 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error executing DequeueModuleJobActivity for {context.Saga.CorrelationId}. Error: {ex.Message}");
+            _logger.LogError(ex, "Error executing DequeueModuleJobActivity for module {ModuleId}", context.Saga.CorrelationId);
             // Still proceed to next activity even on error
             await next.Execute(context).ConfigureAwait(false);
         }

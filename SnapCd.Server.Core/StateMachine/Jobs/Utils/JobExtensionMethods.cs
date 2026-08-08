@@ -134,7 +134,6 @@ public static class JobExtensionMethods
         where TSaga : JobSagaBase
     {
         return binder
-            .Then(_ => { Console.WriteLine("Heartbeat received, scheduling new one."); })
             .Schedule(heartbeatScheduled,
                 context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId });
     }
@@ -145,7 +144,6 @@ public static class JobExtensionMethods
         where TResponseFailed : ModuleJobEventCompletedBase, new()
     {
         return binder
-            .Then(_ => { Console.WriteLine("Heartbeat failed. Finalizing."); })
             .Publish(context => new TResponseFailed
             {
                 ModuleId = context.Saga.ModuleId,
