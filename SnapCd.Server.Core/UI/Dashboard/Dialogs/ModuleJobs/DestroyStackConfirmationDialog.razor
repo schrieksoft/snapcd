@@ -34,7 +34,7 @@
                 @foreach (var module in AlreadyDestroyedModules)
                 {
                     <div class="d-flex align-center gap-2">
-                        <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                        <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                  Size="Size.Medium">@module.DisplayName</MudChip>
                         @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
                         {
@@ -56,7 +56,7 @@
                 @foreach (var module in ModulesToDestroy)
                 {
                     <div class="d-flex align-center gap-2">
-                        <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                        <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                  Size="Size.Medium">@module.DisplayName</MudChip>
                         @if (!ModulePermissions.GetValueOrDefault(module.ModuleId, false))
                         {
@@ -148,7 +148,10 @@
 
             if (!modulesToActuallyDestroy.Any())
             {
-                Snackbar.Add("No modules to destroy - insufficient permissions", Severity.Warning);
+                if (ModulesToDestroy.Any())
+                    Snackbar.Add("No modules to destroy - you do not have permission on any of them", Severity.Warning);
+                else
+                    Snackbar.Add("No modules to destroy", Severity.Info);
                 MudDialog.Close(DialogResult.Ok(new List<Guid>()));
                 return;
             }
@@ -159,7 +162,7 @@
 
             if (modulesWithoutPermission.Any())
             {
-                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) due to insufficient permissions", Severity.Warning);
+                Snackbar.Add($"Skipping {modulesWithoutPermission.Count} module(s) you do not have permission to run jobs on", Severity.Warning);
             }
 
             // Destroy modules using SecuredJobService

@@ -82,6 +82,14 @@ public interface IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
 
+    /// <summary>
+    /// Whether the state holds no destroyable resource. Answerable without input variables, which
+    /// a destroy plan cannot be: the variables come from upstream outputs that may not exist.
+    /// </summary>
+    Task<bool> HasNothingToDestroy(
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default);
+
     Task<int> ReadStatisticsFromFile();
 
     IParsedPlan ParseApplyPlan();

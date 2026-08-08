@@ -68,6 +68,21 @@ public partial class Tasks
                 request.TerraformArrayFlags
             );
 
+            if (await engine.HasNothingToDestroy(killCts.Token, gracefulCts.Token))
+            {
+                taskContext.LogInformation(
+                    "State holds no resources — this module is already destroyed. Reporting an empty destroy plan.");
+
+                await InvokeWithRetryAsync(
+                    () => runnerHubClient.InvokePlanDestroyCompleted(request.JobId, new PlanCompletedData()),
+                    nameof(runnerHubClient.InvokePlanDestroyCompleted),
+                    request.JobId,
+                    connection);
+
+                taskContext.LogInformation("Completed PlanDestroy");
+                return;
+            }
+
             if (request.Policies.Count > 0)
             {
                 taskContext.LogInformation($"Enforcing {request.Policies.Count} CrossGuard policy pack(s) in the preview");

@@ -54,8 +54,8 @@
                 Are you sure you want to destroy this module?
             </MudText>
             <div class="mb-3">
-                <MudChip T="string" Color="Color.Default"
-                         Variant="Variant.Text">@(_currentModuleDisplayName ?? Module?.Name ?? "this module")</MudChip>
+                <MudChip T="string" Color="Color.Secondary"
+                         Variant="Variant.Filled" Size="Size.Medium">@(_currentModuleDisplayName ?? Module?.Name ?? "this module")</MudChip>
             </div>
 
             @if (_recursiveDependencies.Any())
@@ -68,7 +68,7 @@
                 <MudStack Class="mb-3" AlignItems="AlignItems.Start">
                     @foreach (var dep in _recursiveDependencies)
                     {
-                        <MudChip T="string" Color="Color.Default" Variant="Variant.Text">@dep</MudChip>
+                        <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Medium">@dep</MudChip>
                     }
                 </MudStack>
             }

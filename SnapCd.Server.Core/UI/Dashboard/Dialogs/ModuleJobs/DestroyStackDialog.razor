@@ -55,7 +55,7 @@
                     @foreach (var moduleNode in _dependencyGraph.NodeStates)
                     {
                         <div class="d-flex align-center gap-2">
-                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                            <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                      Size="Size.Medium">@moduleNode.DisplayName</MudChip>
                             @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
                             {

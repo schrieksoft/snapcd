@@ -323,22 +323,151 @@ public class ModuleJobSecuredRepository : GenericModuleChildSecuredRepository<
         if (!toCheck.Any())
             return new List<RunJobPermission>();
 
-        // Get all module IDs we need to check
         var moduleIdsToCheck = toCheck.Select(t => t.ModuleId).Distinct().ToList();
 
-        // Get all jobs for modules where the user has run permission, filtered to our list
-        var permittedModuleIds = await RunJobQuery(organizationId)
-            .Where(j => moduleIdsToCheck.Contains(j.ModuleId))
-            .Select(j => j.ModuleId)
+        // Permission comes from the module's role assignments, not from its job history: a module
+        // that has never run a job still has an answer to "may this principal run one".
+        var permittedModuleIds = (await RunJobModuleQuery(organizationId)
+            .Where(m => moduleIdsToCheck.Contains(m.Id))
+            .Select(m => m.Id)
             .Distinct()
-            .ToListAsync();
+            .ToListAsync()).ToHashSet();
 
-        // Build results based on bulk permission check
         return toCheck.Select(tuple => new RunJobPermission
         {
             ModuleId = tuple.ModuleId,
             NamespaceId = tuple.NamespaceId,
             HasPermission = permittedModuleIds.Contains(tuple.ModuleId)
         }).ToList();
+    }
+
+    public IQueryable<Module> RunJobModuleQuery(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return PrincipalDiscriminator switch
+        {
+            PrincipalDiscriminator.User => RunJobModuleQuery<
+                UserOrganizationRoleAssignment,
+                UserStackRoleAssignment,
+                UserNamespaceRoleAssignment,
+                UserModuleRoleAssignment>(organizationId, principalId),
+            PrincipalDiscriminator.ServicePrincipal => RunJobModuleQuery<
+                ServicePrincipalOrganizationRoleAssignment,
+                ServicePrincipalStackRoleAssignment,
+                ServicePrincipalNamespaceRoleAssignment,
+                ServicePrincipalModuleRoleAssignment>(organizationId, principalId),
+            _ => throw new InvalidOperationException($"Unsupported principal discriminator: {PrincipalDiscriminator}")
+        };
+    }
+
+    private IQueryable<Module> RunJobModuleQuery<TOrganizationRoleAssignment, TStackRoleAssignment, TNamespaceRoleAssignment, TModuleRoleAssignment>(
+        Guid organizationId,
+        Guid principalId)
+        where TOrganizationRoleAssignment : class, IOrganizationRoleAssignment
+        where TStackRoleAssignment : class, IStackRoleAssignment
+        where TNamespaceRoleAssignment : class, INamespaceRoleAssignment
+        where TModuleRoleAssignment : class, IModuleRoleAssignment
+    {
+        var modules = Repository.DbContext.Modules.Where(m => m.OrganizationId == organizationId);
+
+        var fromModuleRoles =
+            from module in modules
+            join assignment in Repository.DbContext.Set<TModuleRoleAssignment>()
+                on new { ModuleId = module.Id, module.OrganizationId } equals new { assignment.ModuleId, assignment.OrganizationId }
+            where assignment.PrincipalId == principalId
+                  && RunJobPermissionMap.ModuleRoles.Contains(assignment.RoleName)
+            select module;
+
+        var fromNamespaceRoles =
+            from module in modules
+            join assignment in Repository.DbContext.Set<TNamespaceRoleAssignment>()
+                on new { module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+            where assignment.PrincipalId == principalId
+                  && RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
+            select module;
+
+        var fromStackRoles =
+            from module in modules
+            join ns in Repository.DbContext.Namespaces
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+            join assignment in Repository.DbContext.Set<TStackRoleAssignment>()
+                on new { ns.StackId, ns.OrganizationId } equals new { assignment.StackId, assignment.OrganizationId }
+            where assignment.PrincipalId == principalId
+                  && RunJobPermissionMap.StackRoles.Contains(assignment.RoleName)
+            select module;
+
+        var fromOrganizationRoles =
+            from module in modules
+            join assignment in Repository.DbContext.Set<TOrganizationRoleAssignment>()
+                on module.OrganizationId equals assignment.OrganizationId
+            where assignment.PrincipalId == principalId
+                  && RunJobPermissionMap.OrganizationRoles.Contains(assignment.RoleName)
+            select module;
+
+        var fromGroupRoles = GroupRunJobModuleQuery(organizationId, principalId, modules);
+
+        return fromModuleRoles
+            .Concat(fromNamespaceRoles)
+            .Concat(fromStackRoles)
+            .Concat(fromOrganizationRoles)
+            .Concat(fromGroupRoles);
+    }
+
+    private IQueryable<Module> GroupRunJobModuleQuery(Guid organizationId, Guid principalId, IQueryable<Module> modules)
+    {
+        if (PrincipalDiscriminator != PrincipalDiscriminator.User)
+            return modules.Where(_ => false);
+
+        var groups =
+            from gum in Repository.DbContext.UserGroupMembers
+            where gum.UserId == principalId && gum.OrganizationId == organizationId
+            join rgm in Repository.DbContext.RecursiveGroupMembers
+                on new { RootGroupId = gum.GroupId, RootOrganizationId = gum.OrganizationId }
+                equals new { rgm.RootGroupId, rgm.RootOrganizationId }
+            select new { rgm.GroupId, rgm.OrganizationId };
+
+        var fromModuleRoles =
+            from module in modules
+            join assignment in Repository.DbContext.GroupModuleRoleAssignments
+                on new { ModuleId = module.Id, module.OrganizationId } equals new { assignment.ModuleId, assignment.OrganizationId }
+            join grp in groups
+                on new { GroupId = assignment.PrincipalId, assignment.OrganizationId } equals new { grp.GroupId, grp.OrganizationId }
+            where RunJobPermissionMap.ModuleRoles.Contains(assignment.RoleName)
+            select module;
+
+        var fromNamespaceRoles =
+            from module in modules
+            join assignment in Repository.DbContext.GroupNamespaceRoleAssignments
+                on new { module.NamespaceId, module.OrganizationId } equals new { assignment.NamespaceId, assignment.OrganizationId }
+            join grp in groups
+                on new { GroupId = assignment.PrincipalId, assignment.OrganizationId } equals new { grp.GroupId, grp.OrganizationId }
+            where RunJobPermissionMap.NamespaceRoles.Contains(assignment.RoleName)
+            select module;
+
+        var fromStackRoles =
+            from module in modules
+            join ns in Repository.DbContext.Namespaces
+                on new { NamespaceId = module.NamespaceId, module.OrganizationId } equals new { NamespaceId = ns.Id, ns.OrganizationId }
+            join assignment in Repository.DbContext.GroupStackRoleAssignments
+                on new { ns.StackId, ns.OrganizationId } equals new { assignment.StackId, assignment.OrganizationId }
+            join grp in groups
+                on new { GroupId = assignment.PrincipalId, assignment.OrganizationId } equals new { grp.GroupId, grp.OrganizationId }
+            where RunJobPermissionMap.StackRoles.Contains(assignment.RoleName)
+            select module;
+
+        var fromOrganizationRoles =
+            from module in modules
+            join assignment in Repository.DbContext.GroupOrganizationRoleAssignments
+                on module.OrganizationId equals assignment.OrganizationId
+            join grp in groups
+                on new { GroupId = assignment.PrincipalId, assignment.OrganizationId } equals new { grp.GroupId, grp.OrganizationId }
+            where RunJobPermissionMap.OrganizationRoles.Contains(assignment.RoleName)
+            select module;
+
+        return fromModuleRoles
+            .Concat(fromNamespaceRoles)
+            .Concat(fromStackRoles)
+            .Concat(fromOrganizationRoles);
     }
 }

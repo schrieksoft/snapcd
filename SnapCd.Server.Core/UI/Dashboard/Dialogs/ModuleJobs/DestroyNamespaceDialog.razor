@@ -70,7 +70,7 @@
                     @foreach (var moduleNode in _dependencyGraph.NodeStates.Where(n => n.NamespaceId == NamespaceId))
                     {
                         <div class="d-flex align-center gap-2">
-                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                            <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                      Size="Size.Medium">@moduleNode.DisplayName</MudChip>
                             @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
                             {
@@ -102,7 +102,7 @@
                     @foreach (var moduleNode in externalDependentModules)
                     {
                         <div class="d-flex align-center gap-2">
-                            <MudChip T="string" Style="background-color: black; color: white;" Variant="Variant.Filled"
+                            <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
                                      Size="Size.Medium">@moduleNode.DisplayName</MudChip>
                             @if (_modulePermissions.TryGetValue(moduleNode.ModuleId, out var hasPermission) && !hasPermission)
                             {

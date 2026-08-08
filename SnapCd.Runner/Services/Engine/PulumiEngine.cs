@@ -293,6 +293,21 @@ public class PulumiEngine : BaseEngine, IEngine
         return CountResourcesFromExport(exportPath);
     }
 
+    public async Task<bool> HasNothingToDestroy(
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        try
+        {
+            return await Statistics(killCancellationToken, gracefulCancellationToken) == 0;
+        }
+        catch (ProcessFailedException) when (!killCancellationToken.IsCancellationRequested && !gracefulCancellationToken.IsCancellationRequested)
+        {
+            // A stack that was never created cannot be exported — nothing to destroy.
+            return true;
+        }
+    }
+
     #region Flag resolution
 
     private string? BuildLoginCommand(List<EngineFlagEntry> initFlags, string globalArgs)
