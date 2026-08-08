@@ -44,7 +44,7 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
                 message.RunnerId,
                 message.RunnerInstanceName);
 
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "Recorded running task {TaskName} for job {JobId} on runner {RunnerId}",
                 message.TaskName, message.JobId, message.RunnerId);
         }

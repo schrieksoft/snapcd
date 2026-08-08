@@ -56,7 +56,7 @@ public class VariablesCompletedInvokedConsumer : IConsumer<VariablesCompletedInv
                 if (jobView != null)
                 {
                     await _variableSetService.CreateWithVariables(variableSet, jobView.ModuleId, jobView.OrganizationId);
-                    _logger.LogInformation("Stored VariableSet for job {JobId}", jobId);
+                    _logger.LogDebug("Stored VariableSet for job {JobId}", jobId);
                 }
                 else
                 {
@@ -73,7 +73,7 @@ public class VariablesCompletedInvokedConsumer : IConsumer<VariablesCompletedInv
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Variables completion processed for job {JobId}", jobId);
+            _logger.LogDebug("Variables completion processed for job {JobId}", jobId);
         }
         catch (Exception ex)
         {

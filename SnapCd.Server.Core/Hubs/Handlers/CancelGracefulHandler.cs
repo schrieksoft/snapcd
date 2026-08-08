@@ -38,7 +38,7 @@ public class CancelGracefulHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent graceful cancellation completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent graceful cancellation completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

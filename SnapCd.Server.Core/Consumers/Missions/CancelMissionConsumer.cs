@@ -35,7 +35,7 @@ public class CancelMissionConsumer : IConsumer<CancelMissionRunRequested>
     public async Task Consume(ConsumeContext<CancelMissionRunRequested> context)
     {
         var msg = context.Message;
-        _logger.LogInformation("Cancelling mission run {RunId} on agent connection {ConnectionId}",
+        _logger.LogDebug("Cancelling mission run {RunId} on agent connection {ConnectionId}",
             msg.RunId, msg.AgentConnectionId);
 
         await _hub.Clients.Client(msg.AgentConnectionId).SendAsync(

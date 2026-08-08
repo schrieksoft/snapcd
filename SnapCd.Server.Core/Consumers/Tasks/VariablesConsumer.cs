@@ -46,7 +46,7 @@ public class VariablesConsumer : IConsumer<VariablesRequested>
         var runnerId = msg.RunnerId;
         var specificRunner = msg.RunnerInstanceName;
 
-        _logger.LogInformation("Received Input request for job {JobId} in pool {RunnerId}",
+        _logger.LogDebug("Received Input request for job {JobId} in pool {RunnerId}",
             jobId, runnerId);
 
         try
@@ -59,7 +59,7 @@ public class VariablesConsumer : IConsumer<VariablesRequested>
                 throw new InvalidOperationException($"No available runners in pool {runnerId}");
             }
 
-            _logger.LogInformation("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
+            _logger.LogDebug("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
                 runner.InstanceName, runner.SignalRConnectionId, jobId);
 
 
@@ -83,7 +83,7 @@ public class VariablesConsumer : IConsumer<VariablesRequested>
                 }
             );
 
-            _logger.LogInformation("Dispatched Input request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched Input request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)

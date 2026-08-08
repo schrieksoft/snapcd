@@ -52,13 +52,13 @@ public class PlanConsumer : IConsumer<PlanRequested>
         var runnerId = msg.RunnerId;
         var specificRunner = msg.RunnerInstanceName;
 
-        _logger.LogInformation("Received Plan request for job {JobId} in pool {RunnerId}",
+        _logger.LogDebug("Received Plan request for job {JobId} in pool {RunnerId}",
             jobId, runnerId);
 
         try
         {
             // Resolve Terraform variables on the server before dispatching
-            _logger.LogInformation("Resolving Terraform variables for job {JobId}", jobId);
+            _logger.LogDebug("Resolving Terraform variables for job {JobId}", jobId);
 
             var metadata = new JobMetadata
             {
@@ -100,7 +100,7 @@ public class PlanConsumer : IConsumer<PlanRequested>
 
             var resolvedParameters = await paramResolver.ResolveParameters();
 
-            _logger.LogInformation("Resolved {Count} Terraform variables for job {JobId}",
+            _logger.LogDebug("Resolved {Count} Terraform variables for job {JobId}",
                 resolvedParameters.Count, jobId);
 
             // Select runner using least-loaded strategy
@@ -112,7 +112,7 @@ public class PlanConsumer : IConsumer<PlanRequested>
                 throw new InvalidOperationException($"No available runners in pool {runnerId}");
             }
 
-            _logger.LogInformation("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
+            _logger.LogDebug("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
                 runner.InstanceName, runner.SignalRConnectionId, jobId);
 
             // Invoke method on specific runner via SignalR
@@ -144,7 +144,7 @@ public class PlanConsumer : IConsumer<PlanRequested>
                 }
             );
 
-            _logger.LogInformation("Dispatched Plan request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched Plan request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)

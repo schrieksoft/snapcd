@@ -36,7 +36,7 @@ public class AutoDiagnoseMissionConsumer : IConsumer<AutoDiagnoseMissionRequeste
     {
         var msg = context.Message;
 
-        _logger.LogInformation("Invoking AutoDiagnose mission {MissionId} on agent connection {ConnectionId}",
+        _logger.LogDebug("Invoking AutoDiagnose mission {MissionId} on agent connection {ConnectionId}",
             msg.MissionId, msg.AgentConnectionId);
 
         await _hub.Clients.Client(msg.AgentConnectionId).SendAsync(

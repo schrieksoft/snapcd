@@ -127,7 +127,7 @@ public class NamespaceParamResolver
                 if (formatStrings)
                     value = FormatValue(value, InputType.String);
 
-                _context.LogInformation($"Successfully resolved parameter \"{entry.Name}\" from source \"{NamespaceInputSource.Definition.ToString()}\" with value \"{entry.DefinitionName}\"");
+                _context.LogDebug($"Successfully resolved parameter \"{entry.Name}\" from source \"{NamespaceInputSource.Definition.ToString()}\" with value \"{entry.DefinitionName}\"");
 
                 return Task.FromResult(new NamespaceResolvedInput
                 {
@@ -169,7 +169,7 @@ public class NamespaceParamResolver
                 if (formatStrings)
                     value = FormatValue(entry.LiteralValue, entry.Type);
 
-                _context.LogInformation($"Successfully resolved parameter \"{entry.Name}\" from source \"{NamespaceInputSource.Literal.ToString()}\" with value \"{entry.LiteralValue}\"");
+                _context.LogDebug($"Successfully resolved parameter \"{entry.Name}\" from source \"{NamespaceInputSource.Literal.ToString()}\" with value \"{entry.LiteralValue}\"");
 
                 return new NamespaceResolvedInput
                 {

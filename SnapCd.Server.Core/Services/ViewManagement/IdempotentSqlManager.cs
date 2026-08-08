@@ -28,7 +28,7 @@ public class IdempotentSqlManager : IIdempotentSqlManager
 
     public async Task ApplyIdempotentSqlAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Applying idempotent SQL scripts");
+        _logger.LogDebug("Applying idempotent SQL scripts");
 
         var assemblySources = new List<(Assembly Assembly, string Prefix)>
         {
@@ -77,7 +77,7 @@ public class IdempotentSqlManager : IIdempotentSqlManager
                         await _dbContext.Database.ExecuteSqlRawAsync(batch, cancellationToken);
                     }
 
-                    _logger.LogInformation("Successfully applied script: {ScriptName}", scriptName);
+                    _logger.LogDebug("Successfully applied script: {ScriptName}", scriptName);
                     totalApplied++;
                 }
                 catch (Exception ex)

@@ -39,7 +39,7 @@ public class GetDefinitiveRevisionHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent GetDefinitiveRevision completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent GetDefinitiveRevision completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -59,7 +59,7 @@ public class GetDefinitiveRevisionHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent GetDefinitiveRevision cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent GetDefinitiveRevision cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -82,7 +82,7 @@ public class GetDefinitiveRevisionHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent GetDefinitiveRevision fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent GetDefinitiveRevision fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

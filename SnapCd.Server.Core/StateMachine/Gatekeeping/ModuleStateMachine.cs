@@ -79,7 +79,7 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
 
         During(Gatekeeping,
             When(GatekeepingJobRequested)
-                .Then(x => _logger.LogInformation(
+                .Then(x => _logger.LogDebug(
                     "Received GatekeepingJobRequested with ID {ModuleId} in Gatekeeping state",
                     x.Message.ModuleId))
                 .Unschedule(DriftCheckScheduled)
@@ -98,7 +98,7 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
             When(ClearQueueRequested)
-                .Then(_ => _logger.LogInformation("Clearing queue"))
+                .Then(_ => _logger.LogDebug("Clearing queue"))
                 .Then(y => { y.Saga.QueuedDesiredStateHeadline = null; })
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
@@ -151,7 +151,7 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
             When(ModuleDependencyCheckRequested)
-                .Then(y => _logger.LogInformation(
+                .Then(y => _logger.LogDebug(
                     "Checking dependencies for queued module {ModuleId}", y.Message.ModuleId))
                 .Activity(y => y.OfType<DequeueIfDependenciesMetJobActivity<ModuleDependencyCheckRequested>>())
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
@@ -160,7 +160,7 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .IfElse(IsFromSupersededSchedule,
                     stale => stale,
                     current => current
-                        .Then(x => _logger.LogInformation(
+                        .Then(x => _logger.LogDebug(
                             "Drift check fired for module {ModuleId}", x.Saga.CorrelationId))
                         .Publish(x => new GatekeepingJobRequested
                         {

@@ -84,7 +84,7 @@ public class RunnerSelectionService
         Guid runnerId,
         string specificRunnerName)
     {
-        _logger.LogInformation("Attempting to select specific runner {RunnerName} for runner {RunnerId}",
+        _logger.LogDebug("Attempting to select specific runner {RunnerName} for runner {RunnerId}",
             specificRunnerName, runnerId);
 
         using var connectionRepository = _connectionRepositoryFactory.Create();
@@ -154,14 +154,14 @@ public class RunnerSelectionService
             return null;
         }
 
-        _logger.LogInformation("Found {Count} available runner instance(s) for runner {RunnerId}",
+        _logger.LogDebug("Found {Count} available runner instance(s) for runner {RunnerId}",
             connections.Count, runnerId);
 
         // If only one instance, return it immediately without querying job counts
         if (connections.Count == 1)
         {
             var singleConnection = connections[0];
-            _logger.LogInformation("Only one runner instance available, selecting {InstanceName}",
+            _logger.LogDebug("Only one runner instance available, selecting {InstanceName}",
                 singleConnection.InstanceName);
             return singleConnection;
         }
@@ -177,7 +177,7 @@ public class RunnerSelectionService
             .First();
 
         var jobCount = jobCounts.GetValueOrDefault(selectedConnection.InstanceName, 0);
-        _logger.LogInformation("Selected runner instance {InstanceName} with {JobCount} active jobs (from {TotalInstances} available)",
+        _logger.LogDebug("Selected runner instance {InstanceName} with {JobCount} active jobs (from {TotalInstances} available)",
             selectedConnection.InstanceName, jobCount, connections.Count);
 
         return selectedConnection;

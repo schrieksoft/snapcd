@@ -38,7 +38,7 @@ public class CancelKillHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent kill cancellation completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent kill cancellation completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

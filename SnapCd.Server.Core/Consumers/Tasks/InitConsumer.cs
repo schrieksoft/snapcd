@@ -51,13 +51,13 @@ public class InitConsumer : IConsumer<InitRequested>
         var runnerId = msg.RunnerId;
         var specificRunner = msg.RunnerInstanceName;
 
-        _logger.LogInformation("Received Init request for job {JobId} in pool {RunnerId}",
+        _logger.LogDebug("Received Init request for job {JobId} in pool {RunnerId}",
             jobId, runnerId);
 
         try
         {
             // Resolve environment variables on the server before dispatching
-            _logger.LogInformation("Resolving environment variables for job {JobId}", jobId);
+            _logger.LogDebug("Resolving environment variables for job {JobId}", jobId);
 
             var metadata = new JobMetadata
             {
@@ -99,7 +99,7 @@ public class InitConsumer : IConsumer<InitRequested>
 
             var resolvedEnvVars = await paramResolver.ResolveEnvVariables();
 
-            _logger.LogInformation("Resolved {Count} environment variables for job {JobId}",
+            _logger.LogDebug("Resolved {Count} environment variables for job {JobId}",
                 resolvedEnvVars.Count, jobId);
 
             // Select runner using least-loaded strategy
@@ -111,7 +111,7 @@ public class InitConsumer : IConsumer<InitRequested>
                 throw new InvalidOperationException($"No available runners in pool {runnerId}");
             }
 
-            _logger.LogInformation("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
+            _logger.LogDebug("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
                 runner.InstanceName, runner.SignalRConnectionId, jobId);
 
             // Invoke method on specific runner via SignalR
@@ -145,7 +145,7 @@ public class InitConsumer : IConsumer<InitRequested>
                 }
             );
 
-            _logger.LogInformation("Dispatched Init request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched Init request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)

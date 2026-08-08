@@ -32,7 +32,7 @@ public class ReportRunningTaskHandler
     {
         try
         {
-            _logger.LogInformation("Runner reported running task {TaskName} for job {JobId}", taskName, jobId);
+            _logger.LogDebug("Runner reported running task {TaskName} for job {JobId}", taskName, jobId);
 
             // Publish to consumer for database work (idempotency handled there)
             await _bus.Publish(new ReportRunningTaskInvoked
@@ -44,7 +44,7 @@ public class ReportRunningTaskHandler
                 RunnerInstanceName = runnerInstanceName
             });
 
-            _logger.LogInformation("Published ReportRunningTask event for job {JobId}", jobId);
+            _logger.LogDebug("Published ReportRunningTask event for job {JobId}", jobId);
         }
         catch (Exception ex)
         {

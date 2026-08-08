@@ -35,7 +35,7 @@ public class SummarizeJobMissionConsumer : IConsumer<SummarizeJobMissionRequeste
     {
         var msg = context.Message;
 
-        _logger.LogInformation("Invoking SummarizeJob mission {MissionId} on agent connection {ConnectionId}",
+        _logger.LogDebug("Invoking SummarizeJob mission {MissionId} on agent connection {ConnectionId}",
             msg.MissionId, msg.AgentConnectionId);
 
         await _hub.Clients.Client(msg.AgentConnectionId).SendAsync(

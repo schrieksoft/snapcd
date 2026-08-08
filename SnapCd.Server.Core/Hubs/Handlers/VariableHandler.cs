@@ -62,7 +62,7 @@ public class VariableHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Variables cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Variables cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -85,7 +85,7 @@ public class VariableHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Variables fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Variables fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

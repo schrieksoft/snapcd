@@ -60,7 +60,7 @@ public class OutputCompletedInvokedConsumer : IConsumer<OutputCompletedInvoked>
             if (jobView != null)
             {
                 await _outputSetService.CreateWithOutputsNonsecured(outputSet, jobView.ModuleId, jobView.OrganizationId);
-                _logger.LogInformation("Stored OutputSet for job {JobId}", jobId);
+                _logger.LogDebug("Stored OutputSet for job {JobId}", jobId);
                 
                 // Publish saga event
                 await _bus.Publish(new OutputCompleted
@@ -68,7 +68,7 @@ public class OutputCompletedInvokedConsumer : IConsumer<OutputCompletedInvoked>
                     CorrelationId = jobId
                 });
 
-                _logger.LogInformation("Output completion processed for job {JobId}", jobId);
+                _logger.LogDebug("Output completion processed for job {JobId}", jobId);
             }
             else
             {

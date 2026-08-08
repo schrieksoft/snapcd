@@ -81,7 +81,7 @@ public partial class JobStateMachine<
                     // Nothing to apply, continue to Output
                     ///////////////////////////////////////////////////
                     x => x
-                        .Then(_ => { _logger.LogInformation($"Nothing to apply, continuing to Output."); })
+                        .Then(_ => { _logger.LogDebug($"Nothing to apply, continuing to Output."); })
                         // Use SendToRunnerActivity to target specific server instance
                         .Activity(a => a.OfType<SendToRunnerActivity<TSaga, TPlanCompleted, OutputRequested>>())
                         .IfElse(
@@ -108,7 +108,7 @@ public partial class JobStateMachine<
                         .IfElse(
                             ctx => PolicyApplicability.Any(ctx.Saga.DeclaredJson, IsDestroyJob),
                             withPolicies => withPolicies
-                                .Then(_ => { _logger.LogInformation("Policies in scope, dispatching PolicyValidate."); })
+                                .Then(_ => { _logger.LogDebug("Policies in scope, dispatching PolicyValidate."); })
                                 .Activity(a => a.OfType<SendToRunnerActivity<TSaga, TPlanCompleted, PolicyValidateRequested>>())
                                 .IfElse(
                                     ctx => ctx.Saga.PreviousStateBeforeWaiting != null,
@@ -202,7 +202,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogInformation(
+                            _logger.LogDebug(
                                 "Plan: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })

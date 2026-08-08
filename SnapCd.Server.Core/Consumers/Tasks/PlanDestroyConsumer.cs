@@ -52,13 +52,13 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
         var runnerId = msg.RunnerId;
         var specificRunner = msg.RunnerInstanceName;
 
-        _logger.LogInformation("Received PlanDestroy request for job {JobId} in pool {RunnerId}",
+        _logger.LogDebug("Received PlanDestroy request for job {JobId} in pool {RunnerId}",
             jobId, runnerId);
 
         try
         {
             // Resolve Terraform variables on the server before dispatching
-            _logger.LogInformation("Resolving Terraform variables for destroy plan job {JobId}", jobId);
+            _logger.LogDebug("Resolving Terraform variables for destroy plan job {JobId}", jobId);
 
             
 
@@ -102,7 +102,7 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
 
             var resolvedParameters = await paramResolver.ResolveParameters();
 
-            _logger.LogInformation("Resolved {Count} Terraform variables for destroy plan job {JobId}",
+            _logger.LogDebug("Resolved {Count} Terraform variables for destroy plan job {JobId}",
                 resolvedParameters.Count, jobId);
 
             // Select runner using least-loaded strategy
@@ -114,7 +114,7 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
                 throw new InvalidOperationException($"No available runners in pool {runnerId}");
             }
 
-            _logger.LogInformation("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
+            _logger.LogDebug("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
                 runner.InstanceName, runner.SignalRConnectionId, jobId);
 
 
@@ -146,7 +146,7 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
                 }
             );
 
-            _logger.LogInformation("Dispatched PlanDestroy request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched PlanDestroy request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)

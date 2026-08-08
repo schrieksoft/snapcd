@@ -44,7 +44,7 @@ public class CancelGracefulConsumer : IConsumer<CancelGracefulRequested>
         var runnerName = msg.RunnerInstanceName;
         var runnerId = msg.RunnerId;
 
-        _logger.LogInformation("Received graceful cancellation request for job {CorrelationId}", correlationId);
+        _logger.LogDebug("Received graceful cancellation request for job {CorrelationId}", correlationId);
 
         if (string.IsNullOrEmpty(runnerName))
         {
@@ -65,7 +65,7 @@ public class CancelGracefulConsumer : IConsumer<CancelGracefulRequested>
                 return;
             }
 
-            _logger.LogInformation("Sending graceful cancellation to runner {RunnerName} (ConnectionId: {ConnectionId}) for job {CorrelationId}",
+            _logger.LogDebug("Sending graceful cancellation to runner {RunnerName} (ConnectionId: {ConnectionId}) for job {CorrelationId}",
                 connection.InstanceName, connection.SignalRConnectionId, correlationId);
 
             // Send graceful cancellation request to specific client (fire and forget)
@@ -77,7 +77,7 @@ public class CancelGracefulConsumer : IConsumer<CancelGracefulRequested>
                     JobId = correlationId
                 });
 
-            _logger.LogInformation("Graceful cancellation request sent to runner for job {CorrelationId}", correlationId);
+            _logger.LogDebug("Graceful cancellation request sent to runner for job {CorrelationId}", correlationId);
         }
         catch (Exception ex)
         {

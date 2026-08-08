@@ -36,7 +36,7 @@ public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
         var correlationId = msg.CorrelationId;
         var orgId = msg.OrganizationId;
 
-        _logger.LogInformation("Received heartbeat request for job {CorrelationId}", correlationId);
+        _logger.LogDebug("Received heartbeat request for job {CorrelationId}", correlationId);
 
         try
         {
@@ -72,7 +72,7 @@ public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
             }
             else
             {
-                _logger.LogInformation("Job {CorrelationId} heartbeat successful - last update was {Age:F1} seconds ago",
+                _logger.LogDebug("Job {CorrelationId} heartbeat successful - last update was {Age:F1} seconds ago",
                     correlationId, age.TotalSeconds);
                 await context.RespondAsync(new HeartbeatCompleted());
             }

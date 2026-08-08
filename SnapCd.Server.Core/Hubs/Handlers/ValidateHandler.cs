@@ -38,7 +38,7 @@ public class ValidateHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Validate completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Validate completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -58,7 +58,7 @@ public class ValidateHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Validate cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Validate cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ public class ValidateHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Validate fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Validate fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

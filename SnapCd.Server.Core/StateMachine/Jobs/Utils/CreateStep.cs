@@ -85,7 +85,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogInformation(
+                            _logger.LogDebug(
                                 "{StepName}: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                         })
