@@ -26,15 +26,15 @@ public class RunnerSessionHostedService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting SignalR runner hub connection...");
+        _logger.LogDebug("Starting SignalR runner hub connection...");
         await _hubConnection.StartAsync(cancellationToken);
-        _logger.LogInformation("SignalR runner hub connection succeeded");
+        _logger.LogDebug("SignalR runner hub connection succeeded");
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Stopping SignalR runner hub connection...");
+        _logger.LogDebug("Stopping SignalR runner hub connection...");
         await _hubConnection.StopAsync();
-        _logger.LogInformation("SignalR runner hub connection stopped");
+        _logger.LogDebug("SignalR runner hub connection stopped");
     }
 }

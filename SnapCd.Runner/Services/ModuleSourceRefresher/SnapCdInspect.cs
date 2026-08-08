@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
@@ -94,6 +95,29 @@ public class SnapCdInspect
         }
     }
 
+    /// <summary>
+    /// Linux reports ETXTBSY while a writable descriptor to an executable is still open, which the
+    /// kernel can hold briefly after the extracting write has returned. The condition clears on its
+    /// own, so the exec is retried rather than treated as a failure.
+    /// </summary>
+    private static void StartWithTextFileBusyRetry(Process process)
+    {
+        const int ETXTBSY = 26;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                process.Start();
+                return;
+            }
+            catch (Win32Exception ex) when (ex.NativeErrorCode == ETXTBSY && attempt < 10)
+            {
+                Thread.Sleep(20 * attempt);
+            }
+        }
+    }
+
     private class InspectResult
     {
         public List<InspectClosure> Closures { get; set; } = new();
@@ -127,7 +151,7 @@ public class SnapCdInspect
 
         using var process = new Process();
         process.StartInfo = startInfo;
-        process.Start();
+        StartWithTextFileBusyRetry(process);
 
         var stdout = process.StandardOutput.ReadToEnd();
         var stderr = process.StandardError.ReadToEnd();

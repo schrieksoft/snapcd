@@ -39,7 +39,7 @@ public class DestroyFromPlanHandler
                 ActualResourceCount = actualResourceCount
             });
 
-            _logger.LogInformation("Sent DestroyFromPlan completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent DestroyFromPlan completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -59,7 +59,7 @@ public class DestroyFromPlanHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent DestroyFromPlan cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent DestroyFromPlan cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -83,7 +83,7 @@ public class DestroyFromPlanHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent DestroyFromPlan fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent DestroyFromPlan fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

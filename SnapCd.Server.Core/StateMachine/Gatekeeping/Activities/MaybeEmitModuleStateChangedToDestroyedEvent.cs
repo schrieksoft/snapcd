@@ -43,7 +43,7 @@ public class MaybeEmitModuleStateChangedToDestroyedEvent<TMessage> :
             {
                 // First ever job - emit if it's Destroyed
                 shouldEmit = recentStates[0] == ActualStateHeadline.Destroyed;
-                _logger.LogInformation("Module {ModuleId}: First job completed with state {State}, emitting: {ShouldEmit}",
+                _logger.LogDebug("Module {ModuleId}: First job completed with state {State}, emitting: {ShouldEmit}",
                     context.Saga.CorrelationId, recentStates[0], shouldEmit);
             }
             else if (recentStates.Count >= 2)
@@ -53,18 +53,18 @@ public class MaybeEmitModuleStateChangedToDestroyedEvent<TMessage> :
                 var previousState = recentStates[1];
                 shouldEmit = currentState == ActualStateHeadline.Destroyed && previousState != ActualStateHeadline.Destroyed;
 
-                _logger.LogInformation("Module {ModuleId}: State transition {PreviousState} -> {CurrentState}, emitting: {ShouldEmit}",
+                _logger.LogDebug("Module {ModuleId}: State transition {PreviousState} -> {CurrentState}, emitting: {ShouldEmit}",
                     context.Saga.CorrelationId, previousState, currentState, shouldEmit);
             }
             else
             {
-                _logger.LogInformation("Module {ModuleId}: No completed jobs found, not emitting", context.Saga.CorrelationId);
+                _logger.LogDebug("Module {ModuleId}: No completed jobs found, not emitting", context.Saga.CorrelationId);
             }
 
             if (shouldEmit)
             {
                 await context.Publish(new ModuleStateChangedToDestroyedEvent { ModuleId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId });
-                _logger.LogInformation("Module {ModuleId}: Emitted ModuleStateChangedToDestroyedEvent", context.Saga.CorrelationId);
+                _logger.LogDebug("Module {ModuleId}: Emitted ModuleStateChangedToDestroyedEvent", context.Saga.CorrelationId);
             }
         }
         catch (Exception ex)

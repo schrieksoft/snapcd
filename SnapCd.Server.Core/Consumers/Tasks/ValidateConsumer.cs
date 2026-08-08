@@ -46,7 +46,7 @@ public class ValidateConsumer : IConsumer<ValidateRequested>
         var runnerId = msg.RunnerId;
         var specificRunner = msg.RunnerInstanceName;
 
-        _logger.LogInformation("Received Validate request for job {JobId} in pool {RunnerId}",
+        _logger.LogDebug("Received Validate request for job {JobId} in pool {RunnerId}",
             jobId, runnerId);
 
         try
@@ -59,7 +59,7 @@ public class ValidateConsumer : IConsumer<ValidateRequested>
                 throw new InvalidOperationException($"No available runners in pool {runnerId}");
             }
 
-            _logger.LogInformation("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
+            _logger.LogDebug("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
                 runner.InstanceName, runner.SignalRConnectionId, jobId);
 
 
@@ -84,7 +84,7 @@ public class ValidateConsumer : IConsumer<ValidateRequested>
                 }
             );
 
-            _logger.LogInformation("Dispatched Validate request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched Validate request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)

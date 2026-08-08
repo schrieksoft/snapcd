@@ -45,7 +45,7 @@ public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequ
         var runnerId = msg.RunnerId;
         var specificRunner = msg.RunnerInstanceName;
 
-        _logger.LogInformation("Received GetDefinitiveRevision request for job {JobId} in pool {RunnerId}",
+        _logger.LogDebug("Received GetDefinitiveRevision request for job {JobId} in pool {RunnerId}",
             jobId, runnerId);
 
         try
@@ -58,7 +58,7 @@ public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequ
                 throw new InvalidOperationException($"No available runners in pool {runnerId}");
             }
 
-            _logger.LogInformation("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
+            _logger.LogDebug("Selected runner {RunnerName} (ConnectionId: {ConnectionId}) for job {JobId}",
                 runner.InstanceName, runner.SignalRConnectionId, jobId);
 
 
@@ -84,7 +84,7 @@ public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequ
                 }
             );
 
-            _logger.LogInformation("Dispatched GetDefinitiveRevision request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched GetDefinitiveRevision request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)

@@ -189,7 +189,7 @@ public class BareCloneCache
             if (totalSize <= capBytes) break;
             if (Path.GetFileName(clone.Dir) == keepKey) continue;
 
-            _logger.LogInformation("Evicting bare clone {Dir} ({SizeMb} MB, last used {LastUsed})",
+            _logger.LogDebug("Evicting bare clone {Dir} ({SizeMb} MB, last used {LastUsed})",
                 clone.Dir, clone.Size / (1024 * 1024), DateTimeOffset.FromUnixTimeSeconds(clone.LastUsed));
             Directory.Delete(clone.Dir, true);
             totalSize -= clone.Size;

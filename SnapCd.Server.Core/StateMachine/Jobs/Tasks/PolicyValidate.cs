@@ -130,7 +130,7 @@ public partial class JobStateMachine<
                         .Then(context =>
                         {
                             context.Saga.WaitingSince = null;
-                            _logger.LogInformation(
+                            _logger.LogDebug(
                                 "PolicyValidate: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })

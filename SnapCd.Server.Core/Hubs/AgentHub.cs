@@ -72,7 +72,7 @@ public class AgentHub : Hub
     {
         try
         {
-            _logger.LogInformation("New agent connection attempt from {ConnectionId}", Context.ConnectionId);
+            _logger.LogDebug("New agent connection attempt from {ConnectionId}", Context.ConnectionId);
 
             var httpContext = Context.GetHttpContext();
             var organizationIdParam = httpContext?.Request.Query["organization_id"].ToString();
@@ -434,7 +434,7 @@ public class AgentHub : Hub
 
         if (result.Success)
         {
-            _logger.LogInformation("Run {InvocationId} completed: success=True", invocationId);
+            _logger.LogInformation("Mission run {InvocationId} succeeded", invocationId);
         }
         else
         {

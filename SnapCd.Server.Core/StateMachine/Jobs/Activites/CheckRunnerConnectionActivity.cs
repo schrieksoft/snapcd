@@ -60,7 +60,7 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
 
     private void StartSelfHealingChecks(TSaga saga)
     {
-        _logger.LogInformation(
+        _logger.LogDebug(
             "CheckRunnerConnectionActivity: Starting self-healing checks for RunnerId={RunnerId}, InstanceName={InstanceName}",
             saga.RunnerId, saga.RunnerInstanceName);
 
@@ -89,14 +89,14 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
         {
             if (attempt > 0)
             {
-                _logger.LogInformation(
+                _logger.LogDebug(
                     "CheckRunnerConnectionActivity: Waiting {Delay}ms before check attempt {Attempt}",
                     checkIntervals[attempt], attempt + 1);
 
                 await Task.Delay(checkIntervals[attempt]);
             }
 
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "CheckRunnerConnectionActivity: Performing check attempt {Attempt} for RunnerId={RunnerId}, InstanceName={InstanceName}",
                 attempt + 1, saga.RunnerId, saga.RunnerInstanceName);
 
@@ -136,7 +136,7 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
                 return; // Success - stop checking
             }
 
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "CheckRunnerConnectionActivity: Check attempt {Attempt} - runner still not connected",
                 attempt + 1);
         }

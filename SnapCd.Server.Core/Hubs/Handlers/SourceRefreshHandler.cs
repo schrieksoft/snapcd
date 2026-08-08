@@ -47,7 +47,7 @@ public class SourceRefreshHandler
                 DefinitiveRevision = definitiveRevision
             });
 
-            _logger.LogInformation("Published SourceRefreshCompleted for {SourceUrl} @ {SourceRevision} -> {DefinitiveRevision}",
+            _logger.LogDebug("Published SourceRefreshCompleted for {SourceUrl} @ {SourceRevision} -> {DefinitiveRevision}",
                 sourceUrl, sourceRevision, definitiveRevision);
         }
         catch (Exception ex)
@@ -77,7 +77,7 @@ public class SourceRefreshHandler
                 TriggeredByNotification = result.TriggeredByNotification
             });
 
-            _logger.LogInformation("Published SourceRefreshCompleted for {SourceUrl} @ {SourceRevision} -> {DefinitiveRevision} with {PathCount} path hashes",
+            _logger.LogDebug("Published SourceRefreshCompleted for {SourceUrl} @ {SourceRevision} -> {DefinitiveRevision} with {PathCount} path hashes",
                 sourceUrl, sourceRevision, result.DefinitiveRevision, result.PathHashes.Count);
         }
         catch (Exception ex)
@@ -106,7 +106,7 @@ public class SourceRefreshHandler
                 StackTrace = stackTrace
             });
 
-            _logger.LogInformation("Published SourceRefreshFaulted for {SourceUrl} @ {SourceRevision}",
+            _logger.LogDebug("Published SourceRefreshFaulted for {SourceUrl} @ {SourceRevision}",
                 sourceUrl, sourceRevision);
         }
         catch (Exception ex)

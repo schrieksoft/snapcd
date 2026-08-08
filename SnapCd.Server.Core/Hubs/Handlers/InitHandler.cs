@@ -38,7 +38,7 @@ public class InitHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Init completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Init completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -58,7 +58,7 @@ public class InitHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Init cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Init cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ public class InitHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Init fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Init fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

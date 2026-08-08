@@ -59,7 +59,7 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
             return;
         }
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "SendToRunnerActivity: Looking up RunnerConnection for RunnerId={RunnerId}, InstanceName={InstanceName}, OrgId={OrgId}",
             saga.RunnerId, saga.RunnerInstanceName, saga.OrganizationId);
 
@@ -82,7 +82,7 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
             return;
         }
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "SendToRunnerActivity: Found runner on ServerInstanceId={ServerInstanceId}",
             connection.ServerInstanceId);
 
@@ -96,7 +96,7 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
         // Construct endpoint URI for the specific server instance and message type
         var endpointUri = MassTransitHelpers.GetConsumerEndpoint(connection.ServerInstanceId, typeof(TOutgoingMessage).Name);
 
-        _logger.LogInformation(
+        _logger.LogDebug(
             "SendToRunnerActivity: Sending {MessageType} to endpoint {EndpointUri}",
             typeof(TOutgoingMessage).Name, endpointUri);
 
@@ -113,7 +113,7 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
                 // }
             }, context.CancellationToken);
 
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "SendToRunnerActivity: Successfully sent {MessageType} to {EndpointUri}",
                 typeof(TOutgoingMessage).Name, endpointUri);
         }

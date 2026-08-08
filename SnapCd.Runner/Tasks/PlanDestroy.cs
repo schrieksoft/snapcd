@@ -68,7 +68,12 @@ public partial class Tasks
                 request.TerraformArrayFlags
             );
 
-            if (await engine.HasNothingToDestroy(killCts.Token, gracefulCts.Token))
+            // Reported before the plan runs: a destroy plan needs input variables from upstream
+            // outputs, so it can fail on a module that does hold resources. Without this the count
+            // is only ever visible when the plan succeeds.
+            var resourcesInState = await engine.CountResourcesInState(killCts.Token, gracefulCts.Token);
+
+            if (resourcesInState == 0)
             {
                 taskContext.LogInformation(
                     "State holds no resources — this module is already destroyed. Reporting an empty destroy plan.");
@@ -82,6 +87,8 @@ public partial class Tasks
                 taskContext.LogInformation("Completed PlanDestroy");
                 return;
             }
+
+            taskContext.LogInformation($"State holds {resourcesInState} resource(s) to destroy.");
 
             if (request.Policies.Count > 0)
             {

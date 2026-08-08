@@ -83,10 +83,11 @@ public interface IEngine
         CancellationToken gracefulCancellationToken = default);
 
     /// <summary>
-    /// Whether the state holds no destroyable resource. Answerable without input variables, which
-    /// a destroy plan cannot be: the variables come from upstream outputs that may not exist.
+    /// How many destroyable resources the state holds. Answerable without input variables, which a
+    /// destroy plan cannot be: the variables come from upstream outputs that may not exist. Zero
+    /// covers both an empty state and one that was never written.
     /// </summary>
-    Task<bool> HasNothingToDestroy(
+    Task<int> CountResourcesInState(
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
 

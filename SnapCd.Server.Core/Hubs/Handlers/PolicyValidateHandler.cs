@@ -40,7 +40,7 @@ public class PolicyValidateHandler
                 Outcome = outcome
             });
 
-            _logger.LogInformation("Sent PolicyValidate completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent PolicyValidate completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

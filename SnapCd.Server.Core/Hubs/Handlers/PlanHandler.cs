@@ -61,7 +61,7 @@ public class PlanHandler
                 OutputsRecreateList = data.OutputsRecreateList != null ? string.Join(",", data.OutputsRecreateList) : null
             });
 
-            _logger.LogInformation("Sent Plan completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Plan completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ public class PlanHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Plan cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Plan cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -105,7 +105,7 @@ public class PlanHandler
                 PolicyOutcome = policyOutcome
             });
 
-            _logger.LogInformation("Sent Plan fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Plan fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

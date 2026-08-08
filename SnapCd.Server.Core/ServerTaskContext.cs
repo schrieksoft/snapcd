@@ -32,6 +32,11 @@ public class ServerTaskContext
         LogSomething((log, msg, args) => log.LogInformation(msg, args), message, subContext);
     }
 
+    public void LogDebug(string message, string subContext = "")
+    {
+        LogSomething((log, msg, args) => log.LogDebug(msg, args), message, subContext);
+    }
+
     public void LogWarning(string message, string subContext = "")
     {
         LogSomething((log, msg, args) => log.LogWarning(msg, args), message, subContext);

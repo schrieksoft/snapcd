@@ -496,7 +496,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error completing registration for token {Token}", _token);
+            Logger.LogError(ex, "Error completing registration for {Email}", Input?.Email);
             RedirectManager.RedirectToCurrentPageWithStatus("An error occurred while processing the registration. Please try again.", HttpContext);
         }
     }

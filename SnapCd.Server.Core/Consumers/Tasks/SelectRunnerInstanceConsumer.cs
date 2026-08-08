@@ -40,7 +40,7 @@ public class SelectRunnerInstanceConsumer : IConsumer<SelectRunnerInstanceReques
         var orgId = msg.Declared.OrganizationId;
         var runnerId = msg.RunnerId;
 
-        _logger.LogInformation("Received SelectRunnerInstanceRequested for job {JobId} in pool {RunnerId}",
+        _logger.LogDebug("Received SelectRunnerInstanceRequested for job {JobId} in pool {RunnerId}",
             jobId, runnerId);
 
         try
@@ -58,7 +58,7 @@ public class SelectRunnerInstanceConsumer : IConsumer<SelectRunnerInstanceReques
                 // MassTransit will retry this message
             }
 
-            _logger.LogInformation("Selected runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Selected runner {RunnerName} for job {JobId}",
                 runnerConnection.InstanceName, jobId);
 
             // Directly publish completion with the selected runner name
@@ -68,7 +68,7 @@ public class SelectRunnerInstanceConsumer : IConsumer<SelectRunnerInstanceReques
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Published initialization completed for job {JobId} with runner {RunnerName}",
+            _logger.LogDebug("Published initialization completed for job {JobId} with runner {RunnerName}",
                 jobId, runnerConnection.InstanceName);
         }
         catch (Exception ex)

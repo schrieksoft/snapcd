@@ -29,7 +29,7 @@ public sealed class AgentSessionHostedService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting agent hub connection...");
+        _logger.LogDebug("Starting agent hub connection...");
         _cts = new CancellationTokenSource();
         _connectTask = _hubConnection.StartAsync(_cts.Token);
         return Task.CompletedTask;
@@ -37,7 +37,7 @@ public sealed class AgentSessionHostedService : IHostedService
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Stopping agent hub connection...");
+        _logger.LogDebug("Stopping agent hub connection...");
         if (_cts != null)
             await _cts.CancelAsync();
         await _hubConnection.StopAsync();

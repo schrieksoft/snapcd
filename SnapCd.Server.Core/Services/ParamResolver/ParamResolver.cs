@@ -180,7 +180,7 @@ public class ParamResolver<TModuleInputFromOutput>
             {
                 var value = formatStrings ? FormatValue(entry.LiteralValue, entry.Type) : entry.LiteralValue;
 
-                _context.LogInformation($"Successfully resolved parameter \"{entry.Name}\" from source \"{ModuleInputSource.Literal.ToString()}\" with value \"{entry.LiteralValue}\"");
+                _context.LogDebug($"Successfully resolved parameter \"{entry.Name}\" from source \"{ModuleInputSource.Literal.ToString()}\" with value \"{entry.LiteralValue}\"");
 
                 return new ModuleResolvedInput
                 {
@@ -238,7 +238,7 @@ public class ParamResolver<TModuleInputFromOutput>
 
                 if (resolvedNames == "") return Enumerable.Empty<ModuleResolvedInput>();
 
-                _context.LogInformation($"Successfully resolved parameter(s) \"{resolvedNames}\" from source \"{ModuleInputSource.Definition}\" with value \"{entry.Value}\"");
+                _context.LogDebug($"Successfully resolved parameter(s) \"{resolvedNames}\" from source \"{ModuleInputSource.Definition}\" with value \"{entry.Value}\"");
 
                 // Create a ResolvedParam for each matching Name
                 return paramDefinitionLookup[entry.Key].Select(name => new ModuleResolvedInput
@@ -400,7 +400,7 @@ public class ParamResolver<TModuleInputFromOutput>
 
     public async Task<Dictionary<string, string>> ResolveParameters()
     {
-        _context.LogInformation("Now attempting to resolve parameters");
+        _context.LogDebug("Now attempting to resolve parameters");
 
         var resolvedParams = await GetMergedParameters();
         CheckResolvedParamsForDuplicates(resolvedParams);

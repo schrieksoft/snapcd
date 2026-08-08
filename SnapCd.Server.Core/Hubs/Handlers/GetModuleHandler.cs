@@ -38,7 +38,7 @@ public class GetModuleHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent GetModule completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent GetModule completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -58,7 +58,7 @@ public class GetModuleHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent GetModule cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent GetModule cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ public class GetModuleHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent GetModule fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent GetModule fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

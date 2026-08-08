@@ -63,7 +63,7 @@ public class OutputHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Output cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Output cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -86,7 +86,7 @@ public class OutputHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent Output fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent Output fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {

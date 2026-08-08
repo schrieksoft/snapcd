@@ -121,7 +121,7 @@ public class RunnerHub : Hub
     {
         try
         {
-            _logger.LogInformation("New runner connection attempt from {ConnectionId}", Context.ConnectionId);
+            _logger.LogDebug("New runner connection attempt from {ConnectionId}", Context.ConnectionId);
 
             // Extract parameters from query string
             var httpContext = Context.GetHttpContext();

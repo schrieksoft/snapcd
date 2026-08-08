@@ -168,7 +168,7 @@ public static class JobExtensionMethods
             .Then(_ =>
             {
                 // Log the event type dynamically
-                logger.LogInformation($"Cancelled via: {typeof(TEvent).Name}");
+                logger.LogDebug($"Cancelled via: {typeof(TEvent).Name}");
             })
             .Publish(context =>
             {
@@ -197,7 +197,7 @@ public static class JobExtensionMethods
         return binder
             .If(x => x.Message.CancellationType == CancellationType.ImmediateKill,
                 x => x
-                    .Then(_ => { logger.LogInformation("Publishing KillCancelRequested and transitioning to Cancelling"); })
+                    .Then(_ => { logger.LogDebug("Publishing KillCancelRequested and transitioning to Cancelling"); })
                     .Then(context =>
                     {
                         context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;
@@ -245,7 +245,7 @@ public static class JobExtensionMethods
         return binder
             .If(x => x.Message.CancellationType == CancellationType.ImmediateGraceful,
                 x => x
-                    .Then(_ => { logger.LogInformation("Publishing GracefulCancelRequested and transitioning to Cancelling"); })
+                    .Then(_ => { logger.LogDebug("Publishing GracefulCancelRequested and transitioning to Cancelling"); })
                     .Then(context =>
                     {
                         context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;
@@ -290,7 +290,7 @@ public static class JobExtensionMethods
         return binder
             .If(x => x.Message.CancellationType == CancellationType.AfterCurrent,
                 x => x
-                    .Then(_ => { logger.LogInformation("Transitioning to CancellingAfterCurrent"); })
+                    .Then(_ => { logger.LogDebug("Transitioning to CancellingAfterCurrent"); })
                     .Then(context =>
                     {
                         context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;

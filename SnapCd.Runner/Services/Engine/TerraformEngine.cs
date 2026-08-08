@@ -194,17 +194,17 @@ public class TerraformEngine : BaseEngine, IEngine
         return lines.Length;
     }
 
-    public async Task<bool> HasNothingToDestroy(CancellationToken killCancellationToken = default, CancellationToken gracefulCancellationToken = default)
+    public async Task<int> CountResourcesInState(CancellationToken killCancellationToken = default, CancellationToken gracefulCancellationToken = default)
     {
         try
         {
-            return await Statistics(killCancellationToken, gracefulCancellationToken) == 0;
+            return await Statistics(killCancellationToken, gracefulCancellationToken);
         }
         catch (ProcessFailedException) when (!killCancellationToken.IsCancellationRequested && !gracefulCancellationToken.IsCancellationRequested)
         {
             // `state list` exits non-zero when no state file exists at all, which is the
             // never-applied module — nothing to destroy.
-            return true;
+            return 0;
         }
     }
 

@@ -40,7 +40,7 @@ public class ApplyFromPlanHandler
                 ActualResourceCount = actualResourceCount
             });
 
-            _logger.LogInformation("Sent ApplyFromPlan completion response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent ApplyFromPlan completion response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -60,7 +60,7 @@ public class ApplyFromPlanHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent ApplyFromPlan cancellation response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent ApplyFromPlan cancellation response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
@@ -84,7 +84,7 @@ public class ApplyFromPlanHandler
                 CorrelationId = jobId
             });
 
-            _logger.LogInformation("Sent ApplyFromPlan fault response for job {JobId} to saga", jobId);
+            _logger.LogDebug("Sent ApplyFromPlan fault response for job {JobId} to saga", jobId);
         }
         catch (Exception ex)
         {
