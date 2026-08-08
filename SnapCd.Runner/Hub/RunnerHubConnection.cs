@@ -37,6 +37,7 @@ public class RunnerHubConnection : IAsyncDisposable
 
     private HubConnection? _connection;
     private bool _isDisposing;
+    private int _restarting;
 
     // Log buffering
     private readonly ConcurrentQueue<LogEntryDto> _logBuffer = new();
@@ -124,18 +125,21 @@ public class RunnerHubConnection : IAsyncDisposable
 
         _connection.Closed += async error =>
         {
-            if (!_isDisposing)
-            {
-                var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
-                logger.LogError(error, "SignalR connection closed unexpectedly");
-                // Connection will auto-reconnect via WithAutomaticReconnect
-            }
-            else
+            if (_isDisposing)
             {
                 _logger.LogDebug("SignalR connection closed (disposing)");
+                return;
             }
 
-            await Task.CompletedTask;
+            var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
+            logger.LogError(error, "SignalR connection closed unexpectedly; restarting the connection");
+
+            // WithAutomaticReconnect covers transient drops only: once the connection reaches the
+            // Closed state it is finished, so without restarting here the runner stays alive but
+            // permanently disconnected. The restart stops the old connection, which raises Closed
+            // again, so only one loop is allowed to run.
+            if (Interlocked.CompareExchange(ref _restarting, 1, 0) == 0)
+                _ = RestartAfterCloseAsync();
         };
 
         // Register handler for GetDefinitiveRevision
@@ -308,6 +312,42 @@ public class RunnerHubConnection : IAsyncDisposable
         finally
         {
             _isDisposing = wasDisposing;
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds the connection after it has closed for good, retrying until it succeeds. The
+    /// server rejects a connection it cannot authorize, which is indistinguishable here from a
+    /// server that is still starting up, so this keeps trying rather than stranding the runner.
+    /// </summary>
+    private async Task RestartAfterCloseAsync()
+    {
+        try
+        {
+            var delay = TimeSpan.FromSeconds(5);
+            var maxDelay = TimeSpan.FromSeconds(60);
+
+            while (!_isDisposing)
+            {
+                await Task.Delay(delay);
+                if (_isDisposing) return;
+
+                try
+                {
+                    await DisconnectAndReconnectAsync();
+                    _logger.LogInformation("SignalR connection restarted after an unexpected close");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not restart the SignalR connection; retrying in {Delay}", delay);
+                    delay = delay < maxDelay ? delay + delay : maxDelay;
+                }
+            }
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _restarting, 0);
         }
     }
 

@@ -29,6 +29,7 @@ namespace SnapCd.Server.Core.Controllers;
 [AllowAnonymous]
 [PermissionSource(Skip = true,
     Notes = "Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed by roles on the target state store, not by this API's bearer-token role model.")]
+[Services.CallerContext.CallerScope(Services.CallerContext.CallerKind.Runner)]
 public class StateController : ControllerBase
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;

@@ -30,6 +30,7 @@ public class RunnerConnectionJobCleanupJob
 
     public async Task ExecuteJob()
     {
+        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
         _logger.LogDebug("Starting RunnerConnectionJob cleanup job");
 
         try

@@ -31,6 +31,8 @@ public sealed class AgentHubConnection : IAsyncDisposable
 
     private HubConnection? _connection;
     private bool _stopping;
+    private CancellationToken _connectionToken;
+    private int _reconnecting;
 
     // Buffered mission-log sending (mirrors RunnerHubConnection): streamed log lines forwarded to the
     // server are buffered if the connection is down / the send fails, and flushed on reconnect, so a
@@ -97,13 +99,21 @@ public sealed class AgentHubConnection : IAsyncDisposable
         };
         _connection.Closed += error =>
         {
-            if (!_stopping)
-                _logger.LogError(error, "Agent hub connection closed unexpectedly");
+            if (_stopping) return Task.CompletedTask;
+
+            _logger.LogError(error, "Agent hub connection closed unexpectedly; reconnecting");
+
+            // WithAutomaticReconnect covers transient drops only: once the connection reaches the
+            // Closed state it is finished, so without reconnecting here the agent stays alive but
+            // permanently disconnected.
+            if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
+                _ = ReconnectAfterCloseAsync();
             return Task.CompletedTask;
         };
 
         _missions.RegisterHandlers(_connection, this, cancellationToken);
 
+        _connectionToken = cancellationToken;
         await ConnectWithRetryAsync(cancellationToken);
 
         if (!cancellationToken.IsCancellationRequested)
@@ -250,6 +260,22 @@ public sealed class AgentHubConnection : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() => await StopAsync();
+
+    /// <summary>
+    /// Reconnects after the connection has closed for good, allowing only one attempt loop at a
+    /// time so repeated Closed events cannot stack them.
+    /// </summary>
+    private async Task ReconnectAfterCloseAsync()
+    {
+        try
+        {
+            await ConnectWithRetryAsync(_connectionToken);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _reconnecting, 0);
+        }
+    }
 
     /// <summary>
     /// Initial connect with capped backoff. <see cref="HubConnectionBuilder.WithAutomaticReconnect()"/>

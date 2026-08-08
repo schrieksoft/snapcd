@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.MaintenanceMode;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 
@@ -21,16 +22,21 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
     IStateMachineActivity<ModuleSaga, TGatekeepingJobRequested>
     where TGatekeepingJobRequested : GatekeepingJobRequestedBase
 {
-    private readonly JobService _executionService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<TriggerModuleJobActivity<TGatekeepingJobRequested>> _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
-    public TriggerModuleJobActivity(JobService executionService, ILogger<TriggerModuleJobActivity<TGatekeepingJobRequested>> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public TriggerModuleJobActivity(IServiceProvider serviceProvider, IMaintenanceModeService maintenanceMode, ILogger<TriggerModuleJobActivity<TGatekeepingJobRequested>> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
-        _executionService = executionService;
+        _serviceProvider = serviceProvider;
+        _maintenanceMode = maintenanceMode;
         _logger = logger;
         _dbContextFactory = dbContextFactory;
     }
+
+    // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
+    private JobService ExecutionService => _serviceProvider.GetRequiredService<JobService>();
 
     public async Task Execute(
         BehaviorContext<ModuleSaga, TGatekeepingJobRequested> context,
@@ -44,6 +50,21 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
             var effectiveDesiredState = context.Message.SetNewDesiredState
                 ? context.Message.DesiredStateHeadline
                 : context.Saga.DesiredStateHeadline;
+
+            if (await _maintenanceMode.IsActiveAsync())
+            {
+                if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
+                {
+                    context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
+                    context.Saga.QueuedReason = QueuedReason.Maintenance;
+                }
+
+                _logger.LogInformation(
+                    "Maintenance mode active: queuing request for module {ModuleId}",
+                    context.Message.ModuleId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
 
             // Skip if module is already destroyed and desired state is destroyed
             // (Unlike Apply, Destroy is idempotent - a destroyed module never needs to be destroyed again)
@@ -73,7 +94,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 .Where(j => j.ModuleId == context.Message.ModuleId && j.OrganizationId == context.Message.OrganizationId && j.IsCurrent == true)
                 .FirstOrDefaultAsync();
 
-            var canExecute = await _executionService.CheckDependenciesAsync(
+            var canExecute = await ExecutionService.CheckDependenciesAsync(
                 context.Saga.CorrelationId,
                 context.Message.OrganizationId,
                 context.Message.DesiredStateHeadline);
@@ -101,7 +122,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
                 if (context.Message.DesiredStateHeadline == context.Saga.DesiredStateHeadline)
                 {
-                    var hasActiveRunner = await _executionService.CheckRunnerAvailabilityAsync(context.Message.ModuleId);
+                    var hasActiveRunner = await ExecutionService.CheckRunnerAvailabilityAsync(context.Message.ModuleId);
                     if (!hasActiveRunner)
                     {
                         if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
@@ -122,13 +143,13 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                     {
                         // No current job, trigger a new one
                         case DesiredStateHeadline.Applied:
-                            await _executionService.Apply(context.Message.ModuleId, context.Message.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
+                            await ExecutionService.Apply(context.Message.ModuleId, context.Message.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
                             _logger.LogInformation(
                                 "Running Apply for module {ModuleId} (no current job)",
                                 context.Message.ModuleId);
                             break;
                         case DesiredStateHeadline.Destroyed:
-                            await _executionService.Destroy(context.Message.ModuleId, context.Message.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
+                            await ExecutionService.Destroy(context.Message.ModuleId, context.Message.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
                             _logger.LogInformation(
                                 "Running Destroy for module {ModuleId} (no current job)",
                                 context.Message.ModuleId);
@@ -149,7 +170,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
             {
                 if (canExecute)
                 {
-                    var hasActiveRunner = await _executionService.CheckRunnerAvailabilityAsync(context.Saga.CorrelationId);
+                    var hasActiveRunner = await ExecutionService.CheckRunnerAvailabilityAsync(context.Saga.CorrelationId);
                     if (!hasActiveRunner)
                     {
                         if (context.Message.SetNewDesiredState)
@@ -174,14 +195,14 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
 
                         if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Applied)
                         {
-                            await _executionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
+                            await ExecutionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
                             _logger.LogInformation(
                                 "Dependencies met and runner available, dequeued and running Apply for module {ModuleId}",
                                 context.Saga.CorrelationId);
                         }
                         else if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Destroyed)
                         {
-                            await _executionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
+                            await ExecutionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId, context.Message.JobId, context.Message.RunnerInstanceNameOverride);
                             _logger.LogInformation(
                                 "Dependencies met and runner available, dequeued and running Destroy for module {ModuleId}",
                                 context.Saga.CorrelationId);

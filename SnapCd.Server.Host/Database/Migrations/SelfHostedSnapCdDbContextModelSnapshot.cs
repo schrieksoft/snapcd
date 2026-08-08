@@ -1590,6 +1590,47 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("JobRunnerAssignments");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.MaintenanceMode", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("EnabledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("EnabledBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Phase")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("PhaseActionCompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhaseActionSummary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("PhaseEnteredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("SkippedPhases")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MaintenanceMode");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission", b =>
                 {
                     b.Property<Guid>("Id")

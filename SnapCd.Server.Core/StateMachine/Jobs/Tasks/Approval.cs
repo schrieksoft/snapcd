@@ -65,6 +65,8 @@ public partial class JobStateMachine<
         During(WaitingForApproval,
             DealWithApprovalStatus(When(ApprovalModifiedEvent), false),
             Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
             When(ApprovalTimeoutScheduled.Received)
                 .Then(_ => { _logger.LogInformation("Approval request timed out"); })
                 .Publish(context => new TResponseFailed

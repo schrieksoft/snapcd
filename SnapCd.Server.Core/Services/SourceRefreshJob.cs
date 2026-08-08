@@ -24,21 +24,32 @@ public class SourceRefreshJob
     private readonly SnapCdDbContext _dbContext;
     private readonly SourceRefreshSettings _settings;
 
+    private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceModeService;
+
     public SourceRefreshJob(
         ILogger<SourceRefreshJob> logger,
         SourceRefreshDispatcher dispatcher,
         SnapCdDbContext dbContext,
-        IOptions<SourceRefreshSettings> settings
+        IOptions<SourceRefreshSettings> settings,
+        Services.MaintenanceMode.IMaintenanceModeService maintenanceModeService
     )
     {
         _logger = logger;
         _dispatcher = dispatcher;
         _dbContext = dbContext;
         _settings = settings.Value;
+        _maintenanceModeService = maintenanceModeService;
     }
 
     public async Task ExecuteJob()
     {
+        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        if (await _maintenanceModeService.IsActiveAsync())
+        {
+            _logger.LogInformation("Maintenance mode active: skipping source refresh cycle");
+            return;
+        }
+
         var groups = _dbContext.Modules
             .Include(x => x.Runner)
             .Include(x => x.AdditionalTriggerPaths)

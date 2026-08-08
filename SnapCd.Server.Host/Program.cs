@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Middleware;
 using SnapCd.Server.Core.Misc.Configuration;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.Services.Dashboard;
 using SnapCd.Server.Core.Services.DataSeeder;
 using SnapCd.Server.Core.Services.OrganizationContext;
@@ -65,6 +66,7 @@ builder.Services.Configure<SourceRefreshSettings>(builder.Configuration.GetSecti
 builder.Services.AddSnapCdRepositorySettings(builder.Configuration);
 builder.Services.Configure<InvitationSettings>(builder.Configuration.GetSection("InvitationSettings"));
 builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.GetSection("OrphanedJobCleanup"));
+builder.Services.Configure<StuckJobDetectionSettings>(builder.Configuration.GetSection("StuckJobDetection"));
 builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("License"));
 builder.Services.Configure<DebuggingOptions>(builder.Configuration.GetSection("Debugging"));
 builder.Services.AddOptions<OpenIdConnectSettings>()
@@ -154,6 +156,12 @@ builder.Services.AddScoped<IOrganizationMemberAdminActionsProvider, ServerOrgani
 
 var app = builder.Build();
 
+// Repositories are often constructed by hand, so the write gate is static and armed here once.
+var maintenanceModeService = app.Services.GetRequiredService<IMaintenanceModeService>();
+MaintenanceGate.Initialize(maintenanceModeService);
+// The flag cache has no expiry; each boot rewrites it from database truth to heal any staleness.
+try { await maintenanceModeService.SyncCacheAsync(); } catch (Exception ex) { app.Logger.LogWarning(ex, "Maintenance flag cache sync failed at startup"); }
+
 // Eagerly validate options before migrations / data seeding run.
 // ValidateOnStart() registers a hosted service that fires too late — after the inline
 // startup block below. Resolving IOptions<T>.Value here triggers the same
@@ -194,7 +202,10 @@ using (var scope = app.Services.CreateScope())
     await idempotentSqlManager.ApplyIdempotentSqlAsync();
 
     var dataSeeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
-    await dataSeeder.SeedAsync();
+    using (SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System))
+    {
+        await dataSeeder.SeedAsync();
+    }
 
     // Validate organization limit for self-hosted edition
     var userOrgCount = await dbContext.Organizations
@@ -249,6 +260,16 @@ RecurringJob.AddOrUpdate<OrphanedJobCleanupJob>(
     orphanedJobCleanupSettings.CleanupCronExpression
 );
 
+var stuckJobDetectionSettings = builder.Configuration.GetSection("StuckJobDetection").Get<StuckJobDetectionSettings>() ?? new StuckJobDetectionSettings();
+RecurringJob.AddOrUpdate<StuckJobDetectionJob>(
+    "stuck-job-detection-job",
+    x => x.ExecuteJob(),
+    stuckJobDetectionSettings.CronExpression
+);
+
+// Scheduled messages live in the transport and do not survive a transport change.
+BackgroundJob.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
+
 var licenseSettings = builder.Configuration.GetSection("License").Get<LicenseSettings>() ?? new LicenseSettings();
 RecurringJob.AddOrUpdate<LicenseRefreshJob>(
     "license-refresh-job",
@@ -292,6 +313,7 @@ app.UseCors("AllowAnyOriginCorsPolicy");
 app.UseAuthentication();
 app.UseMiddleware<SnapCd.Server.Core.Auth.AgentClaimAuditMiddleware>();
 app.UseAuthorization();
+app.UseMiddleware<MaintenanceModeMiddleware>();
 app.UseMiddleware<OrganizationValidationMiddleware>();
 app.UseAntiforgery();
 app.MapControllers();

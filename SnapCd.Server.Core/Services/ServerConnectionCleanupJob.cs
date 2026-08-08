@@ -45,6 +45,7 @@ public class ServerConnectionCleanupJob
 
     public async Task ExecuteJob()
     {
+        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
         _logger.LogDebug("Starting server connection cleanup job");
 
         try

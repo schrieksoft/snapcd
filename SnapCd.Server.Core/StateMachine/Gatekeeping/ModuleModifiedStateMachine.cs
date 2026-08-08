@@ -52,7 +52,9 @@ public class ModuleModifiedStateMachine :
                     }
                 )
                 .TransitionTo(WaitingForMoreEvents)
-                .Then(_ => Console.WriteLine("Transitioning to WaitingForMoreEvents"))
+                .Then(_ => Console.WriteLine("Transitioning to WaitingForMoreEvents")),
+            // A tick arriving in Idle is from a debounce that already flushed.
+            Ignore(ModuleModifiedWaitForNextTimeoutScheduled.Received)
         );
 
         During(WaitingForMoreEvents,

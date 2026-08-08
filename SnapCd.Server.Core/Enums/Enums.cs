@@ -13,11 +13,31 @@ public enum SystemRole
     Administrator
 }
 
+/// <summary>
+/// Where an open maintenance window has got to. Every window passes through all of them: even
+/// with nothing to migrate, the transport is quiesced and has to be brought back.
+/// </summary>
+public enum MaintenancePhase
+{
+    /// <summary>Work is finishing: new jobs are held while dispatched tasks run out and the transport empties.</summary>
+    Draining,
+
+    /// <summary>Nothing is executing and the transport is idle: the window is ready to be worked in.</summary>
+    ReadyForMaintenance,
+
+    /// <summary>Timers are being re-derived from the database.</summary>
+    Reconciling,
+
+    /// <summary>Parked jobs are being woken and queued modules re-driven.</summary>
+    Resuming
+}
+
 public enum QueuedReason
 {
     WaitingOnRunningJob,
     WaitingOnDependencies,
-    WaitingOnRunnerCheckin
+    WaitingOnRunnerCheckin,
+    Maintenance
 }
 
 public enum SecretScope

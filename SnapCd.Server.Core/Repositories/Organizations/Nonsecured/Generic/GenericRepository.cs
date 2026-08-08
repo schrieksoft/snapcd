@@ -21,6 +21,8 @@ using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
 
+using SnapCd.Server.Core.Services.MaintenanceMode;
+
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 
 public record QuotaCheckResult(bool IsExceeded, int CurrentCount, int Limit);
@@ -194,6 +196,8 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
 
     public virtual async Task<TEntity> ExecuteCreate(TEntity entity)
     {
+        await MaintenanceGate.EnsureWriteAllowedAsync();
+
         if (entity.Id == Guid.Empty)
             throw new IdIsEmptyException($"{typeof(TEntity).Name} ID cannot be empty.");
 
@@ -276,6 +280,8 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
 
     public virtual async Task<TEntity> ExecuteUpdate(TEntity entity)
     {
+        await MaintenanceGate.EnsureWriteAllowedAsync();
+
         if (entity.Id == Guid.Empty)
             throw new IdIsEmptyException($"{typeof(TEntity).Name} ID cannot be empty.");
 
@@ -347,6 +353,8 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
 
     public virtual async Task ExecuteDelete(Guid id, Guid organizationId)
     {
+        await MaintenanceGate.EnsureWriteAllowedAsync();
+
         var entity = DbContext.Set<TEntity>()
             .FirstOrDefault(m => m.Id == id && m.OrganizationId == organizationId);
 

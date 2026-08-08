@@ -23,8 +23,15 @@ public static class RunnerHubExtensions
             options.MaximumReceiveMessageSize =  1024 * 1024; // 1MB
             options.StreamBufferCapacity = 20;
             options.EnableDetailedErrors = true; // Help diagnose connection issues
+
+            // SignalR resolves filters from this list, not from IHubFilter registrations alone.
+            options.AddFilter<TokenValidationFilter>();
+            options.AddFilter<Services.CallerContext.CallerContextHubFilter>();
+
+
         });
         services.AddSingleton<IHubFilter, TokenValidationFilter>();
+        services.AddSingleton<IHubFilter, Services.CallerContext.CallerContextHubFilter>();
         services.AddScoped<RunnerConnectionValidator>();
         services.AddScoped<RunnerJobAuthorizationService>();
 

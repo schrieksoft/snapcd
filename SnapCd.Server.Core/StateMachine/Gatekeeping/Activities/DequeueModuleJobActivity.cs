@@ -12,6 +12,7 @@ using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.MaintenanceMode;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 
@@ -20,16 +21,21 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
     where TSaga : ModuleSaga
     where TMessage : class
 {
-    private readonly JobService _executionService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<DequeueModuleJobActivity<TSaga, TMessage>> _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
-    public DequeueModuleJobActivity(JobService executionService, ILogger<DequeueModuleJobActivity<TSaga, TMessage>> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public DequeueModuleJobActivity(IServiceProvider serviceProvider, IMaintenanceModeService maintenanceMode, ILogger<DequeueModuleJobActivity<TSaga, TMessage>> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
-        _executionService = executionService;
+        _serviceProvider = serviceProvider;
+        _maintenanceMode = maintenanceMode;
         _logger = logger;
         _dbContextFactory = dbContextFactory;
     }
+
+    // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
+    private JobService ExecutionService => _serviceProvider.GetRequiredService<JobService>();
 
     public async Task Execute(
         BehaviorContext<TSaga, TMessage> context,
@@ -37,6 +43,13 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
     {
         try
         {
+            if (await _maintenanceMode.IsActiveAsync())
+            {
+                _logger.LogInformation("Maintenance mode active: leaving module {ModuleId} queued", context.Saga.CorrelationId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
             // Check if there's a current ModuleJob for this module
@@ -52,12 +65,12 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
 
                 if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Applied)
                 {
-                    await _executionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
+                    await ExecutionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
                     Console.WriteLine($"Dequeued and running Apply for module {context.Saga.CorrelationId}");
                 }
                 else if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Destroyed)
                 {
-                    await _executionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
+                    await ExecutionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
                     Console.WriteLine($"Dequeued and running Destroy for module {context.Saga.CorrelationId}");
                 }
             }

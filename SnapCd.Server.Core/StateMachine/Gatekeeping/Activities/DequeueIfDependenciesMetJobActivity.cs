@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.MaintenanceMode;
 
 namespace SnapCd.Server.Core.StateMachine.Gatekeeping.Activities;
 
@@ -20,19 +21,25 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
     IStateMachineActivity<ModuleSaga, TMessage> where TMessage : class
 
 {
-    private readonly JobService _executionService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<DequeueIfDependenciesMetJobActivity<TMessage>> _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
     public DequeueIfDependenciesMetJobActivity(
-        JobService executionService,
+        IServiceProvider serviceProvider,
+        IMaintenanceModeService maintenanceMode,
         ILogger<DequeueIfDependenciesMetJobActivity<TMessage>> logger,
         IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
-        _executionService = executionService;
+        _serviceProvider = serviceProvider;
+        _maintenanceMode = maintenanceMode;
         _logger = logger;
         _dbContextFactory = dbContextFactory;
     }
+
+    // Resolved lazily: the maintenance-gated path runs without the job-service dependency graph.
+    private JobService ExecutionService => _serviceProvider.GetRequiredService<JobService>();
 
     public async Task Execute(
         BehaviorContext<ModuleSaga, TMessage> context,
@@ -40,6 +47,13 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
     {
         try
         {
+            if (await _maintenanceMode.IsActiveAsync())
+            {
+                _logger.LogInformation("Maintenance mode active: leaving module {ModuleId} queued", context.Saga.CorrelationId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
             // Check if there's a current ModuleJob for this module
@@ -51,14 +65,14 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
             if (!hasCurrentJob && context.Saga.QueuedDesiredStateHeadline.HasValue)
             {
                 // Check dependencies before dequeuing and executing
-                var canExecute = await _executionService.CheckDependenciesAsync(
+                var canExecute = await ExecutionService.CheckDependenciesAsync(
                     context.Saga.CorrelationId,
                     context.Saga.OrganizationId,
                     context.Saga.QueuedDesiredStateHeadline.Value);
 
                 if (canExecute)
                 {
-                    var hasActiveRunner = await _executionService.CheckRunnerAvailabilityAsync(context.Saga.CorrelationId);
+                    var hasActiveRunner = await ExecutionService.CheckRunnerAvailabilityAsync(context.Saga.CorrelationId);
                     if (!hasActiveRunner)
                     {
                         context.Saga.QueuedReason = QueuedReason.WaitingOnRunnerCheckin;
@@ -73,12 +87,12 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
 
                         if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Applied)
                         {
-                            await _executionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
+                            await ExecutionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
                             Console.WriteLine($"Dependencies met and runner available, dequeued and running Apply for module {context.Saga.CorrelationId}");
                         }
                         else if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Destroyed)
                         {
-                            await _executionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
+                            await ExecutionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
                             Console.WriteLine($"Dependencies met and runner available, dequeued and running Destroy for module {context.Saga.CorrelationId}");
                         }
                     }

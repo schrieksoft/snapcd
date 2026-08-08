@@ -98,7 +98,13 @@ public partial class JobStateMachine<
             When(CancelModuleRequested)
                 .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent)
+                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
+            Ignore(SelectRunnerInstanceCompleted),
+            Ignore(SelectRunnerInstanceCancelled),
+            Ignore(SelectRunnerInstanceFaulted)
         );
 
         // GetDefinitiveRevisionPending state
@@ -139,7 +145,10 @@ public partial class JobStateMachine<
             When(GetDefinitiveRevisionCancelled)
                 .ThenCancelled<TSaga, TResponseCancelled, GetDefinitiveRevisionCancelled>(Cancelled),
             When(GetDefinitiveRevisionFaulted)
-                .ThenFaulted<TSaga, TResponseFailed, GetDefinitiveRevisionFaulted>(Failed, _logger)
+                .ThenFaulted<TSaga, TResponseFailed, GetDefinitiveRevisionFaulted>(Failed, _logger),
+            Ignore(SelectRunnerInstanceCompleted),
+            Ignore(SelectRunnerInstanceCancelled),
+            Ignore(SelectRunnerInstanceFaulted)
         );
     }
 }
