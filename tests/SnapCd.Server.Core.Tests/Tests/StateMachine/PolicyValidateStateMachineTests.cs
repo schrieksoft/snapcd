@@ -100,6 +100,8 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
         services.AddDbContextFactory<SnapCdDbContext>(o => o.UseSqlServer(_fixture.ConnectionString));
         services.AddScoped<SnapCdDbContext>(sp => sp.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext());
         services.AddScoped<IPrincipalProvider>(_ => new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_module.OrganizationId]));
+        services.AddDistributedMemoryCache();
+        services.AddSingleton<SnapCd.Server.Core.Services.MaintenanceMode.IMaintenanceModeService, SnapCd.Server.Core.Services.MaintenanceMode.MaintenanceModeService>();
         services.Configure<ModuleJobRepositorySettings>(_ => { });
         services.AddScoped<ModuleJobRepository>();
         services.AddMassTransitTestHarness(x =>

@@ -7,6 +7,8 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Services.MaintenanceMode;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
@@ -54,8 +56,10 @@ public class SecuredJobServiceFactory
         IOptions<ModuleRepositorySettings> moduleOptions,
         IOptions<ModuleJobRepositorySettings> moduleJobOptions,
         QuotaEnforcementService quotaEnforcementService,
-        IPremiumMessageBrokerPolicy messageBrokerPolicy)
+        IPremiumMessageBrokerPolicy messageBrokerPolicy,
+        IMaintenanceModeService maintenanceModeService)
     {
+        _maintenanceModeService = maintenanceModeService;
         _jobServiceFactory = jobServiceFactory;
         _dbContextFactory = dbContextFactory;
         _bus = bus;
@@ -64,6 +68,8 @@ public class SecuredJobServiceFactory
         _quotaEnforcementService = quotaEnforcementService;
         _messageBrokerPolicy = messageBrokerPolicy;
     }
+
+    private readonly IMaintenanceModeService _maintenanceModeService;
 
     public SecuredJobService Create(IPrincipalProvider? principalProvider = null)
     {
@@ -78,7 +84,7 @@ public class SecuredJobServiceFactory
         var moduleJobRepository = new ModuleJobRepository(dbContext, principalProvider, _bus, _moduleJobOptions);
         var moduleJobSecuredRepository = new ModuleJobSecuredRepository(moduleJobRepository, principalProvider);
 
-        return new SecuredJobService(jobService, moduleRepository, moduleJobRepository, moduleJobSecuredRepository, _bus, _quotaEnforcementService, _messageBrokerPolicy);
+        return new SecuredJobService(jobService, moduleRepository, moduleJobRepository, moduleJobSecuredRepository, _bus, _quotaEnforcementService, _messageBrokerPolicy, _maintenanceModeService);
     }
 }
 
@@ -92,6 +98,8 @@ public class SecuredJobService : IDisposable
     private readonly QuotaEnforcementService _quotaEnforcementService;
     private readonly IPremiumMessageBrokerPolicy _messageBrokerPolicy;
 
+    private readonly IMaintenanceModeService _maintenanceModeService;
+
     public SecuredJobService(
         JobService jobService,
         ModuleRepository moduleRepository,
@@ -99,8 +107,10 @@ public class SecuredJobService : IDisposable
         ModuleJobSecuredRepository moduleJobSecuredRepository,
         IBus bus,
         QuotaEnforcementService quotaEnforcementService,
-        IPremiumMessageBrokerPolicy messageBrokerPolicy)
+        IPremiumMessageBrokerPolicy messageBrokerPolicy,
+        IMaintenanceModeService maintenanceModeService)
     {
+        _maintenanceModeService = maintenanceModeService;
         _jobService = jobService;
         _moduleJobRepository = moduleJobRepository;
         _moduleJobSecuredRepository = moduleJobSecuredRepository;
@@ -114,6 +124,9 @@ public class SecuredJobService : IDisposable
     {
         if (!_moduleJobSecuredRepository.CanRunJob(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException($"Principal is not allowed to run Jobs on Module with Id {moduleId}");
+
+        if (await _maintenanceModeService.IsActiveAsync())
+            throw new MaintenanceModeException("A maintenance window is open; new jobs cannot be started until it closes.");
 
         // Check module quota - block jobs if organization exceeds module limit
         var (canCreate, reason) = await _quotaEnforcementService.CanCreateModuleJobAsync(organizationId);
@@ -140,6 +153,9 @@ public class SecuredJobService : IDisposable
     {
         if (!_moduleJobSecuredRepository.CanRunJob(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException($"Principal is not allowed to run Jobs on Module with Id {moduleId}");
+
+        if (await _maintenanceModeService.IsActiveAsync())
+            throw new MaintenanceModeException("A maintenance window is open; new jobs cannot be started until it closes.");
 
         // Check module quota - block jobs if organization exceeds module limit
         var (canCreate, reason) = await _quotaEnforcementService.CanCreateModuleJobAsync(organizationId);

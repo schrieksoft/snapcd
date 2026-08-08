@@ -115,6 +115,14 @@ public static class MiscService
 
         services.AddScoped<IQuotaGatingService, QuotaGatingService>();
         services.AddScoped<QuotaService>();
+        services.AddScoped<StuckJobDetectionService>();
+        services.AddScoped<QuiescenceProbeService>();
+        services.AddScoped<TransportProbeService>();
+        services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsService>();
+        services.AddScoped<TransportReconciliationJob>();
+        services.AddScoped<Services.MaintenanceMode.MaintenancePhaseService>();
+        services.AddScoped<Services.Admin.SystemRoleService>();
+        services.AddSingleton<Services.MaintenanceMode.IMaintenanceModeService, Services.MaintenanceMode.MaintenanceModeService>();
         services.AddScoped<QuotaEnforcementService>();
 
         // Register HttpClient for license verification

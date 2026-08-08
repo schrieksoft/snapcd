@@ -36,6 +36,7 @@ public class InvitationCleanupJob
 
     public async Task ExecuteJob()
     {
+        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
         if (!_settings.Value.AutoDeleteIncompleteUsers)
         {
             _logger.LogDebug("Auto-delete is disabled, skipping cleanup");

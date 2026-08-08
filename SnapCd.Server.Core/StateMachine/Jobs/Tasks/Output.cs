@@ -93,12 +93,17 @@ public partial class JobStateMachine<
                                 "Plan: Successfully sent for job {CorrelationId}, transitioning to pending",
                                 context.Saga.CorrelationId);
                         })
+                        .Schedule(HeartbeatScheduled,
+                            context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
                         .TransitionTo(OutputPending)
                 ),
             When(CancelModuleRequested)
                 .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent)
+                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2)
         );
 
         During(OutputPending,
@@ -113,6 +118,12 @@ public partial class JobStateMachine<
                 .Activity(x => x.OfType<CompleteModuleJobActivity<TSaga, OutputCompleted>>())
                 .TransitionTo(Completed)
                 .Finalize(),
+            When(HeartbeatScheduled.Received)
+                .ThenHeartbeatScheduled(HeartbeatRequested),
+            When(HeartbeatRequested.Completed)
+                .ThenHeartbeatCompleted(HeartbeatScheduled),
+            When(HeartbeatRequested.Completed2)
+                .ThenJobTimedOut<TSaga, TResponseFailed>(Failed),
             When(CancelModuleRequested)
                 .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)

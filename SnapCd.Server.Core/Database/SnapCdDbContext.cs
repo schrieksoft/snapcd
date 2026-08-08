@@ -354,6 +354,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         foreach (var configuration in SagaClassMaps)
             configuration.Configure(modelBuilder);
 
+        modelBuilder.ApplyConfiguration(new MaintenanceModeClassMap());
         modelBuilder.ApplyConfiguration(new OrganizationClassMap());
         modelBuilder.ApplyConfiguration(new OrganizationUserClassMap());
         modelBuilder.ApplyConfiguration(new StackClassMap());

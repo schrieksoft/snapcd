@@ -29,6 +29,7 @@ public class OrphanedJobCleanupJob
 
     public async Task ExecuteJob()
     {
+        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
         try
         {
             var orphanedJobs = await _cleanupService.ListOrphanedJobs();

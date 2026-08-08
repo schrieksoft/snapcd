@@ -32,6 +32,7 @@
 @inject IHostEnvironment HostEnvironment
 @inject IVersionService VersionService
 @inject IEditionNavProvider EditionNavProvider
+@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
 @inject IOrganizationSwitchingPolicy OrganizationSwitchingPolicy
 @inject IDbContextFactory<SnapCdDbContext> DbContextFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -120,10 +121,10 @@
                 </MudNavGroup>
             }
 
-            <!-- System Section (gated by Cloud subscription status on SaaS) -->
+            <!-- Organization infrastructure (gated by Cloud subscription status on SaaS) -->
             @if (_organizationActivated && _systemIsAllowedToNavigateMap.Any(entry => entry.Value))
             {
-                <MudNavGroup Title="System" Icon="@SnapCdIcons.Settings" Expanded="false">
+                <MudNavGroup Title="Infrastructure" Icon="@SnapCdIcons.Sliders" Expanded="false">
                     @foreach (var link in _systemNavLinks)
                     {
                         @if (_systemIsAllowedToNavigateMap[link.PageType])
@@ -157,11 +158,22 @@
                     }
                 </MudNavGroup>
             }
+            <!-- System-level administration: no organization context, system role only. -->
+            @if (_isSystemAdministrator)
+            {
+                <MudNavGroup Title="Admin Center" Icon="@SnapCdIcons.Manufacturing" Expanded="false">
+                    <MudNavLink Href="/AdminCenter/Maintenance" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Build">
+                        Maintenance Mode
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
             <!-- API Reference (gated by Cloud subscription status on SaaS) -->
             @if (_organizationActivated)
             {
                 <MudNavLink Href="@GetNavigationUrl("ApiReference")" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Api">API Reference</MudNavLink>
             }
+
 
             <!-- Edition-specific standalone nav items, after System (SaaS Subscriptions group). -->
             @if (EditionNavItems != null)
@@ -269,8 +281,11 @@
     private RenderFragment? EditionNavItems => EditionNavProvider.EditionNavItems;
     private RenderFragment? EditionAccountNavItems => EditionNavProvider.EditionAccountNavItems;
 
+    private bool _isSystemAdministrator;
+
     protected override async Task OnInitializedAsync()
     {
+        _isSystemAdministrator = await SystemRoleService.CurrentUserIsSystemAdministratorAsync();
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         _organizationActivated = await OrganizationActivation.IsActivatedAsync(orgId);
 
@@ -447,7 +462,7 @@
     // System Section - collapsible group
     private List<NavLinkItem> _systemNavLinks = new()
     {
-        new NavLinkItem("Runners", NavLinkMatch.All, SnapCdIcons.Manufacturing, "Runners", typeof(Runners)),
+        new NavLinkItem("Runners", NavLinkMatch.All, SnapCdIcons.Cpu, "Runners", typeof(Runners)),
         new NavLinkItem("Agents", NavLinkMatch.All, SnapCdIcons.SmartToy, "Agents", typeof(Agents)),
         new NavLinkItem("Integrations", NavLinkMatch.All, SnapCdIcons.Hub, "Integrations", typeof(Integrations)),
         new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, SnapCdIcons.Code, "Source Refreshers", typeof(SourceRefresherPreselections)),

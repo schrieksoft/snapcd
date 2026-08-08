@@ -74,6 +74,9 @@ public static class MassTransit
                     x.UsingAzureServiceBus((context, cfg) =>
 
                     {
+                        // Every consumer-side write is machine-driven; see CallerContextConsumeFilter.
+                        cfg.UseConsumeFilter(typeof(Services.CallerContext.CallerContextConsumeFilter<>), context);
+
                         var truncatedFormatter = new TruncatedKebabCaseEndpointNameFormatter(serviceBusSettings.EndpointsPrefix,
                             serviceBusSettings.EndpointsPrefixIncludeNameSpace, 255);
 
@@ -133,6 +136,9 @@ public static class MassTransit
 
                     x.UsingSqlServer((context, cfg) =>
                     {
+                        // Every consumer-side write is machine-driven; see CallerContextConsumeFilter.
+                        cfg.UseConsumeFilter(typeof(Services.CallerContext.CallerContextConsumeFilter<>), context);
+
                         var truncatedFormatter = new TruncatedKebabCaseEndpointNameFormatter(
                             serviceBusSettings.EndpointsPrefix,
                             serviceBusSettings.EndpointsPrefixIncludeNameSpace, 255);

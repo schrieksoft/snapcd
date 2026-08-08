@@ -14,14 +14,14 @@ namespace SnapCd.Server.Host.Services;
 
 public class ServerEditionNavProvider : IEditionNavProvider
 {
-    // Self-hosted "License" link lives inside the System nav group.
-    public RenderFragment? EditionSystemNavItems => builder =>
+    public RenderFragment? EditionSystemNavItems => null;
+
+    // Self-hosted "License" stands on its own below Infrastructure; the component role-gates itself.
+    public RenderFragment? EditionNavItems => builder =>
     {
         builder.OpenComponent<ServerEditionNavItems>(0);
         builder.CloseComponent();
     };
-
-    public RenderFragment? EditionNavItems => null;
 
     public RenderFragment? EditionAccountNavItems => null;
 }

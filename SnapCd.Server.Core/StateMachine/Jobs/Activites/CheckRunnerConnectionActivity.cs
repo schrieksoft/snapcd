@@ -26,15 +26,18 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> _logger;
 
     public CheckRunnerConnectionActivity(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IPublishEndpoint publishEndpoint,
+        Services.MaintenanceMode.IMaintenanceModeService maintenanceMode,
         ILogger<CheckRunnerConnectionActivity<TSaga, TMessage>> logger)
     {
         _dbContextFactory = dbContextFactory;
         _publishEndpoint = publishEndpoint;
+        _maintenanceMode = maintenanceMode;
         _logger = logger;
     }
 
@@ -108,6 +111,15 @@ public class CheckRunnerConnectionActivity<TSaga, TMessage> :
 
             if (connection != null)
             {
+                // A parked saga must stay parked; the window-close resume publishes the reconnect.
+                if (await _maintenanceMode.IsActiveAsync())
+                {
+                    _logger.LogInformation(
+                        "CheckRunnerConnectionActivity: Maintenance mode active, not waking job {CorrelationId}",
+                        saga.CorrelationId);
+                    return;
+                }
+
                 _logger.LogInformation(
                     "CheckRunnerConnectionActivity: Runner reconnected! Found on ServerInstanceId={ServerInstanceId}, publishing RunnerReconnectedEvent",
                     connection.ServerInstanceId);

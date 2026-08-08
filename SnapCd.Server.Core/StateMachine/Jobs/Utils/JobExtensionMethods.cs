@@ -103,14 +103,29 @@ public static class JobExtensionMethods
         where TSaga : JobSagaBase
     {
         return binder
-            .Request(heartbeatRequested,
-                context => new HeartbeatRequested
-                {
-                    CorrelationId = context.Saga.CorrelationId,
-                    OrganizationId = context.Saga.OrganizationId,
-                    RunnerInstanceName = context.Saga.RunnerInstanceName,
-                    RunnerId = context.Saga.RunnerId
-                });
+            .IfElse(IsFromSupersededSchedule,
+                stale => stale,
+                current => current
+                    .Request(heartbeatRequested,
+                        context => new HeartbeatRequested
+                        {
+                            CorrelationId = context.Saga.CorrelationId,
+                            OrganizationId = context.Saga.OrganizationId,
+                            RunnerInstanceName = context.Saga.RunnerInstanceName,
+                            RunnerId = context.Saga.RunnerId
+                        }));
+    }
+
+    // A tick whose scheduling token no longer matches the saga's was armed by a superseded
+    // cycle; acting on it would fork a second heartbeat loop. A tick without a token (the
+    // reconciler's) is always accepted.
+    private static bool IsFromSupersededSchedule<TSaga>(BehaviorContext<TSaga, HeartbeatScheduled> context)
+        where TSaga : JobSagaBase
+    {
+        var messageTokenId = context.Headers.Get<Guid>(MessageHeaders.SchedulingTokenId);
+        return messageTokenId.HasValue
+               && context.Saga.HeartbeatScheduleTokenId.HasValue
+               && messageTokenId.Value != context.Saga.HeartbeatScheduleTokenId.Value;
     }
 
 
@@ -183,7 +198,11 @@ public static class JobExtensionMethods
             .If(x => x.Message.CancellationType == CancellationType.ImmediateKill,
                 x => x
                     .Then(_ => { logger.LogInformation("Publishing KillCancelRequested and transitioning to Cancelling"); })
-                    .Then(context => context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState)
+                    .Then(context =>
+                    {
+                        context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;
+                        context.Saga.WaitingSince = DateTime.UtcNow;
+                    })
                     .TransitionTo(transitionTo)
                     .Request(killCancelRequested,
                         context =>
@@ -227,7 +246,11 @@ public static class JobExtensionMethods
             .If(x => x.Message.CancellationType == CancellationType.ImmediateGraceful,
                 x => x
                     .Then(_ => { logger.LogInformation("Publishing GracefulCancelRequested and transitioning to Cancelling"); })
-                    .Then(context => context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState)
+                    .Then(context =>
+                    {
+                        context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;
+                        context.Saga.WaitingSince = DateTime.UtcNow;
+                    })
                     .TransitionTo(transitionTo)
                     .Request(gracefulCancelRequested,
                         context =>
@@ -268,7 +291,11 @@ public static class JobExtensionMethods
             .If(x => x.Message.CancellationType == CancellationType.AfterCurrent,
                 x => x
                     .Then(_ => { logger.LogInformation("Transitioning to CancellingAfterCurrent"); })
-                    .Then(context => context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState)
+                    .Then(context =>
+                    {
+                        context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;
+                        context.Saga.WaitingSince = DateTime.UtcNow;
+                    })
                     .TransitionTo(transitionTo)
             );
     }

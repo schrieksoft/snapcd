@@ -34,6 +34,7 @@ public class OrganizationScopedFeatureCoverageTests
     {
         "/Account",         // sign-in, registration, profile, organization selection
         "/Organizations",   // pick or create an organization
+        "/AdminCenter",  // system-level pages, gated by SystemRole.Administrator, no organization context
         "/Dashboard/Error", // error pages must render in every state
         "/Error"
     };

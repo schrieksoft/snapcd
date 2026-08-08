@@ -217,6 +217,9 @@ public partial class JobStateMachine<
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelKillRequested.TimeoutExpired)
                 .ThenCancelTimeout<TSaga, TResponseCancelled, CancelKillRequested>(_logger, Cancelled),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
             Ignore(RunnerReconnectedEvent)
         );
 
@@ -245,6 +248,9 @@ public partial class JobStateMachine<
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelGracefulRequested.TimeoutExpired)
                 .ThenCancelTimeout<TSaga, TResponseCancelled, CancelGracefulRequested>(_logger, Cancelled),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
             Ignore(RunnerReconnectedEvent)
         );
 
@@ -270,6 +276,9 @@ public partial class JobStateMachine<
             When(CancelModuleRequested)
                 .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
             Ignore(RunnerReconnectedEvent)
         );
 

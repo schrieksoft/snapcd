@@ -84,6 +84,9 @@ public partial class JobStateMachine<
                 .ThenCancelled<TSaga, TResponseCancelled, SelectRunnerInstanceCancelled>(Cancelled),
             When(SelectRunnerInstanceFaulted)
                 .ThenFaulted<TSaga, TResponseFailed, SelectRunnerInstanceFaulted>(Failed, _logger),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
             Ignore(RunnerReconnectedEvent)
         );
     }

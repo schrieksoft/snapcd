@@ -157,15 +157,28 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
             When(DriftCheckScheduled.Received)
-                .Then(x => _logger.LogInformation(
-                    "Drift check fired for module {ModuleId}", x.Saga.CorrelationId))
-                .Publish(x => new GatekeepingJobRequested
-                {
-                    ModuleId = x.Saga.CorrelationId,
-                    OrganizationId = x.Saga.OrganizationId,
-                    DesiredStateHeadline = DesiredStateHeadline.Applied,
-                    SetNewDesiredState = false
-                })
+                .IfElse(IsFromSupersededSchedule,
+                    stale => stale,
+                    current => current
+                        .Then(x => _logger.LogInformation(
+                            "Drift check fired for module {ModuleId}", x.Saga.CorrelationId))
+                        .Publish(x => new GatekeepingJobRequested
+                        {
+                            ModuleId = x.Saga.CorrelationId,
+                            OrganizationId = x.Saga.OrganizationId,
+                            DesiredStateHeadline = DesiredStateHeadline.Applied,
+                            SetNewDesiredState = false
+                        }))
         );
+    }
+
+    // A tick whose scheduling token no longer matches the saga's was armed by a superseded
+    // schedule; acting on it would run a duplicate drift check. A tokenless tick is accepted.
+    private static bool IsFromSupersededSchedule(BehaviorContext<ModuleSaga, DriftCheckScheduled> context)
+    {
+        var messageTokenId = context.Headers.Get<Guid>(MessageHeaders.SchedulingTokenId);
+        return messageTokenId.HasValue
+               && context.Saga.DriftCheckScheduleTokenId.HasValue
+               && messageTokenId.Value != context.Saga.DriftCheckScheduleTokenId.Value;
     }
 }

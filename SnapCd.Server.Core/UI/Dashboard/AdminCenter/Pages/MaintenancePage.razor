@@ -1,0 +1,575 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/AdminCenter/Maintenance"
+@layout SystemMainLayout
+@implements IAsyncDisposable
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Services.Admin
+@using SnapCd.Server.Core.Services.MaintenanceMode
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Layout
+@inject IMaintenanceModeService MaintenanceMode
+@inject HttpContextPrincipalProvider PrincipalProvider
+@inject SystemRoleService SystemRoleService
+@inject NavigationManager NavigationManager
+@inject QuiescenceProbeService QuiescenceProbe
+@inject TransportProbeService TransportProbe
+@inject MaintenanceOperationsService Operations
+@inject MaintenancePhaseService PhaseService
+@inject IDialogService DialogService
+
+<PageTitle>Maintenance — Admin Center</PageTitle>
+
+@if (!_authorized)
+{
+    <MudText Typo="Typo.body1">Loading...</MudText>
+}
+else
+{
+
+<MudText Typo="Typo.h4" Class="mb-4">Maintenance</MudText>
+
+@if (_status == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (_status.Database?.Enabled != true)
+{
+    @if (_completedResume != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-3">
+            <MudText Typo="Typo.subtitle2">Maintenance complete — all phases finished.</MudText>
+            <MudText Typo="Typo.body2">
+                Woke @_completedResume.RunnersWoken runner group(s), re-drove @_completedResume.ModulesRequeued queued module(s).
+                Jobs are running again.
+            </MudText>
+            @foreach (var warning in _completedResume.Warnings)
+            {
+                <div>@warning</div>
+            }
+        </MudAlert>
+
+        <MudStack Row="true" Spacing="2" Class="mb-3">
+            @foreach (var phase in AllPhases)
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">@PhaseLabel(phase)</MudChip>
+            }
+        </MudStack>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Class="mb-4"
+                   OnClick="@(() => _completedResume = null)">
+            Close
+        </MudButton>
+    }
+
+    <MudAlert Severity="Severity.Normal" Class="mb-3">No maintenance window is open.</MudAlert>
+
+    <MudTextField @bind-Value="_reason" Label="Reason" Class="mb-2" Style="max-width: 480px;"/>
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Enable">Open maintenance window</MudButton>
+}
+else
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-3">
+        Window open since @_status.Database.EnabledAt?.ToString("u") — @(_status.Database.Reason ?? "no reason recorded")
+    </MudAlert>
+
+    <MudTimeline TimelinePosition="TimelinePosition.Start" Class="mb-3">
+        @foreach (var phase in AllPhases)
+        {
+            var state = PhaseState(phase);
+            <MudTimelineItem Color="@(state == "current" ? Color.Warning : state == "done" ? Color.Success : Color.Default)" Size="Size.Small">
+                <MudText Typo="@(state == "current" ? Typo.subtitle1 : Typo.body2)">
+                    <strong>@PhaseLabel(phase)</strong>@(state switch { "current" => " — current", "skipped" => " — skipped", _ => "" })
+                </MudText>
+                <MudText Typo="Typo.caption">@PhaseDescription(phase)</MudText>
+            </MudTimelineItem>
+        }
+    </MudTimeline>
+
+    @if (_readiness == null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-2">
+            This window has no phase recorded, so it cannot be advanced. Close and reopen it.
+        </MudAlert>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Disable">Close maintenance window</MudButton>
+    }
+    else
+    {
+
+        <MudText Typo="Typo.h6" Class="mb-1">Before leaving @_readiness.Phase</MudText>
+
+        @foreach (var criterion in _readiness.Criteria)
+        {
+            <MudAlert Severity="@(criterion.IsMet ? Severity.Success : Severity.Warning)" Dense="true" Class="mb-1">
+                <strong>@criterion.Name</strong>@(criterion.Count is > 0 ? $" — {criterion.Count} outstanding" : criterion.IsMet ? " — met" : "")
+                <div><MudText Typo="Typo.caption">@criterion.Detail</MudText></div>
+            </MudAlert>
+
+            @if (criterion.Blockers is { Count: > 0 })
+            {
+                <MudExpansionPanels Class="mb-2">
+                    <MudExpansionPanel Text="@($"What is holding this up ({criterion.Blockers.Count})")">
+                        <MudSimpleTable Dense="true">
+                            <thead>
+                            <tr><th>Item</th><th>State</th><th>Detail</th></tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var blocker in criterion.Blockers)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (blocker.Link != null)
+                                        {
+                                            <MudLink Href="@blocker.Link">@blocker.Title</MudLink>
+                                        }
+                                        else
+                                        {
+                                            @blocker.Title
+                                        }
+                                    </td>
+                                    <td>@blocker.State</td>
+                                    <td>@blocker.Detail</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+        }
+
+        <MudStack Row="true" Spacing="1" Class="mt-2">
+            @if (_readiness.NextPhase is { } next)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Disabled="@(!_readiness.CanAdvance && _readiness.Phase != MaintenancePhase.ReadyForMaintenance)"
+                           OnClick="@(() => Advance(next))">
+                    Advance to @next
+                </MudButton>
+            }
+            @if (!MaintenanceOperationsService.ClosingNeedsRecovery(_readiness.Phase))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Disable">
+                    Close maintenance window
+                </MudButton>
+            }
+        </MudStack>
+
+        <MudText Typo="Typo.caption" Class="mt-1">@CloseExplanation(_readiness.Phase)</MudText>
+    }
+
+    @* A divergence repairs itself on read; this only appears when that repair failed. *@
+    @if (!_status.InSync)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3 mb-2">
+            The shared cache does not match the database and could not be rewritten, so other
+            replicas may not see this window. Check that the cache is reachable, then refresh.
+        </MudAlert>
+    }
+
+    @* The failsafe belongs to the phases where a drain can stall. *@
+    @if (_status.Database.Phase is MaintenancePhase.Draining)
+    {
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Text="Something will not drain?">
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    Draining waits for running tasks to finish on their own. If a job is wedged — its runner
+                    is gone, or a step will never complete — cancelling every outstanding job lets the window
+                    proceed. Jobs awaiting approval are left alone; decline the approval instead.
+                    This cannot be undone.
+                </MudText>
+                <MudSelect T="CancellationType" @bind-Value="_cancellationType" Label="Cancellation type" Style="max-width: 300px;" Class="mb-2">
+                    <MudSelectItem Value="CancellationType.ImmediateGraceful">ImmediateGraceful — let the current step stop cleanly</MudSelectItem>
+                    <MudSelectItem Value="CancellationType.AfterCurrent">AfterCurrent — wait for the current step to finish</MudSelectItem>
+                    <MudSelectItem Value="CancellationType.ImmediateKill">ImmediateKill — stop now, may leave state locked</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="CancelAll">Cancel all jobs</MudButton>
+                @if (_cancelResult != null)
+                {
+                    <MudAlert Severity="@(_cancelResult.Skipped.Count == 0 ? Severity.Success : Severity.Warning)" Class="mt-2">
+                        Cancelled @_cancelResult.Cancelled job(s).
+                        @foreach (var entry in _cancelResult.Skipped)
+                        {
+                            <div>@entry</div>
+                        }
+                    </MudAlert>
+                }
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Text="A mission will not finish?">
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    Missions run on an agent and hold the drain open until they report back. Cancelling asks
+                    the agent to stop; a run whose agent has gone has nothing to ask, so it is marked
+                    cancelled here rather than holding the phase until its deadline expires. The work the
+                    mission would have produced is lost. This cannot be undone.
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="CancelMissions">
+                    Cancel missions holding the drain
+                </MudButton>
+                @if (_cancelMissionsResult != null)
+                {
+                    <MudAlert Severity="@(_cancelMissionsResult.Skipped.Count == 0 ? Severity.Success : Severity.Warning)" Class="mt-2">
+                        Asked @_cancelMissionsResult.Requested run(s) to stop;
+                        marked @_cancelMissionsResult.MarkedCancelled with no live agent.
+                        @foreach (var entry in _cancelMissionsResult.Skipped)
+                        {
+                            <div>@entry</div>
+                        }
+                    </MudAlert>
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+
+    @* The sweep runs on entering Resuming; this is the retry when it reported warnings. *@
+    @if (_status.Database.Phase == MaintenancePhase.Resuming)
+    {
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Text="Run the resume sweep again">
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    The sweep ran when this phase was entered. Run it again if it reported warnings you have
+                    since resolved — for example a runner that was offline, or a job whose state you have
+                    corrected. It is safe to repeat.
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="RunSweep">Run resume sweep</MudButton>
+                @if (_sweepResult != null)
+                {
+                    <MudAlert Severity="@(_sweepResult.Warnings.Count == 0 ? Severity.Success : Severity.Warning)" Class="mt-2">
+                        Woke @_sweepResult.RunnersWoken runner group(s), re-drove @_sweepResult.ModulesRequeued queued module(s).
+                        @foreach (var warning in _sweepResult.Warnings)
+                        {
+                            <div>@warning</div>
+                        }
+                    </MudAlert>
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+
+    @if (_error != null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
+    }
+}
+
+<MudDivider Class="my-6"/>
+
+<MudText Typo="Typo.h5" Class="mb-1">System monitors</MudText>
+<MudText Typo="Typo.body2" Class="mb-3">
+    Always available, whether or not a window is open. These are what the phase criteria above are read from.
+</MudText>
+
+<MudExpansionPanels MultiExpansion="true">
+    <MudExpansionPanel Text="@($"Jobs — {(_drain?.IsDatabaseQuiet == true ? "quiet" : "work in progress")}")">
+        @if (_drain == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">Where every job currently rests, from the database.</MudText>
+            <MudSimpleTable Dense="true" Class="mb-3" Style="max-width: 480px;">
+                <tbody>
+                <tr><td>In flight (pending steps)</td><td>@_drain.PendingJobs</td></tr>
+                <tr><td>Cancelling</td><td>@_drain.Cancelling</td></tr>
+                <tr><td>Parked (waiting for runner)</td><td>@_drain.ParkedJobs</td></tr>
+                <tr><td>Awaiting approval</td><td>@_drain.AwaitingApproval</td></tr>
+                <tr><td>Queued by maintenance</td><td>@_drain.QueuedForMaintenance</td></tr>
+                <tr><td>Queued for other reasons</td><td>@_drain.QueuedOther</td></tr>
+                <tr><td>Active missions</td><td>@_drain.ActiveMissions</td></tr>
+                </tbody>
+            </MudSimpleTable>
+
+            @if (_drain.StuckJobs.Count > 0)
+            {
+                <MudText Typo="Typo.h6" Class="mb-1">Stuck jobs</MudText>
+                <MudText Typo="Typo.body2" Class="mb-2">Resting far longer than expected. These will hold a drain up.</MudText>
+                <MudSimpleTable Dense="true">
+                    <thead>
+                    <tr><th>Job</th><th>Type</th><th>State</th><th>Stalled for</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var job in _drain.StuckJobs)
+                    {
+                        <tr>
+                            <td style="font-family: var(--snap-font-mono, monospace);">@job.JobId</td>
+                            <td>@job.JobType</td>
+                            <td>@job.State</td>
+                            <td>@job.Stalled.ToString(@"d\.hh\:mm\:ss")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Text="@($"Missions — {MissionsHeadline()}")">
+        @if (_drain == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else if (_drain.Missions.Count == 0)
+        {
+            <MudText Typo="Typo.body2">No unfinished mission runs.</MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Unfinished mission runs. Running and awaiting-reconnect occupy an agent and hold a drain open;
+                the rest are parked waiting for an agent or an assignment and survive a window untouched.
+            </MudText>
+            <MudSimpleTable Dense="true" Style="max-width: 620px;">
+                <thead>
+                <tr><th>Mission</th><th>Status</th><th>Count</th><th>Holds drain open</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var mission in _drain.Missions)
+                {
+                    <tr>
+                        <td>@mission.MissionType</td>
+                        <td>@mission.Status</td>
+                        <td>@mission.Count</td>
+                        <td>@(mission.HoldsDrainOpen ? "yes" : "no")</td>
+                    </tr>
+                }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Text="@($"Transport — {(_transport?.ProbeError != null ? "unavailable" : _transport?.IsTransportQuiet == true ? "quiet" : "messages in flight")}")">
+        @if (_transport == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else if (_transport.ProbeError != null)
+        {
+            <MudAlert Severity="Severity.Error">Transport probe failed: @_transport.ProbeError</MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Per-queue depths from @_transport.Provider. Scheduled messages are re-derived on startup and
+                never drained, so they do not hold a window up; error and skipped queues are diagnostics.
+            </MudText>
+            <MudSimpleTable Dense="true">
+                <thead>
+                <tr><th>Queue</th><th>Active</th><th>Scheduled</th><th>Error</th><th>Dead-letter</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var queue in _transport.Queues)
+                {
+                    var diagnostic = TransportDepths.IsDiagnosticQueue(queue.Queue);
+                    <tr>
+                        <td style="font-family: var(--snap-font-mono, monospace);">@queue.Queue@(diagnostic ? " (diagnostic)" : "")</td>
+                        <td>@queue.Active</td>
+                        <td>@queue.Scheduled</td>
+                        <td>@queue.Error</td>
+                        <td>@queue.DeadLetter</td>
+                    </tr>
+                }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+<MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Class="mt-3" OnClick="Refresh">Refresh</MudButton>
+
+}
+
+@code {
+    private static readonly MaintenancePhase[] AllPhases =
+        [MaintenancePhase.Draining, MaintenancePhase.ReadyForMaintenance, MaintenancePhase.Reconciling, MaintenancePhase.Resuming];
+
+    private bool _authorized;
+    private PhaseReadiness? _readiness;
+    private MaintenanceModeStatus? _status;
+    private DrainStatus? _drain;
+    private TransportDepths? _transport;
+    private ResumeSweepResult? _sweepResult;
+    private CancelAllResult? _cancelResult;
+    private CancellationType _cancellationType = CancellationType.ImmediateGraceful;
+    private string? _reason;
+    private string? _error;
+
+    private ResumeSweepResult? _completedResume;
+    private CancelMissionsResult? _cancelMissionsResult;
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
+    private PeriodicTimer? _poll;
+    private readonly CancellationTokenSource _pollCancellation = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // System-role gate: without it the page is unreachable, not merely hidden.
+        if (!await SystemRoleService.CurrentUserIsSystemAdministratorAsync())
+        {
+            NavigationManager.NavigateTo("/", true);
+            return;
+        }
+
+        _authorized = true;
+        await Refresh();
+
+        _poll = new PeriodicTimer(PollInterval);
+        _ = PollAsync();
+    }
+
+    /// <summary>
+    /// The page is what an operator watches a drain on, so the counts have to fall on their own.
+    /// InvokeAsync marshals back onto the renderer's context; the timer stops with the component.
+    /// </summary>
+    private async Task PollAsync()
+    {
+        try
+        {
+            while (await _poll!.WaitForNextTickAsync(_pollCancellation.Token))
+            {
+                await Refresh();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _pollCancellation.CancelAsync();
+        _poll?.Dispose();
+        _pollCancellation.Dispose();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            _status = await MaintenanceMode.GetStatusAsync();
+            _readiness = _status.Database is { Enabled: true, Phase: { } phase }
+                ? await PhaseService.EvaluateAsync(phase, _status.Database)
+                : null;
+            _drain = await QuiescenceProbe.GetDrainStatusAsync();
+            _transport = await TransportProbe.GetDepthsAsync();
+            // Cleared on success: polling would otherwise leave a single transient failure on
+            // screen for as long as the page stays open.
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task Enable()
+    {
+        _completedResume = null;
+        await Run(() => MaintenanceMode.EnableAsync(PrincipalProvider.GetSystemSubjectOrDefault(), _reason));
+    }
+
+    private static string CloseExplanation(MaintenancePhase phase) => phase switch
+    {
+        MaintenancePhase.Draining => "Nothing has parked yet, so the window can simply be closed.",
+        MaintenancePhase.Resuming => "The resume sweep has already run, so this is the normal way to finish.",
+        _ => "Jobs are parked and modules are queued, so the window cannot just be closed. Advance through "
+             + "Reconciling and Resuming to wake them."
+    };
+
+    private async Task Advance(MaintenancePhase next)
+    {
+        await Run(async () =>
+        {
+            await MaintenanceMode.AdvanceToAsync(next);
+
+            // Resuming closes the window as it sweeps, so the finished run is held on the page:
+            // without it the operator never sees the phase they just triggered land.
+            _completedResume = await Operations.RunPhaseActionAsync(next);
+        });
+    }
+
+    private string PhaseState(MaintenancePhase phase)
+    {
+        var current = _status?.Database?.Phase;
+        if (current == null) return "pending";
+        if (phase == current) return "current";
+        if (_status?.Database?.SkippedPhases?.Split(',').Contains(phase.ToString()) == true) return "skipped";
+        return Array.IndexOf(AllPhases, phase) < Array.IndexOf(AllPhases, current.Value) ? "done" : "pending";
+    }
+
+    private string MissionsHeadline()
+    {
+        if (_drain == null) return "loading";
+        var holding = _drain.Missions.Where(m => m.HoldsDrainOpen).Sum(m => m.Count);
+        if (holding > 0) return $"{holding} in flight";
+        return _drain.Missions.Count == 0 ? "none" : "parked only";
+    }
+
+    private static string PhaseLabel(MaintenancePhase phase)
+        => phase == MaintenancePhase.ReadyForMaintenance ? "Ready for maintenance" : phase.ToString();
+
+    private static string PhaseDescription(MaintenancePhase phase) => phase switch
+    {
+        MaintenancePhase.Draining => "Work is finishing. New jobs are held while tasks already running on a runner play out and the last messages clear the bus.",
+        MaintenancePhase.ReadyForMaintenance => "Nothing is executing and the bus is empty. Safe to restart the server or change infrastructure.",
+        MaintenancePhase.Reconciling => "Timers re-derived from the database.",
+        MaintenancePhase.Resuming => "Parked jobs woken, queued modules re-driven.",
+        _ => ""
+    };
+
+    private async Task Disable() => await Run(MaintenanceMode.DisableAsync);
+
+    private async Task CancelMissions()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Cancel missions",
+            "Every mission run holding the drain open will be cancelled. Runs whose agent is gone are "
+            + "marked cancelled outright. Their results are lost. Continue?",
+            yesText: "Cancel missions", cancelText: "Leave them");
+        if (confirmed != true) return;
+
+        await Run(async () => _cancelMissionsResult = await Operations.CancelHoldingMissionsAsync());
+    }
+
+    private async Task RunSweep()
+    {
+        _sweepResult = await Operations.RunResumeSweepAsync();
+        await Refresh();
+    }
+
+    private async Task CancelAll()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Cancel all jobs",
+            $"This cancels every non-terminal job with {_cancellationType} and cannot be undone. Continue?",
+            yesText: "Cancel all jobs", cancelText: "Keep jobs");
+        if (confirmed != true) return;
+
+        _cancelResult = await Operations.CancelAllJobsAsync(_cancellationType);
+        await Refresh();
+    }
+
+    private async Task Run(Func<Task> action)
+    {
+        _error = null;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+
+        await Refresh();
+    }
+}

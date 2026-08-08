@@ -10,5 +10,9 @@ namespace SnapCd.Server.Host.Licensing.Services;
 
 public class LicensePublicKeyRefreshJob(ILicensePublicKeyService service)
 {
-    public Task ExecuteJob() => service.RefreshFromRemoteAsync();
+    public async Task ExecuteJob()
+    {
+        using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
+        await service.RefreshFromRemoteAsync();
+    }
 }

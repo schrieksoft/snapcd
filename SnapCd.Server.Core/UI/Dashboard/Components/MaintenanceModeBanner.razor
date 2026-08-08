@@ -1,0 +1,61 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Services.MaintenanceMode
+@inject IMaintenanceModeService MaintenanceMode
+
+@if (_window is { Enabled: true })
+{
+    <div class="maintenance-banner">
+        <MudIcon Icon="@SnapCdIcons.Build" Size="Size.Small"/>
+        <span>
+            <strong>Maintenance in progress.</strong>
+            @Message(_window.Phase)
+            @if (!string.IsNullOrWhiteSpace(_window.Reason))
+            {
+                <span> — @_window.Reason</span>
+            }
+        </span>
+    </div>
+}
+
+@code {
+    private Entities.Definition.MaintenanceMode? _window;
+
+    protected override async Task OnInitializedAsync() => _window = await MaintenanceMode.GetAsync();
+
+    private static string Message(MaintenancePhase? phase) => phase switch
+    {
+        MaintenancePhase.Draining => "New jobs are not being started and changes cannot be saved. Running work is finishing.",
+        MaintenancePhase.ReadyForMaintenance => "Work is paused while maintenance is carried out, and will resume afterwards.",
+        MaintenancePhase.Reconciling => "Maintenance is finishing; work is about to resume.",
+        MaintenancePhase.Resuming => "Paused work is being resumed now.",
+        _ => "New jobs are not being started and changes cannot be saved."
+    };
+}
+
+<style>
+    /* Ink on the accent fill: white fails contrast against it (3.49:1 vs 5.16:1). */
+    .maintenance-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--snap-accent, #E85D1A);
+        color: var(--snap-ink, #12171D);
+        padding: 8px 16px;
+        font-size: 0.875rem;
+        line-height: 1.4;
+        /* Spans the content area rather than sitting inside its padding. */
+        margin: -16px -16px 16px calc(-16px - 18px);
+    }
+
+    .maintenance-banner .mud-icon-root {
+        color: var(--snap-ink, #12171D);
+    }
+</style>

@@ -28,13 +28,16 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
     where TOutgoingMessage : StepRequestBase, new()
 {
     private readonly SnapCdDbContext _dbContext;
+    private readonly Services.MaintenanceMode.IMaintenanceModeService _maintenanceMode;
     private readonly ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> _logger;
 
     public SendToRunnerActivity(
         SnapCdDbContext dbContext,
+        Services.MaintenanceMode.IMaintenanceModeService maintenanceMode,
         ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
     {
         _dbContext = dbContext;
+        _maintenanceMode = maintenanceMode;
         _logger = logger;
     }
 
@@ -43,6 +46,18 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
         IBehavior<TSaga, TMessage> next)
     {
         var saga = context.Saga;
+
+        // Parking at the task boundary: the saga takes its runner-disconnected branch and rests
+        // durably in the waiting state until the window closes and a reconnect event re-drives it.
+        if (await _maintenanceMode.IsActiveAsync())
+        {
+            saga.PreviousStateBeforeWaiting = saga.CurrentState;
+            _logger.LogInformation(
+                "SendToRunnerActivity: Maintenance mode active, parking job {CorrelationId} instead of dispatching {Message}",
+                saga.CorrelationId, typeof(TOutgoingMessage).Name);
+            await next.Execute(context);
+            return;
+        }
 
         _logger.LogInformation(
             "SendToRunnerActivity: Looking up RunnerConnection for RunnerId={RunnerId}, InstanceName={InstanceName}, OrgId={OrgId}",

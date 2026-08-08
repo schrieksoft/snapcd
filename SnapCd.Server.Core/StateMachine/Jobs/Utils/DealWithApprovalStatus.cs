@@ -54,7 +54,11 @@ public partial class JobStateMachine<
                 // Approved, continue to Apply
                 ///////////////////////////////////////////////////
                 y => y
-                    .Then(_ => { _logger.LogInformation($"Approved, continuing to Apply"); })
+                    .Then(context =>
+                    {
+                        context.Saga.WaitingSince = null;
+                        _logger.LogInformation($"Approved, continuing to Apply");
+                    })
                     .Activity(z => z.OfType<NotWaitingForApprovalModuleJobActivity<TSaga, TMessage>>())
                     // Use SendToRunnerActivity to target specific server instance
                     .Activity(z => z.OfType<SendToRunnerActivity<TSaga, TMessage, TApplyFromPlanRequested>>())
@@ -109,7 +113,12 @@ public partial class JobStateMachine<
                                 _ => transition,
                                 z1 => z1
                                     .Activity(z2 => z2.OfType<WaitingForApprovalModuleJobActivity<TSaga, TMessage>>())
-                                    .Then(_ => { _logger.LogInformation($"Not yet approved, transitioning to WaitForApproval"); })
+                                    .Then(context =>
+                                    {
+                                        // The approval timeout deadline is re-derivable as WaitingSince + ApprovalTimeoutMinutes.
+                                        context.Saga.WaitingSince = DateTime.UtcNow;
+                                        _logger.LogInformation($"Not yet approved, transitioning to WaitForApproval");
+                                    })
                                     .If(z2 => z2.Saga.ApprovalTimeoutMinutes > 0, z2 => z2
                                         .Schedule(ApprovalTimeoutScheduled,
                                             context => new ApprovalTimeoutReceived { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId },
