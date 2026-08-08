@@ -161,7 +161,6 @@
 
         // Verify Turnstile token
         var turnstileToken = HttpContext.Request.Form["cf-turnstile-response"].ToString();
-        Logger.LogInformation("Form turnstile token length: {Length}", turnstileToken?.Length ?? 0);
         var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
         var turnstileResult = await TurnstileService.VerifyAsync(turnstileToken, remoteIp);
         if (!turnstileResult.IsSuccess)

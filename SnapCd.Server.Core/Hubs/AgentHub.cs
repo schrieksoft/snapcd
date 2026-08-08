@@ -434,7 +434,7 @@ public class AgentHub : Hub
 
         if (result.Success)
         {
-            _logger.LogInformation("Run {InvocationId} completed: success=True", invocationId);
+            _logger.LogInformation("Mission run {InvocationId} succeeded", invocationId);
         }
         else
         {

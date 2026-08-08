@@ -47,9 +47,6 @@ public class TurnstileVerificationService
             return TurnstileVerificationResult.Failure("Please complete the verification challenge.");
         }
 
-        _logger.LogInformation("Turnstile token received, length: {TokenLength}, first 20 chars: {TokenPreview}",
-            token.Length, token.Length > 20 ? token[..20] + "..." : token);
-
         try
         {
             var formData = new Dictionary<string, string>
