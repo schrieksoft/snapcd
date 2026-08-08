@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.System;
 
@@ -16,11 +17,13 @@ public class ModuleModifiedCompetingConsumer : IConsumer<ModuleModifiedEvent>
 {
     private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
+    private readonly ILogger<ModuleModifiedCompetingConsumer> _logger;
 
-    public ModuleModifiedCompetingConsumer(SnapCdDbContext dbContext, IBus bus)
+    public ModuleModifiedCompetingConsumer(SnapCdDbContext dbContext, IBus bus, ILogger<ModuleModifiedCompetingConsumer> logger)
     {
         _dbContext = dbContext;
         _bus = bus;
+        _logger = logger;
     }
 
     public async Task Consume(ConsumeContext<ModuleModifiedEvent> context)
@@ -32,7 +35,7 @@ public class ModuleModifiedCompetingConsumer : IConsumer<ModuleModifiedEvent>
 
         if (triggerOnDefinitionChanged)
         {
-            Console.WriteLine($"Publishing ModuleModifiedTriggerRequested with ModuleId {context.Message.Id}");
+            _logger.LogDebug("Publishing ModuleModifiedTriggerRequested for module {ModuleId}", context.Message.Id);
             await _bus.Publish(new ModuleModifiedTriggerRequested { ModuleId = context.Message.Id, OrganizationId = context.Message.OrganizationId });
         }
     }

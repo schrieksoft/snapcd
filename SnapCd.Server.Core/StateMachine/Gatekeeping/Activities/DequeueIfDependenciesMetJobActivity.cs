@@ -76,7 +76,7 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
                     if (!hasActiveRunner)
                     {
                         context.Saga.QueuedReason = QueuedReason.WaitingOnRunnerCheckin;
-                        Console.WriteLine($"No active runners available for module {context.Saga.CorrelationId}, keeping queued");
+                        _logger.LogDebug("No active runners available for module {ModuleId}, keeping queued", context.Saga.CorrelationId);
                     }
                     else
                     {
@@ -88,30 +88,30 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
                         if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Applied)
                         {
                             await ExecutionService.Apply(context.Saga.CorrelationId, context.Saga.OrganizationId);
-                            Console.WriteLine($"Dependencies met and runner available, dequeued and running Apply for module {context.Saga.CorrelationId}");
+                            _logger.LogDebug("Dependencies met and runner available, dequeued and running Apply for module {ModuleId}", context.Saga.CorrelationId);
                         }
                         else if (context.Saga.DesiredStateHeadline == DesiredStateHeadline.Destroyed)
                         {
                             await ExecutionService.Destroy(context.Saga.CorrelationId, context.Saga.OrganizationId);
-                            Console.WriteLine($"Dependencies met and runner available, dequeued and running Destroy for module {context.Saga.CorrelationId}");
+                            _logger.LogDebug("Dependencies met and runner available, dequeued and running Destroy for module {ModuleId}", context.Saga.CorrelationId);
                         }
                     }
                 }
                 else
                 {
                     context.Saga.QueuedReason = QueuedReason.WaitingOnDependencies;
-                    Console.WriteLine($"Dependencies not yet met for module {context.Saga.CorrelationId}, keeping queued");
+                    _logger.LogDebug("Dependencies not yet met for module {ModuleId}, keeping queued", context.Saga.CorrelationId);
                 }
             }
             else if (!hasCurrentJob)
             {
                 // No current job and no queued requests
-                Console.WriteLine($"No current job and no queued requests for module {context.Saga.CorrelationId}");
+                _logger.LogDebug("No current job and no queued requests for module {ModuleId}", context.Saga.CorrelationId);
             }
             else
             {
                 // There's still a current job, do nothing
-                Console.WriteLine($"Current job still running for module {context.Saga.CorrelationId}, not checking dependencies");
+                _logger.LogDebug("Current job still running for module {ModuleId}, not checking dependencies", context.Saga.CorrelationId);
             }
 
             // Proceed to the next activity
@@ -119,7 +119,7 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error executing DequeueIfDependenciesMetJobActivity for {context.Saga.CorrelationId}. Error: {ex.Message}");
+            _logger.LogError(ex, "Error executing DequeueIfDependenciesMetJobActivity for module {ModuleId}", context.Saga.CorrelationId);
             // Still proceed to next activity even on error
             await next.Execute(context).ConfigureAwait(false);
         }

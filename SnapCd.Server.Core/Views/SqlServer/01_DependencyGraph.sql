@@ -28,6 +28,16 @@ BEGIN
 END;
 GO
 
+-- Edges are identified by their key pair so incremental updates lock only the rows that changed.
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'ModuleEdgeList' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE dbo.ModuleEdgeList AS TABLE (
+        DefinedModuleId UNIQUEIDENTIFIER NOT NULL,
+        ReferencedModuleId UNIQUEIDENTIFIER NOT NULL,
+        PRIMARY KEY (DefinedModuleId, ReferencedModuleId));
+END;
+GO
+
 -- ============================================================================
 -- 2. Stored procedure to recompute DependencyEdges (full rebuild)
 -- ============================================================================
@@ -60,30 +70,55 @@ GO
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_UpdateDependencyEdgesForModules
-    @AffectedModules dbo.GuidList READONLY
+    @AffectedEdges dbo.ModuleEdgeList READONLY
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    MERGE DependencyEdges AS target
-    USING (
+    -- The desired edges among the pairs being reconciled.
+    DECLARE @desired TABLE (
+        DefinedModuleId UNIQUEIDENTIFIER NOT NULL,
+        ReferencedModuleId UNIQUEIDENTIFIER NOT NULL,
+        OrganizationId UNIQUEIDENTIFIER NOT NULL,
+        PRIMARY KEY (DefinedModuleId, ReferencedModuleId));
+
+    INSERT INTO @desired (DefinedModuleId, ReferencedModuleId, OrganizationId)
+    SELECT s.DefinedModuleId, s.ReferencedModuleId, MIN(s.OrganizationId)
+    FROM (
         SELECT ModuleId AS DefinedModuleId, DependsOnModuleId AS ReferencedModuleId, OrganizationId
         FROM DependsOnModules
-        WHERE ModuleId IN (SELECT Id FROM @AffectedModules)
         UNION
         SELECT ModuleId AS DefinedModuleId, OutputModuleId AS ReferencedModuleId, OrganizationId
         FROM ModuleInputs
         WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
-          AND ModuleId IN (SELECT Id FROM @AffectedModules)
-    ) AS source
-    ON target.DefinedModuleId = source.DefinedModuleId AND target.ReferencedModuleId = source.ReferencedModuleId
-    WHEN NOT MATCHED BY TARGET THEN
-        INSERT (DefinedModuleId, ReferencedModuleId, OrganizationId)
-        VALUES (source.DefinedModuleId, source.ReferencedModuleId, source.OrganizationId)
-    WHEN MATCHED THEN
-        UPDATE SET OrganizationId = source.OrganizationId
-    WHEN NOT MATCHED BY SOURCE AND target.DefinedModuleId IN (SELECT Id FROM @AffectedModules) THEN
-        DELETE;
+    ) s
+    JOIN @AffectedEdges e
+      ON e.DefinedModuleId = s.DefinedModuleId AND e.ReferencedModuleId = s.ReferencedModuleId
+    GROUP BY s.DefinedModuleId, s.ReferencedModuleId;
+
+    -- Delete, update, then insert, each seeking to single keys.
+    DELETE t
+    FROM DependencyEdges t
+    JOIN @AffectedEdges e
+      ON e.DefinedModuleId = t.DefinedModuleId AND e.ReferencedModuleId = t.ReferencedModuleId
+    WHERE NOT EXISTS (SELECT 1 FROM @desired d
+                      WHERE d.DefinedModuleId = t.DefinedModuleId
+                        AND d.ReferencedModuleId = t.ReferencedModuleId);
+
+    UPDATE t
+    SET OrganizationId = d.OrganizationId
+    FROM DependencyEdges t
+    JOIN @desired d
+      ON d.DefinedModuleId = t.DefinedModuleId AND d.ReferencedModuleId = t.ReferencedModuleId
+    WHERE t.OrganizationId <> d.OrganizationId;
+
+    INSERT INTO DependencyEdges (DefinedModuleId, ReferencedModuleId, OrganizationId)
+    SELECT d.DefinedModuleId, d.ReferencedModuleId, d.OrganizationId
+    FROM @desired d
+    WHERE NOT EXISTS (SELECT 1 FROM DependencyEdges t
+                      WHERE t.DefinedModuleId = d.DefinedModuleId
+                        AND t.ReferencedModuleId = d.ReferencedModuleId)
+    ORDER BY d.DefinedModuleId, d.ReferencedModuleId;
 END;
 GO
 
@@ -98,11 +133,11 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @affected dbo.GuidList;
-    INSERT INTO @affected (Id)
-    SELECT DISTINCT ModuleId FROM inserted
+    DECLARE @affected dbo.ModuleEdgeList;
+    INSERT INTO @affected (DefinedModuleId, ReferencedModuleId)
+    SELECT ModuleId, DependsOnModuleId FROM inserted WHERE DependsOnModuleId IS NOT NULL
     UNION
-    SELECT DISTINCT ModuleId FROM deleted;
+    SELECT ModuleId, DependsOnModuleId FROM deleted WHERE DependsOnModuleId IS NOT NULL;
 
     EXEC sp_UpdateDependencyEdgesForModules @affected;
 END;
@@ -124,13 +159,15 @@ BEGIN
     )
         RETURN;
 
-    DECLARE @affected dbo.GuidList;
-    INSERT INTO @affected (Id)
-    SELECT DISTINCT ModuleId FROM inserted
+    DECLARE @affected dbo.ModuleEdgeList;
+    INSERT INTO @affected (DefinedModuleId, ReferencedModuleId)
+    SELECT ModuleId, OutputModuleId FROM inserted
     WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+      AND OutputModuleId IS NOT NULL
     UNION
-    SELECT DISTINCT ModuleId FROM deleted
-    WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet');
+    SELECT ModuleId, OutputModuleId FROM deleted
+    WHERE Discriminator IN ('ModuleEnvVarFromOutput', 'ModuleParamFromOutput', 'ModuleParamFromOutputSet')
+      AND OutputModuleId IS NOT NULL;
 
     EXEC sp_UpdateDependencyEdgesForModules @affected;
 END;
@@ -142,10 +179,26 @@ GO
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_RecomputeRecursiveDependencyEdges
-    @StackId UNIQUEIDENTIFIER = NULL
+    @StackId UNIQUEIDENTIFIER = NULL,
+    @AffectedRoots dbo.GuidList READONLY
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- An empty @AffectedRoots means "every root in scope"; callers that know which roots a change
+    -- can reach pass them so the rebuild touches those instead of the whole stack.
+    DECLARE @scoped BIT = CASE WHEN EXISTS (SELECT 1 FROM @AffectedRoots) THEN 1 ELSE 0 END;
+
+    -- A rebuild rewrites the closure for the whole stack, so two of them for one stack deadlock
+    -- against each other and against the edge writes that triggered them. Serialize per stack.
+    IF @StackId IS NOT NULL AND @@TRANCOUNT > 0
+    BEGIN
+        DECLARE @lockRes NVARCHAR(255) = 'RecursiveClosure:' + CAST(@StackId AS CHAR(36));
+        DECLARE @rc INT;
+        EXEC @rc = sp_getapplock @Resource = @lockRes, @LockMode = 'Exclusive',
+                                 @LockOwner = 'Transaction', @LockTimeout = 30000;
+        IF @rc < 0 THROW 51000, 'Timed out acquiring dependency closure lock.', 1;
+    END
 
     CREATE TABLE #ModuleMap (ModuleId UNIQUEIDENTIFIER PRIMARY KEY, Seq INT NOT NULL);
     INSERT INTO #ModuleMap (ModuleId, Seq)
@@ -154,12 +207,21 @@ BEGIN
     INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId
     WHERE @StackId IS NULL OR ns.StackId = @StackId;
 
-    IF @StackId IS NULL
+    -- Roots whose closure rows are rebuilt below. Traversal still needs every module in the
+    -- stack in #ModuleMap, because a path from an affected root may pass through any of them.
+    CREATE TABLE #Roots (ModuleId UNIQUEIDENTIFIER PRIMARY KEY);
+    IF @scoped = 1
+        INSERT INTO #Roots (ModuleId)
+        SELECT r.Id FROM @AffectedRoots r WHERE EXISTS (SELECT 1 FROM #ModuleMap mm WHERE mm.ModuleId = r.Id);
+    ELSE
+        INSERT INTO #Roots (ModuleId) SELECT ModuleId FROM #ModuleMap;
+
+    IF @StackId IS NULL AND @scoped = 0
         TRUNCATE TABLE RecursiveDependencyEdges;
     ELSE
         DELETE rde
         FROM RecursiveDependencyEdges rde
-        WHERE rde.RootModuleId IN (SELECT ModuleId FROM #ModuleMap);
+        WHERE rde.RootModuleId IN (SELECT ModuleId FROM #Roots);
 
     -- Apply direction: root = DefinedModuleId, walk Defined->Referenced
     WITH ApplyClosure AS (
@@ -173,6 +235,7 @@ BEGIN
         FROM DependencyEdges de
         INNER JOIN #ModuleMap dm ON dm.ModuleId = de.DefinedModuleId
         INNER JOIN #ModuleMap rm ON rm.ModuleId = de.ReferencedModuleId
+        WHERE EXISTS (SELECT 1 FROM #Roots rt WHERE rt.ModuleId = de.DefinedModuleId)
 
         UNION ALL
 
@@ -225,6 +288,7 @@ BEGIN
         FROM DependencyEdges de
         INNER JOIN #ModuleMap dm ON dm.ModuleId = de.DefinedModuleId
         INNER JOIN #ModuleMap rm ON rm.ModuleId = de.ReferencedModuleId
+        WHERE EXISTS (SELECT 1 FROM #Roots rt WHERE rt.ModuleId = de.ReferencedModuleId)
 
         UNION ALL
 
@@ -266,6 +330,7 @@ BEGIN
     OPTION (MAXRECURSION 0);
 
     DROP TABLE #ModuleMap;
+    DROP TABLE #Roots;
 END;
 GO
 
@@ -291,6 +356,29 @@ BEGIN
     INNER JOIN Modules m ON m.Id = affected.DefinedModuleId
     INNER JOIN Namespaces ns ON ns.Id = m.NamespaceId;
 
+    -- Roots whose closure a changed edge can invalidate: apply-direction roots reach the defined
+    -- module, destroy-direction roots are reachable from the referenced one, and both endpoints are
+    -- roots of their own. Read before the rebuild deletes anything, since it uses the old closure.
+    DECLARE @affectedRoots dbo.GuidList;
+    INSERT INTO @affectedRoots (Id)
+    SELECT DISTINCT Id FROM (
+        SELECT DefinedModuleId AS Id FROM inserted
+        UNION SELECT DefinedModuleId FROM deleted
+        UNION SELECT ReferencedModuleId FROM inserted
+        UNION SELECT ReferencedModuleId FROM deleted
+        UNION
+        SELECT r.RootModuleId FROM RecursiveDependencyEdges r
+        WHERE r.Direction = 1
+          AND r.ReferencedModuleId IN (SELECT DefinedModuleId FROM inserted
+                                       UNION SELECT DefinedModuleId FROM deleted)
+        UNION
+        SELECT r.RootModuleId FROM RecursiveDependencyEdges r
+        WHERE r.Direction = 2
+          AND r.DefinedModuleId IN (SELECT ReferencedModuleId FROM inserted
+                                    UNION SELECT ReferencedModuleId FROM deleted)
+    ) x
+    WHERE Id IS NOT NULL;
+
     DECLARE @stackId UNIQUEIDENTIFIER;
     DECLARE stack_cursor CURSOR LOCAL FAST_FORWARD FOR
         SELECT StackId FROM @stackIds;
@@ -299,7 +387,7 @@ BEGIN
     FETCH NEXT FROM stack_cursor INTO @stackId;
     WHILE @@FETCH_STATUS = 0
     BEGIN
-        EXEC sp_RecomputeRecursiveDependencyEdges @StackId = @stackId;
+        EXEC sp_RecomputeRecursiveDependencyEdges @StackId = @stackId, @AffectedRoots = @affectedRoots;
         FETCH NEXT FROM stack_cursor INTO @stackId;
     END;
     CLOSE stack_cursor;

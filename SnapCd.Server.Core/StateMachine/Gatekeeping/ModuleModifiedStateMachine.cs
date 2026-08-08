@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Gatekeeping;
@@ -23,8 +24,12 @@ public class ModuleModifiedStateMachine :
 
     public required Schedule<ModuleModifiedSaga, ModuleModifiedWaitForNextTimeoutScheduled> ModuleModifiedWaitForNextTimeoutScheduled { get; set; }
 
-    public ModuleModifiedStateMachine()
+    private readonly ILogger<ModuleModifiedStateMachine> _logger;
+
+    public ModuleModifiedStateMachine(ILogger<ModuleModifiedStateMachine> logger)
     {
+        _logger = logger;
+
         InstanceState(x => x.CurrentState);
 
         Event(() => ModuleModifiedTriggerRequested, e => e.CorrelateById(context => context.Message.ModuleId));
@@ -43,7 +48,7 @@ public class ModuleModifiedStateMachine :
 
         During(Idle,
             When(ModuleModifiedTriggerRequested)
-                .Then(_ => Console.WriteLine("Received ModuleModifiedTriggerRequested"))
+                .Then(c => _logger.LogDebug("Received ModuleModifiedTriggerRequested for module {ModuleId}", c.Saga.CorrelationId))
                 .Schedule(ModuleModifiedWaitForNextTimeoutScheduled,
                     context => new ModuleModifiedWaitForNextTimeoutScheduled
                     {
@@ -52,7 +57,7 @@ public class ModuleModifiedStateMachine :
                     }
                 )
                 .TransitionTo(WaitingForMoreEvents)
-                .Then(_ => Console.WriteLine("Transitioning to WaitingForMoreEvents")),
+                .Then(c => _logger.LogDebug("Debouncing module {ModuleId}, waiting for more events", c.Saga.CorrelationId)),
             // A tick arriving in Idle is from a debounce that already flushed.
             Ignore(ModuleModifiedWaitForNextTimeoutScheduled.Received)
         );
@@ -68,7 +73,7 @@ public class ModuleModifiedStateMachine :
                         OrganizationId = context.Saga.OrganizationId
                     }),
             When(ModuleModifiedWaitForNextTimeoutScheduled!.Received)
-                .Then(c => Console.WriteLine($"Publishing GatekeepingJobRequested with ModuleId {c.Saga.CorrelationId}"))
+                .Then(c => _logger.LogDebug("Publishing GatekeepingJobRequested for module {ModuleId}", c.Saga.CorrelationId))
                 .Publish(context => new GatekeepingJobRequested
                 {
                     ModuleId = context.Saga.CorrelationId,

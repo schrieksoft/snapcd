@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.System;
@@ -17,11 +18,13 @@ public class SecretModifiedCompetingConsumer : IConsumer<SecretModifiedEvent>
 {
     private readonly SnapCdDbContext _dbContext;
     private readonly IBus _bus;
+    private readonly ILogger<SecretModifiedCompetingConsumer> _logger;
 
-    public SecretModifiedCompetingConsumer(SnapCdDbContext dbContext, IBus bus)
+    public SecretModifiedCompetingConsumer(SnapCdDbContext dbContext, IBus bus, ILogger<SecretModifiedCompetingConsumer> logger)
     {
         _dbContext = dbContext;
         _bus = bus;
+        _logger = logger;
     }
 
     public async Task Consume(ConsumeContext<SecretModifiedEvent> context)
@@ -71,7 +74,7 @@ public class SecretModifiedCompetingConsumer : IConsumer<SecretModifiedEvent>
         // Publish events for modules that need triggering
         foreach (var moduleId in modulesToTrigger)
         {
-            Console.WriteLine($"Publishing ModuleModifiedTriggerRequested with ModuleId {moduleId} due to secret change {secretId}");
+            _logger.LogDebug("Publishing ModuleModifiedTriggerRequested for module {ModuleId} due to secret change {SecretId}", moduleId, secretId);
             await _bus.Publish(new ModuleModifiedTriggerRequested { ModuleId = moduleId, OrganizationId = context.Message.OrganizationId });
         }
     }
