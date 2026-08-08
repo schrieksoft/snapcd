@@ -1032,7 +1032,8 @@ else
             counts[state] = counts.GetValueOrDefault(state) + bucket.Count;
         }
 
-        // Modules without a ModuleState row yet (never had a job or saga) count as not deployed
+        // Every module carries a ModuleState row, so this is normally a no-op; it still covers a
+        // module whose row is missing, which would otherwise drop out of the fleet total.
         var classified = stateCounts.Sum(b => b.Count);
         if (_fleetTotal > classified)
             counts[FleetState.NotDeployed] = counts.GetValueOrDefault(FleetState.NotDeployed) + (_fleetTotal - classified);

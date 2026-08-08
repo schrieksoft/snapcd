@@ -475,12 +475,6 @@ FROM ModuleState ms
 WHERE NOT EXISTS (SELECT 1 FROM Modules m WHERE m.Id = ms.ModuleId);
 GO
 
--- Backfill modules created before the trigger inserted on creation (idempotent)
-INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
-SELECT m.Id, m.OrganizationId, CAST(0 AS BIT), NULL, NULL, NULL
-FROM Modules m
-WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = m.Id);
-GO
 
 -- ============================================================================
 -- 10. Initial population (only on first deploy when tables are empty)
@@ -502,4 +496,13 @@ IF NOT EXISTS (SELECT TOP 1 1 FROM ModuleState)
 BEGIN
     EXEC sp_RecomputeModuleState;
 END;
+GO
+
+-- Backfill modules created before the trigger inserted on creation. Runs after the initial
+-- population above: seeding NULL-state rows first would satisfy that guard and suppress the
+-- recompute, leaving every module without the state its jobs already establish.
+INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
+SELECT m.Id, m.OrganizationId, CAST(0 AS BIT), NULL, NULL, NULL
+FROM Modules m
+WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = m.Id);
 GO

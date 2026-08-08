@@ -73,9 +73,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
     /// <summary>
     /// Aggregated per-state module counts for the organization, read from the trigger-maintained
     /// ModuleState table — no per-module job subqueries. Joined against Modules because
-    /// ModuleState has no FK and may hold orphaned rows for deleted modules. Modules without a
-    /// ModuleState row yet (never had a job or saga) are not included; callers backfill against
-    /// Count(organizationId).
+    /// ModuleState has no FK and may hold orphaned rows for deleted modules. Every module carries
+    /// a row from creation, with a null headline until it has run something.
     /// </summary>
     public async Task<List<ModuleStateCount>> GetModuleStateCounts(Guid organizationId)
     {
