@@ -32,7 +32,7 @@ public class IntegrationModuleSupplyRepositoryFactory(
 
 public class IntegrationModuleSupplyRepository(
     SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationModuleSupplyRepositorySettings> options)
-    : GenericOrganizationChildRepository<IntegrationModuleSupply, IntegrationModuleSupplyReadDto,
+    : GenericIntegrationChildRepository<IntegrationModuleSupply, IntegrationModuleSupplyReadDto,
         IntegrationModuleSupplyCreatedEvent, IntegrationModuleSupplyUpdatedEvent, IntegrationModuleSupplyDeletedEvent,
         IntegrationModuleSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
@@ -49,7 +49,7 @@ public class IntegrationNamespaceSupplyRepositoryFactory(
 
 public class IntegrationNamespaceSupplyRepository(
     SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationNamespaceSupplyRepositorySettings> options)
-    : GenericOrganizationChildRepository<IntegrationNamespaceSupply, IntegrationNamespaceSupplyReadDto,
+    : GenericIntegrationChildRepository<IntegrationNamespaceSupply, IntegrationNamespaceSupplyReadDto,
         IntegrationNamespaceSupplyCreatedEvent, IntegrationNamespaceSupplyUpdatedEvent, IntegrationNamespaceSupplyDeletedEvent,
         IntegrationNamespaceSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
@@ -66,7 +66,7 @@ public class IntegrationStackSupplyRepositoryFactory(
 
 public class IntegrationStackSupplyRepository(
     SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationStackSupplyRepositorySettings> options)
-    : GenericOrganizationChildRepository<IntegrationStackSupply, IntegrationStackSupplyReadDto,
+    : GenericIntegrationChildRepository<IntegrationStackSupply, IntegrationStackSupplyReadDto,
         IntegrationStackSupplyCreatedEvent, IntegrationStackSupplyUpdatedEvent, IntegrationStackSupplyDeletedEvent,
         IntegrationStackSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {

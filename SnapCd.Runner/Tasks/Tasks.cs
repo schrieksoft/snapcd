@@ -100,6 +100,9 @@ public partial class Tasks
         var delay = initialDelay ?? TimeSpan.FromSeconds(1);
         Exception? lastException = null;
 
+        // Stateless operations (e.g. source refresh) have no job to attribute the call to.
+        var target = jobId == Guid.Empty ? "(no job)" : $"job {jobId}";
+
         while (attempt < maxRetries)
         {
             try
@@ -109,8 +112,8 @@ public partial class Tasks
                 if (attempt > 0)
                 {
                     logger.LogInformation(
-                        "{Operation} for job {JobId} succeeded on attempt {Attempt}",
-                        operationName, jobId, attempt + 1);
+                        "{Operation} for {Target} succeeded on attempt {Attempt}",
+                        operationName, target, attempt + 1);
                 }
 
                 return; // Success
@@ -124,8 +127,8 @@ public partial class Tasks
                 {
                     logger.LogError(
                         ex,
-                        "{Operation} for job {JobId} failed after {Attempts} attempts",
-                        operationName, jobId, attempt);
+                        "{Operation} for {Target} failed after {Attempts} attempts",
+                        operationName, target, attempt);
                     throw;
                 }
 
@@ -133,25 +136,25 @@ public partial class Tasks
                 if (IsTokenExpiredException(ex))
                 {
                     logger.LogWarning(
-                        "{Operation} for job {JobId} failed due to expired token. Will retry on reconnection...",
-                        operationName, jobId);
+                        "{Operation} for {Target} failed due to expired token. Will retry on reconnection...",
+                        operationName, target);
 
                     // Note: Connection will automatically reconnect via WithAutomaticReconnect
                     // Wait for reconnection before retrying
                     await Task.Delay(TimeSpan.FromSeconds(2));
 
                     logger.LogInformation(
-                        "Retrying {Operation} for job {JobId} after token expiration",
-                        operationName, jobId);
+                        "Retrying {Operation} for {Target} after token expiration",
+                        operationName, target);
 
                     // Don't wait additional time - retry immediately
                     continue;
                 }
 
                 logger.LogWarning(
-                    "{Operation} for job {JobId} failed (attempt {Attempt}/{Max}): {Error}. " +
+                    "{Operation} for {Target} failed (attempt {Attempt}/{Max}): {Error}. " +
                     "Retrying in {Delay} seconds",
-                    operationName, jobId, attempt, maxRetries, ex.Message, delay.TotalSeconds);
+                    operationName, target, attempt, maxRetries, ex.Message, delay.TotalSeconds);
 
                 await Task.Delay(delay);
 
@@ -162,8 +165,8 @@ public partial class Tasks
             {
                 logger.LogError(
                     ex,
-                    "{Operation} for job {JobId} failed with non-retryable exception",
-                    operationName, jobId);
+                    "{Operation} for {Target} failed with non-retryable exception",
+                    operationName, target);
                 throw;
             }
         }

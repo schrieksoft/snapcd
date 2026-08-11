@@ -320,8 +320,10 @@ app.MapControllers();
 //app.MapDefaultControllerRoute();
 app.MapRazorPages();
 app.MapHealthChecks("/health");
-app.MapHub<RunnerHub>("/runnerhub");
-app.MapHub<SnapCd.Server.Core.Hubs.AgentHub>("/agenthub");
+// SignalR authenticates once per connection, so without this a hub connection outlives the token
+// it was established with and every invocation is rejected while the connection still looks live.
+app.MapHub<RunnerHub>("/runnerhub", options => options.CloseOnAuthenticationExpiration = true);
+app.MapHub<SnapCd.Server.Core.Hubs.AgentHub>("/agenthub", options => options.CloseOnAuthenticationExpiration = true);
 app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/mcp"),
     branch => branch.Use(async (ctx, next) =>
     {

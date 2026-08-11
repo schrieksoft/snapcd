@@ -32,7 +32,7 @@ public class AgentRoleAssignmentRepositoryFactory(IDbContextFactory<SnapCdDbCont
     }
 }
 
-public class AgentRoleAssignmentRepository : GenericOrganizationChildRepository<AgentRoleAssignment, AgentRoleAssignmentReadDto, AgentRoleAssignmentCreatedEvent,
+public class AgentRoleAssignmentRepository : GenericAgentChildRepository<AgentRoleAssignment, AgentRoleAssignmentReadDto, AgentRoleAssignmentCreatedEvent,
     AgentRoleAssignmentUpdatedEvent, AgentRoleAssignmentDeletedEvent, AgentRoleAssignmentRepositorySettings>
 {
     public AgentRoleAssignmentRepository(

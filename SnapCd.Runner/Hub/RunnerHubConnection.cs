@@ -119,6 +119,22 @@ public class RunnerHubConnection : IAsyncDisposable
         {
             var logger = _loggerFactory.CreateLogger<RunnerHubConnection>();
             logger.LogInformation("SignalR reconnected with connection ID {ConnectionId}", connectionId);
+
+            // Automatic reconnect reuses the token the connection was built with; the server
+            // authenticates once per connection, so a stale one leaves the runner connected but
+            // unable to invoke anything. Rebuild so AccessTokenProvider supplies a current token.
+            var expiry = _memoryCache.Get<DateTime?>(MemoryCacheConstants.AccessTokenExpiryCacheKey);
+            if (expiry.HasValue && expiry.Value <= DateTime.UtcNow.AddMinutes(1))
+            {
+                logger.LogWarning(
+                    "Reconnected with a token expiring at {Expiry}; rebuilding the connection to pick up a fresh one",
+                    expiry.Value);
+
+                if (Interlocked.CompareExchange(ref _restarting, 1, 0) == 0)
+                    _ = RestartAfterCloseAsync();
+                return;
+            }
+
             // Flush buffered logs
             await FlushLogBufferAsync();
         };
@@ -226,6 +242,25 @@ public class RunnerHubConnection : IAsyncDisposable
         _connection.On<OutputRequestBase>(RunnerEndpoints.Output, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.Output(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Answer liveness pings so the server can tell a live connection from a wedged one.
+        _connection.On<Guid>(RunnerEndpoints.Ping, (pingId) =>
+            {
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (_connection is not null)
+                            await _connection.InvokeAsync("Pong", pingId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Could not answer liveness ping {PingId}", pingId);
+                    }
+                });
                 return Task.CompletedTask;
             }
         );

@@ -27,7 +27,7 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 public abstract class GenericRunnerChildSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> :
     GenericSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TEntity : class, IEntity, IOrganizationChild, IRunnerChild
-    where TRepository : GenericOrganizationChildRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TRepository : GenericRunnerChildRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()

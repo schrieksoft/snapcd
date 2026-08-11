@@ -24,7 +24,7 @@
         </MudAlert>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="Delete" Disabled="_isDeleting">
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Delete" Disabled="_isDeleting">
             @if (_isDeleting)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>

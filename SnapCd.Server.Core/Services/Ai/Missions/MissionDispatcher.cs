@@ -45,15 +45,19 @@ public class MissionDispatcher
     private readonly ILogger<MissionDispatcher> _logger;
     private readonly ILicenseInfoProvider _licenseInfoProvider;
     private readonly AgentSupplyResolver _agentSupply;
+    private readonly AgentLivenessProbe _livenessProbe;
+    private readonly AgentConnectionRepositoryFactory _agentConnectionRepositoryFactory;
     private readonly ModuleJobMissionRunRepositoryFactory _runRepositoryFactory;
 
-    public MissionDispatcher(IBus bus, IMessageScheduler scheduler, ILogger<MissionDispatcher> logger, ILicenseInfoProvider licenseInfoProvider, AgentSupplyResolver agentSupply, ModuleJobMissionRunRepositoryFactory runRepositoryFactory)
+    public MissionDispatcher(IBus bus, IMessageScheduler scheduler, ILogger<MissionDispatcher> logger, ILicenseInfoProvider licenseInfoProvider, AgentSupplyResolver agentSupply, ModuleJobMissionRunRepositoryFactory runRepositoryFactory, AgentLivenessProbe livenessProbe, AgentConnectionRepositoryFactory agentConnectionRepositoryFactory)
     {
         _bus = bus;
         _scheduler = scheduler;
         _logger = logger;
         _licenseInfoProvider = licenseInfoProvider;
         _agentSupply = agentSupply;
+        _livenessProbe = livenessProbe;
+        _agentConnectionRepositoryFactory = agentConnectionRepositoryFactory;
         _runRepositoryFactory = runRepositoryFactory;
     }
 
@@ -83,6 +87,24 @@ public class MissionDispatcher
             _logger.LogInformation(
                 "Mission {MissionType} (job {JobId}) has no live connection for agent {AgentId}; not dispatched.",
                 mission.MissionType, mission.ModuleJobId, agentId);
+            return MissionDispatchOutcome.NoLiveConnection;
+        }
+
+        // The row records that the agent once connected. Ping it, so a connection that is open but
+        // no longer serviceable is treated as absent rather than silently swallowing the mission.
+        if (!await _livenessProbe.IsAlive(connection.SignalRConnectionId))
+        {
+            _logger.LogWarning(
+                "Mission {MissionType} (job {JobId}): agent {AgentId} did not answer a liveness ping; "
+                + "removing its stale connection record and not dispatching.",
+                mission.MissionType, mission.ModuleJobId, agentId);
+
+            using (var agentConnectionRepository = _agentConnectionRepositoryFactory.Create())
+            {
+                await agentConnectionRepository.DeleteConnection(
+                    connection.OrganizationId, connection.AgentId, connection.InstanceName);
+            }
+
             return MissionDispatchOutcome.NoLiveConnection;
         }
 

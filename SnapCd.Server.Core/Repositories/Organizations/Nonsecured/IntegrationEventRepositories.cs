@@ -34,7 +34,7 @@ public class OrganizationIntegrationEventRepositoryFactory(IDbContextFactory<Sna
     }
 }
 
-public class OrganizationIntegrationEventRepository : GenericOrganizationChildRepository<OrganizationIntegrationEvent, OrganizationIntegrationEventReadDto, OrganizationIntegrationEventCreatedEvent, OrganizationIntegrationEventUpdatedEvent, OrganizationIntegrationEventDeletedEvent, OrganizationIntegrationEventRepositorySettings>
+public class OrganizationIntegrationEventRepository : GenericIntegrationChildRepository<OrganizationIntegrationEvent, OrganizationIntegrationEventReadDto, OrganizationIntegrationEventCreatedEvent, OrganizationIntegrationEventUpdatedEvent, OrganizationIntegrationEventDeletedEvent, OrganizationIntegrationEventRepositorySettings>
 {
     public OrganizationIntegrationEventRepository(
         SnapCdDbContext dbContext,

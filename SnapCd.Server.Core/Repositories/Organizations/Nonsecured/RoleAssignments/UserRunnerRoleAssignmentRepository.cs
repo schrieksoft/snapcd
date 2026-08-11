@@ -32,7 +32,7 @@ public class UserRunnerRoleAssignmentRepositoryFactory(IDbContextFactory<SnapCdD
     }
 }
 
-public class UserRunnerRoleAssignmentRepository : GenericOrganizationChildRepository<UserRunnerRoleAssignment, UserRunnerRoleAssignmentReadDto, UserRunnerRoleAssignmentCreatedEvent,
+public class UserRunnerRoleAssignmentRepository : GenericRunnerChildRepository<UserRunnerRoleAssignment, UserRunnerRoleAssignmentReadDto, UserRunnerRoleAssignmentCreatedEvent,
     UserRunnerRoleAssignmentUpdatedEvent, UserRunnerRoleAssignmentDeletedEvent, UserRunnerRoleAssignmentRepositorySettings>
 {
     public UserRunnerRoleAssignmentRepository(

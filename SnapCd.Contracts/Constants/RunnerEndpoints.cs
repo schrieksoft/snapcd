@@ -24,4 +24,5 @@ public static class RunnerEndpoints
     public const string SourceRefresh = "SourceRefresh";
     public const string CancelKill = "CancelKill";
     public const string CancelGraceful = "CancelGraceful";
+    public const string Ping = "Ping";
 }

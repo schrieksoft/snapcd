@@ -192,7 +192,7 @@ else
                     <div class="mission-actions">
                         @if (IsActive(run))
                         {
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                            <MudButton Size="Size.Small" Variant="Variant.Filled"
                                        Color="Color.Secondary"
                                        OnClick="@(() => CancelRun(run))">
                                 Cancel
@@ -200,7 +200,7 @@ else
                         }
                         else
                         {
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                            <MudButton Size="Size.Small" Variant="Variant.Filled"
                                        Color="Color.Secondary"
                                        OnClick="@(() => RerunMission(run.ModuleJobMissionId))">
                                 Rerun

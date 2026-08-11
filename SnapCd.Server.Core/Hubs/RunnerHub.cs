@@ -345,6 +345,16 @@ public class RunnerHub : Hub
     }
 
     /// <summary>
+    /// Acknowledge a liveness ping. Invoking this proves the runner can still service hub calls,
+    /// which an open connection alone does not.
+    /// </summary>
+    public Task Pong(Guid pingId)
+    {
+        Services.RunnerLivenessProbe.Acknowledge(pingId);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Receive a batch of log entries from the runner
     /// </summary>
     public async Task AddLogs(List<LogEntryDto> logEntries)

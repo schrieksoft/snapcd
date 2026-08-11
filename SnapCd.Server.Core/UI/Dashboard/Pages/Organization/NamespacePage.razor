@@ -303,7 +303,8 @@
 
                     <MudStack Row>
                         <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
                                    OnClick="ExecuteApply"
                                    Disabled="@_isApplying">
                             @if (_isApplying)
@@ -317,7 +318,7 @@
                             }
                         </MudButton>
 
-                        <MudButton Variant="Variant.Text"
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    OnClick="CancelApply"
                                    Disabled="@_isApplying">
                             Cancel
@@ -449,7 +450,7 @@
                             }
                         </MudButton>
 
-                        <MudButton Variant="Variant.Text"
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    OnClick="CancelDestroy"
                                    Disabled="@_isDestroying">
                             Cancel

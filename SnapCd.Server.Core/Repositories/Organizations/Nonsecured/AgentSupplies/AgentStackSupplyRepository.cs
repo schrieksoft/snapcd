@@ -31,7 +31,7 @@ public class AgentStackSupplyRepositoryFactory(IDbContextFactory<SnapCdDbContext
     }
 }
 
-public class AgentStackSupplyRepository : GenericOrganizationChildRepository<AgentStackSupply, AgentStackSupplyReadDto, AgentStackSupplyCreatedEvent,
+public class AgentStackSupplyRepository : GenericAgentChildRepository<AgentStackSupply, AgentStackSupplyReadDto, AgentStackSupplyCreatedEvent,
     AgentStackSupplyUpdatedEvent, AgentStackSupplyDeletedEvent, AgentStackSupplyRepositorySettings>
 {
     public AgentStackSupplyRepository(

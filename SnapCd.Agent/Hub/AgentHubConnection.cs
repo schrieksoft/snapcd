@@ -94,6 +94,21 @@ public sealed class AgentHubConnection : IAsyncDisposable
         _connection.Reconnected += async connectionId =>
         {
             _logger.LogInformation("Agent hub reconnected with connection ID {ConnectionId}", connectionId);
+
+            // Automatic reconnect reuses the token the connection was built with; the server
+            // authenticates once per connection, so a stale one leaves the agent connected but
+            // unable to invoke anything. Rebuild so AccessTokenProvider supplies a current token.
+            if (_tokenService.ExpiresAt <= DateTimeOffset.UtcNow.AddMinutes(1))
+            {
+                _logger.LogWarning(
+                    "Reconnected with a token expiring at {Expiry}; rebuilding the connection to pick up a fresh one",
+                    _tokenService.ExpiresAt);
+
+                if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
+                    _ = ReconnectAfterCloseAsync();
+                return;
+            }
+
             await FlushLogBufferAsync();
             await FlushMilestoneBufferAsync();
         };

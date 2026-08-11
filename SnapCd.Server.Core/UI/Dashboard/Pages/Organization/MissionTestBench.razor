@@ -292,7 +292,7 @@ else
                                 <div>
                                     @if (IsActive(run))
                                     {
-                                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled"
                                                    Color="Color.Secondary"
                                                    OnClick="@(() => CancelRun(run))" Class="mr-1">
                                             <MudIcon Icon="@SnapCdIcons.Stop" Class="mr-1" />
@@ -301,7 +301,7 @@ else
                                     }
                                     else
                                     {
-                                        <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled"
                                                    Color="Color.Secondary"
                                                    OnClick="@(() => RerunMission(run.ModuleJobMissionId))" Class="mr-1">
                                             <MudIcon Icon="@SnapCdIcons.Replay" Class="mr-1" />

@@ -52,11 +52,12 @@ public class AgentStackSupplySecuredRepository : GenericAgentChildSecuredReposit
     {
     }
 
-    public async Task<List<AgentStackSupply>> ListByAgent(Guid agentId, Guid organizationId)
+    public async Task<List<AgentStackSupply>> ListByAgent(Guid agentId, Guid organizationId,
+        Func<IQueryable<AgentStackSupply>, IQueryable<AgentStackSupply>>? queryModifier = null)
     {
-        return await ReadQuery(organizationId)
-            .Where(a => a.AgentId == agentId)
-            .ToListAsync();
+        var query = ReadQuery(organizationId).Where(a => a.AgentId == agentId);
+        if (queryModifier != null) query = queryModifier(query);
+        return await query.ToListAsync();
     }
 
     public async Task<List<AgentStackSupply>> ListByStack(Guid stackId, Guid organizationId)
