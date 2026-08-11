@@ -33,6 +33,8 @@ public static class RunnerHubExtensions
         services.AddSingleton<IHubFilter, TokenValidationFilter>();
         services.AddSingleton<IHubFilter, Services.CallerContext.CallerContextHubFilter>();
         services.AddScoped<RunnerConnectionValidator>();
+        services.AddSingleton<RunnerLivenessProbe>();
+        services.AddSingleton<AgentLivenessProbe>();
         services.AddScoped<RunnerJobAuthorizationService>();
 
 

@@ -31,7 +31,7 @@ public class IntegrationRoleAssignmentRepositoryFactory(IDbContextFactory<SnapCd
 }
 
 public class IntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericOrganizationChildRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto,
         IntegrationRoleAssignmentCreatedEvent, IntegrationRoleAssignmentUpdatedEvent, IntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {
@@ -53,7 +53,7 @@ public class UserIntegrationRoleAssignmentRepositoryFactory(IDbContextFactory<Sn
 }
 
 public class UserIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericOrganizationChildRepository<UserIntegrationRoleAssignment, UserIntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<UserIntegrationRoleAssignment, UserIntegrationRoleAssignmentReadDto,
         UserIntegrationRoleAssignmentCreatedEvent, UserIntegrationRoleAssignmentUpdatedEvent, UserIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {
@@ -69,7 +69,7 @@ public class ServicePrincipalIntegrationRoleAssignmentRepositoryFactory(IDbConte
 }
 
 public class ServicePrincipalIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericOrganizationChildRepository<ServicePrincipalIntegrationRoleAssignment, ServicePrincipalIntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<ServicePrincipalIntegrationRoleAssignment, ServicePrincipalIntegrationRoleAssignmentReadDto,
         ServicePrincipalIntegrationRoleAssignmentCreatedEvent, ServicePrincipalIntegrationRoleAssignmentUpdatedEvent, ServicePrincipalIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {
@@ -85,7 +85,7 @@ public class GroupIntegrationRoleAssignmentRepositoryFactory(IDbContextFactory<S
 }
 
 public class GroupIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericOrganizationChildRepository<GroupIntegrationRoleAssignment, GroupIntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<GroupIntegrationRoleAssignment, GroupIntegrationRoleAssignmentReadDto,
         GroupIntegrationRoleAssignmentCreatedEvent, GroupIntegrationRoleAssignmentUpdatedEvent, GroupIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {

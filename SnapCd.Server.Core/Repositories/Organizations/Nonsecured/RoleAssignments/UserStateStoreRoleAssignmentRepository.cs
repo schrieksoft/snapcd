@@ -32,7 +32,7 @@ public class UserStateStoreRoleAssignmentRepositoryFactory(IDbContextFactory<Sna
     }
 }
 
-public class UserStateStoreRoleAssignmentRepository : GenericOrganizationChildRepository<UserStateStoreRoleAssignment, UserStateStoreRoleAssignmentReadDto, UserStateStoreRoleAssignmentCreatedEvent,
+public class UserStateStoreRoleAssignmentRepository : GenericStateStoreChildRepository<UserStateStoreRoleAssignment, UserStateStoreRoleAssignmentReadDto, UserStateStoreRoleAssignmentCreatedEvent,
     UserStateStoreRoleAssignmentUpdatedEvent, UserStateStoreRoleAssignmentDeletedEvent, UserStateStoreRoleAssignmentRepositorySettings>
 {
     public UserStateStoreRoleAssignmentRepository(

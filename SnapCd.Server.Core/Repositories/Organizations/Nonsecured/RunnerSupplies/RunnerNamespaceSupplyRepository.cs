@@ -31,7 +31,7 @@ public class RunnerNamespaceSupplyRepositoryFactory(IDbContextFactory<SnapCdDbCo
     }
 }
 
-public class RunnerNamespaceSupplyRepository : GenericOrganizationChildRepository<RunnerNamespaceSupply, RunnerNamespaceSupplyReadDto, RunnerNamespaceSupplyCreatedEvent,
+public class RunnerNamespaceSupplyRepository : GenericRunnerChildRepository<RunnerNamespaceSupply, RunnerNamespaceSupplyReadDto, RunnerNamespaceSupplyCreatedEvent,
     RunnerNamespaceSupplyUpdatedEvent, RunnerNamespaceSupplyDeletedEvent, RunnerNamespaceSupplyRepositorySettings>
 {
     public RunnerNamespaceSupplyRepository(

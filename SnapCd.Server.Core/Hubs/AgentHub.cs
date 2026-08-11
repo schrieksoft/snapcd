@@ -298,6 +298,16 @@ public class AgentHub : Hub
     /// <summary>Grace after a disconnect for the orchestrator to reconnect and resume the run.</summary>
     private static readonly TimeSpan ReconnectGrace = TimeSpan.FromMinutes(2);
 
+    /// <summary>
+    /// Acknowledge a liveness ping. Invoking this proves the agent can still service hub calls,
+    /// which an open connection alone does not.
+    /// </summary>
+    public Task Pong(Guid pingId)
+    {
+        Services.AgentLivenessProbe.Acknowledge(pingId);
+        return Task.CompletedTask;
+    }
+
     public async Task MissionStarted(Guid invocationId) =>
         await UpdateRunAsync(invocationId, run =>
         {

@@ -31,7 +31,7 @@ public class RunnerRoleAssignmentRepositoryFactory(IDbContextFactory<SnapCdDbCon
     }
 }
 
-public class RunnerRoleAssignmentRepository : GenericOrganizationChildRepository<RunnerRoleAssignment, RunnerRoleAssignmentReadDto, RunnerRoleAssignmentCreatedEvent,
+public class RunnerRoleAssignmentRepository : GenericRunnerChildRepository<RunnerRoleAssignment, RunnerRoleAssignmentReadDto, RunnerRoleAssignmentCreatedEvent,
     RunnerRoleAssignmentUpdatedEvent, RunnerRoleAssignmentDeletedEvent, RunnerRoleAssignmentRepositorySettings>
 {
     public RunnerRoleAssignmentRepository(

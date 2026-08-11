@@ -29,6 +29,9 @@ public sealed class TokenService
     private string? _cachedToken;
     private DateTimeOffset _expiresAt = DateTimeOffset.MinValue;
 
+    /// <summary>When the token currently held expires; <see cref="DateTimeOffset.MinValue"/> before the first fetch.</summary>
+    public DateTimeOffset ExpiresAt => _expiresAt;
+
     // Refresh this long before the token actually expires.
     private static readonly TimeSpan RefreshSkew = TimeSpan.FromSeconds(30);
 

@@ -38,17 +38,20 @@ public class RunnerSelectionService
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly SnapCdDbContext _dbContext;
     private readonly ServerSettings _serverSettings;
+    private readonly RunnerLivenessProbe _livenessProbe;
     private readonly ILogger<RunnerSelectionService> _logger;
 
     public RunnerSelectionService(
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         SnapCdDbContext dbContext,
         IOptions<ServerSettings> serverSettings,
+        RunnerLivenessProbe livenessProbe,
         ILogger<RunnerSelectionService> logger)
     {
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _dbContext = dbContext;
         _serverSettings = serverSettings.Value;
+        _livenessProbe = livenessProbe;
         _logger = logger;
     }
 
@@ -128,59 +131,64 @@ public class RunnerSelectionService
         var allConnections = await connectionRepository.GetActiveConnectionsByRunnerId(runnerId, organizationId);
 
         // Drop any connection this server cannot actually reach over SignalR.
-        var connections = allConnections.Where(IsDispatchableFromThisServer).ToList();
+        var reachable = allConnections.Where(IsDispatchableFromThisServer).ToList();
 
-        if (connections.Count == 0)
-        {
-            if (allConnections.Count > 0)
-            {
-                _logger.LogWarning(
-                    "Runner {RunnerId} has {StaleCount} registered connection(s) in organization {OrgId}, but none are "
-                    + "reachable from this server. They belong to other server instances — stale rows if those servers "
-                    + "are gone.",
-                    runnerId, allConnections.Count, organizationId);
+        // A reachable row only records that a runner once connected, so candidates are tried in
+        // preference order and the first one to answer a ping wins. Ordering before probing keeps
+        // this to a single round trip whenever the preferred instance is healthy.
+        var jobCounts = reachable.Count > 1
+            ? await GetActiveJobCountsByRunnerAsync(organizationId, runnerId)
+            : new Dictionary<string, int>();
 
-                throw new RunnerUnreachableException(
-                    $"Runner has {allConnections.Count} registered connection(s), but none can be reached from this "
-                    + "server — they are registered to other server instances "
-                    + $"({string.Join(", ", allConnections.Select(c => c.ServerInstanceId).Distinct())}). If those "
-                    + "servers are no longer running, these are stale connections and will be cleaned up "
-                    + "automatically; retry the job once they clear.");
-            }
-
-            _logger.LogWarning("No runner instances available for runner {RunnerId} in organization {OrgId}",
-                runnerId, organizationId);
-
-            return null;
-        }
-
-        _logger.LogDebug("Found {Count} available runner instance(s) for runner {RunnerId}",
-            connections.Count, runnerId);
-
-        // If only one instance, return it immediately without querying job counts
-        if (connections.Count == 1)
-        {
-            var singleConnection = connections[0];
-            _logger.LogDebug("Only one runner instance available, selecting {InstanceName}",
-                singleConnection.InstanceName);
-            return singleConnection;
-        }
-
-        // Multiple instances available - use least-loaded strategy
-        // Query database for active jobs per runner instance
-        var jobCounts = await GetActiveJobCountsByRunnerAsync(organizationId, runnerId);
-
-        // Select runner instance with fewest active jobs
-        var selectedConnection = connections
+        var candidates = reachable
             .OrderBy(r => jobCounts.GetValueOrDefault(r.InstanceName, 0))
             .ThenBy(r => r.CreatedDateTime) // Tie-breaker: oldest connection first
-            .First();
+            .ToList();
 
-        var jobCount = jobCounts.GetValueOrDefault(selectedConnection.InstanceName, 0);
-        _logger.LogDebug("Selected runner instance {InstanceName} with {JobCount} active jobs (from {TotalInstances} available)",
-            selectedConnection.InstanceName, jobCount, connections.Count);
+        foreach (var candidate in candidates)
+        {
+            if (await _livenessProbe.IsAlive(candidate.SignalRConnectionId))
+            {
+                _logger.LogDebug(
+                    "Selected runner instance {InstanceName} with {JobCount} active jobs (from {TotalInstances} reachable)",
+                    candidate.InstanceName,
+                    jobCounts.GetValueOrDefault(candidate.InstanceName, 0),
+                    candidates.Count);
 
-        return selectedConnection;
+                return candidate;
+            }
+
+            _logger.LogWarning(
+                "Runner instance {InstanceName} did not answer a liveness ping; removing its stale "
+                + "connection record and trying the next instance",
+                candidate.InstanceName);
+
+            await connectionRepository.DeleteConnection(
+                candidate.OrganizationId, candidate.RunnerId, candidate.InstanceName);
+        }
+
+        // Rows this server cannot reach are a different failure from a runner that went quiet: the
+        // job cannot be queued for a peer's connection, so it is surfaced rather than parked.
+        if (reachable.Count == 0 && allConnections.Count > 0)
+        {
+            _logger.LogWarning(
+                "Runner {RunnerId} has {StaleCount} registered connection(s) in organization {OrgId}, but none are "
+                + "reachable from this server. They belong to other server instances — stale rows if those servers "
+                + "are gone.",
+                runnerId, allConnections.Count, organizationId);
+
+            throw new RunnerUnreachableException(
+                $"Runner has {allConnections.Count} registered connection(s), but none can be reached from this "
+                + "server — they are registered to other server instances "
+                + $"({string.Join(", ", allConnections.Select(c => c.ServerInstanceId).Distinct())}). If those "
+                + "servers are no longer running, these are stale connections and will be cleaned up "
+                + "automatically; retry the job once they clear.");
+        }
+
+        _logger.LogWarning("No runner instances available for runner {RunnerId} in organization {OrgId}",
+            runnerId, organizationId);
+
+        return null;
     }
 
     /// <summary>

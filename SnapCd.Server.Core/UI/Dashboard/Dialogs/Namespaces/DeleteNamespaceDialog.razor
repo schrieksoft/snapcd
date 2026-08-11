@@ -92,7 +92,8 @@
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled"
-                   Color="Color.Error"
+                   Color="Color.Secondary"
+                   Size="Size.Small"
                    OnClick="Delete"
                    Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
                    StartIcon="@SnapCdIcons.Delete">

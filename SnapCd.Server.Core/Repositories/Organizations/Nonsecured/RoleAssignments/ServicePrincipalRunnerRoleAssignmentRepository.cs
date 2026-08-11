@@ -35,7 +35,7 @@ public class ServicePrincipalRunnerRoleAssignmentRepositoryFactory(
     }
 }
 
-public class ServicePrincipalRunnerRoleAssignmentRepository : GenericOrganizationChildRepository<ServicePrincipalRunnerRoleAssignment, ServicePrincipalRunnerRoleAssignmentReadDto,
+public class ServicePrincipalRunnerRoleAssignmentRepository : GenericRunnerChildRepository<ServicePrincipalRunnerRoleAssignment, ServicePrincipalRunnerRoleAssignmentReadDto,
     ServicePrincipalRunnerRoleAssignmentCreatedEvent, ServicePrincipalRunnerRoleAssignmentUpdatedEvent, ServicePrincipalRunnerRoleAssignmentDeletedEvent,
     ServicePrincipalRunnerRoleAssignmentRepositorySettings>
 {

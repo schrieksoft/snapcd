@@ -32,7 +32,7 @@ public class StateStoreRoleAssignmentRepositoryFactory(IDbContextFactory<SnapCdD
     }
 }
 
-public class StateStoreRoleAssignmentRepository : GenericOrganizationChildRepository<StateStoreRoleAssignment, StateStoreRoleAssignmentDto, StateStoreRoleAssignmentCreatedEvent,
+public class StateStoreRoleAssignmentRepository : GenericStateStoreChildRepository<StateStoreRoleAssignment, StateStoreRoleAssignmentDto, StateStoreRoleAssignmentCreatedEvent,
     StateStoreRoleAssignmentUpdatedEvent, StateStoreRoleAssignmentDeletedEvent, StateStoreRoleAssignmentRepositorySettings>
 {
     public StateStoreRoleAssignmentRepository(

@@ -31,7 +31,7 @@ public class RunnerStackSupplyRepositoryFactory(IDbContextFactory<SnapCdDbContex
     }
 }
 
-public class RunnerStackSupplyRepository : GenericOrganizationChildRepository<RunnerStackSupply, RunnerStackSupplyReadDto, RunnerStackSupplyCreatedEvent,
+public class RunnerStackSupplyRepository : GenericRunnerChildRepository<RunnerStackSupply, RunnerStackSupplyReadDto, RunnerStackSupplyCreatedEvent,
     RunnerStackSupplyUpdatedEvent, RunnerStackSupplyDeletedEvent, RunnerStackSupplyRepositorySettings>
 {
     public RunnerStackSupplyRepository(

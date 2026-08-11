@@ -31,7 +31,7 @@
             <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
                 <MudButton
                     Style="box-shadow: none; min-width: unset; padding: 8px; background-color: var(--mud-palette-surface); border-radius: 50%;"
-                    Variant="Variant.Text"
+                    Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                     OnClick="@(_ => ToggleDarkMode())">
                     <MudIcon Icon="@(_isDarkMode ? SnapCdIcons.LightMode : SnapCdIcons.DarkMode)"
                              Size="Size.Small"/>

@@ -65,6 +65,21 @@ public sealed partial class Missions
         connection.On<SummarizeJobRequest>(AgentEndpoints.SummarizeJob, req => SummarizeJob(req, connection, ct));
         connection.On<AutoFixRequest>(AgentEndpoints.AutoFix, req => AutoFix(req, connection, ct));
         connection.On<CancelMissionRequest>(AgentEndpoints.CancelMission, CancelRun);
+
+        // Answer liveness pings so the server can tell a live connection from a wedged one.
+        connection.On<Guid>(AgentEndpoints.Ping, pingId => _ = AnswerPingAsync(connection, pingId));
+    }
+
+    private async Task AnswerPingAsync(HubConnection connection, Guid pingId)
+    {
+        try
+        {
+            await connection.InvokeAsync("Pong", pingId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not answer liveness ping {PingId}.", pingId);
+        }
     }
 
     /// <summary>Inbound cancel: cancel the matching run's token, aborting its sidecar invoke.</summary>

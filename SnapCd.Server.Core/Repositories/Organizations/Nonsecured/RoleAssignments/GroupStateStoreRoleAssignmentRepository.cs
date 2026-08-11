@@ -32,7 +32,7 @@ public class GroupStateStoreRoleAssignmentRepositoryFactory(IDbContextFactory<Sn
     }
 }
 
-public class GroupStateStoreRoleAssignmentRepository : GenericOrganizationChildRepository<GroupStateStoreRoleAssignment, GroupStateStoreRoleAssignmentReadDto, GroupStateStoreRoleAssignmentCreatedEvent,
+public class GroupStateStoreRoleAssignmentRepository : GenericStateStoreChildRepository<GroupStateStoreRoleAssignment, GroupStateStoreRoleAssignmentReadDto, GroupStateStoreRoleAssignmentCreatedEvent,
     GroupStateStoreRoleAssignmentUpdatedEvent, GroupStateStoreRoleAssignmentDeletedEvent, GroupStateStoreRoleAssignmentRepositorySettings>
 {
     public GroupStateStoreRoleAssignmentRepository(
