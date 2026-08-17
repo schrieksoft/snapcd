@@ -249,12 +249,12 @@
         _editModels.Clear();
     }
 
-    private void HandleExpansionChanged(Guid integrationId, bool expanded)
+    private async Task HandleExpansionChanged(Guid integrationId, bool expanded)
     {
         if (expanded)
         {
             _expandedIntegrationId = integrationId;
-            LoadEditModel(integrationId);
+            await LoadEditModel(integrationId);
         }
         else if (_expandedIntegrationId == integrationId)
         {
@@ -268,7 +268,7 @@
         UpdateUrl();
     }
 
-    private void SelectShowing(Guid integrationId, ShowingType showType)
+    private async Task SelectShowing(Guid integrationId, ShowingType showType)
     {
         if (_selectedIntegrationId == integrationId && _showing == showType)
         {
@@ -282,7 +282,7 @@
             _showing = showType;
 
             if (showType == ShowingType.Edit)
-                LoadEditModel(integrationId);
+                await LoadEditModel(integrationId);
         }
         UpdateUrl();
     }
@@ -337,7 +337,7 @@
         }
     }
 
-    private async void LoadEditModel(Guid id)
+    private async Task LoadEditModel(Guid id)
     {
         if (_editModels.ContainsKey(id)) return;
         try

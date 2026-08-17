@@ -62,6 +62,10 @@ public class IntegrationEventMatcher(IDbContextFactory<SnapCdDbContext> dbFactor
             if (supplied) matched.Add(c);
         }
 
-        return matched;
+        // Scope is declared least-to-most specific, so the highest value is the most specific event.
+        return matched
+            .GroupBy(m => m.IntegrationId)
+            .Select(g => g.OrderByDescending(m => m.Scope).First())
+            .ToList();
     }
 }
