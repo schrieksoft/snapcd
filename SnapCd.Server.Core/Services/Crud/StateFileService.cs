@@ -159,15 +159,33 @@ public class StateFileService : GenericCrudService<
         await SecuredRepository.Update(entity);
     }
 
-    public async Task<List<StateFileVersionReadDto>> ListVersions(Guid stateFileId, Guid organizationId)
+    public async Task<int> CountVersions(Guid stateFileId, Guid organizationId)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var versions = await dbContext.Set<StateFileVersion>()
-            .Where(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId)
-            .OrderByDescending(v => v.CreatedDateTime)
-            .ToListAsync();
+        return await dbContext.Set<StateFileVersion>()
+            .CountAsync(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId);
+    }
 
-        var latestId = versions.Count > 0 ? versions[0].Id : (Guid?)null;
+    public async Task<List<StateFileVersionReadDto>> ListVersions(
+        Guid stateFileId,
+        Guid organizationId,
+        int? pageNumber = null,
+        int? pageSize = null)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var query = dbContext.Set<StateFileVersion>()
+            .Where(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId)
+            .OrderByDescending(v => v.CreatedDateTime);
+
+        // IsLatest identifies the newest version of the state file, not the newest row on the page.
+        var latestId = await query.Select(v => (Guid?)v.Id).FirstOrDefaultAsync();
+
+        var paged = pageNumber.HasValue && pageSize.HasValue
+            ? query.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value)
+            : (IQueryable<StateFileVersion>)query;
+
+        var versions = await paged.ToListAsync();
 
         var spIds = versions
             .Where(v => v.CreatedByPrincipalDiscriminator == AuditPrincipalDiscriminator.ServicePrincipal)

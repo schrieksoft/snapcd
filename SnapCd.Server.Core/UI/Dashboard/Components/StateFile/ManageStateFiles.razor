@@ -9,6 +9,8 @@
 @using BlazorMonaco
 @using BlazorMonaco.Editor
 @using SnapCd.Contracts.Dto.StateFiles
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Mappers
 @using SnapCd.Server.Core.Services.Crud
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.StateFiles
 @using SnapCd.Server.Core.Services.Dashboard
@@ -20,7 +22,7 @@
 {
     <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
 }
-else if (_stateFiles.Count == 0)
+else if (_stateFiles.Count == 0 && string.IsNullOrWhiteSpace(_searchString))
 {
     <MudText Typo="Typo.body2" Class="mt-2">No state files found.</MudText>
 }
@@ -35,18 +37,26 @@ else
 
     @if (_showSearch)
     {
-        <MudTextField @bind-Value="_searchString"
+        <MudTextField Value="_searchString"
+                      ValueChanged="@((string v) => OnSearchChanged(v))"
+                      T="string"
                       Placeholder="Search state files"
                       Adornment="Adornment.Start"
                       AdornmentIcon="@SnapCdIcons.Search"
                       IconSize="Size.Small"
                       Immediate="true"
+                      DebounceInterval="300"
                       Class="mb-2"
                       Style="max-width: 300px;"/>
     }
 
+    @if (_stateFiles.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mt-2">No state files match the search.</MudText>
+    }
+
     <MudExpansionPanels>
-        @foreach (var stateFile in FilteredStateFiles)
+        @foreach (var stateFile in _stateFiles)
         {
             <MudExpansionPanel Expanded="@(stateFile.Id == _expandedStateFileId)"
                                ExpandedChanged="@(e => HandleExpansionChanged(stateFile, e))">
@@ -148,11 +158,25 @@ else
                                     </MudExpansionPanel>
                                 }
                             </MudExpansionPanels>
+
+                            @if (_versionsTotalPages > 1)
+                            {
+                                <Pagination CurrentPage="_versionsPage"
+                                            TotalPages="_versionsTotalPages"
+                                            PageChanged="@(p => HandleVersionsPageChanged(stateFile, p))"/>
+                            }
                         }
                     </ChildContent>
                 </MudExpansionPanel>
             }
     </MudExpansionPanels>
+
+    @if (_totalPages > 1)
+    {
+        <Pagination CurrentPage="_currentPage"
+                    TotalPages="_totalPages"
+                    PageChanged="HandlePageChanged"/>
+    }
 }
 
 <style>
@@ -167,22 +191,25 @@ else
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private StateFileService Service { get; set; } = null!;
+    [Inject] private StateFileSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ThemeService ThemeService { get; set; } = null!;
 
+    private const int PageSize = 20;
+    private const int VersionsPageSize = 10;
+
     private List<StateFileReadDto>? _stateFiles;
     private string _searchString = string.Empty;
     private bool _showSearch;
+    private int _currentPage = 1;
+    private int _totalPages;
     private Guid? _expandedStateFileId;
     private List<StateFileVersionReadDto>? _versions;
+    private int _versionsPage = 1;
+    private int _versionsTotalPages;
     private Guid? _expandedVersionId;
     private Dictionary<Guid, string?> _expandedVersionData = new();
-
-    private IEnumerable<StateFileReadDto> FilteredStateFiles =>
-        string.IsNullOrWhiteSpace(_searchString)
-            ? _stateFiles!
-            : _stateFiles!.Where(sf => sf.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase));
 
     private StandaloneEditorConstructionOptions ReadOnlyEditorOptions(StandaloneCodeEditor editor, string? value)
     {
@@ -281,6 +308,7 @@ else
         {
             _expandedStateFileId = stateFile.Id;
             _versions = null;
+            _versionsPage = 1;
             _expandedVersionId = null;
             _expandedVersionData.Clear();
             await LoadVersions(stateFile);
@@ -298,7 +326,10 @@ else
     {
         try
         {
-            _versions = await Service.ListVersions(stateFile.Id, OrganizationId);
+            var totalCount = await Service.CountVersions(stateFile.Id, OrganizationId);
+            _versionsTotalPages = (int)Math.Ceiling(totalCount / (double)VersionsPageSize);
+            _versions = await Service.ListVersions(
+                stateFile.Id, OrganizationId, _versionsPage, VersionsPageSize);
         }
         catch (Exception ex)
         {
@@ -332,7 +363,59 @@ else
 
     private async Task ReloadStateFiles()
     {
-        _stateFiles = await Service.ListByParentId(StateStoreId, OrganizationId);
+        using var repo = RepoFactory.Create();
+
+        Func<IQueryable<Entities.Definition.StateFile>, IQueryable<Entities.Definition.StateFile>> filter =
+            q => string.IsNullOrWhiteSpace(_searchString)
+                ? q.Where(sf => sf.StateStoreId == StateStoreId)
+                : q.Where(sf => sf.StateStoreId == StateStoreId && sf.Name.Contains(_searchString));
+
+        var totalCount = await repo.Count(OrganizationId, filter);
+        _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+        // A delete or a narrowed search can empty the current page while earlier pages still hold rows.
+        if (_currentPage > _totalPages) _currentPage = Math.Max(1, _totalPages);
+
+        var entities = await repo.ListByParentId(
+            StateStoreId,
+            OrganizationId,
+            queryModifier: q => string.IsNullOrWhiteSpace(_searchString)
+                ? q
+                : q.Where(sf => sf.Name.Contains(_searchString)),
+            orderBy: q => q.OrderBy(sf => sf.Name),
+            pageNumber: _currentPage,
+            pageSize: PageSize);
+
+        _stateFiles = entities.Select(StateFileMapper.ToDto).ToList();
+    }
+
+    private async Task HandlePageChanged(int newPage)
+    {
+        _currentPage = newPage;
+        _expandedStateFileId = null;
+        _versions = null;
+        _expandedVersionId = null;
+        _expandedVersionData.Clear();
+        await ReloadStateFiles();
+    }
+
+    private async Task OnSearchChanged(string value)
+    {
+        _searchString = value;
+        _currentPage = 1;
+        _expandedStateFileId = null;
+        _versions = null;
+        _expandedVersionId = null;
+        _expandedVersionData.Clear();
+        await ReloadStateFiles();
+    }
+
+    private async Task HandleVersionsPageChanged(StateFileReadDto stateFile, int page)
+    {
+        _versionsPage = page;
+        _expandedVersionId = null;
+        _expandedVersionData.Clear();
+        await LoadVersions(stateFile);
     }
 
     private async Task RestoreVersion(StateFileReadDto stateFile, StateFileVersionReadDto version)

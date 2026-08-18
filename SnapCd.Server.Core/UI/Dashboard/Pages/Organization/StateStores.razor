@@ -176,9 +176,17 @@
     protected override async Task OnInitializedAsync()
     {
         await ReloadStateStores();
+        ApplyQueryParameters();
     }
 
     protected override void OnParametersSet()
+    {
+        ApplyQueryParameters();
+    }
+
+    // On a direct URL entry the query parameters are set before the store list has loaded; on
+    // in-page navigation the list is already there.
+    private void ApplyQueryParameters()
     {
         if (_stateStores is null) return;
 
