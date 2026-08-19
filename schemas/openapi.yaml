@@ -5594,6 +5594,109 @@ paths:
         - Namespace.Reader
         - Module.Owner
         - Module.Reader
+  /api/{organizationId}/Module/{moduleId}/pause:
+    post:
+      tags:
+      - Module
+      summary: Pause a Module, holding it out of the automated lifecycle
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ModulePauseRequestDto'
+          text/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ModulePauseRequestDto'
+          application/*+json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ModulePauseRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+      x-snapcd-permissions:
+        notes: Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner
+          or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module
+          update permissions.
+  /api/{organizationId}/Module/{moduleId}/unpause:
+    post:
+      tags:
+      - Module
+      summary: Unpause a Module, returning it to the automated lifecycle
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+      x-snapcd-permissions:
+        notes: Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner
+          or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module
+          update permissions.
   /api/{organizationId}/Module/{moduleId}/source:
     get:
       tags:
@@ -29346,6 +29449,45 @@ components:
           type: boolean
           description: Indicates whether or not the Mission is disabled.
       description: DTO for updating an existing ModuleMission (PUT operations).
+    ModulePauseDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: Unique ID of the Module.
+          format: uuid
+        paused:
+          type: boolean
+          description: True while the Module is held out of the automated lifecycle.
+        pausedBy:
+          type:
+          - 'null'
+          - string
+          description: ID of the principal that paused the Module, when paused.
+          format: uuid
+        pausedAt:
+          type:
+          - 'null'
+          - string
+          description: When the Module was paused, when paused.
+          format: date-time
+        pauseReason:
+          type:
+          - 'null'
+          - string
+          description: Operator-supplied explanation for the pause, when one was given.
+      description: |-
+        Whether a Module is held out of the automated lifecycle, and by whom. A paused Module dispatches
+        no triggered or dependency-driven work; requests raised while it is paused are queued rather than lost.
+    ModulePauseRequestDto:
+      type: object
+      properties:
+        reason:
+          type:
+          - 'null'
+          - string
+          description: Operator-supplied explanation for the pause. Recorded against the Module and shown while it is paused.
+      description: Request to pause a Module, optionally recording why.
     ModulePulumiArrayFlagCreateDto:
       required:
       - value
@@ -33811,7 +33953,7 @@ tags:
 - name: StackSecret
 x-snapcd-permission-coverage:
   documented: 446
-  skipped: 21
+  skipped: 23
 x-snapcd-schema-doc-coverage:
-  documented: 1175
+  documented: 1183
   missing: 0

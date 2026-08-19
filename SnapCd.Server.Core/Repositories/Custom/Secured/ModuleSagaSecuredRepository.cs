@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -18,13 +19,14 @@ namespace SnapCd.Server.Core.Repositories.Custom.Secured;
 
 public class ModuleSagaSecuredRepositoryFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
-    ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory)
+    ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory,
+    IBus bus)
 {
     public ModuleSagaSecuredRepository Create(IPrincipalProvider? principalProvider = null)
     {
         if (principalProvider == null)
             principalProvider = new HttpContextPrincipalProvider(new HttpContextAccessor());
-        var sagaRepositoryFactory = new ModuleSagaRepositoryFactory(dbFactory);
+        var sagaRepositoryFactory = new ModuleSagaRepositoryFactory(dbFactory, bus);
         var sagaRepository = sagaRepositoryFactory.Create();
         var moduleSecuredRepository = moduleSecuredRepositoryFactory.Create(principalProvider);
         return new ModuleSagaSecuredRepository(sagaRepository, moduleSecuredRepository);
@@ -51,6 +53,20 @@ public class ModuleSagaSecuredRepository : IDisposable
         else
             throw new PrincipalNotAuthorizedException(
                 $"Module with ID {correlationId} not found or {ModuleSecuredRepository.PrincipalDiscriminator} with ID {ModuleSecuredRepository.PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
+    }
+
+    public virtual async Task<ModuleSaga> SetPaused(
+        Guid correlationId,
+        Guid organizationId,
+        bool paused,
+        string? reason)
+    {
+        if (!ModuleSecuredRepository.CanPause(correlationId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Module with ID {correlationId} not found or {ModuleSecuredRepository.PrincipalDiscriminator} with ID {ModuleSecuredRepository.PrincipalProvider.GetSubject(organizationId)} does not have permission to pause it.");
+
+        var principalId = ModuleSecuredRepository.PrincipalProvider.GetSubject(organizationId);
+        return await Repository.SetPaused(correlationId, organizationId, paused, principalId, reason);
     }
 
     public void Dispose()

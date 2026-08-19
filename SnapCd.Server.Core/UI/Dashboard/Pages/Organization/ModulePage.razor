@@ -74,6 +74,13 @@
                         @FormatActualState(_actualStateSummary.State)
                     </span>
                 }
+                @if (_moduleSaga is { Paused: true })
+                {
+                    <span class="module-status-badge module-status-badge--default">
+                        <span class="module-status-dot"></span>
+                        Paused
+                    </span>
+                }
                 <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_module.Id"/>
             </div>
             <MudText Typo="Typo.body2" Class="module-page-subtitle">
@@ -125,6 +132,18 @@
             </MudAlert>
         }
 
+        @if (_moduleSaga is { Paused: true })
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
+                and apply and destroy are unavailable until it is resumed.
+                @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
+                {
+                    @: — @_moduleSaga.PauseReason
+                }
+            </MudAlert>
+        }
+
         <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
         @* Everything module-scoped lives inside this keyed container. When the route
@@ -147,6 +166,7 @@
                                   QueuedText="@(_queuedSummary?.Text)"
                                   QueuedReasonText="@GetQueuedReasonDisplayText()"
                                   ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
+                                  IsPaused="@(_moduleSaga is { Paused: true })"
                                   OnRunQueueNow="RunQueueNow"
                                   OnClearQueue="ClearQueue"/>
             }
@@ -172,6 +192,13 @@
             @if (_showing == ShowingType.Variables)
             {
                 <ViewVariables Module="_module" StackName="@StackName"/>
+            }
+
+            @if (_showing == ShowingType.ManualJobs)
+            {
+                <ManageManualJobs Module="_module"
+                                  ModuleSaga="_moduleSaga"
+                                  PrincipalProvider="_literalPrincipalProvider"/>
             }
         </div>
 
@@ -290,7 +317,8 @@
         new() { Key = nameof(ShowingType.Jobs), Label = "Jobs" },
         new() { Key = nameof(ShowingType.Variables), Label = "Variables" },
         new() { Key = nameof(ShowingType.Outputs), Label = "Outputs" },
-        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" },
+        new() { Key = nameof(ShowingType.ManualJobs), Label = "Manual Jobs" }
     ];
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
@@ -706,6 +734,8 @@
             QueuedReason.WaitingOnDependencies => "Waiting on dependencies",
             QueuedReason.WaitingOnRunnerCheckin => "Waiting for active runner",
             QueuedReason.WaitingOnRunningJob => "Waiting on current job",
+            QueuedReason.Maintenance => "Waiting on maintenance mode",
+            QueuedReason.Paused => "Module is paused",
             _ => ""
         };
     }
@@ -1221,7 +1251,8 @@
         Jobs,
         Outputs,
         Variables,
-        Configure
+        Configure,
+        ManualJobs
     }
 
     // Disposes the timer and unsubscribes the notifications tied to the currently
@@ -1270,6 +1301,7 @@
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
             "configure" => ShowingType.Configure,
+            "manualjobs" => ShowingType.ManualJobs,
             _ => null
         };
     }
@@ -1282,6 +1314,7 @@
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",
             ShowingType.Configure => "Configure",
+            ShowingType.ManualJobs => "ManualJobs",
             _ => null
         };
     }

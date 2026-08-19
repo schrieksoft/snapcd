@@ -53,8 +53,10 @@
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudStack Row Spacing="2">
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply" Size="Size.Small">apply</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy" Size="Size.Small">destroy</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply" Size="Size.Small"
+                   Disabled="@IsPaused">apply</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy" Size="Size.Small"
+                   Disabled="@IsPaused">destroy</MudButton>
     </MudStack>
 </MudPaper>
 
@@ -252,6 +254,7 @@ else
     [Parameter] public string? QueuedText { get; set; }
     [Parameter] public string? QueuedReasonText { get; set; }
     [Parameter] public bool IsQueued { get; set; }
+    [Parameter] public bool IsPaused { get; set; }
     [Parameter] public bool ShowRunNow { get; set; }
     [Parameter] public EventCallback OnRunQueueNow { get; set; }
     [Parameter] public EventCallback OnClearQueue { get; set; }

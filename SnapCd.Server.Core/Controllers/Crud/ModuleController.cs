@@ -13,6 +13,7 @@ using SnapCd.Contracts.Mcp;
 using SnapCd.Server.Core.Controllers.Crud.Generic;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -48,6 +49,57 @@ public class ModuleController : GenericCrudController<
         {
             var moduleDto = await Service.Get(namespaceId, name, organizationId);
             return Ok(moduleDto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [EndpointSummary("Pause a Module, holding it out of the automated lifecycle")]
+    [PermissionSource(Skip = true,
+        Notes = "Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.")]
+    [HttpPost("{moduleId}/pause")]
+    public async Task<ActionResult<ModulePauseDto>> Pause(
+        Guid organizationId,
+        Guid moduleId,
+        [FromBody] ModulePauseRequestDto? request)
+    {
+        try
+        {
+            return Ok(await Service.SetPaused(moduleId, organizationId, true, request?.Reason));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [EndpointSummary("Unpause a Module, returning it to the automated lifecycle")]
+    [PermissionSource(Skip = true,
+        Notes = "Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.")]
+    [HttpPost("{moduleId}/unpause")]
+    public async Task<ActionResult<ModulePauseDto>> Unpause(Guid organizationId, Guid moduleId)
+    {
+        try
+        {
+            return Ok(await Service.SetPaused(moduleId, organizationId, false, null));
         }
         catch (EntityNotFoundException e)
         {

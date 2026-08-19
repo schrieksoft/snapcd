@@ -112,6 +112,31 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         );
     }
 
+    /// <summary>Pausing is an operational act, not a definition change, so Contributors may do it.</summary>
+    public PermissionMap PausePermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.StackContributor],
+        StackRoles = [StackRole.Owner, StackRole.Contributor],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Contributor]
+    };
+
+    public IQueryable<Module> PauseQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            PausePermissionMap.OrganizationRoles,
+            PausePermissionMap.StackRoles,
+            PausePermissionMap.NamespaceRoles,
+            PausePermissionMap.ModuleRoles
+        );
+    }
+
+    public bool CanPause(Guid id, Guid organizationId)
+    {
+        return PauseQuery(organizationId).Any(e => e.Id == id && e.OrganizationId == organizationId);
+    }
+
     public override IQueryable<Module> UpdateQuery(Guid organizationId)
     {
         return RoleQueryDispatch(
