@@ -63,6 +63,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<DestroyJobSaga> DestroyJobSagas { get; set; }
     public DbSet<ApplyJobSaga> ApplyJobSagas { get; set; }
+    public DbSet<SplitMonolithSaga> SplitMonolithSagas { get; set; }
     public DbSet<ModuleSaga> ModuleSagas { get; set; }
     public DbSet<SourceRefresherPreselection> SourceRefresherPreselections { get; set; }
     public DbSet<Organization> Organizations { get; set; }
@@ -139,6 +140,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<ModuleJob> ModuleJobs { get; set; }
     public DbSet<ManualModuleJob> ManualModuleJobs { get; set; }
+    public DbSet<ManualModuleJobApproval> ManualModuleJobApprovals { get; set; }
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
     public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
     public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
@@ -280,6 +282,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         get
         {
             yield return new ApplyJobSagaClassMap();
+            yield return new SplitMonolithSagaClassMap();
             yield return new DestroyJobSagaClassMap();
             yield return new ModuleSagaClassMap();
             yield return new ModuleModifiedSagaClassMap();
@@ -411,6 +414,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new VariableClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobClassMap());
         modelBuilder.ApplyConfiguration(new ManualModuleJobClassMap());
+        modelBuilder.ApplyConfiguration(new ManualModuleJobApprovalClassMap());
         modelBuilder.ApplyConfiguration(new UserFavoriteClassMap());
         modelBuilder.ApplyConfiguration(new UserColorClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());
