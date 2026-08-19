@@ -24,7 +24,7 @@
     {
         <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.body2">
-                <strong>Paused</strong>
+                <strong>@(IsDraining ? "Pausing" : "Paused")</strong>
                 @if (!string.IsNullOrEmpty(ModuleSaga.PauseReason))
                 {
                     @: — @ModuleSaga.PauseReason
@@ -49,7 +49,16 @@
 @if (ModuleSaga is { Paused: true })
 {
     <MudPaper Elevation="1" Class="pa-4">
-        <MudText Typo="Typo.body2">No manual jobs are available yet.</MudText>
+        <MudText Typo="Typo.body2">
+            @if (IsDraining)
+            {
+                @:Waiting for the job already in flight to finish. Manual jobs become available once the module is quiet.
+            }
+            else
+            {
+                @:No manual jobs are available yet.
+            }
+        </MudText>
     </MudPaper>
 }
 
@@ -61,6 +70,9 @@
 
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    /// A paused module is still draining while its in-flight job runs; no manual job may start until it is quiet.
+    private bool IsDraining => ModuleSaga is { Paused: true, CurrentState: "Running" or "PrimedForNextQueued" };
 
     private bool _canPause;
     private bool _busy;

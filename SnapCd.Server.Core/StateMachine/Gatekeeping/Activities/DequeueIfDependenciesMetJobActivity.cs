@@ -54,6 +54,13 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
                 return;
             }
 
+            if (context.Saga.Paused)
+            {
+                _logger.LogDebug("Module {ModuleId} is paused: leaving it queued", context.Saga.CorrelationId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
             // Check if there's a current ModuleJob for this module

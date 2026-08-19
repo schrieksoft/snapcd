@@ -66,6 +66,21 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 return;
             }
 
+            if (context.Saga.Paused)
+            {
+                if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
+                {
+                    context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
+                    context.Saga.QueuedReason = QueuedReason.Paused;
+                }
+
+                _logger.LogDebug(
+                    "Module {ModuleId} is paused: queuing request",
+                    context.Message.ModuleId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
             // Skip if module is already destroyed and desired state is destroyed
             // (Unlike Apply, Destroy is idempotent - a destroyed module never needs to be destroyed again)
             if (effectiveDesiredState == DesiredStateHeadline.Destroyed)
