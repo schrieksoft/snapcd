@@ -1,0 +1,105 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use.
+ *@
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Entities.Sagas
+@using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    @if (ModuleSaga is { Paused: true })
+    {
+        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body2">
+                <strong>Paused</strong>
+                @if (!string.IsNullOrEmpty(ModuleSaga.PauseReason))
+                {
+                    @: — @ModuleSaga.PauseReason
+                }
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       Disabled="@(!_canPause || _busy)" OnClick="Resume">resume</MudButton>
+        </MudStack>
+    }
+    else
+    {
+        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body2">
+                Manual jobs run against a module that is held still. Pause the module to make them available.
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       Disabled="@(!_canPause || _busy)" OnClick="Pause">pause</MudButton>
+        </MudStack>
+    }
+</MudPaper>
+
+@if (ModuleSaga is { Paused: true })
+{
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudText Typo="Typo.body2">No manual jobs are available yet.</MudText>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public required Module Module { get; set; }
+    [Parameter] public required ModuleSaga ModuleSaga { get; set; }
+    [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    private bool _canPause;
+    private bool _busy;
+
+    protected override void OnParametersSet()
+    {
+        using var moduleRepo = ModuleRepoFactory.Create(PrincipalProvider);
+        _canPause = moduleRepo.CanPause(Module.Id, OrganizationId);
+    }
+
+    private async Task Pause()
+    {
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<PauseModuleDialog>("Pause module", options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled) return;
+        await SetPaused(true, result.Data as string);
+    }
+
+    private async Task Resume() => await SetPaused(false, null);
+
+    private async Task SetPaused(bool paused, string? reason)
+    {
+        _busy = true;
+        try
+        {
+            using var sagaRepo = SagaRepoFactory.Create(PrincipalProvider);
+            await sagaRepo.SetPaused(Module.Id, OrganizationId, paused, reason);
+            // The page re-renders from ModuleSagaModifiedEvent via the fanout notification service.
+            Snackbar.Add(paused ? "Module paused." : "Module resumed.", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

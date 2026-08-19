@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Repositories.Custom.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
 
@@ -25,11 +26,15 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
+    private readonly ModuleSagaSecuredRepositoryFactory _sagaSecuredRepositoryFactory;
+
     public ModuleService(
         ModuleSecuredRepository securedRepository,
-        IDbContextFactory<SnapCdDbContext> dbContextFactory
+        IDbContextFactory<SnapCdDbContext> dbContextFactory,
+        ModuleSagaSecuredRepositoryFactory sagaSecuredRepositoryFactory
     ) : base(securedRepository)
     {
+        _sagaSecuredRepositoryFactory = sagaSecuredRepositoryFactory;
         _dbContextFactory = dbContextFactory;
     }
 
@@ -175,4 +180,20 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
 
         return entries;
     }
+
+    public async Task<ModulePauseDto> SetPaused(Guid moduleId, Guid organizationId, bool paused, string? reason)
+    {
+        using var sagaRepo = _sagaSecuredRepositoryFactory.Create();
+        var saga = await sagaRepo.SetPaused(moduleId, organizationId, paused, reason);
+
+        return new ModulePauseDto
+        {
+            ModuleId = saga.CorrelationId,
+            Paused = saga.Paused,
+            PausedBy = saga.PausedBy,
+            PausedAt = saga.PausedAt,
+            PauseReason = saga.PauseReason
+        };
+    }
+
 }

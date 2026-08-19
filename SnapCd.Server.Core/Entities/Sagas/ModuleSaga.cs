@@ -35,6 +35,14 @@ public class ModuleSaga : SagaStateMachineInstance
 
     [JsonIgnore] public Module Module { get; set; } = null!;
 
+    public bool Paused { get; set; }
+
+    public Guid? PausedBy { get; set; }
+
+    public DateTime? PausedAt { get; set; }
+
+    [MaxLength(2000)] public string? PauseReason { get; set; }
+
     public int? ActualResourceCount { get; set; }
 
     public Guid? DriftCheckScheduleTokenId { get; set; }
