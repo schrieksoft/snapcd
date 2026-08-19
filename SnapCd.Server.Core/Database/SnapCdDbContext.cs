@@ -138,6 +138,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleParamFromSecret> ModuleParamFromSecrets { get; set; }
 
     public DbSet<ModuleJob> ModuleJobs { get; set; }
+    public DbSet<ManualModuleJob> ManualModuleJobs { get; set; }
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
     public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
     public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
@@ -409,6 +410,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new VariableSetClassMap());
         modelBuilder.ApplyConfiguration(new VariableClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobClassMap());
+        modelBuilder.ApplyConfiguration(new ManualModuleJobClassMap());
         modelBuilder.ApplyConfiguration(new UserFavoriteClassMap());
         modelBuilder.ApplyConfiguration(new UserColorClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());
