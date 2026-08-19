@@ -78,7 +78,7 @@
                 {
                     <span class="module-status-badge module-status-badge--default">
                         <span class="module-status-dot"></span>
-                        Paused
+                        @(IsDraining ? "Pausing" : "Paused")
                     </span>
                 }
                 <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_module.Id"/>
@@ -135,8 +135,15 @@
         @if (_moduleSaga is { Paused: true })
         {
             <MudAlert Severity="Severity.Info" Class="mb-4">
-                This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
-                and apply and destroy are unavailable until it is resumed.
+                @if (IsDraining)
+                {
+                    @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
+                }
+                else
+                {
+                    @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
+                    @:and apply and destroy are unavailable until it is resumed.
+                }
                 @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
                 {
                     @: — @_moduleSaga.PauseReason
@@ -334,6 +341,9 @@
     private QueuedSummary? _queuedSummary;
     private JobSummary? _jobSummary;
     private ActualStateSummary? _actualStateSummary;
+
+    /// A paused module is still draining while its in-flight job runs; the gate stops new work only.
+    private bool IsDraining => _moduleSaga is { Paused: true } && GetJobState() == JobState.Running;
     private Timer? _runnerAvailabilityRefreshTimer;
     private bool? _isWaitingOnDependencies = null;
 
