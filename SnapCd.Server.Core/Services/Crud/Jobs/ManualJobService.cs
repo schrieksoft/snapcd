@@ -79,7 +79,21 @@ public class ManualJobService : IDisposable
         return null;
     }
 
-    public async Task<ManualModuleJob> Start(Guid moduleId, Guid organizationId, string jobType)
+    /// <summary>
+    /// Creates the job row and returns it. The returned Id is the correlation id the caller must
+    /// publish its saga request with: as with ModuleJob, the job row and its saga share one id, so
+    /// `JobType` names the saga table and `Id` names the row in it.
+    /// </summary>
+    /// <remarks>
+    /// The row is left Running. Only the saga may write a terminal status — the filtered unique
+    /// index keys on Running, so an early terminal write here would let a second job start
+    /// underneath the first.
+    /// </remarks>
+    public async Task<ManualModuleJob> Start(
+        Guid moduleId,
+        Guid organizationId,
+        string jobType,
+        Guid? optionalCorrelationId = null)
     {
         if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
@@ -89,11 +103,13 @@ public class ManualJobService : IDisposable
         if (blocked is not null)
             throw new ManualJobNotAllowedException(blocked);
 
+        var correlationId = optionalCorrelationId ?? Guid.NewGuid();
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var job = new ManualModuleJob
         {
-            Id = Guid.NewGuid(),
+            Id = correlationId,
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
@@ -114,6 +130,37 @@ public class ManualJobService : IDisposable
         }
 
         return job;
+    }
+
+    /// <summary>
+    /// Records a manual job that failed before its saga could take over, so a launch that throws
+    /// leaves a visible job rather than nothing. Mirrors JobService.CreateFailedJob.
+    /// </summary>
+    public async Task CreateFailedJob(
+        Guid correlationId,
+        Guid moduleId,
+        Guid organizationId,
+        string jobType,
+        string errorMessage)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var timestamp = DateTimeOffset.UtcNow;
+
+        dbContext.ManualModuleJobs.Add(new ManualModuleJob
+        {
+            Id = correlationId,
+            ModuleId = moduleId,
+            OrganizationId = organizationId,
+            TimestampStart = timestamp,
+            TimestampEnd = timestamp,
+            JobType = jobType,
+            Status = ExecutionStatus.Failed,
+            ServerSideErrorHeader = "This job failed due to an error occurring on the Server. The full error can be seen below.",
+            ServerSideError = errorMessage
+        });
+
+        await dbContext.SaveChangesAsync();
     }
 
     public void Dispose()
