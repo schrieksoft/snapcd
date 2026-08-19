@@ -9,48 +9,44 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Interfaces;
-using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.Entities.Definition;
 
 /// <summary>
-/// An operator-initiated job that runs against a paused Module. Kept separate from ModuleJob
-/// because IsCurrent there drives dependency resolution and the gatekeeper's dequeue check, and
-/// manual work is neither a deployment nor a reason for dependents to wait.
+/// An approve or decline decision on a ManualModuleJob. Parallel to ModuleJobApproval rather than
+/// a generalisation of it, so the two job kinds keep their own foreign keys and cascade behaviour.
 /// </summary>
-public class ManualModuleJob : AuditBase, IEntity, IModuleChild
+public class ManualModuleJobApproval : AuditBase, IEntity
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
+    public Guid ManualModuleJobId { get; set; }
 
-    public Guid ModuleId { get; set; }
+    public Guid PrincipalId { get; set; }
 
-    public int JobNumber { get; set; }
+    public PrincipalDiscriminator PrincipalDiscriminator { get; set; }
 
-    public DateTimeOffset TimestampStart { get; set; }
-    public DateTimeOffset? TimestampEnd { get; set; }
+    /// <summary>
+    /// AgentId of the Agent that decided this approval (acting via its underlying ServicePrincipal),
+    /// or <c>null</c> if the decision was made by a User or a non-agent ServicePrincipal.
+    /// </summary>
+    public Guid? AgentId { get; set; }
 
-    public ExecutionStatus Status { get; set; }
+    /// <summary>Rationale for the decision. Required on decline, optional on approve.</summary>
+    [MaxLength(2000)] public string? Reason { get; set; }
 
-    [MaxLength(100)] public string JobType { get; set; } = null!;
+    public DateTime DecisionDateTime { get; set; }
 
-    public bool? WaitingForApproval { get; set; }
+    public bool Declined { get; set; }
 
-    [MaxLength(255)] public string? ServerSideErrorHeader { get; set; }
-
-    [MaxLength(16000)] public string? ServerSideError { get; set; }
-
-    public string? Logs { get; set; }
-
-    public List<ManualModuleJobApproval> ManualModuleJobApprovals { get; set; } = null!;
-
-    [JsonIgnore] public Module Module { get; set; } = null!;
+    [JsonIgnore] public ManualModuleJob ManualModuleJob { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId()
     {
-        return ModuleId;
+        return ManualModuleJobId;
     }
 }
