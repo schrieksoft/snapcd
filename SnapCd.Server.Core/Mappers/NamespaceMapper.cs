@@ -25,6 +25,7 @@ public static class NamespaceMapper
             DefaultTriggerPathFilterEnabled = dto.DefaultTriggerPathFilterEnabled,
             DefaultApplyApprovalThreshold = dto.DefaultApplyApprovalThreshold,
             DefaultDestroyApprovalThreshold = dto.DefaultDestroyApprovalThreshold,
+            DefaultSplitMonolithApprovalThreshold = dto.DefaultSplitMonolithApprovalThreshold,
             DefaultApprovalTimeoutMinutes = dto.DefaultApprovalTimeoutMinutes,
             TriggerBehaviourOnModified = dto.TriggerBehaviourOnModified,
             DefaultEngine = dto.DefaultEngine,
@@ -44,6 +45,7 @@ public static class NamespaceMapper
             DefaultTriggerPathFilterEnabled = entity.DefaultTriggerPathFilterEnabled,
             DefaultApplyApprovalThreshold = entity.DefaultApplyApprovalThreshold,
             DefaultDestroyApprovalThreshold = entity.DefaultDestroyApprovalThreshold,
+            DefaultSplitMonolithApprovalThreshold = entity.DefaultSplitMonolithApprovalThreshold,
             DefaultApprovalTimeoutMinutes = entity.DefaultApprovalTimeoutMinutes,
             TriggerBehaviourOnModified = entity.TriggerBehaviourOnModified,
             DefaultEngine = entity.DefaultEngine,
@@ -60,6 +62,7 @@ public static class NamespaceMapper
         entity.DefaultTriggerPathFilterEnabled = dto.DefaultTriggerPathFilterEnabled;
         entity.DefaultApplyApprovalThreshold = dto.DefaultApplyApprovalThreshold;
         entity.DefaultDestroyApprovalThreshold = dto.DefaultDestroyApprovalThreshold;
+        entity.DefaultSplitMonolithApprovalThreshold = dto.DefaultSplitMonolithApprovalThreshold;
         entity.DefaultApprovalTimeoutMinutes = dto.DefaultApprovalTimeoutMinutes;
         entity.TriggerBehaviourOnModified = dto.TriggerBehaviourOnModified;
         entity.DefaultEngine = dto.DefaultEngine;

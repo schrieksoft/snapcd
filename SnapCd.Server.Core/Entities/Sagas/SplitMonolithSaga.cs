@@ -17,7 +17,7 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// job needs — correlation, concurrency, cancellation, heartbeat, approval, the pinned runner
 /// instance — and adds what only this job has.
 /// </summary>
-public class SplitMonolithSaga : JobSagaBase
+public class SplitMonolithSaga : ManualJobSagaBase
 {
     /// <summary>Where the split writes its module directories, passed to demonolith as --out.</summary>
     [MaxLength(1000)] public string? OutDirectory { get; set; }
@@ -40,10 +40,4 @@ public class SplitMonolithSaga : JobSagaBase
     /// <summary>Modules the proof covered, and how many planned clean.</summary>
     public int? ProvenModuleCount { get; set; }
 
-    /// <summary>
-    /// Why an assertion step answered no. Set by RefactorVerify or MigrateProve on demonolith's
-    /// exit code 2 — the run worked and the answer was no — so the job ends with the reason shown
-    /// rather than as an operational failure.
-    /// </summary>
-    [MaxLength(2000)] public string? NegativeVerdict { get; set; }
 }

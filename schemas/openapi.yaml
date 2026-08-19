@@ -28474,6 +28474,16 @@ components:
             Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor
             on Namespace then a threshold of 0 is used.
           format: int32
+        splitMonolithApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a 'SplitMonolith' job pushes
+            state. Setting this will override any default value set on the Module's parent Namespace. If set neither on Module
+            nor on Namespace then a threshold of 1 is used, since the push is irreversible.
+          format: int32
         approvalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -29977,6 +29987,16 @@ components:
             Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor
             on Namespace then a threshold of 0 is used.
           format: int32
+        splitMonolithApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a 'SplitMonolith' job pushes
+            state. Setting this will override any default value set on the Module's parent Namespace. If set neither on Module
+            nor on Namespace then a threshold of 1 is used, since the push is irreversible.
+          format: int32
         approvalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -30677,6 +30697,16 @@ components:
             Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor
             on Namespace then a threshold of 0 is used.
           format: int32
+        splitMonolithApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a 'SplitMonolith' job pushes
+            state. Setting this will override any default value set on the Module's parent Namespace. If set neither on Module
+            nor on Namespace then a threshold of 1 is used, since the push is irreversible.
+          format: int32
         approvalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -30867,6 +30897,16 @@ components:
           description: The number of Users (or Service Principals) that need to approve before an 'Destroy' plan is executed.
             All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If set neither
             on Module nor on Namespace then a threshold of 0 is used.
+          format: int32
+        defaultSplitMonolithApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a 'SplitMonolith' job pushes
+            state. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If
+            set neither on Module nor on Namespace then a threshold of 1 is used, since the push is irreversible.
           format: int32
         defaultApprovalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
@@ -31926,6 +31966,16 @@ components:
             All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If set neither
             on Module nor on Namespace then a threshold of 0 is used.
           format: int32
+        defaultSplitMonolithApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a 'SplitMonolith' job pushes
+            state. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If
+            set neither on Module nor on Namespace then a threshold of 1 is used, since the push is irreversible.
+          format: int32
         defaultApprovalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -32473,6 +32523,16 @@ components:
           description: The number of Users (or Service Principals) that need to approve before an 'Destroy' plan is executed.
             All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If set neither
             on Module nor on Namespace then a threshold of 0 is used.
+          format: int32
+        defaultSplitMonolithApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a 'SplitMonolith' job pushes
+            state. All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If
+            set neither on Module nor on Namespace then a threshold of 1 is used, since the push is irreversible.
           format: int32
         defaultApprovalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
@@ -33955,5 +34015,5 @@ x-snapcd-permission-coverage:
   documented: 446
   skipped: 23
 x-snapcd-schema-doc-coverage:
-  documented: 1183
+  documented: 1189
   missing: 0

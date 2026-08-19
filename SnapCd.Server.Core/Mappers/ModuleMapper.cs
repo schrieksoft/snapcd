@@ -34,6 +34,7 @@ public static class ModuleMapper
             CleanInitEnabled = dto.CleanInitEnabled,
             ApplyApprovalThreshold = dto.ApplyApprovalThreshold,
             DestroyApprovalThreshold = dto.DestroyApprovalThreshold,
+            SplitMonolithApprovalThreshold = dto.SplitMonolithApprovalThreshold,
             ApprovalTimeoutMinutes = dto.ApprovalTimeoutMinutes,
             Engine = dto.Engine,
             WaitForApplyDependencies = dto.WaitForApplyDependencies,
@@ -68,6 +69,7 @@ public static class ModuleMapper
             CleanInitEnabled = entity.CleanInitEnabled,
             ApplyApprovalThreshold = entity.ApplyApprovalThreshold,
             DestroyApprovalThreshold = entity.DestroyApprovalThreshold,
+            SplitMonolithApprovalThreshold = entity.SplitMonolithApprovalThreshold,
             ApprovalTimeoutMinutes = entity.ApprovalTimeoutMinutes,
             Engine = entity.Engine,
             WaitForApplyDependencies = entity.WaitForApplyDependencies,
@@ -99,6 +101,7 @@ public static class ModuleMapper
         entity.CleanInitEnabled = dto.CleanInitEnabled;
         entity.ApplyApprovalThreshold = dto.ApplyApprovalThreshold;
         entity.DestroyApprovalThreshold = dto.DestroyApprovalThreshold;
+        entity.SplitMonolithApprovalThreshold = dto.SplitMonolithApprovalThreshold;
         entity.ApprovalTimeoutMinutes = dto.ApprovalTimeoutMinutes;
         entity.Engine = dto.Engine;
         entity.WaitForApplyDependencies = dto.WaitForApplyDependencies;
