@@ -12,6 +12,7 @@ using MassTransit.SqlTransport;
 using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
+using SnapCd.Server.Core.StateMachine.SplitMonolith;
 using SnapCd.Server.Core.Consumers.Tasks;
 using SnapCd.Server.Core.Consumers.Tasks.Handlers;
 using SnapCd.Server.Core.Database;
@@ -336,6 +337,7 @@ public static class MassTransit
     {
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
+        AddSagaStateMachine<SplitMonolithStateMachine, SplitMonolithSaga>(x);
 
         // module sagas
         AddSagaStateMachine<
