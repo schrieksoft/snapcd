@@ -60,6 +60,7 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public List<VariableSet> VariableSets { get; set; } = new();
     public List<ApplyJobSaga> ApplyModuleSaga { get; set; } = new();
     public List<DestroyJobSaga> DestroyModuleSaga { get; set; } = new();
+    public List<SplitMonolithSaga> SplitMonolithSagas { get; set; } = new();
     public List<ModuleJob> ModuleJobs { get; set; } = new();
 
     public List<ModuleExtraFile> ModuleExtraFiles { get; set; } = new();
