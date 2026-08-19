@@ -47,6 +47,9 @@ public class ModuleCreateDto
     /// <summary>The number of Users (or Service Principals) that need to approve before an 'Destroy' plan is executed. Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor on Namespace then a threshold of 0 is used.</summary>
     public int? DestroyApprovalThreshold { get; set; }
 
+    /// <summary>The number of Users (or Service Principals) that need to approve before a 'SplitMonolith' job pushes state. Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor on Namespace then a threshold of 1 is used, since the push is irreversible.</summary>
+    public int? SplitMonolithApprovalThreshold { get; set; }
+
     /// <summary>The number of minutes a Job should remain in the 'WaitingForApproval' in the case of an 'Apply' or 'Destroy' plan that requires approval. After this time elapses the Job will be stopped and any queued Jobs will start. Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor on Namespace the Jobs will wait for an approval decision indefinitely.</summary>
     public int? ApprovalTimeoutMinutes { get; set; }
 

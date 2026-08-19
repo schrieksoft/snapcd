@@ -40,6 +40,9 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
 
     public int? DestroyApprovalThreshold { get; set; }
 
+    /// <summary>Approvals required before a SplitMonolith job pushes state. Defaults to 1: the push is irreversible.</summary>
+    public int? SplitMonolithApprovalThreshold { get; set; }
+
     public int? ApprovalTimeoutMinutes { get; set; }
     public SourceType SourceType { get; set; } = SourceType.Git;
     public SourceRevisionType SourceRevisionType { get; set; } = SourceRevisionType.Default;
