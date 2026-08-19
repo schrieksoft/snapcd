@@ -240,6 +240,7 @@ public static class Factories
         services.AddScoped<ResolvedConfigurationServiceFactory>();
         services.AddScoped<JobServiceFactory>();
         services.AddScoped<SecuredJobServiceFactory>();
+        services.AddScoped<ManualJobServiceFactory>();
         services.AddScoped<SourceChangedServiceFactory>();
         services.AddScoped<AccessTokenServiceFactory>();
         services.AddScoped<UserManagerFactory>();

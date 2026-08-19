@@ -59,6 +59,7 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
     public virtual ICollection<VariableSet> VariableSets { get; set; } = new List<VariableSet>();
 
     public virtual ICollection<ModuleJob> ModuleJobs { get; set; } = new List<ModuleJob>();
+    public virtual ICollection<ManualModuleJob> ManualModuleJobs { get; set; } = new List<ManualModuleJob>();
     public virtual ICollection<ModuleJobApproval> ModuleJobApprovals { get; set; } = new List<ModuleJobApproval>();
     public virtual ICollection<ModuleJobMission> ModuleJobMissions { get; set; } = new List<ModuleJobMission>();
     public virtual ICollection<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; } = new List<ModuleJobMissionRun>();
