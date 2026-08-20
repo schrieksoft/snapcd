@@ -13,6 +13,9 @@ namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
 public class MigrateRunRequested : StepRequestBase
 {
+    /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
+    public bool Overwrite { get; set; }
+
     /// <summary>Monolith root within the checkout (--root-dir).</summary>
     public string? RootDirectory { get; set; }
 

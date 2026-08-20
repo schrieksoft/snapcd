@@ -114,6 +114,81 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyFaulted, jobId, errorMessage, stackTrace);
     }
 
+    public async Task InvokeRefactorVerifyCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorVerifyCompleted, jobId);
+    }
+
+    public async Task InvokeMigrateRunCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunCompleted, jobId);
+    }
+
+    public async Task InvokeMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateMapCompleted, jobId, refactorMapHash, carvedModuleNames, resourcesMoved);
+    }
+
+    public async Task InvokeMigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateProveCompleted, jobId, modulesProven, modulesPlanningClean);
+    }
+
+    public async Task InvokeMigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateVerifyCompleted, jobId, modulesProven, modulesPlanningClean);
+    }
+
+    public async Task InvokeRefactorVerifyCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorVerifyCancelled, jobId);
+    }
+
+    public async Task InvokeRefactorVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorVerifyFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeMigrateMapCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateMapCancelled, jobId);
+    }
+
+    public async Task InvokeMigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateMapFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeMigrateProveCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateProveCancelled, jobId);
+    }
+
+    public async Task InvokeMigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateProveFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeMigrateRunCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunCancelled, jobId);
+    }
+
+    public async Task InvokeMigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeMigrateVerifyCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateVerifyCancelled, jobId);
+    }
+
+    public async Task InvokeMigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateVerifyFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.VariablesCompleted, jobId, variableSet);

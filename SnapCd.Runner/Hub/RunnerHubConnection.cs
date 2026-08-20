@@ -192,6 +192,41 @@ public class RunnerHubConnection : IAsyncDisposable
         );
 
         // Register handler for PolicyValidate
+        _connection.On<RefactorVerifyRequestBase>(RunnerEndpoints.RefactorVerify, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.RefactorVerify(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<MigrateMapRequestBase>(RunnerEndpoints.MigrateMap, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.MigrateMap(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<MigrateProveRequestBase>(RunnerEndpoints.MigrateProve, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.MigrateProve(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<MigrateRunRequestBase>(RunnerEndpoints.MigrateRun, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.MigrateRun(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<MigrateVerifyRequestBase>(RunnerEndpoints.MigrateVerify, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.MigrateVerify(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
         _connection.On<PlanEmptyVerifyRequestBase>(RunnerEndpoints.PlanEmptyVerify, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.PlanEmptyVerify(request, _connection); });

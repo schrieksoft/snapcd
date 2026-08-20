@@ -35,7 +35,8 @@ public partial class SplitMonolithStateMachine
         Event<TCancelled> cancelledEvent,
         Event<TFaulted> faultedEvent,
         State nextWaitingState,
-        State nextState
+        State nextState,
+        Action<BehaviorContext<SplitMonolithSaga, TCompleted>>? onCompleted = null
     )
         where TNextEvent : StepRequestBase, new()
         where TCompleted : StepResponseBase
@@ -85,6 +86,8 @@ public partial class SplitMonolithStateMachine
 
         During(duringState,
             When(completedEvent)
+                // Lets a step record what it reported before the chain moves on.
+                .Then(context => onCompleted?.Invoke(context))
                 .Activity(x => x.OfType<SendToRunnerActivity<SplitMonolithSaga, TCompleted, TNextEvent>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
