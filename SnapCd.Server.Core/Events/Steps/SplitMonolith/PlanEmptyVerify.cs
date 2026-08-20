@@ -15,7 +15,7 @@ namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 /// so the failure names what was actually wrong: a plan that errored and a plan that was not empty
 /// are different outcomes.
 /// </summary>
-public class PlanEmptyVerifyRequested : StepRequestBase;
+public class PlanEmptyVerifyRequested : SplitStepRequestBase;
 
 public class PlanEmptyVerifyCompleted : StepResponseBase;
 

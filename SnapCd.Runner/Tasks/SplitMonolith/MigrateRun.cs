@@ -54,7 +54,11 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("migrate run", request.ExecPath, request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build(
+                "migrate run",
+                request.RootDirectory,
+                request.Engine,
+                DemonolithCommand.BackendConfigFlags(request.BackendConfigs).ToArray());
             if (request.Overwrite) command += " --overwrite";
 
             var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);

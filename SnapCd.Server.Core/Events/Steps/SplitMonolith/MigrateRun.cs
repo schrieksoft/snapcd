@@ -11,17 +11,10 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
-public class MigrateRunRequested : StepRequestBase
+public class MigrateRunRequested : SplitStepRequestBase
 {
     /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
     public bool Overwrite { get; set; }
-
-    /// <summary>Monolith root within the checkout (--root-dir).</summary>
-    public string? RootDirectory { get; set; }
-
-    /// <summary>Engine the migration runs with (--engine), or an explicit binary (--exec-path).</summary>
-    public string? Engine { get; set; }
-    public string? ExecPath { get; set; }
 }
 
 /// <summary>

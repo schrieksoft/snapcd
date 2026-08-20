@@ -67,7 +67,6 @@ public class MigrateMapConsumer : IConsumer<MigrateMapRequested>
                     Metadata = metadata,
                     Engine = msg.Declared.Engine,
                     RootDirectory = msg.RootDirectory,
-                    ExecPath = msg.ExecPath,
                 }
             );
 
