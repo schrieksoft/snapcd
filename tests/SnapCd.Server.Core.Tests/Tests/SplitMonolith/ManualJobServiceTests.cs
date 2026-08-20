@@ -107,7 +107,7 @@ public class ManualJobServiceTests : IAsyncLifetime
         using var service = CreateService();
 
         await Assert.ThrowsAsync<ManualJobNotAllowedException>(
-            () => service.Start(_moduleId, _organizationId, "SplitMonolith"));
+            () => service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMonolith));
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public class ManualJobServiceTests : IAsyncLifetime
         var correlationId = Guid.NewGuid();
 
         using var service = CreateService();
-        var job = await service.Start(_moduleId, _organizationId, "SplitMonolith", correlationId);
+        var job = await service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMonolith, correlationId);
 
         Assert.Equal(correlationId, job.Id);
         Assert.Equal(ExecutionStatus.Running, job.Status);
@@ -158,7 +158,7 @@ public class ManualJobServiceTests : IAsyncLifetime
         {
             try
             {
-                await service.Start(_moduleId, _organizationId, "SplitMonolith");
+                await service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMonolith);
                 return true;
             }
             catch (ManualJobNotAllowedException)
@@ -225,7 +225,7 @@ public class ManualJobServiceTests : IAsyncLifetime
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = "SplitMonolith",
+            JobType = ManualJobTypes.SplitMonolith,
             Status = ExecutionStatus.Running
         });
         await db.SaveChangesAsync();
