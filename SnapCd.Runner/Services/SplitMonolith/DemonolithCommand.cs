@@ -10,7 +10,11 @@ namespace SnapCd.Runner.Services.SplitMonolith;
 
 /// <summary>
 /// Builds a demonolith invocation. The binary is expected on the runner and is not shipped with
-/// Snap CD; --output json is always passed, since the runner reads the result rather than a person.
+/// Snap CD.
+///
+/// --output json is deliberately not passed: it replaces the human report on stdout, and that
+/// report is what the runner streams into the job's logs. Statistics come from the receipts
+/// demonolith writes, which carry a version the reader can check — the stdout document does not.
 ///
 /// Sub-commands are invoked individually rather than the bare `migrate` pipeline, so the
 /// confirmation it pauses for never arises and --yes is not passed — it belongs to that pipeline's
@@ -24,7 +28,7 @@ public static class DemonolithCommand
         string? engine,
         params string[] extraFlags)
     {
-        var command = $"demonolith {subcommand} --output json";
+        var command = $"demonolith {subcommand}";
 
         if (!string.IsNullOrWhiteSpace(rootDirectory))
             command += $" --root-dir \"{rootDirectory}\"";

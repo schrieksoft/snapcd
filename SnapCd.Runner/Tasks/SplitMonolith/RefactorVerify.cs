@@ -16,7 +16,11 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    /// <summary>Asserts the committed module directories still match the source. Offline and credential-free.</summary>
+    /// <summary>
+    /// Asserts the committed module directories still match the source. Offline and credential-free.
+    /// This is a checksum comparison only: whether the engine accepts each carved module is a
+    /// separate question, and will get its own step rather than a flag on this one.
+    /// </summary>
     public async Task RefactorVerify(RefactorVerifyRequestBase request, HubConnection connection)
     {
         var killCts = new CancellationTokenSource();
@@ -54,15 +58,10 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build(
-                "refactor verify",
-                request.RootDirectory,
-                request.Engine,
-                // The map check only compares checksums; --validate also asks the engine whether
-                // each carved module is valid. Credential-free, and cheaper to fail here than at prove.
-                "--validate");
+            // refactor verify takes no --engine: it compares files without asking the engine.
+            var command = DemonolithCommand.Build("refactor verify", request.RootDirectory, engine: null);
 
-            var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeRefactorVerifyCompleted(request.JobId),
