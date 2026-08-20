@@ -60,10 +60,14 @@ public partial class Tasks
                 request.Engine,
                 DemonolithCommand.BackendConfigFlags(request.BackendConfigs).ToArray());
 
-            var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
-            var modulesProven = DemonolithOutput.ReadInt(output, "modulesProven");
-            var modulesPlanningClean = DemonolithOutput.ReadInt(output, "modulesPlanningClean");
+            // module_states names each module the proof covered; a receipt marked complete means
+            // every one of them planned clean, since demonolith fails the run otherwise.
+            var receipt = DemonolithReceipt.Read(request.RootDirectory, DemonolithReceipt.VerifyReceiptFile);
+            var modulesProven = receipt?.ModuleStates.Count ?? 0;
+            var modulesPlanningClean = receipt is { Complete: true } ? modulesProven : 0;
+
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeMigrateVerifyCompleted(request.JobId, modulesProven, modulesPlanningClean),

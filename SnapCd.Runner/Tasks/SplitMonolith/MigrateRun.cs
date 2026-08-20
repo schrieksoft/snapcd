@@ -61,7 +61,7 @@ public partial class Tasks
                 DemonolithCommand.BackendConfigFlags(request.BackendConfigs).ToArray());
             if (request.Overwrite) command += " --overwrite";
 
-            var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeMigrateRunCompleted(request.JobId),

@@ -56,12 +56,15 @@ public partial class Tasks
 
             var command = DemonolithCommand.Build("migrate map", request.RootDirectory, request.Engine);
 
-            var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
-            // Receipts stay on the runner: only the shape of the carve crosses back.
-            var refactorMapHash = DemonolithOutput.ReadString(output, "refactorMapHash");
-            var carvedModuleNames = DemonolithOutput.ReadStringList(output, "modules");
-            var resourcesMoved = DemonolithOutput.ReadInt(output, "resourcesMoved");
+            // The receipt is the durable record and is versioned; the stdout report is neither.
+            // It stays on the runner — only these few fields are reported back.
+            var receipt = DemonolithReceipt.Read(request.RootDirectory, DemonolithReceipt.MapReceiptFile);
+            var refactorMapHash = receipt?.MapChecksum;
+            var carvedModuleNames = receipt?.ModuleStates.Keys.ToList() ?? [];
+            var resourcesMoved = carvedModuleNames.Count;
+
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeMigrateMapCompleted(request.JobId, refactorMapHash, carvedModuleNames, resourcesMoved),
