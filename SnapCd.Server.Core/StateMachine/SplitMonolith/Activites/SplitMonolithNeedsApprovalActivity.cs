@@ -12,7 +12,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 
-namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
+namespace SnapCd.Server.Core.StateMachine.SplitMonolith.Activites;
 
 public class SplitMonolithNeedsApprovalActivity<TMessage>
     : ManualJobNeedsApprovalActivity<SplitMonolithSaga, TMessage>

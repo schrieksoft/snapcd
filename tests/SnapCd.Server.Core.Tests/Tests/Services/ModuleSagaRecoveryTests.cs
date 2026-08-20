@@ -6,7 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -112,7 +114,9 @@ public class ModuleSagaRecoveryTests : IAsyncLifetime
             () => Repo().Get(Guid.NewGuid(), _fixture.Organizations["0"].Id));
     }
 
-    private ModuleSagaRepository Repo() => new(_fixture.CreateDbContext());
+    // The recovery path under test publishes nothing; the bus is here only to satisfy the
+    // constructor, which needs one for the pause writes.
+    private ModuleSagaRepository Repo() => new(_fixture.CreateDbContext(), Mock.Of<IBus>());
 
     private async Task RemoveSagaIfPresent(Guid moduleId)
     {

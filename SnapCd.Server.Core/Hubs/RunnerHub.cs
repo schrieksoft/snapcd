@@ -54,6 +54,11 @@ public class RunnerHub : Hub
     private readonly VariableHandler _variableHandler;
     private readonly PlanHandler _planHandler;
     private readonly PlanEmptyVerifyHandler _planEmptyVerifyHandler;
+    private readonly RefactorVerifyHandler _refactorVerifyHandler;
+    private readonly MigrateMapHandler _migrateMapHandler;
+    private readonly MigrateProveHandler _migrateProveHandler;
+    private readonly MigrateRunHandler _migrateRunHandler;
+    private readonly MigrateVerifyHandler _migrateVerifyHandler;
     private readonly PlanDestroyHandler _planDestroyHandler;
     private readonly ApplyFromPlanHandler _applyFromPlanHandler;
     private readonly DestroyFromPlanHandler _destroyFromPlanHandler;
@@ -81,6 +86,11 @@ public class RunnerHub : Hub
         VariableHandler variableHandler,
         PlanHandler planHandler,
         PlanEmptyVerifyHandler planEmptyVerifyHandler,
+        RefactorVerifyHandler refactorVerifyHandler,
+        MigrateMapHandler migrateMapHandler,
+        MigrateProveHandler migrateProveHandler,
+        MigrateRunHandler migrateRunHandler,
+        MigrateVerifyHandler migrateVerifyHandler,
         PlanDestroyHandler planDestroyHandler,
         ApplyFromPlanHandler applyFromPlanHandler,
         DestroyFromPlanHandler destroyFromPlanHandler,
@@ -107,6 +117,11 @@ public class RunnerHub : Hub
         _variableHandler = variableHandler;
         _planHandler = planHandler;
         _planEmptyVerifyHandler = planEmptyVerifyHandler;
+        _refactorVerifyHandler = refactorVerifyHandler;
+        _migrateMapHandler = migrateMapHandler;
+        _migrateProveHandler = migrateProveHandler;
+        _migrateRunHandler = migrateRunHandler;
+        _migrateVerifyHandler = migrateVerifyHandler;
         _planDestroyHandler = planDestroyHandler;
         _applyFromPlanHandler = applyFromPlanHandler;
         _destroyFromPlanHandler = destroyFromPlanHandler;
@@ -619,6 +634,127 @@ public class RunnerHub : Hub
             Context, jobId, SplitMonolithTaskEndpoint.PlanEmptyVerifyFaulted);
 
         await _planEmptyVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+
+    public async Task RefactorVerifyCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorVerifyCompleted);
+
+        await _refactorVerifyHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task RefactorVerifyCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorVerifyCancelled);
+
+        await _refactorVerifyHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RefactorVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorVerifyFaulted);
+
+        await _refactorVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task MigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateMapCompleted);
+
+        await _migrateMapHandler.Complete(jobId, organizationId, refactorMapHash, carvedModuleNames, resourcesMoved);
+    }
+
+    public async Task MigrateMapCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateMapCancelled);
+
+        await _migrateMapHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task MigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateMapFaulted);
+
+        await _migrateMapHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task MigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateProveCompleted);
+
+        await _migrateProveHandler.Complete(jobId, organizationId, modulesProven, modulesPlanningClean);
+    }
+
+    public async Task MigrateProveCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateProveCancelled);
+
+        await _migrateProveHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task MigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateProveFaulted);
+
+        await _migrateProveHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task MigrateRunCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateRunCompleted);
+
+        await _migrateRunHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task MigrateRunCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateRunCancelled);
+
+        await _migrateRunHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task MigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateRunFaulted);
+
+        await _migrateRunHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task MigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateVerifyCompleted);
+
+        await _migrateVerifyHandler.Complete(jobId, organizationId, modulesProven, modulesPlanningClean);
+    }
+
+    public async Task MigrateVerifyCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateVerifyCancelled);
+
+        await _migrateVerifyHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task MigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.MigrateVerifyFaulted);
+
+        await _migrateVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task PlanDestroyCompleted(Guid jobId, PlanCompletedData data)
