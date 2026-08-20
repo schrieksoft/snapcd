@@ -19,6 +19,7 @@ using SnapCd.Server.Core.Events.Steps.SplitMonolith;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
 using SnapCd.Server.Core.StateMachine.SplitMonolith.Activites;
 
@@ -90,6 +91,7 @@ public partial class SplitMonolithStateMachine
                         context.Saga.WaitingSince = null;
                         _logger.LogInformation("SplitMonolith: approved, pushing state for job {JobId}", context.Saga.CorrelationId);
                     })
+                    .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<SplitMonolithSaga, TMessage>>())
                     .Activity(z => z.OfType<SendSplitStepToRunnerActivity<TMessage, MigrateRunRequested>>())
                     .IfElse(
                         context => context.Saga.PreviousStateBeforeWaiting != null,
@@ -123,6 +125,7 @@ public partial class SplitMonolithStateMachine
                             .If(
                                 _ => transition,
                                 z1 => z1
+                                    .Activity(z2 => z2.OfType<WaitingForApprovalManualJobActivity<SplitMonolithSaga, TMessage>>())
                                     .Then(context =>
                                     {
                                         context.Saga.WaitingSince = DateTime.UtcNow;
