@@ -1,4 +1,4 @@
-FROM ghcr.io/schrieksoft/base-image-snapcd-runner:1.1.0
+FROM ghcr.io/schrieksoft/base-image-snapcd-runner:1.1.1
 
 EXPOSE 80
 EXPOSE 443
