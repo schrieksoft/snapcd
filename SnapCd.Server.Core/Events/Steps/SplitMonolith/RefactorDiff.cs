@@ -11,12 +11,12 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
-public class RefactorVerifyRequested : SplitStepRequestBase;
+public class RefactorDiffRequested : SplitStepRequestBase;
 
-public class RefactorVerifyCompleted : StepResponseBase
+public class RefactorDiffCompleted : StepResponseBase
 {
 }
 
-public class RefactorVerifyFaulted : StepFaultedBase;
+public class RefactorDiffFaulted : StepFaultedBase;
 
-public class RefactorVerifyCancelled : StepResponseBase;
+public class RefactorDiffCancelled : StepResponseBase;

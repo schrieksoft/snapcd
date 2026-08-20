@@ -17,5 +17,5 @@ public class SplitMonolithRequested : ModuleJobEventBase
     public string? RootDirectory { get; set; }
 
     /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
-    public bool Overwrite { get; set; }
+    public bool Force { get; set; }
 }

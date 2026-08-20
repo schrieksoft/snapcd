@@ -24,7 +24,8 @@ public static class TaskHandlers
         services.AddScoped<VariableHandler>();
         services.AddScoped<PlanHandler>();
         services.AddScoped<PlanEmptyVerifyHandler>();
-        services.AddScoped<RefactorVerifyHandler>();
+        services.AddScoped<RefactorValidateHandler>();
+        services.AddScoped<RefactorDiffHandler>();
         services.AddScoped<MigrateMapHandler>();
         services.AddScoped<MigrateProveHandler>();
         services.AddScoped<MigrateRunHandler>();

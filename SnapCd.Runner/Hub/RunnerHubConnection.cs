@@ -192,9 +192,16 @@ public class RunnerHubConnection : IAsyncDisposable
         );
 
         // Register handler for PolicyValidate
-        _connection.On<RefactorVerifyRequestBase>(RunnerEndpoints.RefactorVerify, (request) =>
+        _connection.On<RefactorValidateRequestBase>(RunnerEndpoints.RefactorValidate, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.RefactorVerify(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.RefactorValidate(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<RefactorDiffRequestBase>(RunnerEndpoints.RefactorDiff, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.RefactorDiff(request, _connection); });
                 return Task.CompletedTask;
             }
         );
