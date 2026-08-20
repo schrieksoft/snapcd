@@ -66,6 +66,16 @@ public class ManualModuleJobSecuredRepository : IDisposable
         return await _repository.Get(id, organizationId);
     }
 
+    /// <summary>Decisions recorded against a job, newest first.</summary>
+    public async Task<List<ManualModuleJobApproval>> ListApprovals(Guid jobId, Guid moduleId, Guid organizationId)
+    {
+        if (!_moduleSecuredRepository.CanRead(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Module with ID {moduleId} not found or the principal does not have permission to read it.");
+
+        return await _repository.ListApprovals(jobId, organizationId);
+    }
+
     public void Dispose()
     {
         _repository?.Dispose();

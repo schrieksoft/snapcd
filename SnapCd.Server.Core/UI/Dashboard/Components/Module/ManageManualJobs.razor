@@ -88,7 +88,7 @@
             <tbody>
             @foreach (var job in _jobs)
             {
-                <tr>
+                <tr @onclick="() => Select(job)" style="cursor: pointer;">
                     <td>@job.JobNumber</td>
                     <td>@FormatJobType(job.JobType)</td>
                     <td>@job.Status</td>
@@ -100,6 +100,82 @@
         </MudSimpleTable>
     }
 </MudPaper>
+
+@if (_selected is not null)
+{
+    <MudPaper Elevation="1" Class="pa-4 mt-4">
+        <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.subtitle2">
+                @FormatJobType(_selected.JobType) — job @_selected.JobNumber
+            </MudText>
+            <MudSpacer/>
+            <MudIconButton Icon="@SnapCdIcons.Close" Size="Size.Small" OnClick="() => _selected = null"/>
+        </MudStack>
+
+        @if (_selected is { WaitingForApproval: true })
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                This job has proved every module plans to zero changes and is waiting for approval
+                before it pushes state. The push cannot be undone.
+            </MudAlert>
+
+            <MudTextField @bind-Value="_decisionReason"
+                          Label="Reason"
+                          HelperText="Required when declining."
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Class="mb-3"/>
+
+            <MudStack Row Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Disabled="@(!_canPause || _busy)" OnClick="() => Decide(false)">approve</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Disabled="@(!_canPause || _busy)" OnClick="() => Decide(true)">decline</MudButton>
+            </MudStack>
+        }
+
+        @if (_approvals.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Decisions</MudText>
+            @foreach (var approval in _approvals)
+            {
+                <MudText Typo="Typo.body2">
+                    @(approval.Declined ? "Declined" : "Approved")
+                    on @approval.DecisionDateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                    @if (!string.IsNullOrWhiteSpace(approval.Reason))
+                    {
+                        @: — @approval.Reason
+                    }
+                </MudText>
+            }
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_selected.ServerSideError))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">
+                <MudText Typo="Typo.body2"><strong>@_selected.ServerSideErrorHeader</strong></MudText>
+                <MudText Typo="Typo.body2">@_selected.ServerSideError</MudText>
+            </MudAlert>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_selected.Logs))
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Logs</MudText>
+            <pre class="manual-job-logs">@_selected.Logs</pre>
+        }
+    </MudPaper>
+}
+
+<style>
+    .manual-job-logs {
+        background: var(--mud-palette-background-grey);
+        padding: 12px;
+        overflow-x: auto;
+        max-height: 480px;
+        font-size: 0.8rem;
+        margin: 0;
+    }
+</style>
 
 @code {
     [Parameter] public required Module Module { get; set; }
@@ -114,6 +190,9 @@
 
     private string? _blockedReason;
     private List<ManualModuleJob> _jobs = [];
+    private List<ManualModuleJobApproval> _approvals = [];
+    private ManualModuleJob? _selected;
+    private string? _decisionReason;
 
     /// Inside a paused module, any remaining block is work still draining: the pause itself is not one.
     private bool IsDraining => ModuleSaga is { Paused: true } && _blockedReason is not null;
@@ -162,6 +241,40 @@
 
             Snackbar.Add("Split started.", Severity.Success);
             await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Select(ManualModuleJob job)
+    {
+        _selected = job;
+        _decisionReason = null;
+
+        using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
+        _approvals = await jobRepo.ListApprovals(job.Id, Module.Id, OrganizationId);
+    }
+
+    private async Task Decide(bool declined)
+    {
+        if (_selected is null) return;
+
+        _busy = true;
+        try
+        {
+            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            await service.Decide(_selected.Id, Module.Id, OrganizationId, declined, _decisionReason);
+
+            Snackbar.Add(declined ? "Split declined." : "Split approved.", Severity.Success);
+            await Reload();
+            _selected = _jobs.FirstOrDefault(j => j.Id == _selected.Id);
+            if (_selected is not null) await Select(_selected);
         }
         catch (Exception e)
         {
