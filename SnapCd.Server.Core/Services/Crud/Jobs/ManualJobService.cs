@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Events.Jobs.Module;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration;
 using MassTransit;
@@ -184,6 +185,65 @@ public class ManualJobService : IDisposable
         }
 
         return job;
+    }
+
+    /// <summary>
+    /// Records an approve or decline decision on a manual job and asks the saga to re-evaluate.
+    /// The unique index on (job, principal) means one decision per principal; a second attempt
+    /// surfaces as a refusal rather than silently replacing the first.
+    /// </summary>
+    public async Task Decide(Guid jobId, Guid moduleId, Guid organizationId, bool declined, string? reason)
+    {
+        if (_bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to record a decision.");
+
+        if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to decide manual jobs on Module with Id {moduleId}");
+
+        if (declined && string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("A decline needs a reason.", nameof(reason));
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var job = await dbContext.ManualModuleJobs
+            .FirstOrDefaultAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
+
+        if (job is null)
+            throw new EntityNotFoundException($"Manual job '{jobId}' not found");
+
+        if (job.WaitingForApproval != true)
+            throw new ManualJobNotAllowedException("This job is not waiting for approval.");
+
+        dbContext.ManualModuleJobApprovals.Add(new ManualModuleJobApproval
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            ManualModuleJobId = jobId,
+            DecisionDateTime = DateTime.UtcNow,
+            Declined = declined,
+            PrincipalId = _moduleSecuredRepository.PrincipalProvider.GetSubject(organizationId),
+            PrincipalDiscriminator = _moduleSecuredRepository.PrincipalProvider.GetPrincipalDiscriminator(),
+            AgentId = _moduleSecuredRepository.PrincipalProvider.GetAgentId(),
+            Reason = reason
+        });
+
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // One decision per principal per job, enforced by the index rather than by this check.
+            throw new ManualJobNotAllowedException("You have already decided on this job.");
+        }
+
+        await _bus.Publish(new ApprovalReevaluationRequestedEvent
+        {
+            ModuleId = moduleId,
+            ModuleJobId = jobId
+        });
     }
 
     private async Task FailJob(Guid jobId, Guid organizationId, string errorMessage)

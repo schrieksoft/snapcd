@@ -60,6 +60,15 @@ public class ManualModuleJobRepository : IDisposable
             .ToListAsync();
     }
 
+    public async Task<List<ManualModuleJobApproval>> ListApprovals(Guid jobId, Guid organizationId)
+    {
+        return await _dbContext.ManualModuleJobApprovals
+            .AsNoTracking()
+            .Where(a => a.ManualModuleJobId == jobId && a.OrganizationId == organizationId)
+            .OrderByDescending(a => a.DecisionDateTime)
+            .ToListAsync();
+    }
+
     /// <summary>
     /// Closes the job. Only the saga may call this: the filtered unique index keys on Running, so
     /// a job left open blocks every future manual job on the module.
