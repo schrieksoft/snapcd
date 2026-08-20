@@ -90,7 +90,7 @@ public partial class SplitMonolithStateMachine
                         context.Saga.WaitingSince = null;
                         _logger.LogInformation("SplitMonolith: approved, pushing state for job {JobId}", context.Saga.CorrelationId);
                     })
-                    .Activity(z => z.OfType<SendToRunnerActivity<SplitMonolithSaga, TMessage, MigrateRunRequested>>())
+                    .Activity(z => z.OfType<SendSplitStepToRunnerActivity<TMessage, MigrateRunRequested>>())
                     .IfElse(
                         context => context.Saga.PreviousStateBeforeWaiting != null,
                         disconnected => disconnected

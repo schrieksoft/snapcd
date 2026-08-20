@@ -6,23 +6,16 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
-public class MigrateVerifyRequested : SplitStepRequestBase;
-
 /// <summary>
-/// This step performs an action rather than asserting one, so it either succeeds or faults.
-/// A non-zero exit is a fault: a half-completed push is not a tidy outcome to report.
+/// Parameters every demonolith step needs. Declared once here rather than repeated on each
+/// request, so the send activity can set them against a compile-checked type.
 /// </summary>
-public class MigrateVerifyCompleted : StepResponseBase
+public abstract class SplitStepRequestBase : StepRequestBase
 {
-    public int ModulesProven { get; set; }
-    public int ModulesPlanningClean { get; set; }
+    /// <summary>Monolith root within the checkout (--root-dir).</summary>
+    public string? RootDirectory { get; set; }
 }
-
-public class MigrateVerifyFaulted : StepFaultedBase;
-
-public class MigrateVerifyCancelled : StepResponseBase;

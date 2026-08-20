@@ -54,7 +54,7 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("migrate map", request.ExecPath, request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build("migrate map", request.RootDirectory, request.Engine);
 
             var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

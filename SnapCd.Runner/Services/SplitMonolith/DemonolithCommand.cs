@@ -11,21 +11,41 @@ namespace SnapCd.Runner.Services.SplitMonolith;
 /// <summary>
 /// Builds a demonolith invocation. The binary is expected on the runner and is not shipped with
 /// Snap CD; --output json is always passed, since the runner reads the result rather than a person.
+///
+/// Sub-commands are invoked individually rather than the bare `migrate` pipeline, so the
+/// confirmation it pauses for never arises and --yes is not passed — it belongs to that pipeline's
+/// flag set alone. Snap CD's approval gate sits on the same boundary.
 /// </summary>
 public static class DemonolithCommand
 {
-    public static string Build(string subcommand, string? execPath, string? rootDirectory, string? engine)
+    public static string Build(
+        string subcommand,
+        string? rootDirectory,
+        string? engine,
+        params string[] extraFlags)
     {
-        var binary = string.IsNullOrWhiteSpace(execPath) ? "demonolith" : execPath;
-
-        var command = $"{binary} {subcommand} --output json";
+        var command = $"demonolith {subcommand} --output json";
 
         if (!string.IsNullOrWhiteSpace(rootDirectory))
             command += $" --root-dir \"{rootDirectory}\"";
 
+        // --exec-path is not offered: Snap CD does not let a user name a binary. A runner declares
+        // additional paths to search, and the engine is chosen by name.
         if (!string.IsNullOrWhiteSpace(engine))
             command += $" --engine {engine.ToLowerInvariant()}";
 
+        foreach (var flag in extraFlags.Where(f => !string.IsNullOrWhiteSpace(f)))
+            command += $" {flag}";
+
         return command;
     }
+
+    /// <summary>
+    /// Backend settings that live outside the backend block, as demonolith expects them. Taken from
+    /// the module's own BackendConfig array flags, the same source the Init step uses.
+    /// </summary>
+    public static IEnumerable<string> BackendConfigFlags(IEnumerable<string> backendConfigs) =>
+        backendConfigs
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => $"--backend-config \"{c}\"");
 }

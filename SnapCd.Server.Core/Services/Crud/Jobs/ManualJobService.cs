@@ -155,7 +155,6 @@ public class ManualJobService : IDisposable
     public async Task<ManualModuleJob> StartSplitMonolith(
         Guid moduleId,
         Guid organizationId,
-        string? outDirectory,
         string? rootDirectory,
         bool overwrite)
     {
@@ -173,7 +172,6 @@ public class ManualJobService : IDisposable
             {
                 CorrelationId = job.Id,
                 Declared = declared,
-                OutDirectory = outDirectory,
                 RootDirectory = rootDirectory,
                 Overwrite = overwrite
             });

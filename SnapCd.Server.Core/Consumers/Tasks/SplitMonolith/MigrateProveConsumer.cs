@@ -67,7 +67,6 @@ public class MigrateProveConsumer : IConsumer<MigrateProveRequested>
                     Metadata = metadata,
                     Engine = msg.Declared.Engine,
                     RootDirectory = msg.RootDirectory,
-                    ExecPath = msg.ExecPath,
                 }
             );
 

@@ -19,9 +19,6 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// </summary>
 public class SplitMonolithSaga : ManualJobSagaBase
 {
-    /// <summary>Where the split writes its module directories, passed to demonolith as --out.</summary>
-    [MaxLength(1000)] public string? OutDirectory { get; set; }
-
     /// <summary>Monolith root within the checkout, passed as --root-dir.</summary>
     [MaxLength(1000)] public string? RootDirectory { get; set; }
 

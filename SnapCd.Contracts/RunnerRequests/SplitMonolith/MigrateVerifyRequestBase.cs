@@ -13,6 +13,9 @@ public class MigrateVerifyRequestBase : EngineJobRequestBase
     /// <summary>Monolith root within the checkout, passed to demonolith as --root-dir.</summary>
     public string? RootDirectory { get; set; }
 
-    /// <summary>Explicit demonolith binary path, when it is not on PATH.</summary>
-    public string? ExecPath { get; set; }
+    /// <summary>
+    /// Backend settings living outside the backend block, as key=value. Inherited from the
+    /// module's BackendConfig array flags — the same source the Init step reads.
+    /// </summary>
+    public List<string> BackendConfigs { get; set; } = [];
 }

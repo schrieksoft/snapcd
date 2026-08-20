@@ -54,7 +54,13 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("refactor verify", request.ExecPath, request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build(
+                "refactor verify",
+                request.RootDirectory,
+                request.Engine,
+                // The map check only compares checksums; --validate also asks the engine whether
+                // each carved module is valid. Credential-free, and cheaper to fail here than at prove.
+                "--validate");
 
             var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

@@ -54,7 +54,14 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("migrate prove", request.ExecPath, request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build(
+                "migrate prove",
+                request.RootDirectory,
+                request.Engine,
+                // Unrefreshed, a proof only shows the state was carved correctly and cannot see
+                // drift. This is the evidence an approver reads before an irreversible push, and
+                // the runner has the credentials the refresh needs.
+                "--refresh");
 
             var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

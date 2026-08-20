@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
+using SnapCd.Server.Core.StateMachine.SplitMonolith.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
@@ -44,7 +45,7 @@ public partial class SplitMonolithStateMachine
                 .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
             When(SelectRunnerInstanceCompleted)
                 .Then(context => { context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName; })
-                .Activity(x => x.OfType<SendToRunnerActivity<SplitMonolithSaga, SelectRunnerInstanceCompleted, GetModuleRequested>>())
+                .Activity(x => x.OfType<SendSplitStepToRunnerActivity<SelectRunnerInstanceCompleted, GetModuleRequested>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     whenTrue => whenTrue

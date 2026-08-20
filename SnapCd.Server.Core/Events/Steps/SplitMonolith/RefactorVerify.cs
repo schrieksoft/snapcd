@@ -11,15 +11,7 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
-public class RefactorVerifyRequested : StepRequestBase
-{
-    /// <summary>Monolith root within the checkout (--root-dir).</summary>
-    public string? RootDirectory { get; set; }
-
-    /// <summary>Engine the migration runs with (--engine), or an explicit binary (--exec-path).</summary>
-    public string? Engine { get; set; }
-    public string? ExecPath { get; set; }
-}
+public class RefactorVerifyRequested : SplitStepRequestBase;
 
 public class RefactorVerifyCompleted : StepResponseBase
 {

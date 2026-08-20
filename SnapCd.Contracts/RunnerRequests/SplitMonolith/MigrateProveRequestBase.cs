@@ -12,7 +12,4 @@ public class MigrateProveRequestBase : EngineJobRequestBase
 {
     /// <summary>Monolith root within the checkout, passed to demonolith as --root-dir.</summary>
     public string? RootDirectory { get; set; }
-
-    /// <summary>Explicit demonolith binary path, when it is not on PATH.</summary>
-    public string? ExecPath { get; set; }
 }
