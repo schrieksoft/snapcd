@@ -5604,7 +5604,16 @@ paths:
 
         ---
 
-        Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
       parameters:
       - name: organizationId
         in: path
@@ -5651,9 +5660,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ModulePauseDto'
       x-snapcd-permissions:
-        notes: Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner
-          or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module
-          update permissions.
+        verb: Pause
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
   /api/{organizationId}/Module/{moduleId}/unpause:
     post:
       tags:
@@ -5664,7 +5681,16 @@ paths:
 
         ---
 
-        Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
       parameters:
       - name: organizationId
         in: path
@@ -5694,9 +5720,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ModulePauseDto'
       x-snapcd-permissions:
-        notes: Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner
-          or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module
-          update permissions.
+        verb: Pause
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
   /api/{organizationId}/Module/{moduleId}/source:
     get:
       tags:
@@ -34012,8 +34046,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 446
-  skipped: 23
+  documented: 448
+  skipped: 21
 x-snapcd-schema-doc-coverage:
   documented: 1189
   missing: 0
