@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
+using SnapCd.Server.Core.Misc.Helpers.SplitMonolith;
 using SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Views;
@@ -26,6 +27,7 @@ namespace SnapCd.Server.Core.Services;
 public class RunnerJobAuthorizationService
 {
     private readonly JobSagaRepositoryFactory _jobSagaRepositoryFactory;
+    private readonly SplitMonolithSagaRepositoryFactory _splitMonolithSagaRepositoryFactory;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly ServicePrincipalRepositoryFactory _servicePrincipalRepositoryFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
@@ -33,12 +35,14 @@ public class RunnerJobAuthorizationService
 
     public RunnerJobAuthorizationService(
         JobSagaRepositoryFactory jobSagaRepositoryFactory,
+        SplitMonolithSagaRepositoryFactory splitMonolithSagaRepositoryFactory,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         ServicePrincipalRepositoryFactory servicePrincipalRepositoryFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         ILogger<RunnerJobAuthorizationService> logger)
     {
         _jobSagaRepositoryFactory = jobSagaRepositoryFactory;
+        _splitMonolithSagaRepositoryFactory = splitMonolithSagaRepositoryFactory;
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _servicePrincipalRepositoryFactory = servicePrincipalRepositoryFactory;
         _dbContextFactory = dbContextFactory;
@@ -244,4 +248,99 @@ public class RunnerJobAuthorizationService
         throw new InvalidOperationException(
             $"Module {moduleId} is not allowed to run jobs on Runner {runnerId}. You must first assign the Runner to this Module (or to its parent Namespace or Stack), or you must set the IsSuppliedToAllModules flag to 'true' on the Runner itself.");
     }
+
+    /// <summary>
+    /// The SplitMonolith equivalent of <see cref="ValidateRunnerCanAccessJob"/>. Kept separate
+    /// because the deployment path resolves its saga from the apply and destroy tables and parses
+    /// the state as a deployment enum, neither of which fits a manual job.
+    /// </summary>
+    public async Task<Guid> ValidateRunnerCanAccessSplitMonolithJob(
+        HubCallerContext hubCallerContext,
+        Guid jobId,
+        SplitMonolithTaskEndpoint taskEndpoint)
+    {
+        var expectedState = SplitMonolithStateHelper.Lookup(taskEndpoint);
+
+        var organizationId = GetValidatedOrganizationId(hubCallerContext);
+
+        using var connectionRepository = _connectionRepositoryFactory.Create();
+        var connection = await connectionRepository.GetBySignalRConnectionIdAsync(hubCallerContext.ConnectionId, organizationId);
+        if (connection == null)
+        {
+            _logger.LogWarning(
+                "Authorization failed: No connection found for connection {ConnectionId}",
+                hubCallerContext.ConnectionId);
+            throw new HubException("Unauthorized: Runner connection not found");
+        }
+
+        using var sagaRepository = _splitMonolithSagaRepositoryFactory.Create();
+        JobSagaMetaData sagaMetaData;
+        try
+        {
+            sagaMetaData = await sagaRepository.GetSagaMetaData(jobId, connection.OrganizationId);
+        }
+        catch (EntityNotFoundException e)
+        {
+            _logger.LogWarning(
+                "Authorization failed: SplitMonolith job {JobId} not found (Connection: {ConnectionId})",
+                jobId, hubCallerContext.ConnectionId);
+            throw new HubException(e.Message);
+        }
+
+        var currentState = Enum.Parse<SplitMonolithSagaState>(sagaMetaData.CurrentState);
+        var isStateValid = currentState == expectedState;
+
+        // A step that reports back mid-cancellation is still the step that was dispatched.
+        if (!isStateValid && SplitMonolithStateHelper.GetCancellingStates().Contains(currentState))
+        {
+            var previousState = !string.IsNullOrEmpty(sagaMetaData.PreviousStateBeforeCancelling)
+                ? Enum.Parse<SplitMonolithSagaState>(sagaMetaData.PreviousStateBeforeCancelling)
+                : (SplitMonolithSagaState?)null;
+
+            if (previousState == expectedState) isStateValid = true;
+        }
+
+        if (!isStateValid)
+        {
+            _logger.LogWarning(
+                "Authorization failed: SplitMonolith job {JobId} is in state {CurrentState}, expected {ExpectedState} " +
+                "(Runner: {RunnerId}/{RunnerName}, Connection: {ConnectionId})",
+                jobId, sagaMetaData.CurrentState, expectedState,
+                connection.RunnerId, connection.InstanceName, hubCallerContext.ConnectionId);
+            throw new HubException(
+                $"Unauthorized: Job is in state '{sagaMetaData.CurrentState}', expected '{expectedState}'");
+        }
+
+        if (sagaMetaData.RunnerId != connection.RunnerId)
+        {
+            _logger.LogWarning(
+                "Authorization failed: SplitMonolith job {JobId} requires Runner {RequiredRunnerId}, but the caller is {SelectedRunnerId}",
+                jobId, sagaMetaData.RunnerId, connection.RunnerId);
+            throw new HubException("Unauthorized: This runner's pool is not authorized for this job");
+        }
+
+        if (!string.IsNullOrEmpty(sagaMetaData.RunnerInstanceName) &&
+            sagaMetaData.RunnerInstanceName != connection.InstanceName)
+        {
+            _logger.LogWarning(
+                "Authorization failed: SplitMonolith job {JobId} requires specific runner {RequiredRunner}, but caller is {ActualRunner}",
+                jobId, sagaMetaData.RunnerInstanceName, connection.InstanceName);
+            throw new HubException("Unauthorized: This job requires a specific runner");
+        }
+
+        if (sagaMetaData.OrganizationId != connection.OrganizationId)
+        {
+            _logger.LogWarning(
+                "Authorization failed: SplitMonolith job {JobId} belongs to organization {JobOrgId}, but runner is in {RunnerOrgId}",
+                jobId, sagaMetaData.OrganizationId, connection.OrganizationId);
+            throw new HubException("Unauthorized: Organization mismatch");
+        }
+
+        _logger.LogDebug(
+            "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for SplitMonolith job {JobId} in state {State}",
+            connection.RunnerId, connection.InstanceName, jobId, sagaMetaData.CurrentState);
+
+        return connection.OrganizationId;
+    }
+
 }

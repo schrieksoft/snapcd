@@ -6,11 +6,10 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
-namespace SnapCd.Server.Core.Entities.Sagas.Base;
+namespace SnapCd.Contracts.RunnerRequests.SplitMonolith;
 
 /// <summary>
-/// Shared state for operator-initiated jobs. Kept as a distinct base so finalization and approval
-/// machinery can serve any manual job without reaching into a specific one.
+/// Request to assert that the plan written by the preceding Plan step is empty. Carries no engine
+/// arguments: the plan file is already on disk and only has to be read.
 /// </summary>
-public class ManualJobSagaBase : JobSagaBase;
+public class PlanEmptyVerifyRequestBase : EngineJobRequestBase;

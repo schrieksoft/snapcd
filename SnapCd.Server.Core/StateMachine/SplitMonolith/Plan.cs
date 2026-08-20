@@ -6,18 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 using MassTransit;
-using Microsoft.Extensions.Logging;
-using SnapCd.Contracts.RunnerRequests;
-using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Events.Jobs.Module;
-using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.SplitMonolith;
-using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
 
@@ -31,11 +22,9 @@ public partial class SplitMonolithStateMachine
     public State PlanWaitingForRunner { get; } = null!;
 
     /// <summary>
-    /// The clean-plan precondition. A monolith with pending changes cannot be split: the carve
-    /// would be proved against a baseline that was never real. This is the same assertion
-    /// demonolith's own proof makes, one level up, and it fails before any state is pulled.
-    /// A non-empty plan may mean drift or an unapplied definition; the plan cannot tell them
-    /// apart and it does not matter, because the remedy is the same.
+    /// An ordinary step. The runner fails it when the plan is not empty: a monolith with pending
+    /// changes cannot be split, because the carve would be proved against a baseline that was
+    /// never real.
     /// </summary>
     private void Configure_Plan()
     {
@@ -43,71 +32,14 @@ public partial class SplitMonolithStateMachine
         Event(() => PlanCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        During(PlanWaitingForRunner,
-            When(PlanWaitingForRunner.Enter)
-                .Activity(x => x.OfType<CheckRunnerConnectionActivity<SplitMonolithSaga, PlanCompleted>>()),
-            When(RunnerReconnectedEvent)
-                .Activity(x => x.OfType<SendToRunnerActivity<SplitMonolithSaga, RunnerReconnectedEvent, PlanRequested>>())
-                .IfElse(
-                    context => context.Saga.PreviousStateBeforeWaiting != null,
-                    whenTrue => whenTrue,
-                    whenFalse => whenFalse
-                        .Then(context => { context.Saga.WaitingSince = null; })
-                        .Schedule(HeartbeatScheduled,
-                            context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
-                        .TransitionTo(PlanPending)
-                ),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
-            Ignore(HeartbeatScheduled.Received),
-            Ignore(HeartbeatRequested.Completed),
-            Ignore(HeartbeatRequested.Completed2)
-        );
-
-        During(PlanPending,
-            When(PlanCompleted)
-                .IfElse(
-                    context => context.Message.TotalChangedCount > 0,
-                    whenTrue => whenTrue
-                        .Then(context =>
-                        {
-                            context.Saga.NegativeVerdict =
-                                $"The module's plan is not clean ({context.Message.TotalChangedCount} pending change(s)). Apply the module before splitting it.";
-                            _logger.LogInformation(
-                                "SplitMonolith: plan not clean for job {CorrelationId}, refusing the split",
-                                context.Saga.CorrelationId);
-                        })
-                        .ThenSplitFaulted(Failed, _logger),
-                    whenFalse => whenFalse
-                        .Activity(x => x.OfType<SendToRunnerActivity<SplitMonolithSaga, PlanCompleted, RefactorVerifyRequested>>())
-                        .IfElse(
-                            context => context.Saga.PreviousStateBeforeWaiting != null,
-                            stillWaiting => stillWaiting
-                                .Then(context => { context.Saga.WaitingSince = DateTime.UtcNow; })
-                                .TransitionTo(RefactorVerifyWaitingForRunner),
-                            sent => sent
-                                .Schedule(HeartbeatScheduled,
-                                    context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
-                                .TransitionTo(RefactorVerifyPending)
-                        )
-                ),
-            When(HeartbeatScheduled.Received)
-                .ThenHeartbeatScheduled(HeartbeatRequested),
-            When(HeartbeatRequested.Completed)
-                .ThenHeartbeatCompleted(HeartbeatScheduled),
-            When(HeartbeatRequested.Completed2)
-                .ThenSplitTimedOut(Failed),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
-            When(PlanCancelled)
-                .ThenSplitCancelled(Cancelled),
-            When(PlanFaulted)
-                .ThenSplitFaulted(Failed, _logger),
-            Ignore(RunnerReconnectedEvent)
+        CreateStep<PlanCompleted, PlanCancelled, PlanFaulted, PlanEmptyVerifyRequested>(
+            PlanWaitingForRunner,
+            PlanPending,
+            PlanCompleted,
+            PlanCancelled,
+            PlanFaulted,
+            PlanEmptyVerifyWaitingForRunner,
+            PlanEmptyVerifyPending
         );
     }
 }

@@ -38,6 +38,8 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
 
     public bool? WaitingForApproval { get; set; }
 
+    public ServerSideStep? FailedOnServerSideStep { get; set; }
+
     [MaxLength(255)] public string? ServerSideErrorHeader { get; set; }
 
     [MaxLength(16000)] public string? ServerSideError { get; set; }

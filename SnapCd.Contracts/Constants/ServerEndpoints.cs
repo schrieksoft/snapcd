@@ -25,6 +25,9 @@ public static class ServerEndpoints
     public const string ValidateCompleted = "ValidateCompleted";
     public const string ValidateCancelled = "ValidateCancelled";
     public const string ValidateFaulted = "ValidateFaulted";
+    public const string PlanEmptyVerifyCompleted = "PlanEmptyVerifyCompleted";
+    public const string PlanEmptyVerifyCancelled = "PlanEmptyVerifyCancelled";
+    public const string PlanEmptyVerifyFaulted = "PlanEmptyVerifyFaulted";
     public const string PolicyValidateCompleted = "PolicyValidateCompleted";
     public const string PolicyValidateCancelled = "PolicyValidateCancelled";
     public const string PolicyValidateFaulted = "PolicyValidateFaulted";
