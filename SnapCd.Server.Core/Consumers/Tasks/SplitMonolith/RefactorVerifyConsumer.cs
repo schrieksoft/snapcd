@@ -67,7 +67,6 @@ public class RefactorVerifyConsumer : IConsumer<RefactorVerifyRequested>
                     Metadata = metadata,
                     Engine = msg.Declared.Engine,
                     RootDirectory = msg.RootDirectory,
-                    ExecPath = msg.ExecPath,
                 }
             );
 

@@ -8,6 +8,7 @@
 
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
+using SnapCd.Contracts;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Contracts.RunnerRequests.SplitMonolith;
@@ -67,7 +68,13 @@ public class MigrateVerifyConsumer : IConsumer<MigrateVerifyRequested>
                     Metadata = metadata,
                     Engine = msg.Declared.Engine,
                     RootDirectory = msg.RootDirectory,
-                    ExecPath = msg.ExecPath,
+                    // The same array flags the Init step turns into -backend-config, so a backend
+                    // needing settings outside its block is configured identically here.
+                    BackendConfigs = msg.Declared.TerraformArrayFlags
+                        .Where(f => f.Task == TerraformCommandTask.Init
+                                    && f.Flag == TerraformArrayFlag.BackendConfig)
+                        .Select(f => f.Value)
+                        .ToList(),
                 }
             );
 

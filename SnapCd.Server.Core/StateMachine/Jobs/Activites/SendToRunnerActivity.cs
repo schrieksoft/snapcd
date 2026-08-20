@@ -146,7 +146,11 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
         visitor.Visit(this);
     }
 
-    private TOutgoingMessage CreateMessage(TSaga saga)
+    /// <summary>
+    /// Builds the step request. Virtual so a job kind carrying parameters of its own can put them
+    /// on the requests that use them.
+    /// </summary>
+    protected virtual TOutgoingMessage CreateMessage(TSaga saga)
     {
         var declared = JsonSerializer.Deserialize<ResolvedModule>(saga.DeclaredJson);
 

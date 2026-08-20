@@ -54,7 +54,11 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("migrate verify", request.ExecPath, request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build(
+                "migrate verify",
+                request.RootDirectory,
+                request.Engine,
+                DemonolithCommand.BackendConfigFlags(request.BackendConfigs).ToArray());
 
             var output = await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

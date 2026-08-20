@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
+using SnapCd.Server.Core.StateMachine.SplitMonolith.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
@@ -53,7 +54,7 @@ public partial class SplitMonolithStateMachine
                         "{StepName}: Runner reconnected for job {CorrelationId}, retrying send",
                         typeof(TCompleted).Name.Replace("Completed", ""), context.Saga.CorrelationId);
                 })
-                .Activity(x => x.OfType<SendToRunnerActivity<SplitMonolithSaga, RunnerReconnectedEvent, TNextEvent>>())
+                .Activity(x => x.OfType<SendSplitStepToRunnerActivity<RunnerReconnectedEvent, TNextEvent>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     whenTrue => whenTrue
@@ -88,7 +89,7 @@ public partial class SplitMonolithStateMachine
             When(completedEvent)
                 // Lets a step record what it reported before the chain moves on.
                 .Then(context => onCompleted?.Invoke(context))
-                .Activity(x => x.OfType<SendToRunnerActivity<SplitMonolithSaga, TCompleted, TNextEvent>>())
+                .Activity(x => x.OfType<SendSplitStepToRunnerActivity<TCompleted, TNextEvent>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     whenTrue => whenTrue

@@ -13,9 +13,6 @@ namespace SnapCd.Server.Core.Events.Jobs.Module;
 
 public class SplitMonolithRequested : ModuleJobEventBase
 {
-    /// <summary>Where the split writes its module directories (--out).</summary>
-    public string? OutDirectory { get; set; }
-
     /// <summary>Monolith root within the checkout (--root-dir).</summary>
     public string? RootDirectory { get; set; }
 
