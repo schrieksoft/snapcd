@@ -14,17 +14,26 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Services.PrincipalProvider;
+using SnapCd.Server.Core.Services.ResolvedConfiguration;
+using MassTransit;
 
 namespace SnapCd.Server.Core.Services.Crud.Jobs;
 
 public class ManualJobServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
-    ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory)
+    ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory,
+    ResolvedConfigurationServiceFactory resolvedConfigurationServiceFactory,
+    IBus bus)
 {
     public ManualJobService Create(IPrincipalProvider? principalProvider = null)
     {
-        return new ManualJobService(dbFactory, moduleSecuredRepositoryFactory.Create(principalProvider));
+        return new ManualJobService(
+            dbFactory,
+            moduleSecuredRepositoryFactory.Create(principalProvider),
+            resolvedConfigurationServiceFactory.Create(),
+            bus);
     }
 }
 
@@ -37,13 +46,19 @@ public class ManualJobService : IDisposable
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ModuleSecuredRepository _moduleSecuredRepository;
+    private readonly ResolvedConfigurationService? _resolvedConfigurationService;
+    private readonly IBus? _bus;
 
     public ManualJobService(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        ModuleSecuredRepository moduleSecuredRepository)
+        ModuleSecuredRepository moduleSecuredRepository,
+        ResolvedConfigurationService? resolvedConfigurationService = null,
+        IBus? bus = null)
     {
         _dbContextFactory = dbContextFactory;
         _moduleSecuredRepository = moduleSecuredRepository;
+        _resolvedConfigurationService = resolvedConfigurationService;
+        _bus = bus;
     }
 
     /// <summary>
@@ -130,6 +145,65 @@ public class ManualJobService : IDisposable
         }
 
         return job;
+    }
+
+    /// <summary>
+    /// Starts a SplitMonolith job: creates the record, then publishes the saga request with the
+    /// same id. The two share one correlation id, so publishing with a fresh one would leave the
+    /// row and its saga unable to find each other.
+    /// </summary>
+    public async Task<ManualModuleJob> StartSplitMonolith(
+        Guid moduleId,
+        Guid organizationId,
+        string? outDirectory,
+        string? rootDirectory,
+        bool overwrite)
+    {
+        if (_resolvedConfigurationService is null || _bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+
+        var job = await Start(moduleId, organizationId, ManualJobTypes.SplitMonolith);
+
+        try
+        {
+            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
+
+            await _bus.Publish(new SplitMonolithRequested
+            {
+                CorrelationId = job.Id,
+                Declared = declared,
+                OutDirectory = outDirectory,
+                RootDirectory = rootDirectory,
+                Overwrite = overwrite
+            });
+        }
+        catch (Exception ex)
+        {
+            // The row is already Running and would block every later manual job on this module.
+            await FailJob(job.Id, organizationId, ex.Message);
+            throw;
+        }
+
+        return job;
+    }
+
+    private async Task FailJob(Guid jobId, Guid organizationId, string errorMessage)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var job = await dbContext.ManualModuleJobs
+            .FirstOrDefaultAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
+
+        if (job is null) return;
+
+        job.Status = ExecutionStatus.Failed;
+        job.TimestampEnd = DateTimeOffset.UtcNow;
+        job.FailedOnServerSideStep = ServerSideStep.Start;
+        job.ServerSideErrorHeader = "This job failed due to an error occurring on the Server. The full error can be seen below.";
+        job.ServerSideError = errorMessage;
+
+        await dbContext.SaveChangesAsync();
     }
 
     /// <summary>

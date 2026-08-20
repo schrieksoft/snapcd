@@ -8,23 +8,53 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
 namespace SnapCd.Server.Core.Services;
 
 public class OrphanedJobCleanupJob
 {
     private readonly OrphanedJobCleanupService _cleanupService;
+    private readonly ManualModuleJobRepositoryFactory _manualModuleJobRepositoryFactory;
     private readonly IBus _bus;
     private readonly ILogger<OrphanedJobCleanupJob> _logger;
 
     public OrphanedJobCleanupJob(
         OrphanedJobCleanupService cleanupService,
+        ManualModuleJobRepositoryFactory manualModuleJobRepositoryFactory,
         IBus bus,
         ILogger<OrphanedJobCleanupJob> logger)
     {
         _cleanupService = cleanupService;
+        _manualModuleJobRepositoryFactory = manualModuleJobRepositoryFactory;
         _bus = bus;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// A manual job has no saga to route a cancellation through once its saga is gone, so the row
+    /// is closed here directly. Leaving it open would block every future manual job on the Module
+    /// through the filtered unique index.
+    /// </summary>
+    private async Task CleanUpManualJobs()
+    {
+        var orphaned = await _cleanupService.ListOrphanedManualJobs();
+
+        foreach (var job in orphaned)
+        {
+            _logger.LogWarning(
+                "Found orphaned manual {JobType} job {JobId} in organization {OrganizationId}, closing it",
+                job.JobType, job.Id, job.OrganizationId);
+
+            using var repository = _manualModuleJobRepositoryFactory.Create();
+            await repository.FinalizeWithServerError(
+                job.Id,
+                job.OrganizationId,
+                DateTimeOffset.UtcNow,
+                null,
+                "This job was abandoned.",
+                "The job's saga is no longer present, so it could not be completed. It has been closed so that further manual jobs can run on this module.");
+        }
     }
 
     public async Task ExecuteJob()
@@ -46,6 +76,7 @@ public class OrphanedJobCleanupJob
                     OrganizationId = job.OrganizationId
                 });
             }
+            await CleanUpManualJobs();
         }
         catch (Exception ex)
         {
