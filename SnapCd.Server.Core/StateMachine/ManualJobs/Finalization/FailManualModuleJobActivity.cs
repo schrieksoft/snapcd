@@ -12,6 +12,7 @@ using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 namespace SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
 
@@ -41,22 +42,15 @@ public class FailManualModuleJobActivity<TSaga, TMessage> : IStateMachineActivit
                 ? $"{faulted.ErrorMessage}\n\nStack Trace:\n{faulted.StackTrace}"
                 : faulted.ErrorMessage;
 
+            var failedStep = StepMapper.DetermineStepFromEventType(typeof(TMessage));
+
             await _repository.FinalizeWithServerError(
                 context.Saga.CorrelationId,
                 context.Saga.OrganizationId,
                 DateTimeOffset.UtcNow,
-                $"Server error during {typeof(TMessage).Name}",
+                failedStep,
+                $"Server error during {failedStep}",
                 fullMessage);
-        }
-        else if (context.Saga.NegativeVerdict != null)
-        {
-            // Not breakage: an assertion step answered no, or the module's plan was not clean.
-            await _repository.FinalizeWithServerError(
-                context.Saga.CorrelationId,
-                context.Saga.OrganizationId,
-                DateTimeOffset.UtcNow,
-                "This split did not proceed.",
-                context.Saga.NegativeVerdict);
         }
         else
         {

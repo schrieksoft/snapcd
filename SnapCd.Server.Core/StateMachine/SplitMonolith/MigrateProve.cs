@@ -51,19 +51,10 @@ public partial class SplitMonolithStateMachine
         );
 
         During(MigrateProvePending,
-            When(MigrateProveCompleted)
-                .Then(context =>
-                {
-                    context.Saga.ProvenModuleCount = context.Message.ModulesProven;
-                    if (context.Message.NegativeVerdict)
-                        context.Saga.NegativeVerdict = context.Message.VerdictReason
-                            ?? "The proof did not pass: not every module planned to zero changes.";
-                })
-                .IfElse(
-                    context => context.Message.NegativeVerdict,
-                    whenTrue => whenTrue.ThenSplitFaulted(Failed, _logger),
-                    whenFalse => DealWithApprovalStatus(whenFalse, true)
-                ),
+            DealWithApprovalStatus(
+                When(MigrateProveCompleted)
+                    .Then(context => { context.Saga.ProvenModuleCount = context.Message.ModulesProven; }),
+                true),
             When(HeartbeatScheduled.Received)
                 .ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed)

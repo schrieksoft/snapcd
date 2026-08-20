@@ -63,6 +63,7 @@ public partial class SplitMonolithStateMachine
         When(InitCompleted).ThenSplitCancelled(Cancelled),
         When(ValidateCompleted).ThenSplitCancelled(Cancelled),
         When(PlanCompleted).ThenSplitCancelled(Cancelled),
+        When(PlanEmptyVerifyCompleted).ThenSplitCancelled(Cancelled),
         When(RefactorVerifyCompleted).ThenSplitCancelled(Cancelled),
         When(MigrateMapCompleted).ThenSplitCancelled(Cancelled),
         When(MigrateProveCompleted).ThenSplitCancelled(Cancelled),

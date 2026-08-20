@@ -23,6 +23,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Hubs.Handlers;
+using SnapCd.Server.Core.Hubs.Handlers.SplitMonolith;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
@@ -52,6 +53,7 @@ public class RunnerHub : Hub
     private readonly PolicyValidateHandler _policyValidateHandler;
     private readonly VariableHandler _variableHandler;
     private readonly PlanHandler _planHandler;
+    private readonly PlanEmptyVerifyHandler _planEmptyVerifyHandler;
     private readonly PlanDestroyHandler _planDestroyHandler;
     private readonly ApplyFromPlanHandler _applyFromPlanHandler;
     private readonly DestroyFromPlanHandler _destroyFromPlanHandler;
@@ -78,6 +80,7 @@ public class RunnerHub : Hub
         PolicyValidateHandler policyValidateHandler,
         VariableHandler variableHandler,
         PlanHandler planHandler,
+        PlanEmptyVerifyHandler planEmptyVerifyHandler,
         PlanDestroyHandler planDestroyHandler,
         ApplyFromPlanHandler applyFromPlanHandler,
         DestroyFromPlanHandler destroyFromPlanHandler,
@@ -103,6 +106,7 @@ public class RunnerHub : Hub
         _policyValidateHandler = policyValidateHandler;
         _variableHandler = variableHandler;
         _planHandler = planHandler;
+        _planEmptyVerifyHandler = planEmptyVerifyHandler;
         _planDestroyHandler = planDestroyHandler;
         _applyFromPlanHandler = applyFromPlanHandler;
         _destroyFromPlanHandler = destroyFromPlanHandler;
@@ -591,6 +595,30 @@ public class RunnerHub : Hub
         await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanFaulted);
 
         await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
+    }
+
+    public async Task PlanEmptyVerifyCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.PlanEmptyVerifyCompleted);
+
+        await _planEmptyVerifyHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task PlanEmptyVerifyCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.PlanEmptyVerifyCancelled);
+
+        await _planEmptyVerifyHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task PlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.PlanEmptyVerifyFaulted);
+
+        await _planEmptyVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task PlanDestroyCompleted(Guid jobId, PlanCompletedData data)

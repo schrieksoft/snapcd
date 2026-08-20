@@ -18,6 +18,7 @@ public static class RunnerEndpoints
     public const string GetDefinitiveRevision = "GetDefinitiveRevision";
     public const string Plan = "Plan";
     public const string PlanDestroy = "PlanDestroy";
+    public const string PlanEmptyVerify = "PlanEmptyVerify";
     public const string ApplyFromPlan = "ApplyFromPlan";
     public const string DestroyFromPlan = "DestroyFromPlan";
     public const string Output = "Output";

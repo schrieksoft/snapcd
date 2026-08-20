@@ -99,6 +99,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ValidateFaulted, jobId, errorMessage, stackTrace);
     }
 
+    public async Task InvokePlanEmptyVerifyCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyCompleted, jobId);
+    }
+
+    public async Task InvokePlanEmptyVerifyCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyCancelled, jobId);
+    }
+
+    public async Task InvokePlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.VariablesCompleted, jobId, variableSet);

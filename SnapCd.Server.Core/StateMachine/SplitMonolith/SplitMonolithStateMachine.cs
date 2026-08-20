@@ -103,6 +103,7 @@ public partial class SplitMonolithStateMachine : MassTransitStateMachine<SplitMo
         Configure_Init();
         Configure_Validate();
         Configure_Plan();
+        Configure_PlanEmptyVerify();
         Configure_RefactorVerify();
         Configure_MigrateMap();
         Configure_MigrateProve();

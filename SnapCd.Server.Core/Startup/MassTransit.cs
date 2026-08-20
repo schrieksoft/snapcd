@@ -11,6 +11,7 @@ using MassTransit.SqlTransport;
 using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
+using SnapCd.Server.Core.Consumers.Tasks.SplitMonolith;
 using SnapCd.Server.Core.StateMachine.SplitMonolith;
 using SnapCd.Server.Core.Consumers.Tasks;
 using SnapCd.Server.Core.Consumers.Tasks.Handlers;
@@ -199,6 +200,7 @@ public static class MassTransit
         typeof(PolicyValidateConsumer),
         typeof(VariablesConsumer),
         typeof(PlanConsumer),
+        typeof(PlanEmptyVerifyConsumer),
         typeof(PlanDestroyConsumer),
         typeof(ApplyFromPlanConsumer),
         typeof(DestroyFromPlanConsumer),

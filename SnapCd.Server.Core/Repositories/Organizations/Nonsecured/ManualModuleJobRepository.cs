@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Exceptions;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -72,6 +73,7 @@ public class ManualModuleJobRepository : IDisposable
         Guid id,
         Guid organizationId,
         DateTimeOffset endTime,
+        ServerSideStep? failedStep,
         string? errorHeader,
         string? errorMessage)
     {
@@ -80,6 +82,7 @@ public class ManualModuleJobRepository : IDisposable
         job.Status = ExecutionStatus.Failed;
         job.TimestampEnd = endTime;
         job.WaitingForApproval = false;
+        job.FailedOnServerSideStep = failedStep;
         job.ServerSideErrorHeader = errorHeader;
         job.ServerSideError = errorMessage;
 

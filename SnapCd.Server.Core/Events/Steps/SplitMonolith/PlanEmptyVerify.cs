@@ -6,27 +6,19 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
-public class MigrateProveRequested : StepRequestBase
-{
-    /// <summary>Monolith root within the checkout (--root-dir).</summary>
-    public string? RootDirectory { get; set; }
+/// <summary>
+/// Asserts the plan Plan just wrote is empty. Kept as its own step rather than folded into Plan
+/// so the failure names what was actually wrong: a plan that errored and a plan that was not empty
+/// are different outcomes.
+/// </summary>
+public class PlanEmptyVerifyRequested : StepRequestBase;
 
-    /// <summary>Engine the migration runs with (--engine), or an explicit binary (--exec-path).</summary>
-    public string? Engine { get; set; }
-    public string? ExecPath { get; set; }
-}
+public class PlanEmptyVerifyCompleted : StepResponseBase;
 
-public class MigrateProveCompleted : StepResponseBase
-{
-    public int ModulesProven { get; set; }
-    public int ModulesPlanningClean { get; set; }
-}
+public class PlanEmptyVerifyFaulted : StepFaultedBase;
 
-public class MigrateProveFaulted : StepFaultedBase;
-
-public class MigrateProveCancelled : StepResponseBase;
+public class PlanEmptyVerifyCancelled : StepResponseBase;
