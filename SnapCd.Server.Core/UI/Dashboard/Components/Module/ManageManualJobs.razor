@@ -11,6 +11,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Entities.Sagas
 @using SnapCd.Server.Core.Repositories.Custom.Secured
+@using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.Crud.Jobs
 @using SnapCd.Server.Core.Services.PrincipalProvider
@@ -49,7 +50,7 @@
 
 @if (ModuleSaga is { Paused: true })
 {
-    <MudPaper Elevation="1" Class="pa-4">
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
         <MudText Typo="Typo.body2">
             @if (IsDraining)
             {
@@ -63,6 +64,41 @@
     </MudPaper>
 }
 
+<MudPaper Elevation="1" Class="pa-4">
+    <MudText Typo="Typo.subtitle2" Class="mb-2">History</MudText>
+
+    @if (_jobs.Count == 0)
+    {
+        <MudText Typo="Typo.body2">No manual jobs have run on this module.</MudText>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead>
+            <tr>
+                <th>Job</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Ended</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var job in _jobs)
+            {
+                <tr>
+                    <td>@job.JobNumber</td>
+                    <td>@FormatJobType(job.JobType)</td>
+                    <td>@job.Status</td>
+                    <td>@job.TimestampStart.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@(job.TimestampEnd?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                </tr>
+            }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
 @code {
     [Parameter] public required Module Module { get; set; }
     [Parameter] public required ModuleSaga ModuleSaga { get; set; }
@@ -72,8 +108,10 @@
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ManualJobServiceFactory ManualJobServiceFactory { get; set; } = null!;
+    [Inject] private ManualModuleJobSecuredRepositoryFactory ManualJobRepoFactory { get; set; } = null!;
 
     private string? _blockedReason;
+    private List<ManualModuleJob> _jobs = [];
 
     /// Inside a paused module, any remaining block is work still draining: the pause itself is not one.
     private bool IsDraining => ModuleSaga is { Paused: true } && _blockedReason is not null;
@@ -88,6 +126,9 @@
 
         using var manualJobService = ManualJobServiceFactory.Create(PrincipalProvider);
         _blockedReason = await manualJobService.GetBlockedReason(Module.Id, OrganizationId);
+
+        using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
+        _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
     }
 
     private async Task Pause()
@@ -121,4 +162,8 @@
             _busy = false;
         }
     }
+
+    /// The stored value names the saga table; the tab shows the operation.
+    private static string FormatJobType(string jobType) =>
+        jobType == ManualJobTypes.SplitMonolith ? "Split monolith" : jobType;
 }

@@ -8,6 +8,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 
 namespace SnapCd.Server.Core.Services;
@@ -59,5 +60,29 @@ public class OrphanedJobCleanupService
         ).ToListAsync();
 
         return orphanedApplyJobs.Concat(orphanedDestroyJobs).ToList();
+    }
+
+    /// <summary>
+    /// Manual jobs left Running with no saga behind them. Worse than an orphaned deployment job,
+    /// which merely looks wrong: the filtered unique index keys on Running, so one of these blocks
+    /// every future manual job on that Module until it is closed.
+    /// </summary>
+    public async Task<List<OrphanedJobInfo>> ListOrphanedManualJobs()
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        // JobType names the saga table the job's state lives in, so each type is checked against
+        // its own. A type with no case here is reported as orphaned only once it is handled.
+        return await (
+            from job in dbContext.ManualModuleJobs
+            where job.TimestampEnd == null && job.JobType == ManualJobTypes.SplitMonolith
+            join saga in dbContext.Set<SplitMonolithSaga>()
+                on new { job.Id, job.OrganizationId }
+                equals new { Id = saga.CorrelationId, saga.OrganizationId }
+                into sagas
+            from saga in sagas.DefaultIfEmpty()
+            where saga == null
+            select new OrphanedJobInfo { Id = job.Id, OrganizationId = job.OrganizationId, JobType = job.JobType }
+        ).ToListAsync();
     }
 }
