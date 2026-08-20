@@ -156,7 +156,7 @@ public class ManualJobService : IDisposable
         Guid moduleId,
         Guid organizationId,
         string? rootDirectory,
-        bool overwrite)
+        bool force)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
@@ -173,7 +173,7 @@ public class ManualJobService : IDisposable
                 CorrelationId = job.Id,
                 Declared = declared,
                 RootDirectory = rootDirectory,
-                Overwrite = overwrite
+                Force = force
             });
         }
         catch (Exception ex)

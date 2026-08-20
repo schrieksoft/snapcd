@@ -51,16 +51,18 @@
 @if (ModuleSaga is { Paused: true })
 {
     <MudPaper Elevation="1" Class="pa-4 mb-4">
-        <MudText Typo="Typo.body2">
-            @if (IsDraining)
-            {
-                @_blockedReason
-            }
-            else
-            {
-                @:No manual jobs are available yet.
-            }
-        </MudText>
+        @if (IsDraining)
+        {
+            <MudText Typo="Typo.body2">@_blockedReason</MudText>
+        }
+        else
+        {
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body2">Split this module's monolith and migrate its state.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Disabled="@(!_canPause || _busy)" OnClick="StartSplit">split monolith</MudButton>
+            </MudStack>
+        }
     </MudPaper>
 }
 
@@ -142,6 +144,43 @@
     }
 
     private async Task Resume() => await SetPaused(false, null);
+
+    private async Task StartSplit()
+    {
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<SplitMonolithDialog>("Split monolith", options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled) return;
+        if (result.Data is not SplitMonolithDialog.SplitMonolithOptions choice) return;
+
+        _busy = true;
+        try
+        {
+            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            await service.StartSplitMonolith(Module.Id, OrganizationId, choice.RootDirectory, choice.Force);
+
+            Snackbar.Add("Split started.", Severity.Success);
+            await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Reload()
+    {
+        using var manualJobService = ManualJobServiceFactory.Create(PrincipalProvider);
+        _blockedReason = await manualJobService.GetBlockedReason(Module.Id, OrganizationId);
+
+        using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
+        _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
+    }
 
     private async Task SetPaused(bool paused, string? reason)
     {

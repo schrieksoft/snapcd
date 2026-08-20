@@ -11,12 +11,12 @@ using SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
 namespace SnapCd.Server.Core.Hubs.Handlers.SplitMonolith;
 
-public class RefactorVerifyHandler
+public class RefactorDiffHandler
 {
-    private readonly ILogger<RefactorVerifyHandler> _logger;
+    private readonly ILogger<RefactorDiffHandler> _logger;
     private readonly IBus _bus;
 
-    public RefactorVerifyHandler(ILogger<RefactorVerifyHandler> logger, IBus bus)
+    public RefactorDiffHandler(ILogger<RefactorDiffHandler> logger, IBus bus)
     {
         _logger = logger;
         _bus = bus;
@@ -26,9 +26,9 @@ public class RefactorVerifyHandler
     {
         try
         {
-            _logger.LogDebug("Runner completed RefactorVerify for job {JobId}", jobId);
+            _logger.LogDebug("Runner completed RefactorDiff for job {JobId}", jobId);
 
-            await _bus.Publish(new RefactorVerifyCompleted
+            await _bus.Publish(new RefactorDiffCompleted
             {
                 CorrelationId = jobId,
                 OrganizationId = organizationId
@@ -36,7 +36,7 @@ public class RefactorVerifyHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing RefactorVerify completion for job {JobId}", jobId);
+            _logger.LogError(ex, "Error processing RefactorDiff completion for job {JobId}", jobId);
             throw;
         }
     }
@@ -45,9 +45,9 @@ public class RefactorVerifyHandler
     {
         try
         {
-            _logger.LogDebug("Runner cancelled RefactorVerify for job {JobId}", jobId);
+            _logger.LogDebug("Runner cancelled RefactorDiff for job {JobId}", jobId);
 
-            await _bus.Publish(new RefactorVerifyCancelled
+            await _bus.Publish(new RefactorDiffCancelled
             {
                 CorrelationId = jobId,
                 OrganizationId = organizationId
@@ -55,7 +55,7 @@ public class RefactorVerifyHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing RefactorVerify cancellation for job {JobId}", jobId);
+            _logger.LogError(ex, "Error processing RefactorDiff cancellation for job {JobId}", jobId);
             throw;
         }
     }
@@ -64,9 +64,9 @@ public class RefactorVerifyHandler
     {
         try
         {
-            _logger.LogError("Runner faulted RefactorVerify for job {JobId}: {ErrorMessage}", jobId, errorMessage);
+            _logger.LogError("Runner faulted RefactorDiff for job {JobId}: {ErrorMessage}", jobId, errorMessage);
 
-            await _bus.Publish(new RefactorVerifyFaulted
+            await _bus.Publish(new RefactorDiffFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = organizationId,
@@ -76,7 +76,7 @@ public class RefactorVerifyHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing RefactorVerify fault for job {JobId}", jobId);
+            _logger.LogError(ex, "Error processing RefactorDiff fault for job {JobId}", jobId);
             throw;
         }
     }

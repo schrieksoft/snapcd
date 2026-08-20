@@ -16,8 +16,11 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    /// <summary>Plans every carved module against its local state copy and asserts zero changes.</summary>
-    public async Task MigrateProve(MigrateProveRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Asks the engine whether each written module directory is valid. Credential-free — it inits
+    /// without a backend and validates — so it fails before any state is pulled.
+    /// </summary>
+    public async Task RefactorValidate(RefactorValidateRequestBase request, HubConnection connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -28,7 +31,7 @@ public partial class Tasks
         var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
-            nameof(MigrateProve),
+            nameof(RefactorValidate),
             connection,
             TimeSpan.FromSeconds(request.ReportActiveJobFrequencySeconds),
             reportingCts.Token);
@@ -36,7 +39,7 @@ public partial class Tasks
         var logger = _loggerFactory.CreateLogger<Tasks>();
         var taskContext = new RunnerTaskContext(
             request.JobId,
-            nameof(MigrateProve),
+            nameof(RefactorValidate),
             logger,
             _jobLogStream,
             request.Metadata
@@ -46,7 +49,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now running demonolith migrate prove");
+            taskContext.LogInformation("Now running demonolith refactor validate");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -54,44 +57,34 @@ public partial class Tasks
                 request.Metadata
             );
 
-            // The proof plans against the local state copies; demonolith no longer refreshes, so
-            // this asserts the carve was correct rather than that reality still matches. The
-            // monolith's own agreement with reality was already established by PlanEmptyVerify.
-            var command = DemonolithCommand.Build("migrate prove", request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build("refactor validate", request.RootDirectory, request.Engine);
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
-            // module_states names each module the proof covered; a receipt marked complete means
-            // every one of them planned clean, since demonolith fails the run otherwise.
-            var receipt = DemonolithReceipt.Read(request.RootDirectory, DemonolithReceipt.ProveReceiptFile);
-            var modulesProven = receipt?.ModuleStates.Count ?? 0;
-            var modulesPlanningClean = receipt is { Complete: true } ? modulesProven : 0;
-
-
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateProveCompleted(request.JobId, modulesProven, modulesPlanningClean),
-                nameof(runnerHubClient.InvokeMigrateProveCompleted),
+                () => runnerHubClient.InvokeRefactorValidateCompleted(request.JobId),
+                nameof(runnerHubClient.InvokeRefactorValidateCompleted),
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed MigrateProve");
+            taskContext.LogInformation("Completed RefactorValidate");
         }
         catch (OperationCanceledException)
         {
-            taskContext.LogWarning("MigrateProve was cancelled.");
+            taskContext.LogWarning("RefactorValidate was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateProveCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeMigrateProveCancelled),
+                () => runnerHubClient.InvokeRefactorValidateCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeRefactorValidateCancelled),
                 request.JobId,
                 connection);
         }
         catch (Exception ex)
         {
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
-            logger.LogError(ex, "Error handling MigrateProve for job {JobId}", request.JobId);
+            logger.LogError(ex, "Error handling RefactorValidate for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateProveFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeMigrateProveFaulted),
+                () => runnerHubClient.InvokeRefactorValidateFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeRefactorValidateFaulted),
                 request.JobId,
                 connection);
         }

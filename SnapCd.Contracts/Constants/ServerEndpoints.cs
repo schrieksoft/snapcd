@@ -28,9 +28,12 @@ public static class ServerEndpoints
     public const string PlanEmptyVerifyCompleted = "PlanEmptyVerifyCompleted";
     public const string PlanEmptyVerifyCancelled = "PlanEmptyVerifyCancelled";
     public const string PlanEmptyVerifyFaulted = "PlanEmptyVerifyFaulted";
-    public const string RefactorVerifyCompleted = "RefactorVerifyCompleted";
-    public const string RefactorVerifyCancelled = "RefactorVerifyCancelled";
-    public const string RefactorVerifyFaulted = "RefactorVerifyFaulted";
+    public const string RefactorValidateCompleted = "RefactorValidateCompleted";
+    public const string RefactorValidateCancelled = "RefactorValidateCancelled";
+    public const string RefactorValidateFaulted = "RefactorValidateFaulted";
+    public const string RefactorDiffCompleted = "RefactorDiffCompleted";
+    public const string RefactorDiffCancelled = "RefactorDiffCancelled";
+    public const string RefactorDiffFaulted = "RefactorDiffFaulted";
     public const string MigrateMapCompleted = "MigrateMapCompleted";
     public const string MigrateMapCancelled = "MigrateMapCancelled";
     public const string MigrateMapFaulted = "MigrateMapFaulted";

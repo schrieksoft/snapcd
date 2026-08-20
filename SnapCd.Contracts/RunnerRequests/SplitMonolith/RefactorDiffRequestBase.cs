@@ -8,7 +8,7 @@
 
 namespace SnapCd.Contracts.RunnerRequests.SplitMonolith;
 
-public class RefactorVerifyRequestBase : EngineJobRequestBase
+public class RefactorDiffRequestBase : EngineJobRequestBase
 {
     /// <summary>Monolith root within the checkout, passed to demonolith as --root-dir.</summary>
     public string? RootDirectory { get; set; }

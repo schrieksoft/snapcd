@@ -17,14 +17,14 @@ using SnapCd.Server.Core.Services;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.SplitMonolith;
 
-public class RefactorVerifyConsumer : IConsumer<RefactorVerifyRequested>
+public class RefactorValidateConsumer : IConsumer<RefactorValidateRequested>
 {
-    private readonly ILogger<RefactorVerifyConsumer> _logger;
+    private readonly ILogger<RefactorValidateConsumer> _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public RefactorVerifyConsumer(
-        ILogger<RefactorVerifyConsumer> logger,
+    public RefactorValidateConsumer(
+        ILogger<RefactorValidateConsumer> logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -33,7 +33,7 @@ public class RefactorVerifyConsumer : IConsumer<RefactorVerifyRequested>
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<RefactorVerifyRequested> context)
+    public async Task Consume(ConsumeContext<RefactorValidateRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -59,8 +59,8 @@ public class RefactorVerifyConsumer : IConsumer<RefactorVerifyRequested>
             }
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.RefactorVerify,
-                new RefactorVerifyRequestBase
+                RunnerEndpoints.RefactorValidate,
+                new RefactorValidateRequestBase
                 {
                     JobId = jobId,
                     OrganizationId = orgId,
@@ -70,13 +70,13 @@ public class RefactorVerifyConsumer : IConsumer<RefactorVerifyRequested>
                 }
             );
 
-            _logger.LogDebug("Dispatched RefactorVerify request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched RefactorValidate request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error dispatching RefactorVerify request for job {JobId}", jobId);
-            await context.Publish(new RefactorVerifyFaulted
+            _logger.LogError(ex, "Error dispatching RefactorValidate request for job {JobId}", jobId);
+            await context.Publish(new RefactorValidateFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,

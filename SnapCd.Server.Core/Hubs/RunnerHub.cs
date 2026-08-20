@@ -54,7 +54,8 @@ public class RunnerHub : Hub
     private readonly VariableHandler _variableHandler;
     private readonly PlanHandler _planHandler;
     private readonly PlanEmptyVerifyHandler _planEmptyVerifyHandler;
-    private readonly RefactorVerifyHandler _refactorVerifyHandler;
+    private readonly RefactorValidateHandler _refactorValidateHandler;
+    private readonly RefactorDiffHandler _refactorDiffHandler;
     private readonly MigrateMapHandler _migrateMapHandler;
     private readonly MigrateProveHandler _migrateProveHandler;
     private readonly MigrateRunHandler _migrateRunHandler;
@@ -86,7 +87,8 @@ public class RunnerHub : Hub
         VariableHandler variableHandler,
         PlanHandler planHandler,
         PlanEmptyVerifyHandler planEmptyVerifyHandler,
-        RefactorVerifyHandler refactorVerifyHandler,
+        RefactorValidateHandler refactorValidateHandler,
+        RefactorDiffHandler refactorDiffHandler,
         MigrateMapHandler migrateMapHandler,
         MigrateProveHandler migrateProveHandler,
         MigrateRunHandler migrateRunHandler,
@@ -117,7 +119,8 @@ public class RunnerHub : Hub
         _variableHandler = variableHandler;
         _planHandler = planHandler;
         _planEmptyVerifyHandler = planEmptyVerifyHandler;
-        _refactorVerifyHandler = refactorVerifyHandler;
+        _refactorValidateHandler = refactorValidateHandler;
+        _refactorDiffHandler = refactorDiffHandler;
         _migrateMapHandler = migrateMapHandler;
         _migrateProveHandler = migrateProveHandler;
         _migrateRunHandler = migrateRunHandler;
@@ -637,28 +640,52 @@ public class RunnerHub : Hub
     }
 
 
-    public async Task RefactorVerifyCompleted(Guid jobId)
+    public async Task RefactorValidateCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorVerifyCompleted);
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorValidateCompleted);
 
-        await _refactorVerifyHandler.Complete(jobId, organizationId);
+        await _refactorValidateHandler.Complete(jobId, organizationId);
     }
 
-    public async Task RefactorVerifyCancelled(Guid jobId)
+    public async Task RefactorValidateCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorVerifyCancelled);
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorValidateCancelled);
 
-        await _refactorVerifyHandler.Cancel(jobId, organizationId);
+        await _refactorValidateHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task RefactorVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task RefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorVerifyFaulted);
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorValidateFaulted);
 
-        await _refactorVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+        await _refactorValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task RefactorDiffCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorDiffCompleted);
+
+        await _refactorDiffHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task RefactorDiffCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorDiffCancelled);
+
+        await _refactorDiffHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
+            Context, jobId, SplitMonolithTaskEndpoint.RefactorDiffFaulted);
+
+        await _refactorDiffHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task MigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)

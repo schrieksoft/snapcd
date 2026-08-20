@@ -114,9 +114,24 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeRefactorVerifyCompleted(Guid jobId)
+    public async Task InvokeRefactorValidateCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorVerifyCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorValidateCompleted, jobId);
+    }
+
+    public async Task InvokeRefactorValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorValidateCancelled, jobId);
+    }
+
+    public async Task InvokeRefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRefactorDiffCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorDiffCompleted, jobId);
     }
 
     public async Task InvokeMigrateRunCompleted(Guid jobId)
@@ -139,14 +154,14 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.MigrateVerifyCompleted, jobId, modulesProven, modulesPlanningClean);
     }
 
-    public async Task InvokeRefactorVerifyCancelled(Guid jobId)
+    public async Task InvokeRefactorDiffCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorVerifyCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorDiffCancelled, jobId);
     }
 
-    public async Task InvokeRefactorVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeRefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorVerifyFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorDiffFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeMigrateMapCancelled(Guid jobId)

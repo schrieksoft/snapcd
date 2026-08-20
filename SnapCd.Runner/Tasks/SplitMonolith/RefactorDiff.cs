@@ -21,7 +21,7 @@ public partial class Tasks
     /// This is a checksum comparison only: whether the engine accepts each carved module is a
     /// separate question, and will get its own step rather than a flag on this one.
     /// </summary>
-    public async Task RefactorVerify(RefactorVerifyRequestBase request, HubConnection connection)
+    public async Task RefactorDiff(RefactorDiffRequestBase request, HubConnection connection)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -32,7 +32,7 @@ public partial class Tasks
         var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
-            nameof(RefactorVerify),
+            nameof(RefactorDiff),
             connection,
             TimeSpan.FromSeconds(request.ReportActiveJobFrequencySeconds),
             reportingCts.Token);
@@ -40,7 +40,7 @@ public partial class Tasks
         var logger = _loggerFactory.CreateLogger<Tasks>();
         var taskContext = new RunnerTaskContext(
             request.JobId,
-            nameof(RefactorVerify),
+            nameof(RefactorDiff),
             logger,
             _jobLogStream,
             request.Metadata
@@ -50,7 +50,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now running demonolith refactor verify");
+            taskContext.LogInformation("Now running demonolith refactor diff");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -58,35 +58,35 @@ public partial class Tasks
                 request.Metadata
             );
 
-            // refactor verify takes no --engine: it compares files without asking the engine.
-            var command = DemonolithCommand.Build("refactor verify", request.RootDirectory, engine: null);
+            // refactor diff takes no --engine: it compares files without asking the engine.
+            var command = DemonolithCommand.Build("refactor diff", request.RootDirectory, engine: null);
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeRefactorVerifyCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeRefactorVerifyCompleted),
+                () => runnerHubClient.InvokeRefactorDiffCompleted(request.JobId),
+                nameof(runnerHubClient.InvokeRefactorDiffCompleted),
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed RefactorVerify");
+            taskContext.LogInformation("Completed RefactorDiff");
         }
         catch (OperationCanceledException)
         {
-            taskContext.LogWarning("RefactorVerify was cancelled.");
+            taskContext.LogWarning("RefactorDiff was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeRefactorVerifyCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeRefactorVerifyCancelled),
+                () => runnerHubClient.InvokeRefactorDiffCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeRefactorDiffCancelled),
                 request.JobId,
                 connection);
         }
         catch (Exception ex)
         {
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
-            logger.LogError(ex, "Error handling RefactorVerify for job {JobId}", request.JobId);
+            logger.LogError(ex, "Error handling RefactorDiff for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeRefactorVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeRefactorVerifyFaulted),
+                () => runnerHubClient.InvokeRefactorDiffFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeRefactorDiffFaulted),
                 request.JobId,
                 connection);
         }
