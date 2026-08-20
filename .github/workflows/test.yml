@@ -15,7 +15,7 @@ jobs:
   runner-tests:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/schrieksoft/base-image-snapcd-runner:1.1.0
+      image: ghcr.io/schrieksoft/base-image-snapcd-runner:1.1.1
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
