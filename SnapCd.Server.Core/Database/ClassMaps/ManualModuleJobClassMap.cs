@@ -58,5 +58,10 @@ public class ManualModuleJobClassMap : IEntityTypeConfiguration<ManualModuleJob>
             .Property(d => d.Status)
             .HasConversion<string>()
             .HasMaxLength(50);
+
+        entity
+            .Property(d => d.FailedOnServerSideStep)
+            .HasConversion<string>()
+            .HasMaxLength(50);
     }
 }

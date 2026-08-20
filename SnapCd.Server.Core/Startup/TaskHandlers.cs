@@ -8,6 +8,7 @@
 
 
 using SnapCd.Server.Core.Hubs.Handlers;
+using SnapCd.Server.Core.Hubs.Handlers.SplitMonolith;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -22,6 +23,7 @@ public static class TaskHandlers
         services.AddScoped<PolicyValidateHandler>();
         services.AddScoped<VariableHandler>();
         services.AddScoped<PlanHandler>();
+        services.AddScoped<PlanEmptyVerifyHandler>();
         services.AddScoped<PlanDestroyHandler>();
         services.AddScoped<ApplyFromPlanHandler>();
         services.AddScoped<DestroyFromPlanHandler>();

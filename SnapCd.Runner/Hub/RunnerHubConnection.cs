@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests;
+using SnapCd.Contracts.RunnerRequests.SplitMonolith;
 using SnapCd.Runner.Constants;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Settings;
@@ -186,6 +187,14 @@ public class RunnerHubConnection : IAsyncDisposable
         _connection.On<ValidateRequestBase>(RunnerEndpoints.Validate, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.Validate(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // Register handler for PolicyValidate
+        _connection.On<PlanEmptyVerifyRequestBase>(RunnerEndpoints.PlanEmptyVerify, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.PlanEmptyVerify(request, _connection); });
                 return Task.CompletedTask;
             }
         );

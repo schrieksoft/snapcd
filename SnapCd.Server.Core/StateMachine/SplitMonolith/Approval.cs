@@ -47,7 +47,6 @@ public partial class SplitMonolithStateMachine
             When(ApprovalTimeoutScheduled.Received)
                 .Then(context =>
                 {
-                    context.Saga.NegativeVerdict = "The approval request timed out before a decision was made.";
                     _logger.LogInformation("SplitMonolith: approval timed out for job {JobId}", context.Saga.CorrelationId);
                 })
                 .Publish(context => new SplitMonolithCancelled
@@ -107,7 +106,6 @@ public partial class SplitMonolithStateMachine
                         declined => declined
                             .Then(context =>
                             {
-                                context.Saga.NegativeVerdict = "The split was declined.";
                                 _logger.LogInformation("SplitMonolith: declined for job {JobId}", context.Saga.CorrelationId);
                             })
                             .Publish(context => new SplitMonolithCancelled

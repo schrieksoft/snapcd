@@ -21,15 +21,8 @@ public class RefactorVerifyRequested : StepRequestBase
     public string? ExecPath { get; set; }
 }
 
-/// <summary>
-/// Demonolith answers three ways: 0 success, 1 operational error, 2 a negative verdict — the run
-/// worked and the answer is no. This step is an assertion, so a verdict is a legitimate outcome
-/// carried here rather than as a fault, and the job stops cleanly showing what failed the check.
-/// </summary>
 public class RefactorVerifyCompleted : StepResponseBase
 {
-    public bool NegativeVerdict { get; set; }
-    public string? VerdictReason { get; set; }
 }
 
 public class RefactorVerifyFaulted : StepFaultedBase;
