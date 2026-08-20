@@ -85,7 +85,7 @@ public partial class SplitMonolithStateMachine : MassTransitStateMachine<SplitMo
                     context.Saga.RunnerInstanceName = context.Message.Declared.RunnerInstanceName;
                     context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                     context.Saga.RootDirectory = context.Message.RootDirectory;
-                    context.Saga.Overwrite = context.Message.Overwrite;
+                    context.Saga.Force = context.Message.Force;
                 })
                 .Publish(context => new SelectRunnerInstanceRequested
                 {
@@ -103,7 +103,8 @@ public partial class SplitMonolithStateMachine : MassTransitStateMachine<SplitMo
         Configure_Validate();
         Configure_Plan();
         Configure_PlanEmptyVerify();
-        Configure_RefactorVerify();
+        Configure_RefactorValidate();
+        Configure_RefactorDiff();
         Configure_MigrateMap();
         Configure_MigrateProve();
         Configure_Approval();

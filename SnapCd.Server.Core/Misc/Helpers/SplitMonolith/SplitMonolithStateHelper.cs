@@ -49,9 +49,13 @@ public static class SplitMonolithStateHelper
         [SplitMonolithTaskEndpoint.PlanEmptyVerifyCancelled] = SplitMonolithSagaState.PlanEmptyVerifyPending,
         [SplitMonolithTaskEndpoint.PlanEmptyVerifyFaulted] = SplitMonolithSagaState.PlanEmptyVerifyPending,
 
-        [SplitMonolithTaskEndpoint.RefactorVerifyCompleted] = SplitMonolithSagaState.RefactorVerifyPending,
-        [SplitMonolithTaskEndpoint.RefactorVerifyCancelled] = SplitMonolithSagaState.RefactorVerifyPending,
-        [SplitMonolithTaskEndpoint.RefactorVerifyFaulted] = SplitMonolithSagaState.RefactorVerifyPending,
+        [SplitMonolithTaskEndpoint.RefactorValidateCompleted] = SplitMonolithSagaState.RefactorValidatePending,
+        [SplitMonolithTaskEndpoint.RefactorValidateCancelled] = SplitMonolithSagaState.RefactorValidatePending,
+        [SplitMonolithTaskEndpoint.RefactorValidateFaulted] = SplitMonolithSagaState.RefactorValidatePending,
+
+        [SplitMonolithTaskEndpoint.RefactorDiffCompleted] = SplitMonolithSagaState.RefactorDiffPending,
+        [SplitMonolithTaskEndpoint.RefactorDiffCancelled] = SplitMonolithSagaState.RefactorDiffPending,
+        [SplitMonolithTaskEndpoint.RefactorDiffFaulted] = SplitMonolithSagaState.RefactorDiffPending,
 
         [SplitMonolithTaskEndpoint.MigrateMapCompleted] = SplitMonolithSagaState.MigrateMapPending,
         [SplitMonolithTaskEndpoint.MigrateMapCancelled] = SplitMonolithSagaState.MigrateMapPending,

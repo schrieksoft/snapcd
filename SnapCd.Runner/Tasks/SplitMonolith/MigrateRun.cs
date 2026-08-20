@@ -59,7 +59,7 @@ public partial class Tasks
                 request.RootDirectory,
                 request.Engine,
                 DemonolithCommand.BackendConfigFlags(request.BackendConfigs).ToArray());
-            if (request.Overwrite) command += " --overwrite";
+            if (request.Force) command += " --force";
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

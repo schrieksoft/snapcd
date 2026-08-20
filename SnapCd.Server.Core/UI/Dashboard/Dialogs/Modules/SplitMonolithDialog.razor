@@ -1,0 +1,62 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Splits this module's monolith into the module directories its refactor map describes, and
+            migrates the state. The plan is proved first and pushed only after approval.
+        </MudText>
+
+        <MudTextField @bind-Value="_rootDirectory"
+                      Label="Monolith root"
+                      HelperText="Where the monolith sits within the checkout. Leave empty for the module's own directory."
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      Class="mb-3"/>
+
+        <MudCheckBox @bind-Value="_force"
+                     Label="Replace state at destinations that do not match"
+                     Color="Color.Error"/>
+
+        @if (_force)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-2">
+                A destination holding state that does not match this migration will be overwritten and
+                its existing state lost. Without this, such a destination is refused.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Confirm">
+            Start
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string? _rootDirectory;
+    private bool _force;
+
+    private void Confirm() =>
+        MudDialog.Close(DialogResult.Ok(new SplitMonolithOptions(_rootDirectory, _force)));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public record SplitMonolithOptions(string? RootDirectory, bool Force);
+}

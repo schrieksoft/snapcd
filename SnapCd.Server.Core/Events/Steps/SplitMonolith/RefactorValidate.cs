@@ -6,25 +6,19 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
-public class MigrateRunRequested : SplitStepRequestBase
-{
-    /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
-    public bool Force { get; set; }
-}
-
 /// <summary>
-/// This step performs an action rather than asserting one, so it either succeeds or faults.
-/// A non-zero exit is a fault: a half-completed push is not a tidy outcome to report.
+/// Asks the engine whether the written module directories are valid — init -backend=false plus
+/// validate on each, so no credentials and no state are involved. Runs before the diff, and long
+/// before any state is pulled.
 /// </summary>
-public class MigrateRunCompleted : StepResponseBase
-{
-}
+public class RefactorValidateRequested : SplitStepRequestBase;
 
-public class MigrateRunFaulted : StepFaultedBase;
+public class RefactorValidateCompleted : StepResponseBase;
 
-public class MigrateRunCancelled : StepResponseBase;
+public class RefactorValidateFaulted : StepFaultedBase;
+
+public class RefactorValidateCancelled : StepResponseBase;

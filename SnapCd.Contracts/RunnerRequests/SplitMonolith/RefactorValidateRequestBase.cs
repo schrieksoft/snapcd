@@ -8,17 +8,8 @@
 
 namespace SnapCd.Contracts.RunnerRequests.SplitMonolith;
 
-public class MigrateRunRequestBase : EngineJobRequestBase
+public class RefactorValidateRequestBase : EngineJobRequestBase
 {
     /// <summary>Monolith root within the checkout, passed to demonolith as --root-dir.</summary>
     public string? RootDirectory { get; set; }
-
-    /// <summary>
-    /// Backend settings living outside the backend block, as key=value. Inherited from the
-    /// module's BackendConfig array flags — the same source the Init step reads.
-    /// </summary>
-    public List<string> BackendConfigs { get; set; } = [];
-
-    /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
-    public bool Force { get; set; }
 }

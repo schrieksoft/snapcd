@@ -8,7 +8,6 @@
 
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
-using SnapCd.Contracts;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Contracts.RunnerRequests.SplitMonolith;
@@ -18,14 +17,14 @@ using SnapCd.Server.Core.Services;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.SplitMonolith;
 
-public class MigrateRunConsumer : IConsumer<MigrateRunRequested>
+public class RefactorDiffConsumer : IConsumer<RefactorDiffRequested>
 {
-    private readonly ILogger<MigrateRunConsumer> _logger;
+    private readonly ILogger<RefactorDiffConsumer> _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public MigrateRunConsumer(
-        ILogger<MigrateRunConsumer> logger,
+    public RefactorDiffConsumer(
+        ILogger<RefactorDiffConsumer> logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -34,7 +33,7 @@ public class MigrateRunConsumer : IConsumer<MigrateRunRequested>
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<MigrateRunRequested> context)
+    public async Task Consume(ConsumeContext<RefactorDiffRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -60,32 +59,24 @@ public class MigrateRunConsumer : IConsumer<MigrateRunRequested>
             }
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.MigrateRun,
-                new MigrateRunRequestBase
+                RunnerEndpoints.RefactorDiff,
+                new RefactorDiffRequestBase
                 {
                     JobId = jobId,
                     OrganizationId = orgId,
                     Metadata = metadata,
                     Engine = msg.Declared.Engine,
                     RootDirectory = msg.RootDirectory,
-                    // The same array flags the Init step turns into -backend-config, so a backend
-                    // needing settings outside its block is configured identically here.
-                    BackendConfigs = msg.Declared.TerraformArrayFlags
-                        .Where(f => f.Task == TerraformCommandTask.Init
-                                    && f.Flag == TerraformArrayFlag.BackendConfig)
-                        .Select(f => f.Value)
-                        .ToList(),
-                    Force = msg.Force,
                 }
             );
 
-            _logger.LogDebug("Dispatched MigrateRun request to runner {RunnerName} for job {JobId}",
+            _logger.LogDebug("Dispatched RefactorDiff request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error dispatching MigrateRun request for job {JobId}", jobId);
-            await context.Publish(new MigrateRunFaulted
+            _logger.LogError(ex, "Error dispatching RefactorDiff request for job {JobId}", jobId);
+            await context.Publish(new RefactorDiffFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,

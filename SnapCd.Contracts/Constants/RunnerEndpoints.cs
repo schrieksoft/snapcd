@@ -19,7 +19,8 @@ public static class RunnerEndpoints
     public const string Plan = "Plan";
     public const string PlanDestroy = "PlanDestroy";
     public const string PlanEmptyVerify = "PlanEmptyVerify";
-    public const string RefactorVerify = "RefactorVerify";
+    public const string RefactorValidate = "RefactorValidate";
+    public const string RefactorDiff = "RefactorDiff";
     public const string MigrateMap = "MigrateMap";
     public const string MigrateProve = "MigrateProve";
     public const string MigrateRun = "MigrateRun";

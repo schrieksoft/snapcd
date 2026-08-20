@@ -30,14 +30,14 @@ public partial class SplitMonolithStateMachine
         Event(() => PlanEmptyVerifyCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PlanEmptyVerifyFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        CreateStep<PlanEmptyVerifyCompleted, PlanEmptyVerifyCancelled, PlanEmptyVerifyFaulted, RefactorVerifyRequested>(
+        CreateStep<PlanEmptyVerifyCompleted, PlanEmptyVerifyCancelled, PlanEmptyVerifyFaulted, RefactorValidateRequested>(
             PlanEmptyVerifyWaitingForRunner,
             PlanEmptyVerifyPending,
             PlanEmptyVerifyCompleted,
             PlanEmptyVerifyCancelled,
             PlanEmptyVerifyFaulted,
-            RefactorVerifyWaitingForRunner,
-            RefactorVerifyPending
+            RefactorValidateWaitingForRunner,
+            RefactorValidatePending
         );
     }
 }
