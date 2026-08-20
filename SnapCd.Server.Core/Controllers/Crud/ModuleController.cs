@@ -65,8 +65,7 @@ public class ModuleController : GenericCrudController<
     }
 
     [EndpointSummary("Pause a Module, holding it out of the automated lifecycle")]
-    [PermissionSource(Skip = true,
-        Notes = "Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Pause)]
     [HttpPost("{moduleId}/pause")]
     public async Task<ActionResult<ModulePauseDto>> Pause(
         Guid organizationId,
@@ -92,8 +91,7 @@ public class ModuleController : GenericCrudController<
     }
 
     [EndpointSummary("Unpause a Module, returning it to the automated lifecycle")]
-    [PermissionSource(Skip = true,
-        Notes = "Organization Owner or Contributor, Stack Owner or Contributor, Namespace Owner or Contributor, or Module Owner or Contributor. Pausing is an operational act rather than a definition change, so it does not follow the Module update permissions.")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Pause)]
     [HttpPost("{moduleId}/unpause")]
     public async Task<ActionResult<ModulePauseDto>> Unpause(Guid organizationId, Guid moduleId)
     {

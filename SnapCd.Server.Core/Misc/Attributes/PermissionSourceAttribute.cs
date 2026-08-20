@@ -14,7 +14,13 @@ public enum PermissionVerb
     Read,
     Update,
     Delete,
-    RunJob
+    RunJob,
+
+    /// <summary>
+    /// Holding a Module out of the automated lifecycle. Its own verb because pausing is an
+    /// operational act rather than a definition change, so it does not follow Update.
+    /// </summary>
+    Pause
 }
 
 /// <summary>
