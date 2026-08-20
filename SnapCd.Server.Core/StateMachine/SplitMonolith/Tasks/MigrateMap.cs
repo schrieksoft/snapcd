@@ -36,7 +36,14 @@ public partial class SplitMonolithStateMachine
             MigrateMapCancelled,
             MigrateMapFaulted,
             MigrateProveWaitingForRunner,
-            MigrateProvePending
+            MigrateProvePending,
+            context =>
+            {
+                context.Saga.RefactorMapHash = context.Message.RefactorMapHash;
+                context.Saga.CarvedModuleNames = context.Message.CarvedModuleNames.Count > 0
+                    ? string.Join(", ", context.Message.CarvedModuleNames)
+                    : null;
+            }
         );
     }
 }

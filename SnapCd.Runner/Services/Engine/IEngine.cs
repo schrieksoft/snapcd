@@ -15,6 +15,9 @@ namespace SnapCd.Runner.Services;
 public interface IEngine
 {
     string GetInitDir();
+
+    /// <summary>Runs a command in the module directory with the job's environment loaded.</summary>
+    Task<string> RunProcess(string script, CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken);
     string GetSnapCdDir();
 
     Task<string> Init(
