@@ -316,6 +316,7 @@ app.UseAuthorization();
 app.UseMiddleware<MaintenanceModeMiddleware>();
 app.UseMiddleware<OrganizationValidationMiddleware>();
 app.UseAntiforgery();
+app.UseMiddleware<TransientFaultRetryMiddleware>();
 app.MapControllers();
 //app.MapDefaultControllerRoute();
 app.MapRazorPages();

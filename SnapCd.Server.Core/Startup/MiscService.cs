@@ -36,6 +36,7 @@ public static class MiscService
         // Log redactor — singleton, shared by REST logs endpoint (Phase 4) + MCP
         // redacted-logs Resource (Phase 6). Single chokepoint, identical scrub policy.
         services.AddSingleton<SnapCd.Server.Core.Logging.ILogRedactor, SnapCd.Server.Core.Logging.DefaultLogRedactor>();
+        services.AddSingleton<SnapCd.Server.Core.Services.Resilience.ITransientFaultClassifier, SnapCd.Server.Core.Services.Resilience.TransientFaultClassifier>();
 
         services.AddScoped<SnapCd.Server.Core.Services.AgentConnectionValidator.AgentConnectionValidator>();
 

@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
@@ -87,6 +88,10 @@ public class NamespaceInputFromSecretController : BaseController
         {
             return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
         }
+        catch (UniqueConstraintException e)
+        {
+            return StatusCode(CustomStatusCodes.Status442EntityAlreadyExists, e.Message);
+        }
         catch (PrincipalNotAuthorizedException e)
         {
             return StatusCode(StatusCodes.Status403Forbidden, e.Message);
@@ -109,6 +114,10 @@ public class NamespaceInputFromSecretController : BaseController
         catch (EntityNotFoundException e)
         {
             return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (UniqueConstraintException e)
+        {
+            return StatusCode(CustomStatusCodes.Status442EntityAlreadyExists, e.Message);
         }
         catch (PrincipalNotAuthorizedException e)
         {

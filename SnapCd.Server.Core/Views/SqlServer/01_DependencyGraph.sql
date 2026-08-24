@@ -115,7 +115,7 @@ BEGIN
     INSERT INTO DependencyEdges (DefinedModuleId, ReferencedModuleId, OrganizationId)
     SELECT d.DefinedModuleId, d.ReferencedModuleId, d.OrganizationId
     FROM @desired d
-    WHERE NOT EXISTS (SELECT 1 FROM DependencyEdges t
+    WHERE NOT EXISTS (SELECT 1 FROM DependencyEdges t WITH (UPDLOCK, HOLDLOCK)
                       WHERE t.DefinedModuleId = d.DefinedModuleId
                         AND t.ReferencedModuleId = d.ReferencedModuleId)
     ORDER BY d.DefinedModuleId, d.ReferencedModuleId;
