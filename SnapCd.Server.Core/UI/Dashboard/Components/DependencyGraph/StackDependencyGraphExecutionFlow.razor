@@ -284,12 +284,15 @@ else if (DependencyGraphWithStates.NodeStates.All(n => !n.IncomingEdges.Any() &&
         margin: 2px 0;
     }
 
-    .dag-module-panel .mud-expand-panel-header {
+    /* The gutters class is more specific than the shorthand, so it must be named to be overridden. */
+    .dag-module-panel .mud-expand-panel-header,
+    .dag-module-panel .mud-expand-panel-header.mud-expand-panel-header-gutters {
         padding: 4px 8px;
         min-height: unset;
     }
 
-    .dag-module-panel .mud-expand-panel-content {
+    .dag-module-panel .mud-expand-panel-content,
+    .dag-module-panel .mud-expand-panel-content.mud-expand-panel-gutters {
         padding: 4px 8px;
     }
 
