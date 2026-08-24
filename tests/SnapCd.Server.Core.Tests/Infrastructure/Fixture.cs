@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using DotNet.Testcontainers.Builders;
+using Microsoft.Data.SqlClient;
 using DotNet.Testcontainers.Containers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -92,6 +93,9 @@ public class ModuleUpdateDeleteEntities
 /// </summary>
 public class Fixture : IAsyncLifetime
 {
+    private const string DatabaseName = "SnapCdTests";
+    private const string SaPassword = "TestPass123!";
+
     private IContainer? _databaseContainer;
     private ServiceProvider? _serviceProvider;
     private string? _connectionString;
@@ -175,18 +179,47 @@ public class Fixture : IAsyncLifetime
     public SnapCd.Server.Core.Entities.Definition.User NoPermissionUser { get; private set; } = null!;
     public SnapCd.Server.Core.Entities.Definition.ServicePrincipal NoPermissionServicePrincipal { get; private set; } = null!;
 
+    /// <summary>The container reports ready before SQL Server accepts logins, so retry briefly.</summary>
+    private static async Task CreateDatabaseAsync(string masterConnectionString)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await using var master = new SqlConnection(masterConnectionString);
+                await master.OpenAsync();
+                await using var create = new SqlCommand($"CREATE DATABASE [{DatabaseName}];", master);
+                await create.ExecuteNonQueryAsync();
+                return;
+            }
+            catch (SqlException) when (attempt < 30)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2));
+            }
+        }
+    }
+
     public async Task InitializeAsync()
     {
         // Start SQL Server container
         _databaseContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
-            .WithPassword("TestPass123!")
+            .WithPassword(SaPassword)
             .WithWaitStrategy(Wait.ForUnixContainer()
                 .UntilPortIsAvailable(1433))
             .Build();
 
         await _databaseContainer.StartAsync();
-        _connectionString = ((MsSqlContainer)_databaseContainer).GetConnectionString();
+
+        // Its own database rather than master: the schema's read-committed snapshot migration
+        // cannot run there.
+        var masterConnectionString = ((MsSqlContainer)_databaseContainer).GetConnectionString();
+        await CreateDatabaseAsync(masterConnectionString);
+        _connectionString = new SqlConnectionStringBuilder(masterConnectionString)
+        {
+            InitialCatalog = DatabaseName,
+            Password = SaPassword
+        }.ConnectionString;
 
         // Configure services
         var services = new ServiceCollection();
