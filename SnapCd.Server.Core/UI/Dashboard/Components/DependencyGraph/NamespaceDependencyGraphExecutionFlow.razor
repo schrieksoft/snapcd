@@ -315,10 +315,13 @@ else if (DependencyGraphWithStates.NodeStates.All(n => !n.IncomingEdges.Any() &&
         padding: 4px 8px;
     }
 
+    /* MudBlazor gives .mud-expand-panel a surface background; a dependency-free module renders
+       as a plain div instead, so it needs the same one to match the panels beside it. */
     .dag-module-nodeps {
         padding: 4px 8px;
         margin: 2px 0;
         border-radius: 4px;
+        background-color: var(--mud-palette-surface);
     }
 </style>
 

@@ -6,10 +6,12 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.RoleAssignments;
+using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud.RoleAssignment;
 
@@ -46,6 +48,7 @@ public class IntegrationRoleAssignmentController : ControllerBase
     public async Task<ActionResult<IntegrationRoleAssignmentReadDto>> Create(Guid organizationId, [FromBody] IntegrationRoleAssignmentReadDto dto)
     {
         try { return await _service.Create(dto, organizationId); }
+        catch (UniqueConstraintException e) { return StatusCode(CustomStatusCodes.Status442EntityAlreadyExists, e.Message); }
         catch (PrincipalNotAuthorizedException e) { return StatusCode(StatusCodes.Status403Forbidden, e.Message); }
         catch (Exception e) { return StatusCode(StatusCodes.Status500InternalServerError, e.Message); }
     }
@@ -54,6 +57,7 @@ public class IntegrationRoleAssignmentController : ControllerBase
     public async Task<ActionResult<IntegrationRoleAssignmentReadDto>> Update(Guid organizationId, Guid id, [FromBody] IntegrationRoleAssignmentUpdateDto dto)
     {
         try { return await _service.Update(dto, id, organizationId); }
+        catch (UniqueConstraintException e) { return StatusCode(CustomStatusCodes.Status442EntityAlreadyExists, e.Message); }
         catch (PrincipalNotAuthorizedException e) { return StatusCode(StatusCodes.Status403Forbidden, e.Message); }
         catch (EntityNotFoundException e) { return NotFound(e.Message); }
         catch (Exception e) { return StatusCode(StatusCodes.Status500InternalServerError, e.Message); }

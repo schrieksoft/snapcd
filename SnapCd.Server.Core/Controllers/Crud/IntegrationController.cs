@@ -8,6 +8,7 @@
 
 using SnapCd.Server.Core.Misc.Attributes;
 using System.ComponentModel.DataAnnotations;
+using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Integrations;
 using SnapCd.Contracts.Mcp;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Integrations;
 using SnapCd.Server.Core.Services.Integrations.Codecs;
@@ -88,6 +90,10 @@ public class IntegrationController : ControllerBase
             var id = await _service.Create(organizationId, dto);
             return await _service.GetRead(id, organizationId);
         }
+        catch (UniqueConstraintException e)
+        {
+            return StatusCode(CustomStatusCodes.Status442EntityAlreadyExists, e.Message);
+        }
         catch (PrincipalNotAuthorizedException e)
         {
             return StatusCode(StatusCodes.Status403Forbidden, e.Message);
@@ -113,6 +119,10 @@ public class IntegrationController : ControllerBase
         {
             await _service.Update(id, organizationId, dto);
             return await _service.GetRead(id, organizationId);
+        }
+        catch (UniqueConstraintException e)
+        {
+            return StatusCode(CustomStatusCodes.Status442EntityAlreadyExists, e.Message);
         }
         catch (PrincipalNotAuthorizedException e)
         {
