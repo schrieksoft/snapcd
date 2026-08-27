@@ -50,7 +50,8 @@ public class TransientFaultRetryMiddleware
                 // each attempt its own scope: the DbContext is scoped, and replaying a request
                 // against the change tracker of a failed attempt would write duplicates.
                 using var buffer = new MemoryStream();
-                using var scope = scopeFactory.CreateScope();
+                // Async scope: a scoped service that implements only IAsyncDisposable throws on synchronous Dispose.
+                await using var scope = scopeFactory.CreateAsyncScope();
                 context.Response.Body = buffer;
                 context.RequestServices = scope.ServiceProvider;
 

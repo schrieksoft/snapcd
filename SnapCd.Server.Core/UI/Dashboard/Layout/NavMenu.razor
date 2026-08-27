@@ -165,6 +165,10 @@
                     <MudNavLink Href="/AdminCenter/Maintenance" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Build">
                         Maintenance Mode
                     </MudNavLink>
+                    @if (EditionAdminCenterNavItems != null)
+                    {
+                        @EditionAdminCenterNavItems
+                    }
                 </MudNavGroup>
             }
 
@@ -280,6 +284,7 @@
     private RenderFragment? EditionSystemNavItems => EditionNavProvider.EditionSystemNavItems;
     private RenderFragment? EditionNavItems => EditionNavProvider.EditionNavItems;
     private RenderFragment? EditionAccountNavItems => EditionNavProvider.EditionAccountNavItems;
+    private RenderFragment? EditionAdminCenterNavItems => EditionNavProvider.EditionAdminCenterNavItems;
 
     private bool _isSystemAdministrator;
 

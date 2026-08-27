@@ -21,5 +21,8 @@ public interface IEditionNavProvider
     /// <summary>Rendered standalone, after the "System" nav group (e.g. the SaaS "Subscriptions" group).</summary>
     RenderFragment? EditionNavItems { get; }
 
+    /// <summary>Rendered inside the "Admin Center" nav group. System-administrator role only.</summary>
+    RenderFragment? EditionAdminCenterNavItems => null;
+
     RenderFragment? EditionAccountNavItems { get; }
 }
