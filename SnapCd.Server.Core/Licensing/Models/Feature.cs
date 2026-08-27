@@ -16,7 +16,6 @@ namespace SnapCd.Server.Core.Licensing.Models;
 /// </summary>
 public enum Feature
 {
-    FinegrainedRbac,
     Sso,
     Turnstile,
     PremiumMessageBroker,
@@ -34,7 +33,6 @@ public static class TierFeatures
     private static readonly Dictionary<(Tier, Feature), bool> Matrix = new()
     {
         // Community tier — baseline only, no gated features.
-        { (Tier.Community, Feature.FinegrainedRbac), false },
         { (Tier.Community, Feature.Sso), false },
         { (Tier.Community, Feature.Turnstile), false },
         { (Tier.Community, Feature.PremiumMessageBroker), false },
@@ -44,7 +42,6 @@ public static class TierFeatures
         { (Tier.Community, Feature.Integrations), false },
 
         // Lite tier — paid baseline; AiAgents is reserved for Enterprise.
-        { (Tier.Lite, Feature.FinegrainedRbac), true },
         { (Tier.Lite, Feature.Sso), true },
         { (Tier.Lite, Feature.Turnstile), true },
         { (Tier.Lite, Feature.PremiumMessageBroker), true },
@@ -54,7 +51,6 @@ public static class TierFeatures
         { (Tier.Lite, Feature.Integrations), true },
 
         // Enterprise tier — full feature set, including Enterprise-exclusive AiAgents.
-        { (Tier.Enterprise, Feature.FinegrainedRbac), true },
         { (Tier.Enterprise, Feature.Sso), true },
         { (Tier.Enterprise, Feature.Turnstile), true },
         { (Tier.Enterprise, Feature.PremiumMessageBroker), true },

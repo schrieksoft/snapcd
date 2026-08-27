@@ -11,8 +11,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.RoleAssignments.Base;
-using SnapCd.Server.Core.Licensing.Attributes;
-using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud.RoleAssignment;
@@ -32,7 +30,6 @@ public class ModuleRoleAssignmentController : ControllerBase
     }
 
     [HttpPost]
-    [VerifyLicense(Feature.FinegrainedRbac)]
     public virtual async Task<ActionResult<ModuleRoleAssignmentReadDto>> Create(Guid organizationId, ModuleRoleAssignmentReadDto dto)
     {
         try
@@ -99,7 +96,6 @@ public class ModuleRoleAssignmentController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [VerifyLicense(Feature.FinegrainedRbac)]
     public virtual async Task<ActionResult<ModuleRoleAssignmentReadDto>> Update(Guid organizationId, ModuleRoleAssignmentUpdateDto dto, Guid id)
     {
         try
