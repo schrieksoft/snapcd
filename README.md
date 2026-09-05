@@ -22,6 +22,10 @@ Those were the initial goals. As the use of AI Coding agents is rapidly becoming
   <img src="./screenshot.png" alt="SnapCD Logo" >
 </p>
 
+> 📺 **Watch the intro:** [No More Terraform Monoliths! Introducing Snap CD](https://youtu.be/VbCx-RCprY8) — why I built it, the seven goals, and a full live demo end to end.
+
+[![No More Terraform Monoliths! Introducing Snap CD](https://img.youtube.com/vi/VbCx-RCprY8/maxresdefault.jpg)](https://youtu.be/VbCx-RCprY8)
+
 
 ## Getting started
 
