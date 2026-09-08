@@ -6,7 +6,7 @@
 
 ## TL;DR
 
-> **Here's the highlights package:** [Break the Terraform monolith — Compose and Orchestrate at any scale](https://youtu.be/cLfWT9njyz8)).
+> **Here's the highlights package:** [Break the Terraform monolith — Compose and Orchestrate at any scale](https://youtu.be/cLfWT9njyz8).
 
 [![Break the Terraform monolith — Compose and Orchestrate at any scale](https://img.youtube.com/vi/cLfWT9njyz8/maxresdefault.jpg)](https://youtu.be/cLfWT9njyz8)
 
