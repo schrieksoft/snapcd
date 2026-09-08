@@ -4,7 +4,14 @@
   Snap CD
 </h1>
 
-[README.md](README.md)
+## TL;DR
+
+> **Here's the highlights package:** [Break the Terraform monolith — Compose and Orchestrate at any scale](https://youtu.be/cLfWT9njyz8)).
+
+[![Break the Terraform monolith — Compose and Orchestrate at any scale](https://img.youtube.com/vi/cLfWT9njyz8/maxresdefault.jpg)](https://youtu.be/cLfWT9njyz8)
+
+## The Seven Goals
+
 Snap CD is a self-hostable GitOps orchestrator for Terraform, OpenTofu, and Pulumi. It was built according to (and delivers on!) the following goals:
 
 1. **Break infrastructure into small modules, wired together**, each with its own state file, its own lifecycle, its own blast radius. Outputs from any module automatically become available as inputs to other modules, creating a declarative dependency system across my entire infrastructure.
@@ -22,7 +29,7 @@ Those were the initial goals. As the use of AI Coding agents is rapidly becoming
   <img src="./screenshot.png" alt="SnapCD Logo" >
 </p>
 
-> 📺 **Watch the intro:** [No More Terraform Monoliths! Introducing Snap CD](https://youtu.be/VbCx-RCprY8) — why I built it, the seven goals, and a full live demo end to end.
+> **Watch the intro:** [No More Terraform Monoliths! Introducing Snap CD](https://youtu.be/VbCx-RCprY8) — why I built it, the seven goals, and a full live demo end to end.
 
 [![No More Terraform Monoliths! Introducing Snap CD](https://img.youtube.com/vi/VbCx-RCprY8/maxresdefault.jpg)](https://youtu.be/VbCx-RCprY8)
 
