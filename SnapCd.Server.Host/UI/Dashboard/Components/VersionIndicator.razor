@@ -1,0 +1,67 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Telemetry
+@using SnapCd.Server.Host.Installations
+@using SnapCd.Server.Host.Telemetry
+@inject InstallationService Installation
+@inject IVersionService VersionService
+
+@if (_delta is not null)
+{
+    <MudTooltip Text="@($"A {_delta} release is available. Open What's New for details.")">
+        <a href="/WhatsNew" class="version-indicator">
+            <span class="version-indicator-dot"></span>@_latest available
+        </a>
+    </MudTooltip>
+}
+
+<style>
+    .version-indicator {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        margin-left: 6px;
+        white-space: nowrap;
+    }
+
+    .version-indicator:hover {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .version-indicator-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--snap-accent);
+        margin-right: 4px;
+        vertical-align: middle;
+    }
+</style>
+
+@code {
+    private string? _delta;
+    private string? _latest;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var row = await Installation.GetAsync();
+            _latest = row.LatestKnownVersion;
+            _delta = VersionDelta.Describe(VersionService.ShortVersion, _latest);
+        }
+        catch
+        {
+            // The indicator is decoration; a read failure must not break the nav.
+            _delta = null;
+        }
+    }
+}

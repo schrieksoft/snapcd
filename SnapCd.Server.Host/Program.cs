@@ -27,6 +27,8 @@ using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Host.Licensing.Filters;
 using SnapCd.Server.Host.Licensing.Services;
+using SnapCd.Server.Host.Installations;
+using SnapCd.Server.Host.Telemetry;
 using SnapCd.Server.Core.Services.Admin;
 using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Server.Core.Startup;
@@ -68,6 +70,7 @@ builder.Services.Configure<InvitationSettings>(builder.Configuration.GetSection(
 builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.GetSection("OrphanedJobCleanup"));
 builder.Services.Configure<StuckJobDetectionSettings>(builder.Configuration.GetSection("StuckJobDetection"));
 builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("License"));
+builder.Services.Configure<TelemetrySettings>(builder.Configuration.GetSection("Telemetry"));
 builder.Services.Configure<DebuggingOptions>(builder.Configuration.GetSection("Debugging"));
 builder.Services.AddOptions<OpenIdConnectSettings>()
     .Bind(builder.Configuration.GetSection("OpenIdConnect"))
@@ -103,6 +106,10 @@ builder.Services.AddScoped<LicenseRefreshJob>();
 builder.Services.AddScoped<LicensePublicKeyRefreshJob>();
 builder.Services.AddSingleton<ILicensePublicKeyService, LicensePublicKeyService>();
 builder.Services.AddScoped<IRemoteLicenseClient, RemoteLicenseClient>();
+builder.Services.AddSingleton<InstallationService>();
+builder.Services.AddSingleton<TelemetrySnapshotProvider>();
+builder.Services.AddScoped<TelemetryClient>();
+builder.Services.AddScoped<TelemetryReportJob>();
 builder.Services.AddScoped<VerifyLicenseActionFilter>();
 builder.Services.PostConfigure<Microsoft.AspNetCore.Mvc.MvcOptions>(o =>
     o.Filters.AddService<VerifyLicenseActionFilter>());
@@ -281,6 +288,15 @@ RecurringJob.AddOrUpdate<LicensePublicKeyRefreshJob>(
     x => x.ExecuteJob(),
     "0 4 * * *" // daily at 04:00 UTC
 );
+var telemetrySettings = builder.Configuration.GetSection("Telemetry").Get<TelemetrySettings>() ?? new TelemetrySettings();
+if (telemetrySettings.Enabled)
+{
+    RecurringJob.AddOrUpdate<TelemetryReportJob>("telemetry-report-job", x => x.ExecuteJob(), telemetrySettings.Cron);
+}
+else
+{
+    RecurringJob.RemoveIfExists("telemetry-report-job");
+}
 
 // Serves the OpenAPI document at /openapi/v1.json — consumed by the
 // Scalar reference (/ApiReference).

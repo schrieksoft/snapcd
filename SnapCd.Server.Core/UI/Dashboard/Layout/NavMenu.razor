@@ -60,7 +60,7 @@
                 <img src="/_content/SnapCd.Server.Core/lockup-white.svg" alt="Snap CD"
                      style="height: 28px; width: auto;"/>
                 <MudText Typo="Typo.caption" Style="color: rgba(255, 255, 255, 0.35); margin-left: auto; font-size: 0.65rem;">
-                    v@(VersionService.ShortVersion)
+                    v@(VersionService.ShortVersion)@EditionVersionIndicator
                 </MudText>
             </a>
 
@@ -285,6 +285,7 @@
     private RenderFragment? EditionNavItems => EditionNavProvider.EditionNavItems;
     private RenderFragment? EditionAccountNavItems => EditionNavProvider.EditionAccountNavItems;
     private RenderFragment? EditionAdminCenterNavItems => EditionNavProvider.EditionAdminCenterNavItems;
+    private RenderFragment? EditionVersionIndicator => EditionNavProvider.EditionVersionIndicator;
 
     private bool _isSystemAdministrator;
 

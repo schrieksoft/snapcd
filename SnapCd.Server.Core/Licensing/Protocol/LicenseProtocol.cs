@@ -6,12 +6,14 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Licensing.Protocol;
 
-namespace SnapCd.Server.Host.Licensing.Services;
+namespace SnapCd.Server.Core.Licensing.Protocol;
 
-public interface IRemoteLicenseClient
-{
-    Task<LicenseTokenResponse?> IssueAsync(string licenseKey, CancellationToken ct = default);
-    Task<LicenseTokenResponse?> RefreshAsync(string licenseKey, string? currentToken, CancellationToken ct = default);
-}
+/// <summary>Body of <c>POST api/licenses/issue</c>. <paramref name="SeedGuid"/> is null from servers that predate installation seeds.</summary>
+public record LicenseIssueRequest(string LicenseKey, Guid? SeedGuid = null);
+
+/// <summary>Body of <c>POST api/licenses/refresh</c>.</summary>
+public record LicenseRefreshRequest(string LicenseKey, string? CurrentToken, Guid? SeedGuid = null);
+
+/// <summary>Response to both licence calls.</summary>
+public record LicenseTokenResponse(string Token, DateTime ExpiresAtUtc, DateTime LicensePeriodEndUtc);

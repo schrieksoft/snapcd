@@ -6,12 +6,19 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Licensing.Protocol;
 
-namespace SnapCd.Server.Host.Licensing.Services;
+namespace SnapCd.Server.Host.Telemetry;
 
-public interface IRemoteLicenseClient
+/// <summary>
+/// The daily usage beacon to the Snap CD Licensing Service: installation seed, version, module count
+/// and job count, nothing else. Disabling it also stops the version indicator and the What's New feed,
+/// which arrive in the beacon's response.
+/// </summary>
+public class TelemetrySettings
 {
-    Task<LicenseTokenResponse?> IssueAsync(string licenseKey, CancellationToken ct = default);
-    Task<LicenseTokenResponse?> RefreshAsync(string licenseKey, string? currentToken, CancellationToken ct = default);
+    /// <summary>Whether the beacon runs at all. Defaults to true.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Cron expression for the beacon. Defaults to 05:00 daily.</summary>
+    public string Cron { get; set; } = "0 5 * * *";
 }

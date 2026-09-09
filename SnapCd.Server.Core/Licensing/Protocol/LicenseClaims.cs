@@ -6,12 +6,16 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Licensing.Protocol;
 
-namespace SnapCd.Server.Host.Licensing.Services;
+namespace SnapCd.Server.Core.Licensing.Protocol;
 
-public interface IRemoteLicenseClient
+/// <summary>Claim names in a licence token. Both the issuer and the validator read from here.</summary>
+public static class LicenseClaims
 {
-    Task<LicenseTokenResponse?> IssueAsync(string licenseKey, CancellationToken ct = default);
-    Task<LicenseTokenResponse?> RefreshAsync(string licenseKey, string? currentToken, CancellationToken ct = default);
+    public const string Subject = "sub";
+    public const string Tier = "tier";
+    public const string TokenId = "jti";
+    public const string MaxModules = "max_modules";
+    public const string LicensePeriodEnd = "license_period_end";
+    public const string Seed = "seed";
 }

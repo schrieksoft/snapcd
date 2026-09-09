@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Host.Database.ClassMaps;
+using SnapCd.Server.Host.Installations;
 
 namespace SnapCd.Server.Host.Database;
 
@@ -23,6 +24,7 @@ public class SelfHostedSnapCdDbContext : SnapCdDbContext
     public DbSet<SelfHostedOrganizationLicense> SelfHostedOrganizationLicenses { get; set; } = null!;
     public DbSet<VaultSecret> VaultSecrets { get; set; } = null!;
     public DbSet<SecretMigrationAudit> SecretMigrationAudits { get; set; } = null!;
+    public DbSet<Installation> Installations { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,5 +33,6 @@ public class SelfHostedSnapCdDbContext : SnapCdDbContext
         modelBuilder.ApplyConfiguration(new SelfHostedOrganizationLicenseClassMap());
         modelBuilder.ApplyConfiguration(new VaultSecretClassMap());
         modelBuilder.ApplyConfiguration(new SecretMigrationAuditClassMap());
+        modelBuilder.ApplyConfiguration(new InstallationClassMap());
     }
 }

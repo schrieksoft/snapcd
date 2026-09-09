@@ -21,6 +21,7 @@ using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
+using SnapCd.Server.Core.Licensing.Protocol;
 
 namespace SnapCd.Server.Host.Licensing.Services;
 
@@ -278,27 +279,27 @@ public class LicenseService(
 
             var jwt = (JwtSecurityToken)validatedToken;
 
-            var subClaim = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            var subClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.Subject)?.Value;
             if (!Guid.TryParse(subClaim, out var subscriptionId))
             {
                 return LicenseInfo.Unlicensed("License key is missing a valid subject claim.");
             }
 
-            var tierClaim = jwt.Claims.FirstOrDefault(c => c.Type == "tier")?.Value;
+            var tierClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.Tier)?.Value;
             var tier = TierExtensions.FromClaimValue(tierClaim);
             if (tier is null)
             {
                 return LicenseInfo.Unlicensed("License key is missing a valid tier claim.");
             }
 
-            var maxModulesClaim = jwt.Claims.FirstOrDefault(c => c.Type == "max_modules")?.Value;
+            var maxModulesClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.MaxModules)?.Value;
             int? maxModules = null;
             if (int.TryParse(maxModulesClaim, out var parsedModules))
             {
                 maxModules = parsedModules;
             }
 
-            var licensePeriodEndClaim = jwt.Claims.FirstOrDefault(c => c.Type == "license_period_end")?.Value;
+            var licensePeriodEndClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.LicensePeriodEnd)?.Value;
             DateTime? licensePeriodEnd = null;
             if (long.TryParse(licensePeriodEndClaim, out var unixSeconds))
             {

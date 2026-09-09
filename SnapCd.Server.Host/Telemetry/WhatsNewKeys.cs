@@ -6,12 +6,11 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Licensing.Protocol;
 
-namespace SnapCd.Server.Host.Licensing.Services;
+namespace SnapCd.Server.Host.Telemetry;
 
-public interface IRemoteLicenseClient
+public static class WhatsNewKeys
 {
-    Task<LicenseTokenResponse?> IssueAsync(string licenseKey, CancellationToken ct = default);
-    Task<LicenseTokenResponse?> RefreshAsync(string licenseKey, string? currentToken, CancellationToken ct = default);
+    /// <summary>Browser-local: the newest entry id this browser has opened the page on.</summary>
+    public const string LastSeenEntryId = "snapcd.whatsnew.lastSeenEntryId";
 }

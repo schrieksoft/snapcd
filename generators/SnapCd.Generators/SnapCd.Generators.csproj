@@ -23,6 +23,7 @@
         <ProjectReference Include="..\..\SnapCd.Runner\SnapCd.Runner.csproj" />
         <ProjectReference Include="..\..\SnapCd.Agent\SnapCd.Agent.csproj" />
         <ProjectReference Include="..\..\SnapCd.Server.Core\SnapCd.Server.Core.csproj" />
+        <ProjectReference Include="..\..\SnapCd.Server.Host\SnapCd.Server.Host.csproj" />
     </ItemGroup>
 
 </Project>

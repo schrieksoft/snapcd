@@ -24,4 +24,10 @@ public class ServerEditionNavProvider : IEditionNavProvider
     };
 
     public RenderFragment? EditionAccountNavItems => null;
+
+    public RenderFragment? EditionVersionIndicator => builder =>
+    {
+        builder.OpenComponent<VersionIndicator>(0);
+        builder.CloseComponent();
+    };
 }

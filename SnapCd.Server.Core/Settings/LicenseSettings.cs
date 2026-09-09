@@ -10,17 +10,14 @@ namespace SnapCd.Server.Core.Settings;
 
 /// <summary>
 /// Configures how the Server obtains, refreshes, and validates its license token against the
-/// Snap CD Licensing Service. Defaults point at the public Cloud licensing endpoint and a daily
-/// refresh schedule — operators typically only change <see cref="LicenseServerBaseUrl"/> when
-/// running the Server in a disconnected environment with a private license proxy.
+/// Snap CD Licensing Service. The endpoint is fixed; operators adjust only the refresh schedule.
 /// </summary>
 public class LicenseSettings
 {
     /// <summary>
-    /// Base URL of the Snap CD Licensing Service. Defaults to the public Cloud endpoint
-    /// (https://snapcd.io). Self-Hosted deployments running on Community-Plus or higher round-trip
-    /// license tokens through this endpoint at refresh time. In non-debug runs the value is
-    /// force-set to https://snapcd.io regardless of appsettings.json — see Program.cs.
+    /// Base URL of the Snap CD Licensing Service, used for license issue and refresh, the signing
+    /// public key, and the usage beacon. Fixed to https://snapcd.io whenever no debugger is attached;
+    /// the setting exists so local development can point at a local licensing service.
     /// </summary>
     public string LicenseServerBaseUrl { get; set; } = "https://snapcd.io";
 
