@@ -27,6 +27,9 @@ using SnapCd.Server.Core.Licensing.Models;
 using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Host.Licensing.Filters;
 using SnapCd.Server.Host.Licensing.Services;
+using SnapCd.Server.Host.CapAlerts;
+using SnapCd.Server.Host.Installations;
+using SnapCd.Server.Host.Telemetry;
 using SnapCd.Server.Core.Services.Admin;
 using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Server.Core.Startup;
@@ -68,6 +71,7 @@ builder.Services.Configure<InvitationSettings>(builder.Configuration.GetSection(
 builder.Services.Configure<OrphanedJobCleanupSettings>(builder.Configuration.GetSection("OrphanedJobCleanup"));
 builder.Services.Configure<StuckJobDetectionSettings>(builder.Configuration.GetSection("StuckJobDetection"));
 builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("License"));
+builder.Services.Configure<TelemetrySettings>(builder.Configuration.GetSection("Telemetry"));
 builder.Services.Configure<DebuggingOptions>(builder.Configuration.GetSection("Debugging"));
 builder.Services.AddOptions<OpenIdConnectSettings>()
     .Bind(builder.Configuration.GetSection("OpenIdConnect"))
@@ -103,6 +107,13 @@ builder.Services.AddScoped<LicenseRefreshJob>();
 builder.Services.AddScoped<LicensePublicKeyRefreshJob>();
 builder.Services.AddSingleton<ILicensePublicKeyService, LicensePublicKeyService>();
 builder.Services.AddScoped<IRemoteLicenseClient, RemoteLicenseClient>();
+builder.Services.AddSingleton<InstallationService>();
+builder.Services.AddSingleton<TelemetrySnapshotProvider>();
+builder.Services.AddSingleton<GitHubReleasesClient>();
+builder.Services.AddSingleton<ModuleCountChangedNotificationService>();
+builder.Services.AddScoped<CapAlertService>();
+builder.Services.AddScoped<TelemetryClient>();
+builder.Services.AddScoped<TelemetryReportJob>();
 builder.Services.AddScoped<VerifyLicenseActionFilter>();
 builder.Services.PostConfigure<Microsoft.AspNetCore.Mvc.MvcOptions>(o =>
     o.Filters.AddService<VerifyLicenseActionFilter>());
@@ -136,7 +147,7 @@ builder.Services.AddSnapCdAuthConfiguration(builder.Configuration, allowHttp);
 builder.Services.AddSnapCdBackgroundJobs(connectionString);
 builder.Services.AddSnapCdScalarConfiguration(builder.Configuration);
 builder.Services.AddSnapCdCorsConfiguration();
-builder.Services.AddSnapCdMassTransitConfiguration(builder.Configuration);
+builder.Services.AddSnapCdMassTransitConfiguration(builder.Configuration, [typeof(ModuleCountChangedFanoutConsumer)]);
 builder.Services.AddSnapCdRunnerHub();
 builder.Services.AddSnapCdMcpServer();
 builder.Services.AddSnapCdHeaderForwardingConfiguration();
@@ -281,6 +292,10 @@ RecurringJob.AddOrUpdate<LicensePublicKeyRefreshJob>(
     x => x.ExecuteJob(),
     "0 4 * * *" // daily at 04:00 UTC
 );
+var telemetrySettings = builder.Configuration.GetSection("Telemetry").Get<TelemetrySettings>() ?? new TelemetrySettings();
+RecurringJob.AddOrUpdate<TelemetryReportJob>("telemetry-report-job", x => x.ExecuteJob(), telemetrySettings.Cron);
+// One run shortly after boot, so a fresh install or an upgrade has notices and the version indicator today, not tomorrow.
+BackgroundJob.Schedule<TelemetryReportJob>(x => x.ExecuteJob(), TimeSpan.FromMinutes(1));
 
 // Serves the OpenAPI document at /openapi/v1.json — consumed by the
 // Scalar reference (/ApiReference).

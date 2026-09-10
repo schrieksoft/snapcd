@@ -6,22 +6,20 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Host.Installations;
 
-namespace SnapCd.Server.Core.Database.ClassMaps;
+namespace SnapCd.Server.Host.Database.ClassMaps;
 
-public class MaintenanceModeClassMap : IEntityTypeConfiguration<MaintenanceMode>
+public class InstallationClassMap : IEntityTypeConfiguration<Installation>
 {
-    public void Configure(EntityTypeBuilder<MaintenanceMode> entity)
+    public void Configure(EntityTypeBuilder<Installation> entity)
     {
         entity.HasKey(e => e.Id);
-
-        // Single fixed-key row, inserted by migration; the id is never generated and the database refuses any other.
+        // Single fixed-key row; the id is never generated and the database refuses any other.
         entity.Property(e => e.Id).ValueGeneratedNever();
-        entity.ToTable(t => t.HasCheckConstraint("CK_MaintenanceMode_Singleton", $"[Id] = {MaintenanceMode.SingletonId}"));
-
-        entity.Property(e => e.Phase).HasConversion<string>().HasMaxLength(50);
+        entity.ToTable(t => t.HasCheckConstraint("CK_Installations_Singleton", $"[Id] = {Installation.SingletonId}"));
     }
 }

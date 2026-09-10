@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Hangfire;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
@@ -21,6 +22,7 @@ using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
+using SnapCd.Server.Core.Licensing.Protocol;
 
 namespace SnapCd.Server.Host.Licensing.Services;
 
@@ -31,6 +33,7 @@ public class LicenseService(
     ILicensePublicKeyService publicKeyService,
     IOptions<DebuggingOptions> debuggingOptions,
     IPrincipalProvider principalProvider,
+    SnapCd.Server.Host.CapAlerts.ModuleCountChangedNotificationService capAlertNotifications,
     ILogger<LicenseService> logger) : ILicenseInfoProvider
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(8);
@@ -96,6 +99,7 @@ public class LicenseService(
 
         EvictCache(organizationId);
         memoryCache.Set($"{CacheKeyPrefix}{organizationId}", info, CacheDuration);
+        await LicenseChangedAsync();
 
         return info;
     }
@@ -130,6 +134,7 @@ public class LicenseService(
 
         EvictCache(organizationId);
         memoryCache.Set($"{CacheKeyPrefix}{organizationId}", info, CacheDuration);
+        await LicenseChangedAsync();
 
         return info;
     }
@@ -171,6 +176,7 @@ public class LicenseService(
         }
 
         EvictCache(organizationId);
+        await LicenseChangedAsync();
     }
 
     private async Task EnsureHasLicenseManagementPermissionAsync(Guid organizationId)
@@ -278,27 +284,27 @@ public class LicenseService(
 
             var jwt = (JwtSecurityToken)validatedToken;
 
-            var subClaim = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            var subClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.Subject)?.Value;
             if (!Guid.TryParse(subClaim, out var subscriptionId))
             {
                 return LicenseInfo.Unlicensed("License key is missing a valid subject claim.");
             }
 
-            var tierClaim = jwt.Claims.FirstOrDefault(c => c.Type == "tier")?.Value;
+            var tierClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.Tier)?.Value;
             var tier = TierExtensions.FromClaimValue(tierClaim);
             if (tier is null)
             {
                 return LicenseInfo.Unlicensed("License key is missing a valid tier claim.");
             }
 
-            var maxModulesClaim = jwt.Claims.FirstOrDefault(c => c.Type == "max_modules")?.Value;
+            var maxModulesClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.MaxModules)?.Value;
             int? maxModules = null;
             if (int.TryParse(maxModulesClaim, out var parsedModules))
             {
                 maxModules = parsedModules;
             }
 
-            var licensePeriodEndClaim = jwt.Claims.FirstOrDefault(c => c.Type == "license_period_end")?.Value;
+            var licensePeriodEndClaim = jwt.Claims.FirstOrDefault(c => c.Type == LicenseClaims.LicensePeriodEnd)?.Value;
             DateTime? licensePeriodEnd = null;
             if (long.TryParse(licensePeriodEndClaim, out var unixSeconds))
             {
@@ -333,6 +339,21 @@ public class LicenseService(
         {
             logger.LogWarning(ex, "License key validation failed");
             return LicenseInfo.Unlicensed("License key is invalid.");
+        }
+    }
+
+    // The edition may have changed: open pages re-evaluate now, and a beacon runs so the texts for the new edition arrive.
+    // Static Hangfire client: this service is also resolved from an early startup provider that has no Hangfire registrations.
+    private async Task LicenseChangedAsync()
+    {
+        await capAlertNotifications.NotifyAll();
+        try
+        {
+            BackgroundJob.Enqueue<SnapCd.Server.Host.Telemetry.TelemetryReportJob>(j => j.ExecuteJob());
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogDebug(ex, "Beacon not enqueued after a licence change; the daily run will pick it up");
         }
     }
 }

@@ -7,22 +7,25 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Host.Licensing.Services;
 
 /// <summary>
 /// Singleton. Serves the license-validation public key. In-memory cache → DB → (bootstrap) remote fetch
-/// from snapcd.io. The DB row piggybacks on <see cref="SelfHostedOrganizationLicense"/> — self-hosted
+/// from the licensing service. The DB row piggybacks on <see cref="SelfHostedOrganizationLicense"/> — self-hosted
 /// only ever has one row, so we just use the first.
 /// </summary>
 public class LicensePublicKeyService : ILicensePublicKeyService
 {
-    private const string RemoteUrl = "https://snapcd.io/.well-known/license-public-key.pem";
+    private const string KeyPath = "/.well-known/license-public-key.pem";
 
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IOptions<LicenseSettings> _settings;
     private readonly ILogger<LicensePublicKeyService> _logger;
 
     private readonly SemaphoreSlim _lock = new(1, 1);
@@ -31,12 +34,16 @@ public class LicensePublicKeyService : ILicensePublicKeyService
     public LicensePublicKeyService(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IHttpClientFactory httpClientFactory,
+        IOptions<LicenseSettings> settings,
         ILogger<LicensePublicKeyService> logger)
     {
         _dbContextFactory = dbContextFactory;
         _httpClientFactory = httpClientFactory;
+        _settings = settings;
         _logger = logger;
     }
+
+    private string RemoteUrl => _settings.Value.LicenseServerBaseUrl.TrimEnd('/') + KeyPath;
 
     public async Task<string?> GetAsync(CancellationToken ct = default)
     {

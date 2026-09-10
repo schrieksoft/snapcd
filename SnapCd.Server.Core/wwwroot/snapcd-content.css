@@ -1,0 +1,435 @@
+/* Rendered markdown, shared by the hosted blog and the self-hosted What's New page. Lifted from the blog so both look the same. */
+/* --- Nav --- */
+    .blog-nav {
+        flex: 0 0 280px;
+        overflow-y: auto;
+        border-right: 1px solid var(--snap-border);
+        padding: 2rem 1rem 2rem 0;
+    }
+
+    .blog-nav::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .blog-nav::-webkit-scrollbar-thumb {
+        background: var(--snap-border);
+        border-radius: 0px;
+    }
+
+    .blog-nav-section {
+        padding: 0.25rem 0 0;
+    }
+
+    .blog-nav-section:first-of-type {
+        padding-top: 0;
+    }
+
+    /* The section header is a summary element: the browser opens and closes the panel with
+       no script. Strip the default disclosure triangle so the chevron is the only marker. */
+    .blog-nav-section-title::-webkit-details-marker {
+        display: none;
+    }
+
+    .blog-nav-section-title {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        width: 100%;
+        padding: 0.5rem 0.75rem 0.25rem;
+        font-family: inherit;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--snap-text-3);
+        background: none;
+        border: 0;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .blog-nav-section-title:hover {
+        color: var(--snap-accent);
+    }
+
+    .blog-nav-chevron {
+        display: inline-block;
+        font-size: 0.9rem;
+        line-height: 1;
+        transition: transform 0.15s ease;
+    }
+
+    .blog-nav-section[open] > .blog-nav-section-title .blog-nav-chevron {
+        transform: rotate(90deg);
+    }
+
+    /* A single group is locked open: it is still a summary element so the browser does not
+       substitute its own label, but clicking it must not collapse the only panel there is. */
+    .blog-nav-section-title-static {
+        cursor: default;
+        pointer-events: none;
+    }
+
+    .blog-nav-section-title-static:hover {
+        color: var(--snap-text-3);
+    }
+
+    .blog-nav-count {
+        margin-left: auto;
+        font-weight: 500;
+        color: var(--snap-text-3);
+    }
+
+    .blog-nav-item {
+        display: flex;
+        flex-direction: column;
+        padding: 0.5rem 0.75rem;
+        text-decoration: none;
+        color: var(--snap-text-2);
+        border-radius: 0px;
+        margin-bottom: 1px;
+        transition: background-color 0.15s;
+    }
+
+    .blog-nav-item:hover {
+        background-color: var(--snap-bg-inset);
+    }
+
+    /* Selected article: a 3px accent line on the left, a faint darkish highlight,
+       and the title in the accent — not a filled block. */
+    .blog-nav-item.active {
+        background-color: var(--snap-bg-inset);
+        border-left: 3px solid var(--snap-accent);
+        padding-left: calc(0.75rem - 3px);
+    }
+
+    .blog-nav-item.active .blog-nav-title {
+        color: var(--snap-accent);
+    }
+
+    .blog-nav-item.active .blog-nav-date {
+        color: var(--snap-text-3);
+    }
+
+    .blog-nav-title {
+        font-size: 0.82rem;
+        font-weight: 500;
+        line-height: 1.35;
+    }
+
+    .blog-nav-date {
+        font-size: 0.7rem;
+        color: var(--snap-text-3);
+        margin-top: 0.15rem;
+    }
+
+    .blog-nav-empty {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        color: var(--snap-text-3);
+    }
+
+    /* --- Content --- */
+    .blog-content {
+        flex: 1;
+        min-width: 0;
+        overflow-y: auto;
+        padding: 2rem 0 4rem;
+    }
+
+.blog-content > *:first-child {
+        margin-top: 0;
+    }
+
+.blog-content p {
+        margin-bottom: 1em;
+        line-height: 1.8;
+        color: var(--snap-text-2);
+    }
+
+.blog-content h1 {
+        font-size: 1.9em;
+        font-weight: 700;
+        margin-top: 0;
+        margin-bottom: 0.5em;
+        color: var(--snap-text);
+        line-height: 1.2;
+    }
+
+.blog-content h2 {
+        font-size: 1.4em;
+        font-weight: 600;
+        margin-top: 2em;
+        margin-bottom: 0.75em;
+        color: var(--snap-text);
+        padding-bottom: 0.3em;
+        border-bottom: 1px solid var(--snap-bg-inset);
+    }
+
+.blog-content h3 {
+        font-size: 1.15em;
+        font-weight: 600;
+        margin-top: 1.5em;
+        margin-bottom: 0.6em;
+        color: var(--snap-text);
+    }
+
+.blog-content h4,
+    .blog-content h5,
+    .blog-content h6 {
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--snap-text);
+    }
+
+.blog-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0px;
+        margin: 1.5em 0;
+    }
+
+.blog-content ul,
+    .blog-content ol {
+        margin-bottom: 1em;
+        padding-left: 1.5em;
+        color: var(--snap-text-2);
+    }
+
+.blog-content li {
+        margin-bottom: 0.4em;
+        line-height: 1.7;
+    }
+
+.blog-content blockquote {
+        border-left: 3px solid var(--snap-text);
+        padding: 0.75em 1.25em;
+        margin: 1.5em 0;
+        color: var(--snap-text-2);
+        background: var(--snap-bg-inset);
+        border-radius: 0px;
+    }
+
+/* Block code sits on the same darkish surface as inline code (#171D24), with
+       rounded corners. Overrides prism-tomorrow's own background for highlighted
+       blocks. */
+    .blog-content pre[class*="language-"],
+    .blog-content pre[class*="language-"] code[class*="language-"] {
+        background: var(--snap-bg-raised);
+    }
+
+.blog-content pre[class*="language-"] {
+        border-radius: 4px;
+        margin: 1.5em 0;
+        padding: 1.25em;
+        font-size: 0.95em;
+        line-height: 1.6;
+    }
+
+.blog-content pre:not([class*="language-"]):not(.demonolith-body):not(.commands-block) {
+        background-color: var(--snap-bg-raised);
+        color: var(--snap-text);
+        border-radius: 4px;
+        padding: 1.25em;
+        overflow-x: auto;
+        margin: 1.5em 0;
+        font-size: 0.95em;
+        line-height: 1.6;
+    }
+
+/* Richer syntax palette than prism-tomorrow's pastels, tuned for #171D24. */
+    .blog-content pre[class*="language-"] { color: #E8ECEF; }
+
+.blog-content .token.comment,
+    .blog-content .token.prolog,
+    .blog-content .token.doctype,
+    .blog-content .token.cdata { color: #6B7681; font-style: italic; }
+
+.blog-content .token.punctuation { color: #9AA5B0; }
+
+.blog-content .token.property,
+    .blog-content .token.tag,
+    .blog-content .token.constant,
+    .blog-content .token.symbol,
+    .blog-content .token.deleted { color: #FF6B6B; }
+
+.blog-content .token.boolean,
+    .blog-content .token.number { color: #F0883E; }
+
+.blog-content .token.selector,
+    .blog-content .token.attr-name,
+    .blog-content .token.string,
+    .blog-content .token.char,
+    .blog-content .token.builtin,
+    .blog-content .token.inserted { color: #4CC38A; }
+
+.blog-content .token.operator,
+    .blog-content .token.entity,
+    .blog-content .token.url,
+    .blog-content .token.variable { color: #56B6C2; }
+
+.blog-content .token.atrule,
+    .blog-content .token.attr-value,
+    .blog-content .token.function,
+    .blog-content .token.class-name { color: #E8A33D; }
+
+.blog-content .token.keyword { color: #C678DD; }
+
+.blog-content .token.regex,
+    .blog-content .token.important { color: #E85D1A; }
+
+.blog-content code {
+        font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+        font-size: 0.95em;
+    }
+
+.blog-content pre code {
+        background: none;
+        padding: 0;
+    }
+
+.blog-content p code,
+    .blog-content li code,
+    .blog-content td code {
+        background-color: var(--snap-bg-raised);
+        padding: 0.15em 0.4em;
+        border-radius: 4px;
+        color: var(--snap-text);
+    }
+
+.blog-content a {
+        color: var(--snap-accent);
+        text-decoration: none;
+    }
+
+.blog-content a:hover {
+        text-decoration: underline;
+    }
+
+.blog-content strong {
+        font-weight: 600;
+        color: var(--snap-text);
+    }
+
+.blog-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.5em 0;
+        font-size: 0.9em;
+    }
+
+.blog-content th {
+        text-align: left;
+        padding: 0.6em 1em;
+        font-weight: 600;
+        color: var(--snap-text);
+        border-bottom: 2px solid var(--snap-border);
+        background: var(--snap-bg-inset);
+    }
+
+.blog-content td {
+        padding: 0.6em 1em;
+        border-bottom: 1px solid var(--snap-bg-inset);
+        color: var(--snap-text-2);
+    }
+
+.blog-content tr:last-child td {
+        border-bottom: none;
+    }
+
+.blog-content {
+            max-width: none;
+            overflow-y: visible;
+            padding: 0 0 2rem;
+        }
+
+/* demonolith terminal block — a ```demonolith fenced block rendered as an
+       on-brand terminal panel: window chrome (three dots), accent top border, and
+       a coloured prompt (green user@host, blue path). */
+    .blog-content .demonolith-term {
+        background: var(--snap-bg-raised);
+        border: 1px solid #2A3138;
+        border-top: 3px solid #E85D1A;
+        border-radius: 8px;
+        margin: 1.5em 0;
+        overflow: hidden;
+    }
+
+.blog-content .demonolith-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-bottom: 1px solid #2A3138;
+    }
+
+.blog-content .demonolith-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #2A3138;
+    }
+
+.blog-content .demonolith-dot:first-child {
+        background: #E85D1A;
+    }
+
+.blog-content .demonolith-title {
+        margin-left: 8px;
+        font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.85em;
+        color: var(--snap-text-2);
+    }
+
+.blog-content .demonolith-body {
+        margin: 0;
+        padding: 6px 20px;
+        background: transparent;
+        color: #E8ECEF;
+        font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        line-height: 1.65;
+        overflow-x: auto;
+    }
+
+/* Token roles mirror demonolith's own terminal palette (internal/cli/color.go):
+       banner = bold magenta section separators, heading = bold list labels,
+       success = green, warn = yellow, fail = red, dim = faint detail. The prompt
+       (user@host and path) is rendered in the ember accent. */
+    .blog-content .demonolith-body .tok-banner { color: #C586C0; font-weight: 700; }
+
+.blog-content .demonolith-body .tok-heading { font-weight: 700; }
+
+.blog-content .demonolith-body .tok-ok { color: #00B368; }
+
+.blog-content .demonolith-body .tok-warn { color: #D9A514; }
+
+.blog-content .demonolith-body .tok-err { color: #DB4A3F; }
+
+.blog-content .demonolith-body .tok-dim { color: #6B7681; }
+
+.blog-content .demonolith-body .tok-user { color: #E85D1A; font-weight: 700; }
+
+.blog-content .demonolith-body .tok-path { color: #E85D1A; font-weight: 700; }
+
+/* commands block — a ```commands fenced reference. No chrome: the command is
+       bold, the trailing # comment is in the accent colour. */
+    .blog-content .commands-block {
+        margin: 1.5em 0;
+        padding: 12px 20px;
+        background: var(--snap-bg-raised);
+        border: 1px solid #2A3138;
+        border-radius: 8px;
+        color: #E8ECEF;
+        font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        line-height: 1.65;
+        overflow-x: auto;
+    }
+
+.blog-content .commands-block .cmd-name { color: #E85D1A; }
+
+.blog-content .commands-block .cmd-comment { color: var(--snap-text); }
+

@@ -6,12 +6,18 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Licensing.Protocol;
 
-namespace SnapCd.Server.Host.Licensing.Services;
+using MassTransit;
+using SnapCd.Server.Core.Events.Repository.Organization;
 
-public interface IRemoteLicenseClient
+namespace SnapCd.Server.Host.CapAlerts;
+
+/// <summary>Fan-out: every server instance re-evaluates cap alerts for its own open circuits.</summary>
+public class ModuleCountChangedFanoutConsumer(ModuleCountChangedNotificationService notifications) :
+    IConsumer<ModuleCreatedEvent>,
+    IConsumer<ModuleDeletedEvent>
 {
-    Task<LicenseTokenResponse?> IssueAsync(string licenseKey, CancellationToken ct = default);
-    Task<LicenseTokenResponse?> RefreshAsync(string licenseKey, string? currentToken, CancellationToken ct = default);
+    public Task Consume(ConsumeContext<ModuleCreatedEvent> context) => notifications.NotifyAll();
+
+    public Task Consume(ConsumeContext<ModuleDeletedEvent> context) => notifications.NotifyAll();
 }

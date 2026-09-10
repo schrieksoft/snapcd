@@ -24,5 +24,11 @@ public interface IEditionNavProvider
     /// <summary>Rendered inside the "Admin Center" nav group. System-administrator role only.</summary>
     RenderFragment? EditionAdminCenterNavItems => null;
 
+    /// <summary>Rendered beside the version in the nav header, e.g. to say a newer release exists.</summary>
+    RenderFragment? EditionVersionIndicator => null;
+
+    /// <summary>Rendered inside the "Tests" nav group, which only exists in Development.</summary>
+    RenderFragment? EditionTestsNavItems => null;
+
     RenderFragment? EditionAccountNavItems { get; }
 }

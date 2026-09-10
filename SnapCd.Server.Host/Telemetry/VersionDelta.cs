@@ -6,12 +6,17 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Licensing.Protocol;
 
-namespace SnapCd.Server.Host.Licensing.Services;
+using SnapCd.Server.Core.Telemetry;
 
-public interface IRemoteLicenseClient
+namespace SnapCd.Server.Host.Telemetry;
+
+/// <summary>Names how far behind the running version is, or null when it is not behind at all.</summary>
+public static class VersionDelta
 {
-    Task<LicenseTokenResponse?> IssueAsync(string licenseKey, CancellationToken ct = default);
-    Task<LicenseTokenResponse?> RefreshAsync(string licenseKey, string? currentToken, CancellationToken ct = default);
+    public static string? Describe(string? running, string? latest)
+    {
+        if (!SemanticVersion.TryParse(running, out var r) || !SemanticVersion.TryParse(latest, out var l) || r >= l) return null;
+        return l.Major > r.Major ? "major" : l.Minor > r.Minor ? "minor" : "patch";
+    }
 }

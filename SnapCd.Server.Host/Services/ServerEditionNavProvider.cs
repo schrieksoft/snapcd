@@ -14,6 +14,13 @@ namespace SnapCd.Server.Host.Services;
 
 public class ServerEditionNavProvider : IEditionNavProvider
 {
+    // What's New sits at the very top, above the organization selector.
+    public RenderFragment? EditionTopNavItems => builder =>
+    {
+        builder.OpenComponent<ServerEditionTopNavItems>(0);
+        builder.CloseComponent();
+    };
+
     public RenderFragment? EditionSystemNavItems => null;
 
     // Self-hosted "License" stands on its own below Infrastructure; the component role-gates itself.
@@ -24,4 +31,16 @@ public class ServerEditionNavProvider : IEditionNavProvider
     };
 
     public RenderFragment? EditionAccountNavItems => null;
+
+    public RenderFragment? EditionTestsNavItems => builder =>
+    {
+        builder.OpenComponent<ServerEditionTestsNavItems>(0);
+        builder.CloseComponent();
+    };
+
+    public RenderFragment? EditionVersionIndicator => builder =>
+    {
+        builder.OpenComponent<VersionIndicator>(0);
+        builder.CloseComponent();
+    };
 }

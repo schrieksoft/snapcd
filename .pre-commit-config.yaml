@@ -34,6 +34,7 @@ repos:
             | SnapCd\.Runner/Settings/.*\.cs
             | SnapCd\.Agent/Configuration/.*\.cs
             | SnapCd\.Server\.Core/Settings/.*\.cs
+            | SnapCd\.Server\.Host/Telemetry/TelemetrySettings\.cs
             | SnapCd\.Utils/Settings/.*\.cs
             | generators/.*\.(cs|csproj|proj)
             | schemas/openapi\.yaml

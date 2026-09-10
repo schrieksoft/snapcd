@@ -66,7 +66,7 @@ public class MaintenanceModeService : IMaintenanceModeService
     public async Task EnableAsync(Guid enabledBy, string? reason)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var row = await GetOrCreateRowAsync(db);
+        var row = await GetRowAsync(db);
         row.Enabled = true;
         row.EnabledBy = enabledBy;
         row.EnabledAt = DateTime.UtcNow;
@@ -81,7 +81,7 @@ public class MaintenanceModeService : IMaintenanceModeService
     public async Task DisableAsync()
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var row = await GetOrCreateRowAsync(db);
+        var row = await GetRowAsync(db);
         row.Enabled = false;
         // The window's details describe the window that just closed; leaving them makes a closed
         // window read as though it were still open.
@@ -102,7 +102,7 @@ public class MaintenanceModeService : IMaintenanceModeService
     public async Task AdvanceToAsync(MaintenancePhase phase, IReadOnlyList<MaintenancePhase>? skipped = null)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var row = await GetOrCreateRowAsync(db);
+        var row = await GetRowAsync(db);
         if (!row.Enabled) throw new InvalidOperationException("No maintenance window is open.");
 
         row.Phase = phase;
@@ -121,7 +121,7 @@ public class MaintenanceModeService : IMaintenanceModeService
     public async Task RecordPhaseActionAsync(string summary)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var row = await GetOrCreateRowAsync(db);
+        var row = await GetRowAsync(db);
         row.PhaseActionCompletedAt = DateTime.UtcNow;
         row.PhaseActionSummary = summary;
         await db.SaveChangesAsync();
@@ -174,7 +174,7 @@ public class MaintenanceModeService : IMaintenanceModeService
         if (row is not { Enabled: true, Phase: null }) return row;
 
         await using var db = await _dbContextFactory.CreateDbContextAsync();
-        var tracked = await GetOrCreateRowAsync(db);
+        var tracked = await GetRowAsync(db);
         tracked.Phase = MaintenancePhase.Draining;
         tracked.PhaseEnteredAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
@@ -244,16 +244,8 @@ public class MaintenanceModeService : IMaintenanceModeService
         return row;
     }
 
-    private static async Task<Entities.Definition.MaintenanceMode> GetOrCreateRowAsync(SnapCdDbContext db)
-    {
-        var row = await db.Set<Entities.Definition.MaintenanceMode>()
-            .SingleOrDefaultAsync(m => m.Id == Entities.Definition.MaintenanceMode.SingletonId);
-        if (row == null)
-        {
-            row = new Entities.Definition.MaintenanceMode();
-            db.Add(row);
-        }
-
-        return row;
-    }
+    // The row is inserted by migration; a missing row means the database was not migrated.
+    private static Task<Entities.Definition.MaintenanceMode> GetRowAsync(SnapCdDbContext db) =>
+        db.Set<Entities.Definition.MaintenanceMode>()
+            .SingleAsync(m => m.Id == Entities.Definition.MaintenanceMode.SingletonId);
 }
