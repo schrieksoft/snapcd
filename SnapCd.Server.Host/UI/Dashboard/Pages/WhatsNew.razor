@@ -21,7 +21,7 @@
 @using SnapCd.Server.Host.Telemetry
 @implements IDisposable
 @attribute [Authorize]
-@attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.SubscriptionManager)]
+@attribute [AuthorizeOnNavigationPermission]
 @inject InstallationService Installation
 @inject IVersionService VersionService
 @inject IOptions<TelemetrySettings> TelemetrySettings
@@ -30,6 +30,10 @@
 @inject CapAlertService CapAlerts
 @inject ModuleCountChangedNotificationService CapAlertNotifications
 @inject IOrganizationContext OrganizationContext
+@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
+@inject OrganizationMembershipCacheService MembershipCache
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<SnapCd.Server.Core.Entities.Definition.User> UserManager
 
 <PageTitle>What's New</PageTitle>
 <link rel="stylesheet" href="/_content/SnapCd.Server.Core/snapcd-content.css"/>
@@ -208,7 +212,10 @@ else
     private Guid _subscription;
 
     // Dismissed for this browser at a count; it comes back once a module is added past it.
-    private bool ShowCapAlert => _capAlert is not null && (_capAlertDismissedAtCount is null || _capAlert.Count > _capAlertDismissedAtCount);
+    private bool _canActOnLicence;
+
+    // The module-limit alert is for the people who can buy a licence; everyone else gets news only.
+    private bool ShowCapAlert => _canActOnLicence && _capAlert is not null && (_capAlertDismissedAtCount is null || _capAlert.Count > _capAlertDismissedAtCount);
 
     private RenderFragment RenderEntry(WhatsNewEntryDto e, bool alert) => __builder =>
     {
@@ -231,13 +238,15 @@ else
         _notices = _entries.Where(e => e.Kind == nameof(WhatsNewKind.Notice)).ToList();
         _releases = await Releases.NewerThanRunningAsync();
         _releasesUnavailable = !Releases.LastFetchSucceeded;
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        _canActOnLicence = await CanActOnLicenceAsync();
+        _capAlert = _canActOnLicence ? await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty) : null;
         _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
         _loading = false;
     }
 
     private async Task OnModuleCountChanged()
     {
+        if (!_canActOnLicence) return;
         _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         await InvokeAsync(StateHasChanged);
     }
@@ -256,6 +265,15 @@ else
         {
             // Storage unavailable: dismissed for this circuit only.
         }
+    }
+
+    private async Task<bool> CanActOnLicenceAsync()
+    {
+        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync()) return true;
+        var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+        if (orgId == Guid.Empty) return false;
+        var user = await UserManager.GetUserAsync((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);
+        return user is not null && await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, [OrganizationRole.Owner, OrganizationRole.SubscriptionManager]);
     }
 
     public void Dispose() => CapAlertNotifications.Unsubscribe(_subscription);

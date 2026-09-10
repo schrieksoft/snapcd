@@ -80,35 +80,14 @@
     private CapAlert? _capAlert;
     private Guid _subscription;
 
+    private bool _canActOnLicence;
+
     protected override async Task OnInitializedAsync()
     {
-        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync())
-        {
-            _isAllowed = true;
-        }
-        else
-        {
-            var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
-            if (orgId == Guid.Empty)
-            {
-                _isAllowed = false;
-                return;
-            }
-
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = await UserManager.GetUserAsync(authState.User);
-            if (user is null)
-            {
-                _isAllowed = false;
-                return;
-            }
-
-            _isAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, AllowedRoles);
-        }
-
-        if (!_isAllowed) return;
+        _isAllowed = true;
+        _canActOnLicence = await CanActOnLicenceAsync();
         _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
-        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        if (_canActOnLicence) _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         try
         {
             var row = await Installation.GetAsync();
@@ -122,6 +101,17 @@
         }
     }
 
+    // The module-limit marker is for the people who can act on it. The link and the unread dot are for everyone.
+    private async Task<bool> CanActOnLicenceAsync()
+    {
+        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync()) return true;
+        var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+        if (orgId == Guid.Empty) return false;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        return user is not null && await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, AllowedRoles);
+    }
+
     // Browser storage is only reachable after the first render.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -131,6 +121,7 @@
 
     private async Task OnModuleCountChanged()
     {
+        if (!_canActOnLicence) return;
         _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
         await InvokeAsync(RefreshIndicatorsAsync);
     }
