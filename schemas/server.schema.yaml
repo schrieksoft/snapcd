@@ -646,6 +646,9 @@ properties:
       Cron:
         type: string
         default: 0 5 * * *
+      ReleaseRepository:
+        type: string
+        default: schrieksoft/snapcd
   Debugging:
     type: object
     properties:
