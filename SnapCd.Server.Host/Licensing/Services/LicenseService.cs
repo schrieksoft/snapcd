@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Hangfire;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
@@ -32,6 +33,7 @@ public class LicenseService(
     ILicensePublicKeyService publicKeyService,
     IOptions<DebuggingOptions> debuggingOptions,
     IPrincipalProvider principalProvider,
+    SnapCd.Server.Host.CapAlerts.ModuleCountChangedNotificationService capAlertNotifications,
     ILogger<LicenseService> logger) : ILicenseInfoProvider
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(8);
@@ -97,6 +99,7 @@ public class LicenseService(
 
         EvictCache(organizationId);
         memoryCache.Set($"{CacheKeyPrefix}{organizationId}", info, CacheDuration);
+        await LicenseChangedAsync();
 
         return info;
     }
@@ -131,6 +134,7 @@ public class LicenseService(
 
         EvictCache(organizationId);
         memoryCache.Set($"{CacheKeyPrefix}{organizationId}", info, CacheDuration);
+        await LicenseChangedAsync();
 
         return info;
     }
@@ -172,6 +176,7 @@ public class LicenseService(
         }
 
         EvictCache(organizationId);
+        await LicenseChangedAsync();
     }
 
     private async Task EnsureHasLicenseManagementPermissionAsync(Guid organizationId)
@@ -334,6 +339,21 @@ public class LicenseService(
         {
             logger.LogWarning(ex, "License key validation failed");
             return LicenseInfo.Unlicensed("License key is invalid.");
+        }
+    }
+
+    // The edition may have changed: open pages re-evaluate now, and a beacon runs so the texts for the new edition arrive.
+    // Static Hangfire client: this service is also resolved from an early startup provider that has no Hangfire registrations.
+    private async Task LicenseChangedAsync()
+    {
+        await capAlertNotifications.NotifyAll();
+        try
+        {
+            BackgroundJob.Enqueue<SnapCd.Server.Host.Telemetry.TelemetryReportJob>(j => j.ExecuteJob());
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogDebug(ex, "Beacon not enqueued after a licence change; the daily run will pick it up");
         }
     }
 }

@@ -1,0 +1,234 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@page "/TelemetryTestBench"
+@layout OrganizationMainLayout
+@using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Hosting
+@using Microsoft.Extensions.Options
+@using SnapCd.Server.Core.Services
+@using SnapCd.Server.Core.Telemetry
+@using SnapCd.Server.Core.UI.Dashboard.Layout
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Host.CapAlerts
+@using SnapCd.Server.Host.Installations
+@using SnapCd.Server.Host.Telemetry
+@attribute [Authorize]
+@attribute [AuthorizeOnNavigationPermission]
+@inject IHostEnvironment HostEnvironment
+@inject InstallationService Installation
+@inject TelemetrySnapshotProvider Snapshots
+@inject TelemetryClient Client
+@inject TelemetryReportJob Job
+@inject GitHubReleasesClient Releases
+@inject CapAlertService CapAlerts
+@inject ModuleCountChangedNotificationService CapAlertNotifications
+@inject IOrganizationContext OrganizationContext
+@inject IVersionService VersionService
+@inject IOptions<TelemetrySettings> Settings
+@inject IOptions<SnapCd.Server.Core.Settings.LicenseSettings> LicenseSettings
+@inject ISnackbar Snackbar
+
+<PageTitle>Telemetry test bench</PageTitle>
+
+<div class="page-header">
+    <MudText Typo="Typo.h4" Class="page-header-title">Telemetry test bench</MudText>
+</div>
+
+@if (!HostEnvironment.IsDevelopment())
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary">Only available in Development.</MudText>
+}
+else
+{
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <div class="tb-fields">
+            <div><span class="tb-label">Running version</span><span class="tb-mono">@VersionService.ShortVersion</span></div>
+            <div><span class="tb-label">Telemetry enabled</span><span class="tb-value">@Settings.Value.Enabled</span></div>
+            <div><span class="tb-label">Beacon target</span><span class="tb-mono">@(LicenseSettings.Value.LicenseServerBaseUrl.TrimEnd('/'))/api/telemetry</span></div>
+            <div><span class="tb-label">Release repository</span><span class="tb-mono">@Settings.Value.ReleaseRepository</span></div>
+        </div>
+    </MudPaper>
+
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" Class="tb-title">Installation row</MudText>
+        @if (_row is null)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
+        }
+        else
+        {
+            <div class="tb-fields">
+                <div><span class="tb-label">Seed</span><span class="tb-mono">@_row.SeedGuid</span></div>
+                <div><span class="tb-label">Latest known version</span><span class="tb-mono">@(_row.LatestKnownVersion ?? "none")</span></div>
+                <div><span class="tb-label">Checked</span><span class="tb-value">@(_row.LatestKnownVersionCheckedAtUtc?.ToString("u") ?? "never")</span></div>
+                <div><span class="tb-label">Last beacon</span><span class="tb-value">@(_row.LastTelemetryReportAtUtc?.ToString("u") ?? "never")</span></div>
+                <div><span class="tb-label">Stored notices</span><span class="tb-value">@TelemetrySnapshotProvider.ReadStored(_row.WhatsNewJson).Count</span></div>
+            </div>
+        }
+        <div class="tb-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="RefreshRowAsync">Refresh</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="ClearNoticesAsync">Clear stored notices</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="ClearLatestAsync">Clear latest version</MudButton>
+        </div>
+    </MudPaper>
+
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" Class="tb-title">Beacon</MudText>
+        <div class="tb-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="BuildSnapshotAsync">Show payload</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="SendOnlyAsync">Send, show response</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="RunJobAsync">Run the job</MudButton>
+        </div>
+        @if (_payload is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-3">Payload</MudText>
+            <pre class="tb-pre">@_payload</pre>
+        }
+        @if (_response is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-3">Response</MudText>
+            <pre class="tb-pre">@_response</pre>
+        }
+    </MudPaper>
+
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" Class="tb-title">Cap alert for the current organization</MudText>
+        <div class="tb-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="EvaluateCapAsync">Evaluate</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="NotifyCapAsync">Fire the notification</MudButton>
+        </div>
+        @if (_capEvaluated)
+        {
+            <MudText Typo="Typo.body2" Class="mt-3">@(_capAlert is null ? "Below 90% of the cap, or no cap." : $"{_capAlert.Kind}: {_capAlert.Count} of {_capAlert.Cap}: {_capAlert.Title}")</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" Class="tb-title">Releases</MudText>
+        <div class="tb-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="_busy" OnClick="FetchReleasesAsync">Fetch from GitHub</MudButton>
+        </div>
+        @if (_releases is not null)
+        {
+            @if (_releases.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-3">@(Releases.LastFetchSucceeded ? "Nothing newer than the running version." : "GitHub could not be reached.")</MudText>
+            }
+            @foreach (var r in _releases)
+            {
+                <div class="tb-release"><span class="tb-mono">@r.Tag</span><span>@r.Bump</span><span>@r.Heading</span><span class="tb-mono tb-dim">@r.Url</span></div>
+            }
+        }
+    </MudPaper>
+}
+
+<style>
+    .page-header { margin-bottom: 16px; }
+    .page-header-title { font-weight: 600; letter-spacing: -0.015em; }
+    .tb-title { font-weight: 600; margin-bottom: 8px; }
+    .tb-fields { display: flex; flex-wrap: wrap; gap: 24px; }
+    .tb-fields > div { display: flex; flex-direction: column; }
+    .tb-label { font-size: 12px; color: var(--mud-palette-text-secondary); }
+    .tb-value { font-size: 14px; }
+    .tb-mono { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; }
+    .tb-dim { color: var(--mud-palette-text-secondary); font-size: 12px; }
+    .tb-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .tb-pre { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; padding: 8px 12px; background: var(--mud-palette-background-gray); overflow-x: auto; margin: 4px 0 0; }
+    .tb-release { display: flex; gap: 16px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--mud-palette-lines-default); font-size: 14px; }
+    .tb-release:last-child { border-bottom: none; }
+</style>
+
+@code {
+    private static readonly JsonSerializerOptions Pretty = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
+    private bool _busy;
+    private Installation? _row;
+    private string? _payload;
+    private string? _response;
+    private IReadOnlyList<ReleaseSummary>? _releases;
+    private bool _capEvaluated;
+    private CapAlert? _capAlert;
+
+    private Task EvaluateCapAsync() => RunAsync(async () =>
+    {
+        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        _capEvaluated = true;
+    });
+
+    private Task NotifyCapAsync() => RunAsync(async () =>
+    {
+        await CapAlertNotifications.NotifyAll();
+        Snackbar.Add("Notified every open circuit on this server.", Severity.Success);
+    });
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HostEnvironment.IsDevelopment()) await RefreshRowAsync();
+    }
+
+    private async Task RefreshRowAsync() => _row = await Installation.GetAsync();
+
+    private Task ClearNoticesAsync() => RunAsync(async () =>
+    {
+        await Installation.UpdateAsync(r => r.WhatsNewJson = null);
+        Snackbar.Add("Stored notices cleared; the next beacon fetches the whole feed again.", Severity.Success);
+    });
+
+    private Task ClearLatestAsync() => RunAsync(async () =>
+    {
+        await Installation.UpdateAsync(r => { r.LatestKnownVersion = null; r.LatestKnownVersionCheckedAtUtc = null; });
+        Snackbar.Add("Latest known version cleared.", Severity.Success);
+    });
+
+    private Task BuildSnapshotAsync() => RunAsync(async () =>
+    {
+        _payload = JsonSerializer.Serialize(await Snapshots.BuildAsync(), Pretty);
+        _response = null;
+    });
+
+    private Task SendOnlyAsync() => RunAsync(async () =>
+    {
+        var report = await Snapshots.BuildAsync();
+        _payload = JsonSerializer.Serialize(report, Pretty);
+        var response = await Client.SendAsync(report);
+        _response = response is null ? "null (failed or non-2xx; see Debug log)" : JsonSerializer.Serialize(response, Pretty);
+    });
+
+    private Task RunJobAsync() => RunAsync(async () =>
+    {
+        await Job.ExecuteJob();
+        Snackbar.Add("Job ran: release check, then the beacon if enabled.", Severity.Success);
+    });
+
+    private Task FetchReleasesAsync() => RunAsync(async () =>
+    {
+        _releases = await Releases.NewerThanRunningAsync();
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+            await RefreshRowAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

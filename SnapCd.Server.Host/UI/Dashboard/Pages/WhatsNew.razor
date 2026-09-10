@@ -15,20 +15,24 @@
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Telemetry
 @using SnapCd.Server.Core.UI.Dashboard.Layout
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Host.CapAlerts
 @using SnapCd.Server.Host.Installations
 @using SnapCd.Server.Host.Telemetry
+@implements IDisposable
 @attribute [Authorize]
 @attribute [AuthorizeOnNavigationPermission(OrganizationRole.Owner, OrganizationRole.SubscriptionManager)]
 @inject InstallationService Installation
 @inject IVersionService VersionService
 @inject IOptions<TelemetrySettings> TelemetrySettings
+@inject GitHubReleasesClient Releases
 @inject ProtectedLocalStorage LocalStorage
+@inject CapAlertService CapAlerts
+@inject ModuleCountChangedNotificationService CapAlertNotifications
+@inject IOrganizationContext OrganizationContext
 
 <PageTitle>What's New</PageTitle>
-
-<div class="page-header">
-    <MudText Typo="Typo.h4" Class="page-header-title">What's New</MudText>
-</div>
+<link rel="stylesheet" href="/_content/SnapCd.Server.Core/snapcd-content.css"/>
 
 @if (_loading)
 {
@@ -36,59 +40,140 @@
 }
 else
 {
-    @if (_delta is not null)
-    {
-        <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudText Typo="Typo.body2">
-                You are running <span class="wn-mono">@VersionService.ShortVersion</span>. A @_delta release, <span class="wn-mono">@_latest</span>, is available.
-            </MudText>
-        </MudPaper>
-    }
-
     @if (!TelemetrySettings.Value.Enabled)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-            Telemetry is disabled on this server, so it receives no version information and no entries here.
-        </MudText>
-    }
-    else if (_entries.Count == 0)
-    {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Nothing yet. Entries arrive with the daily beacon.</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Telemetry is disabled on this server, so it receives no alerts or notices.</MudText>
     }
 
-    @foreach (var e in _entries)
+    @if (_alerts.Count > 0 || ShowCapAlert)
     {
-        <MudPaper Elevation="1" Class="pa-4 mb-4 wn-entry">
-            <div class="wn-entry-head">
-                <MudText Typo="Typo.h6" Class="wn-entry-title">@e.Title</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">@e.PublishedUtc.ToString("yyyy-MM-dd")</MudText>
+        <MudText Typo="Typo.h4" Class="wn-section">Alerts</MudText>
+        @if (ShowCapAlert)
+        {
+            <div class="wn-notice wn-alert">
+                <div class="wn-notice-head">
+                    <MudText Typo="Typo.subtitle1" Class="wn-notice-title">@_capAlert!.Title</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="DismissCapAlertAsync">Dismiss</MudButton>
+                </div>
+                <div class="blog-content">
+                    @((MarkupString)WhatsNewMarkdown.ToHtml(_capAlert.Markdown))
+                </div>
             </div>
-            <div class="wn-body">
-                @((MarkupString)WhatsNewMarkdown.ToHtml(e.Markdown))
-            </div>
-        </MudPaper>
+        }
+        @foreach (var e in _alerts)
+        {
+            @RenderEntry(e, true)
+        }
+    }
+
+    @if (_notices.Count > 0)
+    {
+        <MudText Typo="Typo.h4" Class="@(_alerts.Count > 0 || ShowCapAlert ? "wn-section wn-section-gap" : "wn-section")">Notices</MudText>
+        @foreach (var e in _notices)
+        {
+            @RenderEntry(e, false)
+        }
+    }
+
+    <MudText Typo="Typo.h4" Class="@(_alerts.Count + _notices.Count > 0 || ShowCapAlert ? "wn-section wn-section-gap" : "wn-section")">Releases</MudText>
+    @if (_releases.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+            @(_releasesUnavailable ? "GitHub could not be reached, so newer releases cannot be listed." : $"You are on {VersionService.ShortVersion}, the latest release.")
+        </MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">The following additional changes have been released:</MudText>
+        <div class="wn-releases mb-6">
+            @foreach (var r in _releases)
+            {
+                <div class="wn-release">
+                    <a class="wn-mono wn-release-version" href="@r.Url" target="_blank" rel="noopener">@r.Tag</a>
+                    <span class="wn-release-bump">
+                        @if (r.Bump == "minor")
+                        {
+                            <MudTooltip Text="A minor release: new features, compatible with what you have.">
+                                <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Text="minor"/>
+                            </MudTooltip>
+                        }
+                        else if (r.Bump == "major")
+                        {
+                            <MudTooltip Text="A major release: read the notes before upgrading, something may have changed incompatibly.">
+                                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Text="major"/>
+                            </MudTooltip>
+                        }
+                    </span>
+                    <span class="wn-release-heading">@r.Heading</span>
+                </div>
+            }
+        </div>
     }
 }
 
 <style>
-    .page-header {
+    .wn-section {
+        font-weight: 600;
+        letter-spacing: -0.015em;
         margin-bottom: 16px;
     }
 
-    .page-header-title {
-        font-weight: 600;
-        letter-spacing: -0.015em;
+    .wn-section-gap {
+        margin-top: 48px;
     }
 
     .wn-mono {
         font-family: 'Geist Mono', ui-monospace, monospace;
     }
 
-    .wn-entry {
-        max-width: 760px;
+    .wn-releases {
+        max-width: 1100px;
     }
 
-    .wn-entry-head {
+    .wn-release {
+        display: grid;
+        grid-template-columns: 96px 72px 1fr;
+        align-items: center;
+        column-gap: 16px;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        font-size: 14px;
+    }
+
+    .wn-release-bump {
+        display: flex;
+        align-items: center;
+        min-height: 24px;
+    }
+
+    .wn-release:last-child {
+        border-bottom: none;
+    }
+
+    .wn-release-version {
+        color: var(--snap-accent);
+        text-decoration: none;
+    }
+
+    .wn-release-heading {
+        min-width: 0;
+    }
+
+    .wn-release-version:hover {
+        text-decoration: underline;
+    }
+
+    .wn-notice {
+        max-width: 1100px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .wn-notice:last-child {
+        border-bottom: none;
+    }
+
+    .wn-notice-head {
         display: flex;
         align-items: baseline;
         justify-content: space-between;
@@ -96,61 +181,106 @@ else
         flex-wrap: wrap;
     }
 
-    .wn-entry-title {
+    .wn-notice-title {
         font-weight: 600;
-        letter-spacing: -0.015em;
     }
 
-    .wn-body {
-        font-size: 14px;
-        line-height: 1.5;
-        margin-top: 8px;
+    .wn-alert {
+        border-left: 3px solid var(--snap-error);
+        padding-left: 12px;
     }
 
-    .wn-body h1, .wn-body h2, .wn-body h3 {
-        font-weight: 600;
-        letter-spacing: -0.015em;
-        margin: 16px 0 8px;
-    }
-
-    .wn-body code {
-        font-family: 'Geist Mono', ui-monospace, monospace;
-        font-size: 13px;
-    }
-
-    .wn-body pre {
-        overflow-x: auto;
-        padding: 8px 12px;
-        background: var(--mud-palette-background-gray);
+    .wn-notice .blog-content {
+        padding: 0;
+        overflow: visible;
     }
 </style>
 
 @code {
     private bool _loading = true;
+    private bool _releasesUnavailable;
+    private IReadOnlyList<ReleaseSummary> _releases = [];
     private List<WhatsNewEntryDto> _entries = [];
-    private string? _latest;
-    private string? _delta;
+    private List<WhatsNewEntryDto> _alerts = [];
+    private List<WhatsNewEntryDto> _notices = [];
+    private CapAlert? _capAlert;
+    private int? _capAlertDismissedAtCount;
+    private Guid _subscription;
+
+    // Dismissed for this browser at a count; it comes back once a module is added past it.
+    private bool ShowCapAlert => _capAlert is not null && (_capAlertDismissedAtCount is null || _capAlert.Count > _capAlertDismissedAtCount);
+
+    private RenderFragment RenderEntry(WhatsNewEntryDto e, bool alert) => __builder =>
+    {
+        <div class="wn-notice @(alert ? "wn-alert" : "")">
+            <div class="wn-notice-head">
+                <MudText Typo="Typo.subtitle1" Class="wn-notice-title">@e.Title</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@e.PublishedUtc.ToString("yyyy-MM-dd")</MudText>
+            </div>
+            <div class="blog-content">
+                @((MarkupString)WhatsNewMarkdown.ToHtml(e.Markdown))
+            </div>
+        </div>
+    };
 
     protected override async Task OnInitializedAsync()
     {
         var row = await Installation.GetAsync();
         _entries = TelemetrySnapshotProvider.ReadStored(row.WhatsNewJson).OrderByDescending(e => e.PublishedUtc).ToList();
-        _latest = row.LatestKnownVersion;
-        _delta = VersionDelta.Describe(VersionService.ShortVersion, _latest);
+        _alerts = _entries.Where(e => e.Kind == nameof(WhatsNewKind.Alert)).ToList();
+        _notices = _entries.Where(e => e.Kind == nameof(WhatsNewKind.Notice)).ToList();
+        _releases = await Releases.NewerThanRunningAsync();
+        _releasesUnavailable = !Releases.LastFetchSucceeded;
+        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
         _loading = false;
     }
+
+    private async Task OnModuleCountChanged()
+    {
+        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string CapAlertKey => $"snapcd.capalert.{OrganizationContext.CurrentOrganizationId}.{_capAlert?.Kind}";
+
+    private async Task DismissCapAlertAsync()
+    {
+        if (_capAlert is null) return;
+        _capAlertDismissedAtCount = _capAlert.Count;
+        try
+        {
+            await LocalStorage.SetAsync(CapAlertKey, _capAlert.Count);
+        }
+        catch
+        {
+            // Storage unavailable: dismissed for this circuit only.
+        }
+    }
+
+    public void Dispose() => CapAlertNotifications.Unsubscribe(_subscription);
 
     // Opening the page is what clears the badge, for this browser.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _entries.Count == 0) return;
+        if (!firstRender) return;
         try
         {
-            await LocalStorage.SetAsync(WhatsNewKeys.LastSeenEntryId, _entries[0].Id);
+            var newest = _entries.FirstOrDefault(e => !WhatsNewKinds.IsCap(e.Kind));
+            if (newest is not null) await LocalStorage.SetAsync(WhatsNewKeys.LastSeenEntryId, newest.Id);
+            if (_capAlert is not null)
+            {
+                var dismissed = await LocalStorage.GetAsync<int>(CapAlertKey);
+                if (dismissed.Success)
+                {
+                    _capAlertDismissedAtCount = dismissed.Value;
+                    StateHasChanged();
+                }
+            }
         }
         catch
         {
-            // Storage unavailable: the badge simply stays.
+            // Storage unavailable: the badge simply stays and the alert shows.
         }
     }
 }

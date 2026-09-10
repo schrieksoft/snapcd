@@ -59,9 +59,6 @@
                    on the "CD". The sidebar is always dark, so it takes the white one. *@
                 <img src="/_content/SnapCd.Server.Core/lockup-white.svg" alt="Snap CD"
                      style="height: 28px; width: auto;"/>
-                <MudText Typo="Typo.caption" Style="color: rgba(255, 255, 255, 0.35); margin-left: auto; font-size: 0.65rem;">
-                    v@(VersionService.ShortVersion)@EditionVersionIndicator
-                </MudText>
             </a>
 
             <!-- Organization Selector: hidden where the edition has a single organization. -->
@@ -156,6 +153,10 @@
                             </MudNavLink>
                         }
                     }
+                    @if (EditionTestsNavItems != null)
+                    {
+                        @EditionTestsNavItems
+                    }
                 </MudNavGroup>
             }
             <!-- System-level administration: no organization context, system role only. -->
@@ -190,8 +191,6 @@
             {
                 @EditionAccountNavItems
             }
-
-
         </Authorized>
         <NotAuthorized>
             <MudNavLink Href="Account/Register" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Person">
@@ -204,6 +203,7 @@
 </MudNavMenu>
 
 <style>
+
     .mud-nav-menu {
         background-color: var(--snap-bg-sidebar) !important;
         width: 100% !important;
@@ -285,7 +285,7 @@
     private RenderFragment? EditionNavItems => EditionNavProvider.EditionNavItems;
     private RenderFragment? EditionAccountNavItems => EditionNavProvider.EditionAccountNavItems;
     private RenderFragment? EditionAdminCenterNavItems => EditionNavProvider.EditionAdminCenterNavItems;
-    private RenderFragment? EditionVersionIndicator => EditionNavProvider.EditionVersionIndicator;
+    private RenderFragment? EditionTestsNavItems => EditionNavProvider.EditionTestsNavItems;
 
     private bool _isSystemAdministrator;
 

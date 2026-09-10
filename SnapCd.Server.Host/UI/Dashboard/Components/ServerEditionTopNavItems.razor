@@ -1,0 +1,172 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+@using Microsoft.AspNetCore.Identity
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Services.OrganizationContext
+@using SnapCd.Server.Core.Telemetry
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+@using SnapCd.Server.Host.CapAlerts
+@using SnapCd.Server.Host.Installations
+@implements IDisposable
+@using SnapCd.Server.Host.Telemetry
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject OrganizationMembershipCacheService MembershipCache
+@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
+@inject InstallationService Installation
+@inject ProtectedLocalStorage LocalStorage
+@inject CapAlertService CapAlerts
+@inject ModuleCountChangedNotificationService CapAlertNotifications
+@inject IOrganizationContext OrganizationContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<User> UserManager
+
+@if (_isAllowed)
+{
+    <MudNavLink Href="/WhatsNew" Match="NavLinkMatch.All" Icon="@SnapCdIcons.NewspaperClipping">
+        What's New
+        @if (_capAlertActive)
+        {
+            <span class="whats-new-alert">alert</span>
+        }
+        else if (_unread)
+        {
+            <span class="whats-new-badge"></span>
+        }
+    </MudNavLink>
+}
+
+<style>
+    .whats-new-alert {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 10px;
+        line-height: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: var(--snap-error);
+        color: #FFFFFF;
+        vertical-align: middle;
+    }
+
+    .whats-new-badge {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--snap-accent);
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+</style>
+
+@code {
+    private static readonly OrganizationRole[] AllowedRoles =
+        { OrganizationRole.Owner, OrganizationRole.SubscriptionManager };
+
+    private bool _isAllowed;
+    private bool _unread;
+    private Guid? _newestEntryId;
+    private bool _capAlertActive;
+    private CapAlert? _capAlert;
+    private Guid _subscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync())
+        {
+            _isAllowed = true;
+        }
+        else
+        {
+            var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+            if (orgId == Guid.Empty)
+            {
+                _isAllowed = false;
+                return;
+            }
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = await UserManager.GetUserAsync(authState.User);
+            if (user is null)
+            {
+                _isAllowed = false;
+                return;
+            }
+
+            _isAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, AllowedRoles);
+        }
+
+        if (!_isAllowed) return;
+        _subscription = CapAlertNotifications.Subscribe(OnModuleCountChanged);
+        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        try
+        {
+            var row = await Installation.GetAsync();
+            _newestEntryId = TelemetrySnapshotProvider.ReadStored(row.WhatsNewJson)
+                .Where(e => !WhatsNewKinds.IsCap(e.Kind))
+                .OrderByDescending(e => e.PublishedUtc).Select(e => (Guid?)e.Id).FirstOrDefault();
+        }
+        catch
+        {
+            _newestEntryId = null;
+        }
+    }
+
+    // Browser storage is only reachable after the first render.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await RefreshIndicatorsAsync();
+    }
+
+    private async Task OnModuleCountChanged()
+    {
+        _capAlert = await CapAlerts.EvaluateAsync(OrganizationContext.CurrentOrganizationId ?? Guid.Empty);
+        await InvokeAsync(RefreshIndicatorsAsync);
+    }
+
+    private async Task RefreshIndicatorsAsync()
+    {
+        var unread = _unread;
+        var alert = _capAlertActive;
+        try
+        {
+            if (_newestEntryId is not null)
+            {
+                var seen = await LocalStorage.GetAsync<Guid>(WhatsNewKeys.LastSeenEntryId);
+                unread = !seen.Success || seen.Value != _newestEntryId;
+            }
+            if (_capAlert is { } a)
+            {
+                var dismissed = await LocalStorage.GetAsync<int>($"snapcd.capalert.{OrganizationContext.CurrentOrganizationId}.{a.Kind}");
+                alert = !dismissed.Success || a.Count > dismissed.Value;
+            }
+            else
+            {
+                alert = false;
+            }
+        }
+        catch
+        {
+            // Storage unavailable: leave the indicators as they were.
+        }
+        if (unread != _unread || alert != _capAlertActive)
+        {
+            _unread = unread;
+            _capAlertActive = alert;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose() => CapAlertNotifications.Unsubscribe(_subscription);
+}

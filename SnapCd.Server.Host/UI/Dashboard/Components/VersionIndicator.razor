@@ -7,42 +7,39 @@
    for terms covering either use. *@
 
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Routing
 @using SnapCd.Server.Core.Services
 @using SnapCd.Server.Core.Telemetry
 @using SnapCd.Server.Host.Installations
 @using SnapCd.Server.Host.Telemetry
 @inject InstallationService Installation
 @inject IVersionService VersionService
+@inject NavigationManager NavigationManager
+@implements IDisposable
 
 @if (_delta is not null)
 {
-    <MudTooltip Text="@($"A {_delta} release is available. Open What's New for details.")">
-        <a href="/WhatsNew" class="version-indicator">
-            <span class="version-indicator-dot"></span>@_latest available
-        </a>
+    <MudTooltip Text="@($"A {_delta} release is available. Open What's New for details.")" RootStyle="display: inline-block; white-space: nowrap;">
+        <a href="/WhatsNew" class="version-available">(<span class="version-available-arrow" aria-hidden="true">&#8593;</span>&nbsp;@_latest)</a>
     </MudTooltip>
 }
 
 <style>
-    .version-indicator {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        margin-left: 6px;
+    .version-available {
+        display: inline-block;
         white-space: nowrap;
+        font-family: 'Geist Mono', ui-monospace, monospace;
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.5);
     }
 
-    .version-indicator:hover {
+    .version-available:hover {
         color: rgba(255, 255, 255, 0.9);
     }
 
-    .version-indicator-dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--snap-accent);
-        margin-right: 4px;
-        vertical-align: middle;
+    .version-available-arrow {
+        color: var(--snap-accent);
+        font-weight: 700;
     }
 </style>
 
@@ -51,6 +48,19 @@
     private string? _latest;
 
     protected override async Task OnInitializedAsync()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        await RefreshAsync();
+    }
+
+    // The nav lives for the whole circuit; the row can change under it, so re-read on every navigation.
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        await RefreshAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshAsync()
     {
         try
         {
@@ -64,4 +74,6 @@
             _delta = null;
         }
     }
+
+    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }

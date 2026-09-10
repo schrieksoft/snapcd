@@ -11,15 +11,7 @@
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Services.OrganizationContext
-@using SnapCd.Server.Core.Telemetry
-@using SnapCd.Server.Core.UI.Dashboard.Theme
-@using SnapCd.Server.Host.Installations
-@using SnapCd.Server.Host.Telemetry
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject OrganizationMembershipCacheService MembershipCache
-@inject SnapCd.Server.Core.Services.Admin.SystemRoleService SystemRoleService
-@inject InstallationService Installation
-@inject ProtectedLocalStorage LocalStorage
 @inject IOrganizationContext OrganizationContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<User> UserManager
@@ -29,91 +21,31 @@
     <MudNavLink Href="/License" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.VpnKey">
         License
     </MudNavLink>
-    <MudNavLink Href="/WhatsNew" Match="NavLinkMatch.All" Icon="@SnapCdIcons.Star">
-        What's New
-        @if (_unread)
-        {
-            <span class="whats-new-badge"></span>
-        }
-    </MudNavLink>
 }
-
-<style>
-    .whats-new-badge {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--snap-accent);
-        margin-left: 8px;
-        vertical-align: middle;
-    }
-</style>
 
 @code {
     private static readonly OrganizationRole[] AllowedRoles =
         { OrganizationRole.Owner, OrganizationRole.SubscriptionManager };
 
     private bool _isAllowed;
-    private bool _unread;
-    private Guid? _newestEntryId;
 
     protected override async Task OnInitializedAsync()
     {
-        if (await SystemRoleService.CurrentUserIsSystemAdministratorAsync())
+        var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
+        if (orgId == Guid.Empty)
         {
-            _isAllowed = true;
-        }
-        else
-        {
-            var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
-            if (orgId == Guid.Empty)
-            {
-                _isAllowed = false;
-                return;
-            }
-
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = await UserManager.GetUserAsync(authState.User);
-            if (user is null)
-            {
-                _isAllowed = false;
-                return;
-            }
-
-            _isAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, AllowedRoles);
+            _isAllowed = false;
+            return;
         }
 
-        if (!_isAllowed) return;
-        try
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        if (user is null)
         {
-            var row = await Installation.GetAsync();
-            _newestEntryId = TelemetrySnapshotProvider.ReadStored(row.WhatsNewJson)
-                .OrderByDescending(e => e.PublishedUtc).Select(e => (Guid?)e.Id).FirstOrDefault();
+            _isAllowed = false;
+            return;
         }
-        catch
-        {
-            _newestEntryId = null;
-        }
-    }
 
-    // Browser storage is only reachable after the first render.
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender || _newestEntryId is null) return;
-        try
-        {
-            var seen = await LocalStorage.GetAsync<Guid>(WhatsNewKeys.LastSeenEntryId);
-            var unread = !seen.Success || seen.Value != _newestEntryId;
-            if (unread != _unread)
-            {
-                _unread = unread;
-                StateHasChanged();
-            }
-        }
-        catch
-        {
-            // Storage unavailable: no badge, nothing else changes.
-        }
+        _isAllowed = await MembershipCache.HasAnyOrganizationRoleAsync(user.Id, orgId, AllowedRoles);
     }
 }

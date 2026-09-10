@@ -9,6 +9,8 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -58,13 +60,13 @@ public class TelemetryReportJobTests : IAsyncLifetime
         Assert.Equal("1.12.11", snapshot.Version);
         Assert.Equal(await db.Modules.CountAsync(), snapshot.ModuleCount);
         Assert.Equal(await db.ModuleJobs.LongCountAsync(), snapshot.JobsTotal);
-        Assert.Equal(5, typeof(TelemetryReportRequest).GetProperties().Length);
+        Assert.Equal(4, typeof(TelemetryReportRequest).GetProperties().Length);
     }
 
     [Fact]
     public async Task Disabled_SendsNothing()
     {
-        var handler = new CapturingHandler(_ => Ok("""{"latestVersion":"9.9.9","whatsNew":[]}"""));
+        var handler = new CapturingHandler(_ => Ok("""{"whatsNew":[]}"""));
 
         await Job(handler, enabled: false).ExecuteJob();
 
@@ -72,9 +74,9 @@ public class TelemetryReportJobTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Enabled_PostsExactlyTheFiveFields_ToTheLicensingHost()
+    public async Task Enabled_PostsExactlyTheFourFields_ToTheLicensingHost()
     {
-        var handler = new CapturingHandler(_ => Ok("""{"latestVersion":"9.9.9","whatsNew":[]}"""));
+        var handler = new CapturingHandler(_ => Ok("""{"whatsNew":[]}"""));
 
         await Job(handler, enabled: true, version: "1.12.11").ExecuteJob();
 
@@ -82,13 +84,13 @@ public class TelemetryReportJobTests : IAsyncLifetime
         Assert.Equal("https://license.test/api/telemetry", uri.ToString());
         using var json = JsonDocument.Parse(body);
         var names = json.RootElement.EnumerateObject().Select(p => p.Name).OrderBy(n => n).ToArray();
-        Assert.Equal(["jobsTotal", "moduleCount", "seedGuid", "version", "whatsNewSinceUtc"], names);
+        Assert.Equal(["jobsTotal", "moduleCount", "seedGuid", "version"], names);
         Assert.Equal("1.12.11", json.RootElement.GetProperty("version").GetString());
         Assert.Equal((await Installation().GetAsync()).SeedGuid, json.RootElement.GetProperty("seedGuid").GetGuid());
     }
 
     [Fact]
-    public async Task Response_IsStoredOnTheInstallation_AndFeedIsMergedNewestFirst()
+    public async Task Response_ReplacesStoredNotices_NewestFirst()
     {
         var older = Guid.NewGuid();
         var newer = Guid.NewGuid();
@@ -96,29 +98,23 @@ public class TelemetryReportJobTests : IAsyncLifetime
         {
             row.WhatsNewJson = JsonSerializer.Serialize(new List<WhatsNewEntryDto>
             {
-                new(older, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), "Older", "old"),
+                new(older, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), "Notice", "Older", "old"),
             });
-            row.LatestKnownVersion = null;
         });
         var handler = new CapturingHandler(_ => Ok($$"""
-            {"latestVersion":"9.9.9","whatsNew":[
-              {"id":"{{newer}}","publishedUtc":"2026-02-01T00:00:00Z","title":"Newer","markdown":"new"},
-              {"id":"{{older}}","publishedUtc":"2026-01-01T00:00:00Z","title":"Older, edited","markdown":"edited"}
+            {"whatsNew":[
+              {"id":"{{newer}}","publishedUtc":"2026-02-01T00:00:00Z","kind":"Alert","title":"Newer","markdown":"new"},
+              {"id":"{{older}}","publishedUtc":"2026-01-01T00:00:00Z","kind":"Notice","title":"Older, edited","markdown":"edited"}
             ]}
             """));
 
         await Job(handler, enabled: true).ExecuteJob();
 
         var row = await Installation().GetAsync();
-        Assert.Equal("9.9.9", row.LatestKnownVersion);
-        Assert.NotNull(row.LatestKnownVersionCheckedAtUtc);
         Assert.NotNull(row.LastTelemetryReportAtUtc);
         var stored = TelemetrySnapshotProvider.ReadStored(row.WhatsNewJson);
         Assert.Equal(["Newer", "Older, edited"], stored.Select(e => e.Title).ToArray());
-
-        var (_, body) = Assert.Single(handler.Requests);
-        Assert.Equal(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            JsonDocument.Parse(body).RootElement.GetProperty("whatsNewSinceUtc").GetDateTime().ToUniversalTime());
+        Assert.Equal(["Alert", "Notice"], stored.Select(e => e.Kind).ToArray());
     }
 
     [Fact]
@@ -138,14 +134,39 @@ public class TelemetryReportJobTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ServerError_IsAlsoQuiet()
+    public async Task ServerError_IsRetriedThreeTimes_ThenQuiet()
     {
         var handler = new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
         var clientLog = new CollectingLogger<TelemetryClient>();
 
         await Job(handler, enabled: true, clientLog: clientLog).ExecuteJob();
 
+        Assert.Equal(3, handler.Requests.Count);
         Assert.All(clientLog.Entries, e => Assert.True(e.Level <= LogLevel.Debug));
+    }
+
+    [Fact]
+    public async Task TransientFailure_ThenSuccess_StopsRetrying()
+    {
+        var calls = 0;
+        var handler = new CapturingHandler(_ => ++calls < 2
+            ? throw new HttpRequestException("blip")
+            : Ok("""{"whatsNew":[]}"""));
+
+        await Job(handler, enabled: true).ExecuteJob();
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.NotNull((await Installation().GetAsync()).LastTelemetryReportAtUtc);
+    }
+
+    [Fact]
+    public async Task RejectedPayload_IsNotRetried()
+    {
+        var handler = new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.BadRequest));
+
+        await Job(handler, enabled: true).ExecuteJob();
+
+        Assert.Single(handler.Requests);
     }
 
     [Fact]
@@ -174,9 +195,11 @@ public class TelemetryReportJobTests : IAsyncLifetime
     private TelemetryReportJob Job(CapturingHandler handler, bool enabled, string version = "1.0.0",
         CollectingLogger<TelemetryClient>? clientLog = null, CollectingLogger<TelemetryReportJob>? jobLog = null)
     {
-        var client = new TelemetryClient(Factory(handler), LicenseOptions(), clientLog ?? new CollectingLogger<TelemetryClient>());
+        var client = new TelemetryClient(Factory(handler), LicenseOptions(), clientLog ?? new CollectingLogger<TelemetryClient>()) { Backoff = [TimeSpan.Zero, TimeSpan.Zero] };
         var settings = Options.Create(new TelemetrySettings { Enabled = enabled });
-        return new TelemetryReportJob(Snapshots(version), client, Installation(), settings, jobLog ?? new CollectingLogger<TelemetryReportJob>());
+        var releases = new GitHubReleasesClient(Factory(new CapturingHandler(_ => throw new HttpRequestException("no github in tests"))),
+            settings, new FixedVersion(version), Installation(), new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions())), new CollectingLogger<GitHubReleasesClient>());
+        return new TelemetryReportJob(Snapshots(version), client, releases, Installation(), settings, jobLog ?? new CollectingLogger<TelemetryReportJob>());
     }
 
     private static IOptions<LicenseSettings> LicenseOptions() =>

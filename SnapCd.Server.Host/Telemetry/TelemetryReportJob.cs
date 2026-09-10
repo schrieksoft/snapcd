@@ -14,18 +14,20 @@ using SnapCd.Server.Core.Telemetry;
 
 namespace SnapCd.Server.Host.Telemetry;
 
-/// <summary>The daily beacon. Sends the snapshot and stores what came back on the installation row.</summary>
+/// <summary>The daily beacon. Sends the snapshot and stores the notices that came back, replacing what was there.</summary>
 public class TelemetryReportJob(
     TelemetrySnapshotProvider snapshots,
     TelemetryClient client,
+    GitHubReleasesClient releases,
     InstallationService installation,
     IOptions<TelemetrySettings> settings,
     ILogger<TelemetryReportJob> logger)
 {
-    public const int StoredEntries = 10;
-
     public async Task ExecuteJob()
     {
+        // The release check is independent of the beacon; it stores the latest known version as a side effect.
+        await releases.NewerThanRunningAsync();
+
         if (!settings.Value.Enabled)
         {
             logger.LogDebug("Telemetry is disabled; beacon skipped");
@@ -40,22 +42,8 @@ public class TelemetryReportJob(
         await installation.UpdateAsync(row =>
         {
             row.LastTelemetryReportAtUtc = now;
-            if (response.LatestVersion is not null)
-            {
-                row.LatestKnownVersion = response.LatestVersion;
-                row.LatestKnownVersionCheckedAtUtc = now;
-            }
-            if (response.WhatsNew.Count > 0)
-            {
-                var merged = TelemetrySnapshotProvider.ReadStored(row.WhatsNewJson)
-                    .Where(stored => response.WhatsNew.All(fresh => fresh.Id != stored.Id))
-                    .Concat(response.WhatsNew)
-                    .OrderByDescending(e => e.PublishedUtc)
-                    .Take(StoredEntries)
-                    .ToList();
-                row.WhatsNewJson = JsonSerializer.Serialize(merged);
-            }
+            row.WhatsNewJson = JsonSerializer.Serialize(response.WhatsNew.OrderByDescending(e => e.PublishedUtc).ToList());
         });
-        logger.LogDebug("Telemetry beacon sent; latest version {Latest}, {Count} new entries", response.LatestVersion, response.WhatsNew.Count);
+        logger.LogDebug("Telemetry beacon sent; {Count} notices", response.WhatsNew.Count);
     }
 }

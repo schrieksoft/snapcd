@@ -33,8 +33,17 @@ public static class MassTransit
     public static IServiceCollection AddSnapCdMassTransitConfiguration(
         this IServiceCollection services,
         ConfigurationManager configuration,
+        params Type[] additionalCompetingConsumerTypes) =>
+        services.AddSnapCdMassTransitConfiguration(configuration, [], additionalCompetingConsumerTypes);
+
+    /// <summary>Fan-out consumers get a per-instance queue, so every server hears every event; competing consumers share one.</summary>
+    public static IServiceCollection AddSnapCdMassTransitConfiguration(
+        this IServiceCollection services,
+        ConfigurationManager configuration,
+        IEnumerable<Type> additionalFanoutConsumerTypes,
         params Type[] additionalCompetingConsumerTypes)
     {
+        var fanoutTypes = ServerFanoutConsumerTypes.Concat(additionalFanoutConsumerTypes).ToArray();
         var serviceBusSettings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>()
                                  ?? new ServiceBusSettings();
 
@@ -64,7 +73,7 @@ public static class MassTransit
         services.AddMassTransit(x =>
         {
             AddSagaStateMachines(x);
-            x.AddServerConsumers(instanceId, additionalCompetingConsumerTypes);
+            x.AddServerConsumers(instanceId, additionalCompetingConsumerTypes, fanoutTypes);
 
             switch (serviceBusSettings.BusType)
             {
@@ -114,7 +123,7 @@ public static class MassTransit
                         }
 
                         // Configure fanout consumer endpoints with auto-delete settings
-                        foreach (var consumerType in ServerFanoutConsumerTypes)
+                        foreach (var consumerType in fanoutTypes)
                         {
                             var queueName = $"fanout--{instanceId}--{GetMessageName(consumerType).ToLower()}";
                             cfg.ReceiveEndpoint(queueName, e =>
@@ -167,7 +176,7 @@ public static class MassTransit
                             });
                         }
 
-                        foreach (var consumerType in ServerFanoutConsumerTypes)
+                        foreach (var consumerType in fanoutTypes)
                         {
                             var queueName = $"fanout--{instanceId}--{GetMessageName(consumerType).ToLower()}";
                             cfg.ReceiveEndpoint(queueName, e =>
@@ -354,7 +363,7 @@ public static class MassTransit
     }
 
 
-    private static void AddServerConsumers(this IBusRegistrationConfigurator configurator, string instanceId, Type[] additionalCompetingConsumerTypes)
+    private static void AddServerConsumers(this IBusRegistrationConfigurator configurator, string instanceId, Type[] additionalCompetingConsumerTypes, Type[] fanoutConsumerTypes)
     {
         // Runner consumers - endpoints configured manually per transport
         foreach (var consumerType in RunnerConsumerTypes)
@@ -373,7 +382,7 @@ public static class MassTransit
             configurator.AddConsumer(consumerType);
 
         // Fanout consumers - endpoints configured manually per transport
-        foreach (var consumerType in ServerFanoutConsumerTypes)
+        foreach (var consumerType in fanoutConsumerTypes)
             configurator.AddConsumer(consumerType);
     }
 

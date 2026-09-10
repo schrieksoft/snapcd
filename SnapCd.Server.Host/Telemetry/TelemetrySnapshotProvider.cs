@@ -29,7 +29,7 @@ public class TelemetrySnapshotProvider(
         var moduleCount = await db.Modules.CountAsync(ct);
         var jobsTotal = await db.ModuleJobs.LongCountAsync(ct);
 
-        return new TelemetryReportRequest(row.SeedGuid, version.ShortVersion, moduleCount, jobsTotal, NewestStored(row.WhatsNewJson));
+        return new TelemetryReportRequest(row.SeedGuid, version.ShortVersion, moduleCount, jobsTotal);
     }
 
     public static List<WhatsNewEntryDto> ReadStored(string? json)
@@ -43,11 +43,5 @@ public class TelemetrySnapshotProvider(
         {
             return [];
         }
-    }
-
-    private static DateTime? NewestStored(string? json)
-    {
-        var stored = ReadStored(json);
-        return stored.Count == 0 ? null : stored.Max(e => e.PublishedUtc);
     }
 }
