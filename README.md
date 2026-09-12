@@ -54,7 +54,7 @@ Container images are published to GHCR on every release (`ghcr.io/schrieksoft/sn
 
 - **Build, run, and contribute:** [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 - **Bugs & feature requests:** GitHub Issues.
-- **Security:** [`SECURITY.md`](./SECURITY.md) — please report privately, never in a public issue.
+- **Security:** [`SECURITY.md`](./SECURITY.md) - please report privately, never in a public issue.
 - **Code of conduct:** [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
 
 ## Editions
