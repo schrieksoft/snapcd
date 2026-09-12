@@ -59,4 +59,4 @@ Container images are published to GHCR on every release (`ghcr.io/schrieksoft/sn
 
 ## Editions
 
-Source-available under the **Snap CD Source-Available License 1.1** ([`LICENSE.md`](./LICENSE.md)). A free **Community** tier runs without a license key; paid tiers raise quotas and unlock additional features — see [Pricing](https://snapcd.io/Pricing).
+Source-available under the **Snap CD Source-Available License 1.1** ([`LICENSE.md`](./LICENSE.md)). A free **Community** tier runs without a license key; paid tiers raise quotas and unlock additional features - see [Pricing](https://snapcd.io/Pricing).
