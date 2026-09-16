@@ -138,7 +138,7 @@ public class JobService : IDisposable
         });
     }
 
-    public async Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+    public virtual async Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
     {
         if (organizationId == Guid.Empty)
             throw new ArgumentException("OrganizationId cannot be empty", nameof(organizationId));
@@ -165,7 +165,7 @@ public class JobService : IDisposable
         }
     }
 
-    public async Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+    public virtual async Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
     {
         if (organizationId == Guid.Empty)
             throw new ArgumentException("OrganizationId cannot be empty", nameof(organizationId));
@@ -210,7 +210,7 @@ public class JobService : IDisposable
         });
     }
 
-    public async Task<bool> CheckDependenciesAsync(Guid moduleId, Guid organizationId, DesiredStateHeadline desiredState)
+    public virtual async Task<bool> CheckDependenciesAsync(Guid moduleId, Guid organizationId, DesiredStateHeadline desiredState)
     {
         // Get module dependency settings
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -250,7 +250,7 @@ public class JobService : IDisposable
     /// Checks if a runner is available for the specified module by querying the database.
     /// A runner is considered available if it's currently connected (has an active connection).
     /// </summary>
-    public async Task<bool> CheckRunnerAvailabilityAsync(Guid moduleId)
+    public virtual async Task<bool> CheckRunnerAvailabilityAsync(Guid moduleId)
     {
         try
         {
