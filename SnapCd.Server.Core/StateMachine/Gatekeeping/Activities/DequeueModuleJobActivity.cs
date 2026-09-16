@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 
@@ -46,6 +47,15 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
             if (await _maintenanceMode.IsActiveAsync())
             {
                 _logger.LogInformation("Maintenance mode active: leaving module {ModuleId} queued", context.Saga.CorrelationId);
+                await next.Execute(context).ConfigureAwait(false);
+                return;
+            }
+
+            if (context.Saga.Paused)
+            {
+                if (context.Saga.QueuedDesiredStateHeadline.HasValue)
+                    context.Saga.QueuedReason = QueuedReason.Paused;
+                _logger.LogDebug("Module {ModuleId} is paused: leaving it queued", context.Saga.CorrelationId);
                 await next.Execute(context).ConfigureAwait(false);
                 return;
             }

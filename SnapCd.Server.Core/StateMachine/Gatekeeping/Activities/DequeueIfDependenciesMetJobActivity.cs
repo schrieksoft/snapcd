@@ -56,6 +56,8 @@ public class DequeueIfDependenciesMetJobActivity<TMessage> :
 
             if (context.Saga.Paused)
             {
+                if (context.Saga.QueuedDesiredStateHeadline.HasValue)
+                    context.Saga.QueuedReason = QueuedReason.Paused;
                 _logger.LogDebug("Module {ModuleId} is paused: leaving it queued", context.Saga.CorrelationId);
                 await next.Execute(context).ConfigureAwait(false);
                 return;

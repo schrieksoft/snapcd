@@ -41,6 +41,8 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
 
     public required Event<ModuleDependencyCheckRequested> ModuleDependencyCheckRequested { get; set; }
 
+    public required Event<ModuleQuiescenceRequested> ModuleQuiescenceRequested { get; set; }
+
     // Drift check schedule
     public Schedule<ModuleSaga, DriftCheckScheduled> DriftCheckScheduled { get; set; } = null!;
 
@@ -67,6 +69,7 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
 
         Event(() => ResourceCountRefreshedEvent, e => e.CorrelateById(x => x.Message.ModuleId));
         Event(() => ModuleDependencyCheckRequested, e => e.CorrelateById(x => x.Message.ModuleId));
+        Event(() => ModuleQuiescenceRequested, e => e.CorrelateById(x => x.Message.ModuleId));
 
         Schedule(() => DriftCheckScheduled, saga => saga.DriftCheckScheduleTokenId, config =>
         {
@@ -106,32 +109,38 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Activity(x => x.OfType<MaybeEmitModuleStateChangedToAppliedEvent<ApplyModuleCompleted>>())
+                .Activity(x => x.OfType<AnswerQuiescenceActivity<ApplyModuleCompleted>>())
                 .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<ApplyModuleCompleted>>())
                 .Activity(x => x.OfType<ScheduleDriftCheckActivity<ApplyModuleCompleted>>()),
             When(ApplyModuleCancelled)
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<AnswerQuiescenceActivity<ApplyModuleCancelled>>())
                 .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<ApplyModuleCancelled>>())
                 .Activity(x => x.OfType<ScheduleDriftCheckActivity<ApplyModuleCancelled>>()),
             When(ApplyModuleFailed)
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<AnswerQuiescenceActivity<ApplyModuleFailed>>())
                 .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<ApplyModuleFailed>>())
                 .Activity(x => x.OfType<ScheduleDriftCheckActivity<ApplyModuleFailed>>()),
             When(DestroyModuleCompleted)
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Activity(x => x.OfType<MaybeEmitModuleStateChangedToDestroyedEvent<DestroyModuleCompleted>>())
+                .Activity(x => x.OfType<AnswerQuiescenceActivity<DestroyModuleCompleted>>())
                 .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<DestroyModuleCompleted>>())
                 .Unschedule(DriftCheckScheduled),
             When(DestroyModuleCancelled)
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<AnswerQuiescenceActivity<DestroyModuleCancelled>>())
                 .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<DestroyModuleCancelled>>())
                 .Unschedule(DriftCheckScheduled),
             When(DestroyModuleFailed)
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
+                .Activity(x => x.OfType<AnswerQuiescenceActivity<DestroyModuleFailed>>())
                 .Activity(x => x.OfType<DequeueIfDependenciesMetJobActivity<DestroyModuleFailed>>())
                 .Unschedule(DriftCheckScheduled),
             When(ResourceCountRefreshedEvent)
@@ -150,6 +159,8 @@ public class ModuleStateMachine : MassTransitStateMachine<ModuleSaga>
                 })
                 .Publish(x => new ModuleSagaModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); })
                 .Publish(x => new ModuleStateModifiedEvent { ModuleId = x.Saga.CorrelationId, OrganizationId = x.Saga.OrganizationId }, context => { context.TimeToLive = TimeSpan.FromSeconds(120); }),
+            When(ModuleQuiescenceRequested)
+                .Activity(x => x.OfType<AnswerQuiescenceActivity<ModuleQuiescenceRequested>>()),
             When(ModuleDependencyCheckRequested)
                 .Then(y => _logger.LogDebug(
                     "Checking dependencies for queued module {ModuleId}", y.Message.ModuleId))
