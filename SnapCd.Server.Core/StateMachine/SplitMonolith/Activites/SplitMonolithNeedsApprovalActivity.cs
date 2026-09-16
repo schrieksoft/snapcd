@@ -28,6 +28,6 @@ public class SplitMonolithNeedsApprovalActivity<TMessage>
         await dbContext.Modules
             .Include(x => x.Namespace)
             .Where(x => x.Id == moduleId && x.OrganizationId == organizationId)
-            .Select(x => x.SplitMonolithApprovalThreshold ?? x.Namespace.DefaultSplitMonolithApprovalThreshold ?? 1)
+            .Select(x => x.StateMigrationApprovalThreshold ?? x.Namespace.DefaultStateMigrationApprovalThreshold ?? 1)
             .SingleAsync();
 }
