@@ -2207,7 +2207,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(800)
                         .HasColumnType("nvarchar(800)");
 
-                    b.Property<int?>("SplitMonolithApprovalThreshold")
+                    b.Property<int?>("StateMigrationApprovalThreshold")
                         .HasColumnType("int");
 
                     b.Property<bool>("TriggerOnDefinitionChanged")
@@ -3754,7 +3754,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("DefaultSplitMonolithApprovalThreshold")
+                    b.Property<int?>("DefaultStateMigrationApprovalThreshold")
                         .HasColumnType("int");
 
                     b.Property<bool?>("DefaultTriggerPathFilterEnabled")

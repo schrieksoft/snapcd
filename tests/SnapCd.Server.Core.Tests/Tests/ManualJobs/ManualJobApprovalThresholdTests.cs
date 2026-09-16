@@ -36,8 +36,8 @@ public class ManualJobApprovalThresholdTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         var module = await db.Modules.SingleAsync(m => m.Id == _moduleId);
         _namespaceId = module.NamespaceId;
-        _originalModule = module.SplitMonolithApprovalThreshold;
-        _originalNamespace = (await db.Namespaces.SingleAsync(n => n.Id == _namespaceId)).DefaultSplitMonolithApprovalThreshold;
+        _originalModule = module.StateMigrationApprovalThreshold;
+        _originalNamespace = (await db.Namespaces.SingleAsync(n => n.Id == _namespaceId)).DefaultStateMigrationApprovalThreshold;
     }
 
     public Task DisposeAsync() => Set(_originalModule, _originalNamespace);
@@ -79,8 +79,8 @@ public class ManualJobApprovalThresholdTests : IAsyncLifetime
     private async Task Set(int? module, int? ns)
     {
         await using var db = _fixture.CreateDbContext();
-        (await db.Modules.SingleAsync(m => m.Id == _moduleId)).SplitMonolithApprovalThreshold = module;
-        (await db.Namespaces.SingleAsync(n => n.Id == _namespaceId)).DefaultSplitMonolithApprovalThreshold = ns;
+        (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = module;
+        (await db.Namespaces.SingleAsync(n => n.Id == _namespaceId)).DefaultStateMigrationApprovalThreshold = ns;
         await db.SaveChangesAsync();
     }
 
