@@ -43,7 +43,7 @@
             @if (ShowRunNow)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                           OnClick="OnRunQueueNow">run now</MudButton>
+                           Disabled="@IsPaused" OnClick="OnRunQueueNow">run now</MudButton>
             }
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                        OnClick="OnClearQueue">clear</MudButton>
