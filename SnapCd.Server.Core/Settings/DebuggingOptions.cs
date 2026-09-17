@@ -21,4 +21,11 @@ public class DebuggingOptions
     /// debugger is attached. Intended for local development only.
     /// </summary>
     public bool ForceEnterpriseLicenseWhenDebuggerAttached { get; set; }
+
+    /// <summary>
+    /// Telemetry is off whenever a debugger is attached, so development runs never report to the
+    /// licence server. Set to true to send the beacon from a debug run anyway. Has no effect when no
+    /// debugger is attached.
+    /// </summary>
+    public bool EnableTelemetryWhenDebuggerAttached { get; set; }
 }

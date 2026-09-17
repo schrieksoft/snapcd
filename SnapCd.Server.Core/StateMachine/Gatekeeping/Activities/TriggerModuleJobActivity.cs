@@ -75,7 +75,7 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                                 j.OrganizationId == context.Saga.OrganizationId &&
                                 j.ActualStateHeadline != null &&
                                 j.TimestampEnd != null)
-                    .OrderByDescending(j => j.TimestampEnd)
+                    .OrderByDescending(j => j.JobNumber)
                     .Select(j => j.ActualStateHeadline)
                     .FirstOrDefaultAsync();
 

@@ -277,7 +277,7 @@ public class DestroyModuleGraphService : ModuleGraphServiceBase, IDisposable
 
                 var latestCompletedJob = await _dbContext.ModuleJobs
                     .Where(mj => mj.ModuleId == moduleId && mj.TimestampEnd != null && mj.ActualStateHeadline != null)
-                    .OrderByDescending(mj => mj.TimestampEnd)
+                    .OrderByDescending(mj => mj.JobNumber)
                     .FirstOrDefaultAsync();
 
                 moduleInfoLookup[moduleId] = new ModuleStateInfo

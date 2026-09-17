@@ -657,6 +657,10 @@ properties:
         description: When true AND a debugger is attached, the LicenseService returns a synthetic valid EnterpriseEdition
           license bypassing all DB and SaaS checks. Has no effect when no debugger is attached. Intended for local development
           only.
+      EnableTelemetryWhenDebuggerAttached:
+        type: boolean
+        description: Telemetry is off whenever a debugger is attached, so development runs never report to the licence server.
+          Set to true to send the beacon from a debug run anyway. Has no effect when no debugger is attached.
     description: Debugger-only escape hatches. Never set the flags here to true in any deployment that is not a developer's
       local workstation — they are documented in the schema so operators can see they exist, not because any production deployment
       should ever use them.

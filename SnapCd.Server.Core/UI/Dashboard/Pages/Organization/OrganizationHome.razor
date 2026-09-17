@@ -993,7 +993,7 @@ else
             // Actual state: most recent finished job that recorded a state headline (same semantics as ModulePage)
             ActualState = m.ModuleJobs
                 .Where(j => j.ActualStateHeadline != null && j.TimestampEnd != null)
-                .OrderByDescending(j => j.TimestampEnd)
+                .OrderByDescending(j => j.JobNumber)
                 .Select(j => j.ActualStateHeadline)
                 .FirstOrDefault(),
             QueuedDesired = m.ModuleSaga != null ? m.ModuleSaga.QueuedDesiredStateHeadline : null,

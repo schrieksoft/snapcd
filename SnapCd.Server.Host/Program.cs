@@ -83,6 +83,10 @@ if (!Debugger.IsAttached)
 {
     builder.Services.PostConfigure<LicenseSettings>(s => s.LicenseServerBaseUrl = "https://snapcd.io");
 }
+else if (!(builder.Configuration.GetSection("Debugging").Get<DebuggingOptions>()?.EnableTelemetryWhenDebuggerAttached ?? false))
+{
+    builder.Services.PostConfigure<TelemetrySettings>(s => s.Enabled = false);
+}
 
 
 var sourceRefreshSettings = builder.Configuration.GetSection("SourceRefresh").Get<SourceRefreshSettings>() ?? new SourceRefreshSettings();
