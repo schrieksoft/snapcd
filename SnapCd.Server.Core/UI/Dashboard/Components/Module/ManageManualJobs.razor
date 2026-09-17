@@ -53,7 +53,10 @@
     <MudPaper Elevation="1" Class="pa-4 mb-4">
         @if (IsDraining)
         {
-            <MudText Typo="Typo.body2">@_blockedReason</MudText>
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small"/>
+                <MudText Typo="Typo.body2"><strong>Waiting for the current job to finish.</strong> @_blockedReason</MudText>
+            </MudStack>
         }
         else
         {
