@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Reflection;
 using MassTransit;
 using MassTransit.SqlTransport;
 using SnapCd.Server.Core.Consumers.Missions;
@@ -70,6 +71,11 @@ public static class MassTransit
         services.AddScoped<MissionMatcher>();
         services.AddScoped<AgentSupplyResolver>();
 
+        if (serviceBusSettings.BusType == BusType.AzureServiceBus)
+            services.AddHostedService(sp => new DeadLetterSinkHostedService(
+                serviceBusSettings.TransportOptions.AzureServiceBus.ConnectionString,
+                sp.GetRequiredService<ILogger<DeadLetterSinkHostedService>>()));
+
         services.AddMassTransit(x =>
         {
             AddSagaStateMachines(x);
@@ -79,6 +85,11 @@ public static class MassTransit
             {
                 case BusType.AzureServiceBus:
                     x.AddServiceBusMessageScheduler();
+                    x.AddConfigureEndpointsCallback((_, _, endpoint) =>
+                    {
+                        if (endpoint is IServiceBusReceiveEndpointConfigurator serviceBus)
+                            serviceBus.ForwardDeadLetteredMessagesTo = DeadLetterSink.QueueName;
+                    });
 
                     x.UsingAzureServiceBus((context, cfg) =>
 
@@ -106,6 +117,8 @@ public static class MassTransit
                             {
                                 e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
                                 e.DefaultMessageTimeToLive = TimeSpan.FromMinutes(10); // needed since otherwise AutoDeleteOnIdle might never trigger
+                                // Addressed by queue name; a topic subscription would only ever collect copies nobody reads.
+                                e.ConfigureConsumeTopology = false;
                                 e.ConfigureConsumer(context, consumerType);
                             });
                         }
@@ -118,21 +131,14 @@ public static class MassTransit
                             {
                                 e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
                                 e.DefaultMessageTimeToLive = TimeSpan.FromMinutes(10); // needed since otherwise AutoDeleteOnIdle might never trigger
+                                e.ConfigureConsumeTopology = false;
                                 e.ConfigureConsumer(context, consumerType);
                             });
                         }
 
-                        // Configure fanout consumer endpoints with auto-delete settings
+                        // Fanout consumers read their topic subscription directly: no queue, nothing to forward to.
                         foreach (var consumerType in fanoutTypes)
-                        {
-                            var queueName = $"fanout--{instanceId}--{GetMessageName(consumerType).ToLower()}";
-                            cfg.ReceiveEndpoint(queueName, e =>
-                            {
-                                e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
-                                e.DefaultMessageTimeToLive = TimeSpan.FromMinutes(10); // needed since otherwise AutoDeleteOnIdle might never trigger
-                                e.ConfigureConsumer(context, consumerType);
-                            });
-                        }
+                            AddFanoutSubscriptionEndpoint(cfg, context, instanceId, consumerType);
 
                         cfg.ConfigureEndpoints(context, truncatedFormatter);
 
@@ -214,10 +220,7 @@ public static class MassTransit
 
         // cancel
         typeof(CancelKillConsumer),
-        typeof(CancelGracefulConsumer),
-
-        // heartbeat
-        typeof(HeartbeatConsumer)
+        typeof(CancelGracefulConsumer)
     ];
 
     // Agent mission (Layer 2) dispatch consumers - instance-specific endpoints for targeted sends, like runners
@@ -234,6 +237,8 @@ public static class MassTransit
     [
         // System consumers
         typeof(SelectRunnerInstanceConsumer),
+        // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
+        typeof(HeartbeatConsumer),
 
         // Agent mission Layer-1 (match) consumers
         typeof(ApplyJobFailedCompetingConsumer),
@@ -386,6 +391,35 @@ public static class MassTransit
             configurator.AddConsumer(consumerType);
     }
 
+    private static void AddFanoutSubscriptionEndpoint(IServiceBusBusFactoryConfigurator cfg, IBusRegistrationContext context, string instanceId, Type consumerType)
+    {
+        typeof(MassTransit).GetMethod(nameof(AddFanoutSubscriptionEndpointFor), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(GetMessageType(consumerType))
+            .Invoke(null, [cfg, context, instanceId, consumerType]);
+    }
+
+    // The subscription is named by the server instance alone: the topic already names the event, and
+    // subscription names are capped at 50 characters. No dead-letter forward here: Service Bus disables
+    // AutoDeleteOnIdle on any entity that forwards, and this one must delete itself.
+    private static void AddFanoutSubscriptionEndpointFor<TMessage>(IServiceBusBusFactoryConfigurator cfg, IBusRegistrationContext context, string instanceId, Type consumerType)
+        where TMessage : class
+    {
+        cfg.SubscriptionEndpoint<TMessage>(instanceId, e =>
+        {
+            e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
+            e.DefaultMessageTimeToLive = TimeSpan.FromMinutes(10);
+            e.ConfigureConsumer(context, consumerType);
+        });
+    }
+
+    private static Type GetMessageType(Type consumerType)
+    {
+        var consumerInterface = consumerType.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IConsumer<>))
+            ?? throw new InvalidOperationException($"Consumer type {consumerType.Name} does not implement IConsumer<>");
+        return consumerInterface.GetGenericArguments()[0];
+    }
+
     /// <summary>
     /// Extracts the message type name from a consumer type that implements IConsumer&lt;TMessage&gt;
     /// Returns only the simple type name without namespace (e.g., "GetModuleRequested" not "SnapCd.Server.Events.Steps.GetModuleRequested")
@@ -418,6 +452,8 @@ public static class MassTransit
 
         cfg.ReceiveEndpoint(endpointName, e =>
         {
+            if (e is IServiceBusReceiveEndpointConfigurator serviceBus)
+                serviceBus.ForwardDeadLetteredMessagesTo = DeadLetterSink.QueueName;
             e.PrefetchCount = serviceBusSettings.SagaConcurrencyLimit;
             e.UseMessageRetry(r => r.Interval(5, 1000));
             e.UseMessageScope(context);
@@ -437,6 +473,8 @@ public static class MassTransit
 
         cfg.ReceiveEndpoint(endpointName, e =>
         {
+            if (e is IServiceBusReceiveEndpointConfigurator serviceBus)
+                serviceBus.ForwardDeadLetteredMessagesTo = DeadLetterSink.QueueName;
             e.PrefetchCount = concurrencyLimit;
             e.UseMessageRetry(r => r.Interval(5, 1000));
             e.UseMessageScope(context);

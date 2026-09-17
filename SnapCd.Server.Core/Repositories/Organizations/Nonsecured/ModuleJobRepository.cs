@@ -62,6 +62,8 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     {
         var job = await Get(id, organizationId);
 
+        if (HasEnded(job)) return;
+
         job.Status = status;
         job.TimestampEnd = endTime;
         job.WaitingForApproval = false;
@@ -76,6 +78,12 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         else
             await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
     }
+
+    // A job ends once: a late cancel event or timeout must not rewrite what it ended as. Only a row
+    // with both a terminal status and an end date counts as ended, so an inconsistent row can still be closed.
+    private static bool HasEnded(ModuleJob job) =>
+        job.TimestampEnd != null
+        && job.Status is ExecutionStatus.Completed or ExecutionStatus.Cancelled or ExecutionStatus.NotApproved or ExecutionStatus.Failed or ExecutionStatus.Orphaned or ExecutionStatus.PolicyDenied;
 
     public async Task SetPolicyOutcome(Guid id, Guid organizationId, PolicyOutcome outcome, bool wrapInTransaction = false)
     {
@@ -105,7 +113,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
             .Where(j => j.ModuleId == moduleId &&
                         j.Status == ExecutionStatus.Completed &&
                         j.TimestampEnd != null  && j.OrganizationId == organizationId)
-            .OrderByDescending(j => j.TimestampEnd)
+            .OrderByDescending(j => j.JobNumber)
             .Select(j => j.DefinitiveRevision)
             .FirstOrDefaultAsync();
     }
@@ -116,7 +124,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
             .Where(j => j.ModuleId == moduleId &&
                         j.Status == ExecutionStatus.Completed &&
                         j.TimestampEnd != null && j.OrganizationId == organizationId)
-            .OrderByDescending(j => j.TimestampEnd)
+            .OrderByDescending(j => j.JobNumber)
             .Select(j => new { j.DefinitiveRevision, j.DefinitiveClosureHash })
             .FirstOrDefaultAsync();
 
@@ -141,7 +149,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
                         j.ActualStateHeadline != null &&
                         j.TimestampEnd != null && 
                         j.OrganizationId == organizationId)
-            .OrderByDescending(j => j.TimestampEnd)
+            .OrderByDescending(j => j.JobNumber)
             .Select(j => j.ActualStateHeadline)
             .FirstOrDefaultAsync();
     }
@@ -152,7 +160,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
             .Where(j => j.ModuleId == moduleId &&
                         j.ActualStateHeadline != null &&
                         j.TimestampEnd != null)
-            .OrderByDescending(j => j.TimestampEnd)
+            .OrderByDescending(j => j.JobNumber)
             .Select(j => j.ActualStateHeadline!.Value)
             .Take(revisions)
             .ToListAsync();
@@ -181,6 +189,8 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
         string? errorMessage)
     {
         var job = await Get(id, organizationId);
+
+        if (HasEnded(job)) return;
 
         job.Status = ExecutionStatus.Failed;
         job.TimestampEnd = endTime;

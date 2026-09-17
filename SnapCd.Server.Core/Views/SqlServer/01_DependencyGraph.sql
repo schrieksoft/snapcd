@@ -414,7 +414,7 @@ BEGIN
     LatestModuleJobs AS (
         SELECT mj.ModuleId,
             COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
-            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.TimestampEnd DESC) AS rn
+            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.JobNumber DESC) AS rn
         FROM ModuleJobs mj WHERE mj.TimestampEnd IS NOT NULL
     )
     INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
@@ -486,7 +486,7 @@ BEGIN
     LEFT JOIN (
         SELECT mj.ModuleId,
             COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
-            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.TimestampEnd DESC) AS rn
+            ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.JobNumber DESC) AS rn
         FROM ModuleJobs mj
         WHERE mj.TimestampEnd IS NOT NULL
           AND mj.ModuleId IN (SELECT ModuleId FROM #AffectedModules)
@@ -584,6 +584,21 @@ IF NOT EXISTS (SELECT TOP 1 1 FROM ModuleState)
 BEGIN
     EXEC sp_RecomputeModuleState;
 END;
+GO
+
+-- The latest state follows the newest job by number. Rows written while it followed the end
+-- date are corrected here; the statement is idempotent and cheap, so it runs on every start.
+UPDATE ms SET
+    ms.LatestActualStateHeadline = lj.ActualStateHeadline
+FROM ModuleState ms
+LEFT JOIN (
+    SELECT mj.ModuleId,
+        COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
+        ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.JobNumber DESC) AS rn
+    FROM ModuleJobs mj
+    WHERE mj.TimestampEnd IS NOT NULL
+) lj ON lj.ModuleId = ms.ModuleId AND lj.rn = 1
+WHERE ISNULL(ms.LatestActualStateHeadline, '') <> ISNULL(lj.ActualStateHeadline, '');
 GO
 
 -- Backfill modules created before the trigger inserted on creation. Runs after the initial

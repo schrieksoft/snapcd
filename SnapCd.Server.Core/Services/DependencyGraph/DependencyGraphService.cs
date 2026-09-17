@@ -103,7 +103,7 @@ public class DependencyGraphService : IDisposable
                 .FirstOrDefault()
             let latestCompletedJob = _dbContext.ModuleJobs
                 .Where(mj => mj.ModuleId == m.Id && mj.TimestampEnd != null && mj.ActualStateHeadline != null)
-                .OrderByDescending(mj => mj.TimestampEnd)
+                .OrderByDescending(mj => mj.JobNumber)
                 .FirstOrDefault()
             let saga = _dbContext.ModuleSagas
                 .Where(ms => ms.CorrelationId == m.Id)

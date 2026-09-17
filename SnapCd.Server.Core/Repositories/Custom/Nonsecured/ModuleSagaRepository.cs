@@ -77,7 +77,7 @@ public class ModuleSagaRepository : IDisposable
     {
         var lastHeadline = await _dbContext.ModuleJobs
             .Where(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.ActualStateHeadline != null)
-            .OrderByDescending(j => j.TimestampEnd)
+            .OrderByDescending(j => j.JobNumber)
             .Select(j => j.ActualStateHeadline)
             .FirstOrDefaultAsync();
 
