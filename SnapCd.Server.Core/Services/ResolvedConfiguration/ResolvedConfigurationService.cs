@@ -26,6 +26,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Services.Crud.Secrets;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 
+using SnapCd.Server.Core.Misc.Utils;
+
 namespace SnapCd.Server.Core.Services.ResolvedConfiguration;
 
 // "Declared" and "Applied" configuration
@@ -290,6 +292,13 @@ public class ResolvedConfigurationService : IDisposable
         return Task.FromResult(mergedFiles);
     }
 
+
+    /// <summary>The declared module for one job run at <paramref name="sourceRevisionOverride"/> instead of the configured revision.</summary>
+    public async Task<ResolvedModule> GetDeclared(Guid id, Guid organizationId, string? sourceRevisionOverride)
+    {
+        var declared = await GetDeclared(id, organizationId);
+        return sourceRevisionOverride is null ? declared : SourceRevisionOverride.Apply(declared, sourceRevisionOverride);
+    }
 
     public async Task<ResolvedModule> GetDeclared(Guid id, Guid organizationId)
     {

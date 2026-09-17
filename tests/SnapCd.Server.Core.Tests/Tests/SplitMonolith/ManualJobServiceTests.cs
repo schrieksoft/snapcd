@@ -134,6 +134,20 @@ public class ManualJobServiceTests : IAsyncLifetime
     /// refusal rather than an unhandled DbUpdateException.
     /// </summary>
     [Fact]
+    public async Task A_State_Migration_Refuses_A_Ref()
+    {
+        await SetPaused(true);
+
+        using var service = CreateService();
+        var ex = await Assert.ThrowsAsync<ManualJobNotAllowedException>(
+            () => service.StartSplitMonolith(_moduleId, _organizationId, null, false, "feature/split"));
+
+        Assert.Contains("configured branch", ex.Message);
+        await using var db = _fixture.CreateDbContext();
+        Assert.Equal(0, await db.ManualModuleJobs.CountAsync(j => j.ModuleId == _moduleId && j.Status == ExecutionStatus.Running));
+    }
+
+    [Fact]
     public async Task Two_Concurrent_Starts_Leave_Only_One_Running()
     {
         await SetPaused(true);

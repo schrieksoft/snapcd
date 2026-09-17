@@ -138,7 +138,7 @@ public class JobService : IDisposable
         });
     }
 
-    public virtual async Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+    public virtual async Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
     {
         if (organizationId == Guid.Empty)
             throw new ArgumentException("OrganizationId cannot be empty", nameof(organizationId));
@@ -148,7 +148,7 @@ public class JobService : IDisposable
         {
             await EnforceLicenceAndQuota(organizationId);
 
-            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
+            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId, sourceRevisionOverride);
 
             // Override runner name if provided
             if (!string.IsNullOrEmpty(runnerInstanceNameOverride)) declared.RunnerInstanceName = runnerInstanceNameOverride;
@@ -165,7 +165,7 @@ public class JobService : IDisposable
         }
     }
 
-    public virtual async Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+    public virtual async Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
     {
         if (organizationId == Guid.Empty)
             throw new ArgumentException("OrganizationId cannot be empty", nameof(organizationId));
@@ -175,7 +175,7 @@ public class JobService : IDisposable
         {
             await EnforceLicenceAndQuota(organizationId);
 
-            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
+            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId, sourceRevisionOverride);
 
             // Override runner name if provided
             if (!string.IsNullOrEmpty(runnerInstanceNameOverride)) declared.RunnerInstanceName = runnerInstanceNameOverride;

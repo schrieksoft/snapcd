@@ -372,13 +372,13 @@ public class PauseGateTests : IAsyncLifetime
     private sealed class StubJobService(SnapCdDbContext dbContext, ConcurrentBag<Guid> applied)
         : JobService(null!, dbContext, null!, null!, null!, null!, null!, null!, null!, null!)
     {
-        public override Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+        public override Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
         {
             applied.Add(moduleId);
             return Task.CompletedTask;
         }
 
-        public override Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+        public override Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
             => Task.CompletedTask;
 
         public override Task<bool> CheckDependenciesAsync(Guid moduleId, Guid organizationId, DesiredStateHeadline desiredState) => Task.FromResult(true);

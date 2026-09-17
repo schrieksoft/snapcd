@@ -157,8 +157,13 @@ public class ManualJobService : IDisposable
         Guid moduleId,
         Guid organizationId,
         string? rootDirectory,
-        bool force)
+        bool force,
+        string? sourceRevision = null)
     {
+        // A state migration only ever runs the configured branch; a ref belongs to a prove job.
+        if (sourceRevision is not null)
+            throw new ManualJobNotAllowedException("A state migration runs the module's configured branch. Only a prove job can be given a ref.");
+
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
                 $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
