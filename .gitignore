@@ -218,3 +218,5 @@ SnapCd.Runner/EmbeddedTools/
 
 # build output of the snapcd-inspect tool (CI builds it into SnapCd.Runner/EmbeddedTools)
 tools/snapcd-inspect/snapcd-inspect
+
+graphify-out
