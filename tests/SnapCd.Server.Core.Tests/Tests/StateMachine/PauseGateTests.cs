@@ -336,6 +336,51 @@ public class PauseGateTests : IAsyncLifetime
         Assert.False(saga.Paused);
     }
 
+    /// <summary>
+    /// A hold taken while a job runs does not stop that job: it stops the next one. The job the
+    /// merge would have triggered parks instead of dispatching.
+    /// </summary>
+    [Fact]
+    public async Task A_Hold_Taken_While_A_Job_Runs_Parks_The_Next_Trigger()
+    {
+        var jobId = await SeedRunningJob();
+        await SetSaga(paused: false, heldBy: Guid.NewGuid());
+
+        await PublishTrigger();
+
+        var saga = await WaitForSaga(s => s.QueuedReason == QueuedReason.Held);
+        Assert.Equal(QueuedReason.Held, saga.QueuedReason);
+        Assert.Empty(_applied);
+
+        // The job that was already in flight is untouched by the hold.
+        await using var db = _fixture.CreateDbContext();
+        var job = await db.ModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
+        Assert.Equal(ExecutionStatus.Running, job.Status);
+    }
+
+    /// <summary>
+    /// After a withdrawal the Module is paused, not held, so the ordinary resume an Owner already
+    /// has is what releases it - once they have decided how to reconcile the code and the state.
+    /// </summary>
+    [Fact]
+    public async Task Resume_After_A_Withdrawal_Pause_Re_Drives_Parked_Work()
+    {
+        var transferId = Guid.NewGuid();
+        await SetSaga(paused: false, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held, heldBy: transferId);
+
+        using (var repository = new ModuleSagaRepository(_fixture.CreateDbContext(), _fixture.CreateMockBus()))
+            await repository.ConvertHoldToPause(_moduleId, _organizationId, transferId, "withdrawn; state not migrated");
+
+        // Resume is the existing deliberate click by someone who may pause.
+        await SetSaga(paused: false, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Paused);
+        await PublishDependencyCheck();
+
+        var saga = await WaitForSaga(s => s.QueuedDesiredStateHeadline == null);
+        Assert.Null(saga.QueuedDesiredStateHeadline);
+        Assert.Null(saga.QueuedReason);
+        Assert.Contains(_moduleId, _applied);
+    }
+
     [Fact]
     public async Task Trigger_On_A_Paused_Module_Parks_And_Starts_Nothing()
     {

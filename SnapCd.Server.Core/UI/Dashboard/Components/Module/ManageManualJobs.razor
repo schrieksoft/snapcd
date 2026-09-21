@@ -32,6 +32,17 @@
 @implements IDisposable
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
+    @if (ModuleSaga?.HeldByTransferId is { } heldBy)
+    {
+        <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.body2">
+                <strong>Held</strong> by a transfer. This Module runs no ordinary jobs until its state move lands.
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       Href="@($"/Transfer/{heldBy}")">open the transfer</MudButton>
+        </MudStack>
+    }
+
     @if (ModuleSaga is { Paused: true })
     {
         <MudStack Row Spacing="2" AlignItems="AlignItems.Center">

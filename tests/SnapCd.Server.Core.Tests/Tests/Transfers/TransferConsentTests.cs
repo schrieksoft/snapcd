@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Misc.Exceptions;
@@ -34,6 +35,7 @@ public class TransferConsentTests : IAsyncLifetime
     private Guid _moduleId;
     private Guid _organizationId;
     private readonly List<Guid> _seeded = [];
+    private readonly List<Guid> _seededUsers = [];
 
     public TransferConsentTests(Fixture fixture) => _fixture = fixture;
 
@@ -48,6 +50,9 @@ public class TransferConsentTests : IAsyncLifetime
     {
         await using var db = _fixture.CreateDbContext();
         await db.Transfers.Where(t => _seeded.Contains(t.Id)).ExecuteDeleteAsync();
+        await db.UserModuleRoleAssignments.Where(a => _seededUsers.Contains(a.UserId)).ExecuteDeleteAsync();
+        await db.OrganizationUsers.Where(u => _seededUsers.Contains(u.UserId)).ExecuteDeleteAsync();
+        await db.Users.Where(u => _seededUsers.Contains(u.Id)).ExecuteDeleteAsync();
     }
 
     private Guid Reader => _fixture.OrganizationPrincipals["0"][OrganizationRole.Reader].DirectUser.Id;
@@ -456,6 +461,57 @@ public class TransferConsentTests : IAsyncLifetime
         var transfer = await Participant(transferId);
         Assert.Equal(PrincipalDiscriminator.User, transfer.ReceiverLockedByPrincipalDiscriminator);
         Assert.Equal(PrincipalDiscriminator.User, transfer.ReceiverMergedDeclaredByPrincipalDiscriminator);
+    }
+
+    /// <summary>
+    /// Consent is the receiver's to give. Someone who may act on the source but holds nothing on the
+    /// receiver is refused, which is the whole point of asking.
+    /// </summary>
+    [Fact]
+    public async Task A_Principal_Without_Rights_On_The_Receiver_Cannot_Consent_For_It()
+    {
+        var transferId = await Seed(ConsentStatus.Pending);
+        var outsider = await SeedModuleContributor(_fixture.Modules["0001"].Id);
+
+        using var service = Service(outsider);
+
+        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(
+            () => service.Decide(transferId, _moduleId, _organizationId, granted: true, "main", null));
+    }
+
+    /// <summary>A contributor on one Module only, so rights do not leak across the pair.</summary>
+    private async Task<Guid> SeedModuleContributor(Guid moduleId)
+    {
+        var userId = Guid.NewGuid();
+        _seededUsers.Add(userId);
+
+        await using var db = _fixture.CreateDbContext();
+        db.Users.Add(new User
+        {
+            Id = userId,
+            UserName = $"scoped-{userId:N}@example.com",
+            Email = $"scoped-{userId:N}@example.com",
+            IsDisabled = false,
+            CreatedDateTime = DateTime.UtcNow
+        });
+        db.OrganizationUsers.Add(new OrganizationUser
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            UserId = userId,
+            JoinedAt = DateTime.UtcNow,
+            InvitationCompleted = true
+        });
+        db.UserModuleRoleAssignments.Add(new UserModuleRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            UserId = userId,
+            RoleName = ModuleRole.Contributor
+        });
+        await db.SaveChangesAsync();
+        return userId;
     }
 
     private async Task<Guid> Seed(
