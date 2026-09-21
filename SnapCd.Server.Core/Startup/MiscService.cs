@@ -89,6 +89,8 @@ public static class MiscService
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton<IStateEncryptionService, StateEncryptionService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferArtefactService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.ManualJobStepService>();
 
 
         // Execution Services
