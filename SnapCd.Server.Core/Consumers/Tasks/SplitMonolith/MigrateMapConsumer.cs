@@ -67,6 +67,7 @@ public class MigrateMapConsumer : IConsumer<MigrateMapRequested>
                     Metadata = metadata,
                     Engine = msg.Declared.Engine,
                     RootDirectory = msg.RootDirectory,
+                    RederiveBackend = msg.RederiveBackend,
                 }
             );
 

@@ -286,7 +286,7 @@ else
         try
         {
             using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.StartSplitMonolith(Module.Id, OrganizationId, choice.RootDirectory, choice.Force);
+            await service.StartSplitMonolith(Module.Id, OrganizationId, choice.RootDirectory, choice.Force, rederiveBackend: choice.RederiveBackend);
 
             Snackbar.Add("Split started.", Severity.Success);
             await Reload();

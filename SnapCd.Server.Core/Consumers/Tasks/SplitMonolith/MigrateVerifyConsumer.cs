@@ -68,6 +68,7 @@ public class MigrateVerifyConsumer : IConsumer<MigrateVerifyRequested>
                     Metadata = metadata,
                     Engine = msg.Declared.Engine,
                     RootDirectory = msg.RootDirectory,
+                    RederiveBackend = msg.RederiveBackend,
                     // The same array flags the Init step turns into -backend-config, so a backend
                     // needing settings outside its block is configured identically here.
                     BackendConfigs = msg.Declared.TerraformArrayFlags

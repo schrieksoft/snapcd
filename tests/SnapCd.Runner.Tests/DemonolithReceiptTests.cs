@@ -79,5 +79,34 @@ public class DemonolithReceiptTests : IDisposable
         Assert.False(receipt!.Complete);
     }
 
+    // A failed run writes a receipt listing the modules it got through. Those pushes stand - the
+    // next run skips them - so they are what an operator needs before starting another.
+    [Fact]
+    public void Reads_The_Pushes_Of_A_Partial_Run()
+    {
+        Write(DemonolithReceipt.RunReceiptFile, """
+            version: 1
+            action: run
+            complete: false
+            pushes:
+                - module: networking
+                  location: https://host/api/o/state/s/sample-networking
+                  outcome: pushed
+                - module: database
+                  location: https://host/api/o/state/s/sample-database
+                  outcome: skipped
+            """);
+
+        var receipt = DemonolithReceipt.Read(_dir, DemonolithReceipt.RunReceiptFile);
+
+        Assert.NotNull(receipt);
+        Assert.False(receipt!.Complete);
+        Assert.Equal(2, receipt.Pushes.Count);
+        Assert.Equal("networking", receipt.Pushes[0].Module);
+        Assert.Equal("pushed", receipt.Pushes[0].Outcome);
+        Assert.Equal("https://host/api/o/state/s/sample-networking", receipt.Pushes[0].Location);
+        Assert.Equal("skipped", receipt.Pushes[1].Outcome);
+    }
+
     private void Write(string file, string content) => File.WriteAllText(Path.Combine(_dir, file), content);
 }

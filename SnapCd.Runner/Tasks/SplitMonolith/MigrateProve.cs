@@ -62,6 +62,7 @@ public partial class Tasks
                 request.RootDirectory,
                 request.Engine,
                 DemonolithCommand.VarFileFlags(engine.GetSnapCdDir()).ToArray());
+            if (request.RederiveBackend) command += " --rederive-backend";
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

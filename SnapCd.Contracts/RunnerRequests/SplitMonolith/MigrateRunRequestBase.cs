@@ -21,4 +21,7 @@ public class MigrateRunRequestBase : EngineJobRequestBase
 
     /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
     public bool Force { get; set; }
+
+    /// <summary>Re-derive each carved root's backend from the monolith's current one before use.</summary>
+    public bool RederiveBackend { get; set; }
 }

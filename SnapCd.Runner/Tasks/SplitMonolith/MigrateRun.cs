@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests.SplitMonolith;
+using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.SplitMonolith;
 
 namespace SnapCd.Runner.Tasks;
@@ -61,9 +62,12 @@ public partial class Tasks
                 DemonolithCommand.BackendConfigFlags(request.BackendConfigs)
                     .Concat(DemonolithCommand.VarFileFlags(engine.GetSnapCdDir()))
                     .ToArray());
+            if (request.RederiveBackend) command += " --rederive-backend";
             if (request.Force) command += " --force";
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+
+            ReportPushes(taskContext, request.RootDirectory);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeMigrateRunCompleted(request.JobId),
@@ -86,6 +90,12 @@ public partial class Tasks
         {
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling MigrateRun for job {JobId}", request.JobId);
+
+            // A failed run still leaves a receipt naming the modules it pushed before it stopped.
+            // Those pushes stand: the next run skips them, so this is what the operator needs to
+            // know before starting one.
+            ReportPushes(taskContext, request.RootDirectory);
+
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeMigrateRunFaulted(request.JobId, ex.Message, ex.StackTrace),
                 nameof(runnerHubClient.InvokeMigrateRunFaulted),
@@ -104,5 +114,20 @@ public partial class Tasks
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
+    }
+
+    private static void ReportPushes(RunnerTaskContext taskContext, string? rootDirectory)
+    {
+        var receipt = DemonolithReceipt.Read(rootDirectory, DemonolithReceipt.RunReceiptFile);
+        if (receipt is null || receipt.Pushes.Count == 0)
+            return;
+
+        taskContext.LogBreak();
+        taskContext.LogInformation(receipt.Complete
+            ? "State pushed for every module:"
+            : "State pushed for some modules before the run stopped:");
+
+        foreach (var push in receipt.Pushes)
+            taskContext.LogInformation($"  {Ansi.Emphasis(push.Module)} {push.Outcome} to {push.Location}");
     }
 }

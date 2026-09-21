@@ -160,7 +160,8 @@ public class ManualJobService : IDisposable
         Guid organizationId,
         string? rootDirectory,
         bool force,
-        string? sourceRevision = null)
+        string? sourceRevision = null,
+        bool rederiveBackend = false)
     {
         // A state migration only ever runs the configured branch; a ref belongs to a prove job.
         if (sourceRevision is not null)
@@ -181,7 +182,8 @@ public class ManualJobService : IDisposable
                 CorrelationId = job.Id,
                 Declared = declared,
                 RootDirectory = rootDirectory,
-                Force = force
+                Force = force,
+                RederiveBackend = rederiveBackend
             });
         }
         catch (Exception ex)

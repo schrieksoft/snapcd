@@ -40,6 +40,7 @@ public class SendSplitStepToRunnerActivity<TMessage, TOutgoingMessage>
         if (message is SplitStepRequestBase split)
         {
             split.RootDirectory = saga.RootDirectory;
+            split.RederiveBackend = saga.RederiveBackend;
         }
 
         // Only the push can replace a destination, so only its request carries the flag.

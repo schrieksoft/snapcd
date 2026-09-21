@@ -18,4 +18,11 @@ public abstract class SplitStepRequestBase : StepRequestBase
 {
     /// <summary>Monolith root within the checkout (--root-dir).</summary>
     public string? RootDirectory { get; set; }
+
+    /// <summary>
+    /// Re-derive each carved root's backend from the monolith's current one (--rederive-backend).
+    /// Carried on every step: each loads the map through its emit checksum, which the rewrite
+    /// changes, so the step that runs first has to be the one that rewrites.
+    /// </summary>
+    public bool RederiveBackend { get; set; }
 }

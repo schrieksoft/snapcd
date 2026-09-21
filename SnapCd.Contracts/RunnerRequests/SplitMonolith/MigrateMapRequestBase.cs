@@ -12,4 +12,7 @@ public class MigrateMapRequestBase : EngineJobRequestBase
 {
     /// <summary>Monolith root within the checkout, passed to demonolith as --root-dir.</summary>
     public string? RootDirectory { get; set; }
+
+    /// <summary>Re-derive each carved root's backend from the monolith's current one before use.</summary>
+    public bool RederiveBackend { get; set; }
 }

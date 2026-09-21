@@ -37,6 +37,13 @@ public class DemonolithReceipt
     public Dictionary<string, string> ModuleStates { get; set; } = [];
 
     /// <summary>
+    /// Where each module's state landed, on a run receipt. A failed run still writes one, listing
+    /// the modules it got through before it stopped, so a partial push is visible rather than
+    /// having to be inferred from the error.
+    /// </summary>
+    public List<DemonolithPush> Pushes { get; set; } = [];
+
+    /// <summary>
     /// Reads a receipt from beside the monolith root, or null when it is absent — a step that did
     /// not get far enough to write one.
     /// </summary>
@@ -55,4 +62,16 @@ public class DemonolithReceipt
 
         return deserializer.Deserialize<DemonolithReceipt>(File.ReadAllText(path));
     }
+}
+
+/// <summary>One module's state destination and what happened to it during a run.</summary>
+public class DemonolithPush
+{
+    public string Module { get; set; } = "";
+
+    /// <summary>The state destination: a derived backend location, or a local path.</summary>
+    public string Location { get; set; } = "";
+
+    /// <summary>"pushed", or "skipped" when the destination already held this module's state.</summary>
+    public string Outcome { get; set; } = "";
 }

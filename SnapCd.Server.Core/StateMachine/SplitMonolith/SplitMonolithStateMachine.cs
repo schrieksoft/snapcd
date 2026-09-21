@@ -86,6 +86,7 @@ public partial class SplitMonolithStateMachine : MassTransitStateMachine<SplitMo
                     context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                     context.Saga.RootDirectory = context.Message.RootDirectory;
                     context.Saga.Force = context.Message.Force;
+                    context.Saga.RederiveBackend = context.Message.RederiveBackend;
                     context.Saga.StopAfterProve = context.Message.StopAfterProve;
                 })
                 .Publish(context => new SelectRunnerInstanceRequested

@@ -55,6 +55,7 @@ public partial class Tasks
             );
 
             var command = DemonolithCommand.Build("split migrate map", request.RootDirectory, request.Engine);
+            if (request.RederiveBackend) command += " --rederive-backend";
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

@@ -19,6 +19,9 @@ public class SplitMonolithRequested : ModuleJobEventBase
     /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
     public bool Force { get; set; }
 
+    /// <summary>Re-derive the carved roots' backends from the monolith's current one.</summary>
+    public bool RederiveBackend { get; set; }
+
     /// <summary>End after the proof: no approval, nothing pushed.</summary>
     public bool StopAfterProve { get; set; }
 }

@@ -25,6 +25,8 @@ public class SplitMonolithSaga : ManualJobSagaBase
     /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
     public bool Force { get; set; }
 
+    public bool RederiveBackend { get; set; }
+
     /// <summary>A prove job: the run ends after the proof, with no approval and no push.</summary>
     public bool StopAfterProve { get; set; }
 
