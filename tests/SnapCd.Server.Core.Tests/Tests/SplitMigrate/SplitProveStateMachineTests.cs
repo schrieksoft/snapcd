@@ -16,6 +16,8 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Server.Core.Events.Runners;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Events.Steps.SplitMigrate;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services.MaintenanceMode;
@@ -76,6 +78,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         await _provider.DisposeAsync();
 
         await using var db = _fixture.CreateDbContext();
+        await db.ManualModuleJobApprovals.Where(a => _seeded.Contains(a.ManualModuleJobId)).ExecuteDeleteAsync();
         await db.Set<SplitMigrateSaga>().Where(s => _seeded.Contains(s.CorrelationId)).ExecuteDeleteAsync();
         await db.ManualModuleJobs.Where(j => _seeded.Contains(j.Id)).ExecuteDeleteAsync();
     }
@@ -242,6 +245,120 @@ public class SplitProveStateMachineTests : IAsyncLifetime
             return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
         }), "the stuck job was not forced closed");
         Assert.True(_harness.Published.Select<SplitMigrateCancelled>().Any(m => m.Context.Message.ModuleJobId == jobId));
+    }
+
+    /// <summary>The gate counts against the resolved threshold: a job needing two is not released by one.</summary>
+    [Fact]
+    public async Task One_Approval_Does_Not_Meet_A_Threshold_Of_Two()
+    {
+        await SetThreshold(2);
+        try
+        {
+            var jobId = await Seed(stopAfterProve: false, state: "WaitingForApproval");
+            await MarkWaitingForApproval(jobId);
+
+            await Approve(jobId, Guid.NewGuid(), declined: false);
+            await _harness.Bus.Publish(new ApprovalReevaluationRequestedEvent { ModuleId = _moduleId, ModuleJobId = jobId });
+
+            Assert.False(await WaitUntil(() =>
+            {
+                using var db = _fixture.CreateDbContext();
+                return db.Set<SplitMigrateSaga>().AsNoTracking().SingleOrDefault(s => s.CorrelationId == jobId)?.CurrentState != "WaitingForApproval";
+            }), "one approval released a job needing two");
+
+            await using var db = _fixture.CreateDbContext();
+            var saga = await db.Set<SplitMigrateSaga>().AsNoTracking().SingleAsync(s => s.CorrelationId == jobId);
+            Assert.False(saga.IsApproved);
+            Assert.False(saga.IsDeclined);
+        }
+        finally
+        {
+            await SetThreshold(null);
+        }
+    }
+
+    /// <summary>A decline ends the job; one refusal is enough however many approvals stand beside it.</summary>
+    [Fact]
+    public async Task A_Decline_Ends_The_Job()
+    {
+        var jobId = await Seed(stopAfterProve: false, state: "WaitingForApproval");
+        await MarkWaitingForApproval(jobId);
+
+        await Approve(jobId, Guid.NewGuid(), declined: true);
+        await _harness.Bus.Publish(new ApprovalReevaluationRequestedEvent { ModuleId = _moduleId, ModuleJobId = jobId });
+
+        Assert.True(await WaitUntil(() =>
+        {
+            using var db = _fixture.CreateDbContext();
+            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
+        }), "the declined job did not end");
+        Assert.True(_harness.Published.Select<SplitMigrateCancelled>()
+            .Any(m => m.Context.Message.ModuleJobId == jobId
+                      && m.Context.Message.CancellationReason == CancellationReason.ApprovalDeclined));
+    }
+
+    /// <summary>Cancelling at the gate ends the job at once: no step is running for a runner to kill.</summary>
+    [Fact]
+    public async Task Cancelling_At_The_Gate_Ends_The_Job_Without_A_Runner()
+    {
+        var jobId = await Seed(stopAfterProve: false, state: "WaitingForApproval");
+        await MarkWaitingForApproval(jobId);
+
+        await PublishCancel(jobId);
+
+        Assert.True(await WaitUntil(() =>
+        {
+            using var db = _fixture.CreateDbContext();
+            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
+        }), "the job was not cancelled from the approval gate");
+        Assert.True(_harness.Published.Select<SplitMigrateCancelled>().Any(m => m.Context.Message.ModuleJobId == jobId));
+        Assert.Empty(_harness.Published.Select<CancelKillRequested>().Where(m => m.Context.Message.CorrelationId == jobId));
+    }
+
+    /// <summary>The push is the irreversible step, so its fault must fail the job rather than retry it.</summary>
+    [Fact]
+    public async Task A_Faulted_Run_Fails_The_Job()
+    {
+        var jobId = await Seed(stopAfterProve: false, state: "MigrateRunPending");
+
+        await _harness.Bus.Publish(new MigrateRunFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "target already holds state" });
+
+        Assert.True(await WaitUntil(() =>
+        {
+            using var db = _fixture.CreateDbContext();
+            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
+        }), "a faulted run did not fail the job");
+        Assert.True(_harness.Published.Select<SplitMigrateFailed>().Any(m => m.Context.Message.ModuleJobId == jobId));
+    }
+
+    private async Task SetThreshold(int? value)
+    {
+        await using var db = _fixture.CreateDbContext();
+        (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = value;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task MarkWaitingForApproval(Guid jobId)
+    {
+        await using var db = _fixture.CreateDbContext();
+        (await db.ManualModuleJobs.SingleAsync(j => j.Id == jobId)).WaitingForApproval = true;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task Approve(Guid jobId, Guid principalId, bool declined)
+    {
+        await using var db = _fixture.CreateDbContext();
+        db.ManualModuleJobApprovals.Add(new ManualModuleJobApproval
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ManualModuleJobId = jobId,
+            DecisionDateTime = DateTime.UtcNow,
+            Declined = declined,
+            PrincipalId = principalId,
+            PrincipalDiscriminator = PrincipalDiscriminator.User
+        });
+        await db.SaveChangesAsync();
     }
 
     private Task PublishCancel(Guid jobId) => _harness.Bus.Publish(new CancelManualModuleJobRequested
