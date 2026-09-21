@@ -43,6 +43,8 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     /// <summary>Approvals required before a state migration (split or transfer) pushes state. Defaults to 1: the push is irreversible.</summary>
     public int? StateMigrationApprovalThreshold { get; set; }
 
+    [JsonIgnore] public List<Sagas.TransferProveSaga> TransferProveSagas { get; set; } = null!;
+
     [JsonIgnore] public List<Transfer> TransfersAsSource { get; set; } = null!;
     [JsonIgnore] public List<Transfer> TransfersAsReceiver { get; set; } = null!;
 
