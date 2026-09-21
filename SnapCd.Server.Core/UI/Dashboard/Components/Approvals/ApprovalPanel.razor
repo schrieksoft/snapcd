@@ -1,0 +1,330 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using Microsoft.EntityFrameworkCore
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Entities.Interfaces
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.Approvals
+@using Color = MudBlazor.Color
+@using AgentEntity = SnapCd.Server.Core.Entities.Definition.Agent
+
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+
+@if (_approvals == null)
+{
+    <p><em>Loading approvals...</em></p>
+}
+else
+{
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Approval</MudText>
+        <MudText Typo="Typo.subtitle1">@GetApprovalCountText()</MudText>
+        @if (_approvals.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">No decisions yet.</MudText>
+        }
+        else
+        {
+            <MudDivider Class="my-3"/>
+            <MudExpansionPanels Elevation="0">
+                @foreach (var approval in _approvals)
+                {
+                    {
+                        var iconColor = approval.JobApproval.Declined ? Color.Error : Color.Success;
+                        var iconType = approval.JobApproval.Declined ? SnapCdIcons.Error : SnapCdIcons.CheckCircle;
+                        var iconTooltip = approval.JobApproval.Declined ? "Declined" : "Approved";
+                        var isUsersApproval = _principalId == approval.JobApproval.PrincipalId;
+                        var hasReason = !string.IsNullOrEmpty(approval.JobApproval.Reason);
+
+                        var elapsedTime = DateTime.UtcNow - approval.JobApproval.DecisionDateTime;
+                        var elapsedDisplay = elapsedTime.TotalMinutes < 60 ? $"{(int)elapsedTime.TotalMinutes} minutes ago"
+                            : elapsedTime.TotalHours < 24 ? $"{(int)elapsedTime.TotalHours} hours ago"
+                            : elapsedTime.TotalHours >= 24 && elapsedTime.TotalHours < 48 ? "yesterday"
+                            : $"{(int)elapsedTime.TotalDays} days ago";
+
+                        <MudExpansionPanel Class="custom-panel" @key="approval.JobApproval.Id" Disabled="@(!hasReason)"
+                                           HideIcon="@(!hasReason)">
+                            <TitleContent>
+                                <MudGrid>
+                                    <MudItem md="3">
+                                        <MudGrid>
+                                            <MudItem md="2">
+                                                <MudTooltip Text="@iconTooltip">
+                                                    <MudIcon Icon="@iconType" Color="@iconColor"></MudIcon>
+                                                </MudTooltip>
+                                            </MudItem>
+                                            <MudItem md="10">
+                                                <MudText Typo="Typo.body2">@iconTooltip</MudText>
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudItem>
+                                    <MudItem md="3">
+                                        <MudText Typo="Typo.body2">@approval.PrincipalName</MudText>
+                                    </MudItem>
+                                    <MudItem md="3">
+                                        <MudText Typo="Typo.body2">@elapsedDisplay</MudText>
+                                    </MudItem>
+                                    <MudItem md="3">
+                                        @if (isUsersApproval && _isWaitingForApproval && Source.CanRemoveApproval)
+                                        {
+                                            <MudTooltip Text="Remove My Approval">
+                                                <MudIconButton Icon="@SnapCdIcons.Delete"
+                                                               Color="Color.Primary" Size="Size.Small"
+                                                               OnClick="() => RemoveApproval(approval.JobApproval.Id)"/>
+                                            </MudTooltip>
+                                        }
+                                    </MudItem>
+                                </MudGrid>
+                            </TitleContent>
+                            <ChildContent>
+                                @if (!string.IsNullOrEmpty(approval.JobApproval.Reason))
+                                {
+                                    <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">
+                                        <strong>Reason:</strong> @approval.JobApproval.Reason
+                                    </MudText>
+                                }
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                }
+            </MudExpansionPanels>
+        }
+        @if (_isWaitingForApproval)
+        {
+            <MudStack Row="true" Spacing="2" Class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled)"
+                           OnClick="Approve" Size="Size.Small">Approve</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled)"
+                           OnClick="Decline" Size="Size.Small">Decline</MudButton>
+            </MudStack>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public required IApprovalSource Source { get; set; }
+    [Parameter] public required Guid JobId { get; set; }
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public bool Enabled { get; set; } = true;
+
+    /// <summary>Raised after a decision is recorded, so the host can refresh the job it belongs to.</summary>
+    [Parameter] public EventCallback OnDecided { get; set; }
+
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    [Inject] private OrganizationUserSecuredRepositoryFactory OrganizationUserSecuredRepositoryFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
+    [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
+
+    private List<Approval>? _approvals;
+    private int _approvalCount;
+    private int? _approvalThreshold;
+    private bool _isWaitingForApproval;
+    private bool _busy;
+    private Guid _principalId;
+    private PrincipalDiscriminator _principalDiscriminator;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        _principalDiscriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+
+        await Reload();
+    }
+
+    public async Task Refresh(bool invokeAsync = false)
+    {
+        await Reload();
+
+        if (invokeAsync)
+            // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
+            await InvokeAsync(StateHasChanged);
+        else
+            StateHasChanged();
+    }
+
+    private async Task Reload()
+    {
+        _approvalThreshold = await Source.ResolveThreshold(JobId, ModuleId, OrganizationId);
+        _isWaitingForApproval = await Source.IsWaitingForApproval(JobId, ModuleId, OrganizationId);
+        await ReloadApprovals();
+    }
+
+    private string GetApprovalCountText()
+    {
+        return _approvalThreshold is { } t
+            ? $"{_approvalCount} of {t} approvals"
+            : $"{_approvalCount} approvals (threshold unknown)";
+    }
+
+    private Task Approve() => Decide(declined: false);
+
+    private Task Decline() => Decide(declined: true);
+
+    private async Task Decide(bool declined)
+    {
+        var parameters = new DialogParameters<DecideDialog>
+        {
+            { x => x.Verb, declined ? "Decline" : "Approve" },
+            { x => x.Noun, Source.DecisionNoun }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DecideDialog>(declined ? "Decline" : "Approve", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false })
+            return;
+
+        _busy = true;
+        try
+        {
+            if (declined)
+                await Source.Decline(JobId, ModuleId, OrganizationId);
+            else
+                await Source.Approve(JobId, ModuleId, OrganizationId);
+
+            Snackbar.Add($"Successfully {(declined ? "declined" : "approved")} {Source.DecisionNoun.ToLowerInvariant()}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await Reload();
+        await OnDecided.InvokeAsync();
+    }
+
+    private async Task RemoveApproval(Guid approvalId)
+    {
+        var parameters = new DialogParameters<DeleteApprovalDialog>
+        {
+            { x => x.ModuleJobApprovalId, approvalId },
+            { x => x.OrganizationId, OrganizationId }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<DeleteApprovalDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false })
+            return;
+
+        await Source.RemoveApproval(approvalId, OrganizationId);
+        Snackbar.Add($"Successfully deleted \"{approvalId}\"");
+
+        await Reload();
+        await OnDecided.InvokeAsync();
+    }
+
+    public async Task ReloadApprovals()
+    {
+        var jobApprovals = await Source.ListApprovals(JobId, ModuleId, OrganizationId);
+
+        var servicePrincipalIds = jobApprovals
+            .Where(x => x.PrincipalDiscriminator == PrincipalDiscriminator.ServicePrincipal)
+            .Select(x => x.PrincipalId)
+            .ToList();
+
+        var userIds = jobApprovals
+            .Where(x => x.PrincipalDiscriminator == PrincipalDiscriminator.User)
+            .Select(x => x.PrincipalId)
+            .ToList();
+
+        using var servicePrincipalRepo = ServicePrincipalRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        var servicePrincipals = await servicePrincipalRepo
+            .List(OrganizationId,
+                x => x.Where(y => servicePrincipalIds.Contains(y.Id))
+            );
+
+        using var userRepo = OrganizationUserSecuredRepositoryFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        var users = await userRepo
+            .List(
+                OrganizationId,
+                x => x
+                    .Where(y => userIds.Contains(y.UserId))
+                    .Include(x => x.User)
+            );
+
+        var agentIds = jobApprovals
+            .Where(x => x.AgentId.HasValue)
+            .Select(x => x.AgentId!.Value)
+            .Distinct()
+            .ToList();
+
+        using var agentRepo = AgentRepoFactory.Create(new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+        var agents = agentIds.Count == 0
+            ? new List<AgentEntity>()
+            : await agentRepo.List(OrganizationId, x => x.Where(y => agentIds.Contains(y.Id)));
+
+        var approvals = new List<Approval>();
+
+        foreach (var jobApproval in jobApprovals)
+        {
+            string principalName;
+
+            if (jobApproval.AgentId is { } agentId)
+            {
+                var agentName = agents.FirstOrDefault(a => a.Id == agentId)?.Name ?? agentId.ToString();
+                var spName = servicePrincipals
+                    .Where(x => x.Id == jobApproval.PrincipalId)
+                    .Select(x => x.ClientId)
+                    .SingleOrDefault() ?? jobApproval.PrincipalId.ToString();
+                principalName = $"Agent \"{agentName}\" operating as ServicePrincipal \"{spName}\"";
+            }
+            else
+            {
+                switch (jobApproval.PrincipalDiscriminator)
+                {
+                    case PrincipalDiscriminator.ServicePrincipal:
+                    {
+                        principalName = servicePrincipals
+                            .Where(x => x.Id == jobApproval.PrincipalId)
+                            .Select(x => x.ClientId)
+                            .SingleOrDefault() ?? string.Empty;
+                        break;
+                    }
+                    case PrincipalDiscriminator.User:
+                    {
+                        principalName = users
+                            .Where(x => x.UserId == jobApproval.PrincipalId)
+                            .Select(x => x.User.UserName)
+                            .SingleOrDefault() ?? string.Empty;
+                        break;
+                    }
+                    default:
+                        throw new NotImplementedException($"Not implemented for PrincipalDiscriminator {nameof(jobApproval.PrincipalDiscriminator)}");
+                }
+            }
+
+            approvals.Add(new Approval
+            {
+                JobApproval = jobApproval,
+                PrincipalName = principalName
+            });
+        }
+
+        _approvals = approvals;
+        _approvalCount = approvals.Count(x => !x.JobApproval.Declined);
+    }
+
+    private class Approval
+    {
+        public IJobApproval JobApproval { get; set; } = null!;
+
+        public string PrincipalName { get; set; } = null!;
+    }
+}

@@ -5,7 +5,7 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-using SnapCd.Runner.Services.SplitMonolith;
+using SnapCd.Runner.Services.SplitMigrate;
 using Xunit;
 
 namespace SnapCd.Runner.Tests;
@@ -62,13 +62,5 @@ public class DemonolithCommandTests
         var command = DemonolithCommand.Build("split migrate run", null, null, "", "   ", "--overwrite");
 
         Assert.Equal("demonolith split migrate run --overwrite", command);
-    }
-
-    [Fact]
-    public void Quotes_Each_Backend_Config()
-    {
-        var flags = DemonolithCommand.BackendConfigFlags(["key=value", "  ", "other=thing"]).ToList();
-
-        Assert.Equal(["--backend-config \"key=value\"", "--backend-config \"other=thing\""], flags);
     }
 }

@@ -63,7 +63,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<DestroyJobSaga> DestroyJobSagas { get; set; }
     public DbSet<ApplyJobSaga> ApplyJobSagas { get; set; }
-    public DbSet<SplitMonolithSaga> SplitMonolithSagas { get; set; }
+    public DbSet<SplitMigrateSaga> SplitMigrateSagas { get; set; }
     public DbSet<ModuleSaga> ModuleSagas { get; set; }
     public DbSet<SourceRefresherPreselection> SourceRefresherPreselections { get; set; }
     public DbSet<Organization> Organizations { get; set; }
@@ -283,7 +283,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         get
         {
             yield return new ApplyJobSagaClassMap();
-            yield return new SplitMonolithSagaClassMap();
+            yield return new SplitMigrateSagaClassMap();
             yield return new DestroyJobSagaClassMap();
             yield return new ModuleSagaClassMap();
             yield return new ModuleModifiedSagaClassMap();

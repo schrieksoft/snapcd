@@ -75,8 +75,8 @@ public class OrphanedJobCleanupService
         // its own. A type with no case here is reported as orphaned only once it is handled.
         return await (
             from job in dbContext.ManualModuleJobs
-            where job.TimestampEnd == null && (job.JobType == ManualJobTypes.SplitMonolith || job.JobType == ManualJobTypes.SplitProve)
-            join saga in dbContext.Set<SplitMonolithSaga>()
+            where job.TimestampEnd == null && (job.JobType == ManualJobTypes.SplitMigrate || job.JobType == ManualJobTypes.SplitProve)
+            join saga in dbContext.Set<SplitMigrateSaga>()
                 on new { job.Id, job.OrganizationId }
                 equals new { Id = saga.CorrelationId, saga.OrganizationId }
                 into sagas

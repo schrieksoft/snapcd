@@ -6,7 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 using System.Diagnostics;
-using SnapCd.Runner.Services.SplitMonolith;
+using SnapCd.Runner.Services.SplitMigrate;
 using SnapCd.Runner.Utils;
 using Xunit;
 

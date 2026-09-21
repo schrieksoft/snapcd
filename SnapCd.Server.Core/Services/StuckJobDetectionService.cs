@@ -50,11 +50,11 @@ public class StuckJobDetectionService
                     .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
                     .ToListAsync())
                 .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "Destroy")))
-            .Concat((await db.Set<SplitMonolithSaga>().AsNoTracking()
+            .Concat((await db.Set<SplitMigrateSaga>().AsNoTracking()
                     .Where(s => s.WaitingSince != null)
                     .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
                     .ToListAsync())
-                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "SplitMonolith")));
+                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "SplitMigrate")));
 
         var stuck = new List<StuckJob>();
         foreach (var saga in candidates)
@@ -90,7 +90,7 @@ public class StuckJobDetectionService
         if (running.Count == 0) return [];
 
         var ids = running.Select(j => j.Id).ToList();
-        var sagaStates = await db.Set<SplitMonolithSaga>().AsNoTracking()
+        var sagaStates = await db.Set<SplitMigrateSaga>().AsNoTracking()
             .Where(s => ids.Contains(s.CorrelationId))
             .Select(s => new { s.CorrelationId, s.CurrentState, s.WaitingSince })
             .ToListAsync();

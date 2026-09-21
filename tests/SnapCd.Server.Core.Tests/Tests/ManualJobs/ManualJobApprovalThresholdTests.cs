@@ -7,7 +7,7 @@
 // for terms covering either use.
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.StateMachine.SplitMonolith.Activites;
+using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
@@ -84,7 +84,7 @@ public class ManualJobApprovalThresholdTests : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
-    private sealed class Exposed(SnapCdDbContext db) : SplitMonolithNeedsApprovalActivity<object>(db)
+    private sealed class Exposed(SnapCdDbContext db) : SplitMigrateNeedsApprovalActivity<object>(db)
     {
         public Task<int> Resolve(Guid moduleId, Guid organizationId, SnapCdDbContext dbContext) => ResolveThreshold(moduleId, organizationId, dbContext);
     }

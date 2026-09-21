@@ -89,7 +89,7 @@ public class StuckJobDetectionTests : IAsyncLifetime
         await _provider.DisposeAsync();
 
         await using var db = _fixture.CreateDbContext();
-        await db.Set<SplitMonolithSaga>().Where(s => _seededManualJobs.Contains(s.CorrelationId)).ExecuteDeleteAsync();
+        await db.Set<SplitMigrateSaga>().Where(s => _seededManualJobs.Contains(s.CorrelationId)).ExecuteDeleteAsync();
         await db.ManualModuleJobs.Where(j => _seededManualJobs.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
@@ -200,7 +200,7 @@ public class StuckJobDetectionTests : IAsyncLifetime
             JobType = ManualJobTypes.SplitProve,
             Status = status
         });
-        db.Set<SplitMonolithSaga>().Add(new SplitMonolithSaga
+        db.Set<SplitMigrateSaga>().Add(new SplitMigrateSaga
         {
             CorrelationId = jobId,
             CurrentState = state,

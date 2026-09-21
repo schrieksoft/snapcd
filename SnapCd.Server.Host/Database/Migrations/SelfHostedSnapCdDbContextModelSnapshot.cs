@@ -7668,7 +7668,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.SplitMonolithSaga", b =>
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.SplitMigrateSaga", b =>
                 {
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uniqueidentifier");
@@ -7792,7 +7792,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("SplitMonolithSagas", (string)null);
+                    b.ToTable("SplitMigrateSagas", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -11036,10 +11036,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Module");
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.SplitMonolithSaga", b =>
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.SplitMigrateSaga", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", null)
-                        .WithMany("SplitMonolithSagas")
+                        .WithMany("SplitMigrateSagas")
                         .HasForeignKey("ModuleId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -11902,7 +11902,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("SecretsScopedToModule");
 
-                    b.Navigation("SplitMonolithSagas");
+                    b.Navigation("SplitMigrateSagas");
 
                     b.Navigation("TerraformArrayFlags");
 

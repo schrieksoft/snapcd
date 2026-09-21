@@ -284,14 +284,9 @@ public class MaintenanceOperationsService
                 continue;
             }
 
-            // WaitingForApproval has no cancel handler; declining the approval is the cancel there.
-            if (saga.CurrentState == "WaitingForApproval")
-            {
-                skipped.Add($"{saga.CorrelationId}: awaiting approval — decline the approval instead");
-                continue;
-            }
-
-            if (!saga.CurrentState.EndsWith("Pending") && !saga.CurrentState.EndsWith("WaitingForRunner"))
+            if (!saga.CurrentState.EndsWith("Pending")
+                && !saga.CurrentState.EndsWith("WaitingForRunner")
+                && saga.CurrentState != "WaitingForApproval")
             {
                 skipped.Add($"{saga.CorrelationId}: state {saga.CurrentState} is not cancellable");
                 continue;

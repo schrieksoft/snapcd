@@ -144,7 +144,7 @@ else
                             <MudTooltip Text="Cancel Job">
                                 <MudIconButton Icon="@SnapCdIcons.Cancel"
                                                Color="Color.Primary" Size="Size.Small"
-                                               OnClick="() => CancelJob(job.Id)"/>
+                                               OnClick="() => CancelJob(job.Id, job.WaitingForApproval == true)"/>
                             </MudTooltip>
                         }
                     </div>
@@ -467,7 +467,7 @@ else
     }
 
 
-    private async Task CancelJob(Guid jobId)
+    private async Task CancelJob(Guid jobId, bool waitingForApproval)
     {
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
         var parameters = new DialogParameters<CancelModuleJobDialog>
@@ -475,7 +475,8 @@ else
             { x => x.JobId, jobId },
             { x => x.ModuleId, Module.Id },
             { x => x.NamespaceId, Module.NamespaceId },
-            { x => x.OrganizationId, OrganizationId }
+            { x => x.OrganizationId, OrganizationId },
+            { x => x.WaitingForApproval, waitingForApproval }
         };
 
         var dialog = await DialogService.ShowAsync<CancelModuleJobDialog>("Cancel", parameters, options);

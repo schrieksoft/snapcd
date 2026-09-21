@@ -20,12 +20,22 @@
 
     <DialogContent>
 
-        <MudSelect T="CancellationType" @bind-Value="_selectedCancellationType" Label="Cancellation Type" Dense="true"
-                   Margin="Margin.Dense">
-            <MudSelectItem Value="CancellationType.AfterCurrent">Cancel after current</MudSelectItem>
-            @* <MudSelectItem Value="CancellationType.ImmediateGraceful">Cancel current step gracefully</MudSelectItem> *@
-            <MudSelectItem Value="CancellationType.ImmediateKill">Kill current step</MudSelectItem>
-        </MudSelect>
+        @if (WaitingForApproval)
+        {
+            <MudText Typo="Typo.body2">
+                The job is waiting for approval and nothing is running on a runner, so cancelling ends it
+                straight away.
+            </MudText>
+        }
+        else
+        {
+            <MudSelect T="CancellationType" @bind-Value="_selectedCancellationType" Label="Cancellation Type" Dense="true"
+                       Margin="Margin.Dense">
+                <MudSelectItem Value="CancellationType.AfterCurrent">Cancel after current</MudSelectItem>
+                @* <MudSelectItem Value="CancellationType.ImmediateGraceful">Cancel current step gracefully</MudSelectItem> *@
+                <MudSelectItem Value="CancellationType.ImmediateKill">Kill current step</MudSelectItem>
+            </MudSelect>
+        }
 
     </DialogContent>
 
@@ -42,6 +52,9 @@
     [Parameter] public required Guid ModuleId { get; set; }
     [Parameter] public required Guid NamespaceId { get; set; }
 
+    /// <summary>The job is parked at the approval gate, where no cancellation type is meaningful.</summary>
+    [Parameter] public bool WaitingForApproval { get; set; }
+
     private CancellationType _selectedCancellationType = CancellationType.AfterCurrent;
 
     private void Cancel()
@@ -54,7 +67,7 @@
         var service = SecuredJobServiceFactory.Create();
         try
         {
-            var task = service.Cancel(organizationId: OrganizationId, jobId: JobId, moduleId: ModuleId, namespaceId:NamespaceId, cancellationType: _selectedCancellationType);
+            var task = service.Cancel(organizationId: OrganizationId, jobId: JobId, moduleId: ModuleId, namespaceId:NamespaceId, cancellationType: WaitingForApproval ? CancellationType.ImmediateKill : _selectedCancellationType);
 
             MudDialog.Close(DialogResult.Ok(JobId));
 

@@ -23,7 +23,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Hubs.Handlers;
-using SnapCd.Server.Core.Hubs.Handlers.SplitMonolith;
+using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
@@ -470,9 +470,9 @@ public class RunnerHub : Hub
     public async Task GetModuleCompleted(Guid jobId)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.GetModuleCompleted, SplitMonolithTaskEndpoint.GetModuleCompleted);
+            Context, jobId, TaskEndpoint.GetModuleCompleted, SplitMigrateTaskEndpoint.GetModuleCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitGetModuleHandler.Complete(jobId, auth.OrganizationId);
         else
             await _getModuleHandler.Complete(jobId);
@@ -484,9 +484,9 @@ public class RunnerHub : Hub
     public async Task GetModuleCancelled(Guid jobId)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.GetModuleCancelled, SplitMonolithTaskEndpoint.GetModuleCancelled);
+            Context, jobId, TaskEndpoint.GetModuleCancelled, SplitMigrateTaskEndpoint.GetModuleCancelled);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitGetModuleHandler.Cancel(jobId, auth.OrganizationId);
         else
             await _getModuleHandler.Cancel(jobId);
@@ -498,9 +498,9 @@ public class RunnerHub : Hub
     public async Task GetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.GetModuleFaulted, SplitMonolithTaskEndpoint.GetModuleFaulted);
+            Context, jobId, TaskEndpoint.GetModuleFaulted, SplitMigrateTaskEndpoint.GetModuleFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitGetModuleHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _getModuleHandler.Fault(jobId, errorMessage, stackTrace);
@@ -512,9 +512,9 @@ public class RunnerHub : Hub
     public async Task InitCompleted(Guid jobId)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.InitCompleted, SplitMonolithTaskEndpoint.InitCompleted);
+            Context, jobId, TaskEndpoint.InitCompleted, SplitMigrateTaskEndpoint.InitCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitInitHandler.Complete(jobId, auth.OrganizationId);
         else
             await _initHandler.Complete(jobId);
@@ -526,9 +526,9 @@ public class RunnerHub : Hub
     public async Task InitCancelled(Guid jobId)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.InitCancelled, SplitMonolithTaskEndpoint.InitCancelled);
+            Context, jobId, TaskEndpoint.InitCancelled, SplitMigrateTaskEndpoint.InitCancelled);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitInitHandler.Cancel(jobId, auth.OrganizationId);
         else
             await _initHandler.Cancel(jobId);
@@ -540,9 +540,9 @@ public class RunnerHub : Hub
     public async Task InitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.InitFaulted, SplitMonolithTaskEndpoint.InitFaulted);
+            Context, jobId, TaskEndpoint.InitFaulted, SplitMigrateTaskEndpoint.InitFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitInitHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _initHandler.Fault(jobId, errorMessage, stackTrace);
@@ -554,9 +554,9 @@ public class RunnerHub : Hub
     public async Task ValidateCompleted(Guid jobId)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.ValidateCompleted, SplitMonolithTaskEndpoint.ValidateCompleted);
+            Context, jobId, TaskEndpoint.ValidateCompleted, SplitMigrateTaskEndpoint.ValidateCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitValidateHandler.Complete(jobId, auth.OrganizationId);
         else
             await _validateHandler.Complete(jobId);
@@ -568,9 +568,9 @@ public class RunnerHub : Hub
     public async Task ValidateCancelled(Guid jobId)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.ValidateCancelled, SplitMonolithTaskEndpoint.ValidateCancelled);
+            Context, jobId, TaskEndpoint.ValidateCancelled, SplitMigrateTaskEndpoint.ValidateCancelled);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitValidateHandler.Cancel(jobId, auth.OrganizationId);
         else
             await _validateHandler.Cancel(jobId);
@@ -580,9 +580,9 @@ public class RunnerHub : Hub
     public async Task ValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.ValidateFaulted, SplitMonolithTaskEndpoint.ValidateFaulted);
+            Context, jobId, TaskEndpoint.ValidateFaulted, SplitMigrateTaskEndpoint.ValidateFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitValidateHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _validateHandler.Fault(jobId, errorMessage, stackTrace);
@@ -644,9 +644,9 @@ public class RunnerHub : Hub
     public async Task PlanCompleted(Guid jobId, PlanCompletedData data)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.PlanCompleted, SplitMonolithTaskEndpoint.PlanCompleted);
+            Context, jobId, TaskEndpoint.PlanCompleted, SplitMigrateTaskEndpoint.PlanCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitPlanHandler.Complete(jobId, auth.OrganizationId, data.TotalChangedCount);
         else
             await _planHandler.Complete(jobId, data);
@@ -656,9 +656,9 @@ public class RunnerHub : Hub
     public async Task PlanCancelled(Guid jobId)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.PlanCancelled, SplitMonolithTaskEndpoint.PlanCancelled);
+            Context, jobId, TaskEndpoint.PlanCancelled, SplitMigrateTaskEndpoint.PlanCancelled);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitPlanHandler.Cancel(jobId, auth.OrganizationId);
         else
             await _planHandler.Cancel(jobId);
@@ -668,9 +668,9 @@ public class RunnerHub : Hub
     public async Task PlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.PlanFaulted, SplitMonolithTaskEndpoint.PlanFaulted);
+            Context, jobId, TaskEndpoint.PlanFaulted, SplitMigrateTaskEndpoint.PlanFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMonolith)
+        if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitPlanHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
@@ -690,24 +690,24 @@ public class RunnerHub : Hub
 
     public async Task PlanEmptyVerifyCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.PlanEmptyVerifyCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.PlanEmptyVerifyCompleted);
 
         await _planEmptyVerifyHandler.Complete(jobId, organizationId);
     }
 
     public async Task PlanEmptyVerifyCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.PlanEmptyVerifyCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.PlanEmptyVerifyCancelled);
 
         await _planEmptyVerifyHandler.Cancel(jobId, organizationId);
     }
 
     public async Task PlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.PlanEmptyVerifyFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.PlanEmptyVerifyFaulted);
 
         await _planEmptyVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -715,144 +715,144 @@ public class RunnerHub : Hub
 
     public async Task RefactorValidateCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorValidateCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.RefactorValidateCompleted);
 
         await _refactorValidateHandler.Complete(jobId, organizationId);
     }
 
     public async Task RefactorValidateCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorValidateCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.RefactorValidateCancelled);
 
         await _refactorValidateHandler.Cancel(jobId, organizationId);
     }
 
     public async Task RefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorValidateFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.RefactorValidateFaulted);
 
         await _refactorValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task RefactorDiffCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorDiffCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.RefactorDiffCompleted);
 
         await _refactorDiffHandler.Complete(jobId, organizationId);
     }
 
     public async Task RefactorDiffCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorDiffCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.RefactorDiffCancelled);
 
         await _refactorDiffHandler.Cancel(jobId, organizationId);
     }
 
     public async Task RefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.RefactorDiffFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.RefactorDiffFaulted);
 
         await _refactorDiffHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task MigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateMapCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateMapCompleted);
 
         await _migrateMapHandler.Complete(jobId, organizationId, refactorMapHash, carvedModuleNames, resourcesMoved);
     }
 
     public async Task MigrateMapCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateMapCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateMapCancelled);
 
         await _migrateMapHandler.Cancel(jobId, organizationId);
     }
 
     public async Task MigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateMapFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateMapFaulted);
 
         await _migrateMapHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task MigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateProveCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateProveCompleted);
 
         await _migrateProveHandler.Complete(jobId, organizationId, modulesProven, modulesPlanningClean);
     }
 
     public async Task MigrateProveCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateProveCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateProveCancelled);
 
         await _migrateProveHandler.Cancel(jobId, organizationId);
     }
 
     public async Task MigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateProveFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateProveFaulted);
 
         await _migrateProveHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task MigrateRunCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateRunCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateRunCompleted);
 
         await _migrateRunHandler.Complete(jobId, organizationId);
     }
 
     public async Task MigrateRunCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateRunCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateRunCancelled);
 
         await _migrateRunHandler.Cancel(jobId, organizationId);
     }
 
     public async Task MigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateRunFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateRunFaulted);
 
         await _migrateRunHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task MigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateVerifyCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateVerifyCompleted);
 
         await _migrateVerifyHandler.Complete(jobId, organizationId, modulesProven, modulesPlanningClean);
     }
 
     public async Task MigrateVerifyCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateVerifyCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateVerifyCancelled);
 
         await _migrateVerifyHandler.Cancel(jobId, organizationId);
     }
 
     public async Task MigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMonolithJob(
-            Context, jobId, SplitMonolithTaskEndpoint.MigrateVerifyFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
+            Context, jobId, SplitMigrateTaskEndpoint.MigrateVerifyFaulted);
 
         await _migrateVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -986,7 +986,7 @@ public class RunnerHub : Hub
     public async Task CancelKillCompleted(Guid jobId)
     {
         await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.CancelKillCompleted, SplitMonolithTaskEndpoint.CancelKillCompleted);
+            Context, jobId, TaskEndpoint.CancelKillCompleted, SplitMigrateTaskEndpoint.CancelKillCompleted);
 
         // Publish MassTransit event
         await _cancelKillHandler.Complete(jobId);
@@ -999,7 +999,7 @@ public class RunnerHub : Hub
     public async Task CancelGracefulCompleted(Guid jobId)
     {
         await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.CancelGracefulCompleted, SplitMonolithTaskEndpoint.CancelGracefulCompleted);
+            Context, jobId, TaskEndpoint.CancelGracefulCompleted, SplitMigrateTaskEndpoint.CancelGracefulCompleted);
 
         // Publish MassTransit event
         await _cancelGracefulHandler.Complete(jobId);

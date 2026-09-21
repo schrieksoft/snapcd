@@ -80,6 +80,22 @@ public partial class JobStateMachine<
                 .Activity(x => x.OfType<ApprovalTimeoutModuleJobActivity<TSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Cancelled)
                 .Finalize(),
+            // Nothing is running on a runner here, so there is no step to kill or wait out: every
+            // cancellation type ends the job immediately, as a decline does.
+            When(CancelModuleRequested)
+                .Then(context => _logger.LogInformation(
+                    "Cancelled while awaiting approval for job {JobId}", context.Saga.CorrelationId))
+                .Unschedule(ApprovalTimeoutScheduled)
+                .Publish(context => new TResponseCancelled
+                {
+                    ModuleId = context.Saga.ModuleId,
+                    OrganizationId = context.Saga.OrganizationId,
+                    ModuleJobId = context.Saga.CorrelationId,
+                    CancellationReason = CancellationReason.UserRequested
+                })
+                .Activity(x => x.OfType<CancelModuleJobActivity<TSaga, CancelModuleRequested>>())
+                .TransitionTo(Cancelled)
+                .Finalize(),
             Ignore(RunnerReconnectedEvent)
         );
 

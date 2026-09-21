@@ -19,7 +19,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// An approve or decline decision on a ManualModuleJob. Parallel to ModuleJobApproval rather than
 /// a generalisation of it, so the two job kinds keep their own foreign keys and cascade behaviour.
 /// </summary>
-public class ManualModuleJobApproval : AuditBase, IEntity
+public class ManualModuleJobApproval : AuditBase, IEntity, IJobApproval
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }

@@ -88,7 +88,7 @@ public class ManualJobPermissionTests : IAsyncLifetime
     {
         await SetPaused(true);
         using var service = Service(Reader);
-        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(() => service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMonolith));
+        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(() => service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class ManualJobPermissionTests : IAsyncLifetime
     {
         await SetPaused(true);
         using var service = Service(Contributor);
-        var job = await service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMonolith);
+        var job = await service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate);
         Assert.Equal(ExecutionStatus.Running, job.Status);
     }
 
@@ -106,10 +106,10 @@ public class ManualJobPermissionTests : IAsyncLifetime
         await SetPaused(true);
         Guid jobId;
         using (var owner = Service(Owner))
-            jobId = (await owner.Start(_moduleId, _organizationId, ManualJobTypes.SplitMonolith)).Id;
+            jobId = (await owner.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate)).Id;
 
         using var reader = Service(Reader);
-        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(() => reader.Decide(jobId, _moduleId, _organizationId, false, null));
+        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(() => reader.Decide(jobId, _moduleId, _organizationId, false));
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class ManualJobPermissionTests : IAsyncLifetime
         await SetPaused(true);
         Guid jobId;
         using (var owner = Service(Owner))
-            jobId = (await owner.Start(_moduleId, _organizationId, ManualJobTypes.SplitMonolith)).Id;
+            jobId = (await owner.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate)).Id;
         await using (var db = _fixture.CreateDbContext())
         {
             (await db.ManualModuleJobs.SingleAsync(j => j.Id == jobId)).WaitingForApproval = true;
@@ -126,8 +126,8 @@ public class ManualJobPermissionTests : IAsyncLifetime
         }
 
         using var contributor = Service(Contributor);
-        await contributor.Decide(jobId, _moduleId, _organizationId, false, null);
-        await Assert.ThrowsAsync<ManualJobNotAllowedException>(() => contributor.Decide(jobId, _moduleId, _organizationId, false, null));
+        await contributor.Decide(jobId, _moduleId, _organizationId, false);
+        await Assert.ThrowsAsync<ManualJobNotAllowedException>(() => contributor.Decide(jobId, _moduleId, _organizationId, false));
 
         await using (var db = _fixture.CreateDbContext())
             Assert.Equal(1, await db.ManualModuleJobApprovals.CountAsync(a => a.ManualModuleJobId == jobId));

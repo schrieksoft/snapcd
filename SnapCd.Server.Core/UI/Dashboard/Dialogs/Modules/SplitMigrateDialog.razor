@@ -1,0 +1,68 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+            <MudText>SplitMigrate</MudText>
+            <MudTooltip Text="Splits this module's monolith into the module directories its refactor map describes, and migrates the state. The plan is proved first and pushed only after approval.">
+                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+            </MudTooltip>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudTooltip Text="Where the monolith sits within the checkout. Leave empty for the module's own directory.">
+            <MudTextField @bind-Value="_rootDirectory"
+                          Label="Monolith root"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Class="mb-3"/>
+        </MudTooltip>
+
+        <MudTooltip Text="Rewrites each carved root's backend from the monolith's current one. Use it when the roots were carved against a different backend than this module migrates to.">
+            <MudCheckBox @bind-Value="_rederiveBackend"
+                         Label="Re-derive the carved roots' backends"
+                         Color="Color.Secondary"/>
+        </MudTooltip>
+
+        <MudTooltip Text="A destination holding state that does not match this migration will be overwritten and its existing state lost. Without this, such a destination is refused.">
+            <MudCheckBox @bind-Value="_force"
+                         Label="Replace state at destinations that do not match"
+                         Color="Color.Secondary"/>
+        </MudTooltip>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Confirm">
+            Start
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string? _rootDirectory;
+    private bool _force;
+    private bool _rederiveBackend;
+
+    private void Confirm() =>
+        MudDialog.Close(DialogResult.Ok(new SplitMigrateOptions(_rootDirectory, _force, _rederiveBackend)));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public record SplitMigrateOptions(string? RootDirectory, bool Force, bool RederiveBackend);
+}

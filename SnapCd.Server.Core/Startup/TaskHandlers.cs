@@ -8,7 +8,7 @@
 
 
 using SnapCd.Server.Core.Hubs.Handlers;
-using SnapCd.Server.Core.Hubs.Handlers.SplitMonolith;
+using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
 
 namespace SnapCd.Server.Core.Startup;
 

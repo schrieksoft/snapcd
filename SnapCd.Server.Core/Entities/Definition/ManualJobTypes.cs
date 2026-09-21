@@ -14,8 +14,8 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// </summary>
 public static class ManualJobTypes
 {
-    public const string SplitMonolith = nameof(Sagas.SplitMonolithSaga);
+    public const string SplitMigrate = nameof(Sagas.SplitMigrateSaga);
 
-    /// <summary>The pre-merge half of a split: the same saga, stopping after the proof. State lives in SplitMonolithSagas too.</summary>
+    /// <summary>The pre-merge half of a split: the same saga, stopping after the proof. State lives in SplitMigrateSagas too.</summary>
     public const string SplitProve = "SplitProve";
 }

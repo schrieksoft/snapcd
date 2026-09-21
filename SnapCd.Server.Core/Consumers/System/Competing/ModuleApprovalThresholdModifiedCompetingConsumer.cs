@@ -29,6 +29,11 @@ public class ModuleApprovalThresholdModifiedCompetingConsumer : IConsumer<Module
             .Where(x => x.ModuleId == context.Message.ModuleId && x.WaitingForApproval == true)
             .Select(x => x.Id).ToList();
 
+        // Manual jobs gate on their own threshold and park in the same state, so they re-evaluate too.
+        jobsId.AddRange(_dbContext.ManualModuleJobs
+            .Where(x => x.ModuleId == context.Message.ModuleId && x.WaitingForApproval == true)
+            .Select(x => x.Id));
+
         foreach (var jobId in jobsId) await _bus.Publish(new ApprovalReevaluationRequestedEvent { ModuleId = context.Message.ModuleId, ModuleJobId = jobId });
     }
 }

@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
-using SnapCd.Server.Core.Misc.Helpers.SplitMonolith;
+using SnapCd.Server.Core.Misc.Helpers.SplitMigrate;
 using SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Views;
@@ -27,7 +27,7 @@ namespace SnapCd.Server.Core.Services;
 public class RunnerJobAuthorizationService
 {
     private readonly JobSagaRepositoryFactory _jobSagaRepositoryFactory;
-    private readonly SplitMonolithSagaRepositoryFactory _splitMonolithSagaRepositoryFactory;
+    private readonly SplitMigrateSagaRepositoryFactory _splitMonolithSagaRepositoryFactory;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly ServicePrincipalRepositoryFactory _servicePrincipalRepositoryFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
@@ -35,7 +35,7 @@ public class RunnerJobAuthorizationService
 
     public RunnerJobAuthorizationService(
         JobSagaRepositoryFactory jobSagaRepositoryFactory,
-        SplitMonolithSagaRepositoryFactory splitMonolithSagaRepositoryFactory,
+        SplitMigrateSagaRepositoryFactory splitMonolithSagaRepositoryFactory,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         ServicePrincipalRepositoryFactory servicePrincipalRepositoryFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
@@ -106,7 +106,7 @@ public class RunnerJobAuthorizationService
         HubCallerContext hubCallerContext,
         Guid jobId,
         TaskEndpoint taskEndpoint,
-        SplitMonolithTaskEndpoint? splitTaskEndpoint = null)
+        SplitMigrateTaskEndpoint? splitTaskEndpoint = null)
     {
         var expectedState = StateHelper.Lookup(taskEndpoint);
 
@@ -139,19 +139,19 @@ public class RunnerJobAuthorizationService
         }
 
         // 3. Validate saga state matches expected state, in the resolved family's vocabulary
-        if (sagaMetaData.Family == JobSagaFamily.SplitMonolith)
+        if (sagaMetaData.Family == JobSagaFamily.SplitMigrate)
         {
             if (splitTaskEndpoint == null)
             {
                 _logger.LogWarning(
-                    "Authorization failed: Job {JobId} is a SplitMonolith job, but {TaskEndpoint} is not a step it runs " +
+                    "Authorization failed: Job {JobId} is a SplitMigrate job, but {TaskEndpoint} is not a step it runs " +
                     "(Connection: {ConnectionId})",
                     jobId, taskEndpoint, hubCallerContext.ConnectionId);
                 throw new HubException("Unauthorized: This callback does not apply to this job");
             }
 
-            var splitOrgId = await ValidateRunnerCanAccessSplitMonolithJob(hubCallerContext, jobId, splitTaskEndpoint.Value);
-            return new JobAuthorization(JobSagaFamily.SplitMonolith, splitOrgId);
+            var splitOrgId = await ValidateRunnerCanAccessSplitMigrateJob(hubCallerContext, jobId, splitTaskEndpoint.Value);
+            return new JobAuthorization(JobSagaFamily.SplitMigrate, splitOrgId);
         }
 
         var currentState = Enum.Parse<ModuleJobSagaState>(sagaMetaData.CurrentState);
@@ -273,16 +273,16 @@ public class RunnerJobAuthorizationService
     }
 
     /// <summary>
-    /// The SplitMonolith equivalent of <see cref="ValidateRunnerCanAccessJob"/>. Kept separate
+    /// The SplitMigrate equivalent of <see cref="ValidateRunnerCanAccessJob"/>. Kept separate
     /// because the deployment path resolves its saga from the apply and destroy tables and parses
     /// the state as a deployment enum, neither of which fits a manual job.
     /// </summary>
-    public async Task<Guid> ValidateRunnerCanAccessSplitMonolithJob(
+    public async Task<Guid> ValidateRunnerCanAccessSplitMigrateJob(
         HubCallerContext hubCallerContext,
         Guid jobId,
-        SplitMonolithTaskEndpoint taskEndpoint)
+        SplitMigrateTaskEndpoint taskEndpoint)
     {
-        var expectedState = SplitMonolithStateHelper.Lookup(taskEndpoint);
+        var expectedState = SplitMigrateStateHelper.Lookup(taskEndpoint);
 
         var organizationId = GetValidatedOrganizationId(hubCallerContext);
 
@@ -305,20 +305,20 @@ public class RunnerJobAuthorizationService
         catch (EntityNotFoundException e)
         {
             _logger.LogWarning(
-                "Authorization failed: SplitMonolith job {JobId} not found (Connection: {ConnectionId})",
+                "Authorization failed: SplitMigrate job {JobId} not found (Connection: {ConnectionId})",
                 jobId, hubCallerContext.ConnectionId);
             throw new HubException(e.Message);
         }
 
-        var currentState = Enum.Parse<SplitMonolithSagaState>(sagaMetaData.CurrentState);
+        var currentState = Enum.Parse<SplitMigrateSagaState>(sagaMetaData.CurrentState);
         var isStateValid = currentState == expectedState;
 
         // A step that reports back mid-cancellation is still the step that was dispatched.
-        if (!isStateValid && SplitMonolithStateHelper.GetCancellingStates().Contains(currentState))
+        if (!isStateValid && SplitMigrateStateHelper.GetCancellingStates().Contains(currentState))
         {
             var previousState = !string.IsNullOrEmpty(sagaMetaData.PreviousStateBeforeCancelling)
-                ? Enum.Parse<SplitMonolithSagaState>(sagaMetaData.PreviousStateBeforeCancelling)
-                : (SplitMonolithSagaState?)null;
+                ? Enum.Parse<SplitMigrateSagaState>(sagaMetaData.PreviousStateBeforeCancelling)
+                : (SplitMigrateSagaState?)null;
 
             if (previousState == expectedState) isStateValid = true;
         }
@@ -326,7 +326,7 @@ public class RunnerJobAuthorizationService
         if (!isStateValid)
         {
             _logger.LogWarning(
-                "Authorization failed: SplitMonolith job {JobId} is in state {CurrentState}, expected {ExpectedState} " +
+                "Authorization failed: SplitMigrate job {JobId} is in state {CurrentState}, expected {ExpectedState} " +
                 "(Runner: {RunnerId}/{RunnerName}, Connection: {ConnectionId})",
                 jobId, sagaMetaData.CurrentState, expectedState,
                 connection.RunnerId, connection.InstanceName, hubCallerContext.ConnectionId);
@@ -337,7 +337,7 @@ public class RunnerJobAuthorizationService
         if (sagaMetaData.RunnerId != connection.RunnerId)
         {
             _logger.LogWarning(
-                "Authorization failed: SplitMonolith job {JobId} requires Runner {RequiredRunnerId}, but the caller is {SelectedRunnerId}",
+                "Authorization failed: SplitMigrate job {JobId} requires Runner {RequiredRunnerId}, but the caller is {SelectedRunnerId}",
                 jobId, sagaMetaData.RunnerId, connection.RunnerId);
             throw new HubException("Unauthorized: This runner's pool is not authorized for this job");
         }
@@ -346,7 +346,7 @@ public class RunnerJobAuthorizationService
             sagaMetaData.RunnerInstanceName != connection.InstanceName)
         {
             _logger.LogWarning(
-                "Authorization failed: SplitMonolith job {JobId} requires specific runner {RequiredRunner}, but caller is {ActualRunner}",
+                "Authorization failed: SplitMigrate job {JobId} requires specific runner {RequiredRunner}, but caller is {ActualRunner}",
                 jobId, sagaMetaData.RunnerInstanceName, connection.InstanceName);
             throw new HubException("Unauthorized: This job requires a specific runner");
         }
@@ -354,13 +354,13 @@ public class RunnerJobAuthorizationService
         if (sagaMetaData.OrganizationId != connection.OrganizationId)
         {
             _logger.LogWarning(
-                "Authorization failed: SplitMonolith job {JobId} belongs to organization {JobOrgId}, but runner is in {RunnerOrgId}",
+                "Authorization failed: SplitMigrate job {JobId} belongs to organization {JobOrgId}, but runner is in {RunnerOrgId}",
                 jobId, sagaMetaData.OrganizationId, connection.OrganizationId);
             throw new HubException("Unauthorized: Organization mismatch");
         }
 
         _logger.LogDebug(
-            "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for SplitMonolith job {JobId} in state {State}",
+            "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for SplitMigrate job {JobId} in state {State}",
             connection.RunnerId, connection.InstanceName, jobId, sagaMetaData.CurrentState);
 
         return connection.OrganizationId;

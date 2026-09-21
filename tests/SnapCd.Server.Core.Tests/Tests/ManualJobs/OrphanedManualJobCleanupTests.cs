@@ -51,7 +51,7 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await using var db = _fixture.CreateDbContext();
-        db.Set<SplitMonolithSaga>().RemoveRange(db.Set<SplitMonolithSaga>().Where(s => _seeded.Contains(s.CorrelationId)));
+        db.Set<SplitMigrateSaga>().RemoveRange(db.Set<SplitMigrateSaga>().Where(s => _seeded.Contains(s.CorrelationId)));
         db.ManualModuleJobs.RemoveRange(db.ManualModuleJobs.Where(j => _seeded.Contains(j.Id)));
         var saga = await db.Set<ModuleSaga>().FirstAsync(s => s.CorrelationId == _moduleId);
         saga.Paused = false;
@@ -65,7 +65,7 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
 
         var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedManualJobs();
 
-        Assert.Contains(orphaned, j => j.Id == jobId && j.JobType == ManualJobTypes.SplitMonolith && j.OrganizationId == _organizationId);
+        Assert.Contains(orphaned, j => j.Id == jobId && j.JobType == ManualJobTypes.SplitMigrate && j.OrganizationId == _organizationId);
     }
 
     [Fact]
@@ -137,11 +137,11 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-5),
             TimestampEnd = ended ? DateTimeOffset.UtcNow : null,
-            JobType = ManualJobTypes.SplitMonolith,
+            JobType = ManualJobTypes.SplitMigrate,
             Status = ended ? ExecutionStatus.Completed : ExecutionStatus.Running
         });
         if (withSaga)
-            db.Set<SplitMonolithSaga>().Add(new SplitMonolithSaga
+            db.Set<SplitMigrateSaga>().Add(new SplitMigrateSaga
             {
                 CorrelationId = jobId,
                 ModuleId = _moduleId,

@@ -297,7 +297,7 @@ public class MaintenanceOperationsTests : IAsyncLifetime
         => Assert.Equal(needsRecovery, MaintenanceOperationsService.ClosingNeedsRecovery(phase));
 
     [Fact]
-    public async Task CancelAll_Cancels_Pending_And_Skips_Approval_Waits()
+    public async Task CancelAll_Cancels_Pending_And_Approval_Waits()
     {
         var pending = await SeedSaga("PlanPending", "ops-cancel");
         var approval = await SeedSaga("WaitingForApproval", "ops-cancel");
@@ -305,10 +305,8 @@ public class MaintenanceOperationsTests : IAsyncLifetime
         var result = await CreateService().CancelAllJobsAsync(CancellationType.ImmediateGraceful);
 
         Assert.True(await _harness.Published.Any<CancelModuleRequested>(x => x.Context.Message.CorrelationId == pending));
-        Assert.False(_harness.Published
-            .Select<CancelModuleRequested>(x => ((IPublishedMessage<CancelModuleRequested>)x).Context.Message.CorrelationId == approval)
-            .Any());
-        Assert.Contains(result.Skipped, s => s.Contains(approval.ToString()));
+        Assert.True(await _harness.Published.Any<CancelModuleRequested>(x => x.Context.Message.CorrelationId == approval));
+        Assert.DoesNotContain(result.Skipped, s => s.Contains(approval.ToString()));
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
         while (DateTime.UtcNow < deadline)

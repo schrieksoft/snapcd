@@ -15,14 +15,24 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-3">
-            Cancelling stops the job at its next step. A step already running on the runner is left to
-            finish unless you kill it.
-        </MudText>
-        <MudSelect T="CancellationType" @bind-Value="_cancellationType" Label="Cancellation Type" Dense="true">
-            <MudSelectItem Value="CancellationType.AfterCurrent">Cancel after current</MudSelectItem>
-            <MudSelectItem Value="CancellationType.ImmediateKill">Kill current step</MudSelectItem>
-        </MudSelect>
+        @if (WaitingForApproval)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                The job is waiting for approval and nothing is running on a runner, so cancelling ends it
+                straight away.
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Cancelling stops the job at its next step. A step already running on the runner is left to
+                finish unless you kill it.
+            </MudText>
+            <MudSelect T="CancellationType" @bind-Value="_cancellationType" Label="Cancellation Type" Dense="true">
+                <MudSelectItem Value="CancellationType.AfterCurrent">Cancel after current</MudSelectItem>
+                <MudSelectItem Value="CancellationType.ImmediateKill">Kill current step</MudSelectItem>
+            </MudSelect>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Confirm">Cancel job</MudButton>
@@ -38,6 +48,9 @@
     [Parameter] public required Guid OrganizationId { get; set; }
     [Parameter] public required IPrincipalProvider PrincipalProvider { get; set; }
 
+    /// <summary>The job is parked at the approval gate, where no cancellation type is meaningful.</summary>
+    [Parameter] public bool WaitingForApproval { get; set; }
+
     private CancellationType _cancellationType = CancellationType.AfterCurrent;
 
     private async Task Confirm()
@@ -45,7 +58,8 @@
         try
         {
             using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.Cancel(JobId, ModuleId, OrganizationId, _cancellationType);
+            await service.Cancel(JobId, ModuleId, OrganizationId,
+                WaitingForApproval ? CancellationType.ImmediateKill : _cancellationType);
 
             MudDialog.Close(DialogResult.Ok(JobId));
         }

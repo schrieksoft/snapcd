@@ -16,12 +16,6 @@
             Requests raised meanwhile are queued, not lost, and apply and destroy are unavailable
             until it is resumed.
         </MudText>
-
-        <MudTextField @bind-Value="_reason"
-                      Label="Reason (optional)"
-                      Variant="Variant.Outlined"
-                      Immediate="true"
-                      Class="mb-3"/>
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
@@ -39,9 +33,7 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    private string? _reason;
-
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(_reason));
+    private void Confirm() => MudDialog.Close(DialogResult.Ok((string?)null));
 
     private void Cancel() => MudDialog.Cancel();
 }

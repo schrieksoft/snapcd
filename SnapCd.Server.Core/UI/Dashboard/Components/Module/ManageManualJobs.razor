@@ -7,7 +7,9 @@
    for terms covering either use.
  *@
 
+@using Microsoft.EntityFrameworkCore
 @using SnapCd.Contracts
+@using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Entities.Sagas
 @using SnapCd.Server.Core.Enums
@@ -20,6 +22,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.ModuleJobs
 @using SnapCd.Server.Core.UI.Dashboard.Theme
+@using SnapCd.Server.Core.UI.Dashboard.Components.Approvals
 
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -142,7 +145,7 @@ else
                             <MudTooltip Text="Cancel Job">
                                 <MudIconButton Icon="@SnapCdIcons.Cancel"
                                                Color="Color.Primary" Size="Size.Small"
-                                               OnClick="() => CancelJob(job.Id)"/>
+                                               OnClick="() => CancelJob(job.Id, job.WaitingForApproval == true)"/>
                             </MudTooltip>
                         }
                     </div>
@@ -169,40 +172,14 @@ else
                                     This job has proved every module plans to zero changes and is waiting for approval
                                     before it pushes state. The push cannot be undone.
                                 </MudAlert>
-
-                                <MudTextField @bind-Value="_decisionReason"
-                                              Label="Reason"
-                                              HelperText="Required when declining."
-                                              Variant="Variant.Outlined"
-                                              Immediate="true"
-                                              Class="mb-3"/>
-
-                                <MudStack Row Spacing="2">
-                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                               Disabled="@(!_canPause || _busy)" OnClick="() => Decide(false)">approve</MudButton>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                               Disabled="@(!_canPause || _busy)" OnClick="() => Decide(true)">decline</MudButton>
-                                </MudStack>
                             }
 
-                            @if (_approvals.Count > 0)
-                            {
-                                @foreach (var approval in _approvals)
-                                {
-                                    <MudText Typo="Typo.body2">
-                                        @(approval.Declined ? "Declined" : "Approved")
-                                        on @approval.DecisionDateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-                                        @if (!string.IsNullOrWhiteSpace(approval.Reason))
-                                        {
-                                            @: - @approval.Reason
-                                        }
-                                    </MudText>
-                                }
-                            }
-                            else if (job.WaitingForApproval != true)
-                            {
-                                <MudText Typo="Typo.body2">No decisions were recorded on this job.</MudText>
-                            }
+                            <ApprovalPanel Source="@GetApprovalSource()"
+                                           JobId="@job.Id"
+                                           ModuleId="@Module.Id"
+                                           Enabled="@(_canPause && !_busy)"
+                                           OnDecided="Reload"
+                                           @key="job.Id"/>
                         </MudTabPanel>
                     </MudTabs>
                 </ChildContent>
@@ -221,15 +198,23 @@ else
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ManualJobServiceFactory ManualJobServiceFactory { get; set; } = null!;
     [Inject] private ManualModuleJobSecuredRepositoryFactory ManualJobRepoFactory { get; set; } = null!;
+    [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
 
     private string? _blockedReason;
     private List<ManualModuleJob> _jobs = [];
-    private List<ManualModuleJobApproval> _approvals = [];
     private readonly Dictionary<Guid, ListLogs> _listLogsRefs = new();
     private readonly HashSet<Guid> _loadedLogs = [];
     private Guid? _subscribedModuleId;
     private ManualModuleJob? _selected;
-    private string? _decisionReason;
+
+    private IApprovalSource GetApprovalSource() =>
+        _approvalSource ??= new ManualJobApprovalSource(
+            ManualJobRepoFactory,
+            ManualJobServiceFactory,
+            DbContextFactory,
+            PrincipalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor()));
+
+    private IApprovalSource? _approvalSource;
 
     /// Inside a paused module, any remaining block is work still draining: the pause itself is not one.
     private bool IsDraining => ModuleSaga is { Paused: true } && _blockedReason is not null;
@@ -276,17 +261,17 @@ else
     private async Task StartSplit()
     {
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<SplitMonolithDialog>("Split monolith", options);
+        var dialog = await DialogService.ShowAsync<SplitMigrateDialog>("SplitMigrate", options);
         var result = await dialog.Result;
 
         if (result is null || result.Canceled) return;
-        if (result.Data is not SplitMonolithDialog.SplitMonolithOptions choice) return;
+        if (result.Data is not SplitMigrateDialog.SplitMigrateOptions choice) return;
 
         _busy = true;
         try
         {
             using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.StartSplitMonolith(Module.Id, OrganizationId, choice.RootDirectory, choice.Force, rederiveBackend: choice.RederiveBackend);
+            await service.StartSplitMigrate(Module.Id, OrganizationId, choice.RootDirectory, choice.Force, rederiveBackend: choice.RederiveBackend);
 
             Snackbar.Add("Split started.", Severity.Success);
             await Reload();
@@ -329,7 +314,7 @@ else
         }
     }
 
-    private async Task CancelJob(Guid jobId)
+    private async Task CancelJob(Guid jobId, bool waitingForApproval)
     {
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
         var parameters = new DialogParameters<CancelManualModuleJobDialog>
@@ -337,7 +322,8 @@ else
             { x => x.JobId, jobId },
             { x => x.ModuleId, Module.Id },
             { x => x.OrganizationId, OrganizationId },
-            { x => x.PrincipalProvider, PrincipalProvider }
+            { x => x.PrincipalProvider, PrincipalProvider },
+            { x => x.WaitingForApproval, waitingForApproval }
         };
 
         var dialog = await DialogService.ShowAsync<CancelManualModuleJobDialog>("Cancel", parameters, options);
@@ -387,41 +373,12 @@ else
         }
 
         _selected = job;
-        _decisionReason = null;
 
         // ListLogs does not load itself; the panel that opens it asks it to.
         if (!_loadedLogs.Contains(job.Id) && _listLogsRefs.TryGetValue(job.Id, out var listLogs))
         {
             await listLogs.InitializeLogs();
             _loadedLogs.Add(job.Id);
-        }
-
-        using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
-        _approvals = await jobRepo.ListApprovals(job.Id, Module.Id, OrganizationId);
-    }
-
-    private async Task Decide(bool declined)
-    {
-        if (_selected is null) return;
-
-        _busy = true;
-        try
-        {
-            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.Decide(_selected.Id, Module.Id, OrganizationId, declined, _decisionReason);
-
-            Snackbar.Add(declined ? "Split declined." : "Split approved.", Severity.Success);
-            await Reload();
-            var refreshed = _jobs.FirstOrDefault(j => j.Id == _selected.Id);
-            if (refreshed is not null) await OnPanelExpanded(true, refreshed);
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add(e.Message, Severity.Error);
-        }
-        finally
-        {
-            _busy = false;
         }
     }
 
@@ -456,5 +413,5 @@ else
 
     /// The stored value names the saga table; the tab shows the operation.
     private static string FormatJobType(string jobType) =>
-        jobType == ManualJobTypes.SplitMonolith ? "Split monolith" : jobType;
+        jobType == ManualJobTypes.SplitMigrate ? "SplitMigrate" : jobType;
 }

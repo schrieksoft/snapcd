@@ -151,11 +151,11 @@ public class ManualJobService : IDisposable
     }
 
     /// <summary>
-    /// Starts a SplitMonolith job: creates the record, then publishes the saga request with the
+    /// Starts a SplitMigrate job: creates the record, then publishes the saga request with the
     /// same id. The two share one correlation id, so publishing with a fresh one would leave the
     /// row and its saga unable to find each other.
     /// </summary>
-    public async Task<ManualModuleJob> StartSplitMonolith(
+    public async Task<ManualModuleJob> StartSplitMigrate(
         Guid moduleId,
         Guid organizationId,
         string? rootDirectory,
@@ -171,13 +171,13 @@ public class ManualJobService : IDisposable
             throw new InvalidOperationException(
                 $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
 
-        var job = await Start(moduleId, organizationId, ManualJobTypes.SplitMonolith);
+        var job = await Start(moduleId, organizationId, ManualJobTypes.SplitMigrate);
 
         try
         {
             var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
 
-            await _bus.Publish(new SplitMonolithRequested
+            await _bus.Publish(new SplitMigrateRequested
             {
                 CorrelationId = job.Id,
                 Declared = declared,
@@ -220,7 +220,7 @@ public class ManualJobService : IDisposable
         {
             var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId, sourceRevision);
 
-            await _bus.Publish(new SplitMonolithRequested
+            await _bus.Publish(new SplitMigrateRequested
             {
                 CorrelationId = job.Id,
                 Declared = declared,
@@ -265,7 +265,7 @@ public class ManualJobService : IDisposable
     /// The unique index on (job, principal) means one decision per principal; a second attempt
     /// surfaces as a refusal rather than silently replacing the first.
     /// </summary>
-    public async Task Decide(Guid jobId, Guid moduleId, Guid organizationId, bool declined, string? reason)
+    public async Task Decide(Guid jobId, Guid moduleId, Guid organizationId, bool declined)
     {
         if (_bus is null)
             throw new InvalidOperationException(
@@ -274,9 +274,6 @@ public class ManualJobService : IDisposable
         if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to decide manual jobs on Module with Id {moduleId}");
-
-        if (declined && string.IsNullOrWhiteSpace(reason))
-            throw new ArgumentException("A decline needs a reason.", nameof(reason));
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
@@ -298,8 +295,7 @@ public class ManualJobService : IDisposable
             Declined = declined,
             PrincipalId = _moduleSecuredRepository.PrincipalProvider.GetSubject(organizationId),
             PrincipalDiscriminator = _moduleSecuredRepository.PrincipalProvider.GetPrincipalDiscriminator(),
-            AgentId = _moduleSecuredRepository.PrincipalProvider.GetAgentId(),
-            Reason = reason
+            AgentId = _moduleSecuredRepository.PrincipalProvider.GetAgentId()
         });
 
         try

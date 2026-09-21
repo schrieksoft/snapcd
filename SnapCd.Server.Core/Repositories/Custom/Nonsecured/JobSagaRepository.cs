@@ -20,7 +20,7 @@ public class JobSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFacto
         var dbContext = dbFactory.CreateDbContext();
         var applyJobSagaRepository = new ApplyJobSagaRepository(dbContext);
         var destroyJobSagaRepository = new DestroyJobSagaRepository(dbContext);
-        var splitMonolithSagaRepository = new SplitMonolithSagaRepository(dbContext);
+        var splitMonolithSagaRepository = new SplitMigrateSagaRepository(dbContext);
         return new JobSagaRepository(dbContext, applyJobSagaRepository, destroyJobSagaRepository, splitMonolithSagaRepository);
     }
 }
@@ -30,13 +30,13 @@ public class JobSagaRepository : IDisposable
     private readonly SnapCdDbContext _dbContext;
     private readonly ApplyJobSagaRepository _applyJobSagaRepository;
     private readonly DestroyJobSagaRepository _destroyJobSagaRepository;
-    private readonly SplitMonolithSagaRepository _splitMonolithSagaRepository;
+    private readonly SplitMigrateSagaRepository _splitMonolithSagaRepository;
 
     public JobSagaRepository(
         SnapCdDbContext dbContext,
         ApplyJobSagaRepository applyJobSagaRepository,
         DestroyJobSagaRepository destroyJobSagaRepository,
-        SplitMonolithSagaRepository splitMonolithSagaRepository)
+        SplitMigrateSagaRepository splitMonolithSagaRepository)
     {
         _dbContext = dbContext;
         _applyJobSagaRepository = applyJobSagaRepository;
@@ -60,7 +60,7 @@ public class JobSagaRepository : IDisposable
             if (split != null)
                 metaData = new JobSagaMetaData
                 {
-                    Family = JobSagaFamily.SplitMonolith,
+                    Family = JobSagaFamily.SplitMigrate,
                     CurrentState = split.CurrentState,
                     RunnerId = split.RunnerId,
                     RunnerInstanceName = split.RunnerInstanceName,

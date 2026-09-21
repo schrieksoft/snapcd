@@ -12,8 +12,8 @@ using MassTransit.SqlTransport;
 using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
-using SnapCd.Server.Core.Consumers.Tasks.SplitMonolith;
-using SnapCd.Server.Core.StateMachine.SplitMonolith;
+using SnapCd.Server.Core.Consumers.Tasks.SplitMigrate;
+using SnapCd.Server.Core.StateMachine.SplitMigrate;
 using SnapCd.Server.Core.Consumers.Tasks;
 using SnapCd.Server.Core.Consumers.Tasks.Handlers;
 using SnapCd.Server.Core.Database;
@@ -324,7 +324,7 @@ public static class MassTransit
     {
         AddSagaReceiveEndpoint<ApplyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
         AddSagaReceiveEndpoint<DestroyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
-        AddSagaReceiveEndpoint<SplitMonolithSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
+        AddSagaReceiveEndpoint<SplitMigrateSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
 
         AddSagaReceiveEndpoint<ModuleSaga, TMqFactory>(serviceBusSettings, context, cfg, serviceBusSettings.SagaConcurrencyLimit, s =>
         {
@@ -351,7 +351,7 @@ public static class MassTransit
     {
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
-        AddSagaStateMachine<SplitMonolithStateMachine, SplitMonolithSaga>(x);
+        AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
 
         // module sagas
         AddSagaStateMachine<
