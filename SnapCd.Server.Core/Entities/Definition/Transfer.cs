@@ -9,6 +9,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Enums;
@@ -63,11 +64,17 @@ public class Transfer : AuditBase, IEntity
     /// <summary>Who locked the source.</summary>
     public Guid? SourceLockedBy { get; set; }
 
+    /// <summary>Whether that was a User or a ServicePrincipal.</summary>
+    public PrincipalDiscriminator? SourceLockedByPrincipalDiscriminator { get; set; }
+
     /// <summary>When the source's proved code was declared merged.</summary>
     public DateTimeOffset? SourceMergedDeclaredAt { get; set; }
 
     /// <summary>Who declared the source merged.</summary>
     public Guid? SourceMergedDeclaredBy { get; set; }
+
+    /// <summary>Whether that was a User or a ServicePrincipal.</summary>
+    public PrincipalDiscriminator? SourceMergedDeclaredByPrincipalDiscriminator { get; set; }
 
     /// <summary>The commit the source's proved code landed as.</summary>
     [MaxLength(100)] public string? SourceMergedCommit { get; set; }
@@ -84,10 +91,16 @@ public class Transfer : AuditBase, IEntity
     public ConsentStatus ReceiverConsentStatus { get; set; }
 
     /// <summary>Who answered for the receiver.</summary>
-    public Guid? ReceiverConsentDecidedBy { get; set; }
+    public Guid? ReceiverConsentPrincipalId { get; set; }
 
-    /// <summary>Whether that was a user or a service principal.</summary>
-    public AuditPrincipalDiscriminator? ReceiverConsentDecidedByPrincipalDiscriminator { get; set; }
+    /// <summary>Whether that was a User or a ServicePrincipal, recorded as approvals record it.</summary>
+    public PrincipalDiscriminator? ReceiverConsentPrincipalDiscriminator { get; set; }
+
+    /// <summary>
+    /// AgentId of the Agent that consented (acting via its underlying ServicePrincipal), or
+    /// <c>null</c> when a User or a non-agent ServicePrincipal did.
+    /// </summary>
+    public Guid? ReceiverConsentAgentId { get; set; }
 
     /// <summary>When the receiver answered.</summary>
     public DateTimeOffset? ReceiverConsentDecidedAt { get; set; }
@@ -101,11 +114,17 @@ public class Transfer : AuditBase, IEntity
     /// <summary>Who locked the receiver.</summary>
     public Guid? ReceiverLockedBy { get; set; }
 
+    /// <summary>Whether that was a User or a ServicePrincipal.</summary>
+    public PrincipalDiscriminator? ReceiverLockedByPrincipalDiscriminator { get; set; }
+
     /// <summary>When the receiver's proved code was declared merged.</summary>
     public DateTimeOffset? ReceiverMergedDeclaredAt { get; set; }
 
     /// <summary>Who declared the receiver merged.</summary>
     public Guid? ReceiverMergedDeclaredBy { get; set; }
+
+    /// <summary>Whether that was a User or a ServicePrincipal.</summary>
+    public PrincipalDiscriminator? ReceiverMergedDeclaredByPrincipalDiscriminator { get; set; }
 
     /// <summary>The commit the receiver's proved code landed as.</summary>
     [MaxLength(100)] public string? ReceiverMergedCommit { get; set; }

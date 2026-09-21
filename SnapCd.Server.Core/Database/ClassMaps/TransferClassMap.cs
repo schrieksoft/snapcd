@@ -23,7 +23,11 @@ public class TransferClassMap : IEntityTypeConfiguration<Transfer>
 
         entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
         entity.Property(e => e.ReceiverConsentStatus).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.ReceiverConsentDecidedByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.ReceiverConsentPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.SourceLockedByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.SourceMergedDeclaredByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.ReceiverLockedByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.ReceiverMergedDeclaredByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
 
         entity.HasIndex(e => e.Id).IsUnique();
 

@@ -73,7 +73,7 @@ public class TransferConsentTests : IAsyncLifetime
 
         var participant = await Participant(transferId);
         Assert.Equal(ConsentStatus.Granted, participant.ReceiverConsentStatus);
-        Assert.Equal(Contributor, participant.ReceiverConsentDecidedBy);
+        Assert.Equal(Contributor, participant.ReceiverConsentPrincipalId);
         Assert.Equal("release/1.2", participant.ReceiverProveRef);
         Assert.Equal("looks right", participant.ReceiverConsentReason);
         Assert.NotNull(participant.ReceiverConsentDecidedAt);
@@ -341,7 +341,7 @@ public class TransferConsentTests : IAsyncLifetime
         _seeded.Add(transfer.Id);
 
         Assert.Equal(ConsentStatus.Granted, transfer.ReceiverConsentStatus);
-        Assert.Equal(Contributor, transfer.ReceiverConsentDecidedBy);
+        Assert.Equal(Contributor, transfer.ReceiverConsentPrincipalId);
         Assert.Equal("main", transfer.ReceiverProveRef);
         Assert.DoesNotContain(published, m => m is ConsentRequested);
     }
@@ -424,6 +424,38 @@ public class TransferConsentTests : IAsyncLifetime
             "revoke" => service.Revoke(transferId, _moduleId, _organizationId, null),
             _ => service.SetProveRef(transferId, _moduleId, _organizationId, "other")
         });
+    }
+
+    /// <summary>
+    /// A consent records who decided in the same shape an approval does: the principal, what kind it
+    /// was, and the agent behind it when a ServicePrincipal acted for one.
+    /// </summary>
+    [Fact]
+    public async Task A_Consent_Records_The_Principal_And_Its_Kind()
+    {
+        var transferId = await Seed(ConsentStatus.Pending);
+        using var service = Service(Contributor);
+
+        await service.Decide(transferId, _moduleId, _organizationId, granted: true, "main", null);
+
+        var transfer = await Participant(transferId);
+        Assert.Equal(Contributor, transfer.ReceiverConsentPrincipalId);
+        Assert.Equal(PrincipalDiscriminator.User, transfer.ReceiverConsentPrincipalDiscriminator);
+        Assert.Null(transfer.ReceiverConsentAgentId);
+    }
+
+    [Fact]
+    public async Task Locking_And_Merging_Record_The_Principal_Kind()
+    {
+        var transferId = await Seed(ConsentStatus.Granted);
+        using var service = Service(Contributor);
+
+        await service.Lock(transferId, _moduleId, _organizationId);
+        await service.DeclareMerged(transferId, _moduleId, _organizationId, "abc123");
+
+        var transfer = await Participant(transferId);
+        Assert.Equal(PrincipalDiscriminator.User, transfer.ReceiverLockedByPrincipalDiscriminator);
+        Assert.Equal(PrincipalDiscriminator.User, transfer.ReceiverMergedDeclaredByPrincipalDiscriminator);
     }
 
     private async Task<Guid> Seed(

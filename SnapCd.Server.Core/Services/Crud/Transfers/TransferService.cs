@@ -135,7 +135,7 @@ public class TransferService : IDisposable
                 $"This receiver's consent is {transfer.ReceiverConsentStatus}, not Pending.");
 
         transfer.ReceiverConsentStatus = granted ? ConsentStatus.Granted : ConsentStatus.Refused;
-        transfer.ReceiverConsentDecidedBy = _principalProvider.GetSubject(organizationId);
+        RecordConsentPrincipal(transfer, organizationId);
         transfer.ReceiverConsentDecidedAt = DateTimeOffset.UtcNow;
         transfer.ReceiverConsentReason = reason;
         if (granted && !string.IsNullOrWhiteSpace(proveRef)) transfer.ReceiverProveRef = proveRef;
@@ -148,7 +148,7 @@ public class TransferService : IDisposable
             ModuleId = moduleId,
             OrganizationId = organizationId,
             Granted = granted,
-            PrincipalId = transfer.ReceiverConsentDecidedBy.Value
+            PrincipalId = transfer.ReceiverConsentPrincipalId!.Value
         });
     }
 
@@ -200,7 +200,7 @@ public class TransferService : IDisposable
         var wasHeld = transfer.ReceiverLockedAt != null;
 
         transfer.ReceiverConsentStatus = ConsentStatus.Revoked;
-        transfer.ReceiverConsentDecidedBy = _principalProvider.GetSubject(organizationId);
+        RecordConsentPrincipal(transfer, organizationId);
         transfer.ReceiverConsentDecidedAt = DateTimeOffset.UtcNow;
         transfer.ReceiverConsentReason = reason;
 
@@ -219,7 +219,7 @@ public class TransferService : IDisposable
             ModuleId = moduleId,
             OrganizationId = organizationId,
             Granted = false,
-            PrincipalId = transfer.ReceiverConsentDecidedBy.Value
+            PrincipalId = transfer.ReceiverConsentPrincipalId!.Value
         });
 
         if (wasHeld)
@@ -314,16 +314,19 @@ public class TransferService : IDisposable
 
         var now = DateTimeOffset.UtcNow;
         var by = _principalProvider.GetSubject(organizationId);
+        var discriminator = _principalProvider.GetPrincipalDiscriminator();
         if (receiver)
         {
             transfer.ReceiverLockedAt = now;
             transfer.ReceiverLockedBy = by;
+            transfer.ReceiverLockedByPrincipalDiscriminator = discriminator;
             transfer.ReceiverReleasedAt = null;
         }
         else
         {
             transfer.SourceLockedAt = now;
             transfer.SourceLockedBy = by;
+            transfer.SourceLockedByPrincipalDiscriminator = discriminator;
             transfer.SourceReleasedAt = null;
         }
 
@@ -360,16 +363,19 @@ public class TransferService : IDisposable
 
         var now = DateTimeOffset.UtcNow;
         var by = _principalProvider.GetSubject(organizationId);
+        var discriminator = _principalProvider.GetPrincipalDiscriminator();
         if (receiver)
         {
             transfer.ReceiverMergedDeclaredAt = now;
             transfer.ReceiverMergedDeclaredBy = by;
+            transfer.ReceiverMergedDeclaredByPrincipalDiscriminator = discriminator;
             transfer.ReceiverMergedCommit = mergedCommit;
         }
         else
         {
             transfer.SourceMergedDeclaredAt = now;
             transfer.SourceMergedDeclaredBy = by;
+            transfer.SourceMergedDeclaredByPrincipalDiscriminator = discriminator;
             transfer.SourceMergedCommit = mergedCommit;
         }
 
@@ -560,16 +566,26 @@ public class TransferService : IDisposable
         {
             // The person could have clicked the button, so the click is implied.
             transfer.ReceiverConsentStatus = ConsentStatus.Granted;
-            transfer.ReceiverConsentDecidedBy = _principalProvider.GetSubject(transfer.OrganizationId);
+            RecordConsentPrincipal(transfer, transfer.OrganizationId);
             transfer.ReceiverConsentDecidedAt = DateTimeOffset.UtcNow;
             return false;
         }
 
         transfer.ReceiverConsentStatus = ConsentStatus.Pending;
-        transfer.ReceiverConsentDecidedBy = null;
+        transfer.ReceiverConsentPrincipalId = null;
+        transfer.ReceiverConsentPrincipalDiscriminator = null;
+        transfer.ReceiverConsentAgentId = null;
         transfer.ReceiverConsentDecidedAt = null;
         transfer.ReceiverConsentReason = null;
         return true;
+    }
+
+    /// <summary>Who decided, in the same shape an approval records it: principal, kind, and agent.</summary>
+    private void RecordConsentPrincipal(Transfer transfer, Guid organizationId)
+    {
+        transfer.ReceiverConsentPrincipalId = _principalProvider.GetSubject(organizationId);
+        transfer.ReceiverConsentPrincipalDiscriminator = _principalProvider.GetPrincipalDiscriminator();
+        transfer.ReceiverConsentAgentId = _principalProvider.GetAgentId();
     }
 
     private static bool IsReceiver(Transfer transfer, Guid moduleId)
