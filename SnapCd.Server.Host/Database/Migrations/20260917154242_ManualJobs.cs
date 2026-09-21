@@ -109,6 +109,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     CorrelationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     RootDirectory = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     Force = table.Column<bool>(type: "bit", nullable: false),
+                    StopAfterProve = table.Column<bool>(type: "bit", nullable: false),
                     RefactorMapHash = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     CarvedModuleNames = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
                     ProvenModuleCount = table.Column<int>(type: "int", nullable: true),

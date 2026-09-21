@@ -23,6 +23,10 @@ public static class TaskHandlers
         services.AddScoped<PolicyValidateHandler>();
         services.AddScoped<VariableHandler>();
         services.AddScoped<PlanHandler>();
+        services.AddScoped<SplitGetModuleHandler>();
+        services.AddScoped<SplitInitHandler>();
+        services.AddScoped<SplitValidateHandler>();
+        services.AddScoped<SplitPlanHandler>();
         services.AddScoped<PlanEmptyVerifyHandler>();
         services.AddScoped<RefactorValidateHandler>();
         services.AddScoped<RefactorDiffHandler>();

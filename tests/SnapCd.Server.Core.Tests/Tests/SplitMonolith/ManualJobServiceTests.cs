@@ -134,6 +134,38 @@ public class ManualJobServiceTests : IAsyncLifetime
     /// refusal rather than an unhandled DbUpdateException.
     /// </summary>
     [Fact]
+    public async Task A_Prove_Refuses_On_An_Unpaused_Module()
+    {
+        await SetPaused(false);
+
+        using var service = CreateService();
+        Assert.Equal("The module must be paused before a manual job can run.", await service.GetBlockedReason(_moduleId, _organizationId));
+    }
+
+    [Fact]
+    public async Task A_Prove_Refuses_While_A_Deployment_Is_Draining()
+    {
+        await SetPaused(true);
+        await AddCurrentModuleJob();
+
+        using var service = CreateService();
+        Assert.Contains("still finishing", await service.GetBlockedReason(_moduleId, _organizationId));
+    }
+
+    [Fact]
+    public async Task A_Prove_Refuses_A_Bad_Ref_Before_Anything_Is_Written()
+    {
+        await SetPaused(true);
+
+        using var service = CreateService();
+        await Assert.ThrowsAsync<ManualJobNotAllowedException>(
+            () => service.StartSplitProve(_moduleId, _organizationId, null, "-b"));
+
+        await using var db = _fixture.CreateDbContext();
+        Assert.Equal(0, await db.ManualModuleJobs.CountAsync(j => j.ModuleId == _moduleId));
+    }
+
+    [Fact]
     public async Task A_State_Migration_Refuses_A_Ref()
     {
         await SetPaused(true);

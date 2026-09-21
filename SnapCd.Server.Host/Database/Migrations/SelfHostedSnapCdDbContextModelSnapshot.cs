@@ -5959,6 +5959,70 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("RunnerConnectionJobs");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionManualJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ManualModuleJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RunnerConnectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TaskName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ManualModuleJobId", "OrganizationId");
+
+                    b.HasIndex("RunnerConnectionId", "OrganizationId");
+
+                    b.HasIndex("RunnerConnectionId", "ManualModuleJobId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("RunnerConnectionManualJobs");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerSupplies.RunnerModuleSupply", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7708,6 +7772,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("ServerInstanceId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("StopAfterProve")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Version")
                         .HasColumnType("int");
@@ -10635,6 +10702,33 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("ModuleJob");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("RunnerConnection");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionManualJob", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", "ManualModuleJob")
+                        .WithMany()
+                        .HasForeignKey("ManualModuleJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.RunnerConnection", "RunnerConnection")
+                        .WithMany()
+                        .HasForeignKey("RunnerConnectionId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManualModuleJob");
 
                     b.Navigation("Organization");
 

@@ -30,6 +30,7 @@ using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.RunnerConnectionValidator;
 using SnapCd.Server.Core.Settings;
+using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Hubs;
 
@@ -53,6 +54,10 @@ public class RunnerHub : Hub
     private readonly PolicyValidateHandler _policyValidateHandler;
     private readonly VariableHandler _variableHandler;
     private readonly PlanHandler _planHandler;
+    private readonly SplitGetModuleHandler _splitGetModuleHandler;
+    private readonly SplitInitHandler _splitInitHandler;
+    private readonly SplitValidateHandler _splitValidateHandler;
+    private readonly SplitPlanHandler _splitPlanHandler;
     private readonly PlanEmptyVerifyHandler _planEmptyVerifyHandler;
     private readonly RefactorValidateHandler _refactorValidateHandler;
     private readonly RefactorDiffHandler _refactorDiffHandler;
@@ -86,6 +91,10 @@ public class RunnerHub : Hub
         PolicyValidateHandler policyValidateHandler,
         VariableHandler variableHandler,
         PlanHandler planHandler,
+        SplitGetModuleHandler splitGetModuleHandler,
+        SplitInitHandler splitInitHandler,
+        SplitValidateHandler splitValidateHandler,
+        SplitPlanHandler splitPlanHandler,
         PlanEmptyVerifyHandler planEmptyVerifyHandler,
         RefactorValidateHandler refactorValidateHandler,
         RefactorDiffHandler refactorDiffHandler,
@@ -118,6 +127,10 @@ public class RunnerHub : Hub
         _policyValidateHandler = policyValidateHandler;
         _variableHandler = variableHandler;
         _planHandler = planHandler;
+        _splitGetModuleHandler = splitGetModuleHandler;
+        _splitInitHandler = splitInitHandler;
+        _splitValidateHandler = splitValidateHandler;
+        _splitPlanHandler = splitPlanHandler;
         _planEmptyVerifyHandler = planEmptyVerifyHandler;
         _refactorValidateHandler = refactorValidateHandler;
         _refactorDiffHandler = refactorDiffHandler;
@@ -456,9 +469,13 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task GetModuleCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.GetModuleCompleted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.GetModuleCompleted, SplitMonolithTaskEndpoint.GetModuleCompleted);
 
-        await _getModuleHandler.Complete(jobId);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitGetModuleHandler.Complete(jobId, auth.OrganizationId);
+        else
+            await _getModuleHandler.Complete(jobId);
     }
 
     /// <summary>
@@ -466,9 +483,13 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task GetModuleCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.GetModuleCancelled);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.GetModuleCancelled, SplitMonolithTaskEndpoint.GetModuleCancelled);
 
-        await _getModuleHandler.Cancel(jobId);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitGetModuleHandler.Cancel(jobId, auth.OrganizationId);
+        else
+            await _getModuleHandler.Cancel(jobId);
     }
 
     /// <summary>
@@ -476,9 +497,13 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task GetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.GetModuleFaulted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.GetModuleFaulted, SplitMonolithTaskEndpoint.GetModuleFaulted);
 
-        await _getModuleHandler.Fault(jobId, errorMessage, stackTrace);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitGetModuleHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else
+            await _getModuleHandler.Fault(jobId, errorMessage, stackTrace);
     }
 
     /// <summary>
@@ -486,9 +511,13 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task InitCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.InitCompleted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.InitCompleted, SplitMonolithTaskEndpoint.InitCompleted);
 
-        await _initHandler.Complete(jobId);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitInitHandler.Complete(jobId, auth.OrganizationId);
+        else
+            await _initHandler.Complete(jobId);
     }
 
     /// <summary>
@@ -496,9 +525,13 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task InitCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.InitCancelled);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.InitCancelled, SplitMonolithTaskEndpoint.InitCancelled);
 
-        await _initHandler.Cancel(jobId);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitInitHandler.Cancel(jobId, auth.OrganizationId);
+        else
+            await _initHandler.Cancel(jobId);
     }
 
     /// <summary>
@@ -506,9 +539,13 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task InitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.InitFaulted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.InitFaulted, SplitMonolithTaskEndpoint.InitFaulted);
 
-        await _initHandler.Fault(jobId, errorMessage, stackTrace);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitInitHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else
+            await _initHandler.Fault(jobId, errorMessage, stackTrace);
     }
 
     /// <summary>
@@ -516,9 +553,13 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task ValidateCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.ValidateCompleted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.ValidateCompleted, SplitMonolithTaskEndpoint.ValidateCompleted);
 
-        await _validateHandler.Complete(jobId);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitValidateHandler.Complete(jobId, auth.OrganizationId);
+        else
+            await _validateHandler.Complete(jobId);
     }
 
     /// <summary>
@@ -526,17 +567,25 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task ValidateCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.ValidateCancelled);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.ValidateCancelled, SplitMonolithTaskEndpoint.ValidateCancelled);
 
-        await _validateHandler.Cancel(jobId);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitValidateHandler.Cancel(jobId, auth.OrganizationId);
+        else
+            await _validateHandler.Cancel(jobId);
     }
 
 
     public async Task ValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.ValidateFaulted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.ValidateFaulted, SplitMonolithTaskEndpoint.ValidateFaulted);
 
-        await _validateHandler.Fault(jobId, errorMessage, stackTrace);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitValidateHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else
+            await _validateHandler.Fault(jobId, errorMessage, stackTrace);
     }
 
     /// <summary>
@@ -594,26 +643,50 @@ public class RunnerHub : Hub
 
     public async Task PlanCompleted(Guid jobId, PlanCompletedData data)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanCompleted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.PlanCompleted, SplitMonolithTaskEndpoint.PlanCompleted);
 
-        await _planHandler.Complete(jobId, data);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitPlanHandler.Complete(jobId, auth.OrganizationId, data.TotalChangedCount);
+        else
+            await _planHandler.Complete(jobId, data);
     }
 
 
     public async Task PlanCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanCancelled);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.PlanCancelled, SplitMonolithTaskEndpoint.PlanCancelled);
 
-        await _planHandler.Cancel(jobId);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitPlanHandler.Cancel(jobId, auth.OrganizationId);
+        else
+            await _planHandler.Cancel(jobId);
     }
 
 
     public async Task PlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanFaulted);
+        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.PlanFaulted, SplitMonolithTaskEndpoint.PlanFaulted);
 
-        await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
+        if (auth.Family == JobSagaFamily.SplitMonolith)
+            await _splitPlanHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else
+            await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     public async Task PlanEmptyVerifyCompleted(Guid jobId)
     {

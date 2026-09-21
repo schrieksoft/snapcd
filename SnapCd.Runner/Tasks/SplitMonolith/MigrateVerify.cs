@@ -58,7 +58,9 @@ public partial class Tasks
                 "migrate verify",
                 request.RootDirectory,
                 request.Engine,
-                DemonolithCommand.BackendConfigFlags(request.BackendConfigs).ToArray());
+                DemonolithCommand.BackendConfigFlags(request.BackendConfigs)
+                    .Concat(DemonolithCommand.VarFileFlags(engine.GetSnapCdDir()))
+                    .ToArray());
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

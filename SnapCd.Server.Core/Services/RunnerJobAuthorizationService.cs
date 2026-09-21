@@ -97,10 +97,16 @@ public class RunnerJobAuthorizationService
         return organizationId;
     }
 
-    public async Task ValidateRunnerCanAccessJob(
+    /// <summary>
+    /// Authorizes a runner callback for a job in any saga family. <paramref name="splitTaskEndpoint"/> is
+    /// supplied only for the steps a split job shares with a deployment job; without it, a split job's id
+    /// is refused, which is what confines the other steps to deployment jobs.
+    /// </summary>
+    public async Task<JobAuthorization> ValidateRunnerCanAccessJob(
         HubCallerContext hubCallerContext,
         Guid jobId,
-        TaskEndpoint taskEndpoint)
+        TaskEndpoint taskEndpoint,
+        SplitMonolithTaskEndpoint? splitTaskEndpoint = null)
     {
         var expectedState = StateHelper.Lookup(taskEndpoint);
 
@@ -132,7 +138,22 @@ public class RunnerJobAuthorizationService
             throw new HubException(e.Message);
         }
 
-        // 3. Validate saga state matches expected state
+        // 3. Validate saga state matches expected state, in the resolved family's vocabulary
+        if (sagaMetaData.Family == JobSagaFamily.SplitMonolith)
+        {
+            if (splitTaskEndpoint == null)
+            {
+                _logger.LogWarning(
+                    "Authorization failed: Job {JobId} is a SplitMonolith job, but {TaskEndpoint} is not a step it runs " +
+                    "(Connection: {ConnectionId})",
+                    jobId, taskEndpoint, hubCallerContext.ConnectionId);
+                throw new HubException("Unauthorized: This callback does not apply to this job");
+            }
+
+            var splitOrgId = await ValidateRunnerCanAccessSplitMonolithJob(hubCallerContext, jobId, splitTaskEndpoint.Value);
+            return new JobAuthorization(JobSagaFamily.SplitMonolith, splitOrgId);
+        }
+
         var currentState = Enum.Parse<ModuleJobSagaState>(sagaMetaData.CurrentState);
         var cancellingStates = StateHelper.GetCancellingStates();
 
@@ -208,6 +229,8 @@ public class RunnerJobAuthorizationService
         _logger.LogDebug(
             "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for job {JobId} in state {State}",
             connection.RunnerId, connection.InstanceName, jobId, expectedState);
+
+        return new JobAuthorization(JobSagaFamily.Deployment, connection.OrganizationId);
     }
 
     public async Task ValidateRunnerAssignedToModule(

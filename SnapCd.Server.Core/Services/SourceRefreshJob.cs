@@ -83,6 +83,13 @@ public class SourceRefreshJob
                     group.SourceRevisionType,
                     group.WatchedPaths);
             }
+            catch (RunnerUnreachableException ex)
+            {
+                // Expected while a runner is reconnecting or a dead server's connections are being
+                // swept: the next run of this job picks the source up again.
+                _logger.LogWarning("Skipping source refresh for {SourceUrl}@{SourceRevision}: {Reason}",
+                    group.SourceUrl, group.SourceRevision, ex.Message);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error dispatching source refresh for {SourceUrl}@{SourceRevision}",

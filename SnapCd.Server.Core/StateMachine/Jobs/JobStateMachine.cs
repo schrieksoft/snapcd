@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Events.Jobs.Module;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
@@ -156,11 +157,15 @@ public partial class JobStateMachine<
         Configure_Approval();
 
         // Terminal states - ignore runner reconnection events
+        // A cancel that arrives after the job ended has nothing to do, but must not fault: an
+        // unhandled event is retried and then dead-lettered, which looks like a broken cancel.
         During(Completed,
+            Ignore(CancelModuleRequested),
             Ignore(RunnerReconnectedEvent)
         );
 
         During(Failed,
+            Ignore(CancelModuleRequested),
             Ignore(RunnerReconnectedEvent)
         );
 

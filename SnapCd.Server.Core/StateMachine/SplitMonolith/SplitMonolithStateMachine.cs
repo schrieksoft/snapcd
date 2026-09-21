@@ -86,6 +86,7 @@ public partial class SplitMonolithStateMachine : MassTransitStateMachine<SplitMo
                     context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                     context.Saga.RootDirectory = context.Message.RootDirectory;
                     context.Saga.Force = context.Message.Force;
+                    context.Saga.StopAfterProve = context.Message.StopAfterProve;
                 })
                 .Publish(context => new SelectRunnerInstanceRequested
                 {
@@ -111,8 +112,10 @@ public partial class SplitMonolithStateMachine : MassTransitStateMachine<SplitMo
         Configure_MigrateRun();
         Configure_MigrateVerify();
 
-        During(Completed, Ignore(RunnerReconnectedEvent));
-        During(Failed, Ignore(RunnerReconnectedEvent));
-        During(Cancelled, Ignore(RunnerReconnectedEvent));
+        // A cancel that arrives after the job ended has nothing to do, but must not fault: an
+        // unhandled event is retried and then dead-lettered, which looks like a broken cancel.
+        During(Completed, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
+        During(Failed, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
+        During(Cancelled, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
     }
 }

@@ -9,6 +9,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Services;
@@ -47,7 +49,12 @@ public class StuckJobDetectionService
                     .Where(s => s.WaitingSince != null)
                     .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
                     .ToListAsync())
-                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "Destroy")));
+                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "Destroy")))
+            .Concat((await db.Set<SplitMonolithSaga>().AsNoTracking()
+                    .Where(s => s.WaitingSince != null)
+                    .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
+                    .ToListAsync())
+                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "SplitMonolith")));
 
         var stuck = new List<StuckJob>();
         foreach (var saga in candidates)
@@ -58,6 +65,47 @@ public class StuckJobDetectionService
             var stalled = now - saga.WaitingSince!.Value;
             if (stalled > threshold.Value)
                 stuck.Add(new StuckJob(saga.CorrelationId, saga.JobType, saga.OrganizationId, saga.ModuleId, saga.CurrentState, saga.WaitingSince.Value, stalled));
+        }
+
+        stuck.AddRange(await FindManualJobsWithoutProgressAsync(db, now));
+
+        return stuck;
+    }
+
+    /// <summary>
+    /// A manual job whose saga has neither parked nor reached a terminal state. The waits above
+    /// need a WaitingSince, and a heartbeat needs a dispatched step, so a saga that never received
+    /// its first reply is invisible to both: the job runs forever with nothing watching it.
+    /// </summary>
+    private async Task<List<StuckJob>> FindManualJobsWithoutProgressAsync(SnapCdDbContext db, DateTime now)
+    {
+        var threshold = TimeSpan.FromMinutes(_settings.ManualJobNoProgressThresholdMinutes);
+        var cutoff = new DateTimeOffset(now, TimeSpan.Zero) - threshold;
+
+        var running = await db.ManualModuleJobs.AsNoTracking()
+            .Where(j => j.Status == ExecutionStatus.Running && j.TimestampStart < cutoff)
+            .Select(j => new { j.Id, j.OrganizationId, j.ModuleId, j.JobType, j.TimestampStart })
+            .ToListAsync();
+
+        if (running.Count == 0) return [];
+
+        var ids = running.Select(j => j.Id).ToList();
+        var sagaStates = await db.Set<SplitMonolithSaga>().AsNoTracking()
+            .Where(s => ids.Contains(s.CorrelationId))
+            .Select(s => new { s.CorrelationId, s.CurrentState, s.WaitingSince })
+            .ToListAsync();
+
+        var stuck = new List<StuckJob>();
+        foreach (var job in running)
+        {
+            var saga = sagaStates.FirstOrDefault(s => s.CorrelationId == job.Id);
+
+            // No saga at all is the orphan cleanup's business, and a parked saga is already
+            // covered by the waits above.
+            if (saga is null || saga.WaitingSince != null) continue;
+
+            var startedAt = job.TimestampStart.UtcDateTime;
+            stuck.Add(new StuckJob(job.Id, job.JobType, job.OrganizationId, job.ModuleId, saga.CurrentState, startedAt, now - startedAt));
         }
 
         return stuck;

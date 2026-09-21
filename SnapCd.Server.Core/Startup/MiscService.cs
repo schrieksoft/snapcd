@@ -65,6 +65,7 @@ public static class MiscService
         services.AddSingleton<RoleCapabilitiesService>();
         services.AddSingleton<JobCreatedNotificationService>();
         services.AddSingleton<JobUpdatedNotificationService>();
+        services.AddSingleton<ManualJobUpdatedNotificationService>();
         services.AddSingleton<LogReceivedNotificationService>();
         services.AddSingleton<RunnerAvailabilityModifiedNotificationService>();
         services.AddSingleton<AgentAvailabilityModifiedNotificationService>();
@@ -117,6 +118,7 @@ public static class MiscService
         services.AddScoped<IQuotaGatingService, QuotaGatingService>();
         services.AddScoped<QuotaService>();
         services.AddScoped<StuckJobDetectionService>();
+        services.AddScoped<RunnerConnectionManualJobService>();
         services.AddScoped<QuiescenceProbeService>();
         services.AddScoped<TransportProbeService>();
         services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsService>();

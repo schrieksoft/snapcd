@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.Events.Jobs.Module;
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -55,9 +56,9 @@ public partial class JobStateMachine<
 
         During(SelectRunnerInstancePending,
             When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             When(SelectRunnerInstanceCompleted)
                 .Then(context => { context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName; })
                 // Use SendToRunnerActivity to target specific server instance

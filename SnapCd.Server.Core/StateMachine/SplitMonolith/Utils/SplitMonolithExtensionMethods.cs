@@ -8,6 +8,8 @@
 
 
 using MassTransit;
+using MassTransit.Contracts;
+using SnapCd.Contracts;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Jobs.Module;
@@ -74,6 +76,53 @@ public static class SplitMonolithExtensionMethods
             })
             .Activity(x => x.OfType<CompleteManualModuleJobActivity<SplitMonolithSaga, TCompleted>>())
             .TransitionTo(completed)
+            .Finalize();
+    }
+
+    /// <summary>
+    /// A cancel clicked again after its timeout should already have fired. The timeout was lost, so
+    /// nothing else will end this job: close it here rather than leaving the saga cancelling forever.
+    /// </summary>
+    public static EventActivityBinder<SplitMonolithSaga, CancelManualModuleJobRequested> ThenSplitCancelForced(this
+        EventActivityBinder<SplitMonolithSaga, CancelManualModuleJobRequested> binder, ILogger logger, State cancelled)
+    {
+        return binder
+            .Then(context => logger.LogWarning(
+                "SplitMonolith: cancel re-requested for job {JobId} after its timeout was due; forcing it closed",
+                context.Saga.CorrelationId))
+            .Publish(context => new SplitMonolithCancelled
+            {
+                ModuleId = context.Saga.ModuleId,
+                OrganizationId = context.Saga.OrganizationId,
+                ModuleJobId = context.Saga.CorrelationId,
+                CancellationReason = CancellationReason.UserRequested
+            })
+            .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMonolithSaga, CancelManualModuleJobRequested>>())
+            .TransitionTo(cancelled)
+            .Finalize();
+    }
+
+    /// <summary>
+    /// A cancel request the runner never answers. Ends the job rather than leaving the saga in
+    /// Cancelling: the commonest cause is that no step had been dispatched, so there was nothing
+    /// on the runner to cancel.
+    /// </summary>
+    public static EventActivityBinder<SplitMonolithSaga, RequestTimeoutExpired<TRequest>> ThenSplitCancelTimedOut<TRequest>(this
+        EventActivityBinder<SplitMonolithSaga, RequestTimeoutExpired<TRequest>> binder, ILogger logger, State cancelled)
+        where TRequest : class
+    {
+        return binder
+            .Then(context => logger.LogInformation(
+                "SplitMonolith: cancel request timed out for job {JobId}; ending it anyway", context.Saga.CorrelationId))
+            .Publish(context => new SplitMonolithCancelled
+            {
+                ModuleId = context.Saga.ModuleId,
+                OrganizationId = context.Saga.OrganizationId,
+                ModuleJobId = context.Saga.CorrelationId,
+                CancellationReason = CancellationReason.UserRequested
+            })
+            .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMonolithSaga, RequestTimeoutExpired<TRequest>>>())
+            .TransitionTo(cancelled)
             .Finalize();
     }
 

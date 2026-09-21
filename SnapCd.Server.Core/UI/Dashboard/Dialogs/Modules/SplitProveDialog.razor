@@ -1,0 +1,51 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Proves a split without writing anything: checks out the ref, verifies the refactor map against it,
+            builds the carved modules' state locally and plans each one. Green means every carved module planned clean.
+        </MudText>
+        <MudTextField @bind-Value="_sourceRevision"
+                      Label="Ref"
+                      HelperText="Branch, tag or commit carrying the refactor. The module's configured revision is not changed."
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      Class="mb-3"/>
+        <MudTextField @bind-Value="_rootDirectory"
+                      Label="Monolith root"
+                      HelperText="Where the monolith sits within the checkout. Leave empty for the module's own directory."
+                      Variant="Variant.Outlined"
+                      Immediate="true"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   Disabled="@(string.IsNullOrWhiteSpace(_sourceRevision))"
+                   OnClick="Confirm">
+            Start
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string? _rootDirectory;
+    private string? _sourceRevision;
+
+    private void Confirm() =>
+        MudDialog.Close(DialogResult.Ok(new SplitProveOptions(_rootDirectory, _sourceRevision!.Trim())));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public record SplitProveOptions(string? RootDirectory, string SourceRevision);
+}

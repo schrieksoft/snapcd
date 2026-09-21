@@ -76,10 +76,10 @@ public partial class SplitMonolithStateMachine
                             context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
                         .TransitionTo(nextState)
                 ),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2)
@@ -112,10 +112,10 @@ public partial class SplitMonolithStateMachine
                 .ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
                 .ThenSplitTimedOut(Failed),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             When(cancelledEvent)
                 .ThenSplitCancelled(Cancelled),
             When(faultedEvent)

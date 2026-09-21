@@ -16,6 +16,7 @@ using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Contracts;
+using SnapCd.Server.Core.Events.Jobs.Module;
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -84,6 +85,7 @@ public partial class JobStateMachine<
 
         // Terminal state - ignore runner reconnection events
         During(Declined,
+            Ignore(CancelModuleRequested),
             Ignore(RunnerReconnectedEvent)
         );
     }

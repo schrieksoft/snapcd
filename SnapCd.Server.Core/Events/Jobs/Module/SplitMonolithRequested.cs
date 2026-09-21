@@ -18,4 +18,7 @@ public class SplitMonolithRequested : ModuleJobEventBase
 
     /// <summary>Replace a destination whose state does not match. Destructive: state push -force.</summary>
     public bool Force { get; set; }
+
+    /// <summary>End after the proof: no approval, nothing pushed.</summary>
+    public bool StopAfterProve { get; set; }
 }

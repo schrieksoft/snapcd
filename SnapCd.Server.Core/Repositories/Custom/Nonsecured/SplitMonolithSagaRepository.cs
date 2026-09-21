@@ -32,6 +32,21 @@ public class SplitMonolithSagaRepository : IDisposable
         _dbContext = dbContext;
     }
 
+    public virtual async Task<JobSagaMetaData?> GetSagaMetaDataOrNull(Guid correlationId, Guid organizationId)
+    {
+        return await _dbContext.Set<SplitMonolithSaga>()
+            .Where(i => i.CorrelationId == correlationId && i.OrganizationId == organizationId)
+            .Select(x => new JobSagaMetaData
+            {
+                CurrentState = x.CurrentState,
+                RunnerId = x.RunnerId,
+                RunnerInstanceName = x.RunnerInstanceName,
+                OrganizationId = x.OrganizationId,
+                PreviousStateBeforeCancelling = x.PreviousStateBeforeCancelling
+            })
+            .FirstOrDefaultAsync();
+    }
+
     public virtual async Task<JobSagaMetaData> GetSagaMetaData(Guid correlationId, Guid organizationId)
     {
         var metaData = await _dbContext.Set<SplitMonolithSaga>()

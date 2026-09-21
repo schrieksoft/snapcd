@@ -9,7 +9,9 @@
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Entities.Sagas.Base;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Events.Jobs.Base;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
@@ -62,6 +64,22 @@ public partial class JobStateMachine<
     public State CancellingAfterCurrent { get; } = null!;
     public State Cancelled { get; } = null!;
 
+    /// <summary>
+    /// A cancel of the mode already in flight, whose timeout is overdue: the timeout was lost, so
+    /// this click is the only thing that can end the job. A different mode is an escalation and is
+    /// handled by the escalation branch instead.
+    /// </summary>
+    private static StateMachineCondition<TSaga, CancelModuleRequested> IsOverdueRepeat(CancellationType inFlight) =>
+        context => context.Message.CancellationType == inFlight && JobExtensionMethods.CancelTimeoutIsOverdue<TSaga, CancelModuleRequested>(context);
+
+    /// <summary>The same mode again while its timeout is still due: the timeout is still coming.</summary>
+    private static StateMachineCondition<TSaga, CancelModuleRequested> IsRepeat(CancellationType inFlight) =>
+        context => context.Message.CancellationType == inFlight;
+
+    private void NoteRepeat(BehaviorContext<TSaga, CancelModuleRequested> context) =>
+        _logger.LogDebug("Cancel repeated for job {JobId} while its request is still outstanding; waiting for the timeout",
+            context.Saga.CorrelationId);
+
     private void Configure_Cancel()
     {
         // Cancel module requested - with fallback for missing saga
@@ -83,7 +101,17 @@ public partial class JobStateMachine<
                 _logger.LogWarning("Saga missing for {EventType} on job {JobId}, finalizing directly",
                     nameof(CancelModuleRequested), context.Message.CorrelationId);
 
-                var moduleJob = await repository.Get(context.Message.CorrelationId, context.Message.OrganizationId);
+                // Published, so this reaches every job saga: an id belonging to another kind of job
+                // is not ours to finalize. The repository throws rather than returning null.
+                ModuleJob? moduleJob;
+                try
+                {
+                    moduleJob = await repository.Get(context.Message.CorrelationId, context.Message.OrganizationId);
+                }
+                catch (EntityNotFoundException)
+                {
+                    return;
+                }
 
                 if (moduleJob != null)
                 {
@@ -108,7 +136,7 @@ public partial class JobStateMachine<
             })));
 
         // Cancel requests
-        Request(() => CancelKillRequested, x => x.KillCancellationRequestId, o => { o.Timeout = TimeSpan.FromSeconds(90); });
+        Request(() => CancelKillRequested, x => x.KillCancellationRequestId, o => { o.Timeout = JobExtensionMethods.CancelRequestTimeout; });
         Event(() => CancelKillCompleted, x => x
             .CorrelateById(y => y.Message.CorrelationId)
             .OnMissingInstance(m => m.ExecuteAsync(async context =>
@@ -127,7 +155,17 @@ public partial class JobStateMachine<
                 _logger.LogWarning("Saga missing for {EventType} on job {JobId}, finalizing directly",
                     nameof(CancelKillCompleted), context.Message.CorrelationId);
 
-                var moduleJob = await repository.Get(context.Message.CorrelationId, context.Message.OrganizationId);
+                // Published, so this reaches every job saga: an id belonging to another kind of job
+                // is not ours to finalize. The repository throws rather than returning null.
+                ModuleJob? moduleJob;
+                try
+                {
+                    moduleJob = await repository.Get(context.Message.CorrelationId, context.Message.OrganizationId);
+                }
+                catch (EntityNotFoundException)
+                {
+                    return;
+                }
 
                 if (moduleJob != null)
                 {
@@ -151,7 +189,7 @@ public partial class JobStateMachine<
                     actualStateHeadline);
             })));
 
-        Request(() => CancelGracefulRequested, x => x.GracefulCancellationRequestId, o => { o.Timeout = TimeSpan.FromSeconds(90); });
+        Request(() => CancelGracefulRequested, x => x.GracefulCancellationRequestId, o => { o.Timeout = JobExtensionMethods.CancelRequestTimeout; });
         Event(() => CancelGracefulCompleted, x => x
             .CorrelateById(y => y.Message.CorrelationId)
             .OnMissingInstance(m => m.ExecuteAsync(async context =>
@@ -170,7 +208,17 @@ public partial class JobStateMachine<
                 _logger.LogWarning("Saga missing for {EventType} on job {JobId}, finalizing directly",
                     nameof(CancelGracefulCompleted), context.Message.CorrelationId);
 
-                var moduleJob = await repository.Get(context.Message.CorrelationId, context.Message.OrganizationId);
+                // Published, so this reaches every job saga: an id belonging to another kind of job
+                // is not ours to finalize. The repository throws rather than returning null.
+                ModuleJob? moduleJob;
+                try
+                {
+                    moduleJob = await repository.Get(context.Message.CorrelationId, context.Message.OrganizationId);
+                }
+                catch (EntityNotFoundException)
+                {
+                    return;
+                }
 
                 if (moduleJob != null)
                 {
@@ -195,6 +243,9 @@ public partial class JobStateMachine<
             })));
 
         During(CancellingImmediateKill,
+            When(CancelModuleRequested, IsOverdueRepeat(CancellationType.ImmediateKill))
+                .ThenCancelForced<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, Cancelled),
+            When(CancelModuleRequested, IsRepeat(CancellationType.ImmediateKill)).Then(NoteRepeat),
             When(SelectRunnerInstanceCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(GetDefinitiveRevisionCompleted)
@@ -224,6 +275,9 @@ public partial class JobStateMachine<
         );
 
         During(CancellingImmediateGraceful,
+            When(CancelModuleRequested, IsOverdueRepeat(CancellationType.ImmediateGraceful))
+                .ThenCancelForced<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, Cancelled),
+            When(CancelModuleRequested, IsRepeat(CancellationType.ImmediateGraceful)).Then(NoteRepeat),
             When(SelectRunnerInstanceCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(GetDefinitiveRevisionCompleted)
@@ -243,7 +297,7 @@ public partial class JobStateMachine<
             When(OutputCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled),
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled),
             When(CancelGracefulCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelGracefulRequested.TimeoutExpired)
@@ -274,8 +328,8 @@ public partial class JobStateMachine<
             When(OutputCompleted)
                 .Cancel(_logger, Cancelled, new TResponseCancelled()),
             When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled),
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2),
@@ -284,6 +338,7 @@ public partial class JobStateMachine<
 
         // Terminal state - ignore runner reconnection events
         During(Cancelled,
+            Ignore(CancelModuleRequested),
             Ignore(RunnerReconnectedEvent)
         );
     }

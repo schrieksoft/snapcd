@@ -42,15 +42,19 @@ public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
         {
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-            // Look up the RunnerConnectionJob for this job
-            var runnerConnectionJob = await dbContext.RunnerConnectionJobs
-                .Where(rcj => rcj.OrganizationId == orgId && rcj.ModuleJobId == correlationId)
-                .Select(rcj => new { rcj.ModifiedDateTime })
-                .FirstOrDefaultAsync();
+            var lastReportedAt = msg.IsManualJob
+                ? await dbContext.RunnerConnectionManualJobs
+                    .Where(r => r.OrganizationId == orgId && r.ManualModuleJobId == correlationId)
+                    .Select(r => (DateTime?)r.ModifiedDateTime)
+                    .FirstOrDefaultAsync()
+                : await dbContext.RunnerConnectionJobs
+                    .Where(rcj => rcj.OrganizationId == orgId && rcj.ModuleJobId == correlationId)
+                    .Select(rcj => (DateTime?)rcj.ModifiedDateTime)
+                    .FirstOrDefaultAsync();
 
-            if (runnerConnectionJob == null)
+            if (lastReportedAt == null)
             {
-                _logger.LogWarning("No RunnerConnectionJob found for job {CorrelationId}", correlationId);
+                _logger.LogWarning("No runner connection record found for job {CorrelationId}", correlationId);
                 await context.RespondAsync(new HeartbeatFailed
                 {
                     CorrelationId = correlationId
@@ -59,7 +63,7 @@ public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
             }
 
             // Check if ModifiedDateTime is more than 90 seconds old
-            var age = DateTime.UtcNow - runnerConnectionJob.ModifiedDateTime;
+            var age = DateTime.UtcNow - lastReportedAt.Value;
 
             if (age.TotalSeconds > 90)
             {

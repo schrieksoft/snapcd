@@ -10,6 +10,7 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
@@ -60,6 +61,13 @@ public class FailManualModuleJobActivity<TSaga, TMessage> : IStateMachineActivit
                 ExecutionStatus.Failed,
                 DateTimeOffset.UtcNow);
         }
+
+        await context.Publish(new ManualJobUpdatedEvent
+        {
+            JobId = context.Saga.CorrelationId,
+            ModuleId = context.Saga.ModuleId,
+            OrganizationId = context.Saga.OrganizationId
+        });
 
         await next.Execute(context).ConfigureAwait(false);
     }

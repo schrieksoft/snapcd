@@ -12,7 +12,7 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20260916171903_ManualJobs")]
+    [Migration("20260917154242_ManualJobs")]
     partial class ManualJobs
     {
         /// <inheritdoc />
@@ -7749,6 +7749,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("ServerInstanceId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("StopAfterProve")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Version")
                         .HasColumnType("int");

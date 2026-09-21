@@ -38,10 +38,10 @@ public partial class SplitMonolithStateMachine
         During(MigrateVerifyWaitingForRunner,
             When(MigrateVerifyWaitingForRunner.Enter)
                 .Activity(x => x.OfType<CheckRunnerConnectionActivity<SplitMonolithSaga, MigrateVerifyCompleted>>()),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
@@ -58,10 +58,10 @@ public partial class SplitMonolithStateMachine
                 .ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
                 .ThenSplitTimedOut(Failed),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             When(MigrateVerifyCancelled)
                 .ThenSplitCancelled(Cancelled),
             When(MigrateVerifyFaulted)

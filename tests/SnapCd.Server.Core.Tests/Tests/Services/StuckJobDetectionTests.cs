@@ -87,7 +87,13 @@ public class StuckJobDetectionTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _provider.DisposeAsync();
+
+        await using var db = _fixture.CreateDbContext();
+        await db.Set<SplitMonolithSaga>().Where(s => _seededManualJobs.Contains(s.CorrelationId)).ExecuteDeleteAsync();
+        await db.ManualModuleJobs.Where(j => _seededManualJobs.Contains(j.Id)).ExecuteDeleteAsync();
     }
+
+    private readonly List<Guid> _seededManualJobs = [];
 
     private StuckJobDetectionService CreateService()
         => new(
@@ -136,6 +142,76 @@ public class StuckJobDetectionTests : IAsyncLifetime
             RunnerInstanceName = "stuck-harness",
             DeclaredJson = JsonSerializer.Serialize(declared),
             WaitingSince = waitingSince
+        });
+        await db.SaveChangesAsync();
+        return jobId;
+    }
+
+    /// <summary>
+    /// The case the waits above cannot see: a manual job whose saga never parked and never
+    /// dispatched a step, so it has neither a WaitingSince nor a heartbeat watching it.
+    /// </summary>
+    [Fact]
+    public async Task Detects_A_Manual_Job_Whose_Saga_Never_Progressed()
+    {
+        // One Running manual job per module, enforced by a filtered unique index.
+        var deaf = await SeedManualJob("SelectRunnerInstancePending", startedMinutesAgo: 90, waitingSince: null, moduleId: _fixture.Modules["0000"].Id);
+        var fresh = await SeedManualJob("SelectRunnerInstancePending", startedMinutesAgo: 5, waitingSince: null, moduleId: _fixture.Modules["0001"].Id);
+        var parked = await SeedManualJob("GetModuleWaitingForRunner", startedMinutesAgo: 90, waitingSince: DateTime.UtcNow.AddMinutes(-2), moduleId: _fixture.Modules["0002"].Id);
+
+        var stuck = await CreateService().FindStuckJobsAsync();
+        var ids = stuck.Select(s => s.JobId).ToHashSet();
+
+        Assert.Contains(deaf, ids);
+        Assert.DoesNotContain(fresh, ids);
+        // Parked recently: the runner-wait threshold governs it, and it has not been reached.
+        Assert.DoesNotContain(parked, ids);
+
+        var reported = stuck.Single(s => s.JobId == deaf);
+        Assert.Equal("SelectRunnerInstancePending", reported.State);
+        Assert.Equal(ManualJobTypes.SplitProve, reported.JobType);
+        Assert.True(reported.Stalled > TimeSpan.FromMinutes(60));
+    }
+
+    [Fact]
+    public async Task Ignores_A_Finished_Manual_Job()
+    {
+        var done = await SeedManualJob("Completed", startedMinutesAgo: 120, waitingSince: null, status: ExecutionStatus.Completed);
+
+        var stuck = await CreateService().FindStuckJobsAsync();
+
+        Assert.DoesNotContain(done, stuck.Select(s => s.JobId));
+    }
+
+    private async Task<Guid> SeedManualJob(string state, int startedMinutesAgo, DateTime? waitingSince, ExecutionStatus status = ExecutionStatus.Running, Guid? moduleId = null)
+    {
+        var jobId = Guid.NewGuid();
+        var onModule = moduleId ?? _module.Id;
+        _seededManualJobs.Add(jobId);
+
+        await using var db = _fixture.CreateDbContext();
+        db.ManualModuleJobs.Add(new ManualModuleJob
+        {
+            Id = jobId,
+            OrganizationId = _module.OrganizationId,
+            ModuleId = onModule,
+            TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-startedMinutesAgo),
+            TimestampEnd = status == ExecutionStatus.Running ? null : DateTimeOffset.UtcNow,
+            JobType = ManualJobTypes.SplitProve,
+            Status = status
+        });
+        db.Set<SplitMonolithSaga>().Add(new SplitMonolithSaga
+        {
+            CorrelationId = jobId,
+            CurrentState = state,
+            ModuleId = onModule,
+            OrganizationId = _module.OrganizationId,
+            RunnerId = _runner.Id,
+            RunnerName = _runner.Name,
+            RunnerInstanceName = "stuck-harness",
+            DeclaredJson = "{}",
+            WaitingSince = waitingSince,
+            RowVersion = []
         });
         await db.SaveChangesAsync();
         return jobId;

@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.SplitMonolith.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.Events.Steps.SplitMonolith;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
 
@@ -39,13 +40,13 @@ public partial class SplitMonolithStateMachine
         Event(() => SelectRunnerInstanceFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         During(SelectRunnerInstancePending,
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             When(SelectRunnerInstanceCompleted)
                 .Then(context => { context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName; })
-                .Activity(x => x.OfType<SendSplitStepToRunnerActivity<SelectRunnerInstanceCompleted, GetModuleRequested>>())
+                .Activity(x => x.OfType<SendSplitStepToRunnerActivity<SelectRunnerInstanceCompleted, SplitGetModuleRequested>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     whenTrue => whenTrue

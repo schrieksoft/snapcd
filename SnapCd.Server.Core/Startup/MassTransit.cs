@@ -215,6 +215,10 @@ public static class MassTransit
         typeof(PolicyValidateConsumer),
         typeof(VariablesConsumer),
         typeof(PlanConsumer),
+        typeof(SplitGetModuleConsumer),
+        typeof(SplitInitConsumer),
+        typeof(SplitValidateConsumer),
+        typeof(SplitPlanConsumer),
         typeof(PlanEmptyVerifyConsumer),
         typeof(RefactorValidateConsumer),
         typeof(RefactorDiffConsumer),
@@ -295,6 +299,7 @@ public static class MassTransit
     [
         typeof(JobCreatedFanoutConsumer),
         typeof(JobUpdatedFanoutConsumer),
+        typeof(ManualJobUpdatedFanoutConsumer),
         typeof(LogReceivedFanoutConsumer),
         typeof(RunnerAvailabilityModifiedFanoutConsumer),
         typeof(AgentAvailabilityModifiedFanoutConsumer),
@@ -319,6 +324,7 @@ public static class MassTransit
     {
         AddSagaReceiveEndpoint<ApplyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
         AddSagaReceiveEndpoint<DestroyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
+        AddSagaReceiveEndpoint<SplitMonolithSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
 
         AddSagaReceiveEndpoint<ModuleSaga, TMqFactory>(serviceBusSettings, context, cfg, serviceBusSettings.SagaConcurrencyLimit, s =>
         {

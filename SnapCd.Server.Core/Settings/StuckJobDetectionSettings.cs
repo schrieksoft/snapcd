@@ -20,4 +20,11 @@ public class StuckJobDetectionSettings
 
     /// <summary>Cancellations resolve in seconds; one still cancelling after this is stranded.</summary>
     public int CancellingThresholdMinutes { get; set; } = 10;
+
+    /// <summary>
+    /// A manual job running this long without its saga having parked or moved is flagged. Unlike
+    /// the waits above this catches a saga that is simply deaf: no heartbeat is scheduled until a
+    /// step dispatches, so a reply lost before then leaves the job running with nothing to time out.
+    /// </summary>
+    public int ManualJobNoProgressThresholdMinutes { get; set; } = 30;
 }

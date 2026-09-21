@@ -16,25 +16,25 @@ namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
 
 public partial class SplitMonolithStateMachine
 {
-    public Event<GetModuleCompleted> GetModuleCompleted { get; } = null!;
-    public Event<GetModuleCancelled> GetModuleCancelled { get; } = null!;
-    public Event<GetModuleFaulted> GetModuleFaulted { get; } = null!;
+    public Event<SplitGetModuleCompleted> SplitGetModuleCompleted { get; } = null!;
+    public Event<SplitGetModuleCancelled> SplitGetModuleCancelled { get; } = null!;
+    public Event<SplitGetModuleFaulted> SplitGetModuleFaulted { get; } = null!;
 
     public State GetModulePending { get; } = null!;
     public State GetModuleWaitingForRunner { get; } = null!;
 
     private void Configure_GetModule()
     {
-        Event(() => GetModuleCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => GetModuleCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => GetModuleFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitGetModuleCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitGetModuleCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitGetModuleFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        CreateStep<GetModuleCompleted, GetModuleCancelled, GetModuleFaulted, InitRequested>(
+        CreateStep<SplitGetModuleCompleted, SplitGetModuleCancelled, SplitGetModuleFaulted, SplitInitRequested>(
             GetModuleWaitingForRunner,
             GetModulePending,
-            GetModuleCompleted,
-            GetModuleCancelled,
-            GetModuleFaulted,
+            SplitGetModuleCompleted,
+            SplitGetModuleCancelled,
+            SplitGetModuleFaulted,
             InitWaitingForRunner,
             InitPending
         );

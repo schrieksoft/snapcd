@@ -14,9 +14,9 @@ namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
 
 public partial class SplitMonolithStateMachine
 {
-    public Event<PlanCompleted> PlanCompleted { get; } = null!;
-    public Event<PlanCancelled> PlanCancelled { get; } = null!;
-    public Event<PlanFaulted> PlanFaulted { get; } = null!;
+    public Event<SplitPlanCompleted> SplitPlanCompleted { get; } = null!;
+    public Event<SplitPlanCancelled> SplitPlanCancelled { get; } = null!;
+    public Event<SplitPlanFaulted> SplitPlanFaulted { get; } = null!;
 
     public State PlanPending { get; } = null!;
     public State PlanWaitingForRunner { get; } = null!;
@@ -28,16 +28,16 @@ public partial class SplitMonolithStateMachine
     /// </summary>
     private void Configure_Plan()
     {
-        Event(() => PlanCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => PlanCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => PlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitPlanCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitPlanCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitPlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        CreateStep<PlanCompleted, PlanCancelled, PlanFaulted, PlanEmptyVerifyRequested>(
+        CreateStep<SplitPlanCompleted, SplitPlanCancelled, SplitPlanFaulted, PlanEmptyVerifyRequested>(
             PlanWaitingForRunner,
             PlanPending,
-            PlanCompleted,
-            PlanCancelled,
-            PlanFaulted,
+            SplitPlanCompleted,
+            SplitPlanCancelled,
+            SplitPlanFaulted,
             PlanEmptyVerifyWaitingForRunner,
             PlanEmptyVerifyPending
         );

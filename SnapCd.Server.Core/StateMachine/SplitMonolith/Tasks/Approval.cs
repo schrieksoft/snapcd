@@ -61,17 +61,17 @@ public partial class SplitMonolithStateMachine
                 .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMonolithSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Cancelled)
                 .Finalize(),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2)
         );
 
-        During(Declined, Ignore(RunnerReconnectedEvent));
+        During(Declined, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
     }
 
     /// <summary>

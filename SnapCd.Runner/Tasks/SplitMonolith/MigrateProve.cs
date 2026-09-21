@@ -57,7 +57,11 @@ public partial class Tasks
             // The proof plans against the local state copies; demonolith no longer refreshes, so
             // this asserts the carve was correct rather than that reality still matches. The
             // monolith's own agreement with reality was already established by PlanEmptyVerify.
-            var command = DemonolithCommand.Build("migrate prove", request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build(
+                "migrate prove",
+                request.RootDirectory,
+                request.Engine,
+                DemonolithCommand.VarFileFlags(engine.GetSnapCdDir()).ToArray());
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 

@@ -1,0 +1,60 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.PrincipalProvider
+
+@inject ManualJobServiceFactory ManualJobServiceFactory
+@inject ISnackbar Snackbar
+@inject ILogger<CancelManualModuleJobDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Cancelling stops the job at its next step. A step already running on the runner is left to
+            finish unless you kill it.
+        </MudText>
+        <MudSelect T="CancellationType" @bind-Value="_cancellationType" Label="Cancellation Type" Dense="true">
+            <MudSelectItem Value="CancellationType.AfterCurrent">Cancel after current</MudSelectItem>
+            <MudSelectItem Value="CancellationType.ImmediateKill">Kill current step</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Confirm">Cancel job</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public required Guid JobId { get; set; }
+    [Parameter] public required Guid ModuleId { get; set; }
+    [Parameter] public required Guid OrganizationId { get; set; }
+    [Parameter] public required IPrincipalProvider PrincipalProvider { get; set; }
+
+    private CancellationType _cancellationType = CancellationType.AfterCurrent;
+
+    private async Task Confirm()
+    {
+        try
+        {
+            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            await service.Cancel(JobId, ModuleId, OrganizationId, _cancellationType);
+
+            MudDialog.Close(DialogResult.Ok(JobId));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error cancelling job: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error cancelling manual job {JobId}", JobId);
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

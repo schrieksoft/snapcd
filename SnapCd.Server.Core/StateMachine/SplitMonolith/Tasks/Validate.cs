@@ -16,25 +16,25 @@ namespace SnapCd.Server.Core.StateMachine.SplitMonolith;
 
 public partial class SplitMonolithStateMachine
 {
-    public Event<ValidateCompleted> ValidateCompleted { get; } = null!;
-    public Event<ValidateCancelled> ValidateCancelled { get; } = null!;
-    public Event<ValidateFaulted> ValidateFaulted { get; } = null!;
+    public Event<SplitValidateCompleted> SplitValidateCompleted { get; } = null!;
+    public Event<SplitValidateCancelled> SplitValidateCancelled { get; } = null!;
+    public Event<SplitValidateFaulted> SplitValidateFaulted { get; } = null!;
 
     public State ValidatePending { get; } = null!;
     public State ValidateWaitingForRunner { get; } = null!;
 
     private void Configure_Validate()
     {
-        Event(() => ValidateCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => ValidateCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => ValidateFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitValidateCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitValidateCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SplitValidateFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        CreateStep<ValidateCompleted, ValidateCancelled, ValidateFaulted, PlanRequested>(
+        CreateStep<SplitValidateCompleted, SplitValidateCancelled, SplitValidateFaulted, SplitPlanRequested>(
             ValidateWaitingForRunner,
             ValidatePending,
-            ValidateCompleted,
-            ValidateCancelled,
-            ValidateFaulted,
+            SplitValidateCompleted,
+            SplitValidateCancelled,
+            SplitValidateFaulted,
             PlanWaitingForRunner,
             PlanPending
         );

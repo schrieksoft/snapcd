@@ -45,6 +45,16 @@ public static class DemonolithCommand
     }
 
     /// <summary>
+    /// The module's resolved inputs, as the Plan step wrote them. demonolith auto-loads only
+    /// terraform.tfvars and *.auto.tfvars from the root, so this file is named explicitly.
+    /// </summary>
+    public static IEnumerable<string> VarFileFlags(string snapCdDir)
+    {
+        var path = Path.Combine(snapCdDir, "inputs.tfvars");
+        return File.Exists(path) ? [$"--var-file \"{path}\""] : [];
+    }
+
+    /// <summary>
     /// Backend settings that live outside the backend block, as demonolith expects them. Taken from
     /// the module's own BackendConfig array flags, the same source the Init step uses.
     /// </summary>

@@ -9,6 +9,7 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Jobs.Base;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
@@ -96,9 +97,9 @@ public partial class JobStateMachine<
                         .TransitionTo(ApplyFromPlanPending)
                 ),
             When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2)
@@ -148,9 +149,9 @@ public partial class JobStateMachine<
             When(HeartbeatRequested.Completed2)
                 .ThenJobTimedOut<TSaga, TResponseFailed>(Failed),
             When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             When(ApplyFromPlanCancelled)
                 .ThenCancelled<TSaga, TResponseCancelled, ApplyFromPlanCancelled>(Cancelled),
             When(ApplyFromPlanFaulted)

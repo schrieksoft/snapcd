@@ -11,15 +11,18 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Services;
 
 public class LogService
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
+    private readonly ILogger<LogService> _logger;
 
-    public LogService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public LogService(IDbContextFactory<SnapCdDbContext> dbContextFactory, ILogger<LogService> logger)
     {
+        _logger = logger;
         _dbContextFactory = dbContextFactory;
     }
 
@@ -51,19 +54,38 @@ public class LogService
 
                 // Lock the row using UPDLOCK and ROWLOCK hints. Single, not First: Id is the primary
                 // key, so at most one row can match, and EF cannot see the filter inside raw SQL.
+                // A job id belongs to one family or the other, so the order of the two lookups
+                // cannot change which row is found.
                 var moduleJob = await dbContext.ModuleJobs
                     .FromSqlRaw("SELECT * FROM ModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
                     .SingleOrDefaultAsync();
 
+                ManualModuleJob? manualJob = null;
                 if (moduleJob == null)
+                {
+                    manualJob = await dbContext.ManualModuleJobs
+                        .FromSqlRaw("SELECT * FROM ManualModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
+                        .SingleOrDefaultAsync();
+                }
+
+                if (moduleJob == null && manualJob == null)
+                {
+                    // A runner-side failure reaches the operator only through its logs.
+                    _logger.LogWarning(
+                        "Discarding {Count} log entries for job {JobId}: no job with that id exists",
+                        group.Count(), correlationId);
+                    await transaction.RollbackAsync();
                     continue;
+                }
+
+                var currentLogs = moduleJob != null ? moduleJob.Logs : manualJob!.Logs;
 
                 // Parse existing logs or create new array
                 List<LogEntryDto> existingLogs = new();
-                if (!string.IsNullOrEmpty(moduleJob.Logs))
+                if (!string.IsNullOrEmpty(currentLogs))
                     try
                     {
-                        existingLogs = JsonSerializer.Deserialize<List<LogEntryDto>>(moduleJob.Logs) ?? new List<LogEntryDto>();
+                        existingLogs = JsonSerializer.Deserialize<List<LogEntryDto>>(currentLogs) ?? new List<LogEntryDto>();
                     }
                     catch
                     {
@@ -78,7 +100,11 @@ public class LogService
                 existingLogs = existingLogs.OrderBy(l => l.Timestamp).ThenBy(l => l.BatchTimeStamp).ToList();
 
                 // Serialize back to JSON
-                moduleJob.Logs = JsonSerializer.Serialize(existingLogs);
+                var serialized = JsonSerializer.Serialize(existingLogs);
+                if (moduleJob != null)
+                    moduleJob.Logs = serialized;
+                else
+                    manualJob!.Logs = serialized;
 
                 await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -95,17 +121,25 @@ public class LogService
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var moduleJob = await dbContext.ModuleJobs
+        // A job id belongs to one family or the other. A row with no logs yet is
+        // not a missing row, so the holder distinguishes them.
+        var found = await dbContext.ModuleJobs
             .Where(j => j.Id == correlationId)
-            .Select(j => j.Logs)
-            .FirstOrDefaultAsync();
+            .Select(j => new { j.Logs })
+            .FirstOrDefaultAsync()
+            ?? await dbContext.ManualModuleJobs
+                .Where(j => j.Id == correlationId)
+                .Select(j => new { j.Logs })
+                .FirstOrDefaultAsync();
 
-        if (string.IsNullOrEmpty(moduleJob))
+        var logs = found?.Logs;
+
+        if (string.IsNullOrEmpty(logs))
             return new List<LogEntryDto>();
 
         try
         {
-            return JsonSerializer.Deserialize<List<LogEntryDto>>(moduleJob) ?? new List<LogEntryDto>();
+            return JsonSerializer.Deserialize<List<LogEntryDto>>(logs) ?? new List<LogEntryDto>();
         }
         catch
         {

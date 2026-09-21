@@ -40,10 +40,10 @@ public partial class SplitMonolithStateMachine
         During(MigrateProveWaitingForRunner,
             When(MigrateProveWaitingForRunner.Enter)
                 .Activity(x => x.OfType<SnapCd.Server.Core.StateMachine.Jobs.Activites.CheckRunnerConnectionActivity<SplitMonolithSaga, MigrateProveCompleted>>()),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
@@ -51,20 +51,24 @@ public partial class SplitMonolithStateMachine
         );
 
         During(MigrateProvePending,
-            DealWithApprovalStatus(
-                When(MigrateProveCompleted)
-                    .Then(context => { context.Saga.ProvenModuleCount = context.Message.ModulesProven; }),
-                true),
+            When(MigrateProveCompleted)
+                .Then(context => { context.Saga.ProvenModuleCount = context.Message.ModulesProven; })
+                .IfElse(
+                    context => context.Saga.StopAfterProve,
+                    prove => prove
+                        .Then(context => _logger.LogInformation("SplitProve: proof complete for job {JobId}", context.Saga.CorrelationId))
+                        .ThenSplitCompleted(Completed),
+                    migrate => DealWithApprovalStatus(migrate, true)),
             When(HeartbeatScheduled.Received)
                 .ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed)
                 .ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
                 .ThenSplitTimedOut(Failed),
-            When(CancelModuleRequested)
-                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+            When(CancelManualModuleJobRequested)
+                .IfCancelKill<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelGraceful<SplitMonolithSaga, SplitMonolithCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelAfterCurrent<SplitMonolithSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             When(MigrateProveCancelled)
                 .ThenSplitCancelled(Cancelled),
             When(MigrateProveFaulted)

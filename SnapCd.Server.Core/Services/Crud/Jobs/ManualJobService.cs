@@ -8,11 +8,13 @@
 
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.System;
@@ -190,6 +192,70 @@ public class ManualJobService : IDisposable
         }
 
         return job;
+    }
+
+    /// <summary>
+    /// Starts a SplitProve job: the split's chain up to and including the proof, at an explicit
+    /// ref, with nothing written. Paused like every manual job: the proof plans the module's real
+    /// state, so an apply running alongside it would share the runner's working directory.
+    /// </summary>
+    public async Task<ManualModuleJob> StartSplitProve(
+        Guid moduleId,
+        Guid organizationId,
+        string? rootDirectory,
+        string sourceRevision)
+    {
+        if (!SourceRevisionOverride.IsValidRef(sourceRevision))
+            throw new ManualJobNotAllowedException($"'{sourceRevision}' is not a usable git ref.");
+
+        if (_resolvedConfigurationService is null || _bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+
+        var job = await Start(moduleId, organizationId, ManualJobTypes.SplitProve);
+
+        try
+        {
+            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId, sourceRevision);
+
+            await _bus.Publish(new SplitMonolithRequested
+            {
+                CorrelationId = job.Id,
+                Declared = declared,
+                RootDirectory = rootDirectory,
+                Force = false,
+                StopAfterProve = true
+            });
+        }
+        catch (Exception ex)
+        {
+            await FailJob(job.Id, organizationId, ex.Message);
+            throw;
+        }
+
+        return job;
+    }
+
+    /// <summary>
+    /// Cancels a manual job. Guarded by the Pause verb rather than the deployment jobs' RunJob,
+    /// matching how manual jobs are started and decided.
+    /// </summary>
+    public async Task Cancel(Guid jobId, Guid moduleId, Guid organizationId, CancellationType cancellationType)
+    {
+        if (_bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to cancel a job.");
+
+        if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to cancel manual jobs on Module with Id {moduleId}");
+
+        await _bus.Publish(new CancelManualModuleJobRequested
+        {
+            CorrelationId = jobId,
+            OrganizationId = organizationId,
+            CancellationType = cancellationType
+        });
     }
 
     /// <summary>

@@ -20,7 +20,8 @@ public class JobSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFacto
         var dbContext = dbFactory.CreateDbContext();
         var applyJobSagaRepository = new ApplyJobSagaRepository(dbContext);
         var destroyJobSagaRepository = new DestroyJobSagaRepository(dbContext);
-        return new JobSagaRepository(dbContext, applyJobSagaRepository, destroyJobSagaRepository);
+        var splitMonolithSagaRepository = new SplitMonolithSagaRepository(dbContext);
+        return new JobSagaRepository(dbContext, applyJobSagaRepository, destroyJobSagaRepository, splitMonolithSagaRepository);
     }
 }
 
@@ -29,34 +30,57 @@ public class JobSagaRepository : IDisposable
     private readonly SnapCdDbContext _dbContext;
     private readonly ApplyJobSagaRepository _applyJobSagaRepository;
     private readonly DestroyJobSagaRepository _destroyJobSagaRepository;
+    private readonly SplitMonolithSagaRepository _splitMonolithSagaRepository;
 
     public JobSagaRepository(
         SnapCdDbContext dbContext,
         ApplyJobSagaRepository applyJobSagaRepository,
-        DestroyJobSagaRepository destroyJobSagaRepository)
+        DestroyJobSagaRepository destroyJobSagaRepository,
+        SplitMonolithSagaRepository splitMonolithSagaRepository)
     {
         _dbContext = dbContext;
         _applyJobSagaRepository = applyJobSagaRepository;
         _destroyJobSagaRepository = destroyJobSagaRepository;
+        _splitMonolithSagaRepository = splitMonolithSagaRepository;
     }
 
+    /// <summary>
+    /// Resolves a correlation id to its saga, whichever family owns it. Job ids are unique across
+    /// families, so the search order does not affect the result.
+    /// </summary>
     public virtual async Task<JobSagaMetaData> GetSagaMetaData(Guid correlationId, Guid organizationId)
     {
         var metaData = await _applyJobSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
         if (metaData == null)
             metaData = await _destroyJobSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
 
+        if (metaData == null)
+        {
+            var split = await _splitMonolithSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
+            if (split != null)
+                metaData = new JobSagaMetaData
+                {
+                    Family = JobSagaFamily.SplitMonolith,
+                    CurrentState = split.CurrentState,
+                    RunnerId = split.RunnerId,
+                    RunnerInstanceName = split.RunnerInstanceName,
+                    OrganizationId = split.OrganizationId,
+                    PreviousStateBeforeCancelling = split.PreviousStateBeforeCancelling
+                };
+        }
+
         if  (metaData == null)
             throw new EntityNotFoundException($"Could not find a Job with correlation id {correlationId} in Organization {organizationId}.");
 
         return metaData;
     }
-    
+
 
     public void Dispose()
     {
         _applyJobSagaRepository?.Dispose();
         _destroyJobSagaRepository?.Dispose();
+        _splitMonolithSagaRepository?.Dispose();
         _dbContext?.Dispose();
     }
 }
