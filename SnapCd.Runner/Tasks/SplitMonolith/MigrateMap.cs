@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now running demonolith migrate map");
+            taskContext.LogNarration("Now running demonolith split migrate map");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -54,7 +54,7 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("migrate map", request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build("split migrate map", request.RootDirectory, request.Engine);
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
@@ -72,7 +72,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed MigrateMap");
+            taskContext.LogSection("Completed MigrateMap");
         }
         catch (OperationCanceledException)
         {

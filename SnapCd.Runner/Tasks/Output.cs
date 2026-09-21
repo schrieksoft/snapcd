@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now outputting");
+            taskContext.LogNarration("Now outputting");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(

@@ -49,7 +49,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Verifying that the plan is empty");
+            taskContext.LogNarration("Verifying that the plan is empty");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -64,6 +64,10 @@ public partial class Tasks
             var destroyCount = plan.GetResourceCount(PlanAction.Delete);
             var recreateCount = plan.GetResourceCount(PlanAction.Replace);
             var changedCount = createCount + modifyCount + destroyCount + recreateCount;
+
+            // No external process here, so the blank line that would precede a command's output
+            // is emitted before this task's own finding instead.
+            taskContext.LogBreak();
 
             if (changedCount > 0)
             {
@@ -91,7 +95,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed PlanEmptyVerify");
+            taskContext.LogSection("Completed PlanEmptyVerify");
         }
         catch (OperationCanceledException)
         {

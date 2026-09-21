@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now applying from plan");
+            taskContext.LogNarration("Now applying from plan");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(

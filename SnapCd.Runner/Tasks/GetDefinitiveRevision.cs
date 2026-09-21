@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now cloning repo");
+            taskContext.LogNarration("Now cloning repo");
 
             var moduleGetter = await _moduleGetterFactory.Create(
                 taskContext,
@@ -68,7 +68,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed GetDefinitiveRevision");
+            taskContext.LogSection("Completed GetDefinitiveRevision");
         }
         catch (OperationCanceledException)
         {

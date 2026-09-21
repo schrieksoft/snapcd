@@ -19,13 +19,13 @@ public class DemonolithCommandTests
     [Fact]
     public void Builds_The_Bare_Subcommand()
     {
-        Assert.Equal("demonolith refactor diff", DemonolithCommand.Build("refactor diff", null, null));
+        Assert.Equal("demonolith split refactor diff", DemonolithCommand.Build("split refactor diff", null, null));
     }
 
     [Fact]
     public void Quotes_The_Root_Directory()
     {
-        var command = DemonolithCommand.Build("migrate map", "infra/my monolith", null);
+        var command = DemonolithCommand.Build("split migrate map", "infra/my monolith", null);
 
         Assert.Contains("--root-dir \"infra/my monolith\"", command);
     }
@@ -33,22 +33,22 @@ public class DemonolithCommandTests
     [Fact]
     public void Omits_An_Empty_Root_Directory_And_Engine()
     {
-        var command = DemonolithCommand.Build("migrate prove", "   ", "  ");
+        var command = DemonolithCommand.Build("split migrate prove", "   ", "  ");
 
-        Assert.Equal("demonolith migrate prove", command);
+        Assert.Equal("demonolith split migrate prove", command);
     }
 
     [Fact]
     public void Lowercases_The_Engine()
     {
-        Assert.Contains("--engine tofu", DemonolithCommand.Build("migrate map", null, "Tofu"));
+        Assert.Contains("--engine tofu", DemonolithCommand.Build("split migrate map", null, "Tofu"));
     }
 
     /// <summary>--exec-path lets a caller name a binary, and --yes belongs to the pipeline Snap CD never runs.</summary>
     [Fact]
     public void Never_Offers_An_Exec_Path_Or_A_Confirmation()
     {
-        var command = DemonolithCommand.Build("migrate run", "root", "tofu", "--overwrite");
+        var command = DemonolithCommand.Build("split migrate run", "root", "tofu", "--overwrite");
 
         Assert.DoesNotContain("--exec-path", command);
         Assert.DoesNotContain("--yes", command);
@@ -59,9 +59,9 @@ public class DemonolithCommandTests
     [Fact]
     public void Drops_Blank_Extra_Flags()
     {
-        var command = DemonolithCommand.Build("migrate run", null, null, "", "   ", "--overwrite");
+        var command = DemonolithCommand.Build("split migrate run", null, null, "", "   ", "--overwrite");
 
-        Assert.Equal("demonolith migrate run --overwrite", command);
+        Assert.Equal("demonolith split migrate run --overwrite", command);
     }
 
     [Fact]

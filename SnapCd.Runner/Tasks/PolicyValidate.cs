@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation($"Now validating policies ({request.Policies.Count} in scope)");
+            taskContext.LogNarration($"Now validating policies ({request.Policies.Count} in scope)");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -60,6 +60,10 @@ public partial class Tasks
             if (Directory.Exists(scratchDir))
                 Directory.Delete(scratchDir, recursive: true);
             Directory.CreateDirectory(scratchDir);
+
+            // No external process here, so the blank line that would precede a command's output
+            // is emitted before the evaluator's own messages instead.
+            taskContext.LogBreak();
 
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
             var outcome = await _policyEvaluationService.EvaluateAsync(
@@ -75,7 +79,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation($"Completed PolicyValidate with outcome {outcome}");
+            taskContext.LogSection($"Completed PolicyValidate with outcome {outcome}");
         }
         catch (OperationCanceledException)
         {

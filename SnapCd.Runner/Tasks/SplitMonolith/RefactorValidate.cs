@@ -49,7 +49,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now running demonolith refactor validate");
+            taskContext.LogNarration("Now running demonolith split refactor validate");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -57,7 +57,7 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("refactor validate", request.RootDirectory, request.Engine);
+            var command = DemonolithCommand.Build("split refactor validate", request.RootDirectory, request.Engine);
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
@@ -67,7 +67,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed RefactorValidate");
+            taskContext.LogSection("Completed RefactorValidate");
         }
         catch (OperationCanceledException)
         {

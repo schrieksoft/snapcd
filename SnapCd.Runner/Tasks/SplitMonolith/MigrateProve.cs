@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now running demonolith migrate prove");
+            taskContext.LogNarration("Now running demonolith split migrate prove");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -58,7 +58,7 @@ public partial class Tasks
             // this asserts the carve was correct rather than that reality still matches. The
             // monolith's own agreement with reality was already established by PlanEmptyVerify.
             var command = DemonolithCommand.Build(
-                "migrate prove",
+                "split migrate prove",
                 request.RootDirectory,
                 request.Engine,
                 DemonolithCommand.VarFileFlags(engine.GetSnapCdDir()).ToArray());
@@ -78,7 +78,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed MigrateProve");
+            taskContext.LogSection("Completed MigrateProve");
         }
         catch (OperationCanceledException)
         {

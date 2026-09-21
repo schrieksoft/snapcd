@@ -105,10 +105,11 @@ public class Git
                     excludedFiles.Add(Path.GetFullPath(Path.Combine(repoPath, line)));
             }
 
+            // A nested repository is one entry, not its contents: git will not descend into a
+            // directory holding its own .git, so a module fetched from a git source arrives as a
+            // bare path with a trailing slash.
             static List<string> ExpandIfDirectory(string path)
             {
-                // For some reason the above will sometimes return a directory instead of the files inside the dir. This
-                // function expands into 
                 if (Directory.Exists(path))
                     return new List<string>(Directory.GetFiles(path, "*", SearchOption.AllDirectories));
                 return new List<string> { path };
@@ -186,6 +187,40 @@ public class Git
         }
     }
 
+    /// <summary>
+    /// Returns the checkout to the state the source shipped: tracked files go back to their
+    /// committed contents and untracked ones are removed. Ignored files are left alone, so the
+    /// engine's downloaded providers and modules survive; <paramref name="includeIgnored"/> takes
+    /// those too, which is what a clean init asks for.
+    /// </summary>
+    public void ResetToSource(string repoPath, bool includeIgnored = false)
+    {
+        var cleanFlags = includeIgnored ? "-fdx" : "-fd";
+        var arguments = $"-c \"git reset --hard HEAD && git clean {cleanFlags}\"";
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "/bin/bash",
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = repoPath
+        };
+
+        using var process = new Process { StartInfo = startInfo };
+        process.Start();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            var err = $"Git failed with status code {process.ExitCode}. Message: {process.StandardError.ReadToEnd()}";
+            _context.LogError(err);
+            throw new Exception(err);
+        }
+    }
+
     public void ShallowClone(string workingDir, string repoPath, string targetRepoUrl, string targetRepoRevision)
     {
         string arguments;
@@ -235,7 +270,8 @@ public class Git
             throw new Exception(err);
         }
 
-        _context.LogInformation(output);
+        // Git's progress output ends with a newline, which would log as a blank line of its own.
+        _context.LogInformation(output.TrimEnd('\r', '\n'));
     }
 
 

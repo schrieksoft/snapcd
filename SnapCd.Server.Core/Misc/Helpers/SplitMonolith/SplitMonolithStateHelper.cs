@@ -26,6 +26,8 @@ public static class SplitMonolithStateHelper
     private static readonly Dictionary<SplitMonolithTaskEndpoint, SplitMonolithSagaState> MethodToState = new()
     {
         [SplitMonolithTaskEndpoint.SelectRunnerInstanceCompleted] = SplitMonolithSagaState.SelectRunnerInstancePending,
+        [SplitMonolithTaskEndpoint.CancelKillCompleted] = SplitMonolithSagaState.CancellingImmediateKill,
+        [SplitMonolithTaskEndpoint.CancelGracefulCompleted] = SplitMonolithSagaState.CancellingImmediateGraceful,
         [SplitMonolithTaskEndpoint.SelectRunnerInstanceCancelled] = SplitMonolithSagaState.SelectRunnerInstancePending,
         [SplitMonolithTaskEndpoint.SelectRunnerInstanceFaulted] = SplitMonolithSagaState.SelectRunnerInstancePending,
 

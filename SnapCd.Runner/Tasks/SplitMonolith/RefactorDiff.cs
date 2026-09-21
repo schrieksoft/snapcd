@@ -50,7 +50,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now running demonolith refactor diff");
+            taskContext.LogNarration("Now running demonolith split refactor diff");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -59,7 +59,7 @@ public partial class Tasks
             );
 
             // refactor diff takes no --engine: it compares files without asking the engine.
-            var command = DemonolithCommand.Build("refactor diff", request.RootDirectory, engine: null);
+            var command = DemonolithCommand.Build("split refactor diff", request.RootDirectory, engine: null);
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
@@ -69,7 +69,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed RefactorDiff");
+            taskContext.LogSection("Completed RefactorDiff");
         }
         catch (OperationCanceledException)
         {

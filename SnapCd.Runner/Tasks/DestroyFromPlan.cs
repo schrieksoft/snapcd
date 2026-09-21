@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now destroying from plan");
+            taskContext.LogNarration("Now destroying from plan");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(

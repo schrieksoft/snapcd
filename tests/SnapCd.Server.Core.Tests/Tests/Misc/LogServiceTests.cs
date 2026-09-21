@@ -620,6 +620,27 @@ public class LogServiceTests : IAsyncLifetime
         Assert.Contains(entries, e => e.Message == "kept");
     }
 
+    // Blank lines separate one block of a tool's output from the next, so they are
+    // stored and returned like any other line.
+    [Fact]
+    public async Task AddLogEntries_BlankLines_ArePreserved()
+    {
+        await _logService.AddLogEntries(new List<LogEntryDto>
+        {
+            CreateLogEntry(_testJob2.Id, "Map under comparison:", "RefactorDiff"),
+            CreateLogEntry(_testJob2.Id, "", "RefactorDiff"),
+            CreateLogEntry(_testJob2.Id, "  app  roots/app", "RefactorDiff")
+        });
+
+        var entries = await _logService.GetLogEntries(_testJob2.Id);
+        Assert.Equal(3, entries.Count);
+        Assert.Equal("", entries[1].Message);
+
+        var byTask = await _logService.GetLogStrings(_testJob2.Id);
+        Assert.Contains("Map under comparison:" + Environment.NewLine + Environment.NewLine + "  app  roots/app",
+            byTask["RefactorDiff"]);
+    }
+
     private static LogEntryDto CreateLogEntry(
         Guid correlationId,
         string message,

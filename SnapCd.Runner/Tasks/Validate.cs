@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now validating");
+            taskContext.LogNarration("Now validating");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(
@@ -68,7 +68,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed Validate");
+            taskContext.LogSection("Completed Validate");
         }
         catch (OperationCanceledException)
         {

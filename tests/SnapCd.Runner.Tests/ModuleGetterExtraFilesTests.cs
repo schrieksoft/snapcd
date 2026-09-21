@@ -25,8 +25,6 @@ public class ModuleGetterExtraFilesTests : IDisposable
     private readonly string _testDir;
     private readonly string _moduleRootDir;
     private readonly string _snapCdDir;
-    private readonly string _backupDir;
-    private readonly string _manifestPath;
     private readonly TestableModuleGetter _moduleGetter;
 
     public ModuleGetterExtraFilesTests()
@@ -34,8 +32,6 @@ public class ModuleGetterExtraFilesTests : IDisposable
         _testDir = Path.Combine(Path.GetTempPath(), "SnapCdTests", Guid.NewGuid().ToString());
         _moduleRootDir = Path.Combine(_testDir, "module");
         _snapCdDir = Path.Combine(_moduleRootDir, ".snapcd");
-        _backupDir = Path.Combine(_snapCdDir, "original-files");
-        _manifestPath = Path.Combine(_snapCdDir, "extra-files.json");
 
         Directory.CreateDirectory(_moduleRootDir);
         Directory.CreateDirectory(_snapCdDir);
@@ -83,257 +79,92 @@ public class ModuleGetterExtraFilesTests : IDisposable
     }
 
     [Fact]
-    public async Task AddExtraFiles_CreatesNewFile_TrackedInManifest()
+    public async Task AddExtraFiles_WritesAFileThatIsNotThere()
     {
-        // Arrange
         var extraFiles = new List<ExtraFileDto>
         {
-            new() { FileName = "new-file.tf", Contents = "# new content", Overwrite = false }
+            new() { FileName = "backend.tf", Contents = "terraform {}", Overwrite = false }
         };
 
-        // Act
         await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
 
-        // Assert
-        var filePath = Path.Combine(_moduleRootDir, "new-file.tf");
-        Assert.True(File.Exists(filePath));
-        Assert.Equal("# new content", await File.ReadAllTextAsync(filePath));
-
-        var manifest = await ReadManifest();
-        Assert.Contains("new-file.tf", manifest.Created);
-        Assert.Empty(manifest.Overwritten);
+        Assert.Equal("terraform {}", await File.ReadAllTextAsync(Path.Combine(_moduleRootDir, "backend.tf")));
     }
 
+    // The checkout matches the source when extra files are applied, so a file already at the path
+    // is one the source ships.
     [Fact]
-    public async Task AddExtraFiles_OverwriteTrue_BacksUpOriginalAndTracksAsOverwritten()
+    public async Task AddExtraFiles_OverwriteFalse_LeavesTheSourcesOwnFile()
     {
-        // Arrange
-        var originalContent = "# original content";
-        var newContent = "# overwritten content";
         var filePath = Path.Combine(_moduleRootDir, "existing.tf");
-        await File.WriteAllTextAsync(filePath, originalContent);
-
-        var extraFiles = new List<ExtraFileDto>
-        {
-            new() { FileName = "existing.tf", Contents = newContent, Overwrite = true }
-        };
-
-        // Act
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
-
-        // Assert
-        Assert.Equal(newContent, await File.ReadAllTextAsync(filePath));
-
-        var backupPath = Path.Combine(_backupDir, "existing.tf");
-        Assert.True(File.Exists(backupPath));
-        Assert.Equal(originalContent, await File.ReadAllTextAsync(backupPath));
-
-        var manifest = await ReadManifest();
-        Assert.Empty(manifest.Created);
-        Assert.Contains("existing.tf", manifest.Overwritten);
-    }
-
-    [Fact]
-    public async Task AddExtraFiles_OverwriteFalse_SkipsExistingFileAndDoesNotTrack()
-    {
-        // Arrange
-        var originalContent = "# original content";
-        var filePath = Path.Combine(_moduleRootDir, "existing.tf");
-        await File.WriteAllTextAsync(filePath, originalContent);
+        await File.WriteAllTextAsync(filePath, "# from the source");
 
         var extraFiles = new List<ExtraFileDto>
         {
             new() { FileName = "existing.tf", Contents = "# should not be written", Overwrite = false }
         };
 
-        // Act
         await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
 
-        // Assert
-        Assert.Equal(originalContent, await File.ReadAllTextAsync(filePath));
-        Assert.False(Directory.Exists(_backupDir));
-
-        var manifest = await ReadManifest();
-        Assert.Empty(manifest.Created);
-        Assert.Empty(manifest.Overwritten);
+        Assert.Equal("# from the source", await File.ReadAllTextAsync(filePath));
     }
 
     [Fact]
-    public async Task AddExtraFiles_DeletesCreatedFileWhenRemoved()
+    public async Task AddExtraFiles_OverwriteTrue_ReplacesTheSourcesOwnFile()
     {
-        // Arrange - first run creates a file
-        var extraFiles = new List<ExtraFileDto>
-        {
-            new() { FileName = "temp-file.tf", Contents = "# temp content", Overwrite = false }
-        };
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
-
-        var filePath = Path.Combine(_moduleRootDir, "temp-file.tf");
-        Assert.True(File.Exists(filePath));
-
-        // Act - second run with empty extra files list
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), new List<ExtraFileDto>());
-
-        // Assert
-        Assert.False(File.Exists(filePath));
-    }
-
-    [Fact]
-    public async Task AddExtraFiles_RestoresOriginalWhenOverwrittenFileRemoved()
-    {
-        // Arrange - first run overwrites a file
-        var originalContent = "# original content";
-        var filePath = Path.Combine(_moduleRootDir, "config.tf");
-        await File.WriteAllTextAsync(filePath, originalContent);
+        var filePath = Path.Combine(_moduleRootDir, "existing.tf");
+        await File.WriteAllTextAsync(filePath, "# from the source");
 
         var extraFiles = new List<ExtraFileDto>
         {
-            new() { FileName = "config.tf", Contents = "# overwritten", Overwrite = true }
+            new() { FileName = "existing.tf", Contents = "# from Snap CD", Overwrite = true }
         };
+
         await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
 
-        Assert.Equal("# overwritten", await File.ReadAllTextAsync(filePath));
-
-        // Act - second run with empty extra files list
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), new List<ExtraFileDto>());
-
-        // Assert
-        Assert.True(File.Exists(filePath));
-        Assert.Equal(originalContent, await File.ReadAllTextAsync(filePath));
-
-        var backupPath = Path.Combine(_backupDir, "config.tf");
-        Assert.False(File.Exists(backupPath)); // Backup should be deleted after restore
+        Assert.Equal("# from Snap CD", await File.ReadAllTextAsync(filePath));
     }
 
+    // Working files are the engine's own state, carried across a re-download rather than shipped
+    // by the source, so Overwrite does not apply to them.
     [Fact]
-    public async Task AddExtraFiles_WorkingFiles_AlwaysWrittenNotTracked()
+    public async Task AddExtraFiles_WorkingFile_IsWrittenEvenWithoutOverwrite()
     {
-        // Arrange
-        var workingFilePath = Path.Combine(_moduleRootDir, ".terraform.lock.hcl");
-        var originalContent = "# original terraform lock";
-        await File.WriteAllTextAsync(workingFilePath, originalContent);
+        var filePath = Path.Combine(_moduleRootDir, "terraform.tfstate");
+        await File.WriteAllTextAsync(filePath, "{}");
 
-        var workingFilePaths = new HashSet<string> { workingFilePath };
         var extraFiles = new List<ExtraFileDto>
         {
-            new() { FileName = ".terraform.lock.hcl", Contents = "# new lock content", Overwrite = false }
+            new() { FileName = "terraform.tfstate", Contents = "{\"version\":4}", Overwrite = false }
         };
 
-        // Act
-        await _moduleGetter.TestAddExtraFiles(workingFilePaths, extraFiles);
+        await _moduleGetter.TestAddExtraFiles(new HashSet<string> { filePath }, extraFiles);
 
-        // Assert - file should be overwritten even though Overwrite=false
-        Assert.Equal("# new lock content", await File.ReadAllTextAsync(workingFilePath));
-
-        // But not tracked in manifest (no backup, no cleanup needed)
-        var manifest = await ReadManifest();
-        Assert.Empty(manifest.Created);
-        Assert.Empty(manifest.Overwritten);
+        Assert.Equal("{\"version\":4}", await File.ReadAllTextAsync(filePath));
     }
 
     [Fact]
-    public async Task AddExtraFiles_MissingBackup_DeletesOverwrittenFile()
+    public async Task AddExtraFiles_MultipleFiles_AllWritten()
     {
-        // Arrange - simulate a manifest with overwritten file but missing backup
-        var manifest = new { Created = new List<string>(), Overwritten = new List<string> { "orphan.tf" } };
-        await File.WriteAllTextAsync(_manifestPath, System.Text.Json.JsonSerializer.Serialize(manifest));
-
-        var filePath = Path.Combine(_moduleRootDir, "orphan.tf");
-        await File.WriteAllTextAsync(filePath, "# some content");
-
-        // Act - run with empty extra files (should try to restore)
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), new List<ExtraFileDto>());
-
-        // Assert - file should be deleted since backup is missing
-        Assert.False(File.Exists(filePath));
-    }
-
-    [Fact]
-    public async Task AddExtraFiles_NullExtraFiles_CleansUpPreviousFiles()
-    {
-        // Arrange - first run creates a file
         var extraFiles = new List<ExtraFileDto>
         {
-            new() { FileName = "created.tf", Contents = "# content", Overwrite = false }
+            new() { FileName = "a.tf", Contents = "a", Overwrite = false },
+            new() { FileName = "b.tf", Contents = "b", Overwrite = false }
         };
+
         await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
 
-        var filePath = Path.Combine(_moduleRootDir, "created.tf");
-        Assert.True(File.Exists(filePath));
+        Assert.Equal("a", await File.ReadAllTextAsync(Path.Combine(_moduleRootDir, "a.tf")));
+        Assert.Equal("b", await File.ReadAllTextAsync(Path.Combine(_moduleRootDir, "b.tf")));
+    }
 
-        // Act - run with null extra files
+    [Fact]
+    public async Task AddExtraFiles_NoExtraFiles_WritesNothing()
+    {
         await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), null);
+        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), new List<ExtraFileDto>());
 
-        // Assert
-        Assert.False(File.Exists(filePath));
-    }
-
-    [Fact]
-    public async Task AddExtraFiles_MultipleFiles_TrackedCorrectly()
-    {
-        // Arrange
-        var existingPath = Path.Combine(_moduleRootDir, "existing.tf");
-        await File.WriteAllTextAsync(existingPath, "# original");
-
-        var extraFiles = new List<ExtraFileDto>
-        {
-            new() { FileName = "new1.tf", Contents = "# new 1", Overwrite = false },
-            new() { FileName = "new2.tf", Contents = "# new 2", Overwrite = false },
-            new() { FileName = "existing.tf", Contents = "# overwritten", Overwrite = true }
-        };
-
-        // Act
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
-
-        // Assert
-        var manifest = await ReadManifest();
-        Assert.Equal(2, manifest.Created.Count);
-        Assert.Contains("new1.tf", manifest.Created);
-        Assert.Contains("new2.tf", manifest.Created);
-        Assert.Single(manifest.Overwritten);
-        Assert.Contains("existing.tf", manifest.Overwritten);
-    }
-
-    [Fact]
-    public async Task AddExtraFiles_BackupNotOverwrittenOnSubsequentRuns()
-    {
-        // Arrange - first run overwrites a file
-        var originalContent = "# original";
-        var filePath = Path.Combine(_moduleRootDir, "config.tf");
-        await File.WriteAllTextAsync(filePath, originalContent);
-
-        var extraFiles = new List<ExtraFileDto>
-        {
-            new() { FileName = "config.tf", Contents = "# version 1", Overwrite = true }
-        };
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
-
-        // Act - second run with different content
-        extraFiles = new List<ExtraFileDto>
-        {
-            new() { FileName = "config.tf", Contents = "# version 2", Overwrite = true }
-        };
-        await _moduleGetter.TestAddExtraFiles(new HashSet<string>(), extraFiles);
-
-        // Assert - backup should still contain original, not version 1
-        var backupPath = Path.Combine(_backupDir, "config.tf");
-        Assert.Equal(originalContent, await File.ReadAllTextAsync(backupPath));
-        Assert.Equal("# version 2", await File.ReadAllTextAsync(filePath));
-    }
-
-    private async Task<ManifestData> ReadManifest()
-    {
-        if (!File.Exists(_manifestPath))
-            return new ManifestData();
-
-        var json = await File.ReadAllTextAsync(_manifestPath);
-        return System.Text.Json.JsonSerializer.Deserialize<ManifestData>(json) ?? new ManifestData();
-    }
-
-    private class ManifestData
-    {
-        public List<string> Created { get; set; } = new();
-        public List<string> Overwritten { get; set; } = new();
+        Assert.Empty(Directory.GetFiles(_moduleRootDir));
     }
 
     private class TestableModuleGetter : ModuleGetter
@@ -367,5 +198,6 @@ public class ModuleGetterExtraFilesTests : IDisposable
         public override Task<string> GetRemoteResolvedRevision() => Task.FromResult("");
         protected override Task DownloadModule(string resolvedRevision) => Task.CompletedTask;
         protected override Task<bool> ConfirmModuleDownloaded() => Task.FromResult(true);
+        protected override Task ResetToSource(bool includeEngineArtifacts) => Task.CompletedTask;
     }
 }

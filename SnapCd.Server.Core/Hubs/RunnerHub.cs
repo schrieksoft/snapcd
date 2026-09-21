@@ -985,7 +985,8 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task CancelKillCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.CancelKillCompleted);
+        await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.CancelKillCompleted, SplitMonolithTaskEndpoint.CancelKillCompleted);
 
         // Publish MassTransit event
         await _cancelKillHandler.Complete(jobId);
@@ -997,7 +998,8 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task CancelGracefulCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.CancelGracefulCompleted);
+        await _authorizationService.ValidateRunnerCanAccessJob(
+            Context, jobId, TaskEndpoint.CancelGracefulCompleted, SplitMonolithTaskEndpoint.CancelGracefulCompleted);
 
         // Publish MassTransit event
         await _cancelGracefulHandler.Complete(jobId);

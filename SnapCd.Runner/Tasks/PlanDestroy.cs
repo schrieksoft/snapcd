@@ -50,7 +50,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now planning destroy");
+            taskContext.LogNarration("Now planning destroy");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(
@@ -84,7 +84,7 @@ public partial class Tasks
                     request.JobId,
                     connection);
 
-                taskContext.LogInformation("Completed PlanDestroy");
+                taskContext.LogSection("Completed PlanDestroy");
                 return;
             }
 
@@ -163,7 +163,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed PlanDestroy");
+            taskContext.LogSection("Completed PlanDestroy");
         }
         catch (OperationCanceledException)
         {

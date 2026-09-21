@@ -51,7 +51,7 @@ public class DemonolithInvocationTests : IDisposable
         var root = Path.Combine(_dir, "my monolith");
         Directory.CreateDirectory(root);
 
-        var built = DemonolithCommand.Build("refactor map", root, null);
+        var built = DemonolithCommand.Build("split refactor map", root, null);
         var (exitCode, _) = await RunAsBaseEngineWould(built);
 
         Assert.Equal(0, exitCode);

@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now discovering variables");
+            taskContext.LogNarration("Now discovering variables");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -70,7 +70,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed Variables");
+            taskContext.LogSection("Completed Variables");
         }
         catch (OperationCanceledException)
         {

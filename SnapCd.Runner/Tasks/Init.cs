@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now initializing");
+            taskContext.LogNarration("Now initializing");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(
@@ -78,7 +78,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed Init");
+            taskContext.LogSection("Completed Init");
         }
         catch (OperationCanceledException)
         {

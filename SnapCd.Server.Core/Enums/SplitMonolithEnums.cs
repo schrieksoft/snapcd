@@ -99,5 +99,8 @@ public enum SplitMonolithTaskEndpoint
 
     SelectRunnerInstanceCompleted,
     SelectRunnerInstanceCancelled,
-    SelectRunnerInstanceFaulted
+    SelectRunnerInstanceFaulted,
+
+    CancelKillCompleted,
+    CancelGracefulCompleted
 }

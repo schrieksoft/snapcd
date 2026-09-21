@@ -144,7 +144,9 @@ public abstract class BaseEngine
 
         process.OutputDataReceived += (_, e) =>
         {
-            if (!string.IsNullOrEmpty(e.Data))
+            // Null ends the stream; an empty string is a blank line the tool printed, and blank
+            // lines are what separate one block of its output from the next.
+            if (e.Data != null)
             {
                 Context.LogInformation(e.Data);
                 outputBuilder.AppendLine(e.Data);
@@ -179,26 +181,40 @@ public abstract class BaseEngine
 
     public async Task<string> CreateScriptAsync(string baseScript, string? beforeHook, string? afterHook, CancellationToken cancellationToken = default)
     {
-        var beforeHookMessage = "Now running before hook";
-        if (string.IsNullOrEmpty(beforeHook))
-            beforeHookMessage = "No before hook defined. Skipping.";
+        var hasBefore = !string.IsNullOrEmpty(beforeHook);
+        var hasAfter = !string.IsNullOrEmpty(afterHook);
 
-        var afterHookMessage = "Now running after hook";
-        if (string.IsNullOrEmpty(afterHook))
-            afterHookMessage = "No after hook defined. Skipping.";
+        // One shell throughout: a hook's exports, cd and sourced files have to reach the main
+        // script. The headings separate the three sections, so they are worth printing only when
+        // there is more than one section to separate. Each opens with a blank line.
+        var script = new StringBuilder();
 
-        var script = @$"
-echo "">>>>>>>> {beforeHookMessage} <<<<<<<<<""
-{beforeHook}
+        if (hasBefore)
+        {
+            script.AppendLine(Heading("Now running before hook"));
+            script.AppendLine(beforeHook);
+        }
 
-echo "">>>>>>>> Now running main script <<<<<<<<<""
-{baseScript}
+        if (hasBefore || hasAfter)
+            script.AppendLine(Heading("Now running main script"));
+        else
+            // No heading to open the section, so the blank line alone separates the command's
+            // output from the narration above it.
+            script.AppendLine("echo \"\"");
 
-echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
-{afterHook}
-";
-        return script;
+        script.AppendLine(baseScript);
+
+        if (hasAfter)
+        {
+            script.AppendLine(Heading("Now running after hook"));
+            script.AppendLine(afterHook);
+        }
+
+        return script.ToString();
     }
+
+    /// <summary>A dimmed section heading in the generated script, preceded by a blank line.</summary>
+    private static string Heading(string text) => $"echo \"\"\necho \"{Ansi.Dim(text)}\"";
 
     public async Task<int> ReadStatisticsFromFile()
     {
@@ -306,7 +322,7 @@ echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
 
         File.WriteAllText($"{SnapCdDir}/snapcd.env", string.Join(Environment.NewLine, exportLines));
 
-        Context.LogInformation("Environment Variables saved to file");
+        Context.LogNarration("Environment Variables saved to file");
     }
 
     protected bool LoadEnvVarsFromFile()
@@ -336,7 +352,7 @@ echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
                 if (value != null) EnvVars[key] = value;
             }
 
-            Context.LogInformation("Environment Variables loaded from file");
+            Context.LogNarration("Environment Variables loaded from file");
             return true;
         }
         catch (Exception ex)

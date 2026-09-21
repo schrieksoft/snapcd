@@ -46,7 +46,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now running demonolith migrate verify");
+            taskContext.LogNarration("Now running demonolith split migrate verify");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -55,7 +55,7 @@ public partial class Tasks
             );
 
             var command = DemonolithCommand.Build(
-                "migrate verify",
+                "split migrate verify",
                 request.RootDirectory,
                 request.Engine,
                 DemonolithCommand.BackendConfigFlags(request.BackendConfigs)
@@ -77,7 +77,7 @@ public partial class Tasks
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed MigrateVerify");
+            taskContext.LogSection("Completed MigrateVerify");
         }
         catch (OperationCanceledException)
         {
