@@ -48,6 +48,8 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
 
     public List<ManualModuleJobApproval> ManualModuleJobApprovals { get; set; } = null!;
 
+    public List<ManualModuleJobStep> Steps { get; set; } = null!;
+
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 

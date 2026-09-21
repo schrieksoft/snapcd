@@ -66,17 +66,18 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 return;
             }
 
-            if (context.Saga.Paused)
+            if (context.Saga.Paused || context.Saga.HeldByTransferId != null)
             {
+                var held = context.Saga.HeldByTransferId != null;
                 if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
                 {
                     context.Saga.QueuedDesiredStateHeadline = effectiveDesiredState;
-                    context.Saga.QueuedReason = QueuedReason.Paused;
+                    context.Saga.QueuedReason = held ? QueuedReason.Held : QueuedReason.Paused;
                 }
 
                 _logger.LogDebug(
-                    "Module {ModuleId} is paused: queuing request",
-                    context.Message.ModuleId);
+                    "Module {ModuleId} is {Reason}: queuing request",
+                    context.Message.ModuleId, held ? "held by a transfer" : "paused");
                 await next.Execute(context).ConfigureAwait(false);
                 return;
             }

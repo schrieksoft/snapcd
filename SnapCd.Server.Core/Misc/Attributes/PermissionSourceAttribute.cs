@@ -20,7 +20,13 @@ public enum PermissionVerb
     /// Holding a Module out of the automated lifecycle. Its own verb because pausing is an
     /// operational act rather than a definition change, so it does not follow Update.
     /// </summary>
-    Pause
+    Pause,
+
+    /// <summary>
+    /// Authorising a transfer to prove and push into a Module. The same set that may pause it:
+    /// anyone who can stop work on a Module can authorise work on it.
+    /// </summary>
+    Consent
 }
 
 /// <summary>

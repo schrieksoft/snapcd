@@ -283,6 +283,8 @@ public static class MassTransit
         typeof(SecretModifiedCompetingConsumer),
         typeof(ModuleStateChangedToAppliedCompetingConsumer),
         typeof(ModuleStateChangedToDestroyedCompetingConsumer),
+        typeof(ModuleHoldCompetingConsumer),
+        typeof(ModuleWithdrawnFromTransferCompetingConsumer),
 
         // Handler consumers (offloaded from SignalR handlers)
         typeof(OutputCompletedInvokedConsumer),

@@ -435,6 +435,593 @@ paths:
       x-snapcd-permissions:
         notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
           by roles on the target state store, not by this API''s bearer-token role model.'
+  /api/{organizationId}/Transfer/{sourceModuleId}:
+    post:
+      tags:
+      - Transfer
+      summary: Open a transfer from a source Module to one receiver
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: sourceModuleId
+        in: path
+        description: SourceModule ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferCreateRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/TransferCreateRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/TransferCreateRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Module/{moduleId}/Consent:
+    post:
+      tags:
+      - Transfer
+      summary: Answer a transfer's request for consent on behalf of a Module
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ConsentRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ConsentRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Module/{moduleId}/ProveRef:
+    put:
+      tags:
+      - Transfer
+      summary: Change the ref a Module wants proved, until it locks
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProveRefRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ProveRefRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ProveRefRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Module/{moduleId}/Consent/Revoke:
+    post:
+      tags:
+      - Transfer
+      summary: Withdraw a consent already given
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ReasonRequestDto'
+          text/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ReasonRequestDto'
+          application/*+json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ReasonRequestDto'
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Module/{moduleId}/Lock:
+    post:
+      tags:
+      - Transfer
+      summary: Hold a Module out of the automated lifecycle for this transfer, before merging
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Module/{moduleId}/Merged:
+    post:
+      tags:
+      - Transfer
+      summary: Declare the proved code merged, naming the commit it landed as
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeclareMergedRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/DeclareMergedRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/DeclareMergedRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Map:
+    put:
+      tags:
+      - Transfer
+      summary: Replace the transfer's map, re-asking the receiver for consent
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceMapRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceMapRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ReplaceMapRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Abandon:
+    post:
+      tags:
+      - Transfer
+      summary: Close a transfer, pausing any Module it still holds
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ReasonRequestDto'
+          text/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ReasonRequestDto'
+          application/*+json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ReasonRequestDto'
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Status:
+    get:
+      tags:
+      - Transfer
+      summary: The transfer's status, recomputed from its participants and jobs
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Read
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
   /api/{organizationId}/SourceChangedNotification:
     post:
       tags:
@@ -27862,6 +28449,30 @@ components:
       - Namespace
       - Module
       description: What a UserColor is attached to.
+    ConsentRequestDto:
+      type: object
+      properties:
+        granted:
+          type: boolean
+          description: Whether the transfer may prove and push into this Module.
+        proveRef:
+          type:
+          - 'null'
+          - string
+          description: The ref this Module wants proved.
+        reason:
+          type:
+          - 'null'
+          - string
+          description: Free text shown beside the decision.
+      description: A participant's answer to a transfer's request for consent.
+    DeclareMergedRequestDto:
+      type: object
+      properties:
+        mergedCommit:
+          type: string
+          description: The commit the proved code landed as; Migrate checks its ancestry before pushing.
+      description: Declares that a participant's proved code is on its configured branch.
     DeclineJobDto:
       type: object
       properties:
@@ -32849,6 +33460,13 @@ components:
       enum:
       - User
       - ServicePrincipal
+    ProveRefRequestDto:
+      type: object
+      properties:
+        ref:
+          type: string
+          description: The branch, tag or commit to prove against.
+      description: Changes the ref a Module wants proved.
     PulumiArrayFlag:
       enum:
       - PolicyPack
@@ -32918,6 +33536,22 @@ components:
       enum:
       - Python
       - NodeJS
+    ReasonRequestDto:
+      type: object
+      properties:
+        reason:
+          type:
+          - 'null'
+          - string
+          description: Why the action was taken.
+      description: Free text explaining an action, shown wherever the action is reported.
+    ReplaceMapRequestDto:
+      type: object
+      properties:
+        map:
+          type: string
+          description: The new transfer map, hashed verbatim to become the transfer's new identity.
+      description: Replaces a transfer's map, which re-asks the receiver for consent.
     RoleAssignmentPrincipalDiscriminator:
       enum:
       - Base
@@ -33870,6 +34504,22 @@ components:
       - GenerateConfigOut
       - CreateBeforeDestroy
       - Raw
+    TransferCreateRequestDto:
+      type: object
+      properties:
+        receiverModuleId:
+          type: string
+          description: 'The Module the resources move into. Exactly one: moving into two is two transfers.'
+          format: uuid
+        map:
+          type: string
+          description: The transfer map, as demonolith wrote it. Hashed verbatim, never re-serialised.
+        proveRef:
+          type:
+          - 'null'
+          - string
+          description: The ref to prove, defaulting the receiver's until it says otherwise.
+      description: Opens a transfer from a source Module into one receiver.
     UserColorCreateDto:
       type: object
       properties:
@@ -33966,6 +34616,7 @@ security:
 tags:
 - name: OrganizationSwitch
 - name: State
+- name: Transfer
 - name: SourceChangedNotification
 - name: Job
 - name: MissionRun
@@ -34049,8 +34700,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 448
+  documented: 457
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1189
+  documented: 1205
   missing: 0

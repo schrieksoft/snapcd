@@ -121,6 +121,13 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         ModuleRoles = [ModuleRole.Owner, ModuleRole.Contributor]
     };
 
+    /// <summary>
+    /// Consenting authorises work on a Module, and anyone who can stop that work can authorise it,
+    /// so this is the pause map by another name. Declared separately because the two are documented
+    /// and asserted per verb.
+    /// </summary>
+    public PermissionMap ConsentPermissionMap => PausePermissionMap;
+
     public IQueryable<Module> PauseQuery(Guid organizationId)
     {
         return RoleQueryDispatch(
@@ -133,6 +140,16 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
     }
 
     public bool CanPause(Guid id, Guid organizationId)
+    {
+        return PauseQuery(organizationId).Any(e => e.Id == id && e.OrganizationId == organizationId);
+    }
+
+    /// <summary>
+    /// Whether the principal may consent, on this Module's behalf, to a transfer proving and pushing
+    /// into it. The same set that could pause it: consenting authorises work on the Module, and
+    /// anyone who can stop that work can authorise it.
+    /// </summary>
+    public bool CanConsent(Guid id, Guid organizationId)
     {
         return PauseQuery(organizationId).Any(e => e.Id == id && e.OrganizationId == organizationId);
     }

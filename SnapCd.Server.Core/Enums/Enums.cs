@@ -38,7 +38,8 @@ public enum QueuedReason
     WaitingOnDependencies,
     WaitingOnRunnerCheckin,
     Maintenance,
-    Paused
+    Paused,
+    Held
 }
 
 public enum SecretScope

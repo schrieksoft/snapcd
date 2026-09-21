@@ -9,6 +9,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using SnapCd.Server.Core.Controllers;
+using SnapCd.Server.Core.Controllers.Transfers;
 using SnapCd.Server.Core.Controllers.Crud;
 using SnapCd.Server.Core.Controllers.Crud.Secrets;
 using SnapCd.Server.Core.Controllers.Hooks;
@@ -29,6 +30,7 @@ public static class Controllers
             typeof(StackController),
             typeof(NamespaceController),
             typeof(ModuleController),
+            typeof(TransferController),
             typeof(IntegrationController),
             typeof(IntegrationRoleAssignmentController),
             typeof(OrganizationIntegrationEventController),

@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.System;
@@ -102,6 +103,8 @@ public class PauseGateTests : IAsyncLifetime
                 saga.PauseReason = null;
                 saga.QueuedDesiredStateHeadline = null;
                 saga.QueuedReason = null;
+                saga.HeldByTransferId = null;
+                saga.HeldAt = null;
             }
 
             db.ModuleJobs.RemoveRange(db.ModuleJobs.Where(j => _seededJobs.Contains(j.Id)));
@@ -111,7 +114,8 @@ public class PauseGateTests : IAsyncLifetime
         await _provider.DisposeAsync();
     }
 
-    private async Task SetSaga(bool paused, DesiredStateHeadline? queued = null, QueuedReason? reason = null)
+    private async Task SetSaga(bool paused, DesiredStateHeadline? queued = null, QueuedReason? reason = null,
+        Guid? heldBy = null)
     {
         await using var db = _fixture.CreateDbContext();
         var saga = await db.ModuleSagas.SingleOrDefaultAsync(s => s.CorrelationId == _moduleId);
@@ -127,6 +131,8 @@ public class PauseGateTests : IAsyncLifetime
         saga.PausedAt = paused ? DateTime.UtcNow : null;
         saga.QueuedDesiredStateHeadline = queued;
         saga.QueuedReason = reason;
+        saga.HeldByTransferId = heldBy;
+        saga.HeldAt = heldBy != null ? DateTime.UtcNow : null;
         await db.SaveChangesAsync();
     }
 
@@ -209,6 +215,126 @@ public class PauseGateTests : IAsyncLifetime
         ModuleId = _moduleId,
         OrganizationId = _organizationId
     });
+
+    /// <summary>A hold closes the same gate a pause does, and says so with its own queued reason.</summary>
+    [Fact]
+    public async Task Trigger_On_A_Held_Module_Parks_And_Starts_Nothing()
+    {
+        await SetSaga(paused: false, heldBy: Guid.NewGuid());
+
+        await PublishTrigger();
+
+        var saga = await WaitForSaga(s => s.QueuedReason == QueuedReason.Held);
+        Assert.Equal(QueuedReason.Held, saga.QueuedReason);
+        Assert.Equal(DesiredStateHeadline.Applied, saga.QueuedDesiredStateHeadline);
+        Assert.Empty(_applied);
+    }
+
+    [Fact]
+    public async Task Run_Queue_Now_On_A_Held_Module_Leaves_The_Queue_Untouched()
+    {
+        await SetSaga(paused: false, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held, heldBy: Guid.NewGuid());
+
+        await _harness.Bus.Publish(new RunQueueNowRequested { ModuleId = _moduleId, OrganizationId = _organizationId });
+        Assert.True(await Consumed<RunQueueNowRequested>(x => x.Context.Message.ModuleId == _moduleId));
+
+        await Task.Delay(500);
+        var saga = await WaitForSaga(_ => true);
+        Assert.Equal(DesiredStateHeadline.Applied, saga.QueuedDesiredStateHeadline);
+        Assert.Equal(QueuedReason.Held, saga.QueuedReason);
+        Assert.Empty(_applied);
+    }
+
+    [Fact]
+    public async Task Dependency_Check_On_A_Held_Module_Leaves_The_Queue_Untouched()
+    {
+        await SetSaga(paused: false, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held, heldBy: Guid.NewGuid());
+
+        await PublishDependencyCheck();
+        Assert.True(await Consumed<ModuleDependencyCheckRequested>(x => x.Context.Message.ModuleId == _moduleId));
+
+        await Task.Delay(500);
+        var saga = await WaitForSaga(_ => true);
+        Assert.Equal(DesiredStateHeadline.Applied, saga.QueuedDesiredStateHeadline);
+        Assert.Equal(QueuedReason.Held, saga.QueuedReason);
+        Assert.Empty(_applied);
+    }
+
+    [Fact]
+    public async Task Release_Re_Drives_Parked_Work()
+    {
+        await SetSaga(paused: false, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held, heldBy: Guid.NewGuid());
+
+        // ReleaseHold does exactly these two things: clear the columns, then publish a dependency
+        // check so the gatekeeper re-evaluates rather than forcing execution.
+        await SetSaga(paused: false, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held);
+        await PublishDependencyCheck();
+
+        var saga = await WaitForSaga(s => s.QueuedDesiredStateHeadline == null);
+        Assert.Null(saga.QueuedDesiredStateHeadline);
+        Assert.Null(saga.QueuedReason);
+        Assert.Contains(_moduleId, _applied);
+    }
+
+    /// <summary>Releasing a hold leaves an operator's pause standing: the two flags are independent.</summary>
+    [Fact]
+    public async Task Releasing_A_Hold_Does_Not_Resume_A_Paused_Module()
+    {
+        await SetSaga(paused: true, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held, heldBy: Guid.NewGuid());
+
+        await SetSaga(paused: true, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held);
+        await PublishDependencyCheck();
+
+        var saga = await WaitForSaga(s => s.QueuedReason == QueuedReason.Paused);
+        Assert.Equal(QueuedReason.Paused, saga.QueuedReason);
+        Assert.Equal(DesiredStateHeadline.Applied, saga.QueuedDesiredStateHeadline);
+        Assert.Empty(_applied);
+    }
+
+    /// <summary>
+    /// A withdrawal must not open the gate: after a merge the Module's code and state disagree, so
+    /// the hold becomes a pause rather than a release.
+    /// </summary>
+    [Fact]
+    public async Task A_Withdrawal_Turns_The_Hold_Into_A_Pause()
+    {
+        var transferId = Guid.NewGuid();
+        await SetSaga(paused: false, queued: DesiredStateHeadline.Applied, reason: QueuedReason.Held, heldBy: transferId);
+
+        using var repository = new ModuleSagaRepository(_fixture.CreateDbContext(), _fixture.CreateMockBus());
+        var converted = await repository.ConvertHoldToPause(
+            _moduleId, _organizationId, transferId, "withdrawn from transfer; state not migrated");
+
+        Assert.True(converted);
+
+        await PublishDependencyCheck();
+        await Task.Delay(500);
+
+        var saga = await WaitForSaga(_ => true);
+        Assert.Null(saga.HeldByTransferId);
+        Assert.True(saga.Paused);
+        Assert.Equal("withdrawn from transfer; state not migrated", saga.PauseReason);
+        Assert.Equal(QueuedReason.Paused, saga.QueuedReason);
+        Assert.Equal(DesiredStateHeadline.Applied, saga.QueuedDesiredStateHeadline);
+        Assert.Empty(_applied);
+    }
+
+    /// <summary>A release naming a different transfer leaves the hold alone.</summary>
+    [Fact]
+    public async Task A_Stale_Withdrawal_Does_Not_Free_The_Module()
+    {
+        var holder = Guid.NewGuid();
+        await SetSaga(paused: false, heldBy: holder);
+
+        using var repository = new ModuleSagaRepository(_fixture.CreateDbContext(), _fixture.CreateMockBus());
+        var converted = await repository.ConvertHoldToPause(_moduleId, _organizationId, Guid.NewGuid(), "stale");
+
+        Assert.False(converted);
+
+        var saga = await WaitForSaga(_ => true);
+        Assert.Equal(holder, saga.HeldByTransferId);
+        Assert.False(saga.Paused);
+    }
 
     [Fact]
     public async Task Trigger_On_A_Paused_Module_Parks_And_Starts_Nothing()

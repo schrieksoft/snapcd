@@ -18,4 +18,10 @@ public static class ManualJobTypes
 
     /// <summary>The pre-merge half of a split: the same saga, stopping after the proof. State lives in SplitMigrateSagas too.</summary>
     public const string SplitProve = "SplitProve";
+
+    /// <summary>The pre-merge half of a transfer: proves both participants, holds nothing, writes nothing.</summary>
+    public const string TransferProve = "TransferProve";
+
+    /// <summary>The post-merge half of a transfer: the one that pushes state, under holds and consent.</summary>
+    public const string TransferMigrate = "TransferMigrate";
 }

@@ -35,6 +35,7 @@ using SnapCd.Server.Core.Repositories.System.Secured;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.Crud.RoleAssignment;
 using SnapCd.Server.Core.Services.Crud.Secrets;
 using SnapCd.Server.Core.Services.DependencyGraph;
@@ -242,6 +243,7 @@ public static class Factories
         services.AddScoped<JobServiceFactory>();
         services.AddScoped<SecuredJobServiceFactory>();
         services.AddScoped<ManualJobServiceFactory>();
+        services.AddScoped<TransferServiceFactory>();
         services.AddScoped<SourceChangedServiceFactory>();
         services.AddScoped<AccessTokenServiceFactory>();
         services.AddScoped<UserManagerFactory>();

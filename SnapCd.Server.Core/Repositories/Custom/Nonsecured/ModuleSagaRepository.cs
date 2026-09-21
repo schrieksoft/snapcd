@@ -119,6 +119,77 @@ public class ModuleSagaRepository : IDisposable
         return entity;
     }
 
+    /// <summary>Takes a Transfer's hold on the Module. Returns false when another Transfer holds it.</summary>
+    public virtual async Task<bool> TakeHold(Guid correlationId, Guid organizationId, Guid transferId)
+    {
+        var entity = await Get(correlationId, organizationId);
+
+        if (entity.HeldByTransferId == transferId) return true;
+        if (entity.HeldByTransferId != null) return false;
+
+        entity.HeldByTransferId = transferId;
+        entity.HeldAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+        await _bus.Publish(new ModuleSagaModifiedEvent { ModuleId = correlationId, OrganizationId = organizationId });
+
+        return true;
+    }
+
+    /// <summary>
+    /// Releases a Transfer's hold. The id must match what is recorded, so a stale release from an
+    /// abandoned Transfer cannot free a Module a later one is holding. Returns whether it changed.
+    /// </summary>
+    public virtual async Task<bool> ReleaseHold(Guid correlationId, Guid organizationId, Guid transferId)
+    {
+        var entity = await Get(correlationId, organizationId);
+
+        if (entity.HeldByTransferId != transferId) return false;
+
+        entity.HeldByTransferId = null;
+        entity.HeldAt = null;
+
+        await _dbContext.SaveChangesAsync();
+
+        await _bus.Publish(new ModuleSagaModifiedEvent { ModuleId = correlationId, OrganizationId = organizationId });
+
+        // Releasing re-drives the gatekeeper the same way unpausing does: parked work may stay
+        // queued for another reason, including a pause that outlives the hold.
+        await _bus.Publish(new ModuleDependencyCheckRequested { ModuleId = correlationId, OrganizationId = organizationId });
+
+        return true;
+    }
+
+    /// <summary>
+    /// Replaces a Transfer's hold with an ordinary pause in one write. No dependency check follows:
+    /// the Module stays closed to ordinary work, and the operator decides how to resolve it.
+    /// </summary>
+    public virtual async Task<bool> ConvertHoldToPause(
+        Guid correlationId,
+        Guid organizationId,
+        Guid transferId,
+        string reason)
+    {
+        var entity = await Get(correlationId, organizationId);
+
+        if (entity.HeldByTransferId != transferId) return false;
+
+        entity.HeldByTransferId = null;
+        entity.HeldAt = null;
+        entity.Paused = true;
+        entity.PausedAt = DateTime.UtcNow;
+        entity.PauseReason = reason;
+
+        if (entity.QueuedReason == QueuedReason.Held)
+            entity.QueuedReason = QueuedReason.Paused;
+
+        await _dbContext.SaveChangesAsync();
+
+        await _bus.Publish(new ModuleSagaModifiedEvent { ModuleId = correlationId, OrganizationId = organizationId });
+
+        return true;
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();
