@@ -18,10 +18,13 @@ namespace SnapCd.Server.Core.StateMachine.Transfers;
 public partial class TransferStateMachine
 {
     /// <summary>
-    /// A prove round. The two Modules prepare independently - neither needs anything from the other
-    /// to check out and plan - and only then does the sequence that couples them begin: the source
-    /// pulls its state and writes the fragment, the receiver applies it, and each proves in an order
-    /// that depends on whether one needs a value the other produces.
+    /// A prove round. The coordinator makes three decisions and no more: who starts, who gets what
+    /// the first one produced, and whether the round is green. Each Module runs its own sequence
+    /// once told to start, and is not spoken to again until it reports.
+    ///
+    /// The source starts, because its state pull writes the fragment the receiver needs. It stops
+    /// there when the receiver has to prove first - when the source needs a value the receiver
+    /// produces - and is asked to finish once the receiver has produced it.
     /// </summary>
     private void Configure_ProveRound()
     {
@@ -32,220 +35,119 @@ public partial class TransferStateMachine
                     context.Saga.CurrentJobId = context.Message.JobId;
                     context.Saga.ProveRound += 1;
                     context.Saga.Map = context.Message.Map;
+                    context.Saga.SourceProveRef = context.Message.SourceProveRef;
+                    context.Saga.ReceiverProveRef = context.Message.ReceiverProveRef;
                     context.Saga.StallReason = null;
-                    context.Saga.ProvesFirstModuleId = null;
+                    context.Saga.SourceRan = false;
+                    context.Saga.ReceiverRan = false;
 
                     _logger.LogInformation(
                         "Transfer {TransferId}: prove round {Round} starting",
                         context.Saga.TransferId, context.Saga.ProveRound);
-
-                    var (source, receiver) = SagaIds(context.Saga);
-
-                    context.Publish(new TransferParticipantPrepareRequested
-                    {
-                        CorrelationId = source,
-                        OrganizationId = context.Saga.OrganizationId,
-                        JobId = context.Message.JobId,
-                        ProveRound = context.Saga.ProveRound,
-                        ProveRef = context.Message.SourceProveRef
-                    });
-
-                    context.Publish(new TransferParticipantPrepareRequested
-                    {
-                        CorrelationId = receiver,
-                        OrganizationId = context.Saga.OrganizationId,
-                        JobId = context.Message.JobId,
-                        ProveRound = context.Saga.ProveRound,
-                        ProveRef = context.Message.ReceiverProveRef
-                    });
                 })
-                .TransitionTo(Preparing)
+                .TransitionTo(SourceRunning)
+                // The source goes first either way: only its run produces the fragment.
+                .Publish(context => Run(context.Saga, TransferRole.Source, stopAfterMap: false))
         );
 
-        During(Preparing,
-            // Both Modules answer this, so the first reply waits: the step rows say who has
-            // finished, and asking them is idempotent if a reply is delivered twice.
-            When(Prepared)
-                .ThenAsync(async context =>
+        During(SourceRunning,
+            When(Ran)
+                .Then(context =>
                 {
-                    // Cleared each time so the transition below reads this reply, not the last one.
-                    context.Saga.AdvanceRound = false;
-
-                    if (context.Message.TotalChangedCount != 0)
-                    {
-                        await Stall(context,
-                            $"Module {context.Message.ModuleId} plans {context.Message.TotalChangedCount} changes; " +
-                            "a transfer proves against a clean plan.");
-                        return;
-                    }
-
-                    if (!await BothFinished(context, "Plan")) return;
-
-                    // The source goes first: its map writes the fragment the receiver needs.
-                    await context.Publish(new TransferParticipantMapRequested
-                    {
-                        CorrelationId = context.Saga.SourceSagaId,
-                        OrganizationId = context.Saga.OrganizationId,
-                        Map = context.Saga.Map!
-                    });
-
-                    context.Saga.AdvanceRound = true;
+                    context.Saga.SourceRan = true;
+                    context.Saga.SourceNeedsValues = context.Message.NeedsValuesFrom.Count > 0;
                 })
+                .ThenAsync(StoreFromRun)
                 .IfElse(
-                    context => context.Saga.StallReason != null,
-                    stalled => stalled.TransitionTo(Stalled),
-                    // Only the reply that found both Modules finished moves the round on; the
-                    // first one to arrive leaves it where it is.
-                    otherwise => otherwise.If(
-                        context => context.Saga.AdvanceRound,
-                        advance => advance.TransitionTo(SourceMapping))),
+                    context => Refused(context.Message),
+                    refused => refused.ThenAsync(StallOnRefusal).TransitionTo(Stalled),
+                    ok => ok
+                        .TransitionTo(ReceiverRunning)
+                        .ThenAsync(context => RunReceiver(context))),
 
             When(ParticipantStopped).ThenAsync(StopRound).TransitionTo(Stalled)
         );
 
-        During(SourceMapping,
-            When(Mapped)
-                .ThenAsync(async context =>
-                {
-                    // The fragment is state, so it is stored encrypted rather than carried on the
-                    // message any further than it has to be.
-                    await StoreFragment(context);
-
-                    context.Saga.ProvesFirstModuleId = DecideOrder(context.Saga, context.Message.NeedsValuesFrom);
-
-                    await context.Publish(new TransferParticipantMapRequested
-                    {
-                        CorrelationId = context.Saga.ReceiverSagaId,
-                        OrganizationId = context.Saga.OrganizationId,
-                        Map = context.Saga.Map!,
-                        FragmentState = context.Message.FragmentState,
-                        FragmentMeta = context.Message.FragmentMeta
-                    });
-                })
-                .TransitionTo(ReceiverMapping),
-
-            When(ParticipantStopped).ThenAsync(StopRound).TransitionTo(Stalled)
-        );
-
-        During(ReceiverMapping,
-            When(Mapped)
-                .ThenAsync(async context =>
-                {
-                    var first = context.Saga.ProvesFirstModuleId;
-
-                    if (first == null)
-                    {
-                        // Neither Module needs anything from the other, so both prove at once.
-                        await Prove(context, context.Saga.SourceSagaId);
-                        await Prove(context, context.Saga.ReceiverSagaId);
-                        context.Saga.AdvanceRound = true;
-                        return;
-                    }
-
-                    await Prove(context, first == context.Saga.SourceModuleId
-                        ? context.Saga.SourceSagaId
-                        : context.Saga.ReceiverSagaId);
-
-                    context.Saga.AdvanceRound = false;
-                })
+        During(ReceiverRunning,
+            When(Ran)
+                .Then(context => context.Saga.ReceiverRan = true)
+                .ThenAsync(StoreFromRun)
                 .IfElse(
-                    context => context.Saga.ProvesFirstModuleId == null,
-                    together => together.TransitionTo(ProvingBoth),
-                    ordered => ordered.TransitionTo(ProvingFirst)),
+                    context => Refused(context.Message),
+                    refused => refused.ThenAsync(StallOnRefusal).TransitionTo(Stalled),
+                    ok => ok.IfElse(
+                        // The source stopped after its map because it needed a value the receiver
+                        // has now produced; it goes back to finish.
+                        context => context.Saga.SourceNeedsValues,
+                        finishSource => finishSource
+                            .TransitionTo(SourceFinishing)
+                            .ThenAsync(context => FinishSource(context)),
+                        done => done.ThenAsync(FinishRound).TransitionTo(Idle))),
 
             When(ParticipantStopped).ThenAsync(StopRound).TransitionTo(Stalled)
         );
 
-        During(ProvingFirst,
-            When(Proved)
-                .ThenAsync(async context =>
-                {
-                    if (context.Message.ExitCode != 0)
-                    {
-                        await Stall(context,
-                            $"Module {context.Message.ModuleId} did not plan clean: " +
-                            (context.Message.Verdict ?? "it refused."));
-                        return;
-                    }
-
-                    // The values this one produced are what the other one was waiting for.
-                    await StoreOutputs(context);
-
-                    var second = context.Message.ModuleId == context.Saga.SourceModuleId
-                        ? context.Saga.ReceiverSagaId
-                        : context.Saga.SourceSagaId;
-
-                    await Prove(context, second, context.Message.Outputs);
-                })
+        During(SourceFinishing,
+            When(Ran)
+                .ThenAsync(StoreFromRun)
                 .IfElse(
-                    context => context.Saga.StallReason != null,
-                    stalled => stalled.TransitionTo(Stalled),
-                    otherwise => otherwise.TransitionTo(ProvingSecond)),
+                    context => Refused(context.Message),
+                    refused => refused.ThenAsync(StallOnRefusal).TransitionTo(Stalled),
+                    ok => ok.ThenAsync(FinishRound).TransitionTo(Idle)),
 
             When(ParticipantStopped).ThenAsync(StopRound).TransitionTo(Stalled)
         );
 
-        During(ProvingSecond, ProvingBoth,
-            When(Proved)
-                .ThenAsync(async context =>
-                {
-                    context.Saga.AdvanceRound = false;
-
-                    if (context.Message.ExitCode != 0)
-                    {
-                        await Stall(context,
-                            $"Module {context.Message.ModuleId} did not plan clean: " +
-                            (context.Message.Verdict ?? "it refused."));
-                        return;
-                    }
-
-                    if (!await BothFinished(context, "MigrateProve")) return;
-
-                    _logger.LogInformation(
-                        "Transfer {TransferId}: round {Round} proved green",
-                        context.Saga.TransferId, context.Saga.ProveRound);
-
-                    await Finish(context);
-                    context.Saga.AdvanceRound = true;
-                })
-                .IfElse(
-                    context => context.Saga.StallReason != null,
-                    stalled => stalled.TransitionTo(Stalled),
-                    otherwise => otherwise.If(
-                        context => context.Saga.AdvanceRound,
-                        done => done.TransitionTo(Idle))),
-
-            When(ParticipantStopped).ThenAsync(StopRound).TransitionTo(Stalled)
-        );
-
-        // A stalled round is over; the next one starts from here as it would from Idle.
         During(Stalled,
-            When(ProveRoundRequested).ThenAsync(context => Task.CompletedTask),
-            Ignore(Prepared),
-            Ignore(Mapped),
-            Ignore(Proved),
+            Ignore(Ran),
             Ignore(ParticipantStopped)
         );
     }
 
-    /// <summary>Asks one Module to prove, with whatever values it needs from the other.</summary>
-    private static Task Prove<TMessage>(
-        BehaviorContext<TransferSaga, TMessage> context,
-        Guid participantSagaId,
-        Dictionary<string, string>? outputs = null)
-        where TMessage : class =>
-        context.Publish(new TransferParticipantProveRequested
-        {
-            CorrelationId = participantSagaId,
-            OrganizationId = context.Saga.OrganizationId,
-            Map = context.Saga.Map!,
-            Outputs = outputs ?? new Dictionary<string, string>()
-        });
+    private static bool Refused(TransferParticipantRan message) =>
+        message.ProveExitCode is not null and not 0;
+
+    private Task StallOnRefusal(BehaviorContext<TransferSaga, TransferParticipantRan> context) =>
+        Stall(context,
+            $"Module {context.Message.ModuleId} did not plan clean: " +
+            (context.Message.Verdict ?? "it refused."));
 
     /// <summary>
-    /// Which Module proves first: the one producing a value the other needs, so the value exists
-    /// when the other plans. Null when neither needs anything, and both can prove at once.
+    /// Starts the receiver, handing it the source's fragment and, when it does not need anything
+    /// from the source, letting it prove in the same run.
     /// </summary>
-    private static Guid? DecideOrder(TransferSaga saga, List<string> sourceNeedsValuesFrom) =>
-        sourceNeedsValuesFrom.Count > 0 ? saga.ReceiverModuleId : null;
+    private static Task RunReceiver(BehaviorContext<TransferSaga, TransferParticipantRan> context)
+    {
+        var run = Run(context.Saga, TransferRole.Receiver, stopAfterMap: false);
+        run.FragmentState = context.Message.FragmentState;
+        run.FragmentMeta = context.Message.FragmentMeta;
+
+        // When the source needs a value from the receiver, the receiver must prove first, so it is
+        // given nothing and its own outputs come back for the source.
+        if (!context.Saga.SourceNeedsValues)
+            run.Outputs = context.Message.Outputs;
+
+        return context.Publish(run);
+    }
+
+    /// <summary>Sends the source back to prove, now that the receiver has produced what it needs.</summary>
+    private static Task FinishSource(BehaviorContext<TransferSaga, TransferParticipantRan> context)
+    {
+        var run = Run(context.Saga, TransferRole.Source, stopAfterMap: false);
+        run.Outputs = context.Message.Outputs;
+        return context.Publish(run);
+    }
+
+    private static TransferParticipantRunRequested Run(
+        TransferSaga saga, TransferRole role, bool stopAfterMap) =>
+        new()
+        {
+            CorrelationId = role == TransferRole.Source ? saga.SourceSagaId : saga.ReceiverSagaId,
+            OrganizationId = saga.OrganizationId,
+            JobId = saga.CurrentJobId!.Value,
+            ProveRound = saga.ProveRound,
+            ProveRef = role == TransferRole.Source ? saga.SourceProveRef : saga.ReceiverProveRef,
+            Map = saga.Map!,
+            StopAfterMap = stopAfterMap
+        };
 }

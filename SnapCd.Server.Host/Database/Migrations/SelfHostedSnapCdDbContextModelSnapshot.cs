@@ -8174,6 +8174,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("FragmentMeta")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FragmentState")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid?>("GracefulCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8199,8 +8205,18 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Map")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("NeedsValuesFromJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("OutputsJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PreviousStateBeforeCancelling")
                         .HasMaxLength(255)
@@ -8209,6 +8225,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("PreviousStateBeforeWaiting")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ProducedFragmentMeta")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProducedFragmentState")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ProveExitCode")
+                        .HasColumnType("int");
 
                     b.Property<string>("ProveRef")
                         .HasMaxLength(255)
@@ -8254,8 +8279,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("ServerInstanceId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("StopAfterMap")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("TransferId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Verdict")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<int>("Version")
                         .HasColumnType("int");
@@ -8286,9 +8318,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<bool>("AdvanceRound")
-                        .HasColumnType("bit");
-
                     b.Property<Guid?>("CurrentJobId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8307,11 +8336,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<int>("ProveRound")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("ProvesFirstModuleId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("ReceiverModuleId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReceiverProveRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("ReceiverRan")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("ReceiverSagaId")
                         .HasColumnType("uniqueidentifier");
@@ -8324,6 +8357,16 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid>("SourceModuleId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("SourceNeedsValues")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SourceProveRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("SourceRan")
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("SourceSagaId")
                         .HasColumnType("uniqueidentifier");

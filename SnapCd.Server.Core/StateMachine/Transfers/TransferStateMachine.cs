@@ -33,32 +33,24 @@ public partial class TransferStateMachine : MassTransitStateMachine<TransferSaga
     public Event<TransferOpened> Opened { get; } = null!;
     public Event<TransferProveRoundRequested> ProveRoundRequested { get; } = null!;
 
-    // From the two Module sagas.
-    public Event<TransferParticipantPrepared> Prepared { get; } = null!;
-    public Event<TransferParticipantMapped> Mapped { get; } = null!;
-    public Event<TransferParticipantProved> Proved { get; } = null!;
+    // From the two Module sagas: one report each, whatever they did.
+    public Event<TransferParticipantRan> Ran { get; } = null!;
     public Event<TransferParticipantStopped> ParticipantStopped { get; } = null!;
 
     /// <summary>Open, with no round running. Every round starts and ends here.</summary>
     public State Idle { get; } = null!;
 
-    /// <summary>Both Modules are checking out and planning; neither depends on the other yet.</summary>
-    public State Preparing { get; } = null!;
+    /// <summary>The source is running: checking out, planning, pinning its state, proving.</summary>
+    public State SourceRunning { get; } = null!;
 
-    /// <summary>The source is pulling its state and writing the fragment the receiver needs.</summary>
-    public State SourceMapping { get; } = null!;
+    /// <summary>The receiver is running, with the source's fragment in hand.</summary>
+    public State ReceiverRunning { get; } = null!;
 
-    /// <summary>The receiver is applying that fragment to its own copy.</summary>
-    public State ReceiverMapping { get; } = null!;
-
-    /// <summary>The Module producing a value the other needs is proving first.</summary>
-    public State ProvingFirst { get; } = null!;
-
-    /// <summary>The remaining Module is proving, with the value it needs supplied.</summary>
-    public State ProvingSecond { get; } = null!;
-
-    /// <summary>Both are proving at once, because neither needs anything from the other.</summary>
-    public State ProvingBoth { get; } = null!;
+    /// <summary>
+    /// The source is proving, having stopped after its state pull because it needed a value the
+    /// receiver has now produced.
+    /// </summary>
+    public State SourceFinishing { get; } = null!;
 
     /// <summary>
     /// The round stopped short. Nothing is held by a prove, so this is a report rather than a
@@ -77,9 +69,7 @@ public partial class TransferStateMachine : MassTransitStateMachine<TransferSaga
 
         // Replies name the Transfer rather than the coordinator, because the Module sagas know
         // which Transfer they belong to, not which saga id coordinates it.
-        Event(() => Prepared, x => x.CorrelateBy((saga, context) => saga.TransferId == context.Message.TransferId));
-        Event(() => Mapped, x => x.CorrelateBy((saga, context) => saga.TransferId == context.Message.TransferId));
-        Event(() => Proved, x => x.CorrelateBy((saga, context) => saga.TransferId == context.Message.TransferId));
+        Event(() => Ran, x => x.CorrelateBy((saga, context) => saga.TransferId == context.Message.TransferId));
         Event(() => ParticipantStopped, x => x.CorrelateBy((saga, context) => saga.TransferId == context.Message.TransferId));
 
         Initially(
@@ -127,23 +117,6 @@ public partial class TransferStateMachine : MassTransitStateMachine<TransferSaga
         Configure_ProveRound();
     }
 
-    /// <summary>
-    /// Whether both Modules have finished a task. Asked of the step rows rather than counted on the
-    /// saga, so a reply delivered twice cannot advance the round twice.
-    /// </summary>
-    private static async Task<bool> BothFinished<TMessage>(
-        BehaviorContext<TransferSaga, TMessage> context, string task)
-        where TMessage : class
-    {
-        if (context.Saga.CurrentJobId is not { } jobId) return false;
-
-        var outcome = await Steps(context).Stage(
-            jobId, context.Saga.OrganizationId, task,
-            [context.Saga.SourceModuleId, context.Saga.ReceiverModuleId]);
-
-        return outcome == StageOutcome.Succeeded;
-    }
-
     /// <summary>Records why the round stopped and tells both Modules to stop where they are.</summary>
     private async Task Stall<TMessage>(BehaviorContext<TransferSaga, TMessage> context, string reason)
         where TMessage : class
@@ -169,34 +142,24 @@ public partial class TransferStateMachine : MassTransitStateMachine<TransferSaga
             $"Module {context.Message.ModuleId} stopped at {context.Message.Task}: " +
             (context.Message.ErrorHeader ?? context.Message.Status.ToString()));
 
-    /// <summary>Keeps the source's fragment for the receiver's slice, encrypted as state is.</summary>
-    private static async Task StoreFragment(BehaviorContext<TransferSaga, TransferParticipantMapped> context)
+    /// <summary>
+    /// Keeps whatever a run produced for the other Module: the state fragment, and the values its
+    /// plan produced. Both are encrypted, because a fragment is raw state.
+    /// </summary>
+    private static async Task StoreFromRun(BehaviorContext<TransferSaga, TransferParticipantRan> context)
     {
         if (context.Saga.CurrentJobId is not { } jobId) return;
-        if (context.Message.FragmentState == null) return;
 
         var artefacts = PipeExtensions.GetPayload<IServiceProvider>(context)
             .GetRequiredService<TransferArtefactService>();
 
-        await artefacts.Store(jobId, context.Saga.OrganizationId,
-            "fragment.tfstate", context.Message.FragmentState);
+        if (context.Message.FragmentState != null)
+            await artefacts.Store(jobId, context.Saga.OrganizationId,
+                "fragment.tfstate", context.Message.FragmentState);
 
         if (context.Message.FragmentMeta != null)
             await artefacts.Store(jobId, context.Saga.OrganizationId,
                 "fragment.yaml", context.Message.FragmentMeta);
-    }
-
-    /// <summary>
-    /// Keeps the values one Module produced, for the other one's slice. They come from a plan, not
-    /// from anything applied, so they live only as long as the job does.
-    /// </summary>
-    private static async Task StoreOutputs(BehaviorContext<TransferSaga, TransferParticipantProved> context)
-    {
-        if (context.Saga.CurrentJobId is not { } jobId) return;
-        if (context.Message.Outputs.Count == 0) return;
-
-        var artefacts = PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<TransferArtefactService>();
 
         foreach (var (name, value) in context.Message.Outputs)
             await artefacts.Store(jobId, context.Saga.OrganizationId, name, value);
@@ -206,7 +169,7 @@ public partial class TransferStateMachine : MassTransitStateMachine<TransferSaga
     /// Ends a round. Nothing a round produced outlives it: the fragment and the passed values are
     /// deleted, and the verdict is read back off the step rows.
     /// </summary>
-    private static async Task Finish<TMessage>(BehaviorContext<TransferSaga, TMessage> context)
+    private static async Task FinishRound<TMessage>(BehaviorContext<TransferSaga, TMessage> context)
         where TMessage : class
     {
         if (context.Saga.CurrentJobId is not { } jobId) return;

@@ -51,6 +51,34 @@ public class TransferParticipantSaga : ManualJobSagaBase
     /// </summary>
     [MaxLength(64)] public string? InputKey { get; set; }
 
+    /// <summary>The map for the current round, written to the root before each slice.</summary>
+    public string? Map { get; set; }
+
+    /// <summary>The fragment this Module was given, if it is the receiver.</summary>
+    public string? FragmentState { get; set; }
+
+    public string? FragmentMeta { get; set; }
+
+    /// <summary>The fragment this Module produced, if it is the source.</summary>
+    public string? ProducedFragmentState { get; set; }
+
+    public string? ProducedFragmentMeta { get; set; }
+
+    /// <summary>Module names this one needs values from, as the runner read them out of the map.</summary>
+    [MaxLength(2000)] public string? NeedsValuesFromJson { get; set; }
+
+    /// <summary>The values the other Module produced that this one consumes, as JSON.</summary>
+    public string? OutputsJson { get; set; }
+
+    /// <summary>Stop once the state is pinned, without proving.</summary>
+    public bool StopAfterMap { get; set; }
+
+    /// <summary>Zero when it proved clean, 2 when it did not, null when it did not prove.</summary>
+    public int? ProveExitCode { get; set; }
+
+    /// <summary>Why it refused, when it did.</summary>
+    [MaxLength(2000)] public string? Verdict { get; set; }
+
     /// <summary>The job the current sequence runs under.</summary>
     public Guid? CurrentJobId { get; set; }
 

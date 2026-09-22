@@ -35,10 +35,8 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
 
     // From the coordinator
     public Event<TransferParticipantRegistered> Registered { get; } = null!;
-    public Event<TransferParticipantPrepareRequested> PrepareRequested { get; } = null!;
+    public Event<TransferParticipantRunRequested> RunRequested { get; } = null!;
     public Event<TransferParticipantStopRequested> StopRequested { get; } = null!;
-    public Event<TransferParticipantMapRequested> MapRequested { get; } = null!;
-    public Event<TransferParticipantProveRequested> ProveRequested { get; } = null!;
 
     // Liveness: a transfer dispatches to two runners, so either can go away mid-round.
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
@@ -91,10 +89,8 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
         InstanceState(x => x.CurrentState);
 
         Event(() => Registered, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => PrepareRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => RunRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => StopRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MapRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => ProveRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         // Correlated by the runner this participant is pinned to, not by the job.
         Event(() => RunnerReconnectedEvent, x => x
@@ -151,17 +147,35 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
         );
 
         // A round begins from Idle, or from Stopped when the coordinator retries.
+        // A round is one instruction: everything this Module needs from the other arrives with it,
+        // and nothing else is said until it reports back.
         During(Idle, StoppedState,
-            When(PrepareRequested)
+            When(RunRequested)
                 .Then(context =>
                 {
                     context.Saga.CurrentJobId = context.Message.JobId;
                     context.Saga.ProveRound = context.Message.ProveRound;
                     context.Saga.ProveRef = context.Message.ProveRef;
+                    context.Saga.Map = context.Message.Map;
+                    context.Saga.FragmentState = context.Message.FragmentState;
+                    context.Saga.FragmentMeta = context.Message.FragmentMeta;
+                    context.Saga.OutputsJson = JsonSerializer.Serialize(context.Message.Outputs);
+                    context.Saga.StopAfterMap = context.Message.StopAfterMap;
+                    context.Saga.ProducedFragmentState = null;
+                    context.Saga.ProducedFragmentMeta = null;
+                    context.Saga.NeedsValuesFromJson = null;
                 })
-                .Then(context => context.Publish(Request<TransferSelectRunnerInstanceRequested>(context.Saga)))
+                .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
-                .TransitionTo(SelectRunnerInstancePending)
+                .TransitionTo(SelectRunnerInstancePending),
+
+            // Between rounds a stop has nothing to stop, and a stale tick from a finished round
+            // must not resurrect anything.
+            Ignore(StopRequested),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
+            Ignore(RunnerReconnectedEvent)
         );
 
         Configure_Preamble();

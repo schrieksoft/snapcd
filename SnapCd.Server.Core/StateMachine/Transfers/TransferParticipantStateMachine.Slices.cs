@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 
+using System.Text.Json;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -21,57 +22,39 @@ namespace SnapCd.Server.Core.StateMachine.Transfers;
 public partial class TransferParticipantStateMachine
 {
     /// <summary>
-    /// The demonolith slices. Unlike the preamble these are driven one at a time by the
-    /// coordinator, because what a slice needs comes from the other participant: the receiver's map
-    /// needs the source's fragment, and a consumer's proof needs its producer's outputs.
+    /// The demonolith slices, run one after the other without being told: map pins this Module's
+    /// state, prove asks whether it plans clean with the moved resources in place.
     ///
-    /// The participant still owns the dispatch and the retry; it is only told when, and with what.
+    /// The Module reports once, when it has finished everything it was asked to do.
     /// </summary>
     private void Configure_Slices()
     {
-        During(Idle, StoppedState,
-            When(MapRequested)
-                .Then(context =>
-                {
-                    var request = Request<TransferMigrateMapRequested>(context.Saga);
-                    request.Map = context.Message.Map;
-                    request.FragmentState = context.Message.FragmentState;
-                    request.FragmentMeta = context.Message.FragmentMeta;
-                    context.Publish(request);
-                })
-                .ThenAsync(context => RecordDispatched(context, "MigrateMap"))
-                .TransitionTo(MigrateMapPending),
-
-            When(ProveRequested)
-                .Then(context => context.Saga.InputKey = context.Message.InputKey)
-                .Then(context =>
-                {
-                    var request = Request<TransferMigrateProveRequested>(context.Saga);
-                    request.Map = context.Message.Map;
-                    request.Outputs = context.Message.Outputs;
-                    context.Publish(request);
-                })
-                .ThenAsync(context => RecordDispatched(context, "MigrateProve"))
-                .TransitionTo(MigrateProvePending)
-        );
-
         During(MigrateMapPending,
+            // The source stops here when the receiver has to prove first: the receiver needs the
+            // fragment this slice just wrote, and cannot wait for a full run to finish.
+            When(MigrateMapCompleted, context => context.Saga.StopAfterMap)
+                .ThenAsync(context => RecordCompleted(context, "MigrateMap", ManualJobStepStatus.Succeeded))
+                .Then(context =>
+                {
+                    context.Saga.ProducedFragmentState = context.Message.FragmentState;
+                    context.Saga.ProducedFragmentMeta = context.Message.FragmentMeta;
+                    context.Saga.NeedsValuesFromJson = JsonSerializer.Serialize(context.Message.NeedsValuesFrom);
+                })
+                .Publish(Ran)
+                .TransitionTo(Idle),
+
             When(MigrateMapCompleted)
                 .ThenAsync(context => RecordCompleted(context, "MigrateMap", ManualJobStepStatus.Succeeded))
-                .Publish(context => new TransferParticipantMapped
+                .Then(context =>
                 {
-                    CorrelationId = context.Saga.CorrelationId,
-                    OrganizationId = context.Saga.OrganizationId,
-                    TransferId = context.Saga.TransferId,
-                    ModuleId = context.Saga.ModuleId,
-                    Role = context.Saga.Role,
-                    ProveRound = context.Saga.ProveRound,
-                    FragmentState = context.Message.FragmentState,
-                    FragmentMeta = context.Message.FragmentMeta,
-                    MapHash = context.Message.MapHash,
-                    NeedsValuesFrom = context.Message.NeedsValuesFrom
+                    context.Saga.ProducedFragmentState = context.Message.FragmentState;
+                    context.Saga.ProducedFragmentMeta = context.Message.FragmentMeta;
+                    context.Saga.NeedsValuesFromJson = JsonSerializer.Serialize(context.Message.NeedsValuesFrom);
                 })
-                .TransitionTo(Idle),
+                .Publish(context => ProveRequest(context.Saga))
+                .ThenAsync(context => RecordDispatched(context, "MigrateProve"))
+                .TransitionTo(MigrateProvePending),
+
             When(MigrateMapFaulted)
                 .ThenAsync(context => RecordCompleted(context, "MigrateMap", ManualJobStepStatus.Faulted))
                 .Then(context => context.Publish(Stopped(context.Saga, "MigrateMap", context.Message)))
@@ -83,24 +66,20 @@ public partial class TransferParticipantStateMachine
         );
 
         During(MigrateProvePending,
-            // Exit 2 is the slice answering no. It ran, so it is a red verdict for the coordinator
-            // to weigh rather than a fault to retry.
+            // Exit 2 is the slice answering no. It ran, so it is a verdict the coordinator weighs
+            // rather than a fault to retry, and it is still a completed run.
             When(MigrateProveCompleted)
                 .ThenAsync(context => RecordCompleted(context, "MigrateProve",
                     context.Message.ExitCode == 0 ? ManualJobStepStatus.Succeeded : ManualJobStepStatus.Refused))
-                .Publish(context => new TransferParticipantProved
+                .Then(context =>
                 {
-                    CorrelationId = context.Saga.CorrelationId,
-                    OrganizationId = context.Saga.OrganizationId,
-                    TransferId = context.Saga.TransferId,
-                    ModuleId = context.Saga.ModuleId,
-                    Role = context.Saga.Role,
-                    ProveRound = context.Saga.ProveRound,
-                    ExitCode = context.Message.ExitCode,
-                    Outputs = context.Message.Outputs,
-                    Verdict = context.Message.Verdict
+                    context.Saga.ProveExitCode = context.Message.ExitCode;
+                    context.Saga.Verdict = context.Message.Verdict;
+                    context.Saga.OutputsJson = JsonSerializer.Serialize(context.Message.Outputs);
                 })
+                .Publish(Ran)
                 .TransitionTo(Idle),
+
             When(MigrateProveFaulted)
                 .ThenAsync(context => RecordCompleted(context, "MigrateProve", ManualJobStepStatus.Faulted))
                 .Then(context => context.Publish(Stopped(context.Saga, "MigrateProve", context.Message)))
@@ -111,6 +90,33 @@ public partial class TransferParticipantStateMachine
             When(StopRequested).Then(LogStop("MigrateProve")).TransitionTo(StoppedState)
         );
     }
+
+    /// <summary>
+    /// The one report this Module makes, carrying everything the other one might need from it.
+    /// </summary>
+    private static TransferParticipantRan Ran<TMessage>(BehaviorContext<TransferParticipantSaga, TMessage> context)
+        where TMessage : class =>
+        new()
+        {
+            CorrelationId = context.Saga.CorrelationId,
+            OrganizationId = context.Saga.OrganizationId,
+            TransferId = context.Saga.TransferId,
+            ModuleId = context.Saga.ModuleId,
+            Role = context.Saga.Role,
+            ProveRound = context.Saga.ProveRound,
+            DefinitiveRevision = context.Saga.DefinitiveRevision,
+            FragmentState = context.Saga.ProducedFragmentState,
+            FragmentMeta = context.Saga.ProducedFragmentMeta,
+            NeedsValuesFrom = context.Saga.NeedsValuesFromJson == null
+                ? []
+                : JsonSerializer.Deserialize<List<string>>(context.Saga.NeedsValuesFromJson)!,
+            Outputs = context.Saga.OutputsJson == null
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(context.Saga.OutputsJson)!,
+            StoppedAfterMap = context.Saga.StopAfterMap,
+            ProveExitCode = context.Saga.ProveExitCode,
+            Verdict = context.Saga.Verdict
+        };
 
     private Action<BehaviorContext<TransferParticipantSaga, HeartbeatFailed>> LostRunner(string task) =>
         context =>

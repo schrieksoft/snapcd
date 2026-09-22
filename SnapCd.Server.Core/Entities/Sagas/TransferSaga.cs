@@ -49,12 +49,6 @@ public class TransferSaga : SagaStateMachineInstance
     public Guid ReceiverSagaId { get; set; }
 
     /// <summary>
-    /// Which Module the other one needs a value from, as the runner read it out of the map. Null
-    /// when neither needs anything, in which case the two prove at once.
-    /// </summary>
-    public Guid? ProvesFirstModuleId { get; set; }
-
-    /// <summary>
     /// The map hash the current round is working against. A map edit changes it, which is what
     /// makes every proof from the previous round stale.
     /// </summary>
@@ -72,11 +66,21 @@ public class TransferSaga : SagaStateMachineInstance
     /// </summary>
     public Guid? CurrentJobId { get; set; }
 
+    /// <summary>Whether each Module has reported for the current round.</summary>
+    public bool SourceRan { get; set; }
+
+    public bool ReceiverRan { get; set; }
+
     /// <summary>
-    /// Set by the reply that found both Modules finished, so only that one moves the round on. Both
-    /// Modules answer each stage, and the first to arrive must leave the round where it is.
+    /// Whether the source needs a value the receiver produces, which is what makes the receiver
+    /// prove first and sends the source back afterwards to finish.
     /// </summary>
-    public bool AdvanceRound { get; set; }
+    public bool SourceNeedsValues { get; set; }
+
+    /// <summary>The refs each Module was asked to prove in the current round.</summary>
+    [MaxLength(255)] public string? SourceProveRef { get; set; }
+
+    [MaxLength(255)] public string? ReceiverProveRef { get; set; }
 
     /// <summary>The map the current round is working against, passed to each slice.</summary>
     public string? Map { get; set; }

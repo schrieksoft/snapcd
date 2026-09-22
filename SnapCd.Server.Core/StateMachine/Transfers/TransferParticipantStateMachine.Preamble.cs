@@ -46,7 +46,7 @@ public partial class TransferParticipantStateMachine
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
                 .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Succeeded))
-                .Then(context => context.Publish(Request<TNextRequest>(context.Saga)))
+                .Publish(context => Request<TNextRequest>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
@@ -138,6 +138,27 @@ public partial class TransferParticipantStateMachine
         await steps.Completed(
             jobId, context.Saga.OrganizationId, context.Saga.ModuleId, task, status,
             errorHeader: faulted?.ErrorMessage, error: faulted?.StackTrace);
+    }
+
+    /// <summary>This Module's map slice, carrying the fragment when it is the receiver.</summary>
+    private static TransferMigrateMapRequested MapRequest(TransferParticipantSaga saga)
+    {
+        var request = Request<TransferMigrateMapRequested>(saga);
+        request.Map = saga.Map!;
+        request.FragmentState = saga.FragmentState;
+        request.FragmentMeta = saga.FragmentMeta;
+        return request;
+    }
+
+    /// <summary>This Module's prove slice, with whatever values it consumes from the other.</summary>
+    private static TransferMigrateProveRequested ProveRequest(TransferParticipantSaga saga)
+    {
+        var request = Request<TransferMigrateProveRequested>(saga);
+        request.Map = saga.Map!;
+        request.Outputs = saga.OutputsJson == null
+            ? new Dictionary<string, string>()
+            : JsonSerializer.Deserialize<Dictionary<string, string>>(saga.OutputsJson)!;
+        return request;
     }
 
     private Action<BehaviorContext<TransferParticipantSaga, TransferParticipantStopRequested>> LogStop(string task) =>
@@ -233,20 +254,20 @@ public partial class TransferParticipantStateMachine
         // The plan ends the preamble rather than sending another request: whether a dirty plan ends
         // the round is the coordinator's call, because it depends on what the other participant did.
         During(PlanPending,
-            When(PlanCompleted)
+            // A transfer proves against a clean plan, so a dirty one ends this Module's run here.
+            When(PlanCompleted, context => context.Message.TotalChangedCount != 0)
+                .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Refused))
+                .Then(context => context.Publish(StoppedAt(context.Saga, "Plan",
+                    $"The plan plans {context.Message.TotalChangedCount} changes; a transfer proves against a clean plan.")))
+                .TransitionTo(StoppedState),
+
+            // Clean: straight on to this Module's own slices, which it runs without being told.
+            // Filtered explicitly, because two handlers for one event both run otherwise.
+            When(PlanCompleted, context => context.Message.TotalChangedCount == 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Succeeded))
-                .Publish(context => new TransferParticipantPrepared
-                {
-                    CorrelationId = context.Saga.CorrelationId,
-                    OrganizationId = context.Saga.OrganizationId,
-                    TransferId = context.Saga.TransferId,
-                    ModuleId = context.Saga.ModuleId,
-                    Role = context.Saga.Role,
-                    ProveRound = context.Saga.ProveRound,
-                    DefinitiveRevision = context.Saga.DefinitiveRevision,
-                    TotalChangedCount = context.Message.TotalChangedCount
-                })
-                .TransitionTo(Idle),
+                .Publish(context => MapRequest(context.Saga))
+                .ThenAsync(context => RecordDispatched(context, "MigrateMap"))
+                .TransitionTo(MigrateMapPending),
             When(PlanFaulted)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Faulted))
                 .Then(context => context.Publish(Stopped(context.Saga, "Plan", context.Message)))
@@ -266,14 +287,5 @@ public partial class TransferParticipantStateMachine
             When(StopRequested).Then(LogStop("Plan")).TransitionTo(StoppedState)
         );
 
-        // Idle and Stopped are between rounds: a stop there has nothing to stop, and a stale
-        // heartbeat tick from a finished round must not resurrect anything.
-        During(Idle, StoppedState,
-            Ignore(StopRequested),
-            Ignore(HeartbeatScheduled.Received),
-            Ignore(HeartbeatRequested.Completed),
-            Ignore(HeartbeatRequested.Completed2),
-            Ignore(RunnerReconnectedEvent)
-        );
     }
 }

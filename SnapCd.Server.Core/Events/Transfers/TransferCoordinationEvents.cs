@@ -70,106 +70,53 @@ public class TransferParticipantRegistered
 }
 
 /// <summary>
-/// Asks a participant to run its preamble - check out its ref, init, validate and plan - for the
-/// round named. It reports back when every step of that sequence has landed.
+/// Asks a Module to run its whole part of a round: check out its ref, plan, pull and pin its
+/// state, and prove. It decides its own order and reports once, at the end.
+///
+/// Everything it needs from the other Module arrives here, because this is the only moment the
+/// coordinator speaks to it during a round.
 /// </summary>
-public class TransferParticipantPrepareRequested
+public class TransferParticipantRunRequested
 {
     public Guid CorrelationId { get; set; }
     public Guid OrganizationId { get; set; }
 
-    /// <summary>The job the sequence runs under, so its steps and logs have somewhere to hang.</summary>
+    /// <summary>The job the round runs under, so its steps and logs have somewhere to hang.</summary>
     public Guid JobId { get; set; }
 
     public int ProveRound { get; set; }
 
-    /// <summary>The ref this participant consented to prove, overriding the Module's own.</summary>
+    /// <summary>The ref this Module consented to prove, overriding its own.</summary>
     public string? ProveRef { get; set; }
-}
 
-/// <summary>
-/// A participant finished its preamble. Carries the resolved commit, which is what the coordinator
-/// keys the proof against, and whether the plan was clean.
-/// </summary>
-public class TransferParticipantPrepared
-{
-    public Guid CorrelationId { get; set; }
-    public Guid OrganizationId { get; set; }
-    public Guid TransferId { get; set; }
-    public Guid ModuleId { get; set; }
-    public TransferRole Role { get; set; }
-    public int ProveRound { get; set; }
-
-    /// <summary>What the prove ref resolved to on the runner.</summary>
-    public string? DefinitiveRevision { get; set; }
-
-    /// <summary>Anything but zero is a red plan for this participant.</summary>
-    public int TotalChangedCount { get; set; }
-}
-
-/// <summary>
-/// Asks a participant to run its map slice: pull and pin its own state. The source writes the
-/// fragment the receiver needs; the receiver is given that fragment and applies it to its copy.
-/// </summary>
-public class TransferParticipantMapRequested
-{
-    public Guid CorrelationId { get; set; }
-    public Guid OrganizationId { get; set; }
-
-    /// <summary>The transfer map, written to the root before the slice runs.</summary>
+    /// <summary>The transfer map, written to the root before each slice.</summary>
     public string Map { get; set; } = null!;
-
-    /// <summary>The source's fragment, for the receiver. Null on the source, which produces it.</summary>
-    public string? FragmentState { get; set; }
-
-    public string? FragmentMeta { get; set; }
-}
-
-/// <summary>A participant's map slice landed. The source's carries the fragment it wrote.</summary>
-public class TransferParticipantMapped
-{
-    public Guid CorrelationId { get; set; }
-    public Guid OrganizationId { get; set; }
-    public Guid TransferId { get; set; }
-    public Guid ModuleId { get; set; }
-    public TransferRole Role { get; set; }
-    public int ProveRound { get; set; }
-
-    public string? FragmentState { get; set; }
-    public string? FragmentMeta { get; set; }
-    public string? MapHash { get; set; }
 
     /// <summary>
-    /// Module names this one needs values from. A Module that needs a value the other produces
-    /// cannot plan until the other has, so this is what orders the two proofs.
+    /// The source's fragment, for the receiver. Null for the source, which produces it.
     /// </summary>
-    public List<string> NeedsValuesFrom { get; set; } = [];
-}
+    public string? FragmentState { get; set; }
 
-/// <summary>
-/// Asks a participant to prove: does its root plan to zero changes with the moved resources in
-/// place. The coordinator supplies whatever producer values this one consumes, which is why the
-/// order matters when the map has a cross edge.
-/// </summary>
-public class TransferParticipantProveRequested
-{
-    public Guid CorrelationId { get; set; }
-    public Guid OrganizationId { get; set; }
+    public string? FragmentMeta { get; set; }
 
-    public string Map { get; set; } = null!;
-
-    /// <summary>The outputs artefacts this participant consumes, by filename.</summary>
+    /// <summary>
+    /// The values the other Module produced that this one needs, by filename. Empty when it needs
+    /// nothing, which is why it can then run at the same time as the other.
+    /// </summary>
     public Dictionary<string, string> Outputs { get; set; } = new();
 
-    /// <summary>The fingerprint this proof will be recorded against.</summary>
-    public string? InputKey { get; set; }
+    /// <summary>
+    /// Stop after the state is pinned and the fragment written, without proving. Used for the
+    /// source when the receiver has to prove first, because the receiver needs that fragment.
+    /// </summary>
+    public bool StopAfterMap { get; set; }
 }
 
 /// <summary>
-/// A participant's proof. Exit 2 is a refusal rather than a fault, and the outputs are whatever the
-/// map says another participant consumes.
+/// A Module finished its part of a round. This is the only thing the coordinator hears from it, so
+/// it carries everything the other Module might need.
 /// </summary>
-public class TransferParticipantProved
+public class TransferParticipantRan
 {
     public Guid CorrelationId { get; set; }
     public Guid OrganizationId { get; set; }
@@ -178,10 +125,25 @@ public class TransferParticipantProved
     public TransferRole Role { get; set; }
     public int ProveRound { get; set; }
 
-    /// <summary>0 when the root planned clean, 2 when it did not.</summary>
-    public int ExitCode { get; set; }
+    /// <summary>What its prove ref resolved to on the runner.</summary>
+    public string? DefinitiveRevision { get; set; }
 
+    /// <summary>The fragment the source wrote, for the receiver.</summary>
+    public string? FragmentState { get; set; }
+
+    public string? FragmentMeta { get; set; }
+
+    /// <summary>Module names this one needs values from, read out of the map by the runner.</summary>
+    public List<string> NeedsValuesFrom { get; set; } = [];
+
+    /// <summary>The values it produced that the map says the other Module needs.</summary>
     public Dictionary<string, string> Outputs { get; set; } = new();
+
+    /// <summary>True when it only pinned its state, because it was told to stop after that.</summary>
+    public bool StoppedAfterMap { get; set; }
+
+    /// <summary>Zero when it proved clean, 2 when it did not, null when it did not prove.</summary>
+    public int? ProveExitCode { get; set; }
 
     public string? Verdict { get; set; }
 }
