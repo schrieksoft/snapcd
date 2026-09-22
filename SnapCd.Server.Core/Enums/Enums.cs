@@ -191,8 +191,3 @@ public enum ActualStateHeadline
     ApplyPolicyDenied,
     DestroyPolicyDenied
 }
-
-public enum PreviewFeature
-{
-    Pulumi
-}

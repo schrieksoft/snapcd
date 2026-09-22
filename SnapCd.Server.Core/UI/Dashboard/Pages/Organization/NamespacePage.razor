@@ -683,6 +683,15 @@
     private async Task HandleNamespaceSaved()
     {
         using var repo = RepoFactory.Create();
+
+        // The route carries the name, so a rename makes NamespaceName stale and the lookup below
+        // would throw. Navigating re-binds the parameters and reloads against the new name.
+        if (_namespace != null && !string.Equals(_namespace.Name, NamespaceName, StringComparison.Ordinal))
+        {
+            NavigationManager.NavigateTo($"/Namespace/{StackName}/{_namespace.Name}", false);
+            return;
+        }
+
         _namespace = await repo.Get(StackName, NamespaceName, OrganizationId);
     }
 

@@ -182,7 +182,6 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<NamespaceMission> NamespaceMissions { get; set; }
     public DbSet<ModuleMission> ModuleMissions { get; set; }
     public DbSet<Group> Groups { get; set; }
-    public DbSet<PreviewFeatureAcceptance> PreviewFeatureAcceptances { get; set; }
     public DbSet<UserFavorite> UserFavorites { get; set; }
     public DbSet<UserColor> UserColors { get; set; }
 
@@ -546,15 +545,6 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.Entity<Definition_User>()
             .HasIndex(e => e.CreatedDateTime)
             .HasDatabaseName("IX_User_CreatedDateTime");
-
-        modelBuilder.Entity<PreviewFeatureAcceptance>()
-            .HasIndex(e => new { e.OrganizationId, e.PreviewFeature })
-            .IsUnique()
-            .HasDatabaseName("IX_PreviewFeatureAcceptance_OrgId_Feature");
-
-        modelBuilder.Entity<PreviewFeatureAcceptance>()
-            .Property(e => e.PreviewFeature)
-            .HasConversion<string>();
 
         // Configure dependency graph views
         modelBuilder.Entity<Dependency>(entity =>

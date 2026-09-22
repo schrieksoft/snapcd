@@ -17,7 +17,6 @@
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Services.Edition
 @using SnapCd.Server.Core.Settings
-@using SnapCd.Server.Core.UI.Dashboard.Pages.SystemAdmin
 @using Microsoft.Extensions.Hosting
 @using Microsoft.Extensions.Options
 @using SnapCd.Server.Core.Services
@@ -166,6 +165,9 @@
                     <MudNavLink Href="/AdminCenter/Maintenance" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.Build">
                         Maintenance Mode
                     </MudNavLink>
+                    <MudNavLink Href="/AdminCenter/SecretMigrator" Match="NavLinkMatch.Prefix" Icon="@SnapCdIcons.SyncAlt">
+                        Secret Migrator
+                    </MudNavLink>
                     @if (EditionAdminCenterNavItems != null)
                     {
                         @EditionAdminCenterNavItems
@@ -294,14 +296,6 @@
         _isSystemAdministrator = await SystemRoleService.CurrentUserIsSystemAdministratorAsync();
         var orgId = OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
         _organizationActivated = await OrganizationActivation.IsActivatedAsync(orgId);
-
-        if (SecretStoreSettings.Value.EnableMigrator)
-        {
-            _systemNavLinks.Add(new NavLinkItem(
-                "SecretMigrator", NavLinkMatch.All,
-                SnapCdIcons.SyncAlt, "Secret Migrator",
-                typeof(SecretMigrator)));
-        }
 
         _generalIsAllowedToNavigateMap = await BuildAllowedMapAsync(_generalNavLinks, orgId);
         _identityAccessIsAllowedToNavigateMap = await BuildAllowedMapAsync(_identityAccessNavLinks, orgId);
@@ -472,8 +466,7 @@
         new NavLinkItem("Agents", NavLinkMatch.All, SnapCdIcons.SmartToy, "Agents", typeof(Agents)),
         new NavLinkItem("Integrations", NavLinkMatch.All, SnapCdIcons.Hub, "Integrations", typeof(Integrations)),
         new NavLinkItem("SourceRefresherPreselections", NavLinkMatch.All, SnapCdIcons.Code, "Source Refreshers", typeof(SourceRefresherPreselections)),
-        new NavLinkItem("StateStores", NavLinkMatch.All, SnapCdIcons.Storage, "State Stores", typeof(StateStores)),
-        new NavLinkItem("PreviewFeatures", NavLinkMatch.All, SnapCdIcons.Science, "Preview Features", typeof(PreviewFeatures))
+        new NavLinkItem("StateStores", NavLinkMatch.All, SnapCdIcons.Storage, "State Stores", typeof(StateStores))
     };
 
     // Tests Section - collapsible group, dev only

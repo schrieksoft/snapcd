@@ -98,7 +98,6 @@ public static class SecuredRepositories
         services.AddScoped<NamespaceTerraformArrayFlagSecuredRepository>();
         services.AddScoped<ModuleHookSecuredRepository>();
         services.AddScoped<NamespaceHookSecuredRepository>();
-        services.AddScoped<PreviewFeatureAcceptanceSecuredRepository>();
         services.AddScoped<ModuleJobSecuredRepository>();
         services.AddScoped<ModuleJobApprovalSecuredRepository>();
         services.AddScoped<OutputSetSecuredRepository>();
