@@ -42,6 +42,13 @@ public class TransferMigrateMapCompleted : TransferStepResponseBase
 
     /// <summary>The map hash the slice worked against, checked against what the saga expects.</summary>
     public string? MapHash { get; set; }
+
+    /// <summary>
+    /// Module names this one needs values from, read by the runner out of the map. When a Module
+    /// needs a value the other one produces, that other one has to plan first so the value exists,
+    /// which is what decides the order the two proofs run in.
+    /// </summary>
+    public List<string> NeedsValuesFrom { get; set; } = [];
 }
 
 public class TransferMigrateMapFaulted : TransferStepFaultedBase;

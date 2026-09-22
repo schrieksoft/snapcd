@@ -68,7 +68,8 @@ public partial class TransferParticipantStateMachine
                     ProveRound = context.Saga.ProveRound,
                     FragmentState = context.Message.FragmentState,
                     FragmentMeta = context.Message.FragmentMeta,
-                    MapHash = context.Message.MapHash
+                    MapHash = context.Message.MapHash,
+                    NeedsValuesFrom = context.Message.NeedsValuesFrom
                 })
                 .TransitionTo(Idle),
             When(MigrateMapFaulted)

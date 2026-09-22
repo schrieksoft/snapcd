@@ -99,6 +99,12 @@ public class TransferParticipantMapped
     public string? FragmentState { get; set; }
     public string? FragmentMeta { get; set; }
     public string? MapHash { get; set; }
+
+    /// <summary>
+    /// Module names this one needs values from. A Module that needs a value the other produces
+    /// cannot plan until the other has, so this is what orders the two proofs.
+    /// </summary>
+    public List<string> NeedsValuesFrom { get; set; } = [];
 }
 
 /// <summary>
