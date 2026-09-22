@@ -964,6 +964,73 @@ paths:
         - Namespace.Owner
         - Module.Contributor
         - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Prove:
+    post:
+      tags:
+      - Transfer
+      summary: 'Start a prove round: both Modules plan and prove against their own refs'
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/StartProveRequestDto'
+          text/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/StartProveRequestDto'
+          application/*+json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/StartProveRequestDto'
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
   /api/{organizationId}/Transfer/{transferId}/Status:
     get:
       tags:
@@ -34297,6 +34364,20 @@ components:
       description: |-
         DTO for updating an existing Stack (PUT operations).
         Includes Id to identify which stack to update.
+    StartProveRequestDto:
+      type: object
+      properties:
+        sourceRootDirectory:
+          type:
+          - 'null'
+          - string
+          description: The source's root within its checkout. Null for the checkout itself.
+        receiverRootDirectory:
+          type:
+          - 'null'
+          - string
+          description: The receiver's root within its checkout.
+      description: Starts a prove round, naming where each Module's root sits in its own checkout.
     StateFileCreateDto:
       type: object
       properties:
@@ -34700,8 +34781,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 457
+  documented: 458
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1205
+  documented: 1208
   missing: 0

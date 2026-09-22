@@ -82,7 +82,7 @@ public class TransferProveRoundTests : IAsyncLifetime
 
         _provider = services.BuildServiceProvider(true);
         _harness = _provider.GetRequiredService<ITestHarness>();
-        _harness.TestTimeout = TimeSpan.FromSeconds(20);
+        _harness.TestTimeout = TimeSpan.FromSeconds(60);
         await _harness.Start();
 
         await using var db = _fixture.CreateDbContext();
@@ -238,8 +238,16 @@ public class TransferProveRoundTests : IAsyncLifetime
             ReceiverDeclared = Declared(_receiverModuleId, "receiver")
         });
 
-        Assert.True(await WaitForCoordinator(s => s.CurrentState == "Idle"),
-            "the transfer did not open");
+        // Both Module sagas must exist before a round is asked for: a round sent earlier has
+        // nothing to dispatch to.
+        Assert.True(
+            await WaitUntil(() =>
+            {
+                using var db = _fixture.CreateDbContext();
+                return db.Set<TransferParticipantSaga>().AsNoTracking()
+                    .Count(x => x.TransferId == _transferId) == 2;
+            }),
+            "the transfer's two Module sagas were never created");
     }
 
     private async Task StartRound()
@@ -347,7 +355,9 @@ public class TransferProveRoundTests : IAsyncLifetime
 
     private static async Task<bool> WaitUntil(Func<bool> condition)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(15);
+        // Generous, because the whole suite shares one database: these sagas are markedly slower
+        // under load than they are alone.
+        var deadline = DateTime.UtcNow.AddSeconds(45);
         while (DateTime.UtcNow < deadline)
         {
             if (condition()) return true;

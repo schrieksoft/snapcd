@@ -18,6 +18,7 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Events.Transfers;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration;
 using MassTransit;
@@ -155,6 +156,98 @@ public class ManualJobService : IDisposable
     /// same id. The two share one correlation id, so publishing with a fresh one would leave the
     /// row and its saga unable to find each other.
     /// </summary>
+    /// <summary>
+    /// Starts a prove round for a transfer: both Modules check out their own ref and plan, the
+    /// state fragment crosses between them, and each proves. Nothing is written and nothing is
+    /// held, so neither Module has to be paused - an ordinary job running alongside cannot
+    /// invalidate a verdict that is only advisory.
+    /// </summary>
+    public async Task<ManualModuleJob> StartTransferProve(
+        Guid transferId,
+        Guid organizationId,
+        string? sourceRootDirectory = null,
+        string? receiverRootDirectory = null)
+    {
+        if (_resolvedConfigurationService is null || _bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var transfer = await dbContext.Transfers.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == transferId && t.OrganizationId == organizationId);
+
+        if (transfer is null)
+            throw new EntityNotFoundException($"Transfer '{transferId}' not found");
+
+        if (!_moduleSecuredRepository.CanPause(transfer.SourceModuleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to run manual jobs on Module with Id {transfer.SourceModuleId}");
+
+        if (transfer.Status is TransferStatus.Migrated or TransferStatus.Abandoned)
+            throw new ManualJobNotAllowedException($"This transfer is {transfer.Status}.");
+
+        if (transfer.ReceiverConsentStatus is not (ConsentStatus.Granted or ConsentStatus.NotRequired))
+            throw new ManualJobNotAllowedException(
+                $"The receiver's consent is {transfer.ReceiverConsentStatus}; it must be granted before a prove can run.");
+
+        if (string.IsNullOrWhiteSpace(transfer.SourceProveRef) || string.IsNullOrWhiteSpace(transfer.ReceiverProveRef))
+            throw new ManualJobNotAllowedException("Both Modules need a ref to prove before a round can start.");
+
+        // One manual job at a time per Module, which the unique index also enforces.
+        foreach (var moduleId in new[] { transfer.SourceModuleId, transfer.ReceiverModuleId })
+            if (await dbContext.ManualModuleJobs.AsNoTracking().AnyAsync(j =>
+                    j.ModuleId == moduleId && j.OrganizationId == organizationId
+                    && j.Status == ExecutionStatus.Running))
+                throw new ManualJobNotAllowedException(
+                    $"A manual job is already running on Module with Id {moduleId}.");
+
+        var job = new ManualModuleJob
+        {
+            Id = Guid.NewGuid(),
+            // Owned by the source, which is the Module the transfer was started from.
+            ModuleId = transfer.SourceModuleId,
+            OrganizationId = organizationId,
+            TimestampStart = DateTimeOffset.UtcNow,
+            JobType = ManualJobTypes.TransferProve,
+            Status = ExecutionStatus.Running
+        };
+
+        dbContext.ManualModuleJobs.Add(job);
+        await dbContext.SaveChangesAsync();
+
+        try
+        {
+            var sourceDeclared = await _resolvedConfigurationService.GetDeclared(transfer.SourceModuleId, organizationId);
+            var receiverDeclared = await _resolvedConfigurationService.GetDeclared(transfer.ReceiverModuleId, organizationId);
+
+            await _bus.Publish(new TransferProveRoundStartRequested
+            {
+                TransferId = transferId,
+                OrganizationId = organizationId,
+                JobId = job.Id,
+                Map = transfer.MapJson,
+                MapHash = transfer.MapHash,
+                SourceModuleId = transfer.SourceModuleId,
+                ReceiverModuleId = transfer.ReceiverModuleId,
+                SourceDeclared = sourceDeclared,
+                ReceiverDeclared = receiverDeclared,
+                SourceProveRef = transfer.SourceProveRef,
+                ReceiverProveRef = transfer.ReceiverProveRef,
+                SourceRootDirectory = sourceRootDirectory,
+                ReceiverRootDirectory = receiverRootDirectory
+            });
+        }
+        catch (Exception ex)
+        {
+            // The row is already Running and would block every later manual job on this Module.
+            await FailJob(job.Id, organizationId, ex.Message);
+            throw;
+        }
+
+        return job;
+    }
+
     public async Task<ManualModuleJob> StartSplitMigrate(
         Guid moduleId,
         Guid organizationId,

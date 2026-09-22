@@ -56,6 +56,16 @@ public class DeclareMergedRequestDto
     public string MergedCommit { get; set; } = null!;
 }
 
+/// <summary>Starts a prove round, naming where each Module's root sits in its own checkout.</summary>
+public class StartProveRequestDto
+{
+    /// <summary>The source's root within its checkout. Null for the checkout itself.</summary>
+    public string? SourceRootDirectory { get; set; }
+
+    /// <summary>The receiver's root within its checkout.</summary>
+    public string? ReceiverRootDirectory { get; set; }
+}
+
 /// <summary>Replaces a transfer's map, which re-asks the receiver for consent.</summary>
 public class ReplaceMapRequestDto
 {

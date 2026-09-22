@@ -15,6 +15,33 @@ namespace SnapCd.Server.Core.Events.Transfers;
 // What the coordinator says to a participant, and what it hears back. The participant owns its own
 // sequence and retries; the coordinator only ever says "start this" and is told how it went.
 
+/// <summary>
+/// Asks for a prove round, without knowing whether this Transfer has ever run one. The consumer
+/// opens the coordinator on the first round and starts a round on every one after, so a caller
+/// never has to know which.
+/// </summary>
+public class TransferProveRoundStartRequested
+{
+    public Guid TransferId { get; set; }
+    public Guid OrganizationId { get; set; }
+    public Guid JobId { get; set; }
+
+    public string Map { get; set; } = null!;
+    public string? MapHash { get; set; }
+
+    public Guid SourceModuleId { get; set; }
+    public Guid ReceiverModuleId { get; set; }
+
+    public ResolvedModule SourceDeclared { get; set; } = null!;
+    public ResolvedModule ReceiverDeclared { get; set; } = null!;
+
+    public string? SourceProveRef { get; set; }
+    public string? ReceiverProveRef { get; set; }
+
+    public string? SourceRootDirectory { get; set; }
+    public string? ReceiverRootDirectory { get; set; }
+}
+
 /// <summary>Starts the coordinator, once, when a Transfer is opened.</summary>
 public class TransferOpened
 {

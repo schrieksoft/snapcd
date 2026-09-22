@@ -286,6 +286,7 @@ public static class MassTransit
         typeof(ModuleStateChangedToDestroyedCompetingConsumer),
         typeof(ModuleHoldCompetingConsumer),
         typeof(ModuleWithdrawnFromTransferCompetingConsumer),
+        typeof(TransferProveRoundStartCompetingConsumer),
 
         // Handler consumers (offloaded from SignalR handlers)
         typeof(OutputCompletedInvokedConsumer),

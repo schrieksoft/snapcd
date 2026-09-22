@@ -18,6 +18,7 @@ using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 
 namespace SnapCd.Server.Core.Controllers.Transfers;
@@ -33,10 +34,12 @@ namespace SnapCd.Server.Core.Controllers.Transfers;
 public class TransferController : ControllerBase
 {
     private readonly TransferServiceFactory _factory;
+    private readonly ManualJobServiceFactory _manualJobServiceFactory;
 
-    public TransferController(TransferServiceFactory factory)
+    public TransferController(TransferServiceFactory factory, ManualJobServiceFactory manualJobServiceFactory)
     {
         _factory = factory;
+        _manualJobServiceFactory = manualJobServiceFactory;
     }
 
     [EndpointSummary("Open a transfer from a source Module to one receiver")]
@@ -116,6 +119,34 @@ public class TransferController : ControllerBase
         Guid organizationId, Guid transferId, [FromBody] ReasonRequestDto? request) =>
         Run(async service => (ActionResult)Ok(await service.Abandon(
             transferId, organizationId, request?.Reason ?? "abandoned")));
+
+    [EndpointSummary("Start a prove round: both Modules plan and prove against their own refs")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
+    [HttpPost("{transferId}/Prove")]
+    public async Task<ActionResult> Prove(
+        Guid organizationId, Guid transferId, [FromBody] StartProveRequestDto? request)
+    {
+        using var service = _manualJobServiceFactory.Create();
+        try
+        {
+            var job = await service.StartTransferProve(
+                transferId, organizationId, request?.SourceRootDirectory, request?.ReceiverRootDirectory);
+
+            return Ok(job.Id);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (ManualJobNotAllowedException e)
+        {
+            return Conflict(e.Message);
+        }
+    }
 
     [EndpointSummary("The transfer's status, recomputed from its participants and jobs")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Read)]
