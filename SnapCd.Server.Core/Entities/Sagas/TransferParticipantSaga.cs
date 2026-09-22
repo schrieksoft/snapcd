@@ -39,6 +39,9 @@ public class TransferParticipantSaga : ManualJobSagaBase
     /// <summary>This participant's root within its own checkout, passed as --root-dir.</summary>
     [MaxLength(1000)] public string? RootDirectory { get; set; }
 
+    /// <summary>The ref this participant was asked to prove, from its consent.</summary>
+    [MaxLength(255)] public string? ProveRef { get; set; }
+
     /// <summary>The commit this participant is proving, resolved from its prove ref by the runner.</summary>
     [MaxLength(255)] public string? DefinitiveRevision { get; set; }
 

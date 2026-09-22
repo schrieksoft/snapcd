@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
 using SnapCd.Server.Core.Consumers.Tasks.SplitMigrate;
 using SnapCd.Server.Core.StateMachine.SplitMigrate;
+using SnapCd.Server.Core.StateMachine.Transfers;
 using SnapCd.Server.Core.Consumers.Tasks;
 using SnapCd.Server.Core.Consumers.Tasks.Handlers;
 using SnapCd.Server.Core.Database;
@@ -354,6 +355,7 @@ public static class MassTransit
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
+        AddSagaStateMachine<TransferParticipantStateMachine, TransferParticipantSaga>(x);
 
         // module sagas
         AddSagaStateMachine<
