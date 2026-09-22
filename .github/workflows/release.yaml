@@ -308,7 +308,6 @@ jobs:
               snapcd-saas \
               snapcd-deployment-docker \
               snapcd-deployment-kubernetes \
-              snapcd-deployment-local \
               snapcd-docs \
               terraform-provider-snapcd \
               module-snapcd-runner-app; do
