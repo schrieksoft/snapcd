@@ -12,8 +12,8 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20260921173241_TransferProveSaga")]
-    partial class TransferProveSaga
+    [Migration("20260922120828_ManualJobsAndTransfers")]
+    partial class ManualJobsAndTransfers
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -3969,7 +3969,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OrganizationId", "StackId", "Name")
                         .IsUnique();
 
-                    b.ToTable("Namespaces");
+                    b.ToTable("Namespaces", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceAdditionalTriggerPath", b =>
@@ -5196,56 +5198,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("OutputSets");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.PreviewFeatureAcceptance", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PreviewFeature")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId", "PreviewFeature")
-                        .IsUnique()
-                        .HasDatabaseName("IX_PreviewFeatureAcceptance_OrgId_Feature");
-
-                    b.ToTable("PreviewFeatureAcceptances");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base.AgentRoleAssignment", b =>
@@ -6893,7 +6845,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OrganizationId", "Name")
                         .IsUnique();
 
-                    b.ToTable("Stacks");
+                    b.ToTable("Stacks", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFile", b =>
@@ -11036,17 +10990,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.PreviewFeatureAcceptance", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Organization");
                 });
