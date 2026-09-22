@@ -41,6 +41,20 @@ public class TransferSaga : SagaStateMachineInstance
     public Guid ReceiverModuleId { get; set; }
 
     /// <summary>
+    /// The two participant sagas, addressed individually: each has its own correlation id, so the
+    /// coordinator publishes to each rather than broadcasting.
+    /// </summary>
+    public Guid SourceSagaId { get; set; }
+
+    public Guid ReceiverSagaId { get; set; }
+
+    /// <summary>
+    /// Which Module the other one needs a value from, as the runner read it out of the map. Null
+    /// when neither needs anything, in which case the two prove at once.
+    /// </summary>
+    public Guid? ProvesFirstModuleId { get; set; }
+
+    /// <summary>
     /// The map hash the current round is working against. A map edit changes it, which is what
     /// makes every proof from the previous round stale.
     /// </summary>
@@ -57,6 +71,15 @@ public class TransferSaga : SagaStateMachineInstance
     /// to hang off. Null between rounds, when the Transfer is merely open.
     /// </summary>
     public Guid? CurrentJobId { get; set; }
+
+    /// <summary>
+    /// Set by the reply that found both Modules finished, so only that one moves the round on. Both
+    /// Modules answer each stage, and the first to arrive must leave the round where it is.
+    /// </summary>
+    public bool AdvanceRound { get; set; }
+
+    /// <summary>The map the current round is working against, passed to each slice.</summary>
+    public string? Map { get; set; }
 
     /// <summary>
     /// Why the run stopped, when it stalled. A stall keeps the holds: it is waiting for a person,

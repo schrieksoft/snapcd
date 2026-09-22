@@ -8210,6 +8210,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("ProveRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<int>("ProveRound")
                         .HasColumnType("int");
 
@@ -8282,6 +8286,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("AdvanceRound")
+                        .HasColumnType("bit");
+
                     b.Property<Guid?>("CurrentJobId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8290,6 +8297,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("Map")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("MapHash")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -8297,7 +8307,13 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<int>("ProveRound")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ProvesFirstModuleId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ReceiverModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReceiverSagaId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<byte[]>("RowVersion")
@@ -8307,6 +8323,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("rowversion");
 
                     b.Property<Guid>("SourceModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceSagaId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("StallReason")

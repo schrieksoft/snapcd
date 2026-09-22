@@ -171,6 +171,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Role = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     RootDirectory = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    ProveRef = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     DefinitiveRevision = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     InputKey = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
                     CurrentJobId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
@@ -290,9 +291,14 @@ namespace SnapCd.Server.Host.Database.Migrations
                     TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     SourceModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ReceiverModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SourceSagaId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReceiverSagaId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProvesFirstModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     MapHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
                     ProveRound = table.Column<int>(type: "int", nullable: false),
                     CurrentJobId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    AdvanceRound = table.Column<bool>(type: "bit", nullable: false),
+                    Map = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     StallReason = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true)
                 },
                 constraints: table =>

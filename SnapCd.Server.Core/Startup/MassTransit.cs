@@ -356,6 +356,7 @@ public static class MassTransit
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
         AddSagaStateMachine<TransferParticipantStateMachine, TransferParticipantSaga>(x);
+        AddSagaStateMachine<TransferStateMachine, TransferSaga>(x);
 
         // module sagas
         AddSagaStateMachine<

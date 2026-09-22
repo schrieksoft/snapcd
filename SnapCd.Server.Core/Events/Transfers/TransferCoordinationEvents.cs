@@ -15,6 +15,45 @@ namespace SnapCd.Server.Core.Events.Transfers;
 // What the coordinator says to a participant, and what it hears back. The participant owns its own
 // sequence and retries; the coordinator only ever says "start this" and is told how it went.
 
+/// <summary>Starts the coordinator, once, when a Transfer is opened.</summary>
+public class TransferOpened
+{
+    public Guid CorrelationId { get; set; }
+    public Guid OrganizationId { get; set; }
+    public Guid TransferId { get; set; }
+
+    public Guid SourceModuleId { get; set; }
+    public Guid ReceiverModuleId { get; set; }
+
+    /// <summary>The map's hash, which is the Transfer's identity.</summary>
+    public string? MapHash { get; set; }
+
+    public ResolvedModule SourceDeclared { get; set; } = null!;
+    public ResolvedModule ReceiverDeclared { get; set; } = null!;
+
+    public string? SourceRootDirectory { get; set; }
+    public string? ReceiverRootDirectory { get; set; }
+}
+
+/// <summary>
+/// Asks for a prove round: both Modules check out their own ref and plan, then the state fragment
+/// and any values they need from each other cross between them.
+/// </summary>
+public class TransferProveRoundRequested
+{
+    public Guid CorrelationId { get; set; }
+    public Guid OrganizationId { get; set; }
+
+    /// <summary>The job the round runs under, so its steps and logs have somewhere to hang.</summary>
+    public Guid JobId { get; set; }
+
+    /// <summary>The map as it stands, passed to each slice.</summary>
+    public string Map { get; set; } = null!;
+
+    public string? SourceProveRef { get; set; }
+    public string? ReceiverProveRef { get; set; }
+}
+
 /// <summary>Creates a participant's saga, once, when the Transfer opens.</summary>
 public class TransferParticipantRegistered
 {
