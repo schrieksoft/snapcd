@@ -153,7 +153,7 @@ public class TransferService : IDisposable
     }
 
     /// <summary>
-    /// Changes the ref a side wants proved. Allowed until it locks, because after that the ref is
+    /// Changes the ref a participant wants proved. Allowed until it locks, because after that the ref is
     /// what the merge was declared against.
     /// </summary>
     public async Task SetProveRef(Guid transferId, Guid moduleId, Guid organizationId, string proveRef)
@@ -292,7 +292,7 @@ public class TransferService : IDisposable
     }
 
     /// <summary>
-    /// Takes a side's hold, before its merge lands. From here its ordinary triggers park, including
+    /// Takes a participant's hold, before its merge lands. From here its ordinary triggers park, including
     /// the merge's own: that is the point, since merged code is unsafe to apply until the state
     /// moves with it.
     /// </summary>
@@ -383,7 +383,7 @@ public class TransferService : IDisposable
     }
 
     /// <summary>
-    /// Releases a side whose slice has landed. Unlike a withdrawal this is a true release: its code
+    /// Releases a participant whose slice has landed. Unlike a withdrawal this is a true release: its code
     /// and state agree again, so ordinary work may resume.
     /// </summary>
     public async Task ReleaseLanded(Guid transferId, Guid moduleId, Guid organizationId)
@@ -465,7 +465,7 @@ public class TransferService : IDisposable
     }
 
     /// <summary>
-    /// Converts a side's hold into an ordinary pause. After a merge the Module's code and its state
+    /// Converts a participant's hold into an ordinary pause. After a merge the Module's code and its state
     /// disagree until the migration lands, so releasing the hold is never a return to normal: the
     /// next ordinary plan would destroy or duplicate the moved resources.
     /// </summary>

@@ -16,7 +16,7 @@ namespace SnapCd.Server.Core.Services.Crud.Transfers;
 
 /// <summary>
 /// The fingerprint of everything a participant's slice result depends on. A proof is only as fresh
-/// as its key: the Transfer's verdict is green when every side has a green prove step whose key
+/// as its key: the Transfer's verdict is green when every participant has a green prove step whose key
 /// still matches its current inputs, so a push to either branch turns the verdict amber rather than
 /// leaving a stale green in place.
 ///

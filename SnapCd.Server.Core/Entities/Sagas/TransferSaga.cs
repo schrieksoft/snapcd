@@ -14,13 +14,13 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 
 /// <summary>
 /// One per Transfer, alive from the moment it is opened until it lands or is abandoned. It runs
-/// prove rounds as either branch moves, then the migration once both sides have locked and merged,
+/// prove rounds as either branch moves, then the migration once both participants have locked and merged,
 /// so the handover from proving to migrating is a transition rather than a handshake between two
 /// jobs.
 ///
 /// It does not run any step itself: each participant has its own saga that owns its sequence and
-/// its retries. This one decides what happens next - which side proves first, who holds the
-/// fragment, when the approval gate opens, and which side pushes.
+/// its retries. This one decides what happens next - which participant proves first, who holds the
+/// fragment, when the approval gate opens, and which participant pushes.
 /// </summary>
 public class TransferSaga : SagaStateMachineInstance
 {

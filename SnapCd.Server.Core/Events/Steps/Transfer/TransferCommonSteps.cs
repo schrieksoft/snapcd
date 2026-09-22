@@ -10,12 +10,12 @@
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
 
 // The four steps a participant runs before any transfer slice: the same work a deployment does,
-// but addressed to one side of the transfer and pinned to that side's runner.
+// but addressed to one participant and pinned to that participant's runner.
 
 /// <summary>Pins the runner instance this participant's steps will all go to.</summary>
 public class TransferSelectRunnerInstanceRequested : TransferStepRequestBase;
 
-/// <summary>Carries the instance the selection settled on, which the saga pins for the side.</summary>
+/// <summary>Carries the instance the selection settled on, which the saga pins for the participant.</summary>
 public class TransferSelectRunnerInstanceCompleted : TransferStepResponseBase
 {
     public string RunnerInstanceName { get; set; } = string.Empty;
@@ -26,7 +26,7 @@ public class TransferSelectRunnerInstanceFaulted : TransferStepFaultedBase;
 /// <summary>Checks the participant's source out at the ref it consented to prove.</summary>
 public class TransferGetModuleRequested : TransferStepRequestBase
 {
-    /// <summary>The ref from this participant's side of the Transfer, not the Module's own.</summary>
+    /// <summary>The ref this participant consented to prove, not the Module's own.</summary>
     public string? SourceRevisionOverride { get; set; }
 }
 
@@ -54,7 +54,7 @@ public class TransferPlanRequested : TransferStepRequestBase;
 
 /// <summary>
 /// A plan for one participant. A transfer proves against a clean plan, so anything but zero
-/// changes is a red step for that side.
+/// changes is a red step for that participant.
 /// </summary>
 public class TransferPlanCompleted : TransferStepResponseBase
 {

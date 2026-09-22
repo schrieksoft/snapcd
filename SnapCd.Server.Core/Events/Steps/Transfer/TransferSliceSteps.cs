@@ -56,7 +56,7 @@ public class TransferMigrateProveRequested : TransferStepRequestBase
 
     /// <summary>
     /// The outputs artefacts this participant consumes, by filename, as the runner writes them into
-    /// the slice's work directory. Empty when nothing is threaded into this side.
+    /// the slice's work directory. Empty when nothing is threaded into this participant.
     /// </summary>
     public Dictionary<string, string> Outputs { get; set; } = new();
 }

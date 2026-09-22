@@ -14,7 +14,7 @@ namespace SnapCd.Server.Core.Events.Steps.Transfer;
 /// <summary>
 /// Parameters every transfer step needs. Transfer has its own step contracts rather than reusing the
 /// deployment ones because two participants run the same task under one correlation id: without a
-/// Module id on the message the saga cannot tell which side answered.
+/// Module id on the message the saga cannot tell which of them answered.
 /// </summary>
 public abstract class TransferStepRequestBase : StepRequestBase
 {
