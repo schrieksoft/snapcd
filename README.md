@@ -10,6 +10,8 @@
 
 [![Break the Terraform monolith — Compose and Orchestrate at any scale](https://img.youtube.com/vi/cLfWT9njyz8/maxresdefault.jpg)](https://youtu.be/cLfWT9njyz8)
 
+> Get started by [self-hosting](https://docs.snapcd.io/quickstart/self-hosted/).
+
 ## The Seven Goals
 
 Snap CD is a self-hostable GitOps orchestrator for Terraform, OpenTofu, and Pulumi. It was built according to (and delivers on!) the following goals:
