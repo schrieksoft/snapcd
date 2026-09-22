@@ -12,7 +12,7 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20260922120828_ManualJobsAndTransfers")]
+    [Migration("20260922142238_ManualJobsAndTransfers")]
     partial class ManualJobsAndTransfers
     {
         /// <inheritdoc />
@@ -8139,7 +8139,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.TransferProveSaga", b =>
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.TransferParticipantSaga", b =>
                 {
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uniqueidentifier");
@@ -8151,6 +8151,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("int");
 
                     b.Property<Guid?>("ApprovalTimeoutScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentJobId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CurrentState")
@@ -8175,6 +8178,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("HeartbeatScheduleTokenId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("InputKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
@@ -8187,10 +8194,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("MapHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8202,19 +8205,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<Guid>("ReceiverModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ReceiverRootDirectory")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid>("ReceiverRunnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ReceiverRunnerInstanceName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                    b.Property<int>("ProveRound")
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
@@ -8222,6 +8214,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("ResponseAddress")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RootDirectory")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -8244,13 +8245,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid?>("ServerInstanceId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SourceModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("SourceRootDirectory")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<Guid>("TransferId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8265,11 +8259,67 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("CorrelationId")
                         .IsUnique();
 
-                    b.HasIndex("TransferId");
-
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("TransferProveSagas", (string)null);
+                    b.HasIndex("TransferId", "Role", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("TransferParticipantSagas", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.TransferSaga", b =>
+                {
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CurrentState")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("MapHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("ProveRound")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ReceiverModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SourceModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StallReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("TransferId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("CorrelationId", "OrganizationId");
+
+                    b.HasIndex("CorrelationId")
+                        .IsUnique();
+
+                    b.HasIndex("TransferId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("TransferSagas", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -11587,10 +11637,10 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.TransferProveSaga", b =>
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.TransferParticipantSaga", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", null)
-                        .WithMany("TransferProveSagas")
+                        .WithMany("TransferParticipantSagas")
                         .HasForeignKey("ModuleId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -12469,7 +12519,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("TerraformRemotePolicies");
 
-                    b.Navigation("TransferProveSagas");
+                    b.Navigation("TransferParticipantSagas");
 
                     b.Navigation("TransfersAsReceiver");
 

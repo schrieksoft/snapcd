@@ -14,6 +14,25 @@ using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.Services.Crud.Transfers;
 
+/// <summary>How a stage stands once every participant has been accounted for.</summary>
+public enum StageOutcome
+{
+    /// <summary>At least one participant has not answered yet.</summary>
+    Waiting,
+
+    /// <summary>Every participant succeeded.</summary>
+    Succeeded,
+
+    /// <summary>A participant answered no. Not a fault: the slice ran and refused.</summary>
+    Refused,
+
+    /// <summary>A participant's step or its transport failed.</summary>
+    Faulted,
+
+    /// <summary>Every participant answered, but a result was skipped or went stale.</summary>
+    Incomplete
+}
+
 /// <summary>
 /// The progress record for a manual job, and the only one: a fan-in decision ("has every
 /// participant finished this stage") is a query over these rows, and the same query is what the job
@@ -164,6 +183,36 @@ public class ManualJobStepService
             .GroupBy(s => new { s.ModuleId, s.Task })
             .Select(g => g.OrderByDescending(s => s.Attempt).First())
             .ToList();
+    }
+
+    /// <summary>
+    /// Whether every participant has finished this task, and how it went. This is the fan-in
+    /// decision: the saga advances on a query over the step rows rather than on counters it keeps
+    /// itself, so a replayed or duplicated completion cannot advance it twice.
+    /// </summary>
+    public async Task<StageOutcome> Stage(Guid jobId, Guid organizationId, string task, IReadOnlyCollection<Guid> moduleIds)
+    {
+        var latest = (await Latest(jobId, organizationId))
+            .Where(s => s.Task == task)
+            .ToDictionary(s => s.ModuleId);
+
+        var statuses = new List<ManualJobStepStatus>();
+        foreach (var moduleId in moduleIds)
+        {
+            if (!latest.TryGetValue(moduleId, out var step)) return StageOutcome.Waiting;
+            if (step.Status is ManualJobStepStatus.Pending or ManualJobStepStatus.Running) return StageOutcome.Waiting;
+            statuses.Add(step.Status);
+        }
+
+        if (statuses.Any(s => s == ManualJobStepStatus.Faulted)) return StageOutcome.Faulted;
+
+        // A refusal is the slice answering no, which is a red verdict rather than a fault.
+        if (statuses.Any(s => s == ManualJobStepStatus.Refused)) return StageOutcome.Refused;
+
+        if (statuses.Any(s => s is ManualJobStepStatus.Skipped or ManualJobStepStatus.Stale))
+            return StageOutcome.Incomplete;
+
+        return StageOutcome.Succeeded;
     }
 
     private static async Task<int> NextAttempt(

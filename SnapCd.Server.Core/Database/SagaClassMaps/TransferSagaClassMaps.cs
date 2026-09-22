@@ -15,11 +15,11 @@ using SnapCd.Server.Core.Entities.Sagas;
 
 namespace SnapCd.Server.Core.Database.SagaClassMaps;
 
-public class TransferProveSagaClassMap : SagaClassMap<TransferProveSaga>
+public class TransferSagaClassMap : SagaClassMap<TransferSaga>
 {
-    protected override void Configure(EntityTypeBuilder<TransferProveSaga> entity, ModelBuilder modelBuilder)
+    protected override void Configure(EntityTypeBuilder<TransferSaga> entity, ModelBuilder modelBuilder)
     {
-        entity.ToTable("TransferProveSagas", t => t.UseSqlOutputClause(false));
+        entity.ToTable("TransferSagas", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.CorrelationId, e.OrganizationId });
 
@@ -27,16 +27,35 @@ public class TransferProveSagaClassMap : SagaClassMap<TransferProveSaga>
 
         entity.Property(x => x.CurrentState).HasMaxLength(64);
 
-        // ModuleId is the source: the job is owned by the Module it was started from, which is the
-        // side whose operator initiated the transfer.
+        // One coordinator per Transfer, for its whole life.
+        entity.HasIndex(e => new { e.TransferId, e.OrganizationId }).IsUnique();
+
+        entity.Property(x => x.RowVersion).IsRowVersion();
+    }
+}
+
+public class TransferParticipantSagaClassMap : SagaClassMap<TransferParticipantSaga>
+{
+    protected override void Configure(EntityTypeBuilder<TransferParticipantSaga> entity, ModelBuilder modelBuilder)
+    {
+        entity.ToTable("TransferParticipantSagas", t => t.UseSqlOutputClause(false));
+
+        entity.HasKey(e => new { e.CorrelationId, e.OrganizationId });
+
+        entity.HasIndex(e => e.CorrelationId).IsUnique();
+
+        entity.Property(x => x.CurrentState).HasMaxLength(64);
+        entity.Property(x => x.Role).HasConversion<string>().HasMaxLength(50);
+
+        // One saga per side per Transfer, for the Transfer's whole life.
+        entity.HasIndex(e => new { e.TransferId, e.Role, e.OrganizationId }).IsUnique();
+
         entity
             .HasOne<Module>()
-            .WithMany(m => m.TransferProveSagas)
+            .WithMany(m => m.TransferParticipantSagas)
             .HasForeignKey(s => new { s.ModuleId, s.OrganizationId })
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
-
-        entity.HasIndex(e => e.TransferId);
 
         entity.Property(x => x.RowVersion).IsRowVersion();
     }

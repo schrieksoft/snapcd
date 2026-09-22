@@ -163,19 +163,18 @@ namespace SnapCd.Server.Host.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TransferProveSagas",
+                name: "TransferParticipantSagas",
                 columns: table => new
                 {
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CorrelationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SourceModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ReceiverModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ReceiverRunnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ReceiverRunnerInstanceName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    SourceRootDirectory = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    ReceiverRootDirectory = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    MapHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    Role = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    RootDirectory = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    DefinitiveRevision = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    InputKey = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    CurrentJobId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ProveRound = table.Column<int>(type: "int", nullable: false),
                     CurrentState = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
                     ResponseAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
@@ -198,14 +197,13 @@ namespace SnapCd.Server.Host.Database.Migrations
                     PreviousStateBeforeWaiting = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     PreviousStateBeforeCancelling = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     WaitingSince = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ServerInstanceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    DefinitiveRevision = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
+                    ServerInstanceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TransferProveSagas", x => new { x.CorrelationId, x.OrganizationId });
+                    table.PrimaryKey("PK_TransferParticipantSagas", x => new { x.CorrelationId, x.OrganizationId });
                     table.ForeignKey(
-                        name: "FK_TransferProveSagas_Modules_ModuleId_OrganizationId",
+                        name: "FK_TransferParticipantSagas_Modules_ModuleId_OrganizationId",
                         columns: x => new { x.ModuleId, x.OrganizationId },
                         principalTable: "Modules",
                         principalColumns: new[] { "Id", "OrganizationId" },
@@ -279,6 +277,27 @@ namespace SnapCd.Server.Host.Database.Migrations
                         principalTable: "Organizations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TransferSagas",
+                columns: table => new
+                {
+                    CorrelationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CurrentState = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
+                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SourceModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReceiverModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MapHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    ProveRound = table.Column<int>(type: "int", nullable: false),
+                    CurrentJobId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    StallReason = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TransferSagas", x => new { x.CorrelationId, x.OrganizationId });
                 });
 
             migrationBuilder.CreateTable(
@@ -595,20 +614,21 @@ namespace SnapCd.Server.Host.Database.Migrations
                 columns: new[] { "ModuleId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TransferProveSagas_CorrelationId",
-                table: "TransferProveSagas",
+                name: "IX_TransferParticipantSagas_CorrelationId",
+                table: "TransferParticipantSagas",
                 column: "CorrelationId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_TransferProveSagas_ModuleId_OrganizationId",
-                table: "TransferProveSagas",
+                name: "IX_TransferParticipantSagas_ModuleId_OrganizationId",
+                table: "TransferParticipantSagas",
                 columns: new[] { "ModuleId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TransferProveSagas_TransferId",
-                table: "TransferProveSagas",
-                column: "TransferId");
+                name: "IX_TransferParticipantSagas_TransferId_Role_OrganizationId",
+                table: "TransferParticipantSagas",
+                columns: new[] { "TransferId", "Role", "OrganizationId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transfers_Id",
@@ -645,6 +665,18 @@ namespace SnapCd.Server.Host.Database.Migrations
                 name: "IX_Transfers_SourceModuleId_OrganizationId",
                 table: "Transfers",
                 columns: new[] { "SourceModuleId", "OrganizationId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransferSagas_CorrelationId",
+                table: "TransferSagas",
+                column: "CorrelationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransferSagas_TransferId_OrganizationId",
+                table: "TransferSagas",
+                columns: new[] { "TransferId", "OrganizationId" },
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -666,10 +698,13 @@ namespace SnapCd.Server.Host.Database.Migrations
                 name: "SplitMigrateSagas");
 
             migrationBuilder.DropTable(
-                name: "TransferProveSagas");
+                name: "TransferParticipantSagas");
 
             migrationBuilder.DropTable(
                 name: "Transfers");
+
+            migrationBuilder.DropTable(
+                name: "TransferSagas");
 
             migrationBuilder.DropTable(
                 name: "ManualModuleJobs");

@@ -192,6 +192,93 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         Assert.Equal(ManualJobStepStatus.Stale, step.Status);
     }
 
+    /// <summary>
+    /// The fan-in: a stage is only finished when every participant has answered, so a saga cannot
+    /// advance on one side's completion while the other is still running.
+    /// </summary>
+    [Fact]
+    public async Task A_Stage_Waits_Until_Every_Participant_Has_Answered()
+    {
+        var jobId = await SeedJob();
+        var other = _fixture.Modules["0001"].Id;
+        var steps = StepService();
+
+        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
+        await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
+
+        Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
+
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
+
+        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        Assert.Equal(StageOutcome.Succeeded, await Stage(steps, jobId, other));
+    }
+
+    /// <summary>A participant that never got a step is not a pass.</summary>
+    [Fact]
+    public async Task A_Stage_With_A_Missing_Participant_Is_Waiting()
+    {
+        var jobId = await SeedJob();
+        var other = _fixture.Modules["0001"].Id;
+        var steps = StepService();
+
+        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+
+        Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
+    }
+
+    /// <summary>A refusal is the slice answering no: a red verdict, not a fault.</summary>
+    [Fact]
+    public async Task A_Refusal_Is_Reported_Separately_From_A_Fault()
+    {
+        var jobId = await SeedJob();
+        var other = _fixture.Modules["0001"].Id;
+        var steps = StepService();
+
+        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
+        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", ManualJobStepStatus.Refused, 2);
+
+        Assert.Equal(StageOutcome.Refused, await Stage(steps, jobId, other));
+    }
+
+    /// <summary>A fault outranks a refusal: the transport broke, so the verdict is not trustworthy.</summary>
+    [Fact]
+    public async Task A_Fault_Outranks_A_Refusal()
+    {
+        var jobId = await SeedJob();
+        var other = _fixture.Modules["0001"].Id;
+        var steps = StepService();
+
+        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Refused, 2);
+        await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
+        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", ManualJobStepStatus.Faulted);
+
+        Assert.Equal(StageOutcome.Faulted, await Stage(steps, jobId, other));
+    }
+
+    /// <summary>A reused green counts: that is the point of keying a proof to its inputs.</summary>
+    [Fact]
+    public async Task A_Reused_Result_Counts_Towards_The_Stage()
+    {
+        var jobId = await SeedJob();
+        var other = _fixture.Modules["0001"].Id;
+        var steps = StepService();
+
+        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        await steps.Reused(jobId, _organizationId, other, "TransferMigrateProve", "key-abc");
+
+        Assert.Equal(StageOutcome.Succeeded, await Stage(steps, jobId, other));
+    }
+
+    private Task<StageOutcome> Stage(ManualJobStepService steps, Guid jobId, Guid other) =>
+        steps.Stage(jobId, _organizationId, "TransferMigrateProve", [_moduleId, other]);
+
     private async Task<Guid> SeedJob()
     {
         var jobId = Guid.NewGuid();

@@ -287,7 +287,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         {
             yield return new ApplyJobSagaClassMap();
             yield return new SplitMigrateSagaClassMap();
-            yield return new TransferProveSagaClassMap();
+            yield return new TransferSagaClassMap();
+            yield return new TransferParticipantSagaClassMap();
             yield return new DestroyJobSagaClassMap();
             yield return new ModuleSagaClassMap();
             yield return new ModuleModifiedSagaClassMap();
