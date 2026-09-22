@@ -14,6 +14,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.SplitMigrate;
+using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Constants;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Settings;
@@ -205,6 +206,24 @@ public class RunnerHubConnection : IAsyncDisposable
                 return Task.CompletedTask;
             }
         );
+
+        _connection.On<TransferMigrateMapRequestBase>(RunnerEndpoints.TransferMigrateMap, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferMigrateMap(request, _connection); });
+                return Task.CompletedTask;
+            });
+
+        _connection.On<TransferMigrateProveRequestBase>(RunnerEndpoints.TransferMigrateProve, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferMigrateProve(request, _connection); });
+                return Task.CompletedTask;
+            });
+
+        _connection.On<TransferRefactorDiffRequestBase>(RunnerEndpoints.TransferRefactorDiff, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferRefactorDiff(request, _connection); });
+                return Task.CompletedTask;
+            });
 
         _connection.On<MigrateMapRequestBase>(RunnerEndpoints.MigrateMap, (request) =>
             {

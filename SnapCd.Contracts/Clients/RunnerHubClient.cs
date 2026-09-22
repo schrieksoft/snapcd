@@ -139,6 +139,41 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunCompleted, jobId);
     }
 
+    public async Task InvokeTransferMigrateMapCompleted(
+        Guid jobId, Guid moduleId, string? fragmentState, string? fragmentMeta,
+        string? mapHash, List<string> needsValuesFrom)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateMapCompleted,
+            jobId, moduleId, fragmentState, fragmentMeta, mapHash, needsValuesFrom);
+    }
+
+    public async Task InvokeTransferMigrateMapFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateMapFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferMigrateProveCompleted(
+        Guid jobId, Guid moduleId, int exitCode, Dictionary<string, string> outputs, string? verdict)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateProveCompleted,
+            jobId, moduleId, exitCode, outputs, verdict);
+    }
+
+    public async Task InvokeTransferMigrateProveFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateProveFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferRefactorDiffCompleted(Guid jobId, Guid moduleId, int exitCode, string? verdict)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferRefactorDiffCompleted, jobId, moduleId, exitCode, verdict);
+    }
+
+    public async Task InvokeTransferRefactorDiffFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferRefactorDiffFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.MigrateMapCompleted, jobId, refactorMapHash, carvedModuleNames, resourcesMoved);

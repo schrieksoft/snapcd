@@ -34,6 +34,15 @@ public static class ServerEndpoints
     public const string RefactorDiffCompleted = "RefactorDiffCompleted";
     public const string RefactorDiffCancelled = "RefactorDiffCancelled";
     public const string RefactorDiffFaulted = "RefactorDiffFaulted";
+    // A transfer runs the same slices against one of two Modules, so its replies are separate
+    // endpoints carrying the Module they are for.
+    public const string TransferMigrateMapCompleted = "TransferMigrateMapCompleted";
+    public const string TransferMigrateMapFaulted = "TransferMigrateMapFaulted";
+    public const string TransferMigrateProveCompleted = "TransferMigrateProveCompleted";
+    public const string TransferMigrateProveFaulted = "TransferMigrateProveFaulted";
+    public const string TransferRefactorDiffCompleted = "TransferRefactorDiffCompleted";
+    public const string TransferRefactorDiffFaulted = "TransferRefactorDiffFaulted";
+
     public const string MigrateMapCompleted = "MigrateMapCompleted";
     public const string MigrateMapCancelled = "MigrateMapCancelled";
     public const string MigrateMapFaulted = "MigrateMapFaulted";
