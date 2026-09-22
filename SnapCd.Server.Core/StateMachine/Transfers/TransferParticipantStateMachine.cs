@@ -37,6 +37,8 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
     public Event<TransferParticipantRegistered> Registered { get; } = null!;
     public Event<TransferParticipantPrepareRequested> PrepareRequested { get; } = null!;
     public Event<TransferParticipantStopRequested> StopRequested { get; } = null!;
+    public Event<TransferParticipantMapRequested> MapRequested { get; } = null!;
+    public Event<TransferParticipantProveRequested> ProveRequested { get; } = null!;
 
     // Liveness: a transfer dispatches to two runners, so either can go away mid-round.
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
@@ -54,6 +56,10 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
     public Event<TransferValidateFaulted> ValidateFaulted { get; } = null!;
     public Event<TransferPlanCompleted> PlanCompleted { get; } = null!;
     public Event<TransferPlanFaulted> PlanFaulted { get; } = null!;
+    public Event<TransferMigrateMapCompleted> MigrateMapCompleted { get; } = null!;
+    public Event<TransferMigrateMapFaulted> MigrateMapFaulted { get; } = null!;
+    public Event<TransferMigrateProveCompleted> MigrateProveCompleted { get; } = null!;
+    public Event<TransferMigrateProveFaulted> MigrateProveFaulted { get; } = null!;
 
     /// <summary>Registered, with nothing asked of it yet. Between rounds it returns here.</summary>
     public State Idle { get; } = null!;
@@ -72,6 +78,9 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
     public State ValidateWaitingForRunner { get; } = null!;
     public State PlanWaitingForRunner { get; } = null!;
 
+    public State MigrateMapPending { get; } = null!;
+    public State MigrateProvePending { get; } = null!;
+
     /// <summary>Its sequence stopped and the coordinator has been told; a retry starts a new round.</summary>
     public State StoppedState { get; } = null!;
 
@@ -84,6 +93,8 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
         Event(() => Registered, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PrepareRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => StopRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MapRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => ProveRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         // Correlated by the runner this participant is pinned to, not by the job.
         Event(() => RunnerReconnectedEvent, x => x
@@ -112,6 +123,10 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
         Event(() => ValidateFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PlanCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateMapCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateMapFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateProveCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateProveFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         Initially(
             When(Registered)
@@ -150,5 +165,6 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
         );
 
         Configure_Preamble();
+        Configure_Slices();
     }
 }

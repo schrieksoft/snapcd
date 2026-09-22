@@ -69,6 +69,79 @@ public class TransferParticipantPrepared
 }
 
 /// <summary>
+/// Asks a participant to run its map slice: pull and pin its own state. The source writes the
+/// fragment the receiver needs; the receiver is given that fragment and applies it to its copy.
+/// </summary>
+public class TransferParticipantMapRequested
+{
+    public Guid CorrelationId { get; set; }
+    public Guid OrganizationId { get; set; }
+
+    /// <summary>The transfer map, written to the root before the slice runs.</summary>
+    public string Map { get; set; } = null!;
+
+    /// <summary>The source's fragment, for the receiver. Null on the source, which produces it.</summary>
+    public string? FragmentState { get; set; }
+
+    public string? FragmentMeta { get; set; }
+}
+
+/// <summary>A participant's map slice landed. The source's carries the fragment it wrote.</summary>
+public class TransferParticipantMapped
+{
+    public Guid CorrelationId { get; set; }
+    public Guid OrganizationId { get; set; }
+    public Guid TransferId { get; set; }
+    public Guid ModuleId { get; set; }
+    public TransferRole Role { get; set; }
+    public int ProveRound { get; set; }
+
+    public string? FragmentState { get; set; }
+    public string? FragmentMeta { get; set; }
+    public string? MapHash { get; set; }
+}
+
+/// <summary>
+/// Asks a participant to prove: does its root plan to zero changes with the moved resources in
+/// place. The coordinator supplies whatever producer values this one consumes, which is why the
+/// order matters when the map has a cross edge.
+/// </summary>
+public class TransferParticipantProveRequested
+{
+    public Guid CorrelationId { get; set; }
+    public Guid OrganizationId { get; set; }
+
+    public string Map { get; set; } = null!;
+
+    /// <summary>The outputs artefacts this participant consumes, by filename.</summary>
+    public Dictionary<string, string> Outputs { get; set; } = new();
+
+    /// <summary>The fingerprint this proof will be recorded against.</summary>
+    public string? InputKey { get; set; }
+}
+
+/// <summary>
+/// A participant's proof. Exit 2 is a refusal rather than a fault, and the outputs are whatever the
+/// map says another participant consumes.
+/// </summary>
+public class TransferParticipantProved
+{
+    public Guid CorrelationId { get; set; }
+    public Guid OrganizationId { get; set; }
+    public Guid TransferId { get; set; }
+    public Guid ModuleId { get; set; }
+    public TransferRole Role { get; set; }
+    public int ProveRound { get; set; }
+
+    /// <summary>0 when the root planned clean, 2 when it did not.</summary>
+    public int ExitCode { get; set; }
+
+    public Dictionary<string, string> Outputs { get; set; } = new();
+
+    public string? Verdict { get; set; }
+}
+
+/// <summary>
 /// Tells a participant to stop where it is. Cancellation is a whole-Transfer act - there is no
 /// releasing one participant mid-transfer - so it arrives here from the coordinator rather than
 /// from an operator.
