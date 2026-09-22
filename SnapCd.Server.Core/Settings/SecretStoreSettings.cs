@@ -44,22 +44,13 @@ public class SecretStoreSettings
     /// <summary>Settings specific to the SqlServer provider.</summary>
     public SqlServerSecretStoreSettings? SqlServer { get; set; }
 
-    /// <summary>
-    /// When true, exposes the Secret Migrator utility (under System nav) for privileged
-    /// users to copy secrets between the SQL and Azure Key Vault stores. Keep false by default.
-    /// </summary>
-    public bool EnableMigrator { get; set; } = false;
-
-    /// <summary>
-    /// Tuning knobs for the Secret Migrator utility. Ignored unless <see cref="EnableMigrator"/> is true.
-    /// </summary>
+    /// <summary>Tuning knobs for the Secret Migrator utility.</summary>
     public SecretMigratorSettings Migrator { get; set; } = new();
 }
 
 /// <summary>
 /// Tuning for the Secret Migrator background process that moves secret values between the two
-/// supported backing stores. Only consulted when <see cref="SecretStoreSettings.EnableMigrator"/>
-/// is true; defaults are tuned for a typical AKV-throttled deployment.
+/// supported backing stores. Defaults are tuned for a typical AKV-throttled deployment.
 /// </summary>
 public class SecretMigratorSettings
 {

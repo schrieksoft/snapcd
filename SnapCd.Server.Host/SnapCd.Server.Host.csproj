@@ -19,6 +19,12 @@
         <ProjectReference Include="..\SnapCd.Server.Core\SnapCd.Server.Core.csproj" />
     </ItemGroup>
 
+    <!-- Migrations that deploy SQL objects keep that SQL in a file of the same name beside
+         them, and read it back as an embedded resource at migration time. -->
+    <ItemGroup>
+        <EmbeddedResource Include="Database\Migrations\Sql\*.sql" />
+    </ItemGroup>
+
     <!-- Version Configuration -->
     <!-- Version / AssemblyVersion / FileVersion / InformationalVersion are intentionally
          unset so they are supplied at publish time (CI passes /p:Version=$SEMVER) and fall

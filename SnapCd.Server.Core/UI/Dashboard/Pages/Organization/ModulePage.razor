@@ -1192,6 +1192,15 @@
     private async Task HandleModuleSaved()
     {
         using var moduleRepo = RepoFactory.Create();
+
+        // The route carries the name, so a rename makes ModuleName stale and the lookup below
+        // would throw. Navigating re-binds the parameters and reloads against the new name.
+        if (_module != null && !string.Equals(_module.Name, ModuleName, StringComparison.Ordinal))
+        {
+            NavigationManager.NavigateTo($"/Module/{StackName}/{NamespaceName}/{_module.Name}", false);
+            return;
+        }
+
         _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
         StateHasChanged();
     }

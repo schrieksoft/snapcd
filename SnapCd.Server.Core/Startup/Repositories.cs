@@ -99,7 +99,6 @@ public static class Repositories
         services.AddScoped<NamespaceTerraformArrayFlagRepository>();
         services.AddScoped<ModuleHookRepository>();
         services.AddScoped<NamespaceHookRepository>();
-        services.AddScoped<PreviewFeatureAcceptanceRepository>();
         services.AddScoped<ModuleJobRepository>();
         services.AddScoped<ModuleJobApprovalRepository>();
         services.AddScoped<ApplyJobSagaRepository>();

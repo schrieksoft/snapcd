@@ -111,7 +111,6 @@ public static class CrudService
         services.AddScoped<NamespaceTerraformArrayFlagService>();
         services.AddScoped<ModuleHookService>();
         services.AddScoped<NamespaceHookService>();
-        services.AddScoped<PreviewFeatureAcceptanceService>();
         services.AddScoped<OutputSetService>();
         services.AddScoped<OutputService>();
         services.AddScoped<VariableSetService>();

@@ -75,10 +75,7 @@
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Use Namespace Default</MudSelectItem>
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Terraform)">Terraform</MudSelectItem>
-                    @if (_pulumiEnabled)
-                    {
-                        <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Pulumi)">Pulumi</MudSelectItem>
-                    }
+                    <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.Pulumi)">Pulumi</MudSelectItem>
                 </MudSelect>
             </MudItem>
 
@@ -258,32 +255,29 @@
             </MudItem>
 
             <!-- Pulumi Flags -->
-            @if (_pulumiEnabled)
-            {
-                <MudItem md="12">
-                    <MudExpansionPanels>
-                        <MudExpansionPanel Text="Pulumi Flags"
-                                           ExpandedChanged="async (expanded) => { if (expanded) await _pulumiFlagsRef.InitializeItems(); }">
-                            <EditModulePulumiFlagsList Title="Pulumi Flags"
-                                                       ModuleId="Module.Id"
-                                                       PrincipalProvider="@PrincipalProvider"
-                                                       @ref="_pulumiFlagsRef"/>
-                        </MudExpansionPanel>
-                    </MudExpansionPanels>
-                </MudItem>
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Pulumi Flags"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _pulumiFlagsRef.InitializeItems(); }">
+                        <EditModulePulumiFlagsList Title="Pulumi Flags"
+                                                   ModuleId="Module.Id"
+                                                   PrincipalProvider="@PrincipalProvider"
+                                                   @ref="_pulumiFlagsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
 
-                <MudItem md="12">
-                    <MudExpansionPanels>
-                        <MudExpansionPanel Text="Pulumi Array Flags"
-                                           ExpandedChanged="async (expanded) => { if (expanded) await _pulumiArrayFlagsRef.InitializeItems(); }">
-                            <EditModulePulumiArrayFlagsList Title="Pulumi Array Flags"
-                                                            ModuleId="Module.Id"
-                                                            PrincipalProvider="@PrincipalProvider"
-                                                            @ref="_pulumiArrayFlagsRef"/>
-                        </MudExpansionPanel>
-                    </MudExpansionPanels>
-                </MudItem>
-            }
+            <MudItem md="12">
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Pulumi Array Flags"
+                                       ExpandedChanged="async (expanded) => { if (expanded) await _pulumiArrayFlagsRef.InitializeItems(); }">
+                        <EditModulePulumiArrayFlagsList Title="Pulumi Array Flags"
+                                                        ModuleId="Module.Id"
+                                                        PrincipalProvider="@PrincipalProvider"
+                                                        @ref="_pulumiArrayFlagsRef"/>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
 
             <!-- Inputs Section -->
             <MudItem md="12">
@@ -574,16 +568,12 @@
 
 
     private List<Runner> _availableRunners = new();
-    private bool _pulumiEnabled;
 
     protected override async Task OnInitializedAsync()
     {
         using var runnerRepo = RunnerSecuredRepositoryFactory.Create(PrincipalProvider);
         _availableRunners = await runnerRepo.ListAssignedToModule(Module.Id, OrganizationId);
 
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        _pulumiEnabled = await dbContext.PreviewFeatureAcceptances
-            .AnyAsync(p => p.OrganizationId == OrganizationId && p.PreviewFeature == PreviewFeature.Pulumi);
     }
 
     private async Task SaveModule()

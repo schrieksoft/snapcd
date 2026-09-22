@@ -16,6 +16,9 @@ public class NamespaceClassMap : IEntityTypeConfiguration<Namespace>
 {
     public void Configure(EntityTypeBuilder<Namespace> entity)
     {
+        // Namespaces has a trigger (trg_Namespaces_ClosureNames), so EF must not use the OUTPUT clause
+        entity.ToTable("Namespaces", t => t.UseSqlOutputClause(false));
+
         // Composite Primary Key
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 

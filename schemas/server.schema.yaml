@@ -546,10 +546,6 @@ properties:
             - 'null'
             description: Base64-encoded 32-byte (AES-256) symmetric key used to encrypt secret values at rest.
         description: Settings specific to the SqlServer provider.
-      EnableMigrator:
-        type: boolean
-        description: When true, exposes the Secret Migrator utility (under System nav) for privileged users to copy secrets
-          between the SQL and Azure Key Vault stores. Keep false by default.
       Migrator:
         type: object
         properties:
@@ -558,7 +554,7 @@ properties:
             description: Max concurrent Azure Key Vault calls during planning (existence probes) and execution (copies). AKV's
               default throttle is ~2000 ops / 10 s per vault — 8–16 is comfortable, 32 is an aggressive upper bound.
             default: 8
-        description: Tuning knobs for the Secret Migrator utility. Ignored unless EnableMigrator is true.
+        description: Tuning knobs for the Secret Migrator utility.
     description: Selects and configures the backing store for Snap CD Secret resources — the encrypted store where Stack,
       Namespace, and Module Secret values, plus sensitive Output Sets, live at rest. The block matching Provider is the only
       one read; the other is ignored. The Migrator utility moves secrets between stores in-place when an operator changes
@@ -2847,29 +2843,6 @@ properties:
               whose downstream consumers might be offline long enough to miss the default window.
         description: Per-OutputSet repository tuning. Almost always left at defaults — operators override only when they need
           to opt out of bus events or change the event TTL for the OutputSet entity specifically.
-      PreviewFeatureAcceptance:
-        type: object
-        properties:
-          EmitCreateEvents:
-            type: boolean
-            description: When true (default), publish a CreatedEvent on the bus when a PreviewFeatureAcceptance is created.
-            default: true
-          EmitUpdateEvents:
-            type: boolean
-            description: When true (default), publish an UpdatedEvent on the bus when a PreviewFeatureAcceptance is updated.
-            default: true
-          EmitDeleteEvents:
-            type: boolean
-            description: When true (default), publish a DeletedEvent on the bus when a PreviewFeatureAcceptance is deleted.
-            default: true
-          EventTtl:
-            $comment: Represents a System.TimeSpan value.
-            type: string
-            pattern: ^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$
-            description: Time-to-live for emitted events from this entity. Defaults to 30 minutes — increase only for entities
-              whose downstream consumers might be offline long enough to miss the default window.
-        description: Per-PreviewFeatureAcceptance repository tuning. Almost always left at defaults — operators override only
-          when they need to opt out of bus events or change the event TTL for the PreviewFeatureAcceptance entity specifically.
       RoleAssignment:
         type: object
         properties:

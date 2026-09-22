@@ -49,4 +49,14 @@ public class FavoritesModifiedNotificationService
                     // Handler may fail if the subscribing component was disposed
                 }
     }
+
+    /// <summary>
+    /// Notifies several users at once. A change to the favorited entity itself, such as a rename,
+    /// affects everyone who starred it rather than one user's own list.
+    /// </summary>
+    public async Task Notify(IEnumerable<Guid> userIds)
+    {
+        foreach (var userId in userIds)
+            await Notify(userId);
+    }
 }

@@ -122,9 +122,6 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     {
         NameValidator.EnsureValid(entity.Name, "Namespace");
 
-        if (entity.DefaultEngine == StateManagementEngine.Pulumi)
-            await ValidatePulumiFeatureEnabled(entity.OrganizationId);
-
         return await base.ExecuteCreate(entity);
     }
 
@@ -134,9 +131,6 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
         // First get the existing namespace to check for namespace changes
         var existingNamespace = await Get(entity.Id, entity.OrganizationId);
-
-        if (entity.DefaultEngine == StateManagementEngine.Pulumi && existingNamespace.DefaultEngine != StateManagementEngine.Pulumi)
-            await ValidatePulumiFeatureEnabled(entity.OrganizationId);
 
         // Check if the namespace is changing
         if (existingNamespace.StackId != entity.StackId) await ValidateStackChange(existingNamespace, entity.StackId);
@@ -196,16 +190,6 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
         await base.ExecuteDelete(id, organizationId);
     }
 
-
-    private async Task ValidatePulumiFeatureEnabled(Guid organizationId)
-    {
-        var accepted = await DbContext.PreviewFeatureAcceptances
-            .AnyAsync(p => p.OrganizationId == organizationId && p.PreviewFeature == PreviewFeature.Pulumi);
-
-        if (!accepted)
-            throw new PreviewFeatureNotEnabledException(
-                "Cannot set Default Engine to Pulumi because the organization has not opted into the Pulumi preview feature.");
-    }
 
     private async Task ValidateStackChange(Namespace existingNamespace, Guid newStackId)
     {

@@ -596,6 +596,15 @@
     private async Task HandleStackSaved()
     {
         using var repo = RepoFactory.Create();
+
+        // The route carries the name, so a rename makes StackName stale and the lookup below
+        // would throw. Navigating re-binds the parameters and reloads against the new name.
+        if (_stack != null && !string.Equals(_stack.Name, StackName, StringComparison.Ordinal))
+        {
+            NavigationManager.NavigateTo($"/Stack/{_stack.Name}", false);
+            return;
+        }
+
         _stack = await repo.GetByName(StackName, OrganizationId);
     }
 

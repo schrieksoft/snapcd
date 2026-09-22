@@ -83,7 +83,6 @@ public static class RepositorySettings
         services.Configure<OrganizationRepositorySettings>(configuration.GetSection("Repositories:Organization"));
         services.Configure<OrganizationRoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:OrganizationRoleAssignment"));
         services.Configure<OrganizationUserRepositorySettings>(configuration.GetSection("Repositories:OrganizationUser"));
-        services.Configure<PreviewFeatureAcceptanceRepositorySettings>(configuration.GetSection("Repositories:PreviewFeatureAcceptance"));
         services.Configure<OutputRepositorySettings>(configuration.GetSection("Repositories:Output"));
         services.Configure<OutputSetRepositorySettings>(configuration.GetSection("Repositories:OutputSet"));
         services.Configure<RoleAssignmentRepositorySettings>(configuration.GetSection("Repositories:RoleAssignment"));

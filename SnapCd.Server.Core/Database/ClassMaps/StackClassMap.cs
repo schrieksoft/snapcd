@@ -16,6 +16,9 @@ public class StackClassMap : IEntityTypeConfiguration<Stack>
 {
     public void Configure(EntityTypeBuilder<Stack> entity)
     {
+        // Stacks has a trigger (trg_Stacks_ClosureNames), so EF must not use the OUTPUT clause
+        entity.ToTable("Stacks", t => t.UseSqlOutputClause(false));
+
         // Composite Primary Key
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 

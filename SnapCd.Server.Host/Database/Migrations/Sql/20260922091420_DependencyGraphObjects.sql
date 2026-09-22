@@ -7,16 +7,22 @@
 -- for terms covering either use.
 
 -- ==========================================================================
--- Dependency graph materialization infrastructure.
---
--- Stored procedures, triggers, and initial population for three
--- trigger-maintained tables (created by migration):
+-- Table types, stored procedures and triggers maintaining three materialized tables:
 --   1. DependencyEdges            - flattened direct edges
 --   2. RecursiveDependencyEdges   - transitive closure
 --   3. ModuleState                - pre-materialized per-module state
 --
--- Must run BEFORE the view scripts (02-05).
+-- A snapshot, not a live definition: editing it changes nothing on a database that has run
+-- the migration. Change an object by adding a new migration with its own SQL file.
+--
+-- QUOTED_IDENTIFIER must be ON for every statement touching RecursiveDependencyEdges, which
+-- carries filtered indexes. A procedure or trigger inherits the setting in force when it was
+-- created, not the caller's.
 -- ==========================================================================
+
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
 
 -- ============================================================================
 -- 1. Table type for passing module IDs to stored procedures
@@ -396,7 +402,214 @@ END;
 GO
 
 -- ============================================================================
--- 7. Stored procedure to fully recompute ModuleState
+-- 7. Stored procedure to bring the closure's display names back in line
+--
+-- The three *DisplayName columns are "stack/namespace/module" built from the *Name
+-- columns beside them. Recomputing from those columns rather than re-joining the source
+-- tables keeps this correct for whichever of the three names just changed, and makes it
+-- usable both from the rename triggers and as an idempotent repair at startup.
+-- ============================================================================
+
+CREATE OR ALTER PROCEDURE sp_RefreshClosureDisplayNames
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE r SET r.RootDisplayName = CONCAT(r.RootStackName, '/', r.RootNamespaceName, '/', r.RootModuleName)
+    FROM RecursiveDependencyEdges r
+    WHERE r.RootDisplayName <> CONCAT(r.RootStackName, '/', r.RootNamespaceName, '/', r.RootModuleName);
+
+    UPDATE r SET r.DefinedDisplayName = CONCAT(r.DefinedStackName, '/', r.DefinedNamespaceName, '/', r.DefinedModuleName)
+    FROM RecursiveDependencyEdges r
+    WHERE r.DefinedDisplayName <> CONCAT(r.DefinedStackName, '/', r.DefinedNamespaceName, '/', r.DefinedModuleName);
+
+    UPDATE r SET r.ReferencedDisplayName = CONCAT(r.ReferencedStackName, '/', r.ReferencedNamespaceName, '/', r.ReferencedModuleName)
+    FROM RecursiveDependencyEdges r
+    WHERE r.ReferencedDisplayName <> CONCAT(r.ReferencedStackName, '/', r.ReferencedNamespaceName, '/', r.ReferencedModuleName);
+END;
+GO
+
+-- ============================================================================
+-- 8. Triggers on the entity tables to keep the closure's denormalised names current
+--
+-- RecursiveDependencyEdges stores names alongside ids, and the rebuild trigger watches
+-- DependencyEdges, which holds ids alone. A rename therefore fires no rebuild.
+--
+-- A rename changes no topology, so these repair the names in place rather than rebuilding.
+--
+-- They take the same per-stack applock as sp_RecomputeRecursiveDependencyEdges: without it a
+-- rename and a rebuild of one stack take the closure's row locks and that applock in opposite
+-- orders and deadlock.
+-- ============================================================================
+
+CREATE OR ALTER TRIGGER trg_Namespaces_ClosureNames
+ON Namespaces
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT UPDATE(Name)
+        RETURN;
+
+    DECLARE @stacks TABLE (StackId UNIQUEIDENTIFIER);
+    INSERT INTO @stacks (StackId) SELECT DISTINCT StackId FROM inserted;
+
+    -- Lock owner is the transaction, so this is meaningless outside one.
+    IF @@TRANCOUNT > 0
+    BEGIN
+        DECLARE @lockRes NVARCHAR(255);
+        DECLARE @rc INT;
+        DECLARE stack_lock_cursor CURSOR LOCAL FAST_FORWARD FOR
+            SELECT DISTINCT CAST(StackId AS CHAR(36)) FROM @stacks WHERE StackId IS NOT NULL;
+        DECLARE @stackKey CHAR(36);
+        OPEN stack_lock_cursor;
+        FETCH NEXT FROM stack_lock_cursor INTO @stackKey;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @lockRes = 'RecursiveClosure:' + @stackKey;
+            EXEC @rc = sp_getapplock @Resource = @lockRes, @LockMode = 'Exclusive',
+                                     @LockOwner = 'Transaction', @LockTimeout = 30000;
+            IF @rc < 0 THROW 51000, 'Timed out acquiring dependency closure lock.', 1;
+            FETCH NEXT FROM stack_lock_cursor INTO @stackKey;
+        END;
+        CLOSE stack_lock_cursor;
+        DEALLOCATE stack_lock_cursor;
+    END
+
+    UPDATE r SET r.RootNamespaceName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.RootNamespaceId
+    WHERE r.RootNamespaceName <> i.Name;
+
+    UPDATE r SET r.DefinedNamespaceName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.DefinedNamespaceId
+    WHERE r.DefinedNamespaceName <> i.Name;
+
+    UPDATE r SET r.ReferencedNamespaceName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.ReferencedNamespaceId
+    WHERE r.ReferencedNamespaceName <> i.Name;
+
+    EXEC sp_RefreshClosureDisplayNames;
+END;
+GO
+
+CREATE OR ALTER TRIGGER trg_Stacks_ClosureNames
+ON Stacks
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT UPDATE(Name)
+        RETURN;
+
+    DECLARE @stacks TABLE (StackId UNIQUEIDENTIFIER);
+    INSERT INTO @stacks (StackId) SELECT DISTINCT Id FROM inserted;
+
+    -- Lock owner is the transaction, so this is meaningless outside one.
+    IF @@TRANCOUNT > 0
+    BEGIN
+        DECLARE @lockRes NVARCHAR(255);
+        DECLARE @rc INT;
+        DECLARE stack_lock_cursor CURSOR LOCAL FAST_FORWARD FOR
+            SELECT DISTINCT CAST(StackId AS CHAR(36)) FROM @stacks WHERE StackId IS NOT NULL;
+        DECLARE @stackKey CHAR(36);
+        OPEN stack_lock_cursor;
+        FETCH NEXT FROM stack_lock_cursor INTO @stackKey;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @lockRes = 'RecursiveClosure:' + @stackKey;
+            EXEC @rc = sp_getapplock @Resource = @lockRes, @LockMode = 'Exclusive',
+                                     @LockOwner = 'Transaction', @LockTimeout = 30000;
+            IF @rc < 0 THROW 51000, 'Timed out acquiring dependency closure lock.', 1;
+            FETCH NEXT FROM stack_lock_cursor INTO @stackKey;
+        END;
+        CLOSE stack_lock_cursor;
+        DEALLOCATE stack_lock_cursor;
+    END
+
+    UPDATE r SET r.RootStackName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.RootStackId
+    WHERE r.RootStackName <> i.Name;
+
+    UPDATE r SET r.DefinedStackName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.DefinedStackId
+    WHERE r.DefinedStackName <> i.Name;
+
+    UPDATE r SET r.ReferencedStackName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.ReferencedStackId
+    WHERE r.ReferencedStackName <> i.Name;
+
+    EXEC sp_RefreshClosureDisplayNames;
+END;
+GO
+
+-- Modules already has trg_Modules_ModuleState for INSERT and DELETE. This is a second
+-- trigger on the same table for UPDATE only; the two cover disjoint events.
+CREATE OR ALTER TRIGGER trg_Modules_ClosureNames
+ON Modules
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT UPDATE(Name)
+        RETURN;
+
+    DECLARE @stacks TABLE (StackId UNIQUEIDENTIFIER);
+    INSERT INTO @stacks (StackId)
+    SELECT DISTINCT ns.StackId FROM inserted i
+    INNER JOIN Namespaces ns ON ns.Id = i.NamespaceId;
+
+    -- Lock owner is the transaction, so this is meaningless outside one.
+    IF @@TRANCOUNT > 0
+    BEGIN
+        DECLARE @lockRes NVARCHAR(255);
+        DECLARE @rc INT;
+        DECLARE stack_lock_cursor CURSOR LOCAL FAST_FORWARD FOR
+            SELECT DISTINCT CAST(StackId AS CHAR(36)) FROM @stacks WHERE StackId IS NOT NULL;
+        DECLARE @stackKey CHAR(36);
+        OPEN stack_lock_cursor;
+        FETCH NEXT FROM stack_lock_cursor INTO @stackKey;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @lockRes = 'RecursiveClosure:' + @stackKey;
+            EXEC @rc = sp_getapplock @Resource = @lockRes, @LockMode = 'Exclusive',
+                                     @LockOwner = 'Transaction', @LockTimeout = 30000;
+            IF @rc < 0 THROW 51000, 'Timed out acquiring dependency closure lock.', 1;
+            FETCH NEXT FROM stack_lock_cursor INTO @stackKey;
+        END;
+        CLOSE stack_lock_cursor;
+        DEALLOCATE stack_lock_cursor;
+    END
+
+    UPDATE r SET r.RootModuleName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.RootModuleId
+    WHERE r.RootModuleName <> i.Name;
+
+    UPDATE r SET r.DefinedModuleName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.DefinedModuleId
+    WHERE r.DefinedModuleName <> i.Name;
+
+    UPDATE r SET r.ReferencedModuleName = i.Name
+    FROM RecursiveDependencyEdges r
+    INNER JOIN inserted i ON i.Id = r.ReferencedModuleId
+    WHERE r.ReferencedModuleName <> i.Name;
+
+    EXEC sp_RefreshClosureDisplayNames;
+END;
+GO
+
+-- ============================================================================
+-- 9. Stored procedure to fully recompute ModuleState
 -- ============================================================================
 
 CREATE OR ALTER PROCEDURE sp_RecomputeModuleState
@@ -433,7 +646,7 @@ END;
 GO
 
 -- ============================================================================
--- 8. Trigger on ModuleJobs to maintain ModuleState
+-- 10. Trigger on ModuleJobs to maintain ModuleState
 -- ============================================================================
 
 CREATE OR ALTER TRIGGER trg_ModuleJobs_ModuleState
@@ -497,7 +710,7 @@ END;
 GO
 
 -- ============================================================================
--- 9. Trigger on ModuleSagas to maintain ModuleState
+-- 11. Trigger on ModuleSagas to maintain ModuleState
 -- ============================================================================
 
 CREATE OR ALTER TRIGGER trg_ModuleSagas_ModuleState
@@ -528,7 +741,7 @@ END;
 GO
 
 -- ============================================================================
--- 9b. Trigger on Modules to clean up ModuleState on module deletion
+-- 12. Trigger on Modules to clean up ModuleState on module deletion
 --
 -- ModuleState has no FK to Modules (it is maintained by triggers), so deleting a
 -- module used to leave an orphaned row behind: the cascade-delete of its ModuleJobs
@@ -554,58 +767,4 @@ BEGIN
     FROM inserted i
     WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = i.Id);
 END;
-GO
-
--- One-time cleanup of orphaned rows accumulated before trg_Modules_ModuleState existed
--- (idempotent — a no-op once clean)
-DELETE ms
-FROM ModuleState ms
-WHERE NOT EXISTS (SELECT 1 FROM Modules m WHERE m.Id = ms.ModuleId);
-GO
-
-
--- ============================================================================
--- 10. Initial population (only on first deploy when tables are empty)
--- ============================================================================
-
-IF NOT EXISTS (SELECT TOP 1 1 FROM DependencyEdges)
-BEGIN
-    EXEC sp_RecomputeDependencyEdges;
-END;
-GO
-
-IF NOT EXISTS (SELECT TOP 1 1 FROM RecursiveDependencyEdges)
-BEGIN
-    EXEC sp_RecomputeRecursiveDependencyEdges;
-END;
-GO
-
-IF NOT EXISTS (SELECT TOP 1 1 FROM ModuleState)
-BEGIN
-    EXEC sp_RecomputeModuleState;
-END;
-GO
-
--- The latest state follows the newest job by number. Rows written while it followed the end
--- date are corrected here; the statement is idempotent and cheap, so it runs on every start.
-UPDATE ms SET
-    ms.LatestActualStateHeadline = lj.ActualStateHeadline
-FROM ModuleState ms
-LEFT JOIN (
-    SELECT mj.ModuleId,
-        COALESCE(mj.ActualStateHeadline, REPLACE(mj.JobType, 'JobSaga', '') + mj.Status) AS ActualStateHeadline,
-        ROW_NUMBER() OVER (PARTITION BY mj.ModuleId ORDER BY mj.JobNumber DESC) AS rn
-    FROM ModuleJobs mj
-    WHERE mj.TimestampEnd IS NOT NULL
-) lj ON lj.ModuleId = ms.ModuleId AND lj.rn = 1
-WHERE ISNULL(ms.LatestActualStateHeadline, '') <> ISNULL(lj.ActualStateHeadline, '');
-GO
-
--- Backfill modules created before the trigger inserted on creation. Runs after the initial
--- population above: seeding NULL-state rows first would satisfy that guard and suppress the
--- recompute, leaving every module without the state its jobs already establish.
-INSERT INTO ModuleState (ModuleId, OrganizationId, IsRunning, LatestActualStateHeadline, DesiredStateHeadline, QueuedDesiredStateHeadline)
-SELECT m.Id, m.OrganizationId, CAST(0 AS BIT), NULL, NULL, NULL
-FROM Modules m
-WHERE NOT EXISTS (SELECT 1 FROM ModuleState ms WHERE ms.ModuleId = m.Id);
 GO

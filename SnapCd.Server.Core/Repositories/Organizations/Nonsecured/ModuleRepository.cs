@@ -107,9 +107,6 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
     {
         NameValidator.EnsureValid(entity.Name, "Module");
 
-        if (entity.Engine == StateManagementEngine.Pulumi)
-            await ValidatePulumiFeatureEnabled(entity.OrganizationId);
-
         // Create required sagas before creating the module
         entity.ModuleSaga = new ModuleSaga
         {
@@ -140,9 +137,6 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
         // First get the existing module to check for namespace changes
         var existingModule = await Get(entity.Id, entity.OrganizationId);
-
-        if (entity.Engine == StateManagementEngine.Pulumi && existingModule.Engine != StateManagementEngine.Pulumi)
-            await ValidatePulumiFeatureEnabled(entity.OrganizationId);
 
         // Check if the namespace is changing
         if (existingModule.NamespaceId != entity.NamespaceId) await ValidateNamespaceChange(existingModule, entity.NamespaceId, entity.OrganizationId);
@@ -253,16 +247,6 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
         });
     }
 
-
-    private async Task ValidatePulumiFeatureEnabled(Guid organizationId)
-    {
-        var accepted = await DbContext.PreviewFeatureAcceptances
-            .AnyAsync(p => p.OrganizationId == organizationId && p.PreviewFeature == PreviewFeature.Pulumi);
-
-        if (!accepted)
-            throw new PreviewFeatureNotEnabledException(
-                "Cannot set Engine to Pulumi because the organization has not opted into the Pulumi preview feature.");
-    }
 
     private async Task ValidateNamespaceChange(Module existingModule, Guid newNamespaceId, Guid organizationId)
     {

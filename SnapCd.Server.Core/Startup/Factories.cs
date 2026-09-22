@@ -203,7 +203,6 @@ public static class Factories
         services.AddScoped<NamespacePulumiInlinePolicySecuredRepositoryFactory>();
         services.AddScoped<NamespacePulumiRemotePolicySecuredRepositoryFactory>();
         services.AddScoped<NamespacePulumiLocalPolicySecuredRepositoryFactory>();
-        services.AddScoped<PreviewFeatureAcceptanceSecuredRepositoryFactory>();
         services.AddScoped<UserFavoriteRepositoryFactory>();
         services.AddScoped<UserFavoriteSecuredRepositoryFactory>();
         services.AddScoped<UserColorRepositoryFactory>();

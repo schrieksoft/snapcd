@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using SnapCd.Server.Core.Services.Resilience;
 using SnapCd.Server.Core.Tests.Infrastructure;
@@ -25,6 +26,7 @@ public class TransientFaultRetryTests : IAsyncLifetime
 
     private readonly DependencyGraphConcurrencyFixture _fixture;
     private readonly TransientFaultClassifier _classifier = new();
+    private static string? _raceProofSource;
 
     public TransientFaultRetryTests(DependencyGraphConcurrencyFixture fixture)
     {
@@ -119,8 +121,12 @@ public class TransientFaultRetryTests : IAsyncLifetime
     /// <summary>Deploys sp_UpdateDependencyEdgesForModules with or without the race-proofing hint.</summary>
     private async Task DeployReconcileAsync(bool raceProof)
     {
-        var source = await ReadReconcileSourceAsync();
-        var sql = raceProof ? source : source.Replace(" WITH (UPDLOCK, HOLDLOCK)", "");
+        // Captured on first use, while the migrated (race-proof) definition is still deployed.
+        // Re-reading per call would pick up the stripped variant this test installs and make the
+        // restore in DisposeAsync a no-op, leaving the hint off for whatever runs next in the
+        // collection.
+        _raceProofSource ??= await ReadReconcileSourceAsync();
+        var sql = raceProof ? _raceProofSource : _raceProofSource.Replace(" WITH (UPDLOCK, HOLDLOCK)", "");
 
         await using var connection = new SqlConnection(_fixture.ConnectionString);
         await connection.OpenAsync();
@@ -128,20 +134,31 @@ public class TransientFaultRetryTests : IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
-    private static async Task<string> ReadReconcileSourceAsync()
+    /// <summary>
+    /// Reads the procedure's source from the migrated database rather than from a file, so the
+    /// test always exercises whatever was actually deployed - by whichever migration deployed it
+    /// last - instead of tracking where the SQL happens to live.
+    /// </summary>
+    private async Task<string> ReadReconcileSourceAsync()
     {
-        var assembly = typeof(SnapCd.Server.Core.Services.ViewManagement.IdempotentSqlManager).Assembly;
-        await using var stream = assembly.GetManifestResourceStream(
-            "SnapCd.Server.Core.Views.SqlServer.01_DependencyGraph.sql")!;
-        using var reader = new StreamReader(stream);
-        var script = await reader.ReadToEndAsync();
+        await using var connection = new SqlConnection(_fixture.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = new SqlCommand(
+            "SELECT OBJECT_DEFINITION(OBJECT_ID('sp_UpdateDependencyEdgesForModules'));",
+            connection);
 
-        // Same batch split IdempotentSqlManager uses, so the extracted procedure is a valid batch.
-        var batches = System.Text.RegularExpressions.Regex.Split(
-            script, @"^\s*GO\s*$",
-            System.Text.RegularExpressions.RegexOptions.Multiline
-            | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        return batches.Single(b => b.Contains("PROCEDURE sp_UpdateDependencyEdgesForModules"));
+        var definition = await command.ExecuteScalarAsync() as string;
+        Assert.False(string.IsNullOrWhiteSpace(definition),
+            "sp_UpdateDependencyEdgesForModules is not deployed; the fixture should have migrated it.");
+
+        // OBJECT_DEFINITION returns what SQL Server stored, which is "CREATE PROCEDURE" even when
+        // deployed with CREATE OR ALTER. Re-executing that against the existing proc fails, so
+        // restore the OR ALTER the test needs to redeploy its variants.
+        return Regex.Replace(
+            definition!,
+            @"CREATE\s+PROCEDURE",
+            "CREATE OR ALTER PROCEDURE",
+            RegexOptions.IgnoreCase);
     }
 
     private async Task InsertInputAsync(string name) => await ExecuteAsync(

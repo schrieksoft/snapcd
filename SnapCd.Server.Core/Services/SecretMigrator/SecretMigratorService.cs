@@ -40,8 +40,7 @@ public class SecretMigratorService(
         IProgress<PlanProgress>? progress,
         CancellationToken ct)
     {
-        await EnsureAuthorizedAsync(callerUserId, organizationId, ct);
-        EnsureEnabled();
+        await EnsureAuthorizedAsync(callerUserId, ct);
 
         var akv = settings.Value.AzureKeyVault;
         var inputUrl = inputVaultUrlOverride ?? akv.DefaultInputKeyVaultUrl;
@@ -176,8 +175,7 @@ public class SecretMigratorService(
         IProgress<MigrationProgress> progress,
         CancellationToken ct)
     {
-        await EnsureAuthorizedAsync(callerUserId, organizationId, ct);
-        EnsureEnabled();
+        await EnsureAuthorizedAsync(callerUserId, ct);
 
         var runStartedUtc = DateTime.UtcNow;
         var total = plan.Items.Count;
@@ -320,30 +318,17 @@ public class SecretMigratorService(
         }
     }
 
-    private void EnsureEnabled()
-    {
-        if (!settings.Value.EnableMigrator)
-            throw new InvalidOperationException("Secret Migrator is not enabled (SecretStore:EnableMigrator).");
-    }
-
-    public async Task<bool> IsAuthorizedAsync(Guid callerUserId, Guid organizationId, CancellationToken ct = default)
+    public async Task<bool> IsAuthorizedAsync(Guid callerUserId, CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        var isSystemAdmin = await db.Set<UserSystemRoleAssignment>()
+        return await db.Set<UserSystemRoleAssignment>()
             .AnyAsync(r => r.UserId == callerUserId && r.RoleName == SystemRole.Administrator, ct);
-        if (isSystemAdmin) return true;
-
-        var isOrgOwner = await db.Set<UserOrganizationRoleAssignment>()
-            .AnyAsync(r => r.UserId == callerUserId
-                        && r.OrganizationId == organizationId
-                        && r.RoleName == OrganizationRole.Owner, ct);
-        return isOrgOwner;
     }
 
-    private async Task EnsureAuthorizedAsync(Guid callerUserId, Guid organizationId, CancellationToken ct)
+    private async Task EnsureAuthorizedAsync(Guid callerUserId, CancellationToken ct)
     {
-        if (!await IsAuthorizedAsync(callerUserId, organizationId, ct))
-            throw new UnauthorizedAccessException("Secret Migrator requires organization Owner or system Administrator.");
+        if (!await IsAuthorizedAsync(callerUserId, ct))
+            throw new UnauthorizedAccessException("Secret Migrator requires a system Administrator.");
     }
 }
