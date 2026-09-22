@@ -35,19 +35,17 @@ public class SecretMigratorService(
         MigrationDirection direction,
         Guid organizationId,
         Guid callerUserId,
-        string? inputVaultUrlOverride,
-        string? outputVaultUrlOverride,
         IProgress<PlanProgress>? progress,
         CancellationToken ct)
     {
         await EnsureAuthorizedAsync(callerUserId, ct);
 
         var akv = settings.Value.AzureKeyVault;
-        var inputUrl = inputVaultUrlOverride ?? akv.DefaultInputKeyVaultUrl;
-        var outputUrl = outputVaultUrlOverride ?? akv.DefaultOutputKeyVaultUrl;
+        var inputUrl = akv.DefaultInputKeyVaultUrl;
+        var outputUrl = akv.DefaultOutputKeyVaultUrl;
 
         if (string.IsNullOrWhiteSpace(inputUrl) || string.IsNullOrWhiteSpace(outputUrl))
-            throw new InvalidOperationException("Both the Input and Output Azure Key Vault URLs must be configured (or supplied per-run).");
+            throw new InvalidOperationException("Both the Input and Output Azure Key Vault URLs must be configured.");
 
         var orgMarker = $"--{organizationId}--";
         List<string> sourceNames;

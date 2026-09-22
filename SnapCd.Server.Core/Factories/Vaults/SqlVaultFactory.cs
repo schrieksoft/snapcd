@@ -17,38 +17,27 @@ namespace SnapCd.Server.Core.Factories.Vaults;
 public class SqlVaultFactory : IVaultFactory
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
-    private readonly byte[] _key;
+    private readonly IOptions<SecretStoreSettings> _settings;
     private readonly ILoggerFactory _loggerFactory;
 
+    // The key is validated in Create, not here: a bad key thrown from the constructor fails
+    // inside dependency injection, which no page can catch or report.
     public SqlVaultFactory(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IOptions<SecretStoreSettings> settings,
         ILoggerFactory loggerFactory)
     {
         _dbContextFactory = dbContextFactory;
+        _settings = settings;
         _loggerFactory = loggerFactory;
-
-        var base64 = settings.Value.SqlServer?.SymmetricKey
-            ?? throw new InvalidOperationException(
-                "SecretStore.Provider is SqlServer but SecretStore.SqlServer.SymmetricKey is not set.");
-        try
-        {
-            _key = Convert.FromBase64String(base64);
-        }
-        catch (FormatException ex)
-        {
-            throw new InvalidOperationException(
-                "SecretStore.SqlServer.SymmetricKey must be a Base64-encoded 32-byte AES-256 key.", ex);
-        }
-
-        if (_key.Length != 32)
-            throw new InvalidOperationException(
-                $"SecretStore.SqlServer.SymmetricKey must decode to 32 bytes (got {_key.Length}).");
     }
 
     public IVault Create(string vaultUrl)
     {
+        if (!SecretStoreConfigurationCheck.TryGetSqlServerKey(_settings.Value, out var key, out var problem))
+            throw new InvalidOperationException(problem);
+
         var logger = _loggerFactory.CreateLogger<SqlVault>();
-        return new SqlVault(_dbContextFactory, _key, logger);
+        return new SqlVault(_dbContextFactory, key, logger);
     }
 }
