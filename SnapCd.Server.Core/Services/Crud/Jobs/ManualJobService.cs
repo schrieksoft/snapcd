@@ -158,9 +158,10 @@ public class ManualJobService : IDisposable
     /// </summary>
     /// <summary>
     /// Starts a prove round for a transfer: both Modules check out their own ref and plan, the
-    /// state fragment crosses between them, and each proves. Nothing is written and nothing is
-    /// held, so neither Module has to be paused - an ordinary job running alongside cannot
-    /// invalidate a verdict that is only advisory.
+    /// state fragment crosses between them, and each proves.
+    ///
+    /// Both Modules must be paused and quiet. A prove plans each Module's real state, so anything
+    /// else running on that Module would share its runner's working directory.
     /// </summary>
     public async Task<ManualModuleJob> StartTransferProve(
         Guid transferId,
@@ -194,13 +195,12 @@ public class ManualJobService : IDisposable
         if (string.IsNullOrWhiteSpace(transfer.SourceProveRef) || string.IsNullOrWhiteSpace(transfer.ReceiverProveRef))
             throw new ManualJobNotAllowedException("Both Modules need a ref to prove before a round can start.");
 
-        // One manual job at a time per Module, which the unique index also enforces.
         foreach (var moduleId in new[] { transfer.SourceModuleId, transfer.ReceiverModuleId })
-            if (await dbContext.ManualModuleJobs.AsNoTracking().AnyAsync(j =>
-                    j.ModuleId == moduleId && j.OrganizationId == organizationId
-                    && j.Status == ExecutionStatus.Running))
-                throw new ManualJobNotAllowedException(
-                    $"A manual job is already running on Module with Id {moduleId}.");
+        {
+            var blocked = await GetBlockedReason(moduleId, organizationId);
+            if (blocked is not null)
+                throw new ManualJobNotAllowedException($"Module {moduleId}: {blocked}");
+        }
 
         var job = new ManualModuleJob
         {
