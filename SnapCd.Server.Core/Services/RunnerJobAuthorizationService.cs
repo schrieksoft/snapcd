@@ -28,6 +28,7 @@ public class RunnerJobAuthorizationService
 {
     private readonly JobSagaRepositoryFactory _jobSagaRepositoryFactory;
     private readonly SplitMigrateSagaRepositoryFactory _splitMonolithSagaRepositoryFactory;
+    private readonly TransferMigrateSagaRepositoryFactory _transferMigrateSagaRepositoryFactory;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly ServicePrincipalRepositoryFactory _servicePrincipalRepositoryFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
@@ -36,6 +37,7 @@ public class RunnerJobAuthorizationService
     public RunnerJobAuthorizationService(
         JobSagaRepositoryFactory jobSagaRepositoryFactory,
         SplitMigrateSagaRepositoryFactory splitMonolithSagaRepositoryFactory,
+        TransferMigrateSagaRepositoryFactory transferMigrateSagaRepositoryFactory,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         ServicePrincipalRepositoryFactory servicePrincipalRepositoryFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
@@ -43,6 +45,7 @@ public class RunnerJobAuthorizationService
     {
         _jobSagaRepositoryFactory = jobSagaRepositoryFactory;
         _splitMonolithSagaRepositoryFactory = splitMonolithSagaRepositoryFactory;
+        _transferMigrateSagaRepositoryFactory = transferMigrateSagaRepositoryFactory;
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _servicePrincipalRepositoryFactory = servicePrincipalRepositoryFactory;
         _dbContextFactory = dbContextFactory;
@@ -277,6 +280,86 @@ public class RunnerJobAuthorizationService
     /// because the deployment path resolves its saga from the apply and destroy tables and parses
     /// the state as a deployment enum, neither of which fits a manual job.
     /// </summary>
+    /// <summary>
+    /// Authorizes a runner callback for one Module of a transfer job. Two Modules run under one
+    /// job, so the Module is named as well, and the runner must be the one that Module was pinned
+    /// to rather than any runner on the job.
+    /// </summary>
+    public async Task<Guid> ValidateRunnerCanAccessTransferJob(
+        HubCallerContext hubCallerContext,
+        Guid jobId,
+        Guid moduleId,
+        string task)
+    {
+        var expectedState = task + "Pending";
+
+        var organizationId = GetValidatedOrganizationId(hubCallerContext);
+
+        using var connectionRepository = _connectionRepositoryFactory.Create();
+        var connection = await connectionRepository.GetBySignalRConnectionIdAsync(
+            hubCallerContext.ConnectionId, organizationId);
+
+        if (connection == null)
+        {
+            _logger.LogWarning(
+                "Authorization failed: No connection found for connection {ConnectionId}",
+                hubCallerContext.ConnectionId);
+            throw new HubException("Unauthorized: Runner connection not found");
+        }
+
+        using var sagaRepository = _transferMigrateSagaRepositoryFactory.Create();
+        JobSagaMetaData sagaMetaData;
+        try
+        {
+            sagaMetaData = await sagaRepository.GetSagaMetaData(jobId, moduleId, connection.OrganizationId);
+        }
+        catch (EntityNotFoundException e)
+        {
+            _logger.LogWarning(
+                "Authorization failed: Module {ModuleId} of transfer job {JobId} not found (Connection: {ConnectionId})",
+                moduleId, jobId, hubCallerContext.ConnectionId);
+            throw new HubException(e.Message);
+        }
+
+        if (sagaMetaData.CurrentState != expectedState)
+        {
+            _logger.LogWarning(
+                "Authorization failed: Module {ModuleId} of transfer job {JobId} is in state {CurrentState}, expected {ExpectedState} " +
+                "(Runner: {RunnerId}/{RunnerName})",
+                moduleId, jobId, sagaMetaData.CurrentState, expectedState,
+                connection.RunnerId, connection.InstanceName);
+            throw new HubException(
+                $"Unauthorized: Module is in state '{sagaMetaData.CurrentState}', expected '{expectedState}'");
+        }
+
+        if (sagaMetaData.RunnerId != connection.RunnerId)
+        {
+            _logger.LogWarning(
+                "Authorization failed: Module {ModuleId} of transfer job {JobId} requires Runner {RequiredRunnerId}, but the caller is {SelectedRunnerId}",
+                moduleId, jobId, sagaMetaData.RunnerId, connection.RunnerId);
+            throw new HubException("Unauthorized: This runner's pool is not authorized for this job");
+        }
+
+        if (!string.IsNullOrEmpty(sagaMetaData.RunnerInstanceName) &&
+            sagaMetaData.RunnerInstanceName != connection.InstanceName)
+        {
+            _logger.LogWarning(
+                "Authorization failed: Module {ModuleId} of transfer job {JobId} requires specific runner {RequiredRunner}, but caller is {ActualRunner}",
+                moduleId, jobId, sagaMetaData.RunnerInstanceName, connection.InstanceName);
+            throw new HubException("Unauthorized: This job requires a specific runner");
+        }
+
+        if (sagaMetaData.OrganizationId != connection.OrganizationId)
+        {
+            _logger.LogWarning(
+                "Authorization failed: Transfer job {JobId} belongs to organization {JobOrgId}, but runner is in {RunnerOrgId}",
+                jobId, sagaMetaData.OrganizationId, connection.OrganizationId);
+            throw new HubException("Unauthorized: Organization mismatch");
+        }
+
+        return sagaMetaData.OrganizationId;
+    }
+
     public async Task<Guid> ValidateRunnerCanAccessSplitMigrateJob(
         HubCallerContext hubCallerContext,
         Guid jobId,

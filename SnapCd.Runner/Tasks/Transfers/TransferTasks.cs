@@ -52,26 +52,24 @@ public partial class Tasks
 
             var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
-            await TransferFiles.WriteMap(request.RootDirectory, request.Map);
 
-            // The receiver is given the fragment the source wrote; the source writes its own.
+            // The receiver is given the fragment the source produced for it; the source produces
+            // its own and is given nothing.
             await TransferFiles.WriteFragment(
-                request.RootDirectory, request.FragmentBaseName ?? "source",
-                request.FragmentState, request.FragmentMeta);
+                request.RootDirectory, request.FragmentState, request.FragmentMeta);
 
             var command = DemonolithCommand.Build("transfer migrate map", request.RootDirectory, request.Engine);
 
             await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
 
-            var (fragmentState, fragmentMeta) = await TransferFiles.ReadFragment(
-                request.RootDirectory, request.FragmentBaseName ?? "receiver");
+            var (fragmentState, fragmentMeta) = await TransferFiles.ReadFragment(request.RootDirectory);
 
             var receipt = DemonolithReceipt.Read(request.RootDirectory, DemonolithReceipt.MapReceiptFile);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeTransferMigrateMapCompleted(
                     request.JobId, request.ModuleId, fragmentState, fragmentMeta,
-                    receipt?.MapChecksum, TransferMap.NeedsValuesFrom(request.RootDirectory, request.ModuleName)),
+                    receipt?.MapChecksum, TransferMap.NeedsValuesFrom(request.RootDirectory)),
                 nameof(runnerHubClient.InvokeTransferMigrateMapCompleted),
                 request.JobId,
                 connection);
@@ -142,7 +140,6 @@ public partial class Tasks
 
             var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
-            await TransferFiles.WriteMap(request.RootDirectory, request.Map);
 
             // The values the other Module's plan produced, which this one's plan consumes.
             await TransferFiles.WriteOutputs(request.RootDirectory, request.Outputs);
@@ -226,7 +223,6 @@ public partial class Tasks
 
             var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
-            await TransferFiles.WriteMap(request.RootDirectory, request.Map);
 
             var command = DemonolithCommand.Build("transfer refactor diff", request.RootDirectory, request.Engine);
 

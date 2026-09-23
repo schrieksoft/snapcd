@@ -81,13 +81,6 @@
                         @(IsDraining ? "Pausing" : "Paused")
                     </span>
                 }
-                @if (_moduleSaga?.HeldByTransferId != null)
-                {
-                    <span class="module-status-badge module-status-badge--default">
-                        <span class="module-status-dot"></span>
-                        Held
-                    </span>
-                }
                 <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_module.Id"/>
             </div>
             <MudText Typo="Typo.body2" Class="module-page-subtitle">
@@ -136,16 +129,6 @@
                 <MudIcon Icon="@SnapCdIcons.Warning" Class="mr-2"/>
                 The Runner "@_runner.Name" assigned to this module is currently inactive and will not process new
                 jobs.
-            </MudAlert>
-        }
-
-        @if (_moduleSaga?.HeldByTransferId is { } heldBy)
-        {
-            <MudAlert Severity="Severity.Info" Class="mb-4">
-                This module is held by a transfer. Triggered and dependency-driven work is queued rather than
-                dispatched, and it is released when the transfer's state move lands. Resuming the module does
-                not lift a hold: act on the transfer.
-                <MudLink Href="@($"/Transfer/{heldBy}{_parentQuery}")" Class="ml-1">Open the transfer</MudLink>
             </MudAlert>
         }
 
@@ -810,7 +793,6 @@
             QueuedReason.WaitingOnRunningJob => "Waiting on current job",
             QueuedReason.Maintenance => "Waiting on maintenance mode",
             QueuedReason.Paused => "Module is paused",
-            QueuedReason.Held => "Module is held by a transfer",
             _ => ""
         };
     }

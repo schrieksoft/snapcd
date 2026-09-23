@@ -36,10 +36,22 @@ public static class ServerEndpoints
     public const string RefactorDiffFaulted = "RefactorDiffFaulted";
     // A transfer runs the same slices against one of two Modules, so its replies are separate
     // endpoints carrying the Module they are for.
+    public const string TransferGetModuleCompleted = "TransferGetModuleCompleted";
+    public const string TransferGetModuleFaulted = "TransferGetModuleFaulted";
+    public const string TransferInitCompleted = "TransferInitCompleted";
+    public const string TransferInitFaulted = "TransferInitFaulted";
+    public const string TransferValidateCompleted = "TransferValidateCompleted";
+    public const string TransferValidateFaulted = "TransferValidateFaulted";
+    public const string TransferPlanCompleted = "TransferPlanCompleted";
+    public const string TransferPlanFaulted = "TransferPlanFaulted";
     public const string TransferMigrateMapCompleted = "TransferMigrateMapCompleted";
     public const string TransferMigrateMapFaulted = "TransferMigrateMapFaulted";
     public const string TransferMigrateProveCompleted = "TransferMigrateProveCompleted";
     public const string TransferMigrateProveFaulted = "TransferMigrateProveFaulted";
+    public const string TransferMigrateRunCompleted = "TransferMigrateRunCompleted";
+    public const string TransferMigrateRunFaulted = "TransferMigrateRunFaulted";
+    public const string TransferMigrateVerifyCompleted = "TransferMigrateVerifyCompleted";
+    public const string TransferMigrateVerifyFaulted = "TransferMigrateVerifyFaulted";
     public const string TransferRefactorDiffCompleted = "TransferRefactorDiffCompleted";
     public const string TransferRefactorDiffFaulted = "TransferRefactorDiffFaulted";
 

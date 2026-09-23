@@ -6,7 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
 
 // The demonolith slices. Each anchors on the one root it is run against, with only that root's
@@ -19,8 +18,6 @@ namespace SnapCd.Server.Core.Events.Steps.Transfer;
 /// </summary>
 public class TransferMigrateMapRequested : TransferStepRequestBase
 {
-    /// <summary>The map, written to the root before the slice runs.</summary>
-    public string Map { get; set; } = null!;
 
     /// <summary>
     /// The source's fragment, for the receiver's slice. Null on the source, which produces it.
@@ -59,7 +56,6 @@ public class TransferMigrateMapFaulted : TransferStepFaultedBase;
 /// </summary>
 public class TransferMigrateProveRequested : TransferStepRequestBase
 {
-    public string Map { get; set; } = null!;
 
     /// <summary>
     /// The outputs artefacts this participant consumes, by filename, as the runner writes them into
@@ -94,7 +90,6 @@ public class TransferMigrateProveFaulted : TransferStepFaultedBase;
 /// </summary>
 public class TransferRefactorDiffRequested : TransferStepRequestBase
 {
-    public string Map { get; set; } = null!;
 }
 
 public class TransferRefactorDiffCompleted : TransferStepResponseBase
@@ -106,3 +101,22 @@ public class TransferRefactorDiffCompleted : TransferStepResponseBase
 }
 
 public class TransferRefactorDiffFaulted : TransferStepFaultedBase;
+
+public class TransferMigrateRunRequested : TransferStepRequestBase
+{
+
+}
+
+public class TransferMigrateRunCompleted : TransferStepResponseBase
+{
+}
+
+public class TransferMigrateRunFaulted : TransferStepFaultedBase;
+
+public class TransferMigrateVerifyRequested : TransferStepRequestBase
+{
+}
+
+public class TransferMigrateVerifyCompleted : TransferStepResponseBase;
+
+public class TransferMigrateVerifyFaulted : TransferStepFaultedBase;

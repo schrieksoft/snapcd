@@ -59,8 +59,9 @@ public class TransferCommandTests
     }
 
     /// <summary>
-    /// The fragment the source writes is read back by name, which is how it reaches the receiver
-    /// through the server: the two runners never see each other.
+    /// The fragment the source writes is read back from the work directory, which is how it
+    /// reaches the receiver through the server: the two runners never see each other. demonolith
+    /// names it after the receiving root, so it is found rather than named.
     /// </summary>
     [Fact]
     public async Task A_Fragment_Round_Trips_Through_The_Work_Directory()
@@ -68,9 +69,9 @@ public class TransferCommandTests
         var root = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
         try
         {
-            await TransferFiles.WriteFragment(root, "network", "{\"serial\":9}", "map_hash: abc");
+            await TransferFiles.WriteFragment(root, "{\"serial\":9}", "map_hash: abc");
 
-            var (state, meta) = await TransferFiles.ReadFragment(root, "network");
+            var (state, meta) = await TransferFiles.ReadFragment(root);
 
             Assert.Equal("{\"serial\":9}", state);
             Assert.Equal("map_hash: abc", meta);
@@ -85,7 +86,7 @@ public class TransferCommandTests
     public async Task Reading_A_Fragment_That_Was_Never_Written_Gives_Nothing()
     {
         var root = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
-        var (state, meta) = await TransferFiles.ReadFragment(root, "network");
+        var (state, meta) = await TransferFiles.ReadFragment(root);
 
         Assert.Null(state);
         Assert.Null(meta);
@@ -122,27 +123,45 @@ public class TransferCommandTests
     /// Which Module needs a value from which, read out of the map. This is what decides the order
     /// the two Modules run in.
     /// </summary>
+    /// <summary>
+    /// The map names each root by its own directory, so which values a root needs is worked out
+    /// from where it is checked out rather than from anything the server passes.
+    /// </summary>
     [Fact]
-    public async Task The_Map_Says_Which_Module_Needs_Values_From_The_Other()
+    public async Task A_Receiving_Root_Needs_The_Values_The_Map_Says_It_Consumes()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
+        var work = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
+        var root = Path.Combine(work, "app");
         try
         {
-            await TransferFiles.WriteMap(root, """
-                                               version: 1
-                                               cross_edges:
-                                                 - consumer: app
-                                                   input: db_endpoint
-                                                   producer: network
-                                                   output: endpoint
-                                               """);
+            Directory.CreateDirectory(root);
+            await TransferFiles.WriteMap(root, Map);
 
-            Assert.Equal(["network"], TransferMap.NeedsValuesFrom(root, "app"));
-            Assert.Empty(TransferMap.NeedsValuesFrom(root, "network"));
+            // The producer is how the map names the source: the remainder, not its directory.
+            Assert.Equal(["legacy"], TransferMap.NeedsValuesFrom(root));
         }
         finally
         {
-            if (Directory.Exists(root)) Directory.Delete(root, true);
+            if (Directory.Exists(work)) Directory.Delete(work, true);
+        }
+    }
+
+    /// <summary>The source goes by the remainder's name, which is what its edges are keyed by.</summary>
+    [Fact]
+    public async Task The_Source_Root_Needs_Nothing_When_Only_The_Receiver_Consumes()
+    {
+        var work = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
+        var root = Path.Combine(work, "network");
+        try
+        {
+            Directory.CreateDirectory(root);
+            await TransferFiles.WriteMap(root, Map);
+
+            Assert.Empty(TransferMap.NeedsValuesFrom(root));
+        }
+        finally
+        {
+            if (Directory.Exists(work)) Directory.Delete(work, true);
         }
     }
 
@@ -151,6 +170,26 @@ public class TransferCommandTests
     {
         var root = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
 
-        Assert.Empty(TransferMap.NeedsValuesFrom(root, "app"));
+        Assert.Empty(TransferMap.NeedsValuesFrom(root));
     }
+
+    /// <summary>
+    /// A map wiring one value across: the receiving root "app" consumes what the source produces.
+    /// The source root is "network", which the edges call by the remainder's name.
+    /// </summary>
+    private const string Map =
+        """
+        version: 1
+        source_dir: network
+        remainder: legacy
+        receivers:
+            app:
+                moves:
+                    - random_pet.move_me
+        cross_edges:
+            - consumer: app
+              input: db_endpoint
+              producer: legacy
+              output: endpoint
+        """;
 }

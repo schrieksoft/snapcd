@@ -84,6 +84,9 @@ else
     [Parameter] public Guid ModuleJobId { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public string[]? TaskFilter { get; set; }
+
+    /// <summary>Narrows the logs to one Module, for a job that two Modules share.</summary>
+    [Parameter] public Guid? ModuleId { get; set; }
     [Parameter] public EventCallback<string?> OnTaskChanged { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
@@ -195,6 +198,9 @@ else
     {
         var entries = await LogService.GetLogEntries(ModuleJobId);
 
+        if (ModuleId is { } module)
+            entries = entries.Where(e => e.ModuleId == module).ToList();
+
         if (taskName is not null)
             return entries.Where(e => (e.TaskName ?? "Default") == taskName).ToList();
 
@@ -254,7 +260,7 @@ else
 
     private async Task ReloadLogs()
     {
-        _logs = await LogService.GetLogStrings(ModuleJobId);
+        _logs = await LogService.GetLogStrings(ModuleJobId, ModuleId);
 
         foreach (var kvp in _logs)
         {

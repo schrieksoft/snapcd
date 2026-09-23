@@ -23,13 +23,10 @@ public static class TransferMap
     /// Module names this one needs values from. Empty when it needs nothing, which is what lets
     /// the two run in either order.
     /// </summary>
-    public static List<string> NeedsValuesFrom(string? rootDirectory, string? moduleName)
+    public static List<string> NeedsValuesFrom(string? rootDirectory)
     {
-        if (string.IsNullOrWhiteSpace(moduleName)) return [];
-
-        var path = Path.Combine(
-            string.IsNullOrWhiteSpace(rootDirectory) ? "." : rootDirectory,
-            TransferFiles.MapFile);
+        var root = string.IsNullOrWhiteSpace(rootDirectory) ? "." : rootDirectory;
+        var path = Path.Combine(root, TransferFiles.MapFile);
 
         if (!File.Exists(path)) return [];
 
@@ -39,16 +36,44 @@ public static class TransferMap
             .Build()
             .Deserialize<TransferMapFile>(File.ReadAllText(path));
 
-        return map?.CrossEdges?
+        if (map == null) return [];
+
+        var moduleName = ModuleNameOf(map, root);
+        if (moduleName == null) return [];
+
+        return map.CrossEdges?
             .Where(e => e.Consumer == moduleName && e.Producer != null)
             .Select(e => e.Producer!)
             .Distinct()
             .ToList() ?? [];
     }
 
+    /// <summary>
+    /// How the map names this root in its cross edges. Roots are matched by directory name, which
+    /// the map keeps unique; the source goes by the remainder's name and a receiver by its key.
+    /// </summary>
+    private static string? ModuleNameOf(TransferMapFile map, string root)
+    {
+        var baseName = Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)));
+
+        if (baseName == map.SourceDir) return map.Remainder;
+
+        return map.Receivers?.Keys.FirstOrDefault(key =>
+            Path.GetFileName(Path.TrimEndingDirectorySeparator(key)) == baseName);
+    }
+
     private class TransferMapFile
     {
         public List<CrossEdge>? CrossEdges { get; set; }
+
+        /// <summary>The source root's directory name.</summary>
+        public string? SourceDir { get; set; }
+
+        /// <summary>What the edges call the source: the part of it that stays behind.</summary>
+        public string? Remainder { get; set; }
+
+        /// <summary>Keyed by each receiving root's path as the map spells it.</summary>
+        public Dictionary<string, object>? Receivers { get; set; }
     }
 
     /// <summary>One value another Module produces and this one consumes.</summary>

@@ -51,13 +51,12 @@ public class DequeueModuleJobActivity<TSaga, TMessage> :
                 return;
             }
 
-            if (context.Saga.Paused || context.Saga.HeldByTransferId != null)
+            if (context.Saga.Paused)
             {
-                var held = context.Saga.HeldByTransferId != null;
                 if (context.Saga.QueuedDesiredStateHeadline.HasValue)
-                    context.Saga.QueuedReason = held ? QueuedReason.Held : QueuedReason.Paused;
+                    context.Saga.QueuedReason = QueuedReason.Paused;
                 _logger.LogDebug("Module {ModuleId} is {Reason}: leaving it queued",
-                    context.Saga.CorrelationId, held ? "held by a transfer" : "paused");
+                    context.Saga.CorrelationId, "paused");
                 await next.Execute(context).ConfigureAwait(false);
                 return;
             }

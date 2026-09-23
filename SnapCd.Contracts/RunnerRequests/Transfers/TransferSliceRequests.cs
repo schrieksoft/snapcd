@@ -6,7 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 namespace SnapCd.Contracts.RunnerRequests.Transfers;
 
 /// <summary>
@@ -21,14 +20,6 @@ public abstract class TransferSliceRequestBase : EngineJobRequestBase
     /// <summary>This Module's root within its own checkout, passed as --root-dir.</summary>
     public string? RootDirectory { get; set; }
 
-    /// <summary>The transfer map, written to the root before the slice runs.</summary>
-    public string Map { get; set; } = null!;
-
-    /// <summary>
-    /// This Module's name as the map spells it, which is how the map names who needs values from
-    /// whom. Not the Snap CD Module name unless they happen to match.
-    /// </summary>
-    public string? ModuleName { get; set; }
 }
 
 /// <summary>
@@ -37,9 +28,6 @@ public abstract class TransferSliceRequestBase : EngineJobRequestBase
 /// </summary>
 public class TransferMigrateMapRequestBase : TransferSliceRequestBase
 {
-    /// <summary>The other Module's name, which is how demonolith names the fragment files.</summary>
-    public string? FragmentBaseName { get; set; }
-
     /// <summary>The fragment to apply, for the receiver. Null on the source, which writes it.</summary>
     public string? FragmentState { get; set; }
 
@@ -61,3 +49,16 @@ public class TransferMigrateProveRequestBase : TransferSliceRequestBase
 /// alone, which is what the command does by default.
 /// </summary>
 public class TransferRefactorDiffRequestBase : TransferSliceRequestBase;
+
+/// <summary>
+/// Writes this Module's share of the move into its own state. The receiver injects; the source
+/// strips, and demonolith refuses to strip until the receiver's committed run receipt is in this
+/// root's checkout.
+/// </summary>
+public class TransferMigrateRunRequestBase : TransferSliceRequestBase
+{
+
+}
+
+/// <summary>Checks the written state plans clean, which is what closes this Module's move.</summary>
+public class TransferMigrateVerifyRequestBase : TransferSliceRequestBase;

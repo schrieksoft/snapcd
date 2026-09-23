@@ -32,31 +32,48 @@ public static class TransferFiles
         await File.WriteAllTextAsync(Path.Combine(root, MapFile), map);
     }
 
-    /// <summary>Puts the fragment the other Module produced where this Module's slice looks for it.</summary>
-    public static async Task WriteFragment(string? rootDirectory, string baseName, string? state, string? meta)
+    /// <summary>
+    /// Puts the fragment the source produced where the receiving root's slice looks for it.
+    /// demonolith names it after the receiving root's own directory, which is this root.
+    /// </summary>
+    public static async Task WriteFragment(string? rootDirectory, string? state, string? meta)
     {
         if (state == null) return;
 
         var work = WorkDir(rootDirectory);
         Directory.CreateDirectory(work);
 
+        var baseName = BaseName(rootDirectory);
         await File.WriteAllTextAsync(Path.Combine(work, $"fragment-{baseName}.tfstate"), state);
 
         if (meta != null)
             await File.WriteAllTextAsync(Path.Combine(work, $"fragment-{baseName}.yaml"), meta);
     }
 
-    /// <summary>The fragment this Module's slice wrote, for the other one.</summary>
-    public static async Task<(string? State, string? Meta)> ReadFragment(string? rootDirectory, string baseName)
+    /// <summary>
+    /// The fragment the source's slice wrote. The source writes one per receiving root, each named
+    /// after that root, so it is found rather than named.
+    /// </summary>
+    public static async Task<(string? State, string? Meta)> ReadFragment(string? rootDirectory)
     {
         var work = WorkDir(rootDirectory);
-        var state = Path.Combine(work, $"fragment-{baseName}.tfstate");
-        var meta = Path.Combine(work, $"fragment-{baseName}.yaml");
+        if (!Directory.Exists(work)) return (null, null);
+
+        var state = Directory.EnumerateFiles(work, "fragment-*.tfstate").FirstOrDefault();
+        if (state == null) return (null, null);
+
+        var meta = Path.ChangeExtension(state, ".yaml");
 
         return (
-            File.Exists(state) ? await File.ReadAllTextAsync(state) : null,
+            await File.ReadAllTextAsync(state),
             File.Exists(meta) ? await File.ReadAllTextAsync(meta) : null);
     }
+
+
+
+    /// <summary>The root's own directory name, which is the token demonolith names artefacts by.</summary>
+    private static string BaseName(string? rootDirectory) =>
+        Path.GetFileName(Path.TrimEndingDirectorySeparator(Root(rootDirectory)));
 
     /// <summary>
     /// Puts the values the other Module produced where this Module's prove looks for them. Keyed by

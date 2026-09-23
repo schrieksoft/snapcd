@@ -24,6 +24,9 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Hubs.Handlers;
 using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
+using SnapCd.Server.Core.Hubs.Handlers.Transfers;
+using SnapCd.Server.Core.Services.Crud.Transfers;
+using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services;
@@ -55,6 +58,7 @@ public class RunnerHub : Hub
     private readonly VariableHandler _variableHandler;
     private readonly PlanHandler _planHandler;
     private readonly SplitGetModuleHandler _splitGetModuleHandler;
+    private readonly TransferStepHandler _transferStepHandler;
     private readonly SplitInitHandler _splitInitHandler;
     private readonly SplitValidateHandler _splitValidateHandler;
     private readonly SplitPlanHandler _splitPlanHandler;
@@ -92,6 +96,7 @@ public class RunnerHub : Hub
         VariableHandler variableHandler,
         PlanHandler planHandler,
         SplitGetModuleHandler splitGetModuleHandler,
+        TransferStepHandler transferStepHandler,
         SplitInitHandler splitInitHandler,
         SplitValidateHandler splitValidateHandler,
         SplitPlanHandler splitPlanHandler,
@@ -128,6 +133,7 @@ public class RunnerHub : Hub
         _variableHandler = variableHandler;
         _planHandler = planHandler;
         _splitGetModuleHandler = splitGetModuleHandler;
+        _transferStepHandler = transferStepHandler;
         _splitInitHandler = splitInitHandler;
         _splitValidateHandler = splitValidateHandler;
         _splitPlanHandler = splitPlanHandler;
@@ -761,6 +767,186 @@ public class RunnerHub : Hub
         await _refactorDiffHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
+
+    // Transfers: one job, two Modules, so every reply names the Module that is answering and is
+    // authorized against that Module's own pinned runner.
+
+    public async Task TransferGetModuleCompleted(Guid jobId, Guid moduleId, string? definitiveRevision)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "GetModule");
+
+        await _transferStepHandler.Complete<TransferGetModuleCompleted>(
+            jobId, moduleId, organizationId, c => c.DefinitiveRevision = definitiveRevision);
+    }
+
+    public async Task TransferGetModuleFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "GetModule");
+
+        await _transferStepHandler.Fault<TransferGetModuleFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferInitCompleted(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Init");
+
+        await _transferStepHandler.Complete<TransferInitCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferInitFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Init");
+
+        await _transferStepHandler.Fault<TransferInitFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferValidateCompleted(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Validate");
+
+        await _transferStepHandler.Complete<TransferValidateCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferValidateFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Validate");
+
+        await _transferStepHandler.Fault<TransferValidateFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferPlanCompleted(Guid jobId, Guid moduleId, int totalChangedCount)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Plan");
+
+        await _transferStepHandler.Complete<TransferPlanCompleted>(
+            jobId, moduleId, organizationId, c => c.TotalChangedCount = totalChangedCount);
+    }
+
+    public async Task TransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Plan");
+
+        await _transferStepHandler.Fault<TransferPlanFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferMigrateMapCompleted(
+        Guid jobId, Guid moduleId, string? fragmentState, string? fragmentMeta,
+        string? mapHash, List<string> needsValuesFrom)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateMap");
+
+        await _transferStepHandler.Complete<TransferMigrateMapCompleted>(
+            jobId, moduleId, organizationId, c =>
+            {
+                c.FragmentState = fragmentState;
+                c.FragmentMeta = fragmentMeta;
+                c.MapHash = mapHash;
+                c.NeedsValuesFrom = needsValuesFrom;
+            });
+    }
+
+    public async Task TransferMigrateMapFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateMap");
+
+        await _transferStepHandler.Fault<TransferMigrateMapFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferMigrateProveCompleted(
+        Guid jobId, Guid moduleId, int exitCode, Dictionary<string, string> outputs, string? verdict)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateProve");
+
+        await _transferStepHandler.Complete<TransferMigrateProveCompleted>(
+            jobId, moduleId, organizationId, c =>
+            {
+                c.ExitCode = exitCode;
+                c.Outputs = outputs;
+                c.Verdict = verdict;
+            });
+    }
+
+    public async Task TransferMigrateProveFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateProve");
+
+        await _transferStepHandler.Fault<TransferMigrateProveFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferMigrateRunCompleted(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateRun");
+
+        await _transferStepHandler.Complete<TransferMigrateRunCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferMigrateRunFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateRun");
+
+        await _transferStepHandler.Fault<TransferMigrateRunFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferMigrateVerifyCompleted(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateVerify");
+
+        await _transferStepHandler.Complete<TransferMigrateVerifyCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferMigrateVerifyFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "MigrateVerify");
+
+        await _transferStepHandler.Fault<TransferMigrateVerifyFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferRefactorDiffCompleted(Guid jobId, Guid moduleId, int exitCode, string? verdict)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "RefactorDiff");
+
+        await _transferStepHandler.Complete<TransferRefactorDiffCompleted>(
+            jobId, moduleId, organizationId, c =>
+            {
+                c.ExitCode = exitCode;
+                c.Verdict = verdict;
+            });
+    }
+
+    public async Task TransferRefactorDiffFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "RefactorDiff");
+
+        await _transferStepHandler.Fault<TransferRefactorDiffFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
     public async Task MigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
@@ -950,6 +1136,8 @@ public class RunnerHub : Hub
     {
         await _sourceRefreshHandler.Complete(sourceUrl, sourceRevision, sourceType, sourceRevisionType, definitiveRevision);
     }
+
+
 
     public async Task SourceRefreshCompletedV2(
         string sourceUrl,

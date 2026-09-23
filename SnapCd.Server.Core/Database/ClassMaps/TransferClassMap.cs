@@ -21,13 +21,9 @@ public class TransferClassMap : IEntityTypeConfiguration<Transfer>
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
-        entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.Scope).HasConversion<string>().HasMaxLength(50);
         entity.Property(e => e.ReceiverConsentStatus).HasConversion<string>().HasMaxLength(50);
         entity.Property(e => e.ReceiverConsentPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.SourceLockedByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.SourceMergedDeclaredByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.ReceiverLockedByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.ReceiverMergedDeclaredByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
 
         entity.HasIndex(e => e.Id).IsUnique();
 
@@ -55,6 +51,5 @@ public class TransferClassMap : IEntityTypeConfiguration<Transfer>
 
         entity.HasIndex(e => e.SourceModuleId);
         entity.HasIndex(e => e.ReceiverModuleId);
-        entity.HasIndex(e => e.MapHash);
     }
 }

@@ -1,0 +1,67 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText>@Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (Granted)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                This transfer may move resources into this module's state.
+            </MudText>
+
+            <MudTextField @bind-Value="_proveRef"
+                          Label="Ref to run against"
+                          HelperText="The branch or tag carrying the code move. Defaults to this module's own."
+                          Variant="Variant.Text"
+                          Class="mb-2"/>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Refusing ends this transfer. The source can start another.
+            </MudText>
+        }
+
+        <MudTextField @bind-Value="_reason"
+                      Label="Reason (optional)"
+                      Variant="Variant.Text"
+                      Lines="2"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Confirm">@Verb</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public bool Granted { get; set; }
+    [Parameter] public string? ProveRef { get; set; }
+
+    private string? _proveRef;
+    private string? _reason;
+
+    protected override void OnInitialized() => _proveRef = ProveRef;
+
+    private string Title => Granted ? "Grant consent" : "Refuse";
+
+    private string Verb => Granted ? "Grant" : "Refuse";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Decision(_proveRef, _reason)));
+
+    /// <summary>What the receiving side answered: the ref it runs against, and why.</summary>
+    public record Decision(string? ProveRef, string? Reason);
+}

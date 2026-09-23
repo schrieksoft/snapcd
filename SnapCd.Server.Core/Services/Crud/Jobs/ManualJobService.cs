@@ -18,7 +18,6 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Events.Transfers;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration;
 using MassTransit;
@@ -157,17 +156,16 @@ public class ManualJobService : IDisposable
     /// row and its saga unable to find each other.
     /// </summary>
     /// <summary>
-    /// Starts a prove round for a transfer: both Modules check out their own ref and plan, the
-    /// state fragment crosses between them, and each proves.
+    /// Starts one Module's state move. A transfer is two of these, receiver first: demonolith will
+    /// not strip the source until the receiver's run receipt exists.
     ///
-    /// Both Modules must be paused and quiet. A prove plans each Module's real state, so anything
-    /// else running on that Module would share its runner's working directory.
+    /// The Module must be paused and quiet, since the move plans and writes its real state.
     /// </summary>
-    public async Task<ManualModuleJob> StartTransferProve(
+    public async Task<ManualModuleJob> StartTransferMigrate(
         Guid transferId,
+        Guid moduleId,
         Guid organizationId,
-        string? sourceRootDirectory = null,
-        string? receiverRootDirectory = null)
+        string? rootDirectory = null)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
@@ -181,35 +179,31 @@ public class ManualJobService : IDisposable
         if (transfer is null)
             throw new EntityNotFoundException($"Transfer '{transferId}' not found");
 
-        if (!_moduleSecuredRepository.CanPause(transfer.SourceModuleId, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"Principal is not allowed to run manual jobs on Module with Id {transfer.SourceModuleId}");
+        if (transfer.SourceModuleId != moduleId && transfer.ReceiverModuleId != moduleId)
+            throw new ManualJobNotAllowedException("That Module is not part of this transfer.");
 
-        if (transfer.Status is TransferStatus.Migrated or TransferStatus.Abandoned)
-            throw new ManualJobNotAllowedException($"This transfer is {transfer.Status}.");
+        if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to run manual jobs on Module with Id {moduleId}");
 
         if (transfer.ReceiverConsentStatus is not (ConsentStatus.Granted or ConsentStatus.NotRequired))
             throw new ManualJobNotAllowedException(
-                $"The receiver's consent is {transfer.ReceiverConsentStatus}; it must be granted before a prove can run.");
+                $"The receiver's consent is {transfer.ReceiverConsentStatus}; it must be granted before state can move.");
 
-        if (string.IsNullOrWhiteSpace(transfer.SourceProveRef) || string.IsNullOrWhiteSpace(transfer.ReceiverProveRef))
-            throw new ManualJobNotAllowedException("Both Modules need a ref to prove before a round can start.");
+        var isSource = transfer.SourceModuleId == moduleId;
 
-        foreach (var moduleId in new[] { transfer.SourceModuleId, transfer.ReceiverModuleId })
-        {
-            var blocked = await GetBlockedReason(moduleId, organizationId);
-            if (blocked is not null)
-                throw new ManualJobNotAllowedException($"Module {moduleId}: {blocked}");
-        }
+        var blocked = await GetBlockedReason(moduleId, organizationId);
+        if (blocked is not null) throw new ManualJobNotAllowedException(blocked);
+
 
         var job = new ManualModuleJob
         {
             Id = Guid.NewGuid(),
-            // Owned by the source, which is the Module the transfer was started from.
-            ModuleId = transfer.SourceModuleId,
+            ModuleId = moduleId,
+            TransferId = transferId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.TransferProve,
+            JobType = ManualJobTypes.TransferMigrate,
             Status = ExecutionStatus.Running
         };
 
@@ -218,24 +212,16 @@ public class ManualJobService : IDisposable
 
         try
         {
-            var sourceDeclared = await _resolvedConfigurationService.GetDeclared(transfer.SourceModuleId, organizationId);
-            var receiverDeclared = await _resolvedConfigurationService.GetDeclared(transfer.ReceiverModuleId, organizationId);
+            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
 
-            await _bus.Publish(new TransferProveRoundStartRequested
+            await _bus.Publish(new TransferMigrateRequested
             {
+                CorrelationId = job.Id,
+                Declared = declared,
                 TransferId = transferId,
-                OrganizationId = organizationId,
-                JobId = job.Id,
-                Map = transfer.MapJson,
-                MapHash = transfer.MapHash,
-                SourceModuleId = transfer.SourceModuleId,
-                ReceiverModuleId = transfer.ReceiverModuleId,
-                SourceDeclared = sourceDeclared,
-                ReceiverDeclared = receiverDeclared,
-                SourceProveRef = transfer.SourceProveRef,
-                ReceiverProveRef = transfer.ReceiverProveRef,
-                SourceRootDirectory = sourceRootDirectory,
-                ReceiverRootDirectory = receiverRootDirectory
+                Role = isSource ? TransferRole.Source : TransferRole.Receiver,
+                RootDirectory = rootDirectory,
+                ProveRef = isSource ? transfer.SourceProveRef : transfer.ReceiverProveRef,
             });
         }
         catch (Exception ex)
@@ -247,6 +233,7 @@ public class ManualJobService : IDisposable
 
         return job;
     }
+
 
     public async Task<ManualModuleJob> StartSplitMigrate(
         Guid moduleId,

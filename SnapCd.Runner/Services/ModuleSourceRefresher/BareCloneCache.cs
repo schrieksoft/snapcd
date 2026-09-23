@@ -98,6 +98,24 @@ public class BareCloneCache
             .ToList();
     }
 
+    /// <summary>
+    /// One file's contents at a commit, or null when the commit does not carry it. Read out of the
+    /// bare clone, so nothing is checked out.
+    /// </summary>
+    public async Task<string?> ReadFile(string sourceUrl, string commitSha, string path)
+    {
+        var cloneDir = await EnsureCommit(sourceUrl, commitSha);
+
+        try
+        {
+            return RunGit(cloneDir, ["show", $"{commitSha}:{path.TrimStart('/')}"]);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     private async Task<string> EnsureCommit(string sourceUrl, string commitSha)
     {
         var key = CacheKey(sourceUrl);

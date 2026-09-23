@@ -6,27 +6,28 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
-namespace SnapCd.Server.Core.Events.System;
+namespace SnapCd.Contracts.RunnerRequests.Transfers;
 
 /// <summary>
-/// Asks the Module's saga to take a Transfer's hold: from then on triggers park rather than
-/// dispatch. Published when a participant locks, before any job exists to wait on it.
+/// A transfer runs the ordinary preamble against two Modules under one job, so each request and
+/// each reply names the Module it belongs to. The payloads are otherwise the ordinary ones.
 /// </summary>
-public class ModuleHoldRequested
+public class TransferGetModuleRequestBase : GetModuleRequestBase
 {
     public Guid ModuleId { get; set; }
-    public Guid OrganizationId { get; set; }
-    public Guid TransferId { get; set; }
 }
 
-/// <summary>
-/// Asks the Module's saga to release a Transfer's hold and re-drive parked work. Ignored unless
-/// the id matches the hold on record.
-/// </summary>
-public class ModuleReleaseRequested
+public class TransferInitRequestBase : InitRequestBase
 {
     public Guid ModuleId { get; set; }
-    public Guid OrganizationId { get; set; }
-    public Guid TransferId { get; set; }
+}
+
+public class TransferValidateRequestBase : ValidateRequestBase
+{
+    public Guid ModuleId { get; set; }
+}
+
+public class TransferPlanRequestBase : PlanRequestBase
+{
+    public Guid ModuleId { get; set; }
 }

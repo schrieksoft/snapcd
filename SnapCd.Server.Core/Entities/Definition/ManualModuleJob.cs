@@ -27,6 +27,9 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
 
     public Guid ModuleId { get; set; }
 
+    /// <summary>The Transfer this job belongs to, when it is one of a transfer's two jobs.</summary>
+    public Guid? TransferId { get; set; }
+
     public int JobNumber { get; set; }
 
     public DateTimeOffset TimestampStart { get; set; }

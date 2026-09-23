@@ -15,8 +15,11 @@ public class TransferCreateRequestDto
     /// <summary>The Module the resources move into. Exactly one: moving into two is two transfers.</summary>
     public Guid ReceiverModuleId { get; set; }
 
-    /// <summary>The transfer map, as demonolith wrote it. Hashed verbatim, never re-serialised.</summary>
-    public string Map { get; set; } = null!;
+    /// <summary>
+    /// The transfer map, as demonolith wrote it, hashed verbatim and never re-serialised. Normally
+    /// left out: the map is checked-in code, so it is read from the ref below.
+    /// </summary>
+    public string? Map { get; set; }
 
     /// <summary>The ref to prove, defaulting the receiver's until it says otherwise.</summary>
     public string? ProveRef { get; set; }

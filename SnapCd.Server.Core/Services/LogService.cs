@@ -157,9 +157,16 @@ public class LogService
         return string.Join(Environment.NewLine, logEntries.Select(l => l.Message));
     }
 
-    public async Task<Dictionary<string, string>> GetLogStrings(Guid correlationId)
+    /// <summary>
+    /// One job's logs, by task. <paramref name="moduleId"/> narrows them to one Module, which a
+    /// transfer needs: two Modules run under one job, so their logs share a job id.
+    /// </summary>
+    public async Task<Dictionary<string, string>> GetLogStrings(Guid correlationId, Guid? moduleId = null)
     {
         var logEntries = await GetLogEntries(correlationId);
+
+        if (moduleId is { } module)
+            logEntries = logEntries.Where(l => l.ModuleId == module).ToList();
 
         var result = new Dictionary<string, string>();
 

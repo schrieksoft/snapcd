@@ -12,7 +12,7 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20260922163850_ManualJobsAndTransfers")]
+    [Migration("20260923095847_ManualJobsAndTransfers")]
     partial class ManualJobsAndTransfers
     {
         /// <inheritdoc />
@@ -7120,13 +7120,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("MapHash")
-                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("MapJson")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MapRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -7141,6 +7143,10 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<DateTime>("ModifiedDateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("PrepareError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid?>("ReceiverConsentAgentId")
                         .HasColumnType("uniqueidentifier");
@@ -8199,6 +8205,19 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("KillCancellationRequestId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LastProvenFragmentMeta")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastProvenFragmentState")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastProvenKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("LastProvenOutputsJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Map")
                         .HasColumnType("nvarchar(max)");

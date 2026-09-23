@@ -24,8 +24,8 @@ using SnapCd.Server.Core.Services.Crud.Transfers;
 namespace SnapCd.Server.Core.Controllers.Transfers;
 
 /// <summary>
-/// The coordination surface for a transfer: consent, the gates, and closing it. The jobs that run
-/// under a transfer are started from the Module's manual jobs, not here.
+/// A transfer's own surface: opening it, and the receiver's consent. The jobs that move the state
+/// are ordinary manual jobs, started from the Module.
 /// </summary>
 [Route(ControllerEndpoints.Transfer)]
 [ApiController]
@@ -34,105 +34,27 @@ namespace SnapCd.Server.Core.Controllers.Transfers;
 public class TransferController : ControllerBase
 {
     private readonly TransferServiceFactory _factory;
-    private readonly ManualJobServiceFactory _manualJobServiceFactory;
+    private readonly TransferOpenerFactory _openerFactory;
 
-    public TransferController(TransferServiceFactory factory, ManualJobServiceFactory manualJobServiceFactory)
+    public TransferController(TransferServiceFactory factory, TransferOpenerFactory openerFactory)
     {
         _factory = factory;
-        _manualJobServiceFactory = manualJobServiceFactory;
+        _openerFactory = openerFactory;
     }
 
-    [EndpointSummary("Open a transfer from a source Module to one receiver")]
+    [EndpointSummary("Open a transfer from a source Module to one receiver, reading the map from a ref")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
     [HttpPost("{sourceModuleId}")]
-    public Task<ActionResult> Create(
-        Guid organizationId, Guid sourceModuleId, [FromBody] TransferCreateRequestDto request) =>
-        Run(async service => (ActionResult)Ok(await service.Create(
-            sourceModuleId, organizationId, request.Map, request.ReceiverModuleId, request.ProveRef)));
-
-    [EndpointSummary("Answer a transfer's request for consent on behalf of a Module")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPost("{transferId}/Module/{moduleId}/Consent")]
-    public Task<ActionResult> Consent(
-        Guid organizationId, Guid transferId, Guid moduleId, [FromBody] ConsentRequestDto request) =>
-        Run(async service =>
-        {
-            await service.Decide(transferId, moduleId, organizationId, request.Granted, request.ProveRef, request.Reason);
-            return (ActionResult)NoContent();
-        });
-
-    [EndpointSummary("Change the ref a Module wants proved, until it locks")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPut("{transferId}/Module/{moduleId}/ProveRef")]
-    public Task<ActionResult> SetProveRef(
-        Guid organizationId, Guid transferId, Guid moduleId, [FromBody] ProveRefRequestDto request) =>
-        Run(async service =>
-        {
-            await service.SetProveRef(transferId, moduleId, organizationId, request.Ref);
-            return (ActionResult)NoContent();
-        });
-
-    [EndpointSummary("Withdraw a consent already given")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPost("{transferId}/Module/{moduleId}/Consent/Revoke")]
-    public Task<ActionResult> Revoke(
-        Guid organizationId, Guid transferId, Guid moduleId, [FromBody] ReasonRequestDto? request) =>
-        Run(async service =>
-        {
-            await service.Revoke(transferId, moduleId, organizationId, request?.Reason);
-            return (ActionResult)NoContent();
-        });
-
-    [EndpointSummary("Hold a Module out of the automated lifecycle for this transfer, before merging")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPost("{transferId}/Module/{moduleId}/Lock")]
-    public Task<ActionResult> Lock(Guid organizationId, Guid transferId, Guid moduleId) =>
-        Run(async service =>
-        {
-            await service.Lock(transferId, moduleId, organizationId);
-            return (ActionResult)NoContent();
-        });
-
-    [EndpointSummary("Declare the proved code merged, naming the commit it landed as")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPost("{transferId}/Module/{moduleId}/Merged")]
-    public Task<ActionResult> DeclareMerged(
-        Guid organizationId, Guid transferId, Guid moduleId, [FromBody] DeclareMergedRequestDto request) =>
-        Run(async service =>
-        {
-            await service.DeclareMerged(transferId, moduleId, organizationId, request.MergedCommit);
-            return (ActionResult)NoContent();
-        });
-
-    [EndpointSummary("Replace the transfer's map, re-asking the receiver for consent")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPut("{transferId}/Map")]
-    public Task<ActionResult> ReplaceMap(
-        Guid organizationId, Guid transferId, [FromBody] ReplaceMapRequestDto request) =>
-        Run(async service => (ActionResult)Ok(await service.ReplaceMap(
-            transferId, organizationId, request.Map, TransferService.HashMap(request.Map))));
-
-    [EndpointSummary("Close a transfer, pausing any Module it still holds")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPost("{transferId}/Abandon")]
-    public Task<ActionResult> Abandon(
-        Guid organizationId, Guid transferId, [FromBody] ReasonRequestDto? request) =>
-        Run(async service => (ActionResult)Ok(await service.Abandon(
-            transferId, organizationId, request?.Reason ?? "abandoned")));
-
-    [EndpointSummary("Start a prove round: both Modules plan and prove against their own refs")]
-    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPost("{transferId}/Prove")]
-    public async Task<ActionResult> Prove(
-        Guid organizationId, Guid transferId, [FromBody] StartProveRequestDto? request)
+    public async Task<ActionResult> Create(
+        Guid organizationId, Guid sourceModuleId, [FromBody] TransferCreateRequestDto request)
     {
-        using var service = _manualJobServiceFactory.Create();
         try
         {
-            var job = await service.StartTransferProve(
-                transferId, organizationId, request?.SourceRootDirectory, request?.ReceiverRootDirectory);
+            var opener = _openerFactory.Create();
+            var transfer = await opener.Open(
+                sourceModuleId, request.ReceiverModuleId, organizationId, request.ProveRef);
 
-            return Ok(job.Id);
+            return Ok(transfer);
         }
         catch (EntityNotFoundException e)
         {
@@ -148,13 +70,25 @@ public class TransferController : ControllerBase
         }
     }
 
-    [EndpointSummary("The transfer's status, recomputed from its participants and jobs")]
+    [EndpointSummary("Answer a transfer's request for consent on behalf of the receiving Module")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
+    [HttpPost("{transferId}/Module/{moduleId}/Consent")]
+    public Task<ActionResult> Consent(
+        Guid organizationId, Guid transferId, Guid moduleId, [FromBody] ConsentRequestDto request) =>
+        Run(async service =>
+        {
+            await service.Decide(
+                transferId, moduleId, organizationId, request.Granted, request.ProveRef, request.Reason);
+
+            return (ActionResult)Ok();
+        });
+
+    [EndpointSummary("Where the transfer stands, read from its jobs")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Read)]
     [HttpGet("{transferId}/Status")]
     public Task<ActionResult> Status(Guid organizationId, Guid transferId) =>
         Run(async service => (ActionResult)Ok(await service.DeriveStatus(transferId, organizationId)));
 
-    /// <summary>One translation of the service's refusals into status codes, for every action.</summary>
     private async Task<ActionResult> Run(Func<TransferService, Task<ActionResult>> action)
     {
         using var service = _factory.Create();

@@ -91,6 +91,8 @@ public static class MiscService
         services.AddSingleton<IStateEncryptionService, StateEncryptionService>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferArtefactService>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.ManualJobStepService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferDispatchGate>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferOpenerFactory>();
 
 
         // Execution Services

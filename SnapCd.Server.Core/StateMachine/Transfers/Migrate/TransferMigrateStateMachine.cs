@@ -15,33 +15,29 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Transfer;
-using SnapCd.Server.Core.Events.Transfers;
+using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 
-namespace SnapCd.Server.Core.StateMachine.Transfers;
+namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
 /// <summary>
-/// One Module's sequence within a Transfer. It exists for as long as the Transfer does, so a retry
-/// is this saga resuming rather than a new job, and so the hold it takes has an owner that outlives
-/// any single round.
+/// One Module's state move, start to finish: check out, plan, pull and pin the state, prove, and -
+/// once approved - write and verify. The saga is the job, so it ends when the job does.
 ///
-/// It decides nothing about the Transfer: the coordinator tells it to prepare, and it reports how
-/// that went. Which participant proves first, who holds the fragment and when a push happens are
-/// all the coordinator's.
+/// A transfer is two of these, one per Module. Nothing coordinates them: the source's job is
+/// started after the receiver's has completed, and demonolith refuses to strip the source without
+/// the receiver's run receipt. Finishing a side that failed is a new transfer, not a retry here.
 /// </summary>
-public partial class TransferParticipantStateMachine : MassTransitStateMachine<TransferParticipantSaga>
+public partial class TransferMigrateStateMachine : MassTransitStateMachine<TransferMigrateSaga>
 {
-    private readonly ILogger<TransferParticipantStateMachine> _logger;
+    private readonly ILogger<TransferMigrateStateMachine> _logger;
 
-    // From the coordinator
-    public Event<TransferParticipantRegistered> Registered { get; } = null!;
-    public Event<TransferParticipantRunRequested> RunRequested { get; } = null!;
-    public Event<TransferParticipantStopRequested> StopRequested { get; } = null!;
+    public Event<TransferMigrateRequested> MigrateRequested { get; } = null!;
 
-    // Liveness: a transfer dispatches to two runners, so either can go away mid-round.
+    // Liveness: the runner can go away mid-job.
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<TransferParticipantSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
-    public Schedule<TransferParticipantSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
+    public Request<TransferMigrateSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Schedule<TransferMigrateSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     // From the runner, each naming the Module it is for
     public Event<TransferSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
@@ -58,9 +54,13 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
     public Event<TransferMigrateMapFaulted> MigrateMapFaulted { get; } = null!;
     public Event<TransferMigrateProveCompleted> MigrateProveCompleted { get; } = null!;
     public Event<TransferMigrateProveFaulted> MigrateProveFaulted { get; } = null!;
+    public Event<TransferMigrateRunCompleted> MigrateRunCompleted { get; } = null!;
+    public Event<TransferMigrateRunFaulted> MigrateRunFaulted { get; } = null!;
+    public Event<TransferMigrateVerifyCompleted> MigrateVerifyCompleted { get; } = null!;
+    public Event<TransferMigrateVerifyFaulted> MigrateVerifyFaulted { get; } = null!;
 
-    /// <summary>Registered, with nothing asked of it yet. Between rounds it returns here.</summary>
-    public State Idle { get; } = null!;
+    /// <summary>The state move landed. Terminal.</summary>
+    public State Completed { get; } = null!;
 
     public State SelectRunnerInstancePending { get; } = null!;
     public State GetModulePending { get; } = null!;
@@ -78,21 +78,22 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
 
     public State MigrateMapPending { get; } = null!;
     public State MigrateProvePending { get; } = null!;
+    public State MigrateRunPending { get; } = null!;
+    public State MigrateVerifyPending { get; } = null!;
 
-    /// <summary>Its sequence stopped and the coordinator has been told; a retry starts a new round.</summary>
-    public State StoppedState { get; } = null!;
+    /// <summary>The job ended without landing. Terminal; finishing this Module is a new job.</summary>
+    public State Failed { get; } = null!;
 
-    public TransferParticipantStateMachine(ILogger<TransferParticipantStateMachine> logger)
+    public TransferMigrateStateMachine(ILogger<TransferMigrateStateMachine> logger)
     {
         _logger = logger;
 
         InstanceState(x => x.CurrentState);
+        SetCompletedWhenFinalized();
 
-        Event(() => Registered, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => RunRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => StopRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        // Correlated by the runner this participant is pinned to, not by the job.
+        // Correlated by the runner this job is pinned to, not by the job itself.
         Event(() => RunnerReconnectedEvent, x => x
             .CorrelateBy((saga, context) =>
                 saga.RunnerId == context.Message.RunnerId &&
@@ -107,8 +108,7 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
             config.Received = e => e.CorrelateById(context => context.Message.CorrelationId);
         });
 
-        // Every runner reply names its Module, which is what tells the two participants' replies
-        // apart under one Transfer.
+        // Every runner reply names its Module, so a transfer's two jobs are never confused.
         Event(() => SelectRunnerInstanceCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SelectRunnerInstanceFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => GetModuleCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
@@ -123,13 +123,21 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
         Event(() => MigrateMapFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => MigrateProveCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => MigrateProveFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateRunCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateRunFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateVerifyCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateVerifyFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
+        Configure_Approval();
+
+        // One job, started once. The saga is the job: it is created by the request that starts it
+        // and finalized when it ends, like any other manual job.
         Initially(
-            When(Registered)
+            When(MigrateRequested)
                 .Then(context =>
                 {
                     context.Saga.CorrelationId = context.Message.CorrelationId;
-                    context.Saga.OrganizationId = context.Message.OrganizationId;
+                    context.Saga.OrganizationId = context.Message.Declared.OrganizationId;
                     context.Saga.TransferId = context.Message.TransferId;
                     context.Saga.Role = context.Message.Role;
                     context.Saga.ModuleId = context.Message.Declared.ModuleId;
@@ -137,45 +145,20 @@ public partial class TransferParticipantStateMachine : MassTransitStateMachine<T
                     context.Saga.RunnerId = context.Message.Declared.RunnerId;
                     context.Saga.RunnerName = context.Message.Declared.RunnerName;
                     context.Saga.RunnerInstanceName = context.Message.Declared.RunnerInstanceName;
+                    context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                     context.Saga.RootDirectory = context.Message.RootDirectory;
-
-                    _logger.LogInformation(
-                        "Transfer {TransferId}: {Role} is Module {ModuleId}",
-                        context.Message.TransferId, context.Message.Role, context.Saga.ModuleId);
-                })
-                .TransitionTo(Idle)
-        );
-
-        // A round begins from Idle, or from Stopped when the coordinator retries.
-        // A round is one instruction: everything this Module needs from the other arrives with it,
-        // and nothing else is said until it reports back.
-        During(Idle, StoppedState,
-            When(RunRequested)
-                .Then(context =>
-                {
-                    context.Saga.CurrentJobId = context.Message.JobId;
-                    context.Saga.ProveRound = context.Message.ProveRound;
                     context.Saga.ProveRef = context.Message.ProveRef;
-                    context.Saga.Map = context.Message.Map;
                     context.Saga.FragmentState = context.Message.FragmentState;
                     context.Saga.FragmentMeta = context.Message.FragmentMeta;
                     context.Saga.OutputsJson = JsonSerializer.Serialize(context.Message.Outputs);
-                    context.Saga.StopAfterMap = context.Message.StopAfterMap;
-                    context.Saga.ProducedFragmentState = null;
-                    context.Saga.ProducedFragmentMeta = null;
-                    context.Saga.NeedsValuesFromJson = null;
+
+                    _logger.LogInformation(
+                        "Transfer {TransferId}: moving state for {Role} Module {ModuleId}",
+                        context.Message.TransferId, context.Message.Role, context.Saga.ModuleId);
                 })
                 .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
-                .TransitionTo(SelectRunnerInstancePending),
-
-            // Between rounds a stop has nothing to stop, and a stale tick from a finished round
-            // must not resurrect anything.
-            Ignore(StopRequested),
-            Ignore(HeartbeatScheduled.Received),
-            Ignore(HeartbeatRequested.Completed),
-            Ignore(HeartbeatRequested.Completed2),
-            Ignore(RunnerReconnectedEvent)
+                .TransitionTo(SelectRunnerInstancePending)
         );
 
         Configure_Preamble();

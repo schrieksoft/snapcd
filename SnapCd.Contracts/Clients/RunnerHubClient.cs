@@ -139,6 +139,46 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunCompleted, jobId);
     }
 
+    public async Task InvokeTransferGetModuleCompleted(Guid jobId, Guid moduleId, string? definitiveRevision)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferGetModuleCompleted, jobId, moduleId, definitiveRevision);
+    }
+
+    public async Task InvokeTransferGetModuleFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferGetModuleFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferInitCompleted(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferInitCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferInitFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferInitFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferValidateCompleted(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferValidateCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferValidateFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferValidateFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferPlanCompleted(Guid jobId, Guid moduleId, int totalChangedCount)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferPlanCompleted, jobId, moduleId, totalChangedCount);
+    }
+
+    public async Task InvokeTransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferPlanFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeTransferMigrateMapCompleted(
         Guid jobId, Guid moduleId, string? fragmentState, string? fragmentMeta,
         string? mapHash, List<string> needsValuesFrom)
@@ -162,6 +202,26 @@ public class RunnerHubClient
     public async Task InvokeTransferMigrateProveFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateProveFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferMigrateRunCompleted(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateRunCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferMigrateRunFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateRunFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferMigrateVerifyCompleted(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferMigrateVerifyFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
 
     public async Task InvokeTransferRefactorDiffCompleted(Guid jobId, Guid moduleId, int exitCode, string? verdict)
@@ -333,6 +393,7 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.OutputFaulted, jobId, errorMessage, stackTrace);
     }
+
 
     // SourceRefresh (stateless - no JobId, matched by source parameters)
     public async Task InvokeSourceRefreshCompleted(

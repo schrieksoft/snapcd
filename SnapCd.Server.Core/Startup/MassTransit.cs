@@ -13,8 +13,10 @@ using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
 using SnapCd.Server.Core.Consumers.Tasks.SplitMigrate;
+using SnapCd.Server.Core.Consumers.Tasks.Transfers;
 using SnapCd.Server.Core.StateMachine.SplitMigrate;
 using SnapCd.Server.Core.StateMachine.Transfers;
+using SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 using SnapCd.Server.Core.Consumers.Tasks;
 using SnapCd.Server.Core.Consumers.Tasks.Handlers;
 using SnapCd.Server.Core.Database;
@@ -232,6 +234,17 @@ public static class MassTransit
         typeof(DestroyFromPlanConsumer),
         typeof(OutputConsumer),
 
+        // transfers: each Module is dispatched to its own pinned runner
+        typeof(TransferGetModuleConsumer),
+        typeof(TransferInitConsumer),
+        typeof(TransferValidateConsumer),
+        typeof(TransferPlanConsumer),
+        typeof(TransferMigrateMapConsumer),
+        typeof(TransferMigrateProveConsumer),
+        typeof(TransferMigrateRunConsumer),
+        typeof(TransferMigrateVerifyConsumer),
+        typeof(TransferRefactorDiffConsumer),
+
         // cancel
         typeof(CancelKillConsumer),
         typeof(CancelGracefulConsumer)
@@ -251,6 +264,7 @@ public static class MassTransit
     [
         // System consumers
         typeof(SelectRunnerInstanceConsumer),
+        typeof(TransferSelectRunnerInstanceConsumer),
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(HeartbeatConsumer),
 
@@ -284,9 +298,6 @@ public static class MassTransit
         typeof(SecretModifiedCompetingConsumer),
         typeof(ModuleStateChangedToAppliedCompetingConsumer),
         typeof(ModuleStateChangedToDestroyedCompetingConsumer),
-        typeof(ModuleHoldCompetingConsumer),
-        typeof(ModuleWithdrawnFromTransferCompetingConsumer),
-        typeof(TransferProveRoundStartCompetingConsumer),
 
         // Handler consumers (offloaded from SignalR handlers)
         typeof(OutputCompletedInvokedConsumer),
@@ -356,8 +367,7 @@ public static class MassTransit
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
-        AddSagaStateMachine<TransferParticipantStateMachine, TransferParticipantSaga>(x);
-        AddSagaStateMachine<TransferStateMachine, TransferSaga>(x);
+        AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
 
         // module sagas
         AddSagaStateMachine<

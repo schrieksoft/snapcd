@@ -43,13 +43,7 @@ public class ModuleSaga : SagaStateMachineInstance
 
     [MaxLength(2000)] public string? PauseReason { get; set; }
 
-    /// <summary>
-    /// The Transfer holding this Module, if any. Independent of Paused: a hold is owned by a
-    /// Transfer and only the Transfer clears it, while a pause is an operator's and only theirs.
-    /// </summary>
-    public Guid? HeldByTransferId { get; set; }
 
-    public DateTime? HeldAt { get; set; }
 
     public int? ActualResourceCount { get; set; }
 

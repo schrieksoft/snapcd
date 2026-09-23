@@ -1,0 +1,102 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Enums
+
+<MudDialog>
+    <TitleContent>
+        <MudText>Start a transfer</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            What moves is decided in the code: the transfer map written by the code move, read from
+            the ref below. Pick the module whose root the map moves resources into.
+        </MudText>
+
+        <MudAutocomplete T="Module?"
+                         @bind-Value="_receiver"
+                         Label="Receiving module"
+                         SearchFunc="@Search"
+                         ToStringFunc="@(m => m?.Name ?? string.Empty)"
+                         ResetValueOnEmptyText="true"
+                         CoerceText="true"
+                         Required="true"
+                         Variant="Variant.Text"
+                         Class="mb-2">
+            <ItemTemplate Context="module">
+                <MudText>@module?.Name</MudText>
+                <MudText Color="Color.Secondary" Typo="Typo.caption">@module?.SourceSubdirectory</MudText>
+            </ItemTemplate>
+            <NoItemsTemplate>
+                <MudText>No other module in this namespace.</MudText>
+            </NoItemsTemplate>
+        </MudAutocomplete>
+
+        <MudTextField @bind-Value="_proveRef"
+                      Label="Ref to run against"
+                      HelperText="The branch or tag carrying the code move. Defaults to this module's own."
+                      Variant="Variant.Text"
+                      Class="mb-2"/>
+
+        @* A side that failed is finished by running that side alone, which is a transfer of its
+           own rather than a continuation. *@
+        <MudSelect T="TransferScope" @bind-Value="_scope"
+                   Label="What to move"
+                   Variant="Variant.Text">
+            <MudSelectItem T="TransferScope" Value="TransferScope.Both">
+                Both modules
+            </MudSelectItem>
+            <MudSelectItem T="TransferScope" Value="TransferScope.ReceiverOnly">
+                The receiving module only
+            </MudSelectItem>
+            <MudSelectItem T="TransferScope" Value="TransferScope.SourceOnly">
+                This module only
+            </MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   Disabled="@(_receiver == null)"
+                   OnClick="Confirm">Start</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public required IReadOnlyList<Module> Candidates { get; set; }
+    [Parameter] public string? ProveRef { get; set; }
+
+    private Module? _receiver;
+    private string? _proveRef;
+    private TransferScope _scope = TransferScope.Both;
+
+    protected override void OnInitialized() => _proveRef = ProveRef;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm() =>
+        MudDialog.Close(DialogResult.Ok(new Choice(_receiver!.Id, _proveRef, _scope)));
+
+    /// <summary>
+    /// Filters the candidates already loaded, by name or by the root they own - the root is what
+    /// the map names, so it is the more useful of the two when picking.
+    /// </summary>
+    private Task<IEnumerable<Module?>> Search(string searchText, CancellationToken cancellationToken) =>
+        Task.FromResult(Candidates
+            .Where(m => string.IsNullOrWhiteSpace(searchText)
+                        || m.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                        || m.SourceSubdirectory.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Cast<Module?>());
+
+    /// <summary>Which module receives the resources, which ref to run against, and what to move.</summary>
+    public record Choice(Guid ReceiverModuleId, string? ProveRef, TransferScope Scope);
+}

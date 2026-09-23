@@ -21,8 +21,14 @@ public static class RunnerEndpoints
     public const string PlanEmptyVerify = "PlanEmptyVerify";
     public const string RefactorValidate = "RefactorValidate";
     public const string RefactorDiff = "RefactorDiff";
+    public const string TransferGetModule = "TransferGetModule";
+    public const string TransferInit = "TransferInit";
+    public const string TransferValidate = "TransferValidate";
+    public const string TransferPlan = "TransferPlan";
     public const string TransferMigrateMap = "TransferMigrateMap";
     public const string TransferMigrateProve = "TransferMigrateProve";
+    public const string TransferMigrateRun = "TransferMigrateRun";
+    public const string TransferMigrateVerify = "TransferMigrateVerify";
     public const string TransferRefactorDiff = "TransferRefactorDiff";
 
     public const string MigrateMap = "MigrateMap";

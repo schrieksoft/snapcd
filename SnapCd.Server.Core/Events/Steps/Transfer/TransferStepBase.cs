@@ -37,4 +37,7 @@ public class TransferStepFaultedBase : TransferStepResponseBase
 {
     public string? ErrorMessage { get; set; }
     public string? StackTrace { get; set; }
+
+    /// <summary>True when the server failed to dispatch the step, rather than the runner failing it.</summary>
+    public bool IsServerSideError { get; set; }
 }

@@ -15,25 +15,29 @@ namespace SnapCd.Server.Core.Enums;
 /// </summary>
 public enum TransferStatus
 {
+    /// <summary>
+    /// Started, but its map has not been read yet. The map is checked-in code, so it is fetched
+    /// from the source's ref before there is anything to consent to.
+    /// </summary>
+    Preparing,
+
+    /// <summary>The map could not be read; the reason is on the transfer.</summary>
+    PrepareFailed,
+
     /// <summary>Created; the receiver has not consented.</summary>
     Open,
 
-    /// <summary>All consented; not every participant has a green proof against current inputs.</summary>
-    Proving,
-
-    /// <summary>Verdict green; not every participant has locked and declared merged.</summary>
-    Merging,
-
-    /// <summary>Every participant has declared merged; no Migrate running.</summary>
-    ReadyToMigrate,
-
+    /// <summary>A job is running on one of its Modules.</summary>
     Migrating,
 
-    /// <summary>The source's verify succeeded; every hold released; closed.</summary>
+    /// <summary>Both Modules landed.</summary>
     Migrated,
 
-    /// <summary>Closed by the initiator; holds converted to pauses.</summary>
-    Abandoned
+    /// <summary>One Module landed and the other did not. Finishing it is a partial transfer.</summary>
+    PartiallyCompleted,
+
+    /// <summary>Neither Module landed.</summary>
+    Failed
 }
 
 /// <summary>Which side of the move a participant is on.</summary>
@@ -83,4 +87,15 @@ public enum ManualJobStepStatus
 
     /// <summary>A producer was retried after this step succeeded, so this result no longer counts.</summary>
     Stale
+}
+
+/// <summary>
+/// What a transfer covers. A side that failed is finished by running that side alone: a new
+/// transfer, not a continuation of the one that failed.
+/// </summary>
+public enum TransferScope
+{
+    Both,
+    SourceOnly,
+    ReceiverOnly
 }

@@ -65,6 +65,7 @@ public static class Factories
         services.AddScoped<ServicePrincipalRepositoryFactory>();
         services.AddScoped<JobSagaRepositoryFactory>();
         services.AddScoped<SplitMigrateSagaRepositoryFactory>();
+        services.AddScoped<TransferMigrateSagaRepositoryFactory>();
         services.AddScoped<ManualModuleJobSecuredRepositoryFactory>();
         services.AddScoped<OrganizationSecuredRepositoryFactory>();
         services.AddScoped<UserRepositoryFactory>();

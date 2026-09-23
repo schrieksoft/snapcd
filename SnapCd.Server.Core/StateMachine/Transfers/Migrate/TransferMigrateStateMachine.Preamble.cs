@@ -16,19 +16,18 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.Events.Transfers;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 
-namespace SnapCd.Server.Core.StateMachine.Transfers;
+namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
-public partial class TransferParticipantStateMachine
+public partial class TransferMigrateStateMachine
 {
     /// <summary>
-    /// Wires one preamble step: on completion send the next request, on fault tell the coordinator
-    /// where it stopped. Generic over the step's own types so the five steps differ only in which
-    /// events they name, the way JobStateMachine is generic over Apply's and Destroy's.
+    /// Wires one preamble step: on completion send the next request, on fault end the job. Generic
+    /// over the step's own types so the five steps differ only in which events they name, the way
+    /// JobStateMachine is generic over Apply's and Destroy's.
     /// </summary>
     private void CreateStep<TCompleted, TFaulted, TNextRequest>(
         State duringState,
@@ -37,7 +36,7 @@ public partial class TransferParticipantStateMachine
         string task,
         State nextState,
         State nextWaitingState,
-        Action<BehaviorContext<TransferParticipantSaga, TCompleted>>? onCompleted = null)
+        Action<BehaviorContext<TransferMigrateSaga, TCompleted>>? onCompleted = null)
         where TCompleted : TransferStepResponseBase
         where TFaulted : TransferStepFaultedBase
         where TNextRequest : TransferStepRequestBase, new()
@@ -63,23 +62,22 @@ public partial class TransferParticipantStateMachine
                         "Transfer {TransferId}: {Role} stopped at {Task}",
                         context.Saga.TransferId, context.Saga.Role, task);
 
-                    context.Publish(Stopped(context.Saga, task, context.Message));
                 })
-                .TransitionTo(StoppedState),
+                .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             // A runner that stops answering is a dead step, not a slow one.
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
-            When(HeartbeatRequested.Completed2).Then(context =>
-            {
-                _logger.LogWarning(
-                    "Transfer {TransferId}: {Role} lost its runner at {Task}",
-                    context.Saga.TransferId, context.Saga.Role, task);
+            When(HeartbeatRequested.Completed2)
+                .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Faulted,
+                    "The runner stopped responding."))
+                .Then(context =>
+                {
+                    _logger.LogWarning(
+                        "Transfer {TransferId}: {Role} lost its runner at {Task}",
+                        context.Saga.TransferId, context.Saga.Role, task);
 
-                context.Publish(StoppedAt(context.Saga, task, "The runner stopped responding."));
-            }).TransitionTo(StoppedState),
-
-            When(StopRequested).Then(LogStop(task)).TransitionTo(StoppedState)
+                }).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
         // Waiting: the runner was gone when the step was sent, so it is re-sent on reconnect
@@ -96,7 +94,6 @@ public partial class TransferParticipantStateMachine
                     context.Publish(Request<TNextRequest>(context.Saga));
                 })
                 .TransitionTo(nextState),
-            When(StopRequested).Then(LogStop(task)).TransitionTo(StoppedState),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2)
@@ -111,24 +108,27 @@ public partial class TransferParticipantStateMachine
         typeof(TRequest).Name.Replace("Transfer", "").Replace("Requested", "");
 
     private static async Task RecordDispatched<TMessage>(
-        BehaviorContext<TransferParticipantSaga, TMessage> context, string task)
+        BehaviorContext<TransferMigrateSaga, TMessage> context, string task)
         where TMessage : class
     {
-        if (context.Saga.CurrentJobId is not { } jobId) return;
+        var jobId = context.Saga.CorrelationId;
 
         var steps = PipeExtensions.GetPayload<IServiceProvider>(context)
             .GetRequiredService<ManualJobStepService>();
 
         await steps.Dispatched(
             jobId, context.Saga.OrganizationId, context.Saga.ModuleId, task,
-            context.Saga.TransferId, context.Saga.RunnerInstanceName, context.Saga.InputKey);
+            context.Saga.TransferId, context.Saga.RunnerInstanceName);
     }
 
     private static async Task RecordCompleted<TMessage>(
-        BehaviorContext<TransferParticipantSaga, TMessage> context, string task, ManualJobStepStatus status)
+        BehaviorContext<TransferMigrateSaga, TMessage> context,
+        string task,
+        ManualJobStepStatus status,
+        string? errorHeader = null)
         where TMessage : class
     {
-        if (context.Saga.CurrentJobId is not { } jobId) return;
+        var jobId = context.Saga.CorrelationId;
 
         var steps = PipeExtensions.GetPayload<IServiceProvider>(context)
             .GetRequiredService<ManualJobStepService>();
@@ -137,60 +137,41 @@ public partial class TransferParticipantStateMachine
 
         await steps.Completed(
             jobId, context.Saga.OrganizationId, context.Saga.ModuleId, task, status,
-            errorHeader: faulted?.ErrorMessage, error: faulted?.StackTrace);
+            errorHeader: faulted?.ErrorMessage ?? errorHeader, error: faulted?.StackTrace);
     }
 
     /// <summary>This Module's map slice, carrying the fragment when it is the receiver.</summary>
-    private static TransferMigrateMapRequested MapRequest(TransferParticipantSaga saga)
+    private static TransferMigrateMapRequested MapRequest(TransferMigrateSaga saga)
     {
         var request = Request<TransferMigrateMapRequested>(saga);
-        request.Map = saga.Map!;
         request.FragmentState = saga.FragmentState;
         request.FragmentMeta = saga.FragmentMeta;
         return request;
     }
 
     /// <summary>This Module's prove slice, with whatever values it consumes from the other.</summary>
-    private static TransferMigrateProveRequested ProveRequest(TransferParticipantSaga saga)
+    private static TransferMigrateProveRequested ProveRequest(TransferMigrateSaga saga)
     {
         var request = Request<TransferMigrateProveRequested>(saga);
-        request.Map = saga.Map!;
         request.Outputs = saga.OutputsJson == null
             ? new Dictionary<string, string>()
             : JsonSerializer.Deserialize<Dictionary<string, string>>(saga.OutputsJson)!;
         return request;
     }
 
-    private Action<BehaviorContext<TransferParticipantSaga, TransferParticipantStopRequested>> LogStop(string task) =>
-        context =>
-        {
-            _logger.LogInformation(
-                "Transfer {TransferId}: {Role} told to stop at {Task}",
-                context.Saga.TransferId, context.Saga.Role, task);
-
-            context.Publish(StoppedAt(context.Saga, task, "Stopped by the transfer."));
-        };
-
-    private static TransferParticipantStopped StoppedAt(
-        TransferParticipantSaga saga, string task, string reason) =>
-        new()
-        {
-            CorrelationId = saga.CorrelationId,
-            OrganizationId = saga.OrganizationId,
-            TransferId = saga.TransferId,
-            ModuleId = saga.ModuleId,
-            Role = saga.Role,
-            ProveRound = saga.ProveRound,
-            Task = task,
-            Status = ManualJobStepStatus.Faulted,
-            ErrorHeader = reason
-        };
-
     /// <summary>
     /// The fields every transfer step request carries. Written once here rather than at each step,
-    /// so a step cannot be dispatched with the wrong participant's runner.
+    /// so a step cannot be dispatched with the wrong runner.
     /// </summary>
-    private static TRequest Request<TRequest>(TransferParticipantSaga saga)
+    private static TRequest Request<TRequest>(TransferMigrateSaga saga, Action<TRequest> fill)
+        where TRequest : TransferStepRequestBase, new()
+    {
+        var request = Request<TRequest>(saga);
+        fill(request);
+        return request;
+    }
+
+    private static TRequest Request<TRequest>(TransferMigrateSaga saga)
         where TRequest : TransferStepRequestBase, new()
     {
         var request = new TRequest
@@ -204,34 +185,17 @@ public partial class TransferParticipantStateMachine
             Declared = JsonSerializer.Deserialize<ResolvedModule>(saga.DeclaredJson)!
         };
 
-        // Only the checkout takes a ref, and it takes the one this participant consented to prove
-        // rather than the Module's own.
+        // Only the checkout takes a ref, and it takes the transfer's rather than the Module's own.
         if (request is TransferGetModuleRequested getModule)
             getModule.SourceRevisionOverride = saga.ProveRef;
 
         return request;
     }
 
-    private static TransferParticipantStopped Stopped(
-        TransferParticipantSaga saga, string task, TransferStepFaultedBase faulted) =>
-        new()
-        {
-            CorrelationId = saga.CorrelationId,
-            OrganizationId = saga.OrganizationId,
-            TransferId = saga.TransferId,
-            ModuleId = saga.ModuleId,
-            Role = saga.Role,
-            ProveRound = saga.ProveRound,
-            Task = task,
-            Status = ManualJobStepStatus.Faulted,
-            ErrorHeader = faulted.ErrorMessage,
-            Error = faulted.StackTrace
-        };
 
     /// <summary>
-    /// The preamble: the same four steps any job runs before its real work, addressed to this one
-    /// Module and checked out at the ref it consented to prove. Linear, because one Module's
-    /// preamble depends on nothing but itself; only the coordinator waits for both.
+    /// The preamble: the same four steps any job runs before its real work, checked out at the ref
+    /// this transfer runs against.
     /// </summary>
     private void Configure_Preamble()
     {
@@ -240,10 +204,38 @@ public partial class TransferParticipantStateMachine
             "SelectRunnerInstance", GetModulePending, GetModuleWaitingForRunner,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
-        CreateStep<TransferGetModuleCompleted, TransferGetModuleFaulted, TransferInitRequested>(
-            GetModulePending, GetModuleCompleted, GetModuleFaulted,
-            "GetModule", InitPending, InitWaitingForRunner,
-            context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
+        During(GetModulePending,
+            When(GetModuleCompleted)
+                .Then(context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision)
+                .ThenAsync(context => RecordCompleted(context, "GetModule", ManualJobStepStatus.Succeeded))
+                .Publish(context => Request<TransferInitRequested>(context.Saga))
+                .ThenAsync(context => RecordDispatched(context, "Init"))
+                .TransitionTo(InitPending),
+
+            When(GetModuleFaulted)
+                .ThenAsync(context => RecordCompleted(context, "GetModule", ManualJobStepStatus.Faulted))
+                .ThenJobFailed().TransitionTo(Failed).Finalize(),
+
+            When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
+            When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
+            When(HeartbeatRequested.Completed2)
+                .ThenAsync(context => RecordCompleted(context, "GetModule", ManualJobStepStatus.Faulted,
+                    "The runner stopped responding."))
+                .Then(LostRunner("GetModule")).ThenJobFailed().TransitionTo(Failed).Finalize()
+        );
+
+        During(InitWaitingForRunner,
+            When(RunnerReconnectedEvent)
+                .Then(context =>
+                {
+                    context.Saga.WaitingSince = null;
+                    context.Publish(Request<TransferInitRequested>(context.Saga));
+                })
+                .TransitionTo(InitPending),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2)
+        );
 
         CreateStep<TransferInitCompleted, TransferInitFaulted, TransferValidateRequested>(
             InitPending, InitCompleted, InitFaulted, "Init", ValidatePending, ValidateWaitingForRunner);
@@ -251,15 +243,15 @@ public partial class TransferParticipantStateMachine
         CreateStep<TransferValidateCompleted, TransferValidateFaulted, TransferPlanRequested>(
             ValidatePending, ValidateCompleted, ValidateFaulted, "Validate", PlanPending, PlanWaitingForRunner);
 
-        // The plan ends the preamble rather than sending another request: whether a dirty plan ends
-        // the round is the coordinator's call, because it depends on what the other participant did.
+        // The plan ends the preamble rather than sending another request.
         During(PlanPending,
             // A transfer proves against a clean plan, so a dirty one ends this Module's run here.
             When(PlanCompleted, context => context.Message.TotalChangedCount != 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Refused))
-                .Then(context => context.Publish(StoppedAt(context.Saga, "Plan",
-                    $"The plan plans {context.Message.TotalChangedCount} changes; a transfer proves against a clean plan.")))
-                .TransitionTo(StoppedState),
+                .Then(context => _logger.LogInformation(
+                    "Transfer {TransferId}: {Role} plans {Count} changes; a transfer needs a clean plan",
+                    context.Saga.TransferId, context.Saga.Role, context.Message.TotalChangedCount))
+                .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             // Clean: straight on to this Module's own slices, which it runs without being told.
             // Filtered explicitly, because two handlers for one event both run otherwise.
@@ -270,8 +262,7 @@ public partial class TransferParticipantStateMachine
                 .TransitionTo(MigrateMapPending),
             When(PlanFaulted)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Faulted))
-                .Then(context => context.Publish(Stopped(context.Saga, "Plan", context.Message)))
-                .TransitionTo(StoppedState),
+                .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
@@ -281,10 +272,7 @@ public partial class TransferParticipantStateMachine
                     "Transfer {TransferId}: {Role} lost its runner at Plan",
                     context.Saga.TransferId, context.Saga.Role);
 
-                context.Publish(StoppedAt(context.Saga, "Plan", "The runner stopped responding."));
-            }).TransitionTo(StoppedState),
-
-            When(StopRequested).Then(LogStop("Plan")).TransitionTo(StoppedState)
+            }).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
     }

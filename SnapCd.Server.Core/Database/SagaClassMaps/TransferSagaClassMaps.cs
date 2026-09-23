@@ -15,30 +15,11 @@ using SnapCd.Server.Core.Entities.Sagas;
 
 namespace SnapCd.Server.Core.Database.SagaClassMaps;
 
-public class TransferSagaClassMap : SagaClassMap<TransferSaga>
+public class TransferMigrateSagaClassMap : SagaClassMap<TransferMigrateSaga>
 {
-    protected override void Configure(EntityTypeBuilder<TransferSaga> entity, ModelBuilder modelBuilder)
+    protected override void Configure(EntityTypeBuilder<TransferMigrateSaga> entity, ModelBuilder modelBuilder)
     {
-        entity.ToTable("TransferSagas", t => t.UseSqlOutputClause(false));
-
-        entity.HasKey(e => new { e.CorrelationId, e.OrganizationId });
-
-        entity.HasIndex(e => e.CorrelationId).IsUnique();
-
-        entity.Property(x => x.CurrentState).HasMaxLength(64);
-
-        // One coordinator per Transfer, for its whole life.
-        entity.HasIndex(e => new { e.TransferId, e.OrganizationId }).IsUnique();
-
-        entity.Property(x => x.RowVersion).IsRowVersion();
-    }
-}
-
-public class TransferParticipantSagaClassMap : SagaClassMap<TransferParticipantSaga>
-{
-    protected override void Configure(EntityTypeBuilder<TransferParticipantSaga> entity, ModelBuilder modelBuilder)
-    {
-        entity.ToTable("TransferParticipantSagas", t => t.UseSqlOutputClause(false));
+        entity.ToTable("TransferMigrateSagas", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.CorrelationId, e.OrganizationId });
 
@@ -47,12 +28,13 @@ public class TransferParticipantSagaClassMap : SagaClassMap<TransferParticipantS
         entity.Property(x => x.CurrentState).HasMaxLength(64);
         entity.Property(x => x.Role).HasConversion<string>().HasMaxLength(50);
 
-        // One saga per side per Transfer, for the Transfer's whole life.
+        // One job per Module per transfer. Finishing a side that failed is a new transfer, not a
+        // second job on this one, so the pair is unique.
         entity.HasIndex(e => new { e.TransferId, e.Role, e.OrganizationId }).IsUnique();
 
         entity
             .HasOne<Module>()
-            .WithMany(m => m.TransferParticipantSagas)
+            .WithMany()
             .HasForeignKey(s => new { s.ModuleId, s.OrganizationId })
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);

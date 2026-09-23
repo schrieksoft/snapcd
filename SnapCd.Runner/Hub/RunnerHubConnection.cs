@@ -207,6 +207,34 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
+        _connection.On<TransferGetModuleRequestBase>(RunnerEndpoints.TransferGetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferGetModule(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<TransferInitRequestBase>(RunnerEndpoints.TransferInit, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferInit(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<TransferValidateRequestBase>(RunnerEndpoints.TransferValidate, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferValidate(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<TransferPlanRequestBase>(RunnerEndpoints.TransferPlan, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferPlan(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
         _connection.On<TransferMigrateMapRequestBase>(RunnerEndpoints.TransferMigrateMap, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.TransferMigrateMap(request, _connection); });
@@ -218,6 +246,20 @@ public class RunnerHubConnection : IAsyncDisposable
                 Task.Run(async () => { await _tasks.Value.TransferMigrateProve(request, _connection); });
                 return Task.CompletedTask;
             });
+
+        _connection.On<TransferMigrateRunRequestBase>(RunnerEndpoints.TransferMigrateRun, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferMigrateRun(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<TransferMigrateVerifyRequestBase>(RunnerEndpoints.TransferMigrateVerify, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.TransferMigrateVerify(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
 
         _connection.On<TransferRefactorDiffRequestBase>(RunnerEndpoints.TransferRefactorDiff, (request) =>
             {
