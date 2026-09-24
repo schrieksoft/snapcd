@@ -41,8 +41,8 @@ public partial class TransferMigrateStateMachine
             // Nothing is running on a runner here, so there is nothing to kill or wait out.
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(
-                    "Transfer {TransferId}: cancelled while awaiting outputs for Module {ModuleId}",
-                    context.Saga.TransferId, context.Saga.ModuleId))
+                    "Transfer: cancelled while awaiting outputs for Module {ModuleId}",
+                    context.Saga.ModuleId))
                 .Activity(x => x.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, CancelManualModuleJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize()
@@ -74,8 +74,8 @@ public partial class TransferMigrateStateMachine
                             {
                                 context.Saga.WaitingSince = DateTime.UtcNow;
                                 _logger.LogInformation(
-                                    "Transfer {TransferId}: Module {ModuleId} is waiting on the other module's outputs",
-                                    context.Saga.TransferId, context.Saga.ModuleId);
+                                    "Transfer: Module {ModuleId} is waiting on the other module's outputs",
+                                    context.Saga.ModuleId);
                             })
                             .TransitionTo(WaitingForOutputs)));
     }

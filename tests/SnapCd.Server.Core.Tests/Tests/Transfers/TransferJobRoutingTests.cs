@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
-using SnapCd.Contracts.Enums;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -33,7 +32,6 @@ public class TransferJobRoutingTests : IAsyncLifetime
     private Guid _counterpartyId;
     private Guid _organizationId;
     private readonly List<Guid> _seededSagas = [];
-    private readonly List<Guid> _seededTransfers = [];
 
     public TransferJobRoutingTests(Fixture fixture) => _fixture = fixture;
 
@@ -50,8 +48,6 @@ public class TransferJobRoutingTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         await db.Set<TransferMigrateSaga>()
             .Where(s => _seededSagas.Contains(s.CorrelationId)).ExecuteDeleteAsync();
-        await db.TransferRuns.Where(r => _seededTransfers.Contains(r.TransferId)).ExecuteDeleteAsync();
-        await db.Transfers.Where(t => _seededTransfers.Contains(t.Id)).ExecuteDeleteAsync();
     }
 
     /// <summary>
@@ -111,38 +107,16 @@ public class TransferJobRoutingTests : IAsyncLifetime
 
     private async Task<Guid> SeedTransferSaga(string state)
     {
-        var transferId = Guid.NewGuid();
-        var runId = Guid.NewGuid();
         var jobId = Guid.NewGuid();
-        _seededTransfers.Add(transferId);
         _seededSagas.Add(jobId);
 
         await using var db = _fixture.CreateDbContext();
-
-        db.Transfers.Add(new Transfer
-        {
-            Id = transferId,
-            OrganizationId = _organizationId,
-            ModuleId = _moduleId,
-            CounterpartyModuleId = _counterpartyId,
-            ConsentStatus = ConsentStatus.Granted
-        });
-
-        db.TransferRuns.Add(new TransferRun
-        {
-            Id = runId,
-            OrganizationId = _organizationId,
-            TransferId = transferId,
-            Scope = TransferScope.Both,
-            StartedAt = DateTimeOffset.UtcNow
-        });
 
         db.Set<TransferMigrateSaga>().Add(new TransferMigrateSaga
         {
             CorrelationId = jobId,
             OrganizationId = _organizationId,
-            TransferId = transferId,
-            TransferRunId = runId,
+            CounterpartyModuleId = _counterpartyId,
             ModuleId = _moduleId,
             CurrentState = state,
             RunnerName = "runner",

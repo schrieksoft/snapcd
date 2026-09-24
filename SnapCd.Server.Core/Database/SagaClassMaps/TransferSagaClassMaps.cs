@@ -27,10 +27,7 @@ public class TransferMigrateSagaClassMap : SagaClassMap<TransferMigrateSaga>
 
         entity.Property(x => x.CurrentState).HasMaxLength(64);
 
-        // One job per Module per run.
-        entity.HasIndex(e => new { e.TransferRunId, e.ModuleId, e.OrganizationId }).IsUnique();
-
-        entity.HasIndex(e => new { e.TransferId, e.OrganizationId });
+        entity.HasIndex(e => new { e.ModuleId, e.OrganizationId });
 
         entity
             .HasOne<Module>()

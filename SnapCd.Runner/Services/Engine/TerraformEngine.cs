@@ -209,7 +209,7 @@ public class TerraformEngine : BaseEngine, IEngine
         string engine, StateMoveOperation operation, string address, string? target) =>
         operation switch
         {
-            StateMoveOperation.Mv => $"{engine} state mv {Quote(address)} {Quote(target)}",
+            StateMoveOperation.Move => $"{engine} state mv {Quote(address)} {Quote(target)}",
             StateMoveOperation.Import => $"{engine} import {Quote(address)} {Quote(target)}",
             StateMoveOperation.Remove => $"{engine} state rm {Quote(address)}",
             _ => throw new ArgumentOutOfRangeException(nameof(operation))

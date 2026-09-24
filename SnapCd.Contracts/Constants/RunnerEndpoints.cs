@@ -27,7 +27,7 @@ public static class RunnerEndpoints
     public const string TransferMigrateVerify = "TransferMigrateVerify";
     public const string TransferOutputs = "TransferOutputs";
     public const string StateListFiltered = "StateListFiltered";
-    public const string StateMv = "StateMv";
+    public const string StateMove = "StateMove";
     public const string StateImport = "StateImport";
     public const string StateRemove = "StateRemove";
     public const string TransferRefactorDiff = "TransferRefactorDiff";

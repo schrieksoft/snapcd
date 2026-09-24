@@ -29,7 +29,7 @@ public static class ManualJobTypes
     public const string StateListFiltered = "StateListFiltered";
 
     /// <summary>Moves addresses within a Module's state.</summary>
-    public const string StateMv = "StateMv";
+    public const string StateMove = "StateMove";
 
     /// <summary>Brings existing infrastructure under management.</summary>
     public const string StateImport = "StateImport";

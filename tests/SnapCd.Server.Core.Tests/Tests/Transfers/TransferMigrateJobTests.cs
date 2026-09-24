@@ -12,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
-using SnapCd.Contracts.Enums;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -50,8 +49,6 @@ public class TransferMigrateJobTests : IAsyncLifetime
     private Guid _moduleId;
     private Guid _organizationId;
     private Guid _counterpartyId;
-    private Guid _transferId;
-    private Guid _transferRunId;
     private Guid _jobId;
 
     public TransferMigrateJobTests(Fixture fixture) => _fixture = fixture;
@@ -61,8 +58,6 @@ public class TransferMigrateJobTests : IAsyncLifetime
         _moduleId = _fixture.Modules["0000"].Id;
         _counterpartyId = _fixture.Modules["0001"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
-        _transferId = Guid.NewGuid();
-        _transferRunId = Guid.NewGuid();
         _jobId = Guid.NewGuid();
 
         var services = new ServiceCollection();
@@ -102,29 +97,10 @@ public class TransferMigrateJobTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = 1;
 
-        db.Transfers.Add(new Transfer
-        {
-            Id = _transferId,
-            OrganizationId = _organizationId,
-            ModuleId = _moduleId,
-            CounterpartyModuleId = _counterpartyId,
-            ConsentStatus = ConsentStatus.Granted
-        });
-
-        db.TransferRuns.Add(new TransferRun
-        {
-            Id = _transferRunId,
-            OrganizationId = _organizationId,
-            TransferId = _transferId,
-            Scope = TransferScope.Both,
-            StartedAt = DateTimeOffset.UtcNow
-        });
-
         db.ManualModuleJobs.Add(new ManualModuleJob
         {
             Id = _jobId,
             ModuleId = _moduleId,
-            TransferRunId = _transferRunId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
             JobType = ManualJobTypes.TransferMigrate,
@@ -138,7 +114,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         await _provider.DisposeAsync();
 
         await using var db = _fixture.CreateDbContext();
-        await db.Set<TransferMigrateSaga>().Where(s => s.TransferId == _transferId).ExecuteDeleteAsync();
+        await db.Set<TransferMigrateSaga>().Where(s => s.CorrelationId == _jobId).ExecuteDeleteAsync();
         (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = null;
         await db.SaveChangesAsync();
 
@@ -146,8 +122,6 @@ public class TransferMigrateJobTests : IAsyncLifetime
         await db.ManualModuleJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
         await db.ManualModuleJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
         await db.OutputSets.Where(o => o.ModuleId == _counterpartyId).ExecuteDeleteAsync();
-        await db.TransferRuns.Where(r => r.TransferId == _transferId).ExecuteDeleteAsync();
-        await db.Transfers.Where(t => t.Id == _transferId).ExecuteDeleteAsync();
     }
 
     /// <summary>
@@ -368,8 +342,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         await _harness.Bus.Publish(new TransferMigrateRequested
         {
             CorrelationId = _jobId,
-            TransferId = _transferId,
-            TransferRunId = _transferRunId,
+            CounterpartyModuleId = _counterpartyId,
             Declared = Declared(),
             ProveRef = "main"
         });

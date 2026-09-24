@@ -6,7 +6,9 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
+@using MudBlazor
 @using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.UI.Dashboard.Theme
 @using SnapCd.Server.Core.Enums
 
 <MudDialog>
@@ -15,7 +17,8 @@
     </TitleContent>
     <DialogContent>
         <MudText Typo="Typo.body2" Class="mb-3">
-            What moves is decided in the code, by the transfer map the code move writes.
+            What moves is decided in the code, by the transfer map the code move writes. This
+            module starts now; the other starts when it consents.
         </MudText>
 
         <MudAutocomplete T="Module?"
@@ -37,6 +40,11 @@
             </NoItemsTemplate>
         </MudAutocomplete>
 
+        <MudTooltip Text="The branch or tag carrying this module's half of the code move. The other module names its own when it consents.">
+            <MudTextField @bind-Value="_moduleRef"
+                          Label="This module's ref"
+                          Variant="Variant.Outlined"/>
+        </MudTooltip>
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
@@ -51,12 +59,16 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter] public required IReadOnlyList<Module> Candidates { get; set; }
+    [Parameter] public string? ModuleRef { get; set; }
 
     private Module? _counterparty;
+    private string? _moduleRef;
+
+    protected override void OnInitialized() => _moduleRef = ModuleRef;
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Choice(_counterparty!.Id)));
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Choice(_counterparty!.Id, _moduleRef)));
 
     /// <summary>
     /// Filters the candidates already loaded, by name or by the root they own - the root is what
@@ -69,6 +81,6 @@
                         || m.SourceSubdirectory.Contains(searchText, StringComparison.OrdinalIgnoreCase))
             .Cast<Module?>());
 
-    /// <summary>The module on the other side of the move.</summary>
-    public record Choice(Guid CounterpartyModuleId);
+    /// <summary>The module on the other side, and the ref this one runs against.</summary>
+    public record Choice(Guid CounterpartyModuleId, string? ModuleRef);
 }

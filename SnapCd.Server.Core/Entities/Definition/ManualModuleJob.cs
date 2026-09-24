@@ -27,8 +27,11 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
 
     public Guid ModuleId { get; set; }
 
-    /// <summary>The transfer attempt this job belongs to, when it is one.</summary>
-    public Guid? TransferRunId { get; set; }
+    /// <summary>
+    /// The ref this job ran against, for a job that takes one. Kept on the job rather than only on
+    /// its saga, which is finalized and gone once the job ends.
+    /// </summary>
+    [MaxLength(255)] public string? ProveRef { get; set; }
 
     public int JobNumber { get; set; }
 

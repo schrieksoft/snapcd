@@ -19,7 +19,7 @@ namespace SnapCd.Server.Core.Events.Jobs.Module;
 /// </summary>
 public class StateMoveJobRequested : ModuleJobEventBase
 {
-    public AddressOperation Operation { get; set; }
+    public StateEditOperation Operation { get; set; }
 
     public List<AddressInstruction> Instructions { get; set; } = [];
 }

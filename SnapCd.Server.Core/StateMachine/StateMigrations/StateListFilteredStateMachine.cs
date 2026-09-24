@@ -150,15 +150,7 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
 
         await services.GetRequiredService<ManualJobAddressService>().Record(
             context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId,
-            AddressOperation.List, AddressDirection.Checked, results);
+            AddressOperation.List, results);
 
-        await context.Publish(new StateAddressesTouched
-        {
-            ModuleId = context.Saga.ModuleId,
-            OrganizationId = context.Saga.OrganizationId,
-            JobId = context.Saga.CorrelationId,
-            Present = results.Where(r => r.Outcome == AddressOutcome.Present).Select(r => r.Address).ToList(),
-            Absent = results.Where(r => r.Outcome == AddressOutcome.Absent).Select(r => r.Address).ToList()
-        });
     }
 }

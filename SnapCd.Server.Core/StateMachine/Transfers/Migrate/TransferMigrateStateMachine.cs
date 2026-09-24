@@ -143,8 +143,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                 {
                     context.Saga.CorrelationId = context.Message.CorrelationId;
                     context.Saga.OrganizationId = context.Message.Declared.OrganizationId;
-                    context.Saga.TransferId = context.Message.TransferId;
-                    context.Saga.TransferRunId = context.Message.TransferRunId;
+                    context.Saga.CounterpartyModuleId = context.Message.CounterpartyModuleId;
                     context.Saga.ModuleId = context.Message.Declared.ModuleId;
                     context.Saga.DeclaredJson = JsonSerializer.Serialize(context.Message.Declared);
                     context.Saga.RunnerId = context.Message.Declared.RunnerId;
@@ -155,8 +154,8 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                     context.Saga.ProveRef = context.Message.ProveRef;
 
                     _logger.LogInformation(
-                        "Transfer {TransferId}: moving state for Module {ModuleId}",
-                        context.Message.TransferId, context.Saga.ModuleId);
+                        "Transfer: moving state for Module {ModuleId}",
+                        context.Saga.ModuleId);
                 })
                 .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))

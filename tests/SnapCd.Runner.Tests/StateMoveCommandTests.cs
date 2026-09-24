@@ -22,7 +22,7 @@ public class StateMoveCommandTests
     public void Mv_Names_Both_Ends()
     {
         var command = TerraformEngine.StateMoveCommand(
-            "tofu", StateMoveOperation.Mv, "random_pet.old", "random_pet.new");
+            "tofu", StateMoveOperation.Move, "random_pet.old", "random_pet.new");
 
         Assert.Equal("tofu state mv 'random_pet.old' 'random_pet.new'", command);
     }

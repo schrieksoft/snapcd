@@ -26,7 +26,6 @@ public class ManualJobAddressService(IDbContextFactory<SnapCdDbContext> dbContex
         Guid organizationId,
         Guid moduleId,
         AddressOperation operation,
-        AddressDirection direction,
         IReadOnlyCollection<AddressResult> results)
     {
         if (results.Count == 0) return;
@@ -45,10 +44,8 @@ public class ManualJobAddressService(IDbContextFactory<SnapCdDbContext> dbContex
                 Address = result.Address,
                 Target = result.Target,
                 Operation = operation,
-                Direction = direction,
                 Outcome = result.Outcome,
-                StartedAt = now,
-                EndedAt = now
+                RecordedAt = now
             });
 
         await dbContext.SaveChangesAsync();

@@ -17,11 +17,11 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// </summary>
 public class TransferMigrateSaga : ManualJobSagaBase
 {
-    /// <summary>The Transfer this job belongs to.</summary>
-    public Guid TransferId { get; set; }
-
-    /// <summary>The run that started this job.</summary>
-    public Guid TransferRunId { get; set; }
+    /// <summary>
+    /// The Module on the other side of the move. Held only so a plan that reads a value the other
+    /// side produces knows whose outputs to wait for; nothing coordinates the two.
+    /// </summary>
+    public Guid CounterpartyModuleId { get; set; }
 
     /// <summary>This Module's root within its own checkout, passed as --root-dir.</summary>
     [MaxLength(1000)] public string? RootDirectory { get; set; }

@@ -21,13 +21,13 @@
         </MudStack>
     </TitleContent>
     <DialogContent>
-        <MudSelect T="AddressOperation" @bind-Value="_operation"
+        <MudSelect T="StateEditOperation" @bind-Value="_operation"
                    Label="What to do"
                    Variant="Variant.Outlined"
                    Class="mb-2">
-            <MudSelectItem T="AddressOperation" Value="AddressOperation.Mv">Move addresses</MudSelectItem>
-            <MudSelectItem T="AddressOperation" Value="AddressOperation.Import">Import existing resources</MudSelectItem>
-            <MudSelectItem T="AddressOperation" Value="AddressOperation.Remove">Remove from state</MudSelectItem>
+            <MudSelectItem T="StateEditOperation" Value="StateEditOperation.Move">Move addresses</MudSelectItem>
+            <MudSelectItem T="StateEditOperation" Value="StateEditOperation.Import">Import existing resources</MudSelectItem>
+            <MudSelectItem T="StateEditOperation" Value="StateEditOperation.Remove">Remove from state</MudSelectItem>
         </MudSelect>
 
         <MudTooltip Text="@LinesHelp">
@@ -55,30 +55,30 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    private AddressOperation _operation = AddressOperation.Mv;
+    private StateEditOperation _operation = StateEditOperation.Move;
     private string? _lines;
     private string? _error;
 
-    private bool NeedsTarget => _operation != AddressOperation.Remove;
+    private bool NeedsTarget => _operation != StateEditOperation.Remove;
 
     private string Verb => _operation switch
     {
-        AddressOperation.Mv => "Move",
-        AddressOperation.Import => "Import",
+        StateEditOperation.Move => "Move",
+        StateEditOperation.Import => "Import",
         _ => "Remove"
     };
 
     private string LinesHelp => _operation switch
     {
-        AddressOperation.Mv => "One move per line: the address as it is now, then where it should go.",
-        AddressOperation.Import => "One import per line: the address to create, then the resource's own id.",
+        StateEditOperation.Move => "One move per line: the address as it is now, then where it should go.",
+        StateEditOperation.Import => "One import per line: the address to create, then the resource's own id.",
         _ => "One address per line. The infrastructure is left alone; only the state entry goes."
     };
 
     private string Placeholder => _operation switch
     {
-        AddressOperation.Mv => "random_pet.old random_pet.new",
-        AddressOperation.Import => "aws_s3_bucket.main my-bucket-name",
+        StateEditOperation.Move => "random_pet.old random_pet.new",
+        StateEditOperation.Import => "aws_s3_bucket.main my-bucket-name",
         _ => "random_pet.gone"
     };
 
@@ -122,5 +122,5 @@
     }
 
     /// <summary>What to run, and over which addresses.</summary>
-    public record Choice(AddressOperation Operation, List<AddressInstruction> Instructions);
+    public record Choice(StateEditOperation Operation, List<AddressInstruction> Instructions);
 }

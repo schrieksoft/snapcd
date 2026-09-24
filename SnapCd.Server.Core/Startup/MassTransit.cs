@@ -295,7 +295,6 @@ public static class MassTransit
         // created for the bound agent, or when the agent's IsSuppliedToAllModules flag flips on
         typeof(AgentSupplyCreatedMissionWakeConsumer),
 
-        typeof(StateAddressesTouchedCompetingConsumer),
         typeof(TransferOutputsWakeCompetingConsumer),
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
         typeof(ModuleModifiedCompetingConsumer),

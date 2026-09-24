@@ -129,7 +129,7 @@ public interface IEngine
 /// <summary>Which state-moving command to run.</summary>
 public enum StateMoveOperation
 {
-    Mv,
+    Move,
     Import,
     Remove
 }

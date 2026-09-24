@@ -38,18 +38,15 @@ public class ManualModuleJobAddress : AuditBase, IEntity
     public AddressOperation Operation { get; set; }
 
     /// <summary>
-    /// The other half of the operation: an mv's destination, an import's resource id, or the
-    /// Module a transfer moved it to or from. Null where the operation names only one address.
+    /// The other half of the operation: an mv's destination address, or an import's resource id.
+    /// Null for the operations that name one address and nothing else.
     /// </summary>
     [MaxLength(500)] public string? Target { get; set; }
 
-    public AddressDirection Direction { get; set; }
-
     public AddressOutcome Outcome { get; set; }
 
-    public DateTimeOffset StartedAt { get; set; }
-
-    public DateTimeOffset? EndedAt { get; set; }
+    /// <summary>When the job reported this address. Per-address timings are not measured.</summary>
+    public DateTimeOffset RecordedAt { get; set; }
 
     [JsonIgnore] public ManualModuleJob Job { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;

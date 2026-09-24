@@ -44,7 +44,8 @@ public partial class Tasks
 
                 await InvokeWithRetryAsync(
                     () => client.InvokeTransferMigrateRunCompleted(
-                        request.JobId, request.ModuleId, receipt?.TransferredAddresses ?? []),
+                        request.JobId, request.ModuleId, receipt?.TransferredAddresses ?? [],
+                        gaveUp: receipt?.Role != null && !receipt.Role.Equals("receiver", StringComparison.OrdinalIgnoreCase)),
                     nameof(client.InvokeTransferMigrateRunCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>

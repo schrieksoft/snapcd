@@ -44,14 +44,7 @@ public class TransferOutputsAvailableActivity<TMessage>
         var needed = JsonSerializer.Deserialize<List<string>>(saga.NeedsOutputsJson);
         if (needed is not { Count: > 0 }) return true;
 
-        var transfer = await _dbContext.Transfers.AsNoTracking().FirstOrDefaultAsync(t =>
-            t.Id == saga.TransferId && t.OrganizationId == saga.OrganizationId);
-
-        if (transfer is null) return false;
-
-        var producerId = transfer.ModuleId == saga.ModuleId
-            ? transfer.CounterpartyModuleId
-            : transfer.ModuleId;
+        var producerId = saga.CounterpartyModuleId;
 
         var latest = await _dbContext.OutputSets.AsNoTracking()
             .Where(o => o.ModuleId == producerId && o.OrganizationId == saga.OrganizationId)

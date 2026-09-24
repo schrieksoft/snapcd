@@ -9,11 +9,25 @@
 
 namespace SnapCd.Server.Core.Enums;
 
+/// <summary>
+/// What a state-editing job was asked to do. It is the job's own kind; what each address ended up
+/// recorded as is <see cref="AddressOperation"/>, which splits an mv into its two ends.
+/// </summary>
+public enum StateEditOperation
+{
+    Move,
+    Import,
+    Remove
+}
+
 /// <summary>What a job did to one address. One table serves every operation, so this says which.</summary>
 public enum AddressOperation
 {
-    /// <summary>Moved within a state, or into another Module's.</summary>
-    Mv,
+    /// <summary>The address an mv moved away from.</summary>
+    MoveFrom,
+
+    /// <summary>The address an mv moved to. Both ends get a row, so either can be looked up.</summary>
+    MoveTo,
 
     /// <summary>Brought existing infrastructure under management.</summary>
     Import,
@@ -24,20 +38,13 @@ public enum AddressOperation
     /// <summary>Asked whether the address is in a state, changing nothing.</summary>
     List,
 
-    /// <summary>Carried across a transfer.</summary>
-    Transfer
+    /// <summary>Given up to the other side of a transfer.</summary>
+    TransferOut,
+
+    /// <summary>Taken on from the other side of a transfer.</summary>
+    TransferIn
 }
 
-/// <summary>
-/// What the job did to this address on this Module: gave it up, took it on, or only asked. It is
-/// what lets one table serve every operation.
-/// </summary>
-public enum AddressDirection
-{
-    Left,
-    Arrived,
-    Checked
-}
 
 /// <summary>
 /// How one address fared. A move reports whether it worked; a list reports what it saw, which is a

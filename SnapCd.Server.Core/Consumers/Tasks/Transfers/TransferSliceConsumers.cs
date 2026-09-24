@@ -28,9 +28,8 @@ public class TransferMigrateMapConsumer
     public TransferMigrateMapConsumer(
         ILogger<TransferMigrateMapConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.TransferMigrateMap;
 
@@ -60,9 +59,8 @@ public class TransferMigrateProveConsumer
     public TransferMigrateProveConsumer(
         ILogger<TransferMigrateProveConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.TransferMigrateProve;
 
@@ -92,9 +90,8 @@ public class TransferRefactorDiffConsumer
     public TransferRefactorDiffConsumer(
         ILogger<TransferRefactorDiffConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.TransferRefactorDiff;
 
@@ -124,9 +121,8 @@ public class TransferMigrateRunConsumer
     public TransferMigrateRunConsumer(
         ILogger<TransferMigrateRunConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.TransferMigrateRun;
 
@@ -153,9 +149,8 @@ public class TransferMigrateVerifyConsumer
     public TransferMigrateVerifyConsumer(
         ILogger<TransferMigrateVerifyConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.TransferMigrateVerify;
 
@@ -185,9 +180,8 @@ public class TransferOutputsConsumer
     public TransferOutputsConsumer(
         ILogger<TransferOutputsConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.TransferOutputs;
 

@@ -32,15 +32,11 @@ public class TransferOutputsWakeCompetingConsumer(
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
-        // Parked jobs whose transfer has this Module on its other side.
+        // Jobs parked on this Module's outputs, whichever transfer they belong to.
         var parked = await dbContext.Set<TransferMigrateSaga>().AsNoTracking()
             .Where(s => s.OrganizationId == organizationId
                         && s.CurrentState == nameof(TransferMigrateStateMachine.WaitingForOutputs)
-                        && s.ModuleId != producerId
-                        && dbContext.Transfers.Any(t =>
-                            t.Id == s.TransferId
-                            && t.OrganizationId == organizationId
-                            && (t.ModuleId == producerId || t.CounterpartyModuleId == producerId)))
+                        && s.CounterpartyModuleId == producerId)
             .Select(s => s.CorrelationId)
             .ToListAsync();
 

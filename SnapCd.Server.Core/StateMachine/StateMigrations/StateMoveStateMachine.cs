@@ -196,26 +196,24 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
 
         await addresses.Record(
             context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId,
-            operation,
-            operation == AddressOperation.Import ? AddressDirection.Arrived : AddressDirection.Left,
-            results);
+            RowOperationFor(operation), results);
 
-        // An mv is two halves on one Module: the address it leaves and the one it arrives at.
-        if (operation != AddressOperation.Mv) return;
+        // A move touches two addresses, and either should be findable by its own name.
+        if (operation != StateEditOperation.Move) return;
 
-        var arrivals = results
+        var destinations = results
             .Where(r => r.Target != null)
             .Select(r => new AddressResult { Address = r.Target!, Target = r.Address, Outcome = r.Outcome })
             .ToList();
 
         await addresses.Record(
             context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId,
-            operation, AddressDirection.Arrived, arrivals);
+            AddressOperation.MoveTo, destinations);
     }
 
     /// <summary>
-    /// What the state says is there now. The ledger closes from this rather than from the move, so
-    /// "the command worked" and "the address is there" stay separate facts.
+    /// What the state says is there now, recorded beside what the move claimed. "The command
+    /// worked" and "the address is there" stay separate facts.
     /// </summary>
     private static async Task ReportAddresses(
         BehaviorContext<StateMoveSaga, StateListFilteredCompleted> context)
@@ -223,13 +221,19 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
         var results = context.Message.Results;
         if (results.Count == 0) return;
 
-        await context.Publish(new StateAddressesTouched
-        {
-            ModuleId = context.Saga.ModuleId,
-            OrganizationId = context.Saga.OrganizationId,
-            JobId = context.Saga.CorrelationId,
-            Present = results.Where(r => r.Outcome == AddressOutcome.Present).Select(r => r.Address).ToList(),
-            Absent = results.Where(r => r.Outcome == AddressOutcome.Absent).Select(r => r.Address).ToList()
-        });
+        await PipeExtensions.GetPayload<IServiceProvider>(context)
+            .GetRequiredService<ManualJobAddressService>()
+            .Record(
+                context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId,
+                AddressOperation.List, results);
     }
+
+    /// <summary>How one address is filed. A move's two ends are recorded separately.</summary>
+    private static AddressOperation RowOperationFor(StateEditOperation operation) => operation switch
+    {
+        StateEditOperation.Move => AddressOperation.MoveFrom,
+        StateEditOperation.Import => AddressOperation.Import,
+        StateEditOperation.Remove => AddressOperation.Remove,
+        _ => throw new ArgumentOutOfRangeException(nameof(operation))
+    };
 }

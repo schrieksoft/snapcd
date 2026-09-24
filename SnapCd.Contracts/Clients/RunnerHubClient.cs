@@ -173,10 +173,10 @@ public class RunnerHubClient
     }
 
     public async Task InvokeTransferMigrateRunCompleted(
-        Guid jobId, Guid moduleId, List<string> transferredAddresses)
+        Guid jobId, Guid moduleId, List<string> transferredAddresses, bool gaveUp)
     {
         await _hubConnection.InvokeAsync(
-            ServerEndpoints.TransferMigrateRunCompleted, jobId, moduleId, transferredAddresses);
+            ServerEndpoints.TransferMigrateRunCompleted, jobId, moduleId, transferredAddresses, gaveUp);
     }
 
     public async Task InvokeTransferMigrateRunFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)

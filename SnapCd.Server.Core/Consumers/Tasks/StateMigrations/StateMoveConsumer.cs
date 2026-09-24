@@ -86,11 +86,11 @@ public class StateMoveConsumer : IConsumer<StateMoveRequested>
         }
     }
 
-    private static string EndpointFor(AddressOperation operation) => operation switch
+    private static string EndpointFor(StateEditOperation operation) => operation switch
     {
-        AddressOperation.Mv => RunnerEndpoints.StateMv,
-        AddressOperation.Import => RunnerEndpoints.StateImport,
-        AddressOperation.Remove => RunnerEndpoints.StateRemove,
+        StateEditOperation.Move => RunnerEndpoints.StateMove,
+        StateEditOperation.Import => RunnerEndpoints.StateImport,
+        StateEditOperation.Remove => RunnerEndpoints.StateRemove,
         _ => throw new ArgumentOutOfRangeException(nameof(operation))
     };
 }

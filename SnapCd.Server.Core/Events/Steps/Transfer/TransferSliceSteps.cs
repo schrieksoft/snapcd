@@ -87,6 +87,12 @@ public class TransferMigrateRunCompleted : TransferStepResponseBase
 {
     /// <summary>The addresses this Module's state gave up or took on.</summary>
     public List<string> TransferredAddresses { get; set; } = [];
+
+    /// <summary>
+    /// Whether this Module gave the addresses up or took them on, as demonolith derived it from the
+    /// map. Snap CD does not decide the roles; it is told them.
+    /// </summary>
+    public bool GaveUp { get; set; }
 }
 
 public class TransferMigrateRunFaulted : TransferStepFaultedBase;

@@ -240,7 +240,7 @@ public class RunnerHubConnection : IAsyncDisposable
 
         foreach (var endpoint in new[]
                  {
-                     RunnerEndpoints.StateMv, RunnerEndpoints.StateImport, RunnerEndpoints.StateRemove
+                     RunnerEndpoints.StateMove, RunnerEndpoints.StateImport, RunnerEndpoints.StateRemove
                  })
             _connection.On<StateMoveRequestBase>(endpoint, (request) =>
                 {

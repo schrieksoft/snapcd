@@ -20,7 +20,7 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// </summary>
 public class StateMoveSaga : ManualJobSagaBase
 {
-    public AddressOperation Operation { get; set; }
+    public StateEditOperation Operation { get; set; }
 
     /// <summary>The addresses and their targets, as JSON.</summary>
     public string InstructionsJson { get; set; } = null!;

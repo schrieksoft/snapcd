@@ -845,13 +845,17 @@ public class RunnerHub : Hub
     }
 
     public async Task TransferMigrateRunCompleted(
-        Guid jobId, Guid moduleId, List<string> transferredAddresses)
+        Guid jobId, Guid moduleId, List<string> transferredAddresses, bool gaveUp)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
             Context, jobId, moduleId, "MigrateRun");
 
         await _transferStepHandler.Complete<TransferMigrateRunCompleted>(
-            jobId, moduleId, organizationId, c => c.TransferredAddresses = transferredAddresses);
+            jobId, moduleId, organizationId, c =>
+            {
+                c.TransferredAddresses = transferredAddresses;
+                c.GaveUp = gaveUp;
+            });
     }
 
     public async Task StateMoveCompleted(Guid jobId, string operation, List<StateAddressResult> results)
@@ -862,7 +866,7 @@ public class RunnerHub : Hub
         {
             CorrelationId = jobId,
             OrganizationId = auth,
-            Operation = Enum.Parse<AddressOperation>(operation),
+            Operation = Enum.Parse<StateEditOperation>(operation),
             Results = results.Select(r => new AddressResult
             {
                 Address = r.Address,

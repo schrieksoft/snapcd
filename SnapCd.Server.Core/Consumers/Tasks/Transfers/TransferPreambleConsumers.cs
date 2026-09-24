@@ -29,9 +29,8 @@ public class TransferGetModuleConsumer
     public TransferGetModuleConsumer(
         ILogger<TransferGetModuleConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.GetModule;
 
@@ -57,9 +56,8 @@ public class TransferInitConsumer
         ILogger<TransferInitConsumer> logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate,
         ParamResolverFactory paramResolverFactory)
-        : base(logger, hubContext, runnerSelection, dispatchGate)
+        : base(logger, hubContext, runnerSelection)
     {
         _paramResolverFactory = paramResolverFactory;
     }
@@ -85,9 +83,8 @@ public class TransferValidateConsumer
     public TransferValidateConsumer(
         ILogger<TransferValidateConsumer> logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
-        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
 
     protected override string Endpoint => RunnerEndpoints.Validate;
 
@@ -113,9 +110,8 @@ public class TransferPlanConsumer
         ILogger<TransferPlanConsumer> logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate,
         ParamResolverFactory paramResolverFactory)
-        : base(logger, hubContext, runnerSelection, dispatchGate)
+        : base(logger, hubContext, runnerSelection)
     {
         _paramResolverFactory = paramResolverFactory;
     }

@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 
-using SnapCd.Contracts.Enums;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
@@ -155,43 +154,63 @@ public class ManualJobService : IDisposable
     /// Starts a transfer attempt: a job on each Module the run covers, at once. demonolith's own
     /// ordering interlock is waived, so neither waits for the other; what moved is recorded instead.
     /// </summary>
-    public async Task<IReadOnlyList<ManualModuleJob>> StartTransferRun(Guid runId, Guid organizationId)
+    /// <summary>
+    /// Starts this Module's half of a transfer. The counterparty is named only so a plan that reads
+    /// a value the other side produces knows whose outputs to wait for; the two are started
+    /// separately and nothing here coordinates them.
+    /// </summary>
+    public async Task<ManualModuleJob> StartTransferMigrate(
+        Guid moduleId, Guid counterpartyModuleId, Guid organizationId, string? proveRef)
     {
+        if (_resolvedConfigurationService is null || _bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+
+        if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to write state on Module with Id {moduleId}");
+
+        if (counterpartyModuleId == moduleId)
+            throw new ManualJobNotAllowedException("A Module cannot transfer to itself.");
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var run = await dbContext.TransferRuns.AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == runId && r.OrganizationId == organizationId);
+        var blocked = await GetBlockedReason(moduleId, organizationId);
+        if (blocked is not null)
+            throw new ManualJobNotAllowedException($"{await ModuleName(dbContext, moduleId)}: {blocked}");
 
-        if (run is null)
-            throw new EntityNotFoundException($"Transfer run '{runId}' not found");
-
-        var transfer = await dbContext.Transfers.AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == run.TransferId && t.OrganizationId == organizationId);
-
-        if (transfer is null)
-            throw new EntityNotFoundException($"Transfer '{run.TransferId}' not found");
-
-        var moduleIds = run.Scope switch
+        var job = new ManualModuleJob
         {
-            TransferScope.Both => [transfer.ModuleId, transfer.CounterpartyModuleId],
-            TransferScope.CounterpartyOnly => [transfer.CounterpartyModuleId],
-            _ => new[] { transfer.ModuleId }
+            Id = Guid.NewGuid(),
+            ModuleId = moduleId,
+            ProveRef = proveRef,
+            OrganizationId = organizationId,
+            TimestampStart = DateTimeOffset.UtcNow,
+            JobType = ManualJobTypes.TransferMigrate,
+            Status = ExecutionStatus.Running
         };
 
-        // Every Module is checked before any job is created, so a run never starts half of itself
-        // and leaves the other side unrunnable.
-        foreach (var moduleId in moduleIds)
+        dbContext.ManualModuleJobs.Add(job);
+        await dbContext.SaveChangesAsync();
+
+        try
         {
-            var blocked = await GetBlockedReason(moduleId, organizationId);
-            if (blocked is not null)
-                throw new ManualJobNotAllowedException($"{await ModuleName(dbContext, moduleId)}: {blocked}");
+            await _bus.Publish(new TransferMigrateRequested
+            {
+                CorrelationId = job.Id,
+                Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
+                CounterpartyModuleId = counterpartyModuleId,
+                ProveRef = proveRef
+            });
+        }
+        catch (Exception ex)
+        {
+            // The row is already Running and would block every later manual job on this Module.
+            await FailJob(job.Id, organizationId, ex.Message);
+            throw;
         }
 
-        var jobs = new List<ManualModuleJob>();
-        foreach (var moduleId in moduleIds)
-            jobs.Add(await StartTransferMigrate(run, transfer, moduleId, organizationId));
-
-        return jobs;
+        return job;
     }
 
     private static async Task<string> ModuleName(SnapCdDbContext dbContext, Guid moduleId) =>
@@ -263,7 +282,7 @@ public class ManualJobService : IDisposable
     public async Task<ManualModuleJob> StartStateMove(
         Guid moduleId,
         Guid organizationId,
-        AddressOperation operation,
+        StateEditOperation operation,
         IReadOnlyCollection<AddressInstruction> instructions)
     {
         if (_resolvedConfigurationService is null || _bus is null)
@@ -277,7 +296,7 @@ public class ManualJobService : IDisposable
         if (instructions.Count == 0)
             throw new ManualJobNotAllowedException("Name at least one address.");
 
-        if (operation != AddressOperation.Remove
+        if (operation != StateEditOperation.Remove
             && instructions.Any(i => string.IsNullOrWhiteSpace(i.Target)))
             throw new ManualJobNotAllowedException($"Every address in a {operation} needs a target.");
 
@@ -319,66 +338,13 @@ public class ManualJobService : IDisposable
         return job;
     }
 
-    private static string JobTypeOf(AddressOperation operation) => operation switch
+    private static string JobTypeOf(StateEditOperation operation) => operation switch
     {
-        AddressOperation.Mv => ManualJobTypes.StateMv,
-        AddressOperation.Import => ManualJobTypes.StateImport,
-        AddressOperation.Remove => ManualJobTypes.StateRemove,
+        StateEditOperation.Move => ManualJobTypes.StateMove,
+        StateEditOperation.Import => ManualJobTypes.StateImport,
+        StateEditOperation.Remove => ManualJobTypes.StateRemove,
         _ => throw new ArgumentOutOfRangeException(nameof(operation))
     };
-
-    private async Task<ManualModuleJob> StartTransferMigrate(
-        TransferRun run, Transfer transfer, Guid moduleId, Guid organizationId)
-    {
-        if (_resolvedConfigurationService is null || _bus is null)
-            throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
-
-        if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"Principal is not allowed to run manual jobs on Module with Id {moduleId}");
-
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        var job = new ManualModuleJob
-        {
-            Id = Guid.NewGuid(),
-            ModuleId = moduleId,
-            TransferRunId = run.Id,
-            OrganizationId = organizationId,
-            TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.TransferMigrate,
-            Status = ExecutionStatus.Running
-        };
-
-        dbContext.ManualModuleJobs.Add(job);
-        await dbContext.SaveChangesAsync();
-
-        try
-        {
-            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
-
-            await _bus.Publish(new TransferMigrateRequested
-            {
-                CorrelationId = job.Id,
-                Declared = declared,
-                TransferId = transfer.Id,
-                TransferRunId = run.Id,
-                ProveRef = moduleId == transfer.ModuleId ? run.Ref : run.CounterpartyRef
-            });
-        }
-        catch (Exception ex)
-        {
-            // The row is already Running and would block every later manual job on this Module.
-            await FailJob(job.Id, organizationId, ex.Message);
-            throw;
-        }
-
-        return job;
-    }
-
-
-
 
     public async Task<ManualModuleJob> StartSplitMigrate(
         Guid moduleId,

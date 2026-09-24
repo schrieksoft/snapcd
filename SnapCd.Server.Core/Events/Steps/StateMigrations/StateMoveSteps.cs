@@ -26,7 +26,7 @@ public class AddressInstruction
 /// </summary>
 public class StateMoveRequested : StepRequestBase
 {
-    public AddressOperation Operation { get; set; }
+    public StateEditOperation Operation { get; set; }
 
     public List<AddressInstruction> Instructions { get; set; } = [];
 }
@@ -34,7 +34,7 @@ public class StateMoveRequested : StepRequestBase
 /// <summary>What the batch managed, address by address.</summary>
 public class StateMoveCompleted : StepResponseBase
 {
-    public AddressOperation Operation { get; set; }
+    public StateEditOperation Operation { get; set; }
 
     public List<AddressResult> Results { get; set; } = [];
 }

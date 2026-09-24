@@ -167,15 +167,8 @@ public class StateListFilteredJobTests : IAsyncLifetime
 
         Assert.Equal(2, rows.Count);
         Assert.All(rows, r => Assert.Equal(AddressOperation.List, r.Operation));
-        Assert.All(rows, r => Assert.Equal(AddressDirection.Checked, r.Direction));
         Assert.Equal(AddressOutcome.Present, rows[0].Outcome);
         Assert.Equal(AddressOutcome.Absent, rows[1].Outcome);
-
-        var touched = Assert.Single(_harness.Published.Select<StateAddressesTouched>()
-            .Select(p => p.Context.Message));
-
-        Assert.Equal(["random_pet.a"], touched.Present);
-        Assert.Equal(["random_pet.b"], touched.Absent);
     }
 
     /// <summary>A step that faults ends the job rather than leaving the row running forever.</summary>
@@ -192,7 +185,6 @@ public class StateListFilteredJobTests : IAsyncLifetime
         });
 
         Assert.True(await WaitUntil(JobHasEnded), "the job row was never closed out");
-        Assert.Empty(_harness.Published.Select<StateAddressesTouched>());
     }
 
     /// <summary>A job cancelled before the list runs reports nothing.</summary>
@@ -208,7 +200,6 @@ public class StateListFilteredJobTests : IAsyncLifetime
         });
 
         Assert.True(await WaitUntil(JobHasEnded), "the job row was never closed out");
-        Assert.Empty(_harness.Published.Select<StateAddressesTouched>());
     }
 
     private async Task Start(List<string> addresses) =>

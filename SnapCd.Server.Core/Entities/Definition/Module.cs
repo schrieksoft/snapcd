@@ -44,8 +44,6 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public int? StateMigrationApprovalThreshold { get; set; }
 
 
-    [JsonIgnore] public List<Transfer> Transfers { get; set; } = null!;
-    [JsonIgnore] public List<Transfer> CounterpartyTransfers { get; set; } = null!;
 
     public int? ApprovalTimeoutMinutes { get; set; }
     public SourceType SourceType { get; set; } = SourceType.Git;

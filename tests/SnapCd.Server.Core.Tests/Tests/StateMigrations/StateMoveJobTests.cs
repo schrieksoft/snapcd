@@ -95,7 +95,7 @@ public class StateMoveJobTests : IAsyncLifetime
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.StateMv,
+            JobType = ManualJobTypes.StateMove,
             Status = ExecutionStatus.Running
         });
         await db.SaveChangesAsync();
@@ -125,7 +125,7 @@ public class StateMoveJobTests : IAsyncLifetime
         {
             CorrelationId = _jobId,
             OrganizationId = _organizationId,
-            Operation = AddressOperation.Mv,
+            Operation = StateEditOperation.Move,
             Results = [new AddressResult
             {
                 Address = "random_pet.old", Target = "random_pet.new", Outcome = AddressOutcome.Succeeded
@@ -162,7 +162,7 @@ public class StateMoveJobTests : IAsyncLifetime
         {
             CorrelationId = _jobId,
             OrganizationId = _organizationId,
-            Operation = AddressOperation.Mv,
+            Operation = StateEditOperation.Move,
             Results =
             [
                 new AddressResult { Address = "a.one", Target = "a.two", Outcome = AddressOutcome.Succeeded },
@@ -194,12 +194,15 @@ public class StateMoveJobTests : IAsyncLifetime
             .Where(a => a.JobId == _jobId).ToListAsync();
 
         Assert.Equal(AddressOutcome.Failed,
-            Assert.Single(rows.Where(r => r.Address == "b.one" && r.Direction == AddressDirection.Left)).Outcome);
+            Assert.Single(rows.Where(r => r.Address == "b.one"
+                                          && r.Operation == AddressOperation.MoveFrom)).Outcome);
     }
 
-    /// <summary>An mv is two halves on one Module: the address it leaves and the one it arrives at.</summary>
+    /// <summary>
+    /// A move files both ends separately, so either address can be looked up by its own name.
+    /// </summary>
     [Fact]
-    public async Task An_Mv_Records_Both_Halves()
+    public async Task A_Move_Records_Both_Ends()
     {
         await RunToMove([("random_pet.old", "random_pet.new")]);
 
@@ -207,7 +210,7 @@ public class StateMoveJobTests : IAsyncLifetime
         {
             CorrelationId = _jobId,
             OrganizationId = _organizationId,
-            Operation = AddressOperation.Mv,
+            Operation = StateEditOperation.Move,
             Results = [new AddressResult
             {
                 Address = "random_pet.old", Target = "random_pet.new", Outcome = AddressOutcome.Succeeded
@@ -221,10 +224,14 @@ public class StateMoveJobTests : IAsyncLifetime
             .Where(a => a.JobId == _jobId).OrderBy(a => a.Address).ToListAsync();
 
         Assert.Equal(2, rows.Count);
+
         Assert.Equal("random_pet.new", rows[0].Address);
-        Assert.Equal(AddressDirection.Arrived, rows[0].Direction);
+        Assert.Equal("random_pet.old", rows[0].Target);
+        Assert.Equal(AddressOperation.MoveTo, rows[0].Operation);
+
         Assert.Equal("random_pet.old", rows[1].Address);
-        Assert.Equal(AddressDirection.Left, rows[1].Direction);
+        Assert.Equal("random_pet.new", rows[1].Target);
+        Assert.Equal(AddressOperation.MoveFrom, rows[1].Operation);
     }
 
     /// <summary>
@@ -234,13 +241,13 @@ public class StateMoveJobTests : IAsyncLifetime
     [Fact]
     public async Task What_The_State_Says_Is_What_Is_Announced()
     {
-        await RunToMove([("random_pet.a", null)], AddressOperation.Remove);
+        await RunToMove([("random_pet.a", null)], StateEditOperation.Remove);
 
         await Answer(new StateMoveCompleted
         {
             CorrelationId = _jobId,
             OrganizationId = _organizationId,
-            Operation = AddressOperation.Remove,
+            Operation = StateEditOperation.Remove,
             Results = [new AddressResult { Address = "random_pet.a", Outcome = AddressOutcome.Succeeded }]
         });
 
@@ -255,11 +262,11 @@ public class StateMoveJobTests : IAsyncLifetime
 
         Assert.True(await WaitUntil(() => JobStatus() != ExecutionStatus.Running), "the job never ended");
 
-        var touched = Assert.Single(_harness.Published.Select<StateAddressesTouched>()
-            .Select(p => p.Context.Message));
+        await using var db = _fixture.CreateDbContext();
+        var checkedRow = Assert.Single(await db.ManualModuleJobAddresses.AsNoTracking()
+            .Where(a => a.JobId == _jobId && a.Operation == AddressOperation.List).ToListAsync());
 
-        Assert.Equal(["random_pet.a"], touched.Absent);
-        Assert.Empty(touched.Present);
+        Assert.Equal(AddressOutcome.Absent, checkedRow.Outcome);
     }
 
     /// <summary>
@@ -269,7 +276,7 @@ public class StateMoveJobTests : IAsyncLifetime
     [Fact]
     public async Task A_Faulted_Move_Fails_The_Job()
     {
-        await RunToMove([("random_pet.a", null)], AddressOperation.Remove);
+        await RunToMove([("random_pet.a", null)], StateEditOperation.Remove);
 
         await Answer(new StateMoveFaulted
         {
@@ -279,10 +286,9 @@ public class StateMoveJobTests : IAsyncLifetime
         });
 
         Assert.True(await WaitUntil(() => JobStatus() == ExecutionStatus.Failed), "the job did not fail");
-        Assert.Empty(_harness.Published.Select<StateAddressesTouched>());
     }
 
-    private async Task Start(List<(string Address, string? Target)> instructions, AddressOperation operation) =>
+    private async Task Start(List<(string Address, string? Target)> instructions, StateEditOperation operation) =>
         await _harness.Bus.Publish(new StateMoveJobRequested
         {
             CorrelationId = _jobId,
@@ -296,7 +302,7 @@ public class StateMoveJobTests : IAsyncLifetime
     /// <summary>Drives the preamble so a test can get straight to the step it cares about.</summary>
     private async Task RunToMove(
         List<(string Address, string? Target)> instructions,
-        AddressOperation operation = AddressOperation.Mv)
+        StateEditOperation operation = StateEditOperation.Move)
     {
         await Start(instructions, operation);
 

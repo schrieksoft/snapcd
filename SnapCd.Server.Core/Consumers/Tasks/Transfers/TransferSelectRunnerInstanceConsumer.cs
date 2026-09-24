@@ -22,18 +22,15 @@ public class TransferSelectRunnerInstanceConsumer : IConsumer<TransferSelectRunn
     private readonly ILogger<TransferSelectRunnerInstanceConsumer> _logger;
     private readonly RunnerSelectionService _runnerSelection;
     private readonly RunnerJobAuthorizationService _authorizationService;
-    private readonly TransferDispatchGate _dispatchGate;
 
     public TransferSelectRunnerInstanceConsumer(
         ILogger<TransferSelectRunnerInstanceConsumer> logger,
         RunnerSelectionService runnerSelection,
-        RunnerJobAuthorizationService authorizationService,
-        TransferDispatchGate dispatchGate)
+        RunnerJobAuthorizationService authorizationService)
     {
         _logger = logger;
         _runnerSelection = runnerSelection;
         _authorizationService = authorizationService;
-        _dispatchGate = dispatchGate;
     }
 
     public async Task Consume(ConsumeContext<TransferSelectRunnerInstanceRequested> context)
@@ -44,7 +41,6 @@ public class TransferSelectRunnerInstanceConsumer : IConsumer<TransferSelectRunn
 
         try
         {
-            await _dispatchGate.EnsureDispatchable(msg.ModuleId, orgId);
 
             await _authorizationService.ValidateRunnerAssignedToModule(msg.RunnerId, msg.ModuleId, orgId);
 

@@ -26,20 +26,17 @@ public abstract class TransferStepConsumer<TRequest, TFaulted> : IConsumer<TRequ
 {
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
-    private readonly TransferDispatchGate _dispatchGate;
 
     protected readonly ILogger _logger;
 
     protected TransferStepConsumer(
         ILogger logger,
         IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        TransferDispatchGate dispatchGate)
+        RunnerSelectionService runnerSelection)
     {
         _logger = logger;
         _hubContext = hubContext;
         _runnerSelection = runnerSelection;
-        _dispatchGate = dispatchGate;
     }
 
     /// <summary>The hub method the runner answers this step on.</summary>
@@ -57,7 +54,6 @@ public abstract class TransferStepConsumer<TRequest, TFaulted> : IConsumer<TRequ
 
         try
         {
-            await _dispatchGate.EnsureDispatchable(msg.ModuleId, orgId);
 
             var runner = await _runnerSelection.SelectSpecificRunnerAsync(orgId, msg.RunnerId, msg.RunnerInstanceName);
             if (runner == null)

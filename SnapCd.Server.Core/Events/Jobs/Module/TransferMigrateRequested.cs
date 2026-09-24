@@ -11,16 +11,12 @@ using SnapCd.Server.Core.Events.Jobs.Base;
 namespace SnapCd.Server.Core.Events.Jobs.Module;
 
 /// <summary>
-/// Starts one Module's state move. A transfer run is one of these per Module in its scope, each
-/// running independently; the ledger records what actually moved.
+/// Starts one Module's state move. Each side is started on its own; nothing coordinates them.
 /// </summary>
 public class TransferMigrateRequested : ModuleJobEventBase
 {
-    /// <summary>The Transfer this run belongs to.</summary>
-    public Guid TransferId { get; set; }
-
-    /// <summary>The run that started this job.</summary>
-    public Guid TransferRunId { get; set; }
+    /// <summary>The Module on the other side of the move.</summary>
+    public Guid CounterpartyModuleId { get; set; }
 
     /// <summary>This Module's root within its own checkout (--root-dir).</summary>
     public string? RootDirectory { get; set; }
