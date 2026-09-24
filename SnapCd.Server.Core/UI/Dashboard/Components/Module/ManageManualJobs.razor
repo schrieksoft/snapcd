@@ -122,9 +122,9 @@
                                        Disabled="@(!_canPause || _busy)"
                                        OnClick="@(() => Consent(false))">refuse</MudButton>
                         }
-                        else if (CanRunMyHalf)
+                        else if (CanRunTransfer)
                         {
-                            <MudTooltip Text="Plans this module, proves the move changes nothing, and - once approved - writes its state. The receiving module runs first.">
+                            <MudTooltip Text="Plans both modules, proves the move changes nothing, and - once approved - writes their state. They run at once.">
                                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                            Disabled="@(!_canPause || _busy)"
                                            OnClick="RunTransfer">move state</MudButton>
@@ -342,23 +342,14 @@ else
         && _transfer.ReceiverModuleId == Module.Id;
 
     /// <summary>
-    /// Consent is in and this Module has no job of its own yet. The receiver runs first; the
-    /// source's own run refuses until the receiver's committed receipt is in its checkout.
+    /// Consent is in and nothing has run yet. Both Modules move at once, so either side's page
+    /// starts the whole transfer.
     /// </summary>
-    private bool CanRunMyHalf =>
+    private bool CanRunTransfer =>
         _transfer is not null
-        && InScope
         && _transfer.ReceiverConsentStatus is ConsentStatus.Granted or ConsentStatus.NotRequired
         && _jobs.All(j => j.TransferId != _transfer.Id);
 
-    /// <summary>Whether this Module is one the transfer covers.</summary>
-    private bool InScope =>
-        _transfer?.Scope switch
-        {
-            TransferScope.SourceOnly => _transfer.SourceModuleId == Module.Id,
-            TransferScope.ReceiverOnly => _transfer.ReceiverModuleId == Module.Id,
-            _ => true
-        };
 
     /// <summary>Opens a transfer from this Module. Its map is read from the ref, in the background.</summary>
     private async Task StartTransfer()
@@ -445,9 +436,11 @@ else
         try
         {
             using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.StartTransferMigrate(transfer.Id, Module.Id, OrganizationId);
+            var jobs = await service.StartTransfer(transfer.Id, OrganizationId);
 
-            Snackbar.Add("Moving this module's state.", Severity.Success);
+            Snackbar.Add(
+                jobs.Count > 1 ? "Moving both modules' state." : "Moving this module's state.",
+                Severity.Success);
             await Reload();
         }
         catch (Exception e)

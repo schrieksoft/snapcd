@@ -156,6 +156,47 @@ public class ManualJobService : IDisposable
     /// row and its saga unable to find each other.
     /// </summary>
     /// <summary>
+    /// Starts the transfer: a job on each Module it covers, at once. demonolith's own ordering
+    /// interlock is waived, so neither waits for the other; between the two writes the moved
+    /// addresses are briefly tracked by neither state, which is what Snap CD records.
+    /// </summary>
+    public async Task<IReadOnlyList<ManualModuleJob>> StartTransfer(Guid transferId, Guid organizationId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var transfer = await dbContext.Transfers.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == transferId && t.OrganizationId == organizationId);
+
+        if (transfer is null)
+            throw new EntityNotFoundException($"Transfer '{transferId}' not found");
+
+        var moduleIds = transfer.Scope == TransferScope.Both
+            ? new[] { transfer.SourceModuleId, transfer.ReceiverModuleId }
+            : [transfer.SourceModuleId];
+
+        // Every Module is checked before any job is created, so a transfer never starts half of
+        // itself and leaves the other side unrunnable.
+        foreach (var moduleId in moduleIds)
+        {
+            var blocked = await GetBlockedReason(moduleId, organizationId);
+            if (blocked is not null)
+                throw new ManualJobNotAllowedException($"{await ModuleName(dbContext, moduleId)}: {blocked}");
+        }
+
+        var jobs = new List<ManualModuleJob>();
+        foreach (var moduleId in moduleIds)
+            jobs.Add(await StartTransferMigrate(transferId, moduleId, organizationId));
+
+        return jobs;
+    }
+
+    private static async Task<string> ModuleName(SnapCdDbContext dbContext, Guid moduleId) =>
+        await dbContext.Modules.AsNoTracking()
+            .Where(m => m.Id == moduleId)
+            .Select(m => m.Name)
+            .FirstOrDefaultAsync() ?? moduleId.ToString()[..8];
+
+    /// <summary>
     /// Starts one Module's state move. A transfer is two of these, receiver first: demonolith will
     /// not strip the source until the receiver's run receipt exists.
     ///

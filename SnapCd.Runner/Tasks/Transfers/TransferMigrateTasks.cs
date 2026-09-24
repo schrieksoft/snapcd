@@ -32,7 +32,11 @@ public partial class Tasks
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
 
-                var command = DemonolithCommand.Build("transfer migrate run", request.RootDirectory, request.Engine);
+                // Snap CD runs both Modules at once and tracks what moved, so demonolith's own
+                // ordering interlock is waived: it would otherwise refuse the source until the
+                // receiver's receipt had been carried into its workdir.
+                var command = DemonolithCommand.Build(
+                    "transfer migrate run", request.RootDirectory, request.Engine, "--no-receipt-check");
 
                 await engine.RunProcess(command, killToken, gracefulToken);
 

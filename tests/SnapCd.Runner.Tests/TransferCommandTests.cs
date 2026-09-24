@@ -32,6 +32,22 @@ public class TransferCommandTests
         Assert.Equal($"demonolith {subcommand} --root-dir \"roots/app\" --engine tofu", command);
     }
 
+    /// <summary>
+    /// Snap CD runs both Modules at once and tracks what moved, so demonolith's ordering interlock
+    /// is waived. Without this the source would be refused until the receiver's receipt had been
+    /// carried into its workdir, which is the sequencing Snap CD does not do.
+    /// </summary>
+    [Fact]
+    public void The_Write_Waives_Demonoliths_Receipt_Interlock()
+    {
+        var command = DemonolithCommand.Build(
+            "transfer migrate run", "roots/app", "tofu", "--no-receipt-check");
+
+        Assert.Equal(
+            "demonolith transfer migrate run --root-dir \"roots/app\" --engine tofu --no-receipt-check",
+            command);
+    }
+
     [Fact]
     public void A_Transfer_Command_Never_Carries_Backend_Settings()
     {
