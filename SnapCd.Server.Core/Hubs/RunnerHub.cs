@@ -14,6 +14,8 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.Dto.OutputSets;
+using SnapCd.Contracts.RunnerRequests.StateMigrations;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Contracts.Dto.VariableSets;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
@@ -480,6 +482,8 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitGetModuleHandler.Complete(jobId, auth.OrganizationId);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Complete<TransferGetModuleCompleted>(jobId, auth.OrganizationId);
         else
             await _getModuleHandler.Complete(jobId);
     }
@@ -508,6 +512,9 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitGetModuleHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Fault<TransferGetModuleFaulted>(
+                jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _getModuleHandler.Fault(jobId, errorMessage, stackTrace);
     }
@@ -522,6 +529,8 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitInitHandler.Complete(jobId, auth.OrganizationId);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Complete<TransferInitCompleted>(jobId, auth.OrganizationId);
         else
             await _initHandler.Complete(jobId);
     }
@@ -550,6 +559,9 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitInitHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Fault<TransferInitFaulted>(
+                jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _initHandler.Fault(jobId, errorMessage, stackTrace);
     }
@@ -564,6 +576,8 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitValidateHandler.Complete(jobId, auth.OrganizationId);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Complete<TransferValidateCompleted>(jobId, auth.OrganizationId);
         else
             await _validateHandler.Complete(jobId);
     }
@@ -590,6 +604,9 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitValidateHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Fault<TransferValidateFaulted>(
+                jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _validateHandler.Fault(jobId, errorMessage, stackTrace);
     }
@@ -654,6 +671,9 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitPlanHandler.Complete(jobId, auth.OrganizationId, data.TotalChangedCount);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Complete<TransferPlanCompleted>(
+                jobId, auth.OrganizationId, c => c.TotalChangedCount = data.TotalChangedCount);
         else
             await _planHandler.Complete(jobId, data);
     }
@@ -678,6 +698,9 @@ public class RunnerHub : Hub
 
         if (auth.Family == JobSagaFamily.SplitMigrate)
             await _splitPlanHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
+        else if (auth.Family == JobSagaFamily.TransferMigrate)
+            await _transferStepHandler.Fault<TransferPlanFaulted>(
+                jobId, auth.OrganizationId, errorMessage, stackTrace);
         else
             await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
     }
@@ -771,91 +794,21 @@ public class RunnerHub : Hub
     // Transfers: one job, two Modules, so every reply names the Module that is answering and is
     // authorized against that Module's own pinned runner.
 
-    public async Task TransferGetModuleCompleted(Guid jobId, Guid moduleId, string? definitiveRevision)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "GetModule");
 
-        await _transferStepHandler.Complete<TransferGetModuleCompleted>(
-            jobId, moduleId, organizationId, c => c.DefinitiveRevision = definitiveRevision);
-    }
 
-    public async Task TransferGetModuleFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "GetModule");
 
-        await _transferStepHandler.Fault<TransferGetModuleFaulted>(
-            jobId, moduleId, organizationId, errorMessage, stackTrace);
-    }
 
-    public async Task TransferInitCompleted(Guid jobId, Guid moduleId)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Init");
 
-        await _transferStepHandler.Complete<TransferInitCompleted>(jobId, moduleId, organizationId);
-    }
 
-    public async Task TransferInitFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Init");
 
-        await _transferStepHandler.Fault<TransferInitFaulted>(
-            jobId, moduleId, organizationId, errorMessage, stackTrace);
-    }
 
-    public async Task TransferValidateCompleted(Guid jobId, Guid moduleId)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Validate");
-
-        await _transferStepHandler.Complete<TransferValidateCompleted>(jobId, moduleId, organizationId);
-    }
-
-    public async Task TransferValidateFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Validate");
-
-        await _transferStepHandler.Fault<TransferValidateFaulted>(
-            jobId, moduleId, organizationId, errorMessage, stackTrace);
-    }
-
-    public async Task TransferPlanCompleted(Guid jobId, Guid moduleId, int totalChangedCount)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Plan");
-
-        await _transferStepHandler.Complete<TransferPlanCompleted>(
-            jobId, moduleId, organizationId, c => c.TotalChangedCount = totalChangedCount);
-    }
-
-    public async Task TransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Plan");
-
-        await _transferStepHandler.Fault<TransferPlanFaulted>(
-            jobId, moduleId, organizationId, errorMessage, stackTrace);
-    }
-
-    public async Task TransferMigrateMapCompleted(
-        Guid jobId, Guid moduleId, string? fragmentState, string? fragmentMeta,
-        string? mapHash, List<string> needsValuesFrom)
+    public async Task TransferMigrateMapCompleted(Guid jobId, Guid moduleId, List<string> needsOutputs)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
             Context, jobId, moduleId, "MigrateMap");
 
         await _transferStepHandler.Complete<TransferMigrateMapCompleted>(
-            jobId, moduleId, organizationId, c =>
-            {
-                c.FragmentState = fragmentState;
-                c.FragmentMeta = fragmentMeta;
-                c.MapHash = mapHash;
-                c.NeedsValuesFrom = needsValuesFrom;
-            });
+            jobId, moduleId, organizationId, c => c.NeedsOutputs = needsOutputs);
     }
 
     public async Task TransferMigrateMapFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -891,12 +844,93 @@ public class RunnerHub : Hub
             jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task TransferMigrateRunCompleted(Guid jobId, Guid moduleId)
+    public async Task TransferMigrateRunCompleted(
+        Guid jobId, Guid moduleId, List<string> transferredAddresses)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
             Context, jobId, moduleId, "MigrateRun");
 
-        await _transferStepHandler.Complete<TransferMigrateRunCompleted>(jobId, moduleId, organizationId);
+        await _transferStepHandler.Complete<TransferMigrateRunCompleted>(
+            jobId, moduleId, organizationId, c => c.TransferredAddresses = transferredAddresses);
+    }
+
+    public async Task StateMoveCompleted(Guid jobId, string operation, List<StateAddressResult> results)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new StateMoveCompleted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            Operation = Enum.Parse<AddressOperation>(operation),
+            Results = results.Select(r => new AddressResult
+            {
+                Address = r.Address,
+                Target = r.Target,
+                Outcome = Enum.Parse<AddressOutcome>(r.Outcome)
+            }).ToList()
+        });
+    }
+
+    public async Task StateMoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new StateMoveFaulted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            ErrorMessage = errorMessage,
+            StackTrace = stackTrace
+        });
+    }
+
+    public async Task StateListFilteredCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new StateListFilteredCompleted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            Results = results.Select(r => new AddressResult
+            {
+                Address = r.Address,
+                Target = r.Target,
+                Outcome = Enum.Parse<AddressOutcome>(r.Outcome)
+            }).ToList()
+        });
+    }
+
+    public async Task StateListFilteredFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new StateListFilteredFaulted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            ErrorMessage = errorMessage,
+            StackTrace = stackTrace
+        });
+    }
+
+    public async Task TransferOutputsCompleted(Guid jobId, Guid moduleId, OutputSetCreateDto? outputSet)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Outputs");
+
+        await _transferStepHandler.Complete<TransferOutputsCompleted>(
+            jobId, moduleId, organizationId, c => c.OutputSet = outputSet);
+    }
+
+    public async Task TransferOutputsFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
+            Context, jobId, moduleId, "Outputs");
+
+        await _transferStepHandler.Fault<TransferOutputsFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
 
     public async Task TransferMigrateRunFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)

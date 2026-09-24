@@ -1,0 +1,126 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+@using SnapCd.Server.Core.Enums
+@using SnapCd.Server.Core.Events.Steps.StateMigrations
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+            <MudText>Edit state</MudText>
+            <MudTooltip Text="Each address is run on its own, so a batch that manages some and not others says which. The state is checked afterwards, and that check is what counts as done.">
+                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+            </MudTooltip>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudSelect T="AddressOperation" @bind-Value="_operation"
+                   Label="What to do"
+                   Variant="Variant.Outlined"
+                   Class="mb-2">
+            <MudSelectItem T="AddressOperation" Value="AddressOperation.Mv">Move addresses</MudSelectItem>
+            <MudSelectItem T="AddressOperation" Value="AddressOperation.Import">Import existing resources</MudSelectItem>
+            <MudSelectItem T="AddressOperation" Value="AddressOperation.Remove">Remove from state</MudSelectItem>
+        </MudSelect>
+
+        <MudTooltip Text="@LinesHelp">
+            <MudTextField @bind-Value="_lines"
+                          Label="Addresses, one per line"
+                          Variant="Variant.Outlined"
+                          Lines="6"
+                          Placeholder="@Placeholder"/>
+        </MudTooltip>
+
+        @if (_error != null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Error" Class="mt-2">@_error</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   Disabled="@(string.IsNullOrWhiteSpace(_lines))"
+                   OnClick="Confirm">@Verb</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private AddressOperation _operation = AddressOperation.Mv;
+    private string? _lines;
+    private string? _error;
+
+    private bool NeedsTarget => _operation != AddressOperation.Remove;
+
+    private string Verb => _operation switch
+    {
+        AddressOperation.Mv => "Move",
+        AddressOperation.Import => "Import",
+        _ => "Remove"
+    };
+
+    private string LinesHelp => _operation switch
+    {
+        AddressOperation.Mv => "One move per line: the address as it is now, then where it should go.",
+        AddressOperation.Import => "One import per line: the address to create, then the resource's own id.",
+        _ => "One address per line. The infrastructure is left alone; only the state entry goes."
+    };
+
+    private string Placeholder => _operation switch
+    {
+        AddressOperation.Mv => "random_pet.old random_pet.new",
+        AddressOperation.Import => "aws_s3_bucket.main my-bucket-name",
+        _ => "random_pet.gone"
+    };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm()
+    {
+        var instructions = new List<AddressInstruction>();
+
+        foreach (var line in (_lines ?? string.Empty)
+                     .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (NeedsTarget && parts.Length != 2)
+            {
+                _error = $"'{line}' needs two values separated by a space.";
+                return;
+            }
+
+            if (!NeedsTarget && parts.Length != 1)
+            {
+                _error = $"'{line}' should be one address on its own.";
+                return;
+            }
+
+            instructions.Add(new AddressInstruction
+            {
+                Address = parts[0],
+                Target = NeedsTarget ? parts[1] : null
+            });
+        }
+
+        if (instructions.Count == 0)
+        {
+            _error = "Name at least one address.";
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(new Choice(_operation, instructions)));
+    }
+
+    /// <summary>What to run, and over which addresses.</summary>
+    public record Choice(AddressOperation Operation, List<AddressInstruction> Instructions);
+}

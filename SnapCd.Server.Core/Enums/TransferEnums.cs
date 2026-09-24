@@ -9,59 +9,37 @@
 
 namespace SnapCd.Server.Core.Enums;
 
-/// <summary>
-/// Where a Transfer stands, derived from its participant rows and the jobs run under it rather
-/// than set directly.
-/// </summary>
+/// <summary>Where a Transfer stands, derived from its runs' jobs rather than set directly.</summary>
 public enum TransferStatus
 {
-    /// <summary>
-    /// Started, but its map has not been read yet. The map is checked-in code, so it is fetched
-    /// from the source's ref before there is anything to consent to.
-    /// </summary>
-    Preparing,
-
-    /// <summary>The map could not be read; the reason is on the transfer.</summary>
-    PrepareFailed,
-
-    /// <summary>Created; the receiver has not consented.</summary>
+    /// <summary>Created; the counterparty has not consented.</summary>
     Open,
 
     /// <summary>A job is running on one of its Modules.</summary>
     Migrating,
 
-    /// <summary>Both Modules landed.</summary>
+    /// <summary>Every Module in the run landed.</summary>
     Migrated,
 
-    /// <summary>One Module landed and the other did not. Finishing it is a partial transfer.</summary>
+    /// <summary>One Module landed and the other did not. Finishing it is a run of its own.</summary>
     PartiallyCompleted,
 
-    /// <summary>Neither Module landed.</summary>
+    /// <summary>No Module landed.</summary>
     Failed
 }
 
-/// <summary>Which side of the move a participant is on.</summary>
-public enum TransferRole
-{
-    Source,
-    Receiver
-}
-
 /// <summary>
-/// Whether a participant has authorised the Transfer to prove and push against its Module.
-/// Keyed to the map hash it was given against: editing the map returns it to Pending.
+/// Whether the counterparty has authorised the Transfer to write into its Module's state. Answered
+/// once: it holds until a run starts and means nothing after.
 /// </summary>
 public enum ConsentStatus
 {
-    /// <summary>The source, which consents by initiating.</summary>
+    /// <summary>The Module the transfer was started from, which consents by starting it.</summary>
     NotRequired,
 
     Pending,
     Granted,
-    Refused,
-
-    /// <summary>Withdrawn after being granted.</summary>
-    Revoked
+    Refused
 }
 
 /// <summary>The outcome of one dispatched step.</summary>
@@ -87,15 +65,4 @@ public enum ManualJobStepStatus
 
     /// <summary>A producer was retried after this step succeeded, so this result no longer counts.</summary>
     Stale
-}
-
-/// <summary>
-/// What a transfer covers. A side that failed is finished by running that side alone: a new
-/// transfer, not a continuation of the one that failed.
-/// </summary>
-public enum TransferScope
-{
-    Both,
-    SourceOnly,
-    ReceiverOnly
 }

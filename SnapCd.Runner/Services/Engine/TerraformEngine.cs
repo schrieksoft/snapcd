@@ -184,6 +184,70 @@ public class TerraformEngine : BaseEngine, IEngine
         }
     }
 
+    /// <summary>
+    /// One address at a time. The command is logged so an operator can see what ran; its output is
+    /// short and names only this address.
+    /// </summary>
+    protected override async Task RunStateMove(
+        StateMoveOperation operation,
+        string address,
+        string? target,
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken)
+    {
+        if (operation != StateMoveOperation.Remove && string.IsNullOrWhiteSpace(target))
+            throw new InvalidOperationException($"{operation} needs a target for {address}.");
+
+        await RunProcess(
+            StateMoveCommand(_engine, operation, address, target),
+            killCancellationToken,
+            gracefulCancellationToken);
+    }
+
+    /// <summary>The command for one address, with both parts quoted as single shell arguments.</summary>
+    public static string StateMoveCommand(
+        string engine, StateMoveOperation operation, string address, string? target) =>
+        operation switch
+        {
+            StateMoveOperation.Mv => $"{engine} state mv {Quote(address)} {Quote(target)}",
+            StateMoveOperation.Import => $"{engine} import {Quote(address)} {Quote(target)}",
+            StateMoveOperation.Remove => $"{engine} state rm {Quote(address)}",
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
+
+    /// <summary>
+    /// Single-quoted so an address with brackets or dots reaches the engine as written. An address
+    /// is chosen from state rather than typed, but it still passes through a shell.
+    /// </summary>
+    private static string Quote(string? value) =>
+        "'" + (value ?? string.Empty).Replace("'", "'\\''") + "'";
+
+    /// <summary>
+    /// The addresses in state, read without logging them: a Module's full state is not Snap CD's
+    /// to display. An empty state is a Module that has never been applied, not a failure.
+    /// </summary>
+    protected override async Task<HashSet<string>> ListState(
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken)
+    {
+        try
+        {
+            var output = await RunProcess(
+                $"{_engine} state list", killCancellationToken, gracefulCancellationToken, logOutput: false);
+
+            return output
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .Where(line => line.Length > 0)
+                .ToHashSet();
+        }
+        catch (ProcessFailedException)
+            when (!killCancellationToken.IsCancellationRequested && !gracefulCancellationToken.IsCancellationRequested)
+        {
+            return [];
+        }
+    }
+
     public async Task<int> Statistics(CancellationToken killCancellationToken = default, CancellationToken gracefulCancellationToken = default)
     {
         var resources = await RunProcess($"{_engine} state list", killCancellationToken, gracefulCancellationToken);

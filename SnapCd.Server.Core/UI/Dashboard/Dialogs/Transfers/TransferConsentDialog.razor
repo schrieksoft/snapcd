@@ -11,24 +11,11 @@
         <MudText>@Title</MudText>
     </TitleContent>
     <DialogContent>
-        @if (Granted)
-        {
-            <MudText Typo="Typo.body2" Class="mb-3">
-                This transfer may move resources into this module's state.
-            </MudText>
-
-            <MudTextField @bind-Value="_proveRef"
-                          Label="Ref to run against"
-                          HelperText="The branch or tag carrying the code move. Defaults to this module's own."
-                          Variant="Variant.Text"
-                          Class="mb-2"/>
-        }
-        else
-        {
-            <MudText Typo="Typo.body2" Class="mb-3">
-                Refusing ends this transfer. The source can start another.
-            </MudText>
-        }
+        <MudText Typo="Typo.body2" Class="mb-3">
+            @(Granted
+                ? "This transfer may move resources into this module's state."
+                : "Refusing ends this transfer. The other module can start another.")
+        </MudText>
 
         <MudTextField @bind-Value="_reason"
                       Label="Reason (optional)"
@@ -47,12 +34,8 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter] public bool Granted { get; set; }
-    [Parameter] public string? ProveRef { get; set; }
 
-    private string? _proveRef;
     private string? _reason;
-
-    protected override void OnInitialized() => _proveRef = ProveRef;
 
     private string Title => Granted ? "Grant consent" : "Refuse";
 
@@ -60,8 +43,8 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Decision(_proveRef, _reason)));
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Decision(_reason)));
 
-    /// <summary>What the receiving side answered: the ref it runs against, and why.</summary>
-    public record Decision(string? ProveRef, string? Reason);
+    /// <summary>What the counterparty answered, and why.</summary>
+    public record Decision(string? Reason);
 }

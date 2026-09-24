@@ -42,17 +42,16 @@ public class TransferController : ControllerBase
         _openerFactory = openerFactory;
     }
 
-    [EndpointSummary("Open a transfer from a source Module to one receiver, reading the map from a ref")]
+    [EndpointSummary("Open a transfer between two Modules and ask the counterparty to consent")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
-    [HttpPost("{sourceModuleId}")]
+    [HttpPost("{moduleId}")]
     public async Task<ActionResult> Create(
-        Guid organizationId, Guid sourceModuleId, [FromBody] TransferCreateRequestDto request)
+        Guid organizationId, Guid moduleId, [FromBody] TransferCreateRequestDto request)
     {
         try
         {
             var opener = _openerFactory.Create();
-            var transfer = await opener.Open(
-                sourceModuleId, request.ReceiverModuleId, organizationId, request.ProveRef);
+            var transfer = await opener.Open(moduleId, request.CounterpartyModuleId, organizationId);
 
             return Ok(transfer);
         }
@@ -70,15 +69,34 @@ public class TransferController : ControllerBase
         }
     }
 
-    [EndpointSummary("Answer a transfer's request for consent on behalf of the receiving Module")]
+    [EndpointSummary("Answer a transfer's request for consent on behalf of the counterparty Module")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
     [HttpPost("{transferId}/Module/{moduleId}/Consent")]
     public Task<ActionResult> Consent(
         Guid organizationId, Guid transferId, Guid moduleId, [FromBody] ConsentRequestDto request) =>
         Run(async service =>
         {
-            await service.Decide(
-                transferId, moduleId, organizationId, request.Granted, request.ProveRef, request.Reason);
+            await service.Decide(transferId, moduleId, organizationId, request.Granted, request.Reason);
+
+            return (ActionResult)Ok();
+        });
+
+    [EndpointSummary("Start one attempt at a transfer")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
+    [HttpPost("{transferId}/Runs")]
+    public Task<ActionResult> StartRun(
+        Guid organizationId, Guid transferId, [FromBody] TransferRunRequestDto request) =>
+        Run(async service => (ActionResult)Ok(await service.StartRun(
+            transferId, organizationId, request.Scope, request.ModuleRef, request.CounterpartyRef)));
+
+    [EndpointSummary("Close a transfer, so its unaccounted-for addresses are no longer watched")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.Consent)]
+    [HttpPost("{transferId}/Close")]
+    public Task<ActionResult> Close(
+        Guid organizationId, Guid transferId, [FromBody] TransferCloseRequestDto request) =>
+        Run(async service =>
+        {
+            await service.Close(transferId, organizationId, request.Reason);
 
             return (ActionResult)Ok();
         });

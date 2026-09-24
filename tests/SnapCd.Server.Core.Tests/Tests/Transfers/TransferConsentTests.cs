@@ -5,6 +5,7 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
+using SnapCd.Contracts.Enums;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -25,8 +26,8 @@ using Xunit;
 namespace SnapCd.Server.Core.Tests.Tests.Transfers;
 
 /// <summary>
-/// Consent is a decision on the Transfer, given by someone who could pause the receiving Module,
-/// answered once, and keyed to the map hash it was given against.
+/// Consent is a decision on the Transfer, given by someone who could pause the counterparty
+/// Module, and answered once.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
 public class TransferConsentTests : IAsyncLifetime
@@ -67,23 +68,22 @@ public class TransferConsentTests : IAsyncLifetime
         using var service = Service(Reader);
 
         await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(
-            () => service.Decide(transferId, _moduleId, _organizationId, granted: true, "main", null));
+            () => service.Decide(transferId, _moduleId, _organizationId, granted: true, null));
     }
 
     [Fact]
-    public async Task A_Contributor_Can_Consent_And_The_Ref_Is_Recorded()
+    public async Task A_Contributor_Can_Consent_And_The_Decision_Is_Recorded()
     {
         var transferId = await Seed(ConsentStatus.Pending);
         using var service = Service(Contributor);
 
-        await service.Decide(transferId, _moduleId, _organizationId, granted: true, "release/1.2", "looks right");
+        await service.Decide(transferId, _moduleId, _organizationId, granted: true, "looks right");
 
-        var participant = await Participant(transferId);
-        Assert.Equal(ConsentStatus.Granted, participant.ReceiverConsentStatus);
-        Assert.Equal(Contributor, participant.ReceiverConsentPrincipalId);
-        Assert.Equal("release/1.2", participant.ReceiverProveRef);
-        Assert.Equal("looks right", participant.ReceiverConsentReason);
-        Assert.NotNull(participant.ReceiverConsentDecidedAt);
+        var transfer = await Reload(transferId);
+        Assert.Equal(ConsentStatus.Granted, transfer.ConsentStatus);
+        Assert.Equal(Contributor, transfer.ConsentPrincipalId);
+        Assert.Equal("looks right", transfer.ConsentReason);
+        Assert.NotNull(transfer.ConsentDecidedAt);
     }
 
     [Fact]
@@ -92,9 +92,9 @@ public class TransferConsentTests : IAsyncLifetime
         var transferId = await Seed(ConsentStatus.Pending);
         using var service = Service(Contributor);
 
-        await service.Decide(transferId, _moduleId, _organizationId, granted: false, null, "not now");
+        await service.Decide(transferId, _moduleId, _organizationId, granted: false, "not now");
 
-        Assert.Equal(ConsentStatus.Refused, (await Participant(transferId)).ReceiverConsentStatus);
+        Assert.Equal(ConsentStatus.Refused, (await Reload(transferId)).ConsentStatus);
     }
 
     /// <summary>A second answer is refused rather than silently replacing the first.</summary>
@@ -105,56 +105,53 @@ public class TransferConsentTests : IAsyncLifetime
         using var service = Service(Contributor);
 
         await Assert.ThrowsAsync<ManualJobNotAllowedException>(
-            () => service.Decide(transferId, _moduleId, _organizationId, granted: true, "main", null));
+            () => service.Decide(transferId, _moduleId, _organizationId, granted: true, null));
     }
 
     [Fact]
-    public async Task Creating_A_Transfer_Asks_The_Receiver_And_Not_The_Source()
+    public async Task Creating_A_Transfer_Records_Both_Modules()
     {
-        var receiverId = _fixture.Modules["0001"].Id;
+        var counterpartyId = _fixture.Modules["0001"].Id;
         using var service = Service(Contributor);
 
-        var transfer = await service.Create(_moduleId, _organizationId, receiverId, "main");
+        var transfer = await service.Create(_moduleId, _organizationId, counterpartyId);
         _seeded.Add(transfer.Id);
 
-        Assert.Equal(_moduleId, transfer.SourceModuleId);
-        Assert.Equal(receiverId, transfer.ReceiverModuleId);
+        Assert.Equal(_moduleId, transfer.ModuleId);
+        Assert.Equal(counterpartyId, transfer.CounterpartyModuleId);
     }
 
     [Fact]
-    public async Task A_Transfer_Cannot_Name_Its_Source_As_A_Receiver()
+    public async Task A_Transfer_Cannot_Name_Itself_As_Its_Counterparty()
     {
         using var service = Service(Contributor);
 
         await Assert.ThrowsAsync<ManualJobNotAllowedException>(
-            () => service.Create(_moduleId, _organizationId, _moduleId, null));
+            () => service.Create(_moduleId, _organizationId, _moduleId));
     }
 
     [Fact]
     public async Task A_Reader_Cannot_Start_A_Transfer()
     {
-        var receiverId = _fixture.Modules["0001"].Id;
+        var counterpartyId = _fixture.Modules["0001"].Id;
         using var service = Service(Reader);
 
         await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(
-            () => service.Create(_moduleId, _organizationId, receiverId, null));
+            () => service.Create(_moduleId, _organizationId, counterpartyId));
     }
 
     [Fact]
-    public async Task The_Receiver_Is_Always_Asked_Even_By_An_Initiator_Who_Could_Answer_For_It()
+    public async Task The_Counterparty_Is_Always_Asked_Even_By_An_Initiator_Who_Could_Answer_For_It()
     {
-        var receiverId = _fixture.Modules["0001"].Id;
+        var counterpartyId = _fixture.Modules["0001"].Id;
         var published = new List<object>();
         using var service = Service(Contributor, published);
 
-        var transfer = await service.Create(_moduleId, _organizationId, receiverId, "main");
+        var transfer = await service.Create(_moduleId, _organizationId, counterpartyId);
         _seeded.Add(transfer.Id);
 
-        await service.AskReceiverFor(transfer.Id, _organizationId);
-
-        Assert.Equal(ConsentStatus.Pending, transfer.ReceiverConsentStatus);
-        Assert.Null(transfer.ReceiverConsentPrincipalId);
-        Assert.Equal("main", transfer.ReceiverProveRef);
+        Assert.Equal(ConsentStatus.Pending, transfer.ConsentStatus);
+        Assert.Null(transfer.ConsentPrincipalId);
         Assert.Contains(published, m => m is ConsentRequested);
     }
 
@@ -168,20 +165,20 @@ public class TransferConsentTests : IAsyncLifetime
         var transferId = await Seed(ConsentStatus.Pending);
         using var service = Service(Contributor);
 
-        await service.Decide(transferId, _moduleId, _organizationId, granted: true, "main", null);
+        await service.Decide(transferId, _moduleId, _organizationId, granted: true, null);
 
-        var transfer = await Participant(transferId);
-        Assert.Equal(Contributor, transfer.ReceiverConsentPrincipalId);
-        Assert.Equal(PrincipalDiscriminator.User, transfer.ReceiverConsentPrincipalDiscriminator);
-        Assert.Null(transfer.ReceiverConsentAgentId);
+        var transfer = await Reload(transferId);
+        Assert.Equal(Contributor, transfer.ConsentPrincipalId);
+        Assert.Equal(PrincipalDiscriminator.User, transfer.ConsentPrincipalDiscriminator);
+        Assert.Null(transfer.ConsentAgentId);
     }
 
     /// <summary>
-    /// Consent is the receiver's to give. Someone who may act on the source but holds nothing on the
-    /// receiver is refused, which is the whole point of asking.
+    /// Consent is the counterparty's to give. Someone who may act on the starting Module but holds
+    /// nothing on the counterparty is refused, which is the whole point of asking.
     /// </summary>
     [Fact]
-    public async Task A_Principal_Without_Rights_On_The_Receiver_Cannot_Consent_For_It()
+    public async Task A_Principal_Without_Rights_On_The_Counterparty_Cannot_Consent_For_It()
     {
         var transferId = await Seed(ConsentStatus.Pending);
         var outsider = await SeedModuleContributor(_fixture.Modules["0001"].Id);
@@ -189,7 +186,7 @@ public class TransferConsentTests : IAsyncLifetime
         using var service = Service(outsider);
 
         await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(
-            () => service.Decide(transferId, _moduleId, _organizationId, granted: true, "main", null));
+            () => service.Decide(transferId, _moduleId, _organizationId, granted: true, null));
     }
 
     /// <summary>A contributor on one Module only, so rights do not leak across the pair.</summary>
@@ -227,9 +224,7 @@ public class TransferConsentTests : IAsyncLifetime
         return userId;
     }
 
-    private async Task<Guid> Seed(
-        ConsentStatus consent,
-        DateTimeOffset? mergedAt = null)
+    private async Task<Guid> Seed(ConsentStatus consent)
     {
         var transferId = Guid.NewGuid();
         _seeded.Add(transferId);
@@ -239,18 +234,37 @@ public class TransferConsentTests : IAsyncLifetime
         {
             Id = transferId,
             OrganizationId = _organizationId,
-            SourceModuleId = _fixture.Modules["0001"].Id,
-            ReceiverModuleId = _moduleId,
-            ReceiverConsentStatus = consent,
-            ReceiverProveRef = "main"
+            ModuleId = _fixture.Modules["0001"].Id,
+            CounterpartyModuleId = _moduleId,
+            ConsentStatus = consent
         });
         await db.SaveChangesAsync();
         return transferId;
     }
 
+    /// <summary>A run of a transfer, which is what a job hangs off.</summary>
+    private async Task<Guid> SeedRun(Guid transferId, TransferScope scope = TransferScope.Both)
+    {
+        var runId = Guid.NewGuid();
+
+        await using var db = _fixture.CreateDbContext();
+        db.TransferRuns.Add(new TransferRun
+        {
+            Id = runId,
+            OrganizationId = _organizationId,
+            TransferId = transferId,
+            Scope = scope,
+            Ref = "main",
+            StartedAt = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+        return runId;
+    }
+
     /// <summary>A running job for a transfer: what "a job is running" means now.</summary>
     private async Task SeedRunningJob(Guid transferId)
     {
+        var runId = await SeedRun(transferId);
         var jobId = Guid.NewGuid();
         _seededJobs.Add(jobId);
 
@@ -260,7 +274,7 @@ public class TransferConsentTests : IAsyncLifetime
             Id = jobId,
             OrganizationId = _organizationId,
             ModuleId = _moduleId,
-            TransferId = transferId,
+            TransferRunId = runId,
             TimestampStart = DateTimeOffset.UtcNow,
             JobType = ManualJobTypes.TransferMigrate,
             Status = ExecutionStatus.Running
@@ -268,7 +282,7 @@ public class TransferConsentTests : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
-    private async Task<Transfer> Participant(Guid transferId)
+    private async Task<Transfer> Reload(Guid transferId)
     {
         await using var db = _fixture.CreateDbContext();
         return await db.Transfers.AsNoTracking().SingleAsync(t => t.Id == transferId);

@@ -83,7 +83,88 @@ public abstract class BaseEngine
     public string GetInitDir() => InitDir;
     public string GetSnapCdDir() => SnapCdDir;
 
-    public async Task<string> RunProcess(string script, CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken)
+    /// <summary>
+    /// Which of the given addresses are in this Module's state. `state list` prints the whole
+    /// state, so the comparison happens here and only its verdict leaves the runner.
+    /// </summary>
+    public virtual async Task<(List<string> Present, List<string> Absent)> StateListFiltered(
+        IReadOnlyCollection<string> addresses,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        var inState = await ListState(killCancellationToken, gracefulCancellationToken);
+
+        return Compare(addresses, inState);
+    }
+
+    /// <summary>The verdict on the addresses asked about, and nothing about any other.</summary>
+    public static (List<string> Present, List<string> Absent) Compare(
+        IReadOnlyCollection<string> addresses, ISet<string> inState)
+    {
+        var present = addresses.Where(inState.Contains).ToList();
+
+        return (present, addresses.Except(present).ToList());
+    }
+
+    /// <summary>
+    /// Runs one state command per address, so a batch of five that manages three records exactly
+    /// that. A failure is this address's failure, not the batch's.
+    /// </summary>
+    public virtual async Task<List<(string Address, bool Succeeded)>> StateMove(
+        StateMoveOperation operation,
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        var results = new List<(string, bool)>();
+
+        foreach (var (address, target) in instructions)
+        {
+            killCancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await RunStateMove(operation, address, target, killCancellationToken, gracefulCancellationToken);
+                results.Add((address, true));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Context.LogError($"{operation} failed for {address}: {ex.Message}");
+                results.Add((address, false));
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>The engine's own command for one address.</summary>
+    protected virtual Task RunStateMove(
+        StateMoveOperation operation,
+        string address,
+        string? target,
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot move state addresses.");
+
+    /// <summary>Every address in this Module's state. Never logged, never sent on.</summary>
+    protected virtual Task<HashSet<string>> ListState(
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot list state addresses.");
+
+    /// <summary>
+    /// Runs a script and returns its output. <paramref name="logOutput"/> is false where the
+    /// output is the Module's own state, which is not Snap CD's to hold or display.
+    /// </summary>
+    public async Task<string> RunProcess(
+        string script,
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken,
+        bool logOutput = true)
     {
         EnsureEnvVarsLoaded();
 
@@ -148,7 +229,7 @@ public abstract class BaseEngine
             // lines are what separate one block of its output from the next.
             if (e.Data != null)
             {
-                Context.LogInformation(e.Data);
+                if (logOutput) Context.LogInformation(e.Data);
                 outputBuilder.AppendLine(e.Data);
             }
         };

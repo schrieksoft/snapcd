@@ -9,7 +9,6 @@
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using YamlDotNet.Serialization;
@@ -26,9 +25,9 @@ public class TransferOpenerFactory(
 }
 
 /// <summary>
-/// Opens a transfer: two Modules, the refs they run against, and a request for the receiver's
-/// consent. What moves is decided in the code - the transfer map is committed alongside it and read
-/// by demonolith from each Module's own checkout, so nothing about it is held here.
+/// Opens a transfer and asks the counterparty to consent. Runs are started separately, once it has.
+/// What moves is decided in the code: the transfer map is committed alongside it and read by
+/// demonolith from each Module's own checkout, so nothing about it is held here.
 /// </summary>
 public class TransferOpener
 {
@@ -44,31 +43,20 @@ public class TransferOpener
     }
 
     public async Task<Transfer> Open(
-        Guid sourceModuleId,
-        Guid receiverModuleId,
+        Guid moduleId,
+        Guid counterpartyModuleId,
         Guid organizationId,
-        string? proveRef = null,
-        TransferScope scope = TransferScope.Both,
         CancellationToken cancellationToken = default)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var source = await LoadModule(dbContext, sourceModuleId, organizationId);
-        await LoadModule(dbContext, receiverModuleId, organizationId);
+        await LoadModule(dbContext, moduleId, organizationId);
+        await LoadModule(dbContext, counterpartyModuleId, organizationId);
 
-        if (sourceModuleId == receiverModuleId)
+        if (moduleId == counterpartyModuleId)
             throw new ManualJobNotAllowedException("A Module cannot transfer to itself.");
 
-        var ref_ = string.IsNullOrWhiteSpace(proveRef) ? source.SourceRevision : proveRef;
-
-        var transfer = await _transferService.Create(
-            sourceModuleId, organizationId, receiverModuleId, ref_, scope);
-
-        // A source-only transfer never touches the receiver, so there is nothing to consent to.
-        if (scope != TransferScope.SourceOnly)
-            await _transferService.AskReceiverFor(transfer.Id, organizationId);
-
-        return transfer;
+        return await _transferService.Create(moduleId, organizationId, counterpartyModuleId);
     }
 
     private static async Task<Module> LoadModule(SnapCdDbContext dbContext, Guid moduleId, Guid organizationId)

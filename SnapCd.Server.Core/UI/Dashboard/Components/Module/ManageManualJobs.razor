@@ -12,6 +12,7 @@
 @using SnapCd.Server.Core.Database
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Entities.Sagas
+@using SnapCd.Contracts.Enums
 @using SnapCd.Server.Core.Enums
 @using SnapCd.Server.Core.Repositories.Custom.Secured
 @using SnapCd.Server.Core.Entities.Definition
@@ -24,6 +25,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Theme
 @using SnapCd.Server.Core.UI.Dashboard.Components.Approvals
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Transfers
+@using SnapCd.Server.Core.UI.Dashboard.Dialogs.StateMigrations
 @using SnapCd.Server.Core.Services.Crud.Transfers
 
 @inject ISnackbar Snackbar
@@ -84,6 +86,14 @@
                                Disabled="@(!_canPause || _busy)" OnClick="StartSplit">split monolith</MudButton>
                 </MudStack>
 
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.body2">Move, import or remove addresses in this module's state.</MudText>
+                    <MudTooltip Text="For fixing state by hand: what a transfer or split could not finish, or infrastructure that exists but is not managed yet.">
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy)" OnClick="StartStateMove">edit state</MudButton>
+                    </MudTooltip>
+                </MudStack>
+
                 @* A transfer is two jobs, one per Module. This starts this Module's. *@
                 @if (_transfer == null)
                 {
@@ -99,16 +109,29 @@
                 {
                     <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
                         <MudText Typo="Typo.body2">
-                            Transfer @(_transfer.SourceModuleId == Module.Id ? "to" : "from") @OtherModuleName.
+                            Transfer @(_transfer.ModuleId == Module.Id ? "to" : "from") @OtherModuleName.
                         </MudText>
 
-                        @if (_transfer.Scope != TransferScope.Both)
+                        @if (_latestRun is { Scope: not TransferScope.Both } run)
                         {
-                            <MudTooltip Text="@($"This transfer covers {(_transfer.Scope == TransferScope.SourceOnly ? "the source" : "the receiver")} only. Finishing the other side is a transfer of its own.")">
+                            <MudTooltip Text="This run covers one module. Finishing the other is a run of its own.">
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">
-                                    @(_transfer.Scope == TransferScope.SourceOnly ? "source only" : "receiver only")
+                                    @(RunCoversThisModule(run) ? "this module only" : $"{OtherModuleName} only")
                                 </MudChip>
                             </MudTooltip>
+                        }
+
+                        @if (_openObjects > 0)
+                        {
+                            <MudTooltip Text="These resources left one module and have not been seen in the other. Check them against this module's state, run the module that missed them, or close the transfer to stop watching.">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">
+                                    @_openObjects unaccounted for
+                                </MudChip>
+                            </MudTooltip>
+
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(!_canPause || _busy)"
+                                       OnClick="CheckOpenAddresses">check state</MudButton>
                         }
 
                         @if (NeedsMyConsent)
@@ -124,10 +147,16 @@
                         }
                         else if (CanRunTransfer)
                         {
-                            <MudTooltip Text="Plans both modules, proves the move changes nothing, and - once approved - writes their state. They run at once.">
+                            <MudTooltip Text="Plans the modules in scope, proves the move changes nothing, and - once approved - writes their state. They run at once.">
                                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                            Disabled="@(!_canPause || _busy)"
-                                           OnClick="RunTransfer">move state</MudButton>
+                                           OnClick="RunTransfer">@(_latestRun is null ? "move state" : "run again")</MudButton>
+                            </MudTooltip>
+
+                            <MudTooltip Text="Stops watching this transfer's resources. Needed when what is left will not be finished by a run.">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           Disabled="@(!_canPause || _busy)"
+                                           OnClick="CloseTransfer">close</MudButton>
                             </MudTooltip>
                         }
                     </MudStack>
@@ -153,6 +182,8 @@ else
             {
                 ExecutionStatus.Running => "var(--snap-running, #EB753C)",
                 ExecutionStatus.Completed => "var(--mud-palette-success)",
+                // The part that worked did work, so a partial is green and says so beside the dot.
+                ExecutionStatus.PartiallyCompleted => "var(--mud-palette-success)",
                 ExecutionStatus.Failed => "var(--snap-failed, #C62828)",
                 ExecutionStatus.NotApproved => "var(--snap-failed, #C62828)",
                 ExecutionStatus.Cancelled => "var(--mud-palette-text-disabled)",
@@ -188,6 +219,12 @@ else
                         {
                             <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">Awaiting approval</MudChip>
                         }
+                        @if (job.Status == ExecutionStatus.PartiallyCompleted)
+                        {
+                            <MudTooltip Text="Some addresses were done and some were not. The ones that failed are listed below and can be run again.">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">partial</MudChip>
+                            </MudTooltip>
+                        }
                         <span style="flex: 1;"></span>
                         <span style="font-size: 14px; color: var(--mud-palette-text-secondary); white-space: nowrap;">
                             @job.Status · @elapsedDisplay
@@ -217,6 +254,35 @@ else
                             <ListLogs ModuleJobId="@job.Id" @key="job.Id"
                                       @ref="_listLogsRefs[job.Id]"/>
                         </MudTabPanel>
+                        @if (_addresses.TryGetValue(job.Id, out var addresses) && addresses.Count > 0)
+                        {
+                            <MudTabPanel Text="Addresses" Style="text-transform: none">
+                                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                                    <thead>
+                                    <tr>
+                                        <th>Address</th>
+                                        <th>Target</th>
+                                        <th>Outcome</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var address in addresses)
+                                    {
+                                        <tr>
+                                            <td><code>@address.Address</code></td>
+                                            <td>@(address.Target is null ? "" : new MarkupString($"<code>{address.Target}</code>"))</td>
+                                            <td>
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                         Color="@OutcomeColor(address.Outcome)" Class="ma-0">
+                                                    @address.Outcome
+                                                </MudChip>
+                                            </td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </MudSimpleTable>
+                            </MudTabPanel>
+                        }
                         <MudTabPanel Text="Approvals" Style="text-transform: none">
                             @if (job is { WaitingForApproval: true })
                             {
@@ -257,6 +323,32 @@ else
 
     private string? _blockedReason;
     private List<ManualModuleJob> _jobs = [];
+    private Dictionary<Guid, List<ManualModuleJobAddress>> _addresses = [];
+
+    /// <summary>
+    /// Green for what worked or is there, red for what did not. A "Present" is the same good news
+    /// as a "Succeeded", so they read the same.
+    /// </summary>
+    private static Color OutcomeColor(AddressOutcome outcome) => outcome switch
+    {
+        AddressOutcome.Succeeded or AddressOutcome.Present => Color.Success,
+        _ => Color.Error
+    };
+
+    /// <summary>What each job on this page did to which addresses, for the addresses tab.</summary>
+    private async Task LoadAddresses()
+    {
+        var jobIds = _jobs.Select(j => j.Id).ToList();
+
+        await using var db = await TransferDbContextFactory.CreateDbContextAsync();
+
+        _addresses = (await db.ManualModuleJobAddresses.AsNoTracking()
+                .Where(a => jobIds.Contains(a.JobId) && a.OrganizationId == OrganizationId)
+                .OrderBy(a => a.Address)
+                .ToListAsync())
+            .GroupBy(a => a.JobId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
     private readonly Dictionary<Guid, ListLogs> _listLogsRefs = new();
     private readonly HashSet<Guid> _loadedLogs = [];
     private Guid? _subscribedModuleId;
@@ -299,23 +391,9 @@ else
 
         using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
+        await LoadAddresses();
 
-        using var transfers = TransferServiceFactory.Create(PrincipalProvider);
-        _transfer = (await transfers.ListForModule(Module.Id, OrganizationId))
-            .FirstOrDefault(t => _jobs.All(j => j.TransferId != t.Id || j.Status == ExecutionStatus.Running));
-
-        if (_transfer is { } transfer)
-        {
-            var otherId = transfer.SourceModuleId == Module.Id
-                ? transfer.ReceiverModuleId
-                : transfer.SourceModuleId;
-
-            await using var db = await TransferDbContextFactory.CreateDbContextAsync();
-            _otherModuleName = await db.Modules.AsNoTracking()
-                .Where(m => m.Id == otherId && m.OrganizationId == OrganizationId)
-                .Select(m => m.Name)
-                .FirstOrDefaultAsync();
-        }
+        await LoadTransfer();
     }
 
     private async Task Pause()
@@ -331,35 +409,74 @@ else
     private async Task Resume() => await SetPaused(false, null);
 
     private Transfer? _transfer;
+    private TransferRun? _latestRun;
+    private bool _transferRunning;
+    private int _openObjects;
     private string? _otherModuleName;
     private List<Module> _transferCandidates = [];
 
     private string OtherModuleName => _otherModuleName ?? "the other module";
 
-    /// <summary>This Module is the receiver and has not answered yet.</summary>
+    /// <summary>This Module is the counterparty and has not answered yet.</summary>
     private bool NeedsMyConsent =>
-        _transfer is { ReceiverConsentStatus: ConsentStatus.Pending }
-        && _transfer.ReceiverModuleId == Module.Id;
+        _transfer is { ConsentStatus: ConsentStatus.Pending }
+        && _transfer.CounterpartyModuleId == Module.Id;
 
     /// <summary>
-    /// Consent is in and nothing has run yet. Both Modules move at once, so either side's page
-    /// starts the whole transfer.
+    /// Consent is in and nothing is in flight. A transfer that left resources unaccounted for is
+    /// finished by a second run over the module that missed them, so this stays available.
     /// </summary>
     private bool CanRunTransfer =>
         _transfer is not null
-        && _transfer.ReceiverConsentStatus is ConsentStatus.Granted or ConsentStatus.NotRequired
-        && _jobs.All(j => j.TransferId != _transfer.Id);
+        && _transfer.ConsentStatus is ConsentStatus.Granted or ConsentStatus.NotRequired
+        && !_transferRunning;
+
+    /// <summary>Whether a run over one Module covers this one.</summary>
+    private bool RunCoversThisModule(TransferRun run) =>
+        run.Scope == TransferScope.ModuleOnly == (_transfer!.ModuleId == Module.Id);
+
+    /// <summary>The transfer this Module is currently in, with the run it is on.</summary>
+    private async Task LoadTransfer()
+    {
+        using var transfers = TransferServiceFactory.Create(PrincipalProvider);
+        _transfer = (await transfers.ListForModule(Module.Id, OrganizationId))
+            .FirstOrDefault(t => t.ClosedAt == null);
+
+        _latestRun = _transfer?.Runs.MaxBy(r => r.StartedAt);
+
+        _transferRunning = _latestRun is not null
+                           && await transfers.IsRunning(_latestRun.Id, OrganizationId);
+
+        _openObjects = _transfer is null
+            ? 0
+            : await transfers.CountOpenObjects(_transfer.Id, OrganizationId);
+
+        if (_transfer is not { } transfer)
+        {
+            _otherModuleName = null;
+            return;
+        }
+
+        var otherId = transfer.ModuleId == Module.Id
+            ? transfer.CounterpartyModuleId
+            : transfer.ModuleId;
+
+        await using var db = await TransferDbContextFactory.CreateDbContextAsync();
+        _otherModuleName = await db.Modules.AsNoTracking()
+            .Where(m => m.Id == otherId && m.OrganizationId == OrganizationId)
+            .Select(m => m.Name)
+            .FirstOrDefaultAsync();
+    }
 
 
-    /// <summary>Opens a transfer from this Module. Its map is read from the ref, in the background.</summary>
+    /// <summary>Opens a transfer from this Module and asks the counterparty to consent.</summary>
     private async Task StartTransfer()
     {
         await LoadTransferCandidates();
 
         var parameters = new DialogParameters
         {
-            { nameof(StartTransferDialog.Candidates), (IReadOnlyList<Module>)_transferCandidates },
-            { nameof(StartTransferDialog.ProveRef), Module.SourceRevision }
+            { nameof(StartTransferDialog.Candidates), (IReadOnlyList<Module>)_transferCandidates }
         };
 
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
@@ -373,10 +490,9 @@ else
         try
         {
             var opener = TransferOpenerFactory.Create(PrincipalProvider);
-            await opener.Open(
-                Module.Id, choice.ReceiverModuleId, OrganizationId, choice.ProveRef, choice.Scope);
+            await opener.Open(Module.Id, choice.CounterpartyModuleId, OrganizationId);
 
-            Snackbar.Add("Transfer opened; the receiving module has been asked to consent.", Severity.Success);
+            Snackbar.Add("Transfer opened; the other module has been asked to consent.", Severity.Success);
             await Reload();
         }
         catch (Exception e)
@@ -395,8 +511,7 @@ else
 
         var parameters = new DialogParameters
         {
-            { nameof(TransferConsentDialog.Granted), granted },
-            { nameof(TransferConsentDialog.ProveRef), transfer.ReceiverProveRef ?? Module.SourceRevision }
+            { nameof(TransferConsentDialog.Granted), granted }
         };
 
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
@@ -411,8 +526,7 @@ else
         try
         {
             using var service = TransferServiceFactory.Create(PrincipalProvider);
-            await service.Decide(
-                transfer.Id, Module.Id, OrganizationId, granted, decision.ProveRef, decision.Reason);
+            await service.Decide(transfer.Id, Module.Id, OrganizationId, granted, decision.Reason);
 
             Snackbar.Add(granted ? "Consent granted." : "Consent refused.", Severity.Success);
             await Reload();
@@ -427,16 +541,140 @@ else
         }
     }
 
-    /// <summary>Starts this Module's half of the transfer. The other Module runs its own.</summary>
-    private async Task RunTransfer()
+    /// <summary>
+    /// Edits this Module's state by hand: what a transfer could not finish, or infrastructure that
+    /// exists but is not managed. Each address is run on its own and the state is checked after.
+    /// </summary>
+    private async Task StartStateMove()
+    {
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<StateMoveDialog>("Edit state", options);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+        if (result.Data is not StateMoveDialog.Choice choice) return;
+
+        _busy = true;
+        try
+        {
+            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            await service.StartStateMove(Module.Id, OrganizationId, choice.Operation, choice.Instructions);
+
+            Snackbar.Add($"Running {choice.Operation} over {choice.Instructions.Count} addresses.", Severity.Success);
+            await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>
+    /// Asks this Module's state about the addresses the transfer has not accounted for. Finding
+    /// them closes the ledger; the check itself writes nothing.
+    /// </summary>
+    private async Task CheckOpenAddresses()
     {
         if (_transfer is not { } transfer) return;
 
         _busy = true;
         try
         {
+            using var transfers = TransferServiceFactory.Create(PrincipalProvider);
+            var addresses = await transfers.OpenAddressesFor(transfer.Id, Module.Id, OrganizationId);
+
+            if (addresses.Count == 0)
+            {
+                Snackbar.Add("Nothing on this module is outstanding.", Severity.Info);
+                return;
+            }
+
             using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            var jobs = await service.StartTransfer(transfer.Id, OrganizationId);
+            await service.StartStateListFiltered(Module.Id, OrganizationId, addresses);
+
+            Snackbar.Add($"Checking {addresses.Count} addresses against this module's state.", Severity.Success);
+            await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>
+    /// Stops watching this transfer's resources. Refused without a reason while any are still
+    /// unaccounted for, since nothing looks at them afterwards.
+    /// </summary>
+    private async Task CloseTransfer()
+    {
+        if (_transfer is not { } transfer) return;
+
+        var parameters = new DialogParameters
+        {
+            { nameof(CloseTransferDialog.OpenObjects), _openObjects }
+        };
+
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<CloseTransferDialog>("Close transfer", parameters, options);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+        if (result.Data is not string reason) return;
+
+        _busy = true;
+        try
+        {
+            using var service = TransferServiceFactory.Create(PrincipalProvider);
+            await service.Close(transfer.Id, OrganizationId, string.IsNullOrWhiteSpace(reason) ? null : reason);
+
+            Snackbar.Add("Transfer closed.", Severity.Success);
+            await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>Starts an attempt. Each Module in its scope runs its own job.</summary>
+    private async Task RunTransfer()
+    {
+        if (_transfer is not { } transfer) return;
+
+        var parameters = new DialogParameters
+        {
+            { nameof(RunTransferDialog.CounterpartyName), OtherModuleName },
+            { nameof(RunTransferDialog.ModuleRef), Module.SourceRevision }
+        };
+
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<RunTransferDialog>("Move state", parameters, options);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+        if (result.Data is not RunTransferDialog.Choice choice) return;
+
+        _busy = true;
+        try
+        {
+            using var transfers = TransferServiceFactory.Create(PrincipalProvider);
+            var run = await transfers.StartRun(
+                transfer.Id, OrganizationId, choice.Scope, choice.ModuleRef, choice.CounterpartyRef);
+
+            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            var jobs = await service.StartTransferRun(run.Id, OrganizationId);
 
             Snackbar.Add(
                 jobs.Count > 1 ? "Moving both modules' state." : "Moving this module's state.",
@@ -545,23 +783,9 @@ else
 
         using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
+        await LoadAddresses();
 
-        using var transfers = TransferServiceFactory.Create(PrincipalProvider);
-        _transfer = (await transfers.ListForModule(Module.Id, OrganizationId))
-            .FirstOrDefault(t => _jobs.All(j => j.TransferId != t.Id || j.Status == ExecutionStatus.Running));
-
-        if (_transfer is { } transfer)
-        {
-            var otherId = transfer.SourceModuleId == Module.Id
-                ? transfer.ReceiverModuleId
-                : transfer.SourceModuleId;
-
-            await using var db = await TransferDbContextFactory.CreateDbContextAsync();
-            _otherModuleName = await db.Modules.AsNoTracking()
-                .Where(m => m.Id == otherId && m.OrganizationId == OrganizationId)
-                .Select(m => m.Name)
-                .FirstOrDefaultAsync();
-        }
+        await LoadTransfer();
 
         using var manualJobService = ManualJobServiceFactory.Create(PrincipalProvider);
         _blockedReason = await manualJobService.GetBlockedReason(Module.Id, OrganizationId);
@@ -613,23 +837,9 @@ else
 
         using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
+        await LoadAddresses();
 
-        using var transfers = TransferServiceFactory.Create(PrincipalProvider);
-        _transfer = (await transfers.ListForModule(Module.Id, OrganizationId))
-            .FirstOrDefault(t => _jobs.All(j => j.TransferId != t.Id || j.Status == ExecutionStatus.Running));
-
-        if (_transfer is { } transfer)
-        {
-            var otherId = transfer.SourceModuleId == Module.Id
-                ? transfer.ReceiverModuleId
-                : transfer.SourceModuleId;
-
-            await using var db = await TransferDbContextFactory.CreateDbContextAsync();
-            _otherModuleName = await db.Modules.AsNoTracking()
-                .Where(m => m.Id == otherId && m.OrganizationId == OrganizationId)
-                .Select(m => m.Name)
-                .FirstOrDefaultAsync();
-        }
+        await LoadTransfer();
     }
 
     private async Task SetPaused(bool paused, string? reason)

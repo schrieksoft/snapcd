@@ -44,8 +44,8 @@ public partial class TransferMigrateStateMachine
 
             When(ApprovalTimeoutScheduled.Received)
                 .Then(context => _logger.LogInformation(
-                    "Transfer {TransferId}: approval timed out for {Role} Module {ModuleId}",
-                    context.Saga.TransferId, context.Saga.Role, context.Saga.ModuleId))
+                    "Transfer {TransferId}: approval timed out for Module {ModuleId}",
+                    context.Saga.TransferId, context.Saga.ModuleId))
                 .Activity(x => x.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Failed)
                 .Finalize(),
@@ -114,8 +114,8 @@ public partial class TransferMigrateStateMachine
                     {
                         context.Saga.WaitingSince = null;
                         _logger.LogInformation(
-                            "Transfer {TransferId}: approved, writing {Role} Module {ModuleId}",
-                            context.Saga.TransferId, context.Saga.Role, context.Saga.ModuleId);
+                            "Transfer {TransferId}: approved, writing Module {ModuleId}",
+                            context.Saga.TransferId, context.Saga.ModuleId);
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
                     .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<TransferMigrateSaga, TMessage>>())

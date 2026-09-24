@@ -24,4 +24,16 @@ public static class ManualJobTypes
 
     /// <summary>The post-merge half of a transfer: the one that pushes state, under holds and consent.</summary>
     public const string TransferMigrate = "TransferMigrate";
+
+    /// <summary>Asks which of a given set of addresses are in a Module's state. Writes nothing.</summary>
+    public const string StateListFiltered = "StateListFiltered";
+
+    /// <summary>Moves addresses within a Module's state.</summary>
+    public const string StateMv = "StateMv";
+
+    /// <summary>Brings existing infrastructure under management.</summary>
+    public const string StateImport = "StateImport";
+
+    /// <summary>Drops addresses from state, leaving the infrastructure.</summary>
+    public const string StateRemove = "StateRemove";
 }

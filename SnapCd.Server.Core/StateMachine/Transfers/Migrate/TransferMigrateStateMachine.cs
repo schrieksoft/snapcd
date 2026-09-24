@@ -58,6 +58,8 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     public Event<TransferMigrateRunFaulted> MigrateRunFaulted { get; } = null!;
     public Event<TransferMigrateVerifyCompleted> MigrateVerifyCompleted { get; } = null!;
     public Event<TransferMigrateVerifyFaulted> MigrateVerifyFaulted { get; } = null!;
+    public Event<TransferOutputsCompleted> OutputsCompleted { get; } = null!;
+    public Event<TransferOutputsFaulted> OutputsFaulted { get; } = null!;
 
     /// <summary>The state move landed. Terminal.</summary>
     public State Completed { get; } = null!;
@@ -80,6 +82,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     public State MigrateProvePending { get; } = null!;
     public State MigrateRunPending { get; } = null!;
     public State MigrateVerifyPending { get; } = null!;
+    public State OutputsPending { get; } = null!;
 
     /// <summary>The job ended without landing. Terminal; finishing this Module is a new job.</summary>
     public State Failed { get; } = null!;
@@ -126,6 +129,8 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
         Event(() => MigrateRunCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => MigrateRunFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => MigrateVerifyCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => OutputsCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => OutputsFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => MigrateVerifyFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         Configure_Approval();
@@ -139,7 +144,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                     context.Saga.CorrelationId = context.Message.CorrelationId;
                     context.Saga.OrganizationId = context.Message.Declared.OrganizationId;
                     context.Saga.TransferId = context.Message.TransferId;
-                    context.Saga.Role = context.Message.Role;
+                    context.Saga.TransferRunId = context.Message.TransferRunId;
                     context.Saga.ModuleId = context.Message.Declared.ModuleId;
                     context.Saga.DeclaredJson = JsonSerializer.Serialize(context.Message.Declared);
                     context.Saga.RunnerId = context.Message.Declared.RunnerId;
@@ -148,13 +153,10 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                     context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                     context.Saga.RootDirectory = context.Message.RootDirectory;
                     context.Saga.ProveRef = context.Message.ProveRef;
-                    context.Saga.FragmentState = context.Message.FragmentState;
-                    context.Saga.FragmentMeta = context.Message.FragmentMeta;
-                    context.Saga.OutputsJson = JsonSerializer.Serialize(context.Message.Outputs);
 
                     _logger.LogInformation(
-                        "Transfer {TransferId}: moving state for {Role} Module {ModuleId}",
-                        context.Message.TransferId, context.Message.Role, context.Saga.ModuleId);
+                        "Transfer {TransferId}: moving state for Module {ModuleId}",
+                        context.Message.TransferId, context.Saga.ModuleId);
                 })
                 .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
@@ -162,6 +164,8 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
         );
 
         Configure_Preamble();
+        Configure_Outputs();
         Configure_Slices();
+        Configure_OutputsStep();
     }
 }

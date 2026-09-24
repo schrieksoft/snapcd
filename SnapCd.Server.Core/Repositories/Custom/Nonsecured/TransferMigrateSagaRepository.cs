@@ -31,6 +31,21 @@ public class TransferMigrateSagaRepository : IDisposable
     /// <summary>
     /// A transfer job is per Module, so a reply names both: the job, and which Module answered.
     /// </summary>
+    /// <summary>The job's saga, or null when this job belongs to another family.</summary>
+    public virtual async Task<JobSagaMetaData?> GetSagaMetaDataOrNull(Guid jobId, Guid organizationId) =>
+        await _dbContext.Set<TransferMigrateSaga>()
+            .Where(x => x.CorrelationId == jobId && x.OrganizationId == organizationId)
+            .Select(x => new JobSagaMetaData
+            {
+                Family = JobSagaFamily.TransferMigrate,
+                CurrentState = x.CurrentState,
+                RunnerId = x.RunnerId,
+                RunnerInstanceName = x.RunnerInstanceName,
+                OrganizationId = x.OrganizationId,
+                PreviousStateBeforeCancelling = x.PreviousStateBeforeCancelling
+            })
+            .FirstOrDefaultAsync();
+
     public virtual async Task<JobSagaMetaData> GetSagaMetaData(Guid jobId, Guid moduleId, Guid organizationId)
     {
         var metaData = await _dbContext.Set<TransferMigrateSaga>()

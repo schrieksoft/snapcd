@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
+using SnapCd.Contracts.Enums;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -48,7 +49,9 @@ public class TransferMigrateJobTests : IAsyncLifetime
 
     private Guid _moduleId;
     private Guid _organizationId;
+    private Guid _counterpartyId;
     private Guid _transferId;
+    private Guid _transferRunId;
     private Guid _jobId;
 
     public TransferMigrateJobTests(Fixture fixture) => _fixture = fixture;
@@ -56,8 +59,10 @@ public class TransferMigrateJobTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _moduleId = _fixture.Modules["0000"].Id;
+        _counterpartyId = _fixture.Modules["0001"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
         _transferId = Guid.NewGuid();
+        _transferRunId = Guid.NewGuid();
         _jobId = Guid.NewGuid();
 
         var services = new ServiceCollection();
@@ -74,6 +79,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         // MassTransit resolves activities from the container, and nothing registers them by
         // convention; the approval gate needs its three.
         services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
+        services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
         services.AddScoped(typeof(WaitingForApprovalManualJobActivity<,>));
         services.AddScoped(typeof(NotWaitingForApprovalManualJobActivity<,>));
         services.AddScoped(typeof(CancelManualModuleJobActivity<,>));
@@ -96,11 +102,29 @@ public class TransferMigrateJobTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = 1;
 
+        db.Transfers.Add(new Transfer
+        {
+            Id = _transferId,
+            OrganizationId = _organizationId,
+            ModuleId = _moduleId,
+            CounterpartyModuleId = _counterpartyId,
+            ConsentStatus = ConsentStatus.Granted
+        });
+
+        db.TransferRuns.Add(new TransferRun
+        {
+            Id = _transferRunId,
+            OrganizationId = _organizationId,
+            TransferId = _transferId,
+            Scope = TransferScope.Both,
+            StartedAt = DateTimeOffset.UtcNow
+        });
+
         db.ManualModuleJobs.Add(new ManualModuleJob
         {
             Id = _jobId,
             ModuleId = _moduleId,
-            TransferId = _transferId,
+            TransferRunId = _transferRunId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
             JobType = ManualJobTypes.TransferMigrate,
@@ -121,6 +145,9 @@ public class TransferMigrateJobTests : IAsyncLifetime
         await db.ManualModuleJobApprovals.Where(a => a.ManualModuleJobId == _jobId).ExecuteDeleteAsync();
         await db.ManualModuleJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
         await db.ManualModuleJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
+        await db.OutputSets.Where(o => o.ModuleId == _counterpartyId).ExecuteDeleteAsync();
+        await db.TransferRuns.Where(r => r.TransferId == _transferId).ExecuteDeleteAsync();
+        await db.Transfers.Where(t => t.Id == _transferId).ExecuteDeleteAsync();
     }
 
     /// <summary>
@@ -138,9 +165,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         {
             CorrelationId = map.CorrelationId,
             OrganizationId = _organizationId,
-            ModuleId = _moduleId,
-            FragmentState = "{\"serial\":4}",
-            NeedsValuesFrom = []
+            ModuleId = _moduleId
         });
 
         var prove = await AwaitStep<TransferMigrateProveRequested>("MigrateProvePending");
@@ -158,6 +183,111 @@ public class TransferMigrateJobTests : IAsyncLifetime
 
     }
 
+    /// <summary>
+    /// A Module whose plan reads nothing from the other side proves straight away. This is the
+    /// usual case, and it is what lets both Modules run at once.
+    /// </summary>
+    [Fact]
+    public async Task A_Module_Needing_No_Outputs_Proves_Immediately()
+    {
+        await Start();
+        await Preamble();
+
+        var map = await AwaitStep<TransferMigrateMapRequested>("MigrateMapPending");
+        await Answer(new TransferMigrateMapCompleted
+        {
+            CorrelationId = map.CorrelationId,
+            OrganizationId = _organizationId,
+            ModuleId = _moduleId,
+            NeedsOutputs = []
+        });
+
+        Assert.NotNull(await AwaitStep<TransferMigrateProveRequested>("MigrateProvePending"));
+    }
+
+    /// <summary>
+    /// A Module whose plan reads a value the other one produces cannot prove until that value
+    /// exists, so it parks instead of planning against a value that is not there.
+    /// </summary>
+    [Fact]
+    public async Task A_Module_Needing_An_Absent_Output_Waits()
+    {
+        await Start();
+        await Preamble();
+
+        var map = await AwaitStep<TransferMigrateMapRequested>("MigrateMapPending");
+        await Answer(new TransferMigrateMapCompleted
+        {
+            CorrelationId = map.CorrelationId,
+            OrganizationId = _organizationId,
+            ModuleId = _moduleId,
+            NeedsOutputs = ["db_endpoint"]
+        });
+
+        Assert.True(await WaitUntil(() => InState("WaitingForOutputs")), "the job did not wait for outputs");
+        Assert.Empty(_harness.Published.Select<TransferMigrateProveRequested>());
+    }
+
+    /// <summary>A reevaluation with the value still missing leaves the job where it is.</summary>
+    [Fact]
+    public async Task A_Reevaluation_Without_The_Output_Keeps_Waiting()
+    {
+        await Start();
+        await Preamble();
+
+        var map = await AwaitStep<TransferMigrateMapRequested>("MigrateMapPending");
+        await Answer(new TransferMigrateMapCompleted
+        {
+            CorrelationId = map.CorrelationId,
+            OrganizationId = _organizationId,
+            ModuleId = _moduleId,
+            NeedsOutputs = ["db_endpoint"]
+        });
+
+        Assert.True(await WaitUntil(() => InState("WaitingForOutputs")), "the job did not wait for outputs");
+
+        await _harness.Bus.Publish(new OutputsReevaluationRequestedEvent
+        {
+            ModuleJobId = _jobId,
+            OrganizationId = _organizationId
+        });
+
+        Assert.True(await WaitUntil(() => InState("WaitingForOutputs")), "the job left the wait");
+        Assert.Empty(_harness.Published.Select<TransferMigrateProveRequested>());
+    }
+
+    /// <summary>
+    /// Once the other Module has published the value, a reevaluation lets the job through. This is
+    /// the path the wake consumer drives when an output set arrives.
+    /// </summary>
+    [Fact]
+    public async Task The_Output_Arriving_Releases_The_Job()
+    {
+        await Start();
+        await Preamble();
+
+        var map = await AwaitStep<TransferMigrateMapRequested>("MigrateMapPending");
+        await Answer(new TransferMigrateMapCompleted
+        {
+            CorrelationId = map.CorrelationId,
+            OrganizationId = _organizationId,
+            ModuleId = _moduleId,
+            NeedsOutputs = ["db_endpoint"]
+        });
+
+        Assert.True(await WaitUntil(() => InState("WaitingForOutputs")), "the job did not wait for outputs");
+
+        await SeedCounterpartyOutput("db_endpoint");
+
+        await _harness.Bus.Publish(new OutputsReevaluationRequestedEvent
+        {
+            ModuleJobId = _jobId,
+            OrganizationId = _organizationId
+        });
+
+        Assert.NotNull(await AwaitStep<TransferMigrateProveRequested>("MigrateProvePending"));
+    }
+
     /// <summary>A decline ends the job with nothing written.</summary>
     [Fact]
     public async Task A_Declined_Approval_Writes_Nothing()
@@ -170,8 +300,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         {
             CorrelationId = map.CorrelationId,
             OrganizationId = _organizationId,
-            ModuleId = _moduleId,
-            NeedsValuesFrom = []
+            ModuleId = _moduleId
         });
 
         var prove = await AwaitStep<TransferMigrateProveRequested>("MigrateProvePending");
@@ -204,8 +333,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         {
             CorrelationId = map.CorrelationId,
             OrganizationId = _organizationId,
-            ModuleId = _moduleId,
-            NeedsValuesFrom = []
+            ModuleId = _moduleId
         });
 
         var prove = await AwaitStep<TransferMigrateProveRequested>("MigrateProvePending");
@@ -241,7 +369,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         {
             CorrelationId = _jobId,
             TransferId = _transferId,
-            Role = TransferRole.Source,
+            TransferRunId = _transferRunId,
             Declared = Declared(),
             ProveRef = "main"
         });
@@ -405,4 +533,29 @@ public class TransferMigrateJobTests : IAsyncLifetime
         SourceSubdirectory = "",
         Engine = "OpenTofu"
     };
+
+    /// <summary>An output set on the other Module of this transfer, which is what the gate reads.</summary>
+    private async Task SeedCounterpartyOutput(string name)
+    {
+        await using var db = _fixture.CreateDbContext();
+        db.OutputSets.Add(new OutputSet
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ModuleId = _counterpartyId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Checksum = Guid.NewGuid().ToString("N"),
+            Outputs =
+            [
+                new Output
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = _organizationId,
+                    Name = name,
+                    Type = "string"
+                }
+            ]
+        });
+        await db.SaveChangesAsync();
+    }
 }

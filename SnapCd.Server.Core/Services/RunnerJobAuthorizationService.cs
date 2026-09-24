@@ -233,7 +233,9 @@ public class RunnerJobAuthorizationService
             "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for job {JobId} in state {State}",
             connection.RunnerId, connection.InstanceName, jobId, expectedState);
 
-        return new JobAuthorization(JobSagaFamily.Deployment, connection.OrganizationId);
+        // The transfer family runs the same preamble steps under the same state names, so it
+        // validates identically; only the handler the reply goes to differs.
+        return new JobAuthorization(sagaMetaData.Family, connection.OrganizationId);
     }
 
     public async Task ValidateRunnerAssignedToModule(

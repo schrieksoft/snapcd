@@ -40,8 +40,11 @@ public partial class Tasks
 
                 await engine.RunProcess(command, killToken, gracefulToken);
 
+                var receipt = TransferReceipt.Read(request.RootDirectory, TransferReceipt.RunReceiptFile);
+
                 await InvokeWithRetryAsync(
-                    () => client.InvokeTransferMigrateRunCompleted(request.JobId, request.ModuleId),
+                    () => client.InvokeTransferMigrateRunCompleted(
+                        request.JobId, request.ModuleId, receipt?.TransferredAddresses ?? []),
                     nameof(client.InvokeTransferMigrateRunCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
@@ -68,4 +71,27 @@ public partial class Tasks
             },
             (client, message, stackTrace) =>
                 client.InvokeTransferMigrateVerifyFaulted(request.JobId, request.ModuleId, message, stackTrace));
+
+    /// <summary>
+    /// Reads this Module's outputs once its state holds the moved resources, so the other side of
+    /// the transfer can plan against values that now exist.
+    /// </summary>
+    public Task TransferOutputs(TransferOutputsRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, request.ModuleId, nameof(TransferOutputs), request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken, gracefulToken) =>
+            {
+                taskContext.LogNarration("Now reading this module's outputs");
+
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                var json = await engine.Output(null, null, killToken, gracefulToken);
+                var outputSet = await engine.ParseJsonToModuleOutputSet(json);
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeTransferOutputsCompleted(request.JobId, request.ModuleId, outputSet),
+                    nameof(client.InvokeTransferOutputsCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeTransferOutputsFaulted(request.JobId, request.ModuleId, message, stackTrace));
 }

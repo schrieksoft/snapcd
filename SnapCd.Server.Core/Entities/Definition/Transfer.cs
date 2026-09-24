@@ -16,66 +16,59 @@ using SnapCd.Server.Core.Enums;
 namespace SnapCd.Server.Core.Entities.Definition;
 
 /// <summary>
-/// A move of resources from one Module into one other, and the receiver's consent to it. What
-/// moves is decided in the code by the transfer map, which is committed alongside it and read by
-/// demonolith from each Module's own checkout - the server never carries it.
+/// The intent: move resources between two Modules, with the counterparty's consent. Which way they
+/// move is demonolith's to know, from the transfer map committed alongside the code.
 ///
-/// It records no state of its own. Where the transfer stands is read from its jobs - one per
-/// Module - so nothing here can fall out of step with what actually ran.
+/// It outlives any one attempt. A retry is another run under the same intent, and the resources it
+/// moves stay accounted for here until the transfer is closed.
 /// </summary>
 public class Transfer : AuditBase, IEntity
 {
-    /// <summary>The transfer's id.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>The organization both Modules belong to.</summary>
     public Guid OrganizationId { get; set; }
 
-    /// <summary>The Module the resources move out of; its owners start the transfer.</summary>
-    public Guid SourceModuleId { get; set; }
+    /// <summary>The Module the transfer was started from.</summary>
+    public Guid ModuleId { get; set; }
 
-    /// <summary>The Module the resources move into; its owners consent before anything runs.</summary>
-    public Guid ReceiverModuleId { get; set; }
+    /// <summary>The Module on the other side of it; its state is written too.</summary>
+    public Guid CounterpartyModuleId { get; set; }
 
-    /// <summary>The ref the source runs against.</summary>
-    [MaxLength(255)] public string? SourceProveRef { get; set; }
+    /// <summary>The counterparty's answer, which covers every run under this transfer.</summary>
+    public ConsentStatus ConsentStatus { get; set; }
 
-    /// <summary>The ref the receiver runs against, from its consent.</summary>
-    [MaxLength(255)] public string? ReceiverProveRef { get; set; }
+    public Guid? ConsentPrincipalId { get; set; }
 
-    /// <summary>
-    /// Which Modules this transfer moves. A side that failed is finished by a transfer covering
-    /// that side alone.
-    /// </summary>
-    public TransferScope Scope { get; set; }
+    public PrincipalDiscriminator? ConsentPrincipalDiscriminator { get; set; }
 
-    /// <summary>The receiving Module's answer: receiving state into it is its owners' decision.</summary>
-    public ConsentStatus ReceiverConsentStatus { get; set; }
+    /// <summary>The Agent that consented, when one did rather than a User or plain principal.</summary>
+    public Guid? ConsentAgentId { get; set; }
 
-    /// <summary>Who answered for the receiver.</summary>
-    public Guid? ReceiverConsentPrincipalId { get; set; }
+    public DateTimeOffset? ConsentDecidedAt { get; set; }
 
-    /// <summary>Whether that was a User or a ServicePrincipal, recorded as approvals record it.</summary>
-    public PrincipalDiscriminator? ReceiverConsentPrincipalDiscriminator { get; set; }
+    [MaxLength(500)] public string? ConsentReason { get; set; }
 
     /// <summary>
-    /// AgentId of the Agent that consented (acting via its underlying ServicePrincipal), or
-    /// <c>null</c> when a User or a non-agent ServicePrincipal did.
+    /// When it was closed. A closed transfer is history: its resources are no longer watched, so
+    /// deleting one of them a year later is not mistaken for a move that never landed.
     /// </summary>
-    public Guid? ReceiverConsentAgentId { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
 
-    /// <summary>When the receiver answered.</summary>
-    public DateTimeOffset? ReceiverConsentDecidedAt { get; set; }
+    public Guid? ClosedBy { get; set; }
 
-    /// <summary>What the receiver said alongside its decision.</summary>
-    [MaxLength(500)] public string? ReceiverConsentReason { get; set; }
+    public PrincipalDiscriminator? ClosedByPrincipalDiscriminator { get; set; }
 
-    [JsonIgnore] public Module SourceModule { get; set; } = null!;
-    [JsonIgnore] public Module ReceiverModule { get; set; } = null!;
+    [MaxLength(500)] public string? CloseReason { get; set; }
+
+    [JsonIgnore] public Module Module { get; set; } = null!;
+    [JsonIgnore] public Module CounterpartyModule { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
+
+    public List<TransferRun> Runs { get; set; } = null!;
+    public List<TransferObject> Objects { get; set; } = null!;
 
     public Guid ParentId()
     {
-        return SourceModuleId;
+        return ModuleId;
     }
 }

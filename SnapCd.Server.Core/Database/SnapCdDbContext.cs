@@ -142,8 +142,11 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ManualModuleJob> ManualModuleJobs { get; set; }
     public DbSet<ManualModuleJobApproval> ManualModuleJobApprovals { get; set; }
     public DbSet<ManualModuleJobStep> ManualModuleJobSteps { get; set; }
+    public DbSet<ManualModuleJobAddress> ManualModuleJobAddresses { get; set; }
     public DbSet<ManualModuleJobArtefact> ManualModuleJobArtefacts { get; set; }
     public DbSet<Transfer> Transfers { get; set; }
+    public DbSet<TransferRun> TransferRuns { get; set; }
+    public DbSet<TransferObject> TransferObjects { get; set; }
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
     public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
     public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
@@ -288,6 +291,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             yield return new ApplyJobSagaClassMap();
             yield return new SplitMigrateSagaClassMap();
             yield return new TransferMigrateSagaClassMap();
+            yield return new StateListFilteredSagaClassMap();
+            yield return new StateMoveSagaClassMap();
             yield return new DestroyJobSagaClassMap();
             yield return new ModuleSagaClassMap();
             yield return new ModuleModifiedSagaClassMap();
@@ -421,8 +426,11 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ManualModuleJobClassMap());
         modelBuilder.ApplyConfiguration(new ManualModuleJobApprovalClassMap());
         modelBuilder.ApplyConfiguration(new ManualModuleJobStepClassMap());
+        modelBuilder.ApplyConfiguration(new ManualModuleJobAddressClassMap());
         modelBuilder.ApplyConfiguration(new ManualModuleJobArtefactClassMap());
         modelBuilder.ApplyConfiguration(new TransferClassMap());
+        modelBuilder.ApplyConfiguration(new TransferRunClassMap());
+        modelBuilder.ApplyConfiguration(new TransferObjectClassMap());
         modelBuilder.ApplyConfiguration(new UserFavoriteClassMap());
         modelBuilder.ApplyConfiguration(new UserColorClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());

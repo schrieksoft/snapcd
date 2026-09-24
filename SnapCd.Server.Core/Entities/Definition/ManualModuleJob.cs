@@ -27,8 +27,8 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
 
     public Guid ModuleId { get; set; }
 
-    /// <summary>The Transfer this job belongs to, when it is one of a transfer's two jobs.</summary>
-    public Guid? TransferId { get; set; }
+    /// <summary>The transfer attempt this job belongs to, when it is one.</summary>
+    public Guid? TransferRunId { get; set; }
 
     public int JobNumber { get; set; }
 
@@ -52,6 +52,9 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
     public List<ManualModuleJobApproval> ManualModuleJobApprovals { get; set; } = null!;
 
     public List<ManualModuleJobStep> Steps { get; set; } = null!;
+
+    /// <summary>Every address this job touched, and what became of each.</summary>
+    public List<ManualModuleJobAddress> Addresses { get; set; } = null!;
 
     public List<ManualModuleJobArtefact> Artefacts { get; set; } = null!;
 

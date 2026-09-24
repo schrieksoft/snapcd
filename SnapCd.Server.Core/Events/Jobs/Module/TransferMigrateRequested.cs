@@ -6,22 +6,21 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Base;
 
 namespace SnapCd.Server.Core.Events.Jobs.Module;
 
 /// <summary>
-/// Starts one Module's state move. A transfer is two of these, one per Module; nothing coordinates
-/// them beyond the source's job being started after the receiver's has completed.
+/// Starts one Module's state move. A transfer run is one of these per Module in its scope, each
+/// running independently; the ledger records what actually moved.
 /// </summary>
 public class TransferMigrateRequested : ModuleJobEventBase
 {
-    /// <summary>The Transfer both jobs belong to.</summary>
+    /// <summary>The Transfer this run belongs to.</summary>
     public Guid TransferId { get; set; }
 
-    /// <summary>Whether this Module gives the resources up or takes them on.</summary>
-    public TransferRole Role { get; set; }
+    /// <summary>The run that started this job.</summary>
+    public Guid TransferRunId { get; set; }
 
     /// <summary>This Module's root within its own checkout (--root-dir).</summary>
     public string? RootDirectory { get; set; }
@@ -29,11 +28,4 @@ public class TransferMigrateRequested : ModuleJobEventBase
     /// <summary>The ref this Module runs against.</summary>
     public string? ProveRef { get; set; }
 
-    /// <summary>The fragment the source produced, for the receiver's job.</summary>
-    public string? FragmentState { get; set; }
-
-    public string? FragmentMeta { get; set; }
-
-    /// <summary>The values the other Module produced that this one consumes, by filename.</summary>
-    public Dictionary<string, string> Outputs { get; set; } = new();
 }

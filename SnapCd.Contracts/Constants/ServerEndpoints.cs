@@ -36,14 +36,6 @@ public static class ServerEndpoints
     public const string RefactorDiffFaulted = "RefactorDiffFaulted";
     // A transfer runs the same slices against one of two Modules, so its replies are separate
     // endpoints carrying the Module they are for.
-    public const string TransferGetModuleCompleted = "TransferGetModuleCompleted";
-    public const string TransferGetModuleFaulted = "TransferGetModuleFaulted";
-    public const string TransferInitCompleted = "TransferInitCompleted";
-    public const string TransferInitFaulted = "TransferInitFaulted";
-    public const string TransferValidateCompleted = "TransferValidateCompleted";
-    public const string TransferValidateFaulted = "TransferValidateFaulted";
-    public const string TransferPlanCompleted = "TransferPlanCompleted";
-    public const string TransferPlanFaulted = "TransferPlanFaulted";
     public const string TransferMigrateMapCompleted = "TransferMigrateMapCompleted";
     public const string TransferMigrateMapFaulted = "TransferMigrateMapFaulted";
     public const string TransferMigrateProveCompleted = "TransferMigrateProveCompleted";
@@ -52,6 +44,12 @@ public static class ServerEndpoints
     public const string TransferMigrateRunFaulted = "TransferMigrateRunFaulted";
     public const string TransferMigrateVerifyCompleted = "TransferMigrateVerifyCompleted";
     public const string TransferMigrateVerifyFaulted = "TransferMigrateVerifyFaulted";
+    public const string TransferOutputsCompleted = "TransferOutputsCompleted";
+    public const string TransferOutputsFaulted = "TransferOutputsFaulted";
+    public const string StateListFilteredCompleted = "StateListFilteredCompleted";
+    public const string StateListFilteredFaulted = "StateListFilteredFaulted";
+    public const string StateMoveCompleted = "StateMoveCompleted";
+    public const string StateMoveFaulted = "StateMoveFaulted";
     public const string TransferRefactorDiffCompleted = "TransferRefactorDiffCompleted";
     public const string TransferRefactorDiffFaulted = "TransferRefactorDiffFaulted";
 

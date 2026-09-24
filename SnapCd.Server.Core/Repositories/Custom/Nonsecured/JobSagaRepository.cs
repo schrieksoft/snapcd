@@ -21,7 +21,10 @@ public class JobSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFacto
         var applyJobSagaRepository = new ApplyJobSagaRepository(dbContext);
         var destroyJobSagaRepository = new DestroyJobSagaRepository(dbContext);
         var splitMonolithSagaRepository = new SplitMigrateSagaRepository(dbContext);
-        return new JobSagaRepository(dbContext, applyJobSagaRepository, destroyJobSagaRepository, splitMonolithSagaRepository);
+        var transferMigrateSagaRepository = new TransferMigrateSagaRepository(dbContext);
+        return new JobSagaRepository(
+            dbContext, applyJobSagaRepository, destroyJobSagaRepository,
+            splitMonolithSagaRepository, transferMigrateSagaRepository);
     }
 }
 
@@ -31,17 +34,20 @@ public class JobSagaRepository : IDisposable
     private readonly ApplyJobSagaRepository _applyJobSagaRepository;
     private readonly DestroyJobSagaRepository _destroyJobSagaRepository;
     private readonly SplitMigrateSagaRepository _splitMonolithSagaRepository;
+    private readonly TransferMigrateSagaRepository _transferMigrateSagaRepository;
 
     public JobSagaRepository(
         SnapCdDbContext dbContext,
         ApplyJobSagaRepository applyJobSagaRepository,
         DestroyJobSagaRepository destroyJobSagaRepository,
-        SplitMigrateSagaRepository splitMonolithSagaRepository)
+        SplitMigrateSagaRepository splitMonolithSagaRepository,
+        TransferMigrateSagaRepository transferMigrateSagaRepository)
     {
         _dbContext = dbContext;
         _applyJobSagaRepository = applyJobSagaRepository;
         _destroyJobSagaRepository = destroyJobSagaRepository;
         _splitMonolithSagaRepository = splitMonolithSagaRepository;
+        _transferMigrateSagaRepository = transferMigrateSagaRepository;
     }
 
     /// <summary>
@@ -69,7 +75,10 @@ public class JobSagaRepository : IDisposable
                 };
         }
 
-        if  (metaData == null)
+        if (metaData == null)
+            metaData = await _transferMigrateSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
+
+        if (metaData == null)
             throw new EntityNotFoundException($"Could not find a Job with correlation id {correlationId} in Organization {organizationId}.");
 
         return metaData;
@@ -81,6 +90,7 @@ public class JobSagaRepository : IDisposable
         _applyJobSagaRepository?.Dispose();
         _destroyJobSagaRepository?.Dispose();
         _splitMonolithSagaRepository?.Dispose();
+        _transferMigrateSagaRepository?.Dispose();
         _dbContext?.Dispose();
     }
 }

@@ -27,15 +27,18 @@ public class JobSagaMetaData
 }
 
 /// <summary>
-/// The saga families a runner callback can belong to. Apply and Destroy share a state vocabulary
-/// (<c>ModuleJobSagaState</c>); SplitMigrate has its own.
+/// The saga families a runner callback can belong to. All but SplitMigrate name their states in
+/// the <c>ModuleJobSagaState</c> vocabulary; SplitMigrate has its own.
 /// </summary>
 public enum JobSagaFamily
 {
     /// <summary>ApplyJobSaga or DestroyJobSaga.</summary>
     Deployment,
 
-    SplitMigrate
+    SplitMigrate,
+
+    /// <summary>One Module's state move within a transfer run.</summary>
+    TransferMigrate
 }
 
 /// <summary>The outcome of a successful runner authorization: which family owns the job, and its organization.</summary>

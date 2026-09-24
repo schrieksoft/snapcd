@@ -35,14 +35,15 @@ public class TransferDispatchGate
         var transfer = await dbContext.Set<Transfer>().AsNoTracking()
             .FirstOrDefaultAsync(t =>
                 t.OrganizationId == organizationId &&
-                (t.SourceModuleId == moduleId || t.ReceiverModuleId == moduleId));
+                t.ClosedAt == null &&
+                (t.ModuleId == moduleId || t.CounterpartyModuleId == moduleId));
 
         if (transfer == null)
             throw new InvalidOperationException($"Module {moduleId} is not part of a transfer.");
 
-        if (transfer.ReceiverModuleId == moduleId &&
-            transfer.ReceiverConsentStatus is ConsentStatus.Refused or ConsentStatus.Revoked)
+        if (transfer.CounterpartyModuleId == moduleId &&
+            transfer.ConsentStatus is ConsentStatus.Refused)
             throw new InvalidOperationException(
-                $"The receiving Module has {transfer.ReceiverConsentStatus.ToString().ToLowerInvariant()} its consent.");
+                "The counterparty refused its consent.");
     }
 }

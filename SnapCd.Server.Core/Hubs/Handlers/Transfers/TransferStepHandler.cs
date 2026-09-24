@@ -26,6 +26,18 @@ public class TransferStepHandler
         _bus = bus;
     }
 
+    /// <summary>
+    /// For the steps a transfer shares with an ordinary job, whose replies name only the job. The
+    /// job id identifies the saga on its own; the Module is read from the saga.
+    /// </summary>
+    public Task Complete<TCompleted>(Guid jobId, Guid organizationId, Action<TCompleted>? fill = null)
+        where TCompleted : TransferStepResponseBase, new()
+        => Complete(jobId, Guid.Empty, organizationId, fill);
+
+    public Task Fault<TFaulted>(Guid jobId, Guid organizationId, string? errorMessage, string? stackTrace)
+        where TFaulted : TransferStepFaultedBase, new()
+        => Fault<TFaulted>(jobId, Guid.Empty, organizationId, errorMessage, stackTrace);
+
     public async Task Complete<TCompleted>(Guid jobId, Guid moduleId, Guid organizationId, Action<TCompleted>? fill = null)
         where TCompleted : TransferStepResponseBase, new()
     {

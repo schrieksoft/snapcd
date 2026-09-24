@@ -8,10 +8,7 @@
 
 namespace SnapCd.Contracts.RunnerRequests.Transfers;
 
-/// <summary>
-/// What every transfer slice needs. The Module id is on the request because a transfer runs the
-/// same slice against two Modules, and each reply has to say which one it came from.
-/// </summary>
+/// <summary>What every transfer slice needs, beyond the fields an ordinary job step carries.</summary>
 public abstract class TransferSliceRequestBase : EngineJobRequestBase
 {
     /// <summary>Which Module this slice is for.</summary>
@@ -22,26 +19,21 @@ public abstract class TransferSliceRequestBase : EngineJobRequestBase
 
 }
 
-/// <summary>
-/// Pulls and pins this Module's state. On the source it also writes the fragment the receiver
-/// needs; on the receiver it applies the fragment it is given.
-/// </summary>
+/// <summary>Pulls and pins this Module's state, ready to prove against.</summary>
 public class TransferMigrateMapRequestBase : TransferSliceRequestBase
 {
-    /// <summary>The fragment to apply, for the receiver. Null on the source, which writes it.</summary>
-    public string? FragmentState { get; set; }
-
-    public string? FragmentMeta { get; set; }
 }
 
 /// <summary>
-/// Asks whether this Module's root plans to zero changes with the moved resources in place, given
-/// the values the other Module produced.
+/// Asks whether this Module's root plans to zero changes with the moved resources in place.
 /// </summary>
 public class TransferMigrateProveRequestBase : TransferSliceRequestBase
 {
-    /// <summary>The output files this Module consumes, by the filename demonolith expects.</summary>
-    public Dictionary<string, string> Outputs { get; set; } = new();
+}
+
+/// <summary>Reads this root's outputs once its state has been written.</summary>
+public class TransferOutputsRequestBase : TransferSliceRequestBase
+{
 }
 
 /// <summary>

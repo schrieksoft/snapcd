@@ -26,11 +26,11 @@ public class TransferMigrateSagaClassMap : SagaClassMap<TransferMigrateSaga>
         entity.HasIndex(e => e.CorrelationId).IsUnique();
 
         entity.Property(x => x.CurrentState).HasMaxLength(64);
-        entity.Property(x => x.Role).HasConversion<string>().HasMaxLength(50);
 
-        // One job per Module per transfer. Finishing a side that failed is a new transfer, not a
-        // second job on this one, so the pair is unique.
-        entity.HasIndex(e => new { e.TransferId, e.Role, e.OrganizationId }).IsUnique();
+        // One job per Module per run.
+        entity.HasIndex(e => new { e.TransferRunId, e.ModuleId, e.OrganizationId }).IsUnique();
+
+        entity.HasIndex(e => new { e.TransferId, e.OrganizationId });
 
         entity
             .HasOne<Module>()

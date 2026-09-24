@@ -17,7 +17,30 @@ public interface IEngine
     string GetInitDir();
 
     /// <summary>Runs a command in the module directory with the job's environment loaded.</summary>
-    Task<string> RunProcess(string script, CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken);
+    Task<string> RunProcess(
+        string script,
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken,
+        bool logOutput = true);
+
+    /// <summary>
+    /// Moves, imports or removes addresses one at a time, reporting each on its own. A batch never
+    /// abandons the rest on one failure: which of them worked is what the caller needs.
+    /// </summary>
+    Task<List<(string Address, bool Succeeded)>> StateMove(
+        StateMoveOperation operation,
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default);
+
+    /// <summary>
+    /// Which of the given addresses are in this Module's state. The state itself is never returned
+    /// or logged - only the verdict on the addresses asked about.
+    /// </summary>
+    Task<(List<string> Present, List<string> Absent)> StateListFiltered(
+        IReadOnlyCollection<string> addresses,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default);
     string GetSnapCdDir();
 
     Task<string> Init(
@@ -101,4 +124,12 @@ public interface IEngine
 
     Task<OutputSetCreateDto?> ParseJsonToModuleOutputSet(
         string json, Dictionary<string, bool>? outputSources = null);
+}
+
+/// <summary>Which state-moving command to run.</summary>
+public enum StateMoveOperation
+{
+    Mv,
+    Import,
+    Remove
 }

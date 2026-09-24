@@ -13,17 +13,16 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace SnapCd.Runner.Services.Transfers;
 
 /// <summary>
-/// Reads the transfer map for the one thing the server cannot work out for itself: which Module
-/// needs a value the other one produces. A Module that needs a value cannot plan until the other
-/// has, so this is what decides which of the two goes first.
+/// The committed transfer map, read from this root's own checkout. Only the cross-boundary wiring
+/// is read here; everything else in the map is demonolith's business.
 /// </summary>
 public static class TransferMap
 {
     /// <summary>
-    /// Module names this one needs values from. Empty when it needs nothing, which is what lets
-    /// the two run in either order.
+    /// The output names this root's plan consumes from the other side of the transfer. Empty when
+    /// it consumes nothing, which is the usual case and what lets both roots run at once.
     /// </summary>
-    public static List<string> NeedsValuesFrom(string? rootDirectory)
+    public static List<string> NeedsOutputs(string? rootDirectory)
     {
         var root = string.IsNullOrWhiteSpace(rootDirectory) ? "." : rootDirectory;
         var path = Path.Combine(root, TransferFiles.MapFile);
@@ -42,8 +41,8 @@ public static class TransferMap
         if (moduleName == null) return [];
 
         return map.CrossEdges?
-            .Where(e => e.Consumer == moduleName && e.Producer != null)
-            .Select(e => e.Producer!)
+            .Where(e => e.Consumer == moduleName && e.Producer != moduleName && e.Output != null)
+            .Select(e => e.Output!)
             .Distinct()
             .ToList() ?? [];
     }
@@ -81,5 +80,6 @@ public static class TransferMap
     {
         public string? Consumer { get; set; }
         public string? Producer { get; set; }
+        public string? Output { get; set; }
     }
 }

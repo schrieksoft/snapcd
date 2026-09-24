@@ -33,29 +33,18 @@ public class TransferGetModuleConsumer
         TransferDispatchGate dispatchGate)
         : base(logger, hubContext, runnerSelection, dispatchGate) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferGetModule;
+    protected override string Endpoint => RunnerEndpoints.GetModule;
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferGetModuleRequested> context, Guid jobId)
     {
         var msg = context.Message;
         var ordinary = StepRequestBuilders.GetModule(jobId, msg.OrganizationId, msg.Declared);
 
-        return Task.FromResult<object>(new TransferGetModuleRequestBase
-        {
-            JobId = ordinary.JobId,
-            OrganizationId = ordinary.OrganizationId,
-            ModuleId = msg.ModuleId,
-            Metadata = ordinary.Metadata,
-            SourceType = ordinary.SourceType,
-            SourceRevisionType = ordinary.SourceRevisionType,
-            SourceUrl = ordinary.SourceUrl,
-            SourceRevision = string.IsNullOrWhiteSpace(msg.SourceRevisionOverride)
-                ? ordinary.SourceRevision
-                : msg.SourceRevisionOverride,
-            Engine = ordinary.Engine,
-            CleanInitEnabled = ordinary.CleanInitEnabled,
-            ExtraFiles = ordinary.ExtraFiles
-        });
+        // The transfer runs against the ref carrying the code move, not the Module's own.
+        if (!string.IsNullOrWhiteSpace(msg.SourceRevisionOverride))
+            ordinary.SourceRevision = msg.SourceRevisionOverride;
+
+        return Task.FromResult<object>(ordinary);
     }
 }
 
@@ -75,7 +64,7 @@ public class TransferInitConsumer
         _paramResolverFactory = paramResolverFactory;
     }
 
-    protected override string Endpoint => RunnerEndpoints.TransferInit;
+    protected override string Endpoint => RunnerEndpoints.Init;
 
     protected override async Task<object> BuildPayload(ConsumeContext<TransferInitRequested> context, Guid jobId)
     {
@@ -86,19 +75,7 @@ public class TransferInitConsumer
 
         var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, resolvedEnvVars);
 
-        return new TransferInitRequestBase
-        {
-            JobId = ordinary.JobId,
-            OrganizationId = ordinary.OrganizationId,
-            ModuleId = msg.ModuleId,
-            Metadata = ordinary.Metadata,
-            Engine = ordinary.Engine,
-            InitBeforeHook = ordinary.InitBeforeHook,
-            InitAfterHook = ordinary.InitAfterHook,
-            CleanInitEnabled = ordinary.CleanInitEnabled,
-            ResolvedEnvVars = ordinary.ResolvedEnvVars,
-            BackendConfiguration = ordinary.BackendConfiguration
-        };
+        return ordinary;
     }
 }
 
@@ -112,21 +89,14 @@ public class TransferValidateConsumer
         TransferDispatchGate dispatchGate)
         : base(logger, hubContext, runnerSelection, dispatchGate) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferValidate;
+    protected override string Endpoint => RunnerEndpoints.Validate;
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferValidateRequested> context, Guid jobId)
     {
         var msg = context.Message;
         var ordinary = StepRequestBuilders.Validate(jobId, msg.OrganizationId, msg.Declared);
 
-        return Task.FromResult<object>(new TransferValidateRequestBase
-        {
-            JobId = ordinary.JobId,
-            OrganizationId = ordinary.OrganizationId,
-            ModuleId = msg.ModuleId,
-            Metadata = ordinary.Metadata,
-            Engine = ordinary.Engine
-        });
+        return Task.FromResult<object>(ordinary);
     }
 }
 
@@ -150,7 +120,7 @@ public class TransferPlanConsumer
         _paramResolverFactory = paramResolverFactory;
     }
 
-    protected override string Endpoint => RunnerEndpoints.TransferPlan;
+    protected override string Endpoint => RunnerEndpoints.Plan;
 
     protected override async Task<object> BuildPayload(ConsumeContext<TransferPlanRequested> context, Guid jobId)
     {
@@ -162,21 +132,6 @@ public class TransferPlanConsumer
         var ordinary = StepRequestBuilders.Plan(
             jobId, msg.OrganizationId, msg.Declared, resolvedParameters, isDestroyJob: false);
 
-        return new TransferPlanRequestBase
-        {
-            JobId = ordinary.JobId,
-            OrganizationId = ordinary.OrganizationId,
-            ModuleId = msg.ModuleId,
-            Metadata = ordinary.Metadata,
-            Engine = ordinary.Engine,
-            PlanBeforeHook = ordinary.PlanBeforeHook,
-            PlanAfterHook = ordinary.PlanAfterHook,
-            ResolvedParameters = ordinary.ResolvedParameters,
-            PulumiFlags = ordinary.PulumiFlags,
-            PulumiArrayFlags = ordinary.PulumiArrayFlags,
-            TerraformFlags = ordinary.TerraformFlags,
-            TerraformArrayFlags = ordinary.TerraformArrayFlags,
-            Policies = ordinary.Policies
-        };
+        return ordinary;
     }
 }

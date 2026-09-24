@@ -6,6 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.StateMachine.StateMigrations;
+using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
+using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using System.Reflection;
 using MassTransit;
 using MassTransit.SqlTransport;
@@ -80,6 +83,8 @@ public static class MassTransit
             services.AddHostedService(sp => new DeadLetterSinkHostedService(
                 serviceBusSettings.TransportOptions.AzureServiceBus.ConnectionString,
                 sp.GetRequiredService<ILogger<DeadLetterSinkHostedService>>()));
+
+        AddStateMachineActivities(services);
 
         services.AddMassTransit(x =>
         {
@@ -243,6 +248,9 @@ public static class MassTransit
         typeof(TransferMigrateProveConsumer),
         typeof(TransferMigrateRunConsumer),
         typeof(TransferMigrateVerifyConsumer),
+        typeof(TransferOutputsConsumer),
+        typeof(StateListFilteredConsumer),
+        typeof(StateMoveConsumer),
         typeof(TransferRefactorDiffConsumer),
 
         // cancel
@@ -287,6 +295,8 @@ public static class MassTransit
         // created for the bound agent, or when the agent's IsSuppliedToAllModules flag flips on
         typeof(AgentSupplyCreatedMissionWakeConsumer),
 
+        typeof(StateAddressesTouchedCompetingConsumer),
+        typeof(TransferOutputsWakeCompetingConsumer),
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
         typeof(ModuleModifiedCompetingConsumer),
         typeof(NamespaceModifiedCompetingConsumer),
@@ -362,12 +372,24 @@ public static class MassTransit
         }, endpointNameFormatter);
     }
 
+    /// <summary>
+    /// Activities a state machine reaches through <c>OfType</c>, which resolves them from the
+    /// container. An unregistered one is skipped silently, so the gate it implements never runs.
+    /// </summary>
+    private static void AddStateMachineActivities(IServiceCollection services)
+    {
+        services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
+        services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
+    }
+
     private static void AddSagaStateMachines(IBusRegistrationConfigurator x)
     {
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
         AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
+        AddSagaStateMachine<StateListFilteredStateMachine, StateListFilteredSaga>(x);
+        AddSagaStateMachine<StateMoveStateMachine, StateMoveSaga>(x);
 
         // module sagas
         AddSagaStateMachine<

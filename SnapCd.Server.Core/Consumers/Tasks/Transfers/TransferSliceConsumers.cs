@@ -45,9 +45,7 @@ public class TransferMigrateMapConsumer
             ModuleId = msg.ModuleId,
             Metadata = StepRequestBuilders.MetadataFor(msg.Declared),
             Engine = msg.Declared.Engine,
-            RootDirectory = msg.RootDirectory,
-            FragmentState = msg.FragmentState,
-            FragmentMeta = msg.FragmentMeta
+            RootDirectory = msg.RootDirectory
         });
     }
 }
@@ -79,8 +77,7 @@ public class TransferMigrateProveConsumer
             ModuleId = msg.ModuleId,
             Metadata = StepRequestBuilders.MetadataFor(msg.Declared),
             Engine = msg.Declared.Engine,
-            RootDirectory = msg.RootDirectory,
-            Outputs = msg.Outputs
+            RootDirectory = msg.RootDirectory
         });
     }
 }
@@ -167,6 +164,38 @@ public class TransferMigrateVerifyConsumer
         var msg = context.Message;
 
         return Task.FromResult<object>(new TransferMigrateVerifyRequestBase
+        {
+            JobId = jobId,
+            OrganizationId = msg.OrganizationId,
+            ModuleId = msg.ModuleId,
+            Metadata = StepRequestBuilders.MetadataFor(msg.Declared),
+            Engine = msg.Declared.Engine,
+            RootDirectory = msg.RootDirectory
+        });
+    }
+}
+
+/// <summary>
+/// Reads this Module's outputs after the write, so the other side of the transfer can plan against
+/// values that exist.
+/// </summary>
+public class TransferOutputsConsumer
+    : TransferStepConsumer<TransferOutputsRequested, TransferOutputsFaulted>
+{
+    public TransferOutputsConsumer(
+        ILogger<TransferOutputsConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerSelectionService runnerSelection,
+        TransferDispatchGate dispatchGate)
+        : base(logger, hubContext, runnerSelection, dispatchGate) { }
+
+    protected override string Endpoint => RunnerEndpoints.TransferOutputs;
+
+    protected override Task<object> BuildPayload(ConsumeContext<TransferOutputsRequested> context, Guid jobId)
+    {
+        var msg = context.Message;
+
+        return Task.FromResult<object>(new TransferOutputsRequestBase
         {
             JobId = jobId,
             OrganizationId = msg.OrganizationId,

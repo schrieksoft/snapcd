@@ -6,7 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SnapCd.Server.Core.Entities.Definition;
@@ -21,9 +20,9 @@ public class TransferClassMap : IEntityTypeConfiguration<Transfer>
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
-        entity.Property(e => e.Scope).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.ReceiverConsentStatus).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.ReceiverConsentPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.ConsentStatus).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.ConsentPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+        entity.Property(e => e.ClosedByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
 
         entity.HasIndex(e => e.Id).IsUnique();
 
@@ -33,23 +32,81 @@ public class TransferClassMap : IEntityTypeConfiguration<Transfer>
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Restrict on both sides: a Transfer holding a Module still is not something a Module
-        // delete may silently resolve.
+        // Restrict on both sides: an open Transfer is not something a Module delete may silently
+        // resolve.
         entity
-            .HasOne(e => e.SourceModule)
-            .WithMany(m => m.TransfersAsSource)
-            .HasForeignKey(e => new { e.SourceModuleId, e.OrganizationId })
+            .HasOne(e => e.Module)
+            .WithMany(m => m.Transfers)
+            .HasForeignKey(e => new { e.ModuleId, e.OrganizationId })
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
 
         entity
-            .HasOne(e => e.ReceiverModule)
-            .WithMany(m => m.TransfersAsReceiver)
-            .HasForeignKey(e => new { e.ReceiverModuleId, e.OrganizationId })
+            .HasOne(e => e.CounterpartyModule)
+            .WithMany(m => m.CounterpartyTransfers)
+            .HasForeignKey(e => new { e.CounterpartyModuleId, e.OrganizationId })
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
+    }
+}
 
-        entity.HasIndex(e => e.SourceModuleId);
-        entity.HasIndex(e => e.ReceiverModuleId);
+public class TransferRunClassMap : IEntityTypeConfiguration<TransferRun>
+{
+    public void Configure(EntityTypeBuilder<TransferRun> entity)
+    {
+        entity.ToTable("TransferRuns", t => t.UseSqlOutputClause(false));
+
+        entity.HasKey(e => new { e.Id, e.OrganizationId });
+
+        entity.Property(e => e.Scope).HasConversion<string>().HasMaxLength(50);
+
+        entity.HasIndex(e => e.Id).IsUnique();
+        entity.HasIndex(e => new { e.TransferId, e.OrganizationId });
+
+        entity
+            .HasOne(e => e.Transfer)
+            .WithMany(t => t.Runs)
+            .HasForeignKey(e => new { e.TransferId, e.OrganizationId })
+            .HasPrincipalKey(t => new { t.Id, t.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity
+            .HasOne(e => e.Organization)
+            .WithMany()
+            .HasForeignKey(e => e.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class TransferObjectClassMap : IEntityTypeConfiguration<TransferObject>
+{
+    public void Configure(EntityTypeBuilder<TransferObject> entity)
+    {
+        entity.ToTable("TransferObjects", t => t.UseSqlOutputClause(false));
+
+        entity.HasKey(e => new { e.Id, e.OrganizationId });
+
+        entity.Property(e => e.ResolvedByPrincipalDiscriminator).HasConversion<string>().HasMaxLength(50);
+
+        entity.HasIndex(e => e.Id).IsUnique();
+
+        // One row per address per transfer.
+        entity.HasIndex(e => new { e.TransferId, e.Address, e.OrganizationId }).IsUnique();
+
+        // The open ones are what every check reads.
+        entity.HasIndex(e => new { e.OrganizationId, e.ArrivedModuleId, e.ArrivedAt });
+
+        entity
+            .HasOne(e => e.Transfer)
+            .WithMany(t => t.Objects)
+            .HasForeignKey(e => new { e.TransferId, e.OrganizationId })
+            .HasPrincipalKey(t => new { t.Id, t.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity
+            .HasOne(e => e.Organization)
+            .WithMany()
+            .HasForeignKey(e => e.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

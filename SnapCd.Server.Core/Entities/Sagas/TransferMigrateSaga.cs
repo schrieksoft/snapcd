@@ -8,22 +8,20 @@
 
 using System.ComponentModel.DataAnnotations;
 using SnapCd.Server.Core.Entities.Sagas.Base;
-using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.Entities.Sagas;
 
 /// <summary>
-/// One Module's state move. A transfer is two of these, one per Module, each an ordinary manual job
-/// on its own Module's runner. Nothing coordinates them: the source's job waits for the receiver's
-/// to have completed, and demonolith refuses to strip the source without its run receipt.
+/// One Module's state move within a transfer run, an ordinary manual job on that Module's runner.
+/// The Modules in a run move in parallel; what actually moved is recorded in the transfer's ledger.
 /// </summary>
 public class TransferMigrateSaga : ManualJobSagaBase
 {
-    /// <summary>The Transfer this job belongs to; both jobs point at the same one.</summary>
+    /// <summary>The Transfer this job belongs to.</summary>
     public Guid TransferId { get; set; }
 
-    /// <summary>Whether this Module gives the resources up or takes them on.</summary>
-    public TransferRole Role { get; set; }
+    /// <summary>The run that started this job.</summary>
+    public Guid TransferRunId { get; set; }
 
     /// <summary>This Module's root within its own checkout, passed as --root-dir.</summary>
     [MaxLength(1000)] public string? RootDirectory { get; set; }
@@ -34,18 +32,14 @@ public class TransferMigrateSaga : ManualJobSagaBase
     /// <summary>The commit that ref resolved to, recorded against the work.</summary>
     [MaxLength(255)] public string? DefinitiveRevision { get; set; }
 
-    /// <summary>The fragment this Module was given, when it is the receiver.</summary>
-    public string? FragmentState { get; set; }
+    /// <summary>
+    /// Output names this Module's plan consumes from the counterparty, as JSON. Set at map time and
+    /// cleared once they are all available.
+    /// </summary>
+    [MaxLength(2000)] public string? NeedsOutputsJson { get; set; }
 
-    public string? FragmentMeta { get; set; }
-
-    /// <summary>The fragment this Module produced, when it is the source.</summary>
-    public string? ProducedFragmentState { get; set; }
-
-    public string? ProducedFragmentMeta { get; set; }
-
-    /// <summary>The values the other Module produced that this one consumes, as JSON.</summary>
-    public string? OutputsJson { get; set; }
+    /// <summary>Whether the counterparty's outputs are all available, re-read on every check.</summary>
+    public bool HasOutputs { get; set; }
 
     /// <summary>Zero when the plan came out clean, 2 when it did not.</summary>
     public int? ProveExitCode { get; set; }

@@ -7,71 +7,43 @@
 // for terms covering either use.
 
 
+using SnapCd.Contracts.Enums;
+
 namespace SnapCd.Contracts.Dto.Transfers;
 
 /// <summary>Opens a transfer from a source Module into one receiver.</summary>
 public class TransferCreateRequestDto
 {
-    /// <summary>The Module the resources move into. Exactly one: moving into two is two transfers.</summary>
-    public Guid ReceiverModuleId { get; set; }
-
-    /// <summary>
-    /// The transfer map, as demonolith wrote it, hashed verbatim and never re-serialised. Normally
-    /// left out: the map is checked-in code, so it is read from the ref below.
-    /// </summary>
-    public string? Map { get; set; }
-
-    /// <summary>The ref to prove, defaulting the receiver's until it says otherwise.</summary>
-    public string? ProveRef { get; set; }
+    /// <summary>The Module on the other side. Exactly one: moving between three is two transfers.</summary>
+    public Guid CounterpartyModuleId { get; set; }
 }
 
-/// <summary>A participant's answer to a transfer's request for consent.</summary>
+/// <summary>The counterparty's answer to a transfer's request for consent.</summary>
 public class ConsentRequestDto
 {
-    /// <summary>Whether the transfer may prove and push into this Module.</summary>
+    /// <summary>Whether the transfer may write into this Module's state.</summary>
     public bool Granted { get; set; }
-
-    /// <summary>The ref this Module wants proved.</summary>
-    public string? ProveRef { get; set; }
 
     /// <summary>Free text shown beside the decision.</summary>
     public string? Reason { get; set; }
 }
 
-/// <summary>Changes the ref a Module wants proved.</summary>
-public class ProveRefRequestDto
+/// <summary>Starts one attempt at a transfer: which Modules move, and the refs they run against.</summary>
+public class TransferRunRequestDto
 {
-    /// <summary>The branch, tag or commit to prove against.</summary>
-    public string Ref { get; set; } = null!;
+    /// <summary>Whether both Modules move or only the one the transfer was started from.</summary>
+    public TransferScope Scope { get; set; } = TransferScope.Both;
+
+    /// <summary>The ref the starting Module runs against. Defaults to its own.</summary>
+    public string? ModuleRef { get; set; }
+
+    /// <summary>The ref the counterparty runs against. Defaults to its own.</summary>
+    public string? CounterpartyRef { get; set; }
 }
 
-/// <summary>Free text explaining an action, shown wherever the action is reported.</summary>
-public class ReasonRequestDto
+/// <summary>Closes a transfer, optionally saying why its ledger was left unaccounted for.</summary>
+public class TransferCloseRequestDto
 {
-    /// <summary>Why the action was taken.</summary>
+    /// <summary>Required when addresses are still open, and shown against each of them.</summary>
     public string? Reason { get; set; }
-}
-
-/// <summary>Declares that a participant's proved code is on its configured branch.</summary>
-public class DeclareMergedRequestDto
-{
-    /// <summary>The commit the proved code landed as; Migrate checks its ancestry before pushing.</summary>
-    public string MergedCommit { get; set; } = null!;
-}
-
-/// <summary>Starts a prove round, naming where each Module's root sits in its own checkout.</summary>
-public class StartProveRequestDto
-{
-    /// <summary>The source's root within its checkout. Null for the checkout itself.</summary>
-    public string? SourceRootDirectory { get; set; }
-
-    /// <summary>The receiver's root within its checkout.</summary>
-    public string? ReceiverRootDirectory { get; set; }
-}
-
-/// <summary>Replaces a transfer's map, which re-asks the receiver for consent.</summary>
-public class ReplaceMapRequestDto
-{
-    /// <summary>The new transfer map, hashed verbatim to become the transfer's new identity.</summary>
-    public string Map { get; set; } = null!;
 }

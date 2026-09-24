@@ -59,8 +59,8 @@ public partial class TransferMigrateStateMachine
                 .Then(context =>
                 {
                     _logger.LogInformation(
-                        "Transfer {TransferId}: {Role} stopped at {Task}",
-                        context.Saga.TransferId, context.Saga.Role, task);
+                        "Transfer {TransferId}: Module {ModuleId} stopped at {Task}",
+                        context.Saga.TransferId, context.Saga.ModuleId, task);
 
                 })
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
@@ -74,8 +74,8 @@ public partial class TransferMigrateStateMachine
                 .Then(context =>
                 {
                     _logger.LogWarning(
-                        "Transfer {TransferId}: {Role} lost its runner at {Task}",
-                        context.Saga.TransferId, context.Saga.Role, task);
+                        "Transfer {TransferId}: Module {ModuleId} lost its runner at {Task}",
+                        context.Saga.TransferId, context.Saga.ModuleId, task);
 
                 }).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
@@ -88,8 +88,8 @@ public partial class TransferMigrateStateMachine
                 {
                     context.Saga.WaitingSince = null;
                     _logger.LogInformation(
-                        "Transfer {TransferId}: {Role} runner reconnected, re-sending {Task}",
-                        context.Saga.TransferId, context.Saga.Role, task);
+                        "Transfer {TransferId}: Module {ModuleId} runner reconnected, re-sending {Task}",
+                        context.Saga.TransferId, context.Saga.ModuleId, task);
 
                     context.Publish(Request<TNextRequest>(context.Saga));
                 })
@@ -138,25 +138,6 @@ public partial class TransferMigrateStateMachine
         await steps.Completed(
             jobId, context.Saga.OrganizationId, context.Saga.ModuleId, task, status,
             errorHeader: faulted?.ErrorMessage ?? errorHeader, error: faulted?.StackTrace);
-    }
-
-    /// <summary>This Module's map slice, carrying the fragment when it is the receiver.</summary>
-    private static TransferMigrateMapRequested MapRequest(TransferMigrateSaga saga)
-    {
-        var request = Request<TransferMigrateMapRequested>(saga);
-        request.FragmentState = saga.FragmentState;
-        request.FragmentMeta = saga.FragmentMeta;
-        return request;
-    }
-
-    /// <summary>This Module's prove slice, with whatever values it consumes from the other.</summary>
-    private static TransferMigrateProveRequested ProveRequest(TransferMigrateSaga saga)
-    {
-        var request = Request<TransferMigrateProveRequested>(saga);
-        request.Outputs = saga.OutputsJson == null
-            ? new Dictionary<string, string>()
-            : JsonSerializer.Deserialize<Dictionary<string, string>>(saga.OutputsJson)!;
-        return request;
     }
 
     /// <summary>
@@ -249,15 +230,15 @@ public partial class TransferMigrateStateMachine
             When(PlanCompleted, context => context.Message.TotalChangedCount != 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Refused))
                 .Then(context => _logger.LogInformation(
-                    "Transfer {TransferId}: {Role} plans {Count} changes; a transfer needs a clean plan",
-                    context.Saga.TransferId, context.Saga.Role, context.Message.TotalChangedCount))
+                    "Transfer {TransferId}: Module {ModuleId} plans {Count} changes; a transfer needs a clean plan",
+                    context.Saga.TransferId, context.Saga.ModuleId, context.Message.TotalChangedCount))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             // Clean: straight on to this Module's own slices, which it runs without being told.
             // Filtered explicitly, because two handlers for one event both run otherwise.
             When(PlanCompleted, context => context.Message.TotalChangedCount == 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Succeeded))
-                .Publish(context => MapRequest(context.Saga))
+                .Publish(context => Request<TransferMigrateMapRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "MigrateMap"))
                 .TransitionTo(MigrateMapPending),
             When(PlanFaulted)
@@ -269,8 +250,8 @@ public partial class TransferMigrateStateMachine
             When(HeartbeatRequested.Completed2).Then(context =>
             {
                 _logger.LogWarning(
-                    "Transfer {TransferId}: {Role} lost its runner at Plan",
-                    context.Saga.TransferId, context.Saga.Role);
+                    "Transfer {TransferId}: Module {ModuleId} lost its runner at Plan",
+                    context.Saga.TransferId, context.Saga.ModuleId);
 
             }).ThenJobFailed().TransitionTo(Failed).Finalize()
         );

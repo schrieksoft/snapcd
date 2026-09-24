@@ -83,7 +83,7 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
     // with both a terminal status and an end date counts as ended, so an inconsistent row can still be closed.
     private static bool HasEnded(ModuleJob job) =>
         job.TimestampEnd != null
-        && job.Status is ExecutionStatus.Completed or ExecutionStatus.Cancelled or ExecutionStatus.NotApproved or ExecutionStatus.Failed or ExecutionStatus.Orphaned or ExecutionStatus.PolicyDenied;
+        && job.Status is ExecutionStatus.Completed or ExecutionStatus.Cancelled or ExecutionStatus.NotApproved or ExecutionStatus.Failed or ExecutionStatus.Orphaned or ExecutionStatus.PolicyDenied or ExecutionStatus.PartiallyCompleted;
 
     public async Task SetPolicyOutcome(Guid id, Guid organizationId, PolicyOutcome outcome, bool wrapInTransaction = false)
     {

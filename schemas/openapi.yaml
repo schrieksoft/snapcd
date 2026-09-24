@@ -435,11 +435,11 @@ paths:
       x-snapcd-permissions:
         notes: 'Terraform state backend: authenticates with Basic auth (service principal credentials); access is governed
           by roles on the target state store, not by this API''s bearer-token role model.'
-  /api/{organizationId}/Transfer/{sourceModuleId}:
+  /api/{organizationId}/Transfer/{moduleId}:
     post:
       tags:
       - Transfer
-      summary: Open a transfer from a source Module to one receiver, reading the map from a ref
+      summary: Open a transfer between two Modules and ask the counterparty to consent
       description: |-
         ##### Required permissions
 
@@ -463,9 +463,9 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: sourceModuleId
+      - name: moduleId
         in: path
-        description: SourceModule ID
+        description: Module ID
         required: true
         schema:
           type: string
@@ -501,7 +501,7 @@ paths:
     post:
       tags:
       - Transfer
-      summary: Answer a transfer's request for consent on behalf of the receiving Module
+      summary: Answer a transfer's request for consent on behalf of the counterparty Module
       description: |-
         ##### Required permissions
 
@@ -550,6 +550,130 @@ paths:
           application/*+json:
             schema:
               $ref: '#/components/schemas/ConsentRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Runs:
+    post:
+      tags:
+      - Transfer
+      summary: Start one attempt at a transfer
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRunRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/TransferRunRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/TransferRunRequestDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+      x-snapcd-permissions:
+        verb: Consent
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Transfer/{transferId}/Close:
+    post:
+      tags:
+      - Transfer
+      summary: Close a transfer, so its unaccounted-for addresses are no longer watched
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        description: Transfer ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferCloseRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/TransferCloseRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/TransferCloseRequestDto'
         required: true
       responses:
         '200':
@@ -28056,18 +28180,13 @@ components:
       properties:
         granted:
           type: boolean
-          description: Whether the transfer may prove and push into this Module.
-        proveRef:
-          type:
-          - 'null'
-          - string
-          description: The ref this Module wants proved.
+          description: Whether the transfer may write into this Module's state.
         reason:
           type:
           - 'null'
           - string
           description: Free text shown beside the decision.
-      description: A participant's answer to a transfer's request for consent.
+      description: The counterparty's answer to a transfer's request for consent.
     DeclineJobDto:
       type: object
       properties:
@@ -34076,26 +34195,48 @@ components:
       - GenerateConfigOut
       - CreateBeforeDestroy
       - Raw
+    TransferCloseRequestDto:
+      type: object
+      properties:
+        reason:
+          type:
+          - 'null'
+          - string
+          description: Required when addresses are still open, and shown against each of them.
+      description: Closes a transfer, optionally saying why its ledger was left unaccounted for.
     TransferCreateRequestDto:
       type: object
       properties:
-        receiverModuleId:
+        counterpartyModuleId:
           type: string
-          description: 'The Module the resources move into. Exactly one: moving into two is two transfers.'
+          description: 'The Module on the other side. Exactly one: moving between three is two transfers.'
           format: uuid
-        map:
-          type:
-          - 'null'
-          - string
-          description: |-
-            The transfer map, as demonolith wrote it, hashed verbatim and never re-serialised. Normally
-            left out: the map is checked-in code, so it is read from the ref below.
-        proveRef:
-          type:
-          - 'null'
-          - string
-          description: The ref to prove, defaulting the receiver's until it says otherwise.
       description: Opens a transfer from a source Module into one receiver.
+    TransferRunRequestDto:
+      type: object
+      properties:
+        scope:
+          description: Whether both Modules move or only the one the transfer was started from.
+          $ref: '#/components/schemas/TransferScope'
+        moduleRef:
+          type:
+          - 'null'
+          - string
+          description: The ref the starting Module runs against. Defaults to its own.
+        counterpartyRef:
+          type:
+          - 'null'
+          - string
+          description: The ref the counterparty runs against. Defaults to its own.
+      description: 'Starts one attempt at a transfer: which Modules move, and the refs they run against.'
+    TransferScope:
+      enum:
+      - Both
+      - ModuleOnly
+      - CounterpartyOnly
+      description: |-
+        Which Modules a transfer run covers. A Module that failed is finished by a run over that Module
+        alone.
     UserColorCreateDto:
       type: object
       properties:
@@ -34276,8 +34417,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 451
+  documented: 453
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1197
+  documented: 1199
   missing: 0
