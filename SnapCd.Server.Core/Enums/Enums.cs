@@ -153,7 +153,11 @@ public enum ModuleJobSagaState
     CancellingImmediateGraceful,
     CancellingAfterCurrent,
     Declined,
-    WaitingForApproval
+    WaitingForApproval,
+
+    /// <summary>A transfer's own waits, which a reply can arrive during.</summary>
+    WaitingForConsent,
+    WaitingForOutputs
 }
 
 public enum ExecutionStatus

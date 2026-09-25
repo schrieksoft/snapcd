@@ -38,6 +38,12 @@ public partial class TransferMigrateStateMachine
         During(WaitingForOutputs,
             DealWithOutputsStatus(When(OutputsModifiedEvent)),
 
+            // The heartbeat from the step that got here is still running, and nothing is on a
+            // runner to answer it.
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2),
+
             // Nothing is running on a runner here, so there is nothing to kill or wait out.
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(

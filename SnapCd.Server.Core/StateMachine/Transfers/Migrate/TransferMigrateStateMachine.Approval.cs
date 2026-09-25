@@ -151,13 +151,16 @@ public partial class TransferMigrateStateMachine
                                             "Transfer: awaiting approval for Module {ModuleId}",
                                             context.Saga.ModuleId);
                                     })
-                                    .Schedule(ApprovalTimeoutScheduled,
-                                        context => new ApprovalTimeoutReceived
-                                        {
-                                            CorrelationId = context.Saga.CorrelationId,
-                                            OrganizationId = context.Saga.OrganizationId
-                                        },
-                                                        z3 => TimeSpan.FromMinutes(z3.Saga.ApprovalTimeoutMinutes ?? 0))
+                                    // Only where one is configured: an unset timeout is no
+                                    // timeout, and scheduling zero cancels the job as it asks.
+                                    .If(z2 => z2.Saga.ApprovalTimeoutMinutes > 0, z2 => z2
+                                        .Schedule(ApprovalTimeoutScheduled,
+                                            context => new ApprovalTimeoutReceived
+                                            {
+                                                CorrelationId = context.Saga.CorrelationId,
+                                                OrganizationId = context.Saga.OrganizationId
+                                            },
+                                            z3 => TimeSpan.FromMinutes(z3.Saga.ApprovalTimeoutMinutes ?? 0)))
                                     .TransitionTo(WaitingForApproval))));
     }
 }
