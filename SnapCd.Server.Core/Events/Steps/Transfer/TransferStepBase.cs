@@ -7,33 +7,15 @@
 // for terms covering either use.
 
 
-using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Events.Steps.ManualJobs;
 
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
 
 /// <summary>Parameters every transfer step needs, beyond those an ordinary job step carries.</summary>
-public abstract class TransferStepRequestBase : StepRequestBase
-{
-    /// <summary>The Module this step is for.</summary>
-    public Guid ModuleId { get; set; }
-
-    /// <summary>This Module's root within its own checkout (--root-dir).</summary>
-    public string? RootDirectory { get; set; }
-}
+public abstract class TransferStepRequestBase : ManualStepRequestBase;
 
 /// <summary>A transfer step's reply.</summary>
-public class TransferStepResponseBase : StepResponseBase
-{
-    /// <summary>Which Module answered.</summary>
-    public Guid ModuleId { get; set; }
-}
+public class TransferStepResponseBase : ManualStepResponseBase;
 
 /// <summary>A transfer step that failed, and what broke.</summary>
-public class TransferStepFaultedBase : TransferStepResponseBase
-{
-    public string? ErrorMessage { get; set; }
-    public string? StackTrace { get; set; }
-
-    /// <summary>True when the server failed to dispatch the step, rather than the runner failing it.</summary>
-    public bool IsServerSideError { get; set; }
-}
+public class TransferStepFaultedBase : ManualStepFaultedBase;

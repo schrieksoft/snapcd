@@ -8,6 +8,8 @@
 
 using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
+using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using System.Reflection;
 using MassTransit;
@@ -250,7 +252,11 @@ public static class MassTransit
         typeof(TransferMigrateVerifyConsumer),
         typeof(TransferOutputsConsumer),
         typeof(StateListFilteredConsumer),
+        typeof(StateListFilteredSelectRunnerInstanceConsumer),
+        typeof(StateListFilteredGetModuleConsumer),
+        typeof(StateListFilteredInitConsumer),
         typeof(StateMoveConsumer),
+        typeof(TransferJobEndedCompetingConsumer),
         typeof(TransferRefactorDiffConsumer),
 
         // cancel
@@ -379,6 +385,25 @@ public static class MassTransit
     {
         services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
         services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
+        services.AddScoped(typeof(RunnerConnectedActivity<,>));
+        services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
+        services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));
+        services.AddScoped(typeof(WaitingForRunnerActivity<,>));
+        services.AddScoped(typeof(WaitingForConsentActivity<,>));
+        services.AddScoped(typeof(NotWaitingForConsentActivity<,>));
+    }
+
+    /// <summary>
+    /// The sagas, consumers and activities the server runs, without choosing a transport. The app
+    /// pairs this with a real broker; a test pairs it with the in-memory one, so both exercise the
+    /// same registrations and a service missing from one is missing from the other.
+    /// </summary>
+    public static void AddSnapCdMessagingComponents(
+        this IBusRegistrationConfigurator configurator, IServiceCollection services, string instanceId)
+    {
+        AddStateMachineActivities(services);
+        AddSagaStateMachines(configurator);
+        configurator.AddServerConsumers(instanceId, [], ServerFanoutConsumerTypes);
     }
 
     private static void AddSagaStateMachines(IBusRegistrationConfigurator x)

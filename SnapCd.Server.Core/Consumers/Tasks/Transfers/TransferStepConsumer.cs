@@ -8,6 +8,7 @@
 
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
+using SnapCd.Server.Core.Events.Steps.ManualJobs;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
@@ -21,8 +22,8 @@ namespace SnapCd.Server.Core.Consumers.Tasks.Transfers;
 /// step's own faulted event so the saga hears about it rather than the message being retried.
 /// </summary>
 public abstract class TransferStepConsumer<TRequest, TFaulted> : IConsumer<TRequest>
-    where TRequest : TransferStepRequestBase
-    where TFaulted : TransferStepFaultedBase, new()
+    where TRequest : ManualStepRequestBase
+    where TFaulted : ManualStepFaultedBase, new()
 {
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;

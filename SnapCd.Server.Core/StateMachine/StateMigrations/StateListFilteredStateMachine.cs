@@ -41,12 +41,12 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
     public Event<StateListFilteredJobRequested> JobRequested { get; } = null!;
     public Event<CancelManualModuleJobRequested> CancelRequested { get; } = null!;
 
-    public Event<TransferSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
-    public Event<TransferSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
-    public Event<TransferGetModuleCompleted> GetModuleCompleted { get; } = null!;
-    public Event<TransferGetModuleFaulted> GetModuleFaulted { get; } = null!;
-    public Event<TransferInitCompleted> InitCompleted { get; } = null!;
-    public Event<TransferInitFaulted> InitFaulted { get; } = null!;
+    public Event<StateListFilteredSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
+    public Event<StateListFilteredSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
+    public Event<StateListFilteredGetModuleCompleted> GetModuleCompleted { get; } = null!;
+    public Event<StateListFilteredGetModuleFaulted> GetModuleFaulted { get; } = null!;
+    public Event<StateListFilteredInitCompleted> InitCompleted { get; } = null!;
+    public Event<StateListFilteredInitFaulted> InitFaulted { get; } = null!;
     public Event<StateListFilteredCompleted> ListCompleted { get; } = null!;
     public Event<StateListFilteredFaulted> ListFaulted { get; } = null!;
 
@@ -111,7 +111,7 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
                         "Checking {Count} addresses against Module {ModuleId}",
                         context.Message.Addresses.Count, context.Saga.ModuleId);
                 })
-                .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
+                .Publish(context => Request<StateListFilteredSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
                 .TransitionTo(SelectRunnerInstancePending)
         );

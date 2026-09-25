@@ -38,7 +38,10 @@ public enum JobSagaFamily
     SplitMigrate,
 
     /// <summary>One Module's state move within a transfer run.</summary>
-    TransferMigrate
+    TransferMigrate,
+
+    /// <summary>Checking which addresses a Module's state holds.</summary>
+    StateListFiltered
 }
 
 /// <summary>The outcome of a successful runner authorization: which family owns the job, and its organization.</summary>

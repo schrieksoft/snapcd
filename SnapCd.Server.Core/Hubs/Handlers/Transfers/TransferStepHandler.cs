@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Server.Core.Events.Steps.ManualJobs;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 
 namespace SnapCd.Server.Core.Hubs.Handlers.Transfers;
@@ -31,15 +32,15 @@ public class TransferStepHandler
     /// job id identifies the saga on its own; the Module is read from the saga.
     /// </summary>
     public Task Complete<TCompleted>(Guid jobId, Guid organizationId, Action<TCompleted>? fill = null)
-        where TCompleted : TransferStepResponseBase, new()
+        where TCompleted : ManualStepResponseBase, new()
         => Complete(jobId, Guid.Empty, organizationId, fill);
 
     public Task Fault<TFaulted>(Guid jobId, Guid organizationId, string? errorMessage, string? stackTrace)
-        where TFaulted : TransferStepFaultedBase, new()
+        where TFaulted : ManualStepFaultedBase, new()
         => Fault<TFaulted>(jobId, Guid.Empty, organizationId, errorMessage, stackTrace);
 
     public async Task Complete<TCompleted>(Guid jobId, Guid moduleId, Guid organizationId, Action<TCompleted>? fill = null)
-        where TCompleted : TransferStepResponseBase, new()
+        where TCompleted : ManualStepResponseBase, new()
     {
         _logger.LogDebug("Runner completed {Step} for Module {ModuleId} of job {JobId}",
             typeof(TCompleted).Name, moduleId, jobId);
@@ -58,7 +59,7 @@ public class TransferStepHandler
 
     public async Task Fault<TFaulted>(
         Guid jobId, Guid moduleId, Guid organizationId, string? errorMessage, string? stackTrace)
-        where TFaulted : TransferStepFaultedBase, new()
+        where TFaulted : ManualStepFaultedBase, new()
     {
         _logger.LogError("Runner faulted {Step} for Module {ModuleId} of job {JobId}: {ErrorMessage}",
             typeof(TFaulted).Name, moduleId, jobId, errorMessage);

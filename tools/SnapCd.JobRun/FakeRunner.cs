@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.OutputSets;
+using SnapCd.Contracts.RunnerRequests.StateMigrations;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Hubs;
 
@@ -111,6 +112,15 @@ public class FakeRunner(
             case RunnerEndpoints.ApplyFromPlan:
                 await hub.ApplyFromPlanCompleted(jobId, ChangedCount);
                 break;
+            case RunnerEndpoints.StateListFiltered:
+                // Reports every address asked about as present, which is the outcome a list has
+                // when the state holds what the caller named.
+                await hub.StateListFilteredCompleted(jobId,
+                    (Read<List<string>>(payload, "Addresses") ?? [])
+                    .Select(a => new StateAddressResult { Address = a, Outcome = "Present" })
+                    .ToList());
+                break;
+
             case RunnerEndpoints.Output:
                 // An empty set rather than null: the consumer stores the set and publishes the
                 // saga's completion from the same branch, so a null ends the job's progress.

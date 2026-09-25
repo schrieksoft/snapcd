@@ -215,8 +215,8 @@ public class StateListFilteredJobTests : IAsyncLifetime
     {
         await Start(addresses);
 
-        var select = await AwaitStep<TransferSelectRunnerInstanceRequested>("SelectRunnerInstancePending");
-        await Answer(new TransferSelectRunnerInstanceCompleted
+        var select = await AwaitStep<StateListFilteredSelectRunnerInstanceRequested>("SelectRunnerInstancePending");
+        await Answer(new StateListFilteredSelectRunnerInstanceCompleted
         {
             CorrelationId = select.CorrelationId,
             OrganizationId = _organizationId,
@@ -224,8 +224,8 @@ public class StateListFilteredJobTests : IAsyncLifetime
             RunnerInstanceName = "runner-a"
         });
 
-        var getModule = await AwaitStep<TransferGetModuleRequested>("GetModulePending");
-        await Answer(new TransferGetModuleCompleted
+        var getModule = await AwaitStep<StateListFilteredGetModuleRequested>("GetModulePending");
+        await Answer(new StateListFilteredGetModuleCompleted
         {
             CorrelationId = getModule.CorrelationId,
             OrganizationId = _organizationId,
@@ -233,8 +233,8 @@ public class StateListFilteredJobTests : IAsyncLifetime
             DefinitiveRevision = definitiveRevision
         });
 
-        var init = await AwaitStep<TransferInitRequested>("InitPending");
-        await Answer(new TransferInitCompleted
+        var init = await AwaitStep<StateListFilteredInitRequested>("InitPending");
+        await Answer(new StateListFilteredInitCompleted
         {
             CorrelationId = init.CorrelationId,
             OrganizationId = _organizationId,

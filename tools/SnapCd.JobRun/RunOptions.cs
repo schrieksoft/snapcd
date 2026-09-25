@@ -8,6 +8,13 @@
 
 namespace SnapCd.JobRun;
 
+/// <summary>The job kinds the run knows how to start.</summary>
+public enum JobKind
+{
+    Apply,
+    List
+}
+
 /// <summary>
 /// What the run needs to know, and the arguments that supply it. The defaults are the ids the
 /// debug seeder creates, so a run needs no arguments beyond where the database lives.
@@ -37,6 +44,11 @@ public class RunOptions
 
     public string ConnectionId { get; init; } = $"jobrun-{Guid.NewGuid():N}";
     public string RunnerInstanceName { get; init; } = "jobrun";
+    public JobKind Job { get; init; } = JobKind.Apply;
+
+    /// <summary>The addresses a List checks for. Its own job refuses an empty set.</summary>
+    public IReadOnlyCollection<string> Addresses { get; init; } = ["null_resource.example"];
+
     public bool Verbose { get; init; }
     public bool Keep { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
@@ -108,6 +120,8 @@ public class RunOptions
                                             Database= entry, e.g.
                                             "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True"
                   --database      <name>    default: a fresh name per run
+                  --job           <kind>    apply (default) or list
+                  --addresses     <a,b,c>   what a list checks for
                   --module        <guid>    default: the seeder's mock Module
                   --principal     <guid>    default: the seeder's debug user
                   --appsettings   <path>    the server's appsettings.json
@@ -123,6 +137,10 @@ public class RunOptions
             MasterConnectionString = server,
             DatabaseName = Get("database") ?? $"SnapCdJobRun_{DateTime.Now:yyyyMMdd_HHmmss}",
             ServerAppSettingsPath = Get("appsettings") ?? DefaultAppSettingsPath(),
+            Job = Enum.TryParse<JobKind>(Get("job"), ignoreCase: true, out var kind) ? kind : JobKind.Apply,
+            Addresses = Get("addresses")?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim()).ToList()
+                        ?? ["null_resource.example"],
             ModuleId = Guid.TryParse(Get("module"), out var m) ? m : SeededModuleId,
             PrincipalId = Guid.TryParse(Get("principal"), out var p) ? p : SeededUserId,
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,

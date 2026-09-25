@@ -19,9 +19,8 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 namespace SnapCd.JobRun;
 
 /// <summary>
-/// Starts an Apply and watches the job row until it stops running, whatever it stops as. The
-/// printout is the point: it is the evidence that would otherwise be assembled by hand from the
-/// job row and its logs.
+/// The setup every job kind shares, then the job itself. The printout is the point: it is the
+/// evidence that would otherwise be assembled by hand from the job row and its steps.
 /// </summary>
 public static class Run
 {
@@ -60,16 +59,21 @@ public static class Run
         var approvalFactory = scope.ServiceProvider
             .GetRequiredService<ModuleJobApprovalSecuredRepositoryFactory>();
 
-        var jobId = Guid.NewGuid();
-        using (var jobs = jobFactory.Create(principal))
-            await jobs.Apply(options.ModuleId, options.OrganizationId, jobId);
+        if (options.Job == JobKind.Apply)
+        {
+            var jobId = Guid.NewGuid();
+            using (var jobs = jobFactory.Create(principal))
+                await jobs.Apply(options.ModuleId, options.OrganizationId, jobId);
 
-        Console.WriteLine($"Started job {jobId}");
+            Console.WriteLine($"Started job {jobId}");
 
-        var status = await Watch(dbFactory, approvalFactory, principal, jobId, options);
+            var status = await Watch(dbFactory, approvalFactory, principal, jobId, options);
 
-        await Report(dbFactory, services, jobId, options, status);
-        return status == ExecutionStatus.Completed ? 0 : 1;
+            await Report(dbFactory, services, jobId, options, status);
+            return status == ExecutionStatus.Completed ? 0 : 1;
+        }
+
+        return await ManualRun.Execute(services, scope, principal, dbFactory, options);
     }
 
     /// <summary>

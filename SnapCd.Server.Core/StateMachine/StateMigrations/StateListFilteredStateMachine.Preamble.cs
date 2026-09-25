@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
-using SnapCd.Server.Core.Events.Steps.Transfer;
+using SnapCd.Server.Core.Events.Steps.ManualJobs;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
@@ -34,16 +34,16 @@ public partial class StateListFilteredStateMachine
     /// </summary>
     private void Configure_Preamble()
     {
-        CreateStep<TransferSelectRunnerInstanceCompleted, TransferSelectRunnerInstanceFaulted, TransferGetModuleRequested>(
+        CreateStep<StateListFilteredSelectRunnerInstanceCompleted, StateListFilteredSelectRunnerInstanceFaulted, StateListFilteredGetModuleRequested>(
             SelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
             "SelectRunnerInstance", GetModulePending,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
-        CreateStep<TransferGetModuleCompleted, TransferGetModuleFaulted, TransferInitRequested>(
+        CreateStep<StateListFilteredGetModuleCompleted, StateListFilteredGetModuleFaulted, StateListFilteredInitRequested>(
             GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", InitPending,
             context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
-        CreateStep<TransferInitCompleted, TransferInitFaulted, StateListFilteredRequested>(
+        CreateStep<StateListFilteredInitCompleted, StateListFilteredInitFaulted, StateListFilteredRequested>(
             InitPending, InitCompleted, InitFaulted, "Init", ListPending);
 
         During(SelectRunnerInstancePending, GetModulePending, InitPending, ListPending,
@@ -62,8 +62,8 @@ public partial class StateListFilteredStateMachine
         string task,
         State nextState,
         Action<BehaviorContext<StateListFilteredSaga, TCompleted>>? onCompleted = null)
-        where TCompleted : TransferStepResponseBase
-        where TFaulted : TransferStepFaultedBase
+        where TCompleted : ManualStepResponseBase
+        where TFaulted : ManualStepFaultedBase
         where TNextRequest : StepRequestBase, new()
     {
         During(duringState,
@@ -93,8 +93,17 @@ public partial class StateListFilteredStateMachine
         );
     }
 
-    private static string TaskOf<TRequest>() where TRequest : StepRequestBase =>
-        typeof(TRequest).Name.Replace("Transfer", "").Replace("Requested", "");
+    /// <summary>
+    /// The step name a job records, taken from its request type. The job's own step keeps the
+    /// job's name; a preamble step drops the prefix and is left with the step's own.
+    /// </summary>
+    private static string TaskOf<TRequest>() where TRequest : StepRequestBase
+    {
+        var name = typeof(TRequest).Name.Replace("Requested", "");
+        var step = name.Replace("StateListFiltered", "");
+
+        return step.Length == 0 ? name : step;
+    }
 
     private static async Task RecordDispatched<TMessage>(
         BehaviorContext<StateListFilteredSaga, TMessage> context, string task)
@@ -134,8 +143,8 @@ public partial class StateListFilteredStateMachine
             Declared = JsonSerializer.Deserialize<ResolvedModule>(saga.DeclaredJson)!
         };
 
-        if (request is TransferStepRequestBase transferStep)
-            transferStep.ModuleId = saga.ModuleId;
+        if (request is ManualStepRequestBase manualStep)
+            manualStep.ModuleId = saga.ModuleId;
 
         if (request is StateListFilteredRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.AddressesJson) ?? [];
