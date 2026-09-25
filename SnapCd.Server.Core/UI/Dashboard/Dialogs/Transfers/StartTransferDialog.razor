@@ -13,14 +13,14 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText>Start a transfer</MudText>
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+            <MudText>Transfer resources</MudText>
+            <MudTooltip Text="What moves is decided in the code, by the transfer map the code move writes. Each module moves its own state as its own job, so pause both and start one on each.">
+                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+            </MudTooltip>
+        </MudStack>
     </TitleContent>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-3">
-            What moves is decided in the code, by the transfer map the code move writes. This
-            module starts now; the other starts when it consents.
-        </MudText>
-
         <MudAutocomplete T="Module?"
                          @bind-Value="_counterparty"
                          Label="Counterparty module"
@@ -40,7 +40,14 @@
             </NoItemsTemplate>
         </MudAutocomplete>
 
-        <MudTooltip Text="The branch or tag carrying this module's half of the code move. The other module names its own when it consents.">
+        <MudTooltip Text="Starts this module now rather than waiting for the other to agree. Usually left off, so both move once the agreement is in place.">
+            <MudCheckBox @bind-Value="_startImmediately"
+                         Label="Start this module without waiting"
+                         Color="Color.Secondary"
+                         Class="mb-2"/>
+        </MudTooltip>
+
+        <MudTooltip Text="The branch or tag carrying this module's half of the code move. The other module names its own when it agrees.">
             <MudTextField @bind-Value="_moduleRef"
                           Label="This module's ref"
                           Variant="Variant.Outlined"/>
@@ -63,12 +70,13 @@
 
     private Module? _counterparty;
     private string? _moduleRef;
+    private bool _startImmediately;
 
     protected override void OnInitialized() => _moduleRef = ModuleRef;
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Choice(_counterparty!.Id, _moduleRef)));
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Choice(_counterparty!.Id, _moduleRef, _startImmediately)));
 
     /// <summary>
     /// Filters the candidates already loaded, by name or by the root they own - the root is what
@@ -81,6 +89,6 @@
                         || m.SourceSubdirectory.Contains(searchText, StringComparison.OrdinalIgnoreCase))
             .Cast<Module?>());
 
-    /// <summary>The module on the other side, and the ref this one runs against.</summary>
-    public record Choice(Guid CounterpartyModuleId, string? ModuleRef);
+    /// <summary>The module on the other side, the ref this one runs against, and whether to wait.</summary>
+    public record Choice(Guid CounterpartyModuleId, string? ModuleRef, bool StartImmediately);
 }

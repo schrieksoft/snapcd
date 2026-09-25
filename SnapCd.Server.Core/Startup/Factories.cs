@@ -244,6 +244,7 @@ public static class Factories
         services.AddScoped<JobServiceFactory>();
         services.AddScoped<SecuredJobServiceFactory>();
         services.AddScoped<ManualJobServiceFactory>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferServiceFactory>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.StateMigrations.ManualJobAddressService>();
         services.AddScoped<SourceChangedServiceFactory>();
         services.AddScoped<AccessTokenServiceFactory>();

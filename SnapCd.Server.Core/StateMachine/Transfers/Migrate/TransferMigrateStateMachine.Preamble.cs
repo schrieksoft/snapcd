@@ -10,6 +10,8 @@
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
+using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Runners;
@@ -45,15 +47,30 @@ public partial class TransferMigrateStateMachine
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
                 .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Succeeded))
-                .Publish(context => Request<TNextRequest>(context.Saga))
-                .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
-                .Schedule(HeartbeatScheduled,
-                    context => new HeartbeatScheduled
-                    {
-                        CorrelationId = context.Saga.CorrelationId,
-                        OrganizationId = context.Saga.OrganizationId
-                    })
-                .TransitionTo(nextState),
+                .Activity(x => x.OfType<RunnerConnectedActivity<TransferMigrateSaga, TCompleted>>())
+                .IfElse(
+                    context => context.Saga.PreviousStateBeforeWaiting != null,
+                    // The runner is away: park rather than dispatch into nothing.
+                    parked => parked
+                        .Activity(x => x.OfType<WaitingForRunnerActivity<TransferMigrateSaga, TCompleted>>())
+                        .Then(context =>
+                        {
+                            context.Saga.WaitingSince = DateTime.UtcNow;
+                            _logger.LogInformation(
+                                "Transfer: Module {ModuleId} waits for its runner before {Task}",
+                                context.Saga.ModuleId, TaskOf<TNextRequest>());
+                        })
+                        .TransitionTo(nextWaitingState),
+                    ahead => ahead
+                        .Publish(context => Request<TNextRequest>(context.Saga))
+                        .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
+                        .Schedule(HeartbeatScheduled,
+                            context => new HeartbeatScheduled
+                            {
+                                CorrelationId = context.Saga.CorrelationId,
+                                OrganizationId = context.Saga.OrganizationId
+                            })
+                        .TransitionTo(nextState)),
             When(faultedEvent)
                 .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Faulted))
                 .Then(context =>
@@ -83,16 +100,29 @@ public partial class TransferMigrateStateMachine
         // Waiting: the runner was gone when the step was sent, so it is re-sent on reconnect
         // rather than failed.
         During(nextWaitingState,
+            // A runner that came back while the saga was parking is noticed on entry, rather than
+            // the job waiting for a reconnect event that has already fired.
+            When(nextWaitingState.Enter)
+                .Activity(x => x.OfType<CheckRunnerConnectionActivity<TransferMigrateSaga, TCompleted>>()),
+
             When(RunnerReconnectedEvent)
                 .Then(context =>
                 {
                     context.Saga.WaitingSince = null;
+                    context.Saga.PreviousStateBeforeWaiting = null;
                     _logger.LogInformation(
                         "Transfer: Module {ModuleId} runner reconnected, re-sending {Task}",
-                        context.Saga.ModuleId, task);
-
-                    context.Publish(Request<TNextRequest>(context.Saga));
+                        context.Saga.ModuleId, TaskOf<TNextRequest>());
                 })
+                .Activity(x => x.OfType<NotWaitingForRunnerActivity<TransferMigrateSaga, RunnerReconnectedEvent>>())
+                .ThenAsync(context => context.Publish(Request<TNextRequest>(context.Saga)))
+                .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
+                .Schedule(HeartbeatScheduled,
+                    context => new HeartbeatScheduled
+                    {
+                        CorrelationId = context.Saga.CorrelationId,
+                        OrganizationId = context.Saga.OrganizationId
+                    })
                 .TransitionTo(nextState),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),

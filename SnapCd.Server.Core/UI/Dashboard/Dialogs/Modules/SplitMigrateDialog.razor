@@ -12,13 +12,30 @@
 <MudDialog>
     <TitleContent>
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
-            <MudText>SplitMigrate</MudText>
+            <MudText>Split monolith</MudText>
             <MudTooltip Text="Splits this module's monolith into the module directories its refactor map describes, and migrates the state. The plan is proved first and pushed only after approval.">
                 <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
             </MudTooltip>
         </MudStack>
     </TitleContent>
     <DialogContent>
+        <MudTooltip Text="Checks the split without writing: verifies the refactor map, builds the carved modules' state locally and plans each one. Nothing is pushed.">
+            <MudCheckBox @bind-Value="_proveOnly"
+                         Label="Prove only, write nothing"
+                         Color="Color.Secondary"/>
+        </MudTooltip>
+
+        @if (_proveOnly)
+        {
+            <MudTooltip Text="Branch, tag or commit carrying the refactor. The module's configured revision is not changed.">
+                <MudTextField @bind-Value="_sourceRevision"
+                              Label="Ref"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Class="mb-3"/>
+            </MudTooltip>
+        }
+
         <MudTooltip Text="Where the monolith sits within the checkout. Leave empty for the module's own directory.">
             <MudTextField @bind-Value="_rootDirectory"
                           Label="Monolith root"
@@ -27,6 +44,8 @@
                           Class="mb-3"/>
         </MudTooltip>
 
+        @if (!_proveOnly)
+        {
         <MudTooltip Text="Rewrites each carved root's backend from the monolith's current one. Use it when the roots were carved against a different backend than this module migrates to.">
             <MudCheckBox @bind-Value="_rederiveBackend"
                          Label="Re-derive the carved roots' backends"
@@ -38,9 +57,11 @@
                          Label="Replace state at destinations that do not match"
                          Color="Color.Secondary"/>
         </MudTooltip>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   Disabled="@(_proveOnly && string.IsNullOrWhiteSpace(_sourceRevision))"
                    OnClick="Confirm">
             Start
         </MudButton>
@@ -56,13 +77,18 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private string? _rootDirectory;
+    private string? _sourceRevision;
+    private bool _proveOnly;
     private bool _force;
     private bool _rederiveBackend;
 
     private void Confirm() =>
-        MudDialog.Close(DialogResult.Ok(new SplitMigrateOptions(_rootDirectory, _force, _rederiveBackend)));
+        MudDialog.Close(DialogResult.Ok(new SplitMigrateOptions(
+            _rootDirectory, _force, _rederiveBackend, _proveOnly, _sourceRevision?.Trim())));
 
     private void Cancel() => MudDialog.Cancel();
 
-    public record SplitMigrateOptions(string? RootDirectory, bool Force, bool RederiveBackend);
+    /// <summary>What to run: a proof against a ref, or the split itself.</summary>
+    public record SplitMigrateOptions(
+        string? RootDirectory, bool Force, bool RederiveBackend, bool ProveOnly, string? SourceRevision);
 }

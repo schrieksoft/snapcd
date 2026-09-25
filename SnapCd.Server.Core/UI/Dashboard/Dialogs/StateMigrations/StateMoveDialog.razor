@@ -14,22 +14,13 @@
 <MudDialog>
     <TitleContent>
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
-            <MudText>Edit state</MudText>
+            <MudText>@Verb</MudText>
             <MudTooltip Text="Each address is run on its own, so a batch that manages some and not others says which. The state is checked afterwards, and that check is what counts as done.">
                 <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
             </MudTooltip>
         </MudStack>
     </TitleContent>
     <DialogContent>
-        <MudSelect T="StateEditOperation" @bind-Value="_operation"
-                   Label="What to do"
-                   Variant="Variant.Outlined"
-                   Class="mb-2">
-            <MudSelectItem T="StateEditOperation" Value="StateEditOperation.Move">Move addresses</MudSelectItem>
-            <MudSelectItem T="StateEditOperation" Value="StateEditOperation.Import">Import existing resources</MudSelectItem>
-            <MudSelectItem T="StateEditOperation" Value="StateEditOperation.Remove">Remove from state</MudSelectItem>
-        </MudSelect>
-
         <MudTooltip Text="@LinesHelp">
             <MudTextField @bind-Value="_lines"
                           Label="Addresses, one per line"
@@ -55,7 +46,9 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    private StateEditOperation _operation = StateEditOperation.Move;
+    [Parameter] public StateEditOperation Operation { get; set; }
+
+    private StateEditOperation _operation => Operation;
     private string? _lines;
     private string? _error;
 

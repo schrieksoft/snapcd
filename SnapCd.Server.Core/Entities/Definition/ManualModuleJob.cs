@@ -27,6 +27,9 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
 
     public Guid ModuleId { get; set; }
 
+    /// <summary>The transfer this job is one side of, when it is one.</summary>
+    public Guid? TransferId { get; set; }
+
     /// <summary>
     /// The ref this job ran against, for a job that takes one. Kept on the job rather than only on
     /// its saga, which is finalized and gone once the job ends.
@@ -43,6 +46,18 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
     [MaxLength(100)] public string JobType { get; set; } = null!;
 
     public bool? WaitingForApproval { get; set; }
+
+    /// <summary>
+    /// Set while the job is parked because the runner it is pinned to is away. Without it the job
+    /// reads as Running, which is indistinguishable from working.
+    /// </summary>
+    public bool? WaitingForRunner { get; set; }
+
+    /// <summary>
+    /// Set while a transfer's starting side waits for the other module to agree. The wait has no
+    /// timeout, so a job that does not say it is waiting looks like one that has hung.
+    /// </summary>
+    public bool? WaitingForConsent { get; set; }
 
     public ServerSideStep? FailedOnServerSideStep { get; set; }
 

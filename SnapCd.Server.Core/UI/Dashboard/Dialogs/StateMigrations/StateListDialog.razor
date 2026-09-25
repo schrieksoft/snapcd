@@ -1,0 +1,52 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+            <MudText>Check state</MudText>
+            <MudTooltip Text="Asks which of these addresses are in this module's state. Nothing is written, and the rest of the state is neither listed nor reported.">
+                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+            </MudTooltip>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudTooltip Text="One address per line. Only these are reported on.">
+            <MudTextField @bind-Value="_lines"
+                          Label="Addresses, one per line"
+                          Variant="Variant.Outlined"
+                          Lines="6"
+                          Placeholder="random_pet.dns_zone"/>
+        </MudTooltip>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   Disabled="@(string.IsNullOrWhiteSpace(_lines))"
+                   OnClick="Confirm">Check</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string? _lines;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm() =>
+        MudDialog.Close(DialogResult.Ok(
+            (_lines ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct()
+            .ToList()));
+}

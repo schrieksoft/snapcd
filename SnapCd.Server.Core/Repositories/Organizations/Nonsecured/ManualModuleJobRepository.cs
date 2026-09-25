@@ -116,6 +116,28 @@ public class ManualModuleJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task WaitingForRunner(Guid id, Guid organizationId, bool waitingForRunner)
+    {
+        var job = await Get(id, organizationId);
+
+        if (job.WaitingForRunner == waitingForRunner) return;
+
+        job.WaitingForRunner = waitingForRunner;
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task WaitingForConsent(Guid id, Guid organizationId, bool waitingForConsent)
+    {
+        var job = await Get(id, organizationId);
+
+        if (job.WaitingForConsent == waitingForConsent) return;
+
+        job.WaitingForConsent = waitingForConsent;
+
+        await _dbContext.SaveChangesAsync();
+    }
+
     public void Dispose()
     {
         _dbContext?.Dispose();

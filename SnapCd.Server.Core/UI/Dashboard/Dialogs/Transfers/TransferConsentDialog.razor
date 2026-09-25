@@ -12,29 +12,28 @@
 <MudDialog>
     <TitleContent>
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
-            <MudText>Close transfer</MudText>
-            <MudTooltip Text="A closed transfer is no longer watched, so a resource deleted later is not mistaken for one that never arrived.">
+            <MudText>@(Granted ? "Agree to the transfer" : "Refuse")</MudText>
+            <MudTooltip Text="@(Granted
+                                  ? "Agreeing starts both modules' jobs against the refs each named. This module must already be paused."
+                                  : "Refusing ends the transfer and releases both modules. The other module can start another.")">
                 <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
             </MudTooltip>
         </MudStack>
     </TitleContent>
     <DialogContent>
-        @if (OpenObjects > 0)
+        @if (Granted)
         {
-            <MudText Typo="Typo.body2" Class="mb-3">
-                @OpenObjects @(OpenObjects == 1 ? "resource is" : "resources are") still unaccounted for. Say why.
-            </MudText>
+            <MudTooltip Text="The branch or tag carrying this module's half of the code move.">
+                <MudTextField @bind-Value="_moduleRef"
+                              Label="This module's ref"
+                              Variant="Variant.Outlined"
+                              Class="mb-2"/>
+            </MudTooltip>
         }
-
-        <MudTextField @bind-Value="_reason"
-                      Label="@(OpenObjects > 0 ? "Reason" : "Reason (optional)")"
-                      Variant="Variant.Outlined"
-                      Lines="2"/>
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                   Disabled="@(OpenObjects > 0 && string.IsNullOrWhiteSpace(_reason))"
-                   OnClick="Confirm">Close</MudButton>
+                   OnClick="Confirm">@(Granted ? "Agree" : "Refuse")</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    OnClick="Cancel">Cancel</MudButton>
     </DialogActions>
@@ -43,11 +42,17 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    [Parameter] public int OpenObjects { get; set; }
+    [Parameter] public bool Granted { get; set; }
+    [Parameter] public string? ModuleRef { get; set; }
 
-    private string? _reason;
+    private string? _moduleRef;
+
+    protected override void OnInitialized() => _moduleRef = ModuleRef;
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(_reason ?? string.Empty));
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Decision(_moduleRef)));
+
+    /// <summary>What this Module answered, and the ref it runs against.</summary>
+    public record Decision(string? ModuleRef);
 }

@@ -10,6 +10,7 @@ using MassTransit;
 using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
@@ -26,6 +27,7 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate;
@@ -78,6 +80,10 @@ public class TransferMigrateJobTests : IAsyncLifetime
         services.AddScoped(typeof(WaitingForApprovalManualJobActivity<,>));
         services.AddScoped(typeof(NotWaitingForApprovalManualJobActivity<,>));
         services.AddScoped(typeof(CancelManualModuleJobActivity<,>));
+        services.AddScoped(typeof(RunnerConnectedActivity<,>));
+        services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
+        services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));
+        services.AddScoped(typeof(WaitingForRunnerActivity<,>));
         services.AddScoped<TransferArtefactService>();
         services.AddMassTransitTestHarness(x =>
         {
@@ -96,6 +102,18 @@ public class TransferMigrateJobTests : IAsyncLifetime
 
         await using var db = _fixture.CreateDbContext();
         (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = 1;
+
+        // Dispatch parks when the pinned runner has no connection, so the harness has to have one:
+        // without it every step waits instead of being sent.
+        db.RunnerConnections.Add(new RunnerConnection
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            RunnerId = _fixture.Runners["0"].Id,
+            InstanceName = "instance-1",
+            SignalRConnectionId = Guid.NewGuid().ToString("N"),
+            ServerInstanceId = Guid.NewGuid()
+        });
 
         db.ManualModuleJobs.Add(new ManualModuleJob
         {
@@ -121,6 +139,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
         await db.ManualModuleJobApprovals.Where(a => a.ManualModuleJobId == _jobId).ExecuteDeleteAsync();
         await db.ManualModuleJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
         await db.ManualModuleJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
+        await db.RunnerConnections.Where(rc => rc.OrganizationId == _organizationId).ExecuteDeleteAsync();
         await db.OutputSets.Where(o => o.ModuleId == _counterpartyId).ExecuteDeleteAsync();
     }
 
@@ -338,14 +357,80 @@ public class TransferMigrateJobTests : IAsyncLifetime
         Assert.Empty(_harness.Published.Select<TransferMigrateMapRequested>());
     }
 
-    private async Task Start() =>
+    private async Task Start(bool awaitConsent = false, Guid? transferId = null) =>
         await _harness.Bus.Publish(new TransferMigrateRequested
         {
             CorrelationId = _jobId,
             CounterpartyModuleId = _counterpartyId,
+            TransferId = transferId,
+            AwaitConsent = awaitConsent,
             Declared = Declared(),
             ProveRef = "main"
         });
+
+    /// <summary>
+    /// The Module that starts a transfer waits for the other to agree before anything runs, and
+    /// the wait is a step on the job rather than a state nothing shows.
+    /// </summary>
+    [Fact]
+    public async Task The_Starting_Module_Waits_To_Be_Agreed_To()
+    {
+        var transferId = Guid.NewGuid();
+        await Start(awaitConsent: true, transferId: transferId);
+
+        Assert.True(await WaitUntil(() => InState("WaitingForConsent")), "the job did not wait");
+        Assert.Empty(_harness.Published.Select<TransferSelectRunnerInstanceRequested>());
+    }
+
+    /// <summary>Agreeing releases it, and only then does anything reach a runner.</summary>
+    [Fact]
+    public async Task Agreeing_Lets_The_Waiting_Module_Go_Ahead()
+    {
+        var transferId = Guid.NewGuid();
+        await Start(awaitConsent: true, transferId: transferId);
+
+        Assert.True(await WaitUntil(() => InState("WaitingForConsent")), "the job did not wait");
+
+        await _harness.Bus.Publish(new ConsentDecided
+        {
+            TransferId = transferId,
+            ModuleId = _counterpartyId,
+            OrganizationId = _organizationId,
+            Granted = true
+        });
+
+        Assert.NotNull(await AwaitStep<TransferSelectRunnerInstanceRequested>("SelectRunnerInstancePending"));
+    }
+
+    /// <summary>A refusal ends the waiting job: there is nothing for it to move into.</summary>
+    [Fact]
+    public async Task A_Refusal_Ends_The_Waiting_Module()
+    {
+        var transferId = Guid.NewGuid();
+        await Start(awaitConsent: true, transferId: transferId);
+
+        Assert.True(await WaitUntil(() => InState("WaitingForConsent")), "the job did not wait");
+
+        await _harness.Bus.Publish(new ConsentDecided
+        {
+            TransferId = transferId,
+            ModuleId = _counterpartyId,
+            OrganizationId = _organizationId,
+            Granted = false
+        });
+
+        Assert.True(await WaitUntil(JobHasEnded), "the job row was never closed out");
+        Assert.Empty(_harness.Published.Select<TransferSelectRunnerInstanceRequested>());
+    }
+
+    /// <summary>The counterparty never waits: it is answering, not asking.</summary>
+    [Fact]
+    public async Task A_Module_That_Is_Not_Waiting_Starts_Straight_Away()
+    {
+        await Start();
+
+        Assert.NotNull(await AwaitStep<TransferSelectRunnerInstanceRequested>("SelectRunnerInstancePending"));
+    }
 
     /// <summary>Answers the four steps every job runs before it touches state.</summary>
     private async Task Preamble(int totalChangedCount = 0)

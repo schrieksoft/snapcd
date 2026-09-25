@@ -61,6 +61,7 @@ public class RunnerHub : Hub
     private readonly PlanHandler _planHandler;
     private readonly SplitGetModuleHandler _splitGetModuleHandler;
     private readonly TransferStepHandler _transferStepHandler;
+    private readonly SharedStepRouter _sharedSteps;
     private readonly SplitInitHandler _splitInitHandler;
     private readonly SplitValidateHandler _splitValidateHandler;
     private readonly SplitPlanHandler _splitPlanHandler;
@@ -99,6 +100,7 @@ public class RunnerHub : Hub
         PlanHandler planHandler,
         SplitGetModuleHandler splitGetModuleHandler,
         TransferStepHandler transferStepHandler,
+        SharedStepRouter sharedSteps,
         SplitInitHandler splitInitHandler,
         SplitValidateHandler splitValidateHandler,
         SplitPlanHandler splitPlanHandler,
@@ -136,6 +138,7 @@ public class RunnerHub : Hub
         _planHandler = planHandler;
         _splitGetModuleHandler = splitGetModuleHandler;
         _transferStepHandler = transferStepHandler;
+        _sharedSteps = sharedSteps;
         _splitInitHandler = splitInitHandler;
         _splitValidateHandler = splitValidateHandler;
         _splitPlanHandler = splitPlanHandler;
@@ -480,12 +483,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.GetModuleCompleted, SplitMigrateTaskEndpoint.GetModuleCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitGetModuleHandler.Complete(jobId, auth.OrganizationId);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Complete<TransferGetModuleCompleted>(jobId, auth.OrganizationId);
-        else
-            await _getModuleHandler.Complete(jobId);
+        await _sharedSteps.GetModuleCompleted(auth, jobId);
     }
 
     /// <summary>
@@ -510,13 +508,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.GetModuleFaulted, SplitMigrateTaskEndpoint.GetModuleFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitGetModuleHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Fault<TransferGetModuleFaulted>(
-                jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else
-            await _getModuleHandler.Fault(jobId, errorMessage, stackTrace);
+        await _sharedSteps.GetModuleFaulted(auth, jobId, errorMessage, stackTrace);
     }
 
     /// <summary>
@@ -527,12 +519,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.InitCompleted, SplitMigrateTaskEndpoint.InitCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitInitHandler.Complete(jobId, auth.OrganizationId);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Complete<TransferInitCompleted>(jobId, auth.OrganizationId);
-        else
-            await _initHandler.Complete(jobId);
+        await _sharedSteps.InitCompleted(auth, jobId);
     }
 
     /// <summary>
@@ -557,13 +544,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.InitFaulted, SplitMigrateTaskEndpoint.InitFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitInitHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Fault<TransferInitFaulted>(
-                jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else
-            await _initHandler.Fault(jobId, errorMessage, stackTrace);
+        await _sharedSteps.InitFaulted(auth, jobId, errorMessage, stackTrace);
     }
 
     /// <summary>
@@ -574,12 +555,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.ValidateCompleted, SplitMigrateTaskEndpoint.ValidateCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitValidateHandler.Complete(jobId, auth.OrganizationId);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Complete<TransferValidateCompleted>(jobId, auth.OrganizationId);
-        else
-            await _validateHandler.Complete(jobId);
+        await _sharedSteps.ValidateCompleted(auth, jobId);
     }
 
     /// <summary>
@@ -602,13 +578,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.ValidateFaulted, SplitMigrateTaskEndpoint.ValidateFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitValidateHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Fault<TransferValidateFaulted>(
-                jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else
-            await _validateHandler.Fault(jobId, errorMessage, stackTrace);
+        await _sharedSteps.ValidateFaulted(auth, jobId, errorMessage, stackTrace);
     }
 
     /// <summary>
@@ -669,13 +639,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.PlanCompleted, SplitMigrateTaskEndpoint.PlanCompleted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitPlanHandler.Complete(jobId, auth.OrganizationId, data.TotalChangedCount);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Complete<TransferPlanCompleted>(
-                jobId, auth.OrganizationId, c => c.TotalChangedCount = data.TotalChangedCount);
-        else
-            await _planHandler.Complete(jobId, data);
+        await _sharedSteps.PlanCompleted(auth, jobId, data);
     }
 
 
@@ -696,13 +660,7 @@ public class RunnerHub : Hub
         var auth = await _authorizationService.ValidateRunnerCanAccessJob(
             Context, jobId, TaskEndpoint.PlanFaulted, SplitMigrateTaskEndpoint.PlanFaulted);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitPlanHandler.Fault(jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else if (auth.Family == JobSagaFamily.TransferMigrate)
-            await _transferStepHandler.Fault<TransferPlanFaulted>(
-                jobId, auth.OrganizationId, errorMessage, stackTrace);
-        else
-            await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
+        await _sharedSteps.PlanFaulted(auth, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
 

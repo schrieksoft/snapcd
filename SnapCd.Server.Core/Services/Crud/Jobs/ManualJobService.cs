@@ -95,7 +95,34 @@ public class ManualJobService : IDisposable
         if (hasRunningManualJob)
             return "A manual job is already running on this module.";
 
+        // A manual job is pinned to one runner for its whole life, so one dispatched with nothing
+        // connected is not late, it is lost. Deployment jobs queue here; a manual job is started
+        // by someone standing on the page, so it is better refused than parked out of sight.
+        if (!await HasConnectedRunner(dbContext, moduleId, organizationId))
+            return "No runner is connected for this module.";
+
         return null;
+    }
+
+    /// <summary>
+    /// Whether the runner this Module is configured for has a connection, honouring a Module that
+    /// pins itself to one named instance.
+    /// </summary>
+    private static async Task<bool> HasConnectedRunner(
+        SnapCdDbContext dbContext, Guid moduleId, Guid organizationId)
+    {
+        var module = await dbContext.Modules.AsNoTracking()
+            .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
+            .Select(m => new { m.RunnerId, m.RunnerInstanceName })
+            .FirstOrDefaultAsync();
+
+        if (module is null) return false;
+
+        return await dbContext.RunnerConnections.AsNoTracking()
+            .AnyAsync(rc => rc.RunnerId == module.RunnerId
+                            && rc.OrganizationId == organizationId
+                            && (module.RunnerInstanceName == null
+                                || rc.InstanceName == module.RunnerInstanceName));
     }
 
     /// <summary>
@@ -160,7 +187,12 @@ public class ManualJobService : IDisposable
     /// separately and nothing here coordinates them.
     /// </summary>
     public async Task<ManualModuleJob> StartTransferMigrate(
-        Guid moduleId, Guid counterpartyModuleId, Guid organizationId, string? proveRef)
+        Guid moduleId,
+        Guid counterpartyModuleId,
+        Guid organizationId,
+        string? proveRef,
+        Guid? transferId = null,
+        bool awaitConsent = false)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
@@ -183,6 +215,7 @@ public class ManualJobService : IDisposable
         {
             Id = Guid.NewGuid(),
             ModuleId = moduleId,
+            TransferId = transferId,
             ProveRef = proveRef,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
@@ -200,6 +233,8 @@ public class ManualJobService : IDisposable
                 CorrelationId = job.Id,
                 Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
                 CounterpartyModuleId = counterpartyModuleId,
+                TransferId = transferId,
+                AwaitConsent = awaitConsent,
                 ProveRef = proveRef
             });
         }

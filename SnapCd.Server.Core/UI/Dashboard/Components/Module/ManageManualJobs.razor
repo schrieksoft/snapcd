@@ -17,6 +17,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.Crud.Jobs
+@using SnapCd.Server.Core.Services.Crud.Transfers
 @using SnapCd.Server.Core.Services.Notification
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
@@ -72,34 +73,58 @@
         }
         else
         {
-            <MudStack Spacing="3">
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                    <MudText Typo="Typo.body2">Prove a split against a branch. Nothing is written.</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                               Disabled="@(!_canPause || _busy)" OnClick="StartProve">prove split</MudButton>
-                </MudStack>
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                    <MudText Typo="Typo.body2">Split this module's monolith and migrate its state.</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                               Disabled="@(!_canPause || _busy)" OnClick="StartSplit">split monolith</MudButton>
-                </MudStack>
+            @if (_transfer is { } transfer)
+            {
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.body2">
+                        @(transfer.ModuleId == Module.Id
+                            ? $"Transfer with {OtherModuleName}."
+                            : $"{OtherModuleName} has asked to transfer with this module.")
+                    </MudText>
 
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                    <MudText Typo="Typo.body2">Move, import or remove addresses in this module's state.</MudText>
-                    <MudTooltip Text="For fixing state by hand: what a transfer or split could not finish, or infrastructure that exists but is not managed yet.">
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)" OnClick="StartStateMove">edit state</MudButton>
-                    </MudTooltip>
-                </MudStack>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">
+                        @transfer.ConsentStatus
+                    </MudChip>
 
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                    <MudText Typo="Typo.body2">Move resources into another module's state.</MudText>
-                    <MudTooltip Text="What moves is decided in the code, by the transfer map the code move writes. Each module moves its own state as its own job, so pause both and start one on each.">
+                    @if (NeedsMyAnswer)
+                    {
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)" OnClick="StartTransfer">transfer resources</MudButton>
-                    </MudTooltip>
+                                   Disabled="@(!_canPause || _busy)"
+                                   OnClick="@(() => Answer(true))">agree</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy)"
+                                   OnClick="@(() => Answer(false))">refuse</MudButton>
+                    }
                 </MudStack>
-            </MudStack>
+            }
+
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4">
+                <MudTabPanel Text="Demonolith jobs" Style="text-transform: none">
+                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy)" OnClick="StartSplit">split</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy || _transfer is not null)"
+                                   OnClick="StartTransfer">transfer</MudButton>
+                    </MudStack>
+                </MudTabPanel>
+
+                <MudTabPanel Text="@($"{EngineName} jobs")" Style="text-transform: none">
+                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy)"
+                                   OnClick="@(() => StartStateMove(StateEditOperation.Move))">move</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy)"
+                                   OnClick="@(() => StartStateMove(StateEditOperation.Import))">import</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy)"
+                                   OnClick="@(() => StartStateMove(StateEditOperation.Remove))">remove</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canPause || _busy)" OnClick="StartStateList">check state</MudButton>
+                    </MudStack>
+                </MudTabPanel>
+            </MudTabs>
         }
     </MudPaper>
 }
@@ -155,6 +180,22 @@ else
                         @if (job.WaitingForApproval == true)
                         {
                             <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">Awaiting approval</MudChip>
+                        }
+                        @if (job.WaitingForConsent == true)
+                        {
+                            <MudTooltip Text="Waiting for the other module to agree to the transfer. There is no timeout: it goes ahead when that module agrees, and ends if it refuses.">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">
+                                    Waiting for the other module
+                                </MudChip>
+                            </MudTooltip>
+                        }
+                        @if (job.WaitingForRunner == true)
+                        {
+                            <MudTooltip Text="The runner this job is pinned to is not connected. It carries on as soon as that runner is back; nothing is lost in the meantime.">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">
+                                    Waiting for runner
+                                </MudChip>
+                            </MudTooltip>
                         }
                         @if (job.Status == ExecutionStatus.PartiallyCompleted)
                         {
@@ -252,6 +293,7 @@ else
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ManualJobServiceFactory ManualJobServiceFactory { get; set; } = null!;
+    [Inject] private TransferServiceFactory TransferServiceFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> TransferDbContextFactory { get; set; } = null!;
     [Inject] private ManualModuleJobSecuredRepositoryFactory ManualJobRepoFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
@@ -269,6 +311,19 @@ else
         AddressOutcome.Succeeded or AddressOutcome.Present => Color.Success,
         _ => Color.Error
     };
+
+    /// <summary>The Namespace's default engine, which a Module without its own falls back to.</summary>
+    private async Task LoadNamespaceDefaultEngine()
+    {
+        if (Module.Engine != null) return;
+
+        await using var db = await TransferDbContextFactory.CreateDbContextAsync();
+
+        _namespaceDefaultEngine = await db.Namespaces.AsNoTracking()
+            .Where(n => n.Id == Module.NamespaceId && n.OrganizationId == OrganizationId)
+            .Select(n => n.DefaultEngine)
+            .FirstOrDefaultAsync();
+    }
 
     /// <summary>What each job on this page did to which addresses, for the addresses tab.</summary>
     private async Task LoadAddresses()
@@ -304,6 +359,117 @@ else
     private bool _canPause;
     private bool _busy;
     private List<Module> _transferCandidates = [];
+    private Transfer? _transfer;
+    private string? _otherModuleName;
+
+    private string OtherModuleName => _otherModuleName ?? "the other module";
+
+    /// <summary>This Module is the counterparty and has not answered yet.</summary>
+    private bool NeedsMyAnswer =>
+        _transfer is { ConsentStatus: ConsentStatus.Pending }
+        && _transfer.CounterpartyModuleId == Module.Id;
+
+    /// <summary>The open transfer this Module is in, and who is on the other side of it.</summary>
+    private async Task LoadTransfer()
+    {
+        using var transfers = TransferServiceFactory.Create(PrincipalProvider);
+        _transfer = await transfers.FindOpenForModule(Module.Id, OrganizationId);
+
+        if (_transfer is not { } transfer)
+        {
+            _otherModuleName = null;
+            return;
+        }
+
+        var otherId = transfer.ModuleId == Module.Id
+            ? transfer.CounterpartyModuleId
+            : transfer.ModuleId;
+
+        await using var db = await TransferDbContextFactory.CreateDbContextAsync();
+        _otherModuleName = await db.Modules.AsNoTracking()
+            .Where(m => m.Id == otherId && m.OrganizationId == OrganizationId)
+            .Select(m => m.Name)
+            .FirstOrDefaultAsync();
+    }
+
+    /// <summary>Answers a transfer this Module has been asked to agree to.</summary>
+    private async Task Answer(bool granted)
+    {
+        if (_transfer is not { } transfer) return;
+
+        var parameters = new DialogParameters
+        {
+            { nameof(TransferConsentDialog.Granted), granted },
+            { nameof(TransferConsentDialog.ModuleRef), Module.SourceRevision }
+        };
+
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<TransferConsentDialog>(
+            granted ? "Agree" : "Refuse", parameters, options);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+        if (result.Data is not TransferConsentDialog.Decision decision) return;
+
+        _busy = true;
+        try
+        {
+            using var service = TransferServiceFactory.Create(PrincipalProvider);
+            await service.Decide(
+                transfer.Id, Module.Id, OrganizationId, granted, decision.ModuleRef);
+
+            Snackbar.Add(
+                granted ? "Agreed; both modules are moving their state." : "Refused.",
+                Severity.Success);
+            await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private StateManagementEngine? _namespaceDefaultEngine;
+
+    /// <summary>
+    /// The engine the state commands in the second tab run against, resolved the way a job
+    /// resolves it: the Module's engine, else its Namespace's default, else OpenTofu.
+    /// </summary>
+    private string EngineName =>
+        (Module.Engine ?? _namespaceDefaultEngine ?? StateManagementEngine.OpenTofu).ToString();
+
+    /// <summary>Asks this Module's state about specific addresses. Writes nothing.</summary>
+    private async Task StartStateList()
+    {
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<StateListDialog>("Check state", options);
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+        if (result.Data is not List<string> addresses || addresses.Count == 0) return;
+
+        _busy = true;
+        try
+        {
+            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            await service.StartStateListFiltered(Module.Id, OrganizationId, addresses);
+
+            Snackbar.Add($"Checking {addresses.Count} addresses against this module's state.", Severity.Success);
+            await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -328,6 +494,8 @@ else
         using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
         await LoadAddresses();
+        await LoadNamespaceDefaultEngine();
+        await LoadTransfer();
 
     }
 
@@ -367,12 +535,16 @@ else
         _busy = true;
         try
         {
-            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.StartTransferMigrate(
-                Module.Id, choice.CounterpartyModuleId, OrganizationId, choice.ModuleRef);
+            using var service = TransferServiceFactory.Create(PrincipalProvider);
+            await service.Open(
+                Module.Id, choice.CounterpartyModuleId, OrganizationId,
+                choice.ModuleRef, choice.StartImmediately);
 
             Snackbar.Add(
-                "Moving this module's state. Start the other module's transfer too.", Severity.Success);
+                choice.StartImmediately
+                    ? "Moving this module's state; the other module has been asked to agree."
+                    : "The other module has been asked to agree. Both start once it does.",
+                Severity.Success);
             await Reload();
         }
         catch (Exception e)
@@ -385,10 +557,12 @@ else
         }
     }
 
-    private async Task StartStateMove()
+    private async Task StartStateMove(StateEditOperation operation)
     {
+        var parameters = new DialogParameters { { nameof(StateMoveDialog.Operation), operation } };
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<StateMoveDialog>("Edit state", options);
+        var dialog = await DialogService.ShowAsync<StateMoveDialog>(
+            operation.ToString(), parameters, options);
 
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
@@ -441,34 +615,6 @@ else
             await service.StartSplitMigrate(Module.Id, OrganizationId, choice.RootDirectory, choice.Force, rederiveBackend: choice.RederiveBackend);
 
             Snackbar.Add("Split started.", Severity.Success);
-            await Reload();
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add(e.Message, Severity.Error);
-        }
-        finally
-        {
-            _busy = false;
-        }
-    }
-
-    private async Task StartProve()
-    {
-        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<SplitProveDialog>("Prove split", options);
-        var result = await dialog.Result;
-
-        if (result is null || result.Canceled) return;
-        if (result.Data is not SplitProveDialog.SplitProveOptions choice) return;
-
-        _busy = true;
-        try
-        {
-            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.StartSplitProve(Module.Id, OrganizationId, choice.RootDirectory, choice.SourceRevision);
-
-            Snackbar.Add("Prove started.", Severity.Success);
             await Reload();
         }
         catch (Exception e)

@@ -32,6 +32,7 @@ public static class TaskHandlers
         services.AddScoped<RefactorDiffHandler>();
         services.AddScoped<MigrateMapHandler>();
         services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.Transfers.TransferStepHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.SharedStepRouter>();
         services.AddScoped<MigrateProveHandler>();
         services.AddScoped<MigrateRunHandler>();
         services.AddScoped<MigrateVerifyHandler>();

@@ -10,6 +10,7 @@
 using System.Text.Json;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Runners;
@@ -144,6 +145,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                     context.Saga.CorrelationId = context.Message.CorrelationId;
                     context.Saga.OrganizationId = context.Message.Declared.OrganizationId;
                     context.Saga.CounterpartyModuleId = context.Message.CounterpartyModuleId;
+                    context.Saga.TransferId = context.Message.TransferId;
                     context.Saga.ModuleId = context.Message.Declared.ModuleId;
                     context.Saga.DeclaredJson = JsonSerializer.Serialize(context.Message.Declared);
                     context.Saga.RunnerId = context.Message.Declared.RunnerId;
@@ -157,12 +159,21 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                         "Transfer: moving state for Module {ModuleId}",
                         context.Saga.ModuleId);
                 })
-                .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
-                .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
-                .TransitionTo(SelectRunnerInstancePending)
+                .IfElse(
+                    context => context.Message.AwaitConsent,
+                    waiting => waiting
+                        .ThenAsync(context => RecordDispatched(context, "WaitForCounterpartyConsent"))
+                        .Activity(x => x.OfType<WaitingForConsentActivity<TransferMigrateSaga, TransferMigrateRequested>>())
+                        .Then(context => context.Saga.WaitingSince = DateTime.UtcNow)
+                        .TransitionTo(WaitingForConsent),
+                    ahead => ahead
+                        .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
+                        .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
+                        .TransitionTo(SelectRunnerInstancePending))
         );
 
         Configure_Preamble();
+        Configure_Consent();
         Configure_Outputs();
         Configure_Slices();
         Configure_OutputsStep();

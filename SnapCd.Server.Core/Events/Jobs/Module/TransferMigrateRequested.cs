@@ -18,6 +18,15 @@ public class TransferMigrateRequested : ModuleJobEventBase
     /// <summary>The Module on the other side of the move.</summary>
     public Guid CounterpartyModuleId { get; set; }
 
+    /// <summary>The transfer this job is one side of, when it was started under one.</summary>
+    public Guid? TransferId { get; set; }
+
+    /// <summary>
+    /// Whether this side waits for the counterparty to agree before it does anything. Only the
+    /// Module that started the transfer ever does.
+    /// </summary>
+    public bool AwaitConsent { get; set; }
+
     /// <summary>This Module's root within its own checkout (--root-dir).</summary>
     public string? RootDirectory { get; set; }
 

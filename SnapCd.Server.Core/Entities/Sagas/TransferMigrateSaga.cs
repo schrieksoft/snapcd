@@ -23,6 +23,9 @@ public class TransferMigrateSaga : ManualJobSagaBase
     /// </summary>
     public Guid CounterpartyModuleId { get; set; }
 
+    /// <summary>The transfer this job is one side of, when it was started under one.</summary>
+    public Guid? TransferId { get; set; }
+
     /// <summary>This Module's root within its own checkout, passed as --root-dir.</summary>
     [MaxLength(1000)] public string? RootDirectory { get; set; }
 
