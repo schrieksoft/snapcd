@@ -27,6 +27,8 @@ public partial class TransferMigrateStateMachine
 {
     public Event<ConsentDecided> ConsentDecidedEvent { get; } = null!;
 
+    public Event<TransferResumeEvent> ResumeEvent { get; } = null!;
+
     public State WaitingForConsent { get; } = null!;
 
     /// <summary>
@@ -38,6 +40,8 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private void Configure_Consent()
     {
+        Event(() => ResumeEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+
         // Correlated by the transfer, since the answer names that rather than this job.
         Event(() => ConsentDecidedEvent, x => x
             .CorrelateBy((saga, context) =>
@@ -48,6 +52,11 @@ public partial class TransferMigrateStateMachine
         // The answer names the transfer, so it reaches both sides. Only the one that asked is
         // waiting for it; for the other it is news about a job it is already running.
         DuringAny(Ignore(ConsentDecidedEvent));
+
+        During(SelectRunnerInstancePending,
+            When(ResumeEvent)
+                .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
+                .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance")));
 
         During(WaitingForConsent,
             When(ConsentDecidedEvent, context => context.Message.Granted)
@@ -60,8 +69,13 @@ public partial class TransferMigrateStateMachine
                     _logger.LogInformation(
                         "Transfer: Module {ModuleId} may go ahead", context.Saga.ModuleId);
                 })
-                .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
-                .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
+                // The step is asked for by a second consume, once this one has committed the
+                // transition. Publishing it here would let the answer arrive first.
+                .Publish(context => new TransferResumeEvent
+                {
+                    ModuleJobId = context.Saga.CorrelationId,
+                    OrganizationId = context.Saga.OrganizationId
+                })
                 .TransitionTo(SelectRunnerInstancePending),
 
             // Refused ends this side too: there is nothing for it to move into.

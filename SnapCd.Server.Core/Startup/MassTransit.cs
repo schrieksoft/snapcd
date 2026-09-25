@@ -319,6 +319,7 @@ public static class MassTransit
 
         // Handler consumers (offloaded from SignalR handlers)
         typeof(OutputCompletedInvokedConsumer),
+        typeof(TransferOutputsCompletedInvokedConsumer),
         typeof(VariablesCompletedInvokedConsumer),
         typeof(ReportRunningTaskInvokedConsumer),
 

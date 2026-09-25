@@ -22,6 +22,19 @@ public class OutputCompletedInvoked
 }
 
 /// <summary>
+/// Published when a transfer's Outputs step is answered. Processed by
+/// TransferOutputsCompletedInvokedConsumer, which stores the set in its own scope: the saga's
+/// context already holds a transaction, and storing opens one of its own.
+/// </summary>
+public class TransferOutputsCompletedInvoked
+{
+    public required Guid JobId { get; set; }
+    public required Guid ModuleId { get; set; }
+    public required Guid OrganizationId { get; set; }
+    public OutputSetCreateDto? OutputSet { get; set; }
+}
+
+/// <summary>
 /// Published when VariableHandler.Complete is invoked from SignalR.
 /// Processed by VariablesCompletedInvokedConsumer to handle database work.
 /// </summary>

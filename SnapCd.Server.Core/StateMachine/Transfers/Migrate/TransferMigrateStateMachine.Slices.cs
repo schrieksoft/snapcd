@@ -178,7 +178,6 @@ public partial class TransferMigrateStateMachine
         During(OutputsPending,
             When(OutputsCompleted)
                 .ThenAsync(context => RecordCompleted(context, "Outputs", ManualJobStepStatus.Succeeded))
-                .ThenAsync(StoreOutputs)
                 .ThenJobCompleted().TransitionTo(Completed).Finalize(),
 
             When(OutputsFaulted)
@@ -196,14 +195,4 @@ public partial class TransferMigrateStateMachine
         );
     }
 
-    /// <summary>Stores what this Module's state now produces, against the Module rather than the job.</summary>
-    private static async Task StoreOutputs(
-        BehaviorContext<TransferMigrateSaga, TransferOutputsCompleted> context)
-    {
-        if (context.Message.OutputSet is not { } outputSet) return;
-
-        await PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<OutputSetService>()
-            .CreateWithOutputsNonsecured(outputSet, context.Saga.ModuleId, context.Saga.OrganizationId);
-    }
 }

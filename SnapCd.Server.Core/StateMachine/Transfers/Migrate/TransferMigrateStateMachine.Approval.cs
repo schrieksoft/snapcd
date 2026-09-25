@@ -39,6 +39,11 @@ public partial class TransferMigrateStateMachine
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); });
 
+        During(MigrateRunPending,
+            When(ResumeEvent)
+                .Publish(context => RunRequest(context.Saga))
+                .ThenAsync(context => RecordDispatched(context, "MigrateRun")));
+
         During(WaitingForApproval,
             DealWithApprovalStatus(When(ApprovalModifiedEvent)),
 
@@ -119,8 +124,12 @@ public partial class TransferMigrateStateMachine
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
                     .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<TransferMigrateSaga, TMessage>>())
-                    .Publish(context => RunRequest(context.Saga))
-                    .ThenAsync(context => RecordDispatched(context, "MigrateRun"))
+                    // Dispatched by a second consume, once this one has committed the transition.
+                    .Publish(context => new TransferResumeEvent
+                    {
+                        ModuleJobId = context.Saga.CorrelationId,
+                        OrganizationId = context.Saga.OrganizationId
+                    })
                     .Schedule(HeartbeatScheduled,
                         context => new HeartbeatScheduled
                         {

@@ -22,6 +22,7 @@ using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Hubs.Handlers;
@@ -882,8 +883,15 @@ public class RunnerHub : Hub
         var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
             Context, jobId, moduleId, "Outputs");
 
-        await _transferStepHandler.Complete<TransferOutputsCompleted>(
-            jobId, moduleId, organizationId, c => c.OutputSet = outputSet);
+        // Storing opens its own transaction, so it happens in a consumer rather than in the
+        // saga, whose context is already in one.
+        await _bus.Publish(new TransferOutputsCompletedInvoked
+        {
+            JobId = jobId,
+            ModuleId = moduleId,
+            OrganizationId = organizationId,
+            OutputSet = outputSet
+        });
     }
 
     public async Task TransferOutputsFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
