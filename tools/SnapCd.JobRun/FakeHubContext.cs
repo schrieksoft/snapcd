@@ -46,12 +46,7 @@ public class FakeHubContext(FakeRunner runner) : IHubContext<RunnerHub>
             {
                 try
                 {
-                    // A step's reply is only accepted once the saga has moved into the state that
-                    // expects it. Real work takes long enough that this is never close; an
-                    // instant answer can arrive first and be rejected as out of state.
-                    await Task.Delay(250, cancellationToken);
-
-                    await runner.Handle(method, args[0]!);
+                    await Reply(method, args[0]!, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -60,6 +55,28 @@ public class FakeHubContext(FakeRunner runner) : IHubContext<RunnerHub>
             }, cancellationToken);
 
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// A step's reply is only accepted once the saga has moved into the state that expects
+        /// it. Real work takes long enough that this is never close, but an answer given at once
+        /// can arrive first, and the rejection says exactly that, so it is worth another go.
+        /// </summary>
+        private async Task Reply(string method, object payload, CancellationToken cancellationToken)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                await Task.Delay(250, cancellationToken);
+
+                try
+                {
+                    await runner.Handle(method, payload);
+                    return;
+                }
+                catch (HubException ex) when (ex.Message.Contains("expected") && attempt < 20)
+                {
+                }
+            }
         }
     }
 }

@@ -51,6 +51,11 @@ public class FakeRunner(
 
     public PolicyOutcome PolicyOutcome { get; set; } = PolicyOutcome.Passed;
 
+    /// <summary>What a split's map claims to have carved out, and what its proof then covers.</summary>
+    public string CarvedModuleName { get; set; } = "carved";
+
+    public int ModulesProven { get; set; } = 1;
+
     public async Task Handle(string endpoint, object payload)
     {
         lock (_dispatched) _dispatched.Add(endpoint);
@@ -124,6 +129,25 @@ public class FakeRunner(
             case RunnerEndpoints.ApplyFromPlan:
                 await hub.ApplyFromPlanCompleted(jobId, ChangedCount);
                 break;
+            case RunnerEndpoints.RefactorValidate:
+                await hub.RefactorValidateCompleted(jobId);
+                break;
+            case RunnerEndpoints.RefactorDiff:
+                await hub.RefactorDiffCompleted(jobId);
+                break;
+            case RunnerEndpoints.MigrateMap:
+                await hub.MigrateMapCompleted(jobId, "jobrun", [CarvedModuleName], ChangedCount);
+                break;
+            case RunnerEndpoints.MigrateProve:
+                await hub.MigrateProveCompleted(jobId, ModulesProven, ModulesProven);
+                break;
+            case RunnerEndpoints.MigrateRun:
+                await hub.MigrateRunCompleted(jobId);
+                break;
+            case RunnerEndpoints.MigrateVerify:
+                await hub.MigrateVerifyCompleted(jobId, ModulesProven, ModulesProven);
+                break;
+
             case RunnerEndpoints.StateListFiltered:
                 // Reports every address asked about as present, which is the outcome a list has
                 // when the state holds what the caller named.

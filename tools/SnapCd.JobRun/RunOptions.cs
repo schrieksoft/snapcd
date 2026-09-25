@@ -15,7 +15,8 @@ public enum JobKind
     List,
     Move,
     Import,
-    Remove
+    Remove,
+    Split
 }
 
 /// <summary>
@@ -57,6 +58,11 @@ public class RunOptions
     /// remove takes none.
     /// </summary>
     public string? Target { get; init; }
+
+    /// <summary>A split's root within the checkout, and whether it proceeds over its own doubts.</summary>
+    public string? RootDirectory { get; init; }
+
+    public bool Force { get; init; }
 
     public bool Verbose { get; init; }
     public bool Keep { get; init; }
@@ -129,9 +135,11 @@ public class RunOptions
                                             Database= entry, e.g.
                                             "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True"
                   --database      <name>    default: a fresh name per run
-                  --job           <kind>    apply (default), list, move, import or remove
+                  --job           <kind>    apply (default), list, move, import, remove or split
                   --addresses     <a,b,c>   the addresses the job names
                   --target        <string>  what each address becomes, for a move or an import
+                  --root          <path>    a split's root within the checkout
+                  --force                   let a split proceed over its own doubts
                   --module        <guid>    default: the seeder's mock Module
                   --principal     <guid>    default: the seeder's debug user
                   --appsettings   <path>    the server's appsettings.json
@@ -149,6 +157,8 @@ public class RunOptions
             ServerAppSettingsPath = Get("appsettings") ?? DefaultAppSettingsPath(),
             Job = Enum.TryParse<JobKind>(Get("job"), ignoreCase: true, out var kind) ? kind : JobKind.Apply,
             Target = Get("target"),
+            RootDirectory = Get("root"),
+            Force = args.Contains("--force"),
             Addresses = Get("addresses")?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim()).ToList()
                         ?? ["null_resource.example"],

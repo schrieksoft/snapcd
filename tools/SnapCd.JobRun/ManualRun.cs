@@ -51,12 +51,14 @@ public static class ManualRun
             JobKind.Move => await StartEdit(manualJobs, options, StateEditOperation.Move),
             JobKind.Import => await StartEdit(manualJobs, options, StateEditOperation.Import),
             JobKind.Remove => await StartEdit(manualJobs, options, StateEditOperation.Remove),
+            JobKind.Split => await manualJobs.StartSplitMigrate(
+                options.ModuleId, options.OrganizationId, options.RootDirectory, options.Force),
             _ => throw new NotSupportedException($"No manual run for {options.Job}.")
         };
 
         Console.WriteLine($"Started job {job.Id}");
 
-        var status = await Watch(dbFactory, job.Id, options);
+        var status = await Watch(dbFactory, manualJobs, job.Id, options);
         await Report(dbFactory, services, job.Id, status);
 
         return status == ExecutionStatus.Completed ? 0 : 1;
@@ -84,9 +86,13 @@ public static class ManualRun
     }
 
     private static async Task<ExecutionStatus> Watch(
-        IDbContextFactory<SnapCdDbContext> dbFactory, Guid jobId, RunOptions options)
+        IDbContextFactory<SnapCdDbContext> dbFactory,
+        ManualJobService manualJobs,
+        Guid jobId,
+        RunOptions options)
     {
         var deadline = DateTime.UtcNow + options.Timeout;
+        var approved = false;
         ExecutionStatus? last = null;
 
         while (DateTime.UtcNow < deadline)
@@ -94,21 +100,28 @@ public static class ManualRun
             await Task.Delay(500);
 
             await using var db = await dbFactory.CreateDbContextAsync();
-            var status = await db.ManualModuleJobs
+            var job = await db.ManualModuleJobs
                 .Where(j => j.Id == jobId)
-                .Select(j => (ExecutionStatus?)j.Status)
+                .Select(j => new { j.Status, j.WaitingForApproval })
                 .FirstOrDefaultAsync();
 
-            if (status is null) continue;
+            if (job is null) continue;
 
-            if (status != last)
+            if (job.Status != last)
             {
-                Console.WriteLine($"  job is {status}");
-                last = status;
+                Console.WriteLine($"  job is {job.Status}");
+                last = job.Status;
             }
 
-            if (status != ExecutionStatus.Running)
-                return status.Value;
+            if (job.Status != ExecutionStatus.Running)
+                return job.Status;
+
+            if (job.WaitingForApproval == true && !approved)
+            {
+                Console.WriteLine("  approving");
+                await manualJobs.Decide(jobId, options.ModuleId, options.OrganizationId, declined: false);
+                approved = true;
+            }
         }
 
         Console.WriteLine($"  timed out after {options.Timeout.TotalSeconds:0}s");
@@ -142,7 +155,9 @@ public static class ManualRun
             .ToListAsync();
 
         Console.WriteLine();
-        Console.WriteLine($"Steps       {steps.Count}");
+        Console.WriteLine(steps.Count == 0
+            ? "Steps       none recorded for this kind"
+            : $"Steps       {steps.Count}");
         foreach (var step in steps)
         {
             Console.WriteLine($"  {step.Task,-24} {step.Status}");
