@@ -16,7 +16,8 @@ public enum JobKind
     Move,
     Import,
     Remove,
-    Split
+    Split,
+    Transfer
 }
 
 /// <summary>
@@ -30,6 +31,10 @@ public class RunOptions
 
     /// <summary>The preseeded agent, from PreseededSettings.DefaultAgentId.</summary>
     public static readonly Guid SeededAgentId = new("20000000-0000-0000-0000-000000000000");
+
+    /// <summary>The seeder's second Module, which a transfer needs as the counterparty.</summary>
+    public static readonly Guid SeededCounterpartyModuleId =
+        new("99999999-9999-9999-9999-999999999911");
 
     /// <summary>The debug seeder's own user, runner pool and mock Module.</summary>
     public static readonly Guid SeededUserId = new("99999999-9999-9999-9999-999999999990");
@@ -63,6 +68,19 @@ public class RunOptions
     public string? RootDirectory { get; init; }
 
     public bool Force { get; init; }
+
+    public Guid CounterpartyModuleId { get; init; } = SeededCounterpartyModuleId;
+
+    /// <summary>The refs each side runs against, which carry the code move.</summary>
+    public string? ModuleRef { get; init; }
+
+    public string? CounterpartyRef { get; init; }
+
+    /// <summary>
+    /// The outputs the consuming side's map says it needs, and which the producing side
+    /// publishes. The sample's app root reads the networking root's random_pet_dns_zone.
+    /// </summary>
+    public IReadOnlyCollection<string> NeedsOutputs { get; init; } = ["random_pet_dns_zone"];
 
     public bool Verbose { get; init; }
     public bool Keep { get; init; }
@@ -135,7 +153,10 @@ public class RunOptions
                                             Database= entry, e.g.
                                             "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True"
                   --database      <name>    default: a fresh name per run
-                  --job           <kind>    apply (default), list, move, import, remove or split
+                  --job           <kind>    apply (default), list, move, import, remove,
+                                            split or transfer
+                  --counterparty  <guid>    the transfer's other Module
+                  --needs         <a,b>     the outputs the consuming side waits for
                   --addresses     <a,b,c>   the addresses the job names
                   --target        <string>  what each address becomes, for a move or an import
                   --root          <path>    a split's root within the checkout
@@ -158,6 +179,14 @@ public class RunOptions
             Job = Enum.TryParse<JobKind>(Get("job"), ignoreCase: true, out var kind) ? kind : JobKind.Apply,
             Target = Get("target"),
             RootDirectory = Get("root"),
+            CounterpartyModuleId = Guid.TryParse(Get("counterparty"), out var c)
+                ? c
+                : SeededCounterpartyModuleId,
+            ModuleRef = Get("ref"),
+            CounterpartyRef = Get("counterparty-ref"),
+            NeedsOutputs = Get("needs")?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                               .Select(o => o.Trim()).ToList()
+                           ?? ["random_pet_dns_zone"],
             Force = args.Contains("--force"),
             Addresses = Get("addresses")?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim()).ToList()

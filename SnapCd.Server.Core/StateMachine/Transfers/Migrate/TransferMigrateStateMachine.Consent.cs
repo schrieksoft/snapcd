@@ -45,6 +45,10 @@ public partial class TransferMigrateStateMachine
                 saga.OrganizationId == context.Message.OrganizationId)
             .SelectId(context => Guid.NewGuid()));
 
+        // The answer names the transfer, so it reaches both sides. Only the one that asked is
+        // waiting for it; for the other it is news about a job it is already running.
+        DuringAny(Ignore(ConsentDecidedEvent));
+
         During(WaitingForConsent,
             When(ConsentDecidedEvent, context => context.Message.Granted)
                 .ThenAsync(context => RecordCompleted(

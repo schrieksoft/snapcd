@@ -73,6 +73,9 @@ public static class Run
             return status == ExecutionStatus.Completed ? 0 : 1;
         }
 
+        if (options.Job == JobKind.Transfer)
+            return await TransferRun.Execute(services, scope, principal, dbFactory, options);
+
         return await ManualRun.Execute(services, scope, principal, dbFactory, options);
     }
 

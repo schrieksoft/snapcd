@@ -10,6 +10,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Constants;
+using SnapCd.Contracts.Dto.Outputs;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
@@ -51,10 +52,26 @@ public class FakeRunner(
 
     public PolicyOutcome PolicyOutcome { get; set; } = PolicyOutcome.Passed;
 
+    /// <summary>Set for a transfer, which refuses to move state a plan says is not settled.</summary>
+    public bool PlansClean { get; set; }
+
     /// <summary>What a split's map claims to have carved out, and what its proof then covers.</summary>
     public string CarvedModuleName { get; set; } = "carved";
 
     public int ModulesProven { get; set; } = 1;
+
+    /// <summary>
+    /// The Module whose plan reads a value the other produces, and the outputs it waits for. Only
+    /// that side reports needing anything, so only it parks; the other passes straight through
+    /// and publishes what the first is waiting for.
+    /// </summary>
+    public Guid ConsumingModuleId { get; set; }
+
+    public IReadOnlyCollection<string> NeedsOutputs { get; set; } = [];
+
+    /// <summary>The addresses a transfer's run reports having moved.</summary>
+    public List<string> TransferredAddresses { get; set; } =
+        ["random_pet.dns_zone", "random_uuid.dns_zone_id"];
 
     public async Task Handle(string endpoint, object payload)
     {
@@ -115,20 +132,72 @@ public class FakeRunner(
                 await hub.PolicyValidateCompleted(jobId, PolicyOutcome);
                 break;
             case RunnerEndpoints.Plan:
+            {
+                // A transfer needs a clean plan to go ahead, while an apply with nothing to
+                // change routes to Output instead and never reaches the apply.
+                var changed = PlansClean ? 0 : ChangedCount;
+
                 await hub.PlanCompleted(jobId, new PlanCompletedData
                 {
-                    TotalChangedCount = ChangedCount,
-                    CreateCount = ChangedCount,
-                    TotalCountAfter = ChangedCount,
+                    TotalChangedCount = changed,
+                    CreateCount = changed,
+                    TotalCountAfter = changed,
                     PolicyOutcome = PolicyOutcome
                 });
                 break;
+            }
             case RunnerEndpoints.PlanEmptyVerify:
                 await hub.PlanEmptyVerifyCompleted(jobId);
                 break;
             case RunnerEndpoints.ApplyFromPlan:
                 await hub.ApplyFromPlanCompleted(jobId, ChangedCount);
                 break;
+            case RunnerEndpoints.TransferMigrateMap:
+            {
+                var moduleId = Read<Guid>(payload, "ModuleId");
+                var needs = moduleId == ConsumingModuleId ? NeedsOutputs.ToList() : [];
+
+                await hub.TransferMigrateMapCompleted(jobId, moduleId, needs);
+                break;
+            }
+            case RunnerEndpoints.TransferMigrateProve:
+                await hub.TransferMigrateProveCompleted(
+                    jobId, Read<Guid>(payload, "ModuleId"), 0,
+                    new Dictionary<string, string>(), "clean");
+                break;
+            case RunnerEndpoints.TransferRefactorDiff:
+                await hub.TransferRefactorDiffCompleted(
+                    jobId, Read<Guid>(payload, "ModuleId"), 0, "clean");
+                break;
+            case RunnerEndpoints.TransferMigrateRun:
+                await hub.TransferMigrateRunCompleted(
+                    jobId, Read<Guid>(payload, "ModuleId"), TransferredAddresses, gaveUp: false);
+                break;
+            case RunnerEndpoints.TransferMigrateVerify:
+                await hub.TransferMigrateVerifyCompleted(jobId, Read<Guid>(payload, "ModuleId"));
+                break;
+            case RunnerEndpoints.TransferOutputs:
+            {
+                var moduleId = Read<Guid>(payload, "ModuleId");
+
+                // The producing side publishes what the other is parked on; the consuming side
+                // has nothing anyone waits for.
+                var outputs = moduleId == ConsumingModuleId
+                    ? []
+                    : NeedsOutputs.Select(name => new OutputCreateDto
+                    {
+                        Name = name, Type = "string", Value = $"{name}-from-jobrun"
+                    }).ToList();
+
+                await hub.TransferOutputsCompleted(jobId, moduleId, new OutputSetCreateDto
+                {
+                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    Checksum = $"jobrun-{moduleId:N}",
+                    Outputs = outputs
+                });
+                break;
+            }
+
             case RunnerEndpoints.RefactorValidate:
                 await hub.RefactorValidateCompleted(jobId);
                 break;
