@@ -9,7 +9,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Jobs;
@@ -46,6 +48,9 @@ public static class ManualRun
         {
             JobKind.List => await manualJobs.StartStateListFiltered(
                 options.ModuleId, options.OrganizationId, options.Addresses),
+            JobKind.Move => await StartEdit(manualJobs, options, StateEditOperation.Move),
+            JobKind.Import => await StartEdit(manualJobs, options, StateEditOperation.Import),
+            JobKind.Remove => await StartEdit(manualJobs, options, StateEditOperation.Remove),
             _ => throw new NotSupportedException($"No manual run for {options.Job}.")
         };
 
@@ -55,6 +60,27 @@ public static class ManualRun
         await Report(dbFactory, services, job.Id, status);
 
         return status == ExecutionStatus.Completed ? 0 : 1;
+    }
+
+    /// <summary>
+    /// A move and an import need a target per address; a remove takes none. The default stands in
+    /// for one an operator would name.
+    /// </summary>
+    private static Task<ManualModuleJob> StartEdit(
+        ManualJobService manualJobs, RunOptions options, StateEditOperation operation)
+    {
+        var instructions = options.Addresses
+            .Select(address => new AddressInstruction
+            {
+                Address = address,
+                Target = operation == StateEditOperation.Remove
+                    ? null
+                    : options.Target ?? $"{address}_moved"
+            })
+            .ToList();
+
+        return manualJobs.StartStateMove(
+            options.ModuleId, options.OrganizationId, operation, instructions);
     }
 
     private static async Task<ExecutionStatus> Watch(

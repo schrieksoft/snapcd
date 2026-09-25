@@ -306,8 +306,8 @@ public class StateMoveJobTests : IAsyncLifetime
     {
         await Start(instructions, operation);
 
-        var select = await AwaitStep<TransferSelectRunnerInstanceRequested>("SelectRunnerInstancePending");
-        await Answer(new TransferSelectRunnerInstanceCompleted
+        var select = await AwaitStep<StateMoveSelectRunnerInstanceRequested>("SelectRunnerInstancePending");
+        await Answer(new StateMoveSelectRunnerInstanceCompleted
         {
             CorrelationId = select.CorrelationId,
             OrganizationId = _organizationId,
@@ -315,16 +315,16 @@ public class StateMoveJobTests : IAsyncLifetime
             RunnerInstanceName = "runner-a"
         });
 
-        var getModule = await AwaitStep<TransferGetModuleRequested>("GetModulePending");
-        await Answer(new TransferGetModuleCompleted
+        var getModule = await AwaitStep<StateMoveGetModuleRequested>("GetModulePending");
+        await Answer(new StateMoveGetModuleCompleted
         {
             CorrelationId = getModule.CorrelationId,
             OrganizationId = _organizationId,
             ModuleId = _moduleId
         });
 
-        var init = await AwaitStep<TransferInitRequested>("InitPending");
-        await Answer(new TransferInitCompleted
+        var init = await AwaitStep<StateMoveInitRequested>("InitPending");
+        await Answer(new StateMoveInitCompleted
         {
             CorrelationId = init.CorrelationId,
             OrganizationId = _organizationId,

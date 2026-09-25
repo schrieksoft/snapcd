@@ -12,7 +12,10 @@ namespace SnapCd.JobRun;
 public enum JobKind
 {
     Apply,
-    List
+    List,
+    Move,
+    Import,
+    Remove
 }
 
 /// <summary>
@@ -46,8 +49,14 @@ public class RunOptions
     public string RunnerInstanceName { get; init; } = "jobrun";
     public JobKind Job { get; init; } = JobKind.Apply;
 
-    /// <summary>The addresses a List checks for. Its own job refuses an empty set.</summary>
+    /// <summary>The addresses a job names. Every kind here refuses an empty set.</summary>
     public IReadOnlyCollection<string> Addresses { get; init; } = ["null_resource.example"];
+
+    /// <summary>
+    /// What each address becomes. A move needs one and an import needs the resource's id; a
+    /// remove takes none.
+    /// </summary>
+    public string? Target { get; init; }
 
     public bool Verbose { get; init; }
     public bool Keep { get; init; }
@@ -120,8 +129,9 @@ public class RunOptions
                                             Database= entry, e.g.
                                             "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True"
                   --database      <name>    default: a fresh name per run
-                  --job           <kind>    apply (default) or list
-                  --addresses     <a,b,c>   what a list checks for
+                  --job           <kind>    apply (default), list, move, import or remove
+                  --addresses     <a,b,c>   the addresses the job names
+                  --target        <string>  what each address becomes, for a move or an import
                   --module        <guid>    default: the seeder's mock Module
                   --principal     <guid>    default: the seeder's debug user
                   --appsettings   <path>    the server's appsettings.json
@@ -138,6 +148,7 @@ public class RunOptions
             DatabaseName = Get("database") ?? $"SnapCdJobRun_{DateTime.Now:yyyyMMdd_HHmmss}",
             ServerAppSettingsPath = Get("appsettings") ?? DefaultAppSettingsPath(),
             Job = Enum.TryParse<JobKind>(Get("job"), ignoreCase: true, out var kind) ? kind : JobKind.Apply,
+            Target = Get("target"),
             Addresses = Get("addresses")?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim()).ToList()
                         ?? ["null_resource.example"],

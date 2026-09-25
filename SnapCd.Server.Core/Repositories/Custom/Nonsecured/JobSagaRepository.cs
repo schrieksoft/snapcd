@@ -23,10 +23,11 @@ public class JobSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFacto
         var splitMonolithSagaRepository = new SplitMigrateSagaRepository(dbContext);
         var transferMigrateSagaRepository = new TransferMigrateSagaRepository(dbContext);
         var stateListFilteredSagaRepository = new StateListFilteredSagaRepository(dbContext);
+        var stateMoveSagaRepository = new StateMoveSagaRepository(dbContext);
         return new JobSagaRepository(
             dbContext, applyJobSagaRepository, destroyJobSagaRepository,
             splitMonolithSagaRepository, transferMigrateSagaRepository,
-            stateListFilteredSagaRepository);
+            stateListFilteredSagaRepository, stateMoveSagaRepository);
     }
 }
 
@@ -38,6 +39,7 @@ public class JobSagaRepository : IDisposable
     private readonly SplitMigrateSagaRepository _splitMonolithSagaRepository;
     private readonly TransferMigrateSagaRepository _transferMigrateSagaRepository;
     private readonly StateListFilteredSagaRepository _stateListFilteredSagaRepository;
+    private readonly StateMoveSagaRepository _stateMoveSagaRepository;
 
     public JobSagaRepository(
         SnapCdDbContext dbContext,
@@ -45,7 +47,8 @@ public class JobSagaRepository : IDisposable
         DestroyJobSagaRepository destroyJobSagaRepository,
         SplitMigrateSagaRepository splitMonolithSagaRepository,
         TransferMigrateSagaRepository transferMigrateSagaRepository,
-        StateListFilteredSagaRepository stateListFilteredSagaRepository)
+        StateListFilteredSagaRepository stateListFilteredSagaRepository,
+        StateMoveSagaRepository stateMoveSagaRepository)
     {
         _dbContext = dbContext;
         _applyJobSagaRepository = applyJobSagaRepository;
@@ -53,6 +56,7 @@ public class JobSagaRepository : IDisposable
         _splitMonolithSagaRepository = splitMonolithSagaRepository;
         _transferMigrateSagaRepository = transferMigrateSagaRepository;
         _stateListFilteredSagaRepository = stateListFilteredSagaRepository;
+        _stateMoveSagaRepository = stateMoveSagaRepository;
     }
 
     /// <summary>
@@ -87,6 +91,9 @@ public class JobSagaRepository : IDisposable
             metaData = await _stateListFilteredSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
 
         if (metaData == null)
+            metaData = await _stateMoveSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
+
+        if (metaData == null)
             throw new EntityNotFoundException($"Could not find a Job with correlation id {correlationId} in Organization {organizationId}.");
 
         return metaData;
@@ -99,6 +106,7 @@ public class JobSagaRepository : IDisposable
         _destroyJobSagaRepository?.Dispose();
         _splitMonolithSagaRepository?.Dispose();
         _stateListFilteredSagaRepository?.Dispose();
+        _stateMoveSagaRepository?.Dispose();
         _transferMigrateSagaRepository?.Dispose();
         _dbContext?.Dispose();
     }

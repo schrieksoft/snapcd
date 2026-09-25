@@ -41,7 +41,10 @@ public enum JobSagaFamily
     TransferMigrate,
 
     /// <summary>Checking which addresses a Module's state holds.</summary>
-    StateListFiltered
+    StateListFiltered,
+
+    /// <summary>Editing a Module's state: a move, an import or a remove.</summary>
+    StateMove
 }
 
 /// <summary>The outcome of a successful runner authorization: which family owns the job, and its organization.</summary>

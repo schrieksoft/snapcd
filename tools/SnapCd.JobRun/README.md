@@ -1,6 +1,8 @@
 # snapcd job run
 
-Runs an Apply against a Module with the runner answered in-process, and watches the job until it stops running.
+Runs a job against a Module with the runner answered in-process, and watches it until it stops running.
+
+Five kinds so far: an Apply, and the manual jobs - a state list, a move, an import and a remove.
 
 Not a test. It asserts nothing: it starts a real job through the real services against a real database, and prints what happened. The value is the printout.
 
@@ -23,10 +25,13 @@ The bus lives in that same database, which is what keeps it isolated: a run poin
 ```bash
 dotnet run --project tools/SnapCd.JobRun -- \
     --server "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True" \
+    --job list \
     --verbose
 ```
 
-`--server` carries no `Database=` entry; the run appends its own. Everything else defaults to what the seeder creates, so no ids need supplying. `--keep` leaves the database behind to inspect, `--database` names it, `--timeout` bounds the watch.
+`--server` carries no `Database=` entry; the run appends its own. Everything else defaults to what the seeder creates, so no ids need supplying. `--job` picks the kind and defaults to an apply; `--addresses` names what a manual job acts on and `--target` what each becomes. `--keep` leaves the database behind to inspect, `--database` names it, `--timeout` bounds the watch.
+
+A manual job runs against a paused Module, so the run pauses it first, as an operator would.
 
 ## What it prints
 
@@ -38,4 +43,17 @@ A green Apply dispatches nine steps:
 Ping GetDefinitiveRevision GetModule Init Validate Input Plan ApplyFromPlan Output
 ```
 
-`Ping` is the liveness probe, and a connection that does not answer it is dropped as stale before any step is dispatched. A real runner also reports its current task on a timer, which is what the heartbeat reads; reporting once per step is not enough, and a job that idles past the threshold is failed as abandoned.
+A manual job dispatches its preamble and then its own step, and prints the addresses it touched:
+
+```
+Steps       4
+  SelectRunnerInstance     Succeeded
+  GetModule                Succeeded
+  Init                     Succeeded
+  StateListFiltered        Succeeded
+
+Addresses   1
+  null_resource.example                    List Present
+```
+
+`Ping` is the liveness probe, and a connection that does not answer it is dropped as stale before any step is dispatched. A real runner also reports its current task on a timer, which is what the heartbeat reads; reporting once per step is not enough, and a job that idles past the threshold is failed as abandoned. A reply also waits a moment before it is sent, because a step's reply is only accepted once the saga has moved into the state expecting it, and real work always takes longer than that.

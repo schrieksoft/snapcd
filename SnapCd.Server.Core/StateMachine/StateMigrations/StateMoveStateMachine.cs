@@ -18,7 +18,7 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
-using SnapCd.Server.Core.Events.Steps.Transfer;
+using SnapCd.Server.Core.Events.Steps.ManualJobs;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.Crud.StateMigrations;
 using SnapCd.Server.Core.Services.Crud.Transfers;
@@ -42,12 +42,12 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
     public Event<StateMoveJobRequested> JobRequested { get; } = null!;
     public Event<CancelManualModuleJobRequested> CancelRequested { get; } = null!;
 
-    public Event<TransferSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
-    public Event<TransferSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
-    public Event<TransferGetModuleCompleted> GetModuleCompleted { get; } = null!;
-    public Event<TransferGetModuleFaulted> GetModuleFaulted { get; } = null!;
-    public Event<TransferInitCompleted> InitCompleted { get; } = null!;
-    public Event<TransferInitFaulted> InitFaulted { get; } = null!;
+    public Event<StateMoveSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
+    public Event<StateMoveSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
+    public Event<StateMoveGetModuleCompleted> GetModuleCompleted { get; } = null!;
+    public Event<StateMoveGetModuleFaulted> GetModuleFaulted { get; } = null!;
+    public Event<StateMoveInitCompleted> InitCompleted { get; } = null!;
+    public Event<StateMoveInitFaulted> InitFaulted { get; } = null!;
     public Event<StateMoveCompleted> MoveCompleted { get; } = null!;
     public Event<StateMoveFaulted> MoveFaulted { get; } = null!;
     public Event<StateListFilteredCompleted> ListCompleted { get; } = null!;
@@ -118,7 +118,7 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
                         "{Operation} of {Count} addresses starting on Module {ModuleId}",
                         context.Message.Operation, context.Message.Instructions.Count, context.Saga.ModuleId);
                 })
-                .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
+                .Publish(context => Request<StateMoveSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
                 .TransitionTo(SelectRunnerInstancePending)
         );

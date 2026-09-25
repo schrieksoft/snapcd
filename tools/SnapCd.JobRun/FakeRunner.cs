@@ -32,6 +32,7 @@ public class FakeRunner(
     /// <summary>The pool the run registered against, known only once the Module is read.</summary>
     public Guid RunnerId { get; set; }
 
+    private readonly SemaphoreSlim _reporting = new(1, 1);
     private Guid _liveJobId;
     private string _liveTask = "";
 
@@ -75,7 +76,18 @@ public class FakeRunner(
         // job idles between steps and is failed as abandoned once the threshold passes.
         _liveJobId = jobId;
         _liveTask = endpoint;
-        await hub.ReportRunningTask(jobId, endpoint, RunnerId, instanceName);
+
+        // One report at a time: the row is unique per job, so a timer tick landing on top of a
+        // step's own report collides.
+        await _reporting.WaitAsync();
+        try
+        {
+            await hub.ReportRunningTask(jobId, endpoint, RunnerId, instanceName);
+        }
+        finally
+        {
+            _reporting.Release();
+        }
 
         switch (endpoint)
         {
@@ -121,6 +133,21 @@ public class FakeRunner(
                     .ToList());
                 break;
 
+            case RunnerEndpoints.StateMove:
+            case RunnerEndpoints.StateImport:
+            case RunnerEndpoints.StateRemove:
+                // Reports every instruction as succeeded, echoing the operation the job was asked
+                // for, which is what the saga records against each address.
+                await hub.StateMoveCompleted(jobId,
+                    Read<string>(payload, "Operation") ?? "",
+                    (Read<List<StateAddressInstruction>>(payload, "Instructions") ?? [])
+                    .Select(i => new StateAddressResult
+                    {
+                        Address = i.Address, Target = i.Target, Outcome = "Succeeded"
+                    })
+                    .ToList());
+                break;
+
             case RunnerEndpoints.Output:
                 // An empty set rather than null: the consumer stores the set and publishes the
                 // saga's completion from the same branch, so a null ends the job's progress.
@@ -147,6 +174,7 @@ public class FakeRunner(
         {
             if (_liveJobId == Guid.Empty) continue;
 
+            await _reporting.WaitAsync(cancellationToken);
             try
             {
                 await using var scope = services.CreateAsyncScope();
@@ -157,6 +185,10 @@ public class FakeRunner(
             catch (Exception ex)
             {
                 trace($"  !! periodic report failed: {ex.Message}");
+            }
+            finally
+            {
+                _reporting.Release();
             }
         }
     }

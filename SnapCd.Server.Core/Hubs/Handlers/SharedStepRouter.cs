@@ -43,6 +43,8 @@ public class SharedStepRouter(
             transferStep.Complete<TransferGetModuleCompleted>(jobId, auth.OrganizationId),
         JobSagaFamily.StateListFiltered =>
             transferStep.Complete<StateListFilteredGetModuleCompleted>(jobId, auth.OrganizationId),
+        JobSagaFamily.StateMove =>
+            transferStep.Complete<StateMoveGetModuleCompleted>(jobId, auth.OrganizationId),
         _ => getModule.Complete(jobId)
     };
 
@@ -55,6 +57,8 @@ public class SharedStepRouter(
                 transferStep.Fault<TransferGetModuleFaulted>(jobId, auth.OrganizationId, error, stackTrace),
             JobSagaFamily.StateListFiltered =>
                 transferStep.Fault<StateListFilteredGetModuleFaulted>(jobId, auth.OrganizationId, error, stackTrace),
+            JobSagaFamily.StateMove =>
+                transferStep.Fault<StateMoveGetModuleFaulted>(jobId, auth.OrganizationId, error, stackTrace),
             _ => getModule.Fault(jobId, error, stackTrace)
         };
 
@@ -65,6 +69,8 @@ public class SharedStepRouter(
             transferStep.Complete<TransferInitCompleted>(jobId, auth.OrganizationId),
         JobSagaFamily.StateListFiltered =>
             transferStep.Complete<StateListFilteredInitCompleted>(jobId, auth.OrganizationId),
+        JobSagaFamily.StateMove =>
+            transferStep.Complete<StateMoveInitCompleted>(jobId, auth.OrganizationId),
         _ => init.Complete(jobId)
     };
 
@@ -76,6 +82,8 @@ public class SharedStepRouter(
                 transferStep.Fault<TransferInitFaulted>(jobId, auth.OrganizationId, error, stackTrace),
             JobSagaFamily.StateListFiltered =>
                 transferStep.Fault<StateListFilteredInitFaulted>(jobId, auth.OrganizationId, error, stackTrace),
+            JobSagaFamily.StateMove =>
+                transferStep.Fault<StateMoveInitFaulted>(jobId, auth.OrganizationId, error, stackTrace),
             _ => init.Fault(jobId, error, stackTrace)
         };
 
