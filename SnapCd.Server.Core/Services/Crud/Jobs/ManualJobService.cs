@@ -135,6 +135,23 @@ public class ManualJobService : IDisposable
     /// index keys on Running, so an early terminal write here would let a second job start
     /// underneath the first.
     /// </remarks>
+    /// <summary>
+    /// Says a job has appeared, so an open page re-reads what is now blocked. Only the four
+    /// finalization activities announced a change before, which left every other viewer's
+    /// launchers live until something else refreshed them.
+    /// </summary>
+    private async Task AnnounceStarted(ManualModuleJob job)
+    {
+        if (_bus is null) return;
+
+        await _bus.Publish(new ManualJobUpdatedEvent
+        {
+            JobId = job.Id,
+            ModuleId = job.ModuleId,
+            OrganizationId = job.OrganizationId
+        });
+    }
+
     public async Task<ManualModuleJob> Start(
         Guid moduleId,
         Guid organizationId,
@@ -174,6 +191,8 @@ public class ManualJobService : IDisposable
             // The filtered unique index is the real guarantee: the check above can be raced.
             throw new ManualJobNotAllowedException("A manual job is already running on this module.");
         }
+
+        await AnnounceStarted(job);
 
         return job;
     }
@@ -225,6 +244,7 @@ public class ManualJobService : IDisposable
 
         dbContext.ManualModuleJobs.Add(job);
         await dbContext.SaveChangesAsync();
+        await AnnounceStarted(job);
 
         try
         {
@@ -291,6 +311,7 @@ public class ManualJobService : IDisposable
 
         dbContext.ManualModuleJobs.Add(job);
         await dbContext.SaveChangesAsync();
+        await AnnounceStarted(job);
 
         try
         {
@@ -353,6 +374,7 @@ public class ManualJobService : IDisposable
 
         dbContext.ManualModuleJobs.Add(job);
         await dbContext.SaveChangesAsync();
+        await AnnounceStarted(job);
 
         try
         {

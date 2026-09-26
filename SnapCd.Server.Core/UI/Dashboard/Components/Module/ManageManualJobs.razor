@@ -88,8 +88,10 @@
 
                     @if (NeedsMyAnswer)
                     {
+                        @* Agreeing starts this module's own side, so it waits like any launcher.
+                           Refusing only closes the transfer and stays available. *@
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)"
+                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
                                    OnClick="@(() => Answer(true))">agree</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    Disabled="@(!_canPause || _busy)"
@@ -98,13 +100,24 @@
                 </MudStack>
             }
 
+            @if (RunningManualJob is { } running)
+            {
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small"/>
+                    <MudText Typo="Typo.body2">
+                        <strong>@FormatJobType(running.JobType) #@running.JobNumber is running.</strong>
+                        One manual job at a time, so the rest wait for it.
+                    </MudText>
+                </MudStack>
+            }
+
             <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4">
                 <MudTabPanel Text="Demonolith jobs" Style="text-transform: none">
                     <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)" OnClick="StartSplit">split</MudButton>
+                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)" OnClick="StartSplit">split</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || _transfer is not null)"
+                                   Disabled="@(!_canPause || _busy || _transfer is not null || RunningManualJob is not null)"
                                    OnClick="StartTransfer">transfer</MudButton>
                     </MudStack>
                 </MudTabPanel>
@@ -112,16 +125,16 @@
                 <MudTabPanel Text="@($"{EngineName} jobs")" Style="text-transform: none">
                     <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)"
+                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
                                    OnClick="@(() => StartStateMove(StateEditOperation.Move))">move</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)"
+                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
                                    OnClick="@(() => StartStateMove(StateEditOperation.Import))">import</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)"
+                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
                                    OnClick="@(() => StartStateMove(StateEditOperation.Remove))">remove</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)" OnClick="StartStateList">check state</MudButton>
+                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)" OnClick="StartStateList">check state</MudButton>
                     </MudStack>
                 </MudTabPanel>
             </MudTabs>
@@ -353,8 +366,13 @@ else
 
     private IApprovalSource? _approvalSource;
 
+    /// A manual job of this module's own, still going. Its own panel below shows what it is doing.
+    private ManualModuleJob? RunningManualJob =>
+        _jobs.FirstOrDefault(j => j.Status == ExecutionStatus.Running);
+
     /// Inside a paused module, any remaining block is work still draining: the pause itself is not one.
-    private bool IsDraining => ModuleSaga is { Paused: true } && _blockedReason is not null;
+    private bool IsDraining =>
+        ModuleSaga is { Paused: true } && _blockedReason is not null && RunningManualJob is null;
 
     private bool _canPause;
     private bool _busy;
