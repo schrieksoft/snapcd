@@ -391,6 +391,7 @@ public static class MassTransit
     private static void AddStateMachineActivities(IServiceCollection services)
     {
         services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
+        services.AddScoped(typeof(StateMoveNeedsApprovalActivity<>));
         services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
         services.AddScoped(typeof(RunnerConnectedActivity<,>));
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));

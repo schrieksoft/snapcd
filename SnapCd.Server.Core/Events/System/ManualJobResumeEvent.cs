@@ -9,12 +9,12 @@
 namespace SnapCd.Server.Core.Events.System;
 
 /// <summary>
-/// Asks a transfer job that has just left a wait to dispatch the step it was waiting to run. The
+/// Asks a manual job that has just left a wait to dispatch the step it was waiting to run. The
 /// answer to the wait and the dispatch are two consumes rather than one, so the saga is already in
 /// the state that expects the reply before the step is asked for. Publishing both from one chain
 /// lets a fast answer arrive while the saga is still in the state it is leaving.
 /// </summary>
-public class TransferResumeEvent
+public class ManualJobResumeEvent
 {
     /// <summary>The job that was waiting.</summary>
     public Guid ModuleJobId { get; set; }

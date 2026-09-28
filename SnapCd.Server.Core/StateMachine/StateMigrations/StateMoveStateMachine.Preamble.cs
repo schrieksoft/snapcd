@@ -45,8 +45,24 @@ public partial class StateMoveStateMachine
             GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", InitPending,
             context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
-        CreateStep<StateMoveInitCompleted, StateMoveInitFaulted, StateMoveRequested>(
-            InitPending, InitCompleted, InitFaulted, "Init", MovePending);
+        // The edit is the one irreversible step, so Init hands to the approval gate rather than
+        // dispatching it: the gate sends it once the threshold is answered.
+        During(InitPending,
+            DealWithApprovalStatus(
+                When(InitCompleted)
+                    .ThenAsync(context => RecordCompleted(context, "Init", ManualJobStepStatus.Succeeded)),
+                transition: true),
+
+            When(InitFaulted)
+                .ThenAsync(context => RecordCompleted(context, "Init", ManualJobStepStatus.Faulted))
+                .ThenJobFailed().TransitionTo(Failed).Finalize(),
+
+            When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
+            When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
+            When(HeartbeatRequested.Completed2)
+                .ThenAsync(context => RecordCompleted(context, "Init", ManualJobStepStatus.Faulted,
+                    "The runner stopped responding."))
+                .ThenJobFailed().TransitionTo(Failed).Finalize());
 
         // Cancel is ignored once the move is running: its addresses are already being written.
         During(SelectRunnerInstancePending, GetModulePending, InitPending,

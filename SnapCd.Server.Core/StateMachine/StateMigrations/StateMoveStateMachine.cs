@@ -114,6 +114,7 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
                     context.Saga.RunnerName = context.Message.Declared.RunnerName;
                     context.Saga.RunnerInstanceName = context.Message.Declared.RunnerInstanceName;
                     context.Saga.Operation = context.Message.Operation;
+                    context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                     context.Saga.InstructionsJson = JsonSerializer.Serialize(context.Message.Instructions);
 
                     _logger.LogInformation(
@@ -125,6 +126,7 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
                 .TransitionTo(SelectRunnerInstancePending)
         );
 
+        Configure_Approval();
         Configure_Preamble();
 
         // The move reports what it managed; the list that follows reports what is actually there.

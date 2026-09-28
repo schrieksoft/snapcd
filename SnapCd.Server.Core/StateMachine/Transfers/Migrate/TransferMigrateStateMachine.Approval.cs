@@ -125,7 +125,7 @@ public partial class TransferMigrateStateMachine
                     .Unschedule(ApprovalTimeoutScheduled)
                     .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<TransferMigrateSaga, TMessage>>())
                     // Dispatched by a second consume, once this one has committed the transition.
-                    .Publish(context => new TransferResumeEvent
+                    .Publish(context => new ManualJobResumeEvent
                     {
                         ModuleJobId = context.Saga.CorrelationId,
                         OrganizationId = context.Saga.OrganizationId
