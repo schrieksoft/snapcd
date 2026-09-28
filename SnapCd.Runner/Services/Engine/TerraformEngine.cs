@@ -188,45 +188,51 @@ public class TerraformEngine : BaseEngine, IEngine
     /// One address at a time. The command is logged so an operator can see what ran; its output is
     /// short and names only this address.
     /// </summary>
-    protected override async Task RunStateMove(
-        StateMoveOperation operation,
+    protected override Task RunMove(
         string address,
         string? target,
         bool dryRun,
         CancellationToken killCancellationToken,
         CancellationToken gracefulCancellationToken)
     {
-        if (operation != StateMoveOperation.Remove && string.IsNullOrWhiteSpace(target))
-            throw new InvalidOperationException($"{operation} needs a target for {address}.");
+        if (string.IsNullOrWhiteSpace(target))
+            throw new InvalidOperationException($"A move needs a target for {address}.");
 
-        // An import has no dry run of its own, so asking for one has to be refused rather than
-        // quietly answered by importing.
-        if (dryRun && operation == StateMoveOperation.Import)
-            throw new InvalidOperationException("An import cannot be tried without doing it.");
+        var dry = dryRun ? " -dry-run" : string.Empty;
 
-        await RunProcess(
-            StateMoveCommand(_engine, operation, address, target, dryRun),
+        return RunProcess(
+            $"{_engine} state mv{dry} {Quote(address)} {Quote(target)}",
             killCancellationToken,
             gracefulCancellationToken);
     }
 
-    /// <summary>
-    /// The command for one address, with both parts quoted as single shell arguments. A move and a
-    /// remove can be asked what they would do without doing it; an import cannot.
-    /// </summary>
-    public static string StateMoveCommand(
-        string engine, StateMoveOperation operation, string address, string? target,
-        bool dryRun = false)
+    protected override Task RunImport(
+        string address,
+        string? target,
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(target))
+            throw new InvalidOperationException($"An import needs a resource id for {address}.");
+
+        return RunProcess(
+            $"{_engine} import {Quote(address)} {Quote(target)}",
+            killCancellationToken,
+            gracefulCancellationToken);
+    }
+
+    protected override Task RunRemove(
+        string address,
+        bool dryRun,
+        CancellationToken killCancellationToken,
+        CancellationToken gracefulCancellationToken)
     {
         var dry = dryRun ? " -dry-run" : string.Empty;
 
-        return operation switch
-        {
-            StateMoveOperation.Move => $"{engine} state mv{dry} {Quote(address)} {Quote(target)}",
-            StateMoveOperation.Import => $"{engine} import {Quote(address)} {Quote(target)}",
-            StateMoveOperation.Remove => $"{engine} state rm{dry} {Quote(address)}",
-            _ => throw new ArgumentOutOfRangeException(nameof(operation))
-        };
+        return RunProcess(
+            $"{_engine} state rm{dry} {Quote(address)}",
+            killCancellationToken,
+            gracefulCancellationToken);
     }
 
     /// <summary>

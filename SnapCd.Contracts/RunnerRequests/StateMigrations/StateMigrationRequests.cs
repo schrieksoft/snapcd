@@ -49,7 +49,5 @@ public class StateAddressInstruction
 public class StateMoveRequestBase : EngineJobRequestBase
 {
     /// <summary>"Mv", "Import" or "Remove".</summary>
-    public string Operation { get; set; } = null!;
-
     public List<StateAddressInstruction> Instructions { get; set; } = [];
 }

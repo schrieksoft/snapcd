@@ -107,11 +107,10 @@ public abstract class BaseEngine
     }
 
     /// <summary>
-    /// Runs one state command per address, so a batch of five that manages three records exactly
-    /// that. A failure is this address's failure, not the batch's.
+    /// Moves each address to its target, one command per address, so a batch of five that manages
+    /// three records exactly that. A failure is this address's failure, not the batch's.
     /// </summary>
-    public virtual async Task<List<(string Address, bool Succeeded)>> StateMove(
-        StateMoveOperation operation,
+    public virtual async Task<List<(string Address, bool Succeeded)>> Move(
         IReadOnlyCollection<(string Address, string? Target)> instructions,
         bool dryRun = false,
         CancellationToken killCancellationToken = default,
@@ -125,8 +124,7 @@ public abstract class BaseEngine
 
             try
             {
-                await RunStateMove(
-                    operation, address, target, dryRun, killCancellationToken, gracefulCancellationToken);
+                await RunMove(address, target, dryRun, killCancellationToken, gracefulCancellationToken);
                 results.Add((address, true));
             }
             catch (OperationCanceledException)
@@ -135,7 +133,7 @@ public abstract class BaseEngine
             }
             catch (Exception ex)
             {
-                Context.LogError($"{operation} failed for {address}: {ex.Message}");
+                Context.LogError($"Move failed for {address}: {ex.Message}");
                 results.Add((address, false));
             }
         }
@@ -143,15 +141,83 @@ public abstract class BaseEngine
         return results;
     }
 
-    /// <summary>The engine's own command for one address.</summary>
-    protected virtual Task RunStateMove(
-        StateMoveOperation operation,
-        string address,
-        string? target,
-        bool dryRun,
-        CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken) =>
+    /// <summary>Imports each address from the id it already has, one command per address.</summary>
+    public virtual async Task<List<(string Address, bool Succeeded)>> Import(
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        var results = new List<(string, bool)>();
+
+        foreach (var (address, target) in instructions)
+        {
+            killCancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await RunImport(address, target, killCancellationToken, gracefulCancellationToken);
+                results.Add((address, true));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Context.LogError($"Import failed for {address}: {ex.Message}");
+                results.Add((address, false));
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>Takes each address out of state, one command per address.</summary>
+    public virtual async Task<List<(string Address, bool Succeeded)>> Remove(
+        IReadOnlyCollection<string> addresses,
+        bool dryRun = false,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default)
+    {
+        var results = new List<(string, bool)>();
+
+        foreach (var address in addresses)
+        {
+            killCancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await RunRemove(address, dryRun, killCancellationToken, gracefulCancellationToken);
+                results.Add((address, true));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Context.LogError($"Remove failed for {address}: {ex.Message}");
+                results.Add((address, false));
+            }
+        }
+
+        return results;
+    }
+
+    protected virtual Task RunMove(
+        string address, string? target, bool dryRun,
+        CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken) =>
         throw new NotSupportedException($"{GetType().Name} cannot move state addresses.");
+
+    protected virtual Task RunImport(
+        string address, string? target,
+        CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot import state addresses.");
+
+    protected virtual Task RunRemove(
+        string address, bool dryRun,
+        CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot remove state addresses.");
 
     /// <summary>Every address in this Module's state. Never logged, never sent on.</summary>
     protected virtual Task<HashSet<string>> ListState(

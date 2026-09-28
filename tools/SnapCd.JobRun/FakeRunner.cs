@@ -238,10 +238,9 @@ public class FakeRunner(
             case RunnerEndpoints.StateMove:
             case RunnerEndpoints.StateImport:
             case RunnerEndpoints.StateRemove:
-                // Reports every instruction as succeeded, echoing the operation the job was asked
-                // for, which is what the saga records against each address.
+                // Reports every instruction as succeeded. Which edit this was is on the saga, so
+                // the reply does not say.
                 await hub.StateMoveCompleted(jobId,
-                    Read<string>(payload, "Operation") ?? "",
                     (Read<List<StateAddressInstruction>>(payload, "Instructions") ?? [])
                     .Select(i => new StateAddressResult
                     {

@@ -27,9 +27,22 @@ public interface IEngine
     /// Moves, imports or removes addresses one at a time, reporting each on its own. A batch never
     /// abandons the rest on one failure: which of them worked is what the caller needs.
     /// </summary>
-    Task<List<(string Address, bool Succeeded)>> StateMove(
-        StateMoveOperation operation,
+    /// <summary>Moves each address to its target. A dry run prints what it would move and moves nothing.</summary>
+    Task<List<(string Address, bool Succeeded)>> Move(
         IReadOnlyCollection<(string Address, string? Target)> instructions,
+        bool dryRun = false,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default);
+
+    /// <summary>Imports each address from the id it already has. There is no dry run for this.</summary>
+    Task<List<(string Address, bool Succeeded)>> Import(
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        CancellationToken killCancellationToken = default,
+        CancellationToken gracefulCancellationToken = default);
+
+    /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
+    Task<List<(string Address, bool Succeeded)>> Remove(
+        IReadOnlyCollection<string> addresses,
         bool dryRun = false,
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
@@ -127,10 +140,3 @@ public interface IEngine
         string json, Dictionary<string, bool>? outputSources = null);
 }
 
-/// <summary>Which state-moving command to run.</summary>
-public enum StateMoveOperation
-{
-    Move,
-    Import,
-    Remove
-}

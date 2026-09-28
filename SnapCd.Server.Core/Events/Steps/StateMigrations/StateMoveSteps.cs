@@ -34,8 +34,6 @@ public class StateMoveRequested : StepRequestBase
 /// <summary>What the batch managed, address by address.</summary>
 public class StateMoveCompleted : StepResponseBase
 {
-    public StateEditOperation Operation { get; set; }
-
     public List<AddressResult> Results { get; set; } = [];
 }
 

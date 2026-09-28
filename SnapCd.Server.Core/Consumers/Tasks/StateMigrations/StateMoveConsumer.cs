@@ -68,7 +68,6 @@ public class StateMoveConsumer : IConsumer<StateMoveRequested>
                     OrganizationId = msg.OrganizationId,
                     Metadata = ordinary.Metadata,
                     Engine = ordinary.Engine,
-                    Operation = msg.Operation.ToString(),
                     Instructions = instructions
                 });
 

@@ -817,15 +817,16 @@ public class RunnerHub : Hub
             });
     }
 
-    public async Task StateMoveCompleted(Guid jobId, string operation, List<StateAddressResult> results)
+    public async Task StateMoveCompleted(Guid jobId, List<StateAddressResult> results)
     {
         var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
 
+        // Which edit this was is on the saga, put there by the request that started it, so the
+        // reply does not carry it back for the server to parse.
         await _bus.Publish(new StateMoveCompleted
         {
             CorrelationId = jobId,
             OrganizationId = auth,
-            Operation = Enum.Parse<StateEditOperation>(operation),
             Results = results.Select(r => new AddressResult
             {
                 Address = r.Address,

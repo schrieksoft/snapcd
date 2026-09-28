@@ -23,76 +23,180 @@ public partial class Tasks
     /// such mode, so the check is that each address is free: an import onto an occupied address
     /// fails, and that is the precondition worth knowing before approving rather than after.
     /// </summary>
-    public Task StatePreCheck(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, PreCheckTaskName(request.Operation), request.Metadata,
+    /// <summary>
+    /// What a move would do, asked of the engine itself: state mv -dry-run prints what it would
+    /// move and moves nothing, so the check runs the same command and the same address parsing as
+    /// the move that follows it.
+    /// </summary>
+    public Task MoveDryRun(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.MoveDryRun, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken, gracefulToken) =>
             {
-                var operation = Enum.Parse<StateMoveOperation>(request.Operation);
-                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
-
                 taskContext.LogNarration(
-                    $"Checking what {operation} would do over {request.Instructions.Count} addresses");
+                    $"Checking what a move over {request.Instructions.Count} addresses would do");
                 taskContext.LogBreak();
 
-                var results = operation == StateMoveOperation.Import
-                    ? await PreCheckImport(taskContext, engine, request, killToken, gracefulToken)
-                    : await PreCheckWithDryRun(operation, engine, request, killToken, gracefulToken);
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                var outcomes = await engine.Move(
+                    request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
+                    dryRun: true, killToken, gracefulToken);
+
+                var results = Results(outcomes, request);
 
                 await InvokeWithRetryAsync(
-                    () => ReportPreCheck(client, operation, request.JobId, results),
-                    PreCheckTaskName(request.Operation), request.JobId, connection);
+                    () => client.InvokeMoveDryRunCompleted(request.JobId, results),
+                    nameof(client.InvokeMoveDryRunCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                ReportPreCheckFaulted(client, request.Operation, request.JobId, message, stackTrace));
+                client.InvokeMoveDryRunFaulted(request.JobId, message, stackTrace));
 
-    /// <summary>Each check answers on its own endpoint, as each edit is asked for on its own.</summary>
-    private static Task ReportPreCheck(
-        RunnerHubClient client, StateMoveOperation operation, Guid jobId,
-        List<StateAddressResult> results) =>
-        operation switch
-        {
-            StateMoveOperation.Move => client.InvokeMoveDryRunCompleted(jobId, results),
-            StateMoveOperation.Remove => client.InvokeRemoveDryRunCompleted(jobId, results),
-            StateMoveOperation.Import => client.InvokeImportPreCheckCompleted(jobId, results),
-            _ => throw new ArgumentOutOfRangeException(nameof(operation))
-        };
+    /// <summary>
+    /// What a remove would take out, asked of the engine itself. state rm -dry-run prints what it
+    /// would remove and removes nothing.
+    /// </summary>
+    public Task RemoveDryRun(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.RemoveDryRun, request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken, gracefulToken) =>
+            {
+                taskContext.LogNarration(
+                    $"Checking what removing {request.Instructions.Count} addresses would take out");
+                taskContext.LogBreak();
 
-    private static Task ReportPreCheckFaulted(
-        RunnerHubClient client, string operation, Guid jobId, string? message, string? stackTrace) =>
-        Enum.Parse<StateMoveOperation>(operation) switch
-        {
-            StateMoveOperation.Move => client.InvokeMoveDryRunFaulted(jobId, message, stackTrace),
-            StateMoveOperation.Remove => client.InvokeRemoveDryRunFaulted(jobId, message, stackTrace),
-            StateMoveOperation.Import => client.InvokeImportPreCheckFaulted(jobId, message, stackTrace),
-            _ => throw new ArgumentOutOfRangeException(nameof(operation))
-        };
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
-    /// <summary>The step's name as the job records it, which is the endpoint it arrived on.</summary>
-    private static string PreCheckTaskName(string operation) =>
-        Enum.Parse<StateMoveOperation>(operation) switch
-        {
-            StateMoveOperation.Move => RunnerEndpoints.MoveDryRun,
-            StateMoveOperation.Remove => RunnerEndpoints.RemoveDryRun,
-            StateMoveOperation.Import => RunnerEndpoints.ImportPreCheck,
-            _ => throw new ArgumentOutOfRangeException(nameof(operation))
-        };
+                var outcomes = await engine.Remove(
+                    request.Instructions.Select(i => i.Address).ToList(),
+                    dryRun: true, killToken, gracefulToken);
 
-    /// <summary>The engine's own dry run: it prints what it would move or remove, and moves nothing.</summary>
-    private static async Task<List<StateAddressResult>> PreCheckWithDryRun(
-        StateMoveOperation operation,
-        IEngine engine,
-        StateMoveRequestBase request,
-        CancellationToken killToken,
-        CancellationToken gracefulToken)
+                var results = Results(outcomes, request);
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeRemoveDryRunCompleted(request.JobId, results),
+                    nameof(client.InvokeRemoveDryRunCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeRemoveDryRunFaulted(request.JobId, message, stackTrace));
+
+    /// <summary>
+    /// An import has no dry run, so this is a different question answered a different way: whether
+    /// each address it would create is free, since an import onto an occupied address fails.
+    /// Whether an id names a real resource is only answerable by importing it, so it is not asked.
+    /// </summary>
+    public Task ImportPreCheck(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.ImportPreCheck, request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken, gracefulToken) =>
+            {
+                taskContext.LogNarration(
+                    $"Checking whether {request.Instructions.Count} addresses are free to import onto");
+                taskContext.LogBreak();
+
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                var (present, _) = await engine.StateListFiltered(
+                    request.Instructions.Select(i => i.Address).ToList(), killToken, gracefulToken);
+
+                var occupied = present.ToHashSet();
+                var results = new List<StateAddressResult>();
+
+                taskContext.LogInformation("Would import");
+
+                foreach (var instruction in request.Instructions)
+                {
+                    var free = !occupied.Contains(instruction.Address);
+
+                    taskContext.LogInformation(free
+                        ? $"  {Ansi.Emphasis(instruction.Address)} from {Ansi.Emphasis(instruction.Target ?? "")}"
+                        : $"  {Ansi.Emphasis(instruction.Address)} is already in state and cannot be imported onto");
+
+                    results.Add(new StateAddressResult
+                    {
+                        Address = instruction.Address,
+                        Target = instruction.Target,
+                        Outcome = free ? "Succeeded" : "Failed"
+                    });
+                }
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeImportPreCheckCompleted(request.JobId, results),
+                    nameof(client.InvokeImportPreCheckCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeImportPreCheckFaulted(request.JobId, message, stackTrace));
+
+    /// <summary>Moves each address to where it should be. One command per address.</summary>
+    public Task Move(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateMove, request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken, gracefulToken) =>
+            {
+                taskContext.LogNarration($"Moving {request.Instructions.Count} addresses");
+                taskContext.LogBreak();
+
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                var outcomes = await engine.Move(
+                    request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
+                    dryRun: false, killToken, gracefulToken);
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
+                    nameof(client.InvokeStateMoveCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeStateMoveFaulted(request.JobId, message, stackTrace));
+
+    /// <summary>Imports each address from the id it already has. One command per address.</summary>
+    public Task Import(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateImport, request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken, gracefulToken) =>
+            {
+                taskContext.LogNarration($"Importing {request.Instructions.Count} addresses");
+                taskContext.LogBreak();
+
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                var outcomes = await engine.Import(
+                    request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
+                    killToken, gracefulToken);
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
+                    nameof(client.InvokeStateMoveCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeStateMoveFaulted(request.JobId, message, stackTrace));
+
+    /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
+    public Task Remove(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateRemove, request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken, gracefulToken) =>
+            {
+                taskContext.LogNarration($"Removing {request.Instructions.Count} addresses from state");
+                taskContext.LogBreak();
+
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                var outcomes = await engine.Remove(
+                    request.Instructions.Select(i => i.Address).ToList(),
+                    dryRun: false, killToken, gracefulToken);
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
+                    nameof(client.InvokeStateMoveCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeStateMoveFaulted(request.JobId, message, stackTrace));
+
+    /// <summary>What each address ended up as, with the target it was given.</summary>
+    private static List<StateAddressResult> Results(
+        List<(string Address, bool Succeeded)> outcomes, StateMoveRequestBase request)
     {
-        var outcomes = await engine.StateMove(
-            operation,
-            request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
-            dryRun: true,
-            killToken,
-            gracefulToken);
-
         var targets = request.Instructions.ToDictionary(i => i.Address, i => i.Target);
 
         return outcomes
@@ -104,84 +208,4 @@ public partial class Tasks
             })
             .ToList();
     }
-
-    /// <summary>
-    /// An import has no dry run, so what can be checked is that the address it would create is
-    /// free. Whether the id names a real resource is only answerable by importing it.
-    /// </summary>
-    private static async Task<List<StateAddressResult>> PreCheckImport(
-        RunnerTaskContext taskContext,
-        IEngine engine,
-        StateMoveRequestBase request,
-        CancellationToken killToken,
-        CancellationToken gracefulToken)
-    {
-        var addresses = request.Instructions.Select(i => i.Address).ToList();
-        var (present, _) = await engine.StateListFiltered(addresses, killToken, gracefulToken);
-
-        var occupied = present.ToHashSet();
-        var results = new List<StateAddressResult>();
-
-        taskContext.LogInformation("Would import");
-
-        foreach (var instruction in request.Instructions)
-        {
-            var free = !occupied.Contains(instruction.Address);
-
-            taskContext.LogInformation(free
-                ? $"  {Ansi.Emphasis(instruction.Address)} from {Ansi.Emphasis(instruction.Target ?? "")}"
-                : $"  {Ansi.Emphasis(instruction.Address)} is already in state and cannot be imported onto");
-
-            results.Add(new StateAddressResult
-            {
-                Address = instruction.Address,
-                Target = instruction.Target,
-                Outcome = free ? "Succeeded" : "Failed"
-            });
-        }
-
-        return results;
-    }
-
-    /// <summary>
-    /// Moves, imports or removes a batch of addresses. Each runs on its own, so a batch of five
-    /// that manages three reports exactly that rather than failing whole.
-    /// </summary>
-    public Task StateMove(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, request.Operation, request.Metadata,
-            request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
-            {
-                var operation = Enum.Parse<StateMoveOperation>(request.Operation);
-
-                taskContext.LogNarration(
-                    $"Running {operation} over {request.Instructions.Count} addresses");
-                taskContext.LogBreak();
-
-                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
-
-                var outcomes = await engine.StateMove(
-                    operation,
-                    request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
-                    dryRun: false,
-                    killToken,
-                    gracefulToken);
-
-                var targets = request.Instructions.ToDictionary(i => i.Address, i => i.Target);
-
-                var results = outcomes
-                    .Select(o => new StateAddressResult
-                    {
-                        Address = o.Address,
-                        Target = targets.GetValueOrDefault(o.Address),
-                        Outcome = o.Succeeded ? "Succeeded" : "Failed"
-                    })
-                    .ToList();
-
-                await InvokeWithRetryAsync(
-                    () => client.InvokeStateMoveCompleted(request.JobId, request.Operation, results),
-                    nameof(client.InvokeStateMoveCompleted), request.JobId, connection);
-            },
-            (client, message, stackTrace) =>
-                client.InvokeStateMoveFaulted(request.JobId, message, stackTrace));
 }

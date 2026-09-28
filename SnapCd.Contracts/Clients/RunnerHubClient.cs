@@ -184,10 +184,9 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateRunFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeStateMoveCompleted(
-        Guid jobId, string operation, List<StateAddressResult> results)
+    public async Task InvokeStateMoveCompleted(Guid jobId, List<StateAddressResult> results)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateMoveCompleted, jobId, operation, results);
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateMoveCompleted, jobId, results);
     }
 
     public async Task InvokeStateMoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)

@@ -238,28 +238,47 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
-        foreach (var endpoint in new[]
-                 {
-                     RunnerEndpoints.StateMove, RunnerEndpoints.StateImport, RunnerEndpoints.StateRemove
-                 })
-            _connection.On<StateMoveRequestBase>(endpoint, (request) =>
-                {
-                    Task.Run(async () => { await _tasks.Value.StateMove(request, _connection); });
-                    return Task.CompletedTask;
-                }
-            );
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.StateMove, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Move(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
 
-        foreach (var endpoint in new[]
-                 {
-                     RunnerEndpoints.MoveDryRun, RunnerEndpoints.RemoveDryRun,
-                     RunnerEndpoints.ImportPreCheck
-                 })
-            _connection.On<StateMoveRequestBase>(endpoint, (request) =>
-                {
-                    Task.Run(async () => { await _tasks.Value.StatePreCheck(request, _connection); });
-                    return Task.CompletedTask;
-                }
-            );
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.StateImport, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Import(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.StateRemove, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Remove(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.MoveDryRun, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.MoveDryRun(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.RemoveDryRun, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.RemoveDryRun(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.ImportPreCheck, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.ImportPreCheck(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
 
         _connection.On<StateListFilteredRequestBase>(RunnerEndpoints.StateListFiltered, (request) =>
             {
