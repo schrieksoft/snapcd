@@ -22,6 +22,8 @@ using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Services.Crud.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
+using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
+
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
 public partial class TransferMigrateStateMachine
@@ -92,7 +94,7 @@ public partial class TransferMigrateStateMachine
             When(MigrateRunCompleted)
                 .ThenAsync(context => RecordCompleted(context, "MigrateRun", ManualJobStepStatus.Succeeded))
                 .ThenAsync(RecordAddresses)
-                .Publish(context => Request<TransferMigrateVerifyRequested>(context.Saga))
+                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferMigrateRunCompleted, TransferMigrateVerifyRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "MigrateVerify"))
                 .TransitionTo(MigrateVerifyPending),
 
@@ -113,7 +115,7 @@ public partial class TransferMigrateStateMachine
                 .Then(context => _logger.LogInformation(
                     "Transfer: Module {ModuleId} landed",
                     context.Saga.ModuleId))
-                .Publish(context => Request<TransferOutputsRequested>(context.Saga))
+                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferMigrateVerifyCompleted, TransferOutputsRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "Outputs"))
                 .TransitionTo(OutputsPending),
 

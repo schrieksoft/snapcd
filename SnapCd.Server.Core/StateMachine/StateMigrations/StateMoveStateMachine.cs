@@ -26,6 +26,8 @@ using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
 
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
 /// <summary>
@@ -130,7 +132,8 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
             When(MoveCompleted)
                 .ThenAsync(context => RecordCompleted(context, "StateMove", ManualJobStepStatus.Succeeded))
                 .ThenAsync(RecordMove)
-                .Publish(context => Request<StateListFilteredRequested>(context.Saga))
+                .Activity(x => x.OfType<
+                    SendStateMoveStepToRunnerActivity<StateMoveCompleted, StateListFilteredRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "StateListFiltered"))
                 .TransitionTo(ListPending),
 

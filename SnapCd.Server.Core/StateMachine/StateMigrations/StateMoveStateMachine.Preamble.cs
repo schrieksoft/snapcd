@@ -23,6 +23,8 @@ using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
 
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
 public partial class StateMoveStateMachine
@@ -72,7 +74,7 @@ public partial class StateMoveStateMachine
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
                 .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Succeeded))
-                .Publish(context => Request<TNextRequest>(context.Saga))
+                .Activity(x => x.OfType<SendStateMoveStepToRunnerActivity<TCompleted, TNextRequest>>())
                 .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled

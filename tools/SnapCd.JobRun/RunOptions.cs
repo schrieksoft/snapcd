@@ -82,6 +82,16 @@ public class RunOptions
     /// </summary>
     public IReadOnlyCollection<string> NeedsOutputs { get; init; } = ["random_pet_dns_zone"];
 
+    /// <summary>
+    /// Which transport to run on. The two route differently: a runner-facing consumer's endpoint
+    /// carries no topic subscription, so a published step reaches it on SQL Server and is dropped
+    /// on Azure Service Bus. A green run on one says nothing about the other.
+    /// </summary>
+    public string BusType { get; init; } = "SqlServer";
+
+    /// <summary>The Azure Service Bus namespace, when running on that transport.</summary>
+    public string? ServiceBusConnectionString { get; init; }
+
     public bool Verbose { get; init; }
     public bool Keep { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
@@ -100,7 +110,8 @@ public class RunOptions
     {
         ["ConnectionString"] = ConnectionString,
         ["Server:InstanceId"] = ServerInstanceId.ToString(),
-        ["ServiceBus:BusType"] = "SqlServer",
+        ["ServiceBus:BusType"] = BusType,
+        ["ServiceBus:TransportOptions:AzureServiceBus:ConnectionString"] = ServiceBusConnectionString,
         ["ServiceBus:TransportOptions:SqlServer:ConnectionString"] = ConnectionString,
 
         // Selects DebugDataSeeder, which creates the organization, user, runner and Module the
@@ -164,6 +175,9 @@ public class RunOptions
                   --module        <guid>    default: the seeder's mock Module
                   --principal     <guid>    default: the seeder's debug user
                   --appsettings   <path>    the server's appsettings.json
+                  --bus           <kind>    SqlServer (default) or AzureServiceBus
+                  --servicebus    <string>  the Azure Service Bus namespace, for --bus
+                                            AzureServiceBus
                   --timeout       <seconds> default 300
                   --keep                    leave the database behind to inspect
                   --verbose                 show dispatches and server logs
@@ -179,6 +193,8 @@ public class RunOptions
             Job = Enum.TryParse<JobKind>(Get("job"), ignoreCase: true, out var kind) ? kind : JobKind.Apply,
             Target = Get("target"),
             RootDirectory = Get("root"),
+            BusType = Get("bus") ?? "SqlServer",
+            ServiceBusConnectionString = Get("servicebus"),
             CounterpartyModuleId = Guid.TryParse(Get("counterparty"), out var c)
                 ? c
                 : SeededCounterpartyModuleId,

@@ -69,7 +69,7 @@ public partial class TransferMigrateStateMachine
                 x => x.Saga.HasOutputs,
                 available => available
                     .Then(context => context.Saga.WaitingSince = null)
-                    .Publish(context => Request<TransferMigrateProveRequested>(context.Saga))
+                    .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TMessage, TransferMigrateProveRequested>>())
                     .ThenAsync(context => RecordDispatched(context, "MigrateProve"))
                     .TransitionTo(MigrateProvePending),
                 waiting => waiting

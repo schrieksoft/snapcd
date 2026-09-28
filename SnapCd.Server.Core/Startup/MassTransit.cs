@@ -10,6 +10,7 @@ using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using System.Reflection;
 using MassTransit;
@@ -252,10 +253,8 @@ public static class MassTransit
         typeof(TransferMigrateVerifyConsumer),
         typeof(TransferOutputsConsumer),
         typeof(StateListFilteredConsumer),
-        typeof(StateListFilteredSelectRunnerInstanceConsumer),
         typeof(StateListFilteredGetModuleConsumer),
         typeof(StateListFilteredInitConsumer),
-        typeof(StateMoveSelectRunnerInstanceConsumer),
         typeof(StateMoveGetModuleConsumer),
         typeof(StateMoveInitConsumer),
         typeof(StateMoveConsumer),
@@ -282,6 +281,10 @@ public static class MassTransit
         // System consumers
         typeof(SelectRunnerInstanceConsumer),
         typeof(TransferSelectRunnerInstanceConsumer),
+        // Selecting an instance is server-side work, so it is published to whichever server is
+        // free rather than addressed to the one owning a connection that does not exist yet.
+        typeof(StateListFilteredSelectRunnerInstanceConsumer),
+        typeof(StateMoveSelectRunnerInstanceConsumer),
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(HeartbeatConsumer),
 
@@ -395,6 +398,13 @@ public static class MassTransit
         services.AddScoped(typeof(WaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForConsentActivity<,>));
         services.AddScoped(typeof(NotWaitingForConsentActivity<,>));
+
+        // The manual families send their steps to the instance owning the runner's connection,
+        // as an ordinary job does, rather than publishing them.
+        services.AddScoped(typeof(SendManualStepToRunnerActivity<,,>));
+        services.AddScoped(typeof(SendStateMoveStepToRunnerActivity<,>));
+        services.AddScoped(typeof(SendStateListFilteredStepToRunnerActivity<,>));
+        services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
     }
 
     /// <summary>

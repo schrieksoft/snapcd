@@ -22,6 +22,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 
+using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
+
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
 public partial class TransferMigrateStateMachine
@@ -62,7 +64,7 @@ public partial class TransferMigrateStateMachine
                         })
                         .TransitionTo(nextWaitingState),
                     ahead => ahead
-                        .Publish(context => Request<TNextRequest>(context.Saga))
+                        .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TCompleted, TNextRequest>>())
                         .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
                         .Schedule(HeartbeatScheduled,
                             context => new HeartbeatScheduled
@@ -115,7 +117,7 @@ public partial class TransferMigrateStateMachine
                         context.Saga.ModuleId, TaskOf<TNextRequest>());
                 })
                 .Activity(x => x.OfType<NotWaitingForRunnerActivity<TransferMigrateSaga, RunnerReconnectedEvent>>())
-                .ThenAsync(context => context.Publish(Request<TNextRequest>(context.Saga)))
+                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<RunnerReconnectedEvent, TNextRequest>>())
                 .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
@@ -219,7 +221,7 @@ public partial class TransferMigrateStateMachine
             When(GetModuleCompleted)
                 .Then(context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision)
                 .ThenAsync(context => RecordCompleted(context, "GetModule", ManualJobStepStatus.Succeeded))
-                .Publish(context => Request<TransferInitRequested>(context.Saga))
+                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferGetModuleCompleted, TransferInitRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "Init"))
                 .TransitionTo(InitPending),
 
@@ -237,11 +239,8 @@ public partial class TransferMigrateStateMachine
 
         During(InitWaitingForRunner,
             When(RunnerReconnectedEvent)
-                .Then(context =>
-                {
-                    context.Saga.WaitingSince = null;
-                    context.Publish(Request<TransferInitRequested>(context.Saga));
-                })
+                .Then(context => context.Saga.WaitingSince = null)
+                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<RunnerReconnectedEvent, TransferInitRequested>>())
                 .TransitionTo(InitPending),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
@@ -268,7 +267,7 @@ public partial class TransferMigrateStateMachine
             // Filtered explicitly, because two handlers for one event both run otherwise.
             When(PlanCompleted, context => context.Message.TotalChangedCount == 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Succeeded))
-                .Publish(context => Request<TransferMigrateMapRequested>(context.Saga))
+                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferPlanCompleted, TransferMigrateMapRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "MigrateMap"))
                 .TransitionTo(MigrateMapPending),
             When(PlanFaulted)
