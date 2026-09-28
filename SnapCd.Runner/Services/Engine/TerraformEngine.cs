@@ -192,28 +192,42 @@ public class TerraformEngine : BaseEngine, IEngine
         StateMoveOperation operation,
         string address,
         string? target,
+        bool dryRun,
         CancellationToken killCancellationToken,
         CancellationToken gracefulCancellationToken)
     {
         if (operation != StateMoveOperation.Remove && string.IsNullOrWhiteSpace(target))
             throw new InvalidOperationException($"{operation} needs a target for {address}.");
 
+        // An import has no dry run of its own, so asking for one has to be refused rather than
+        // quietly answered by importing.
+        if (dryRun && operation == StateMoveOperation.Import)
+            throw new InvalidOperationException("An import cannot be tried without doing it.");
+
         await RunProcess(
-            StateMoveCommand(_engine, operation, address, target),
+            StateMoveCommand(_engine, operation, address, target, dryRun),
             killCancellationToken,
             gracefulCancellationToken);
     }
 
-    /// <summary>The command for one address, with both parts quoted as single shell arguments.</summary>
+    /// <summary>
+    /// The command for one address, with both parts quoted as single shell arguments. A move and a
+    /// remove can be asked what they would do without doing it; an import cannot.
+    /// </summary>
     public static string StateMoveCommand(
-        string engine, StateMoveOperation operation, string address, string? target) =>
-        operation switch
+        string engine, StateMoveOperation operation, string address, string? target,
+        bool dryRun = false)
+    {
+        var dry = dryRun ? " -dry-run" : string.Empty;
+
+        return operation switch
         {
-            StateMoveOperation.Move => $"{engine} state mv {Quote(address)} {Quote(target)}",
+            StateMoveOperation.Move => $"{engine} state mv{dry} {Quote(address)} {Quote(target)}",
             StateMoveOperation.Import => $"{engine} import {Quote(address)} {Quote(target)}",
-            StateMoveOperation.Remove => $"{engine} state rm {Quote(address)}",
+            StateMoveOperation.Remove => $"{engine} state rm{dry} {Quote(address)}",
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
+    }
 
     /// <summary>
     /// Single-quoted so an address with brackets or dots reaches the engine as written. An address

@@ -17,6 +17,100 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     /// <summary>
+    /// What the edit would do, run before anyone is asked to approve it. A move and a remove ask
+    /// the engine itself, which reports what it would touch without touching it. An import has no
+    /// such mode, so the check is that each address is free: an import onto an occupied address
+    /// fails, and that is the precondition worth knowing before approving rather than after.
+    /// </summary>
+    public Task StateMovePreCheck(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, nameof(StateMovePreCheck), request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken, gracefulToken) =>
+            {
+                var operation = Enum.Parse<StateMoveOperation>(request.Operation);
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                taskContext.LogNarration(
+                    $"Checking what {operation} would do over {request.Instructions.Count} addresses");
+                taskContext.LogBreak();
+
+                var results = operation == StateMoveOperation.Import
+                    ? await PreCheckImport(taskContext, engine, request, killToken, gracefulToken)
+                    : await PreCheckWithDryRun(operation, engine, request, killToken, gracefulToken);
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeStateMovePreCheckCompleted(request.JobId, request.Operation, results),
+                    nameof(client.InvokeStateMovePreCheckCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeStateMovePreCheckFaulted(request.JobId, message, stackTrace));
+
+    /// <summary>The engine's own dry run: it prints what it would move or remove, and moves nothing.</summary>
+    private static async Task<List<StateAddressResult>> PreCheckWithDryRun(
+        StateMoveOperation operation,
+        IEngine engine,
+        StateMoveRequestBase request,
+        CancellationToken killToken,
+        CancellationToken gracefulToken)
+    {
+        var outcomes = await engine.StateMove(
+            operation,
+            request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
+            dryRun: true,
+            killToken,
+            gracefulToken);
+
+        var targets = request.Instructions.ToDictionary(i => i.Address, i => i.Target);
+
+        return outcomes
+            .Select(o => new StateAddressResult
+            {
+                Address = o.Address,
+                Target = targets.GetValueOrDefault(o.Address),
+                Outcome = o.Succeeded ? "Succeeded" : "Failed"
+            })
+            .ToList();
+    }
+
+    /// <summary>
+    /// An import has no dry run, so what can be checked is that the address it would create is
+    /// free. Whether the id names a real resource is only answerable by importing it.
+    /// </summary>
+    private static async Task<List<StateAddressResult>> PreCheckImport(
+        RunnerTaskContext taskContext,
+        IEngine engine,
+        StateMoveRequestBase request,
+        CancellationToken killToken,
+        CancellationToken gracefulToken)
+    {
+        var addresses = request.Instructions.Select(i => i.Address).ToList();
+        var (present, _) = await engine.StateListFiltered(addresses, killToken, gracefulToken);
+
+        var occupied = present.ToHashSet();
+        var results = new List<StateAddressResult>();
+
+        taskContext.LogInformation("Would import");
+
+        foreach (var instruction in request.Instructions)
+        {
+            var free = !occupied.Contains(instruction.Address);
+
+            taskContext.LogInformation(free
+                ? $"  {Ansi.Emphasis(instruction.Address)} from {Ansi.Emphasis(instruction.Target ?? "")}"
+                : $"  {Ansi.Emphasis(instruction.Address)} is already in state and cannot be imported onto");
+
+            results.Add(new StateAddressResult
+            {
+                Address = instruction.Address,
+                Target = instruction.Target,
+                Outcome = free ? "Succeeded" : "Failed"
+            });
+        }
+
+        return results;
+    }
+
+    /// <summary>
     /// Moves, imports or removes a batch of addresses. Each runs on its own, so a batch of five
     /// that manages three reports exactly that rather than failing whole.
     /// </summary>
@@ -36,6 +130,7 @@ public partial class Tasks
                 var outcomes = await engine.StateMove(
                     operation,
                     request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
+                    dryRun: false,
                     killToken,
                     gracefulToken);
 

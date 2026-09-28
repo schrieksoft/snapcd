@@ -249,6 +249,13 @@ public class RunnerHubConnection : IAsyncDisposable
                 }
             );
 
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.StateMovePreCheck, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.StateMovePreCheck(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
         _connection.On<StateListFilteredRequestBase>(RunnerEndpoints.StateListFiltered, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.StateListFiltered(request, _connection); });

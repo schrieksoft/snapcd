@@ -195,6 +195,19 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.StateMoveFaulted, jobId, errorMessage, stackTrace);
     }
 
+    public async Task InvokeStateMovePreCheckCompleted(
+        Guid jobId, string operation, List<StateAddressResult> results)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.StateMovePreCheckCompleted, jobId, operation, results);
+    }
+
+    public async Task InvokeStateMovePreCheckFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.StateMovePreCheckFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeStateListFilteredCompleted(Guid jobId, List<StateAddressResult> results)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredCompleted, jobId, results);

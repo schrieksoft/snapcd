@@ -30,6 +30,7 @@ public interface IEngine
     Task<List<(string Address, bool Succeeded)>> StateMove(
         StateMoveOperation operation,
         IReadOnlyCollection<(string Address, string? Target)> instructions,
+        bool dryRun = false,
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default);
 

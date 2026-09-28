@@ -28,6 +28,9 @@ public static class RunnerEndpoints
     public const string TransferOutputs = "TransferOutputs";
     public const string StateListFiltered = "StateListFiltered";
     public const string StateMove = "StateMove";
+
+    /// <summary>What the edit would do, asked before anyone is asked to approve it.</summary>
+    public const string StateMovePreCheck = "StateMovePreCheck";
     public const string StateImport = "StateImport";
     public const string StateRemove = "StateRemove";
     public const string TransferRefactorDiff = "TransferRefactorDiff";

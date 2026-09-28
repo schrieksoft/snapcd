@@ -113,6 +113,7 @@ public abstract class BaseEngine
     public virtual async Task<List<(string Address, bool Succeeded)>> StateMove(
         StateMoveOperation operation,
         IReadOnlyCollection<(string Address, string? Target)> instructions,
+        bool dryRun = false,
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
@@ -124,7 +125,8 @@ public abstract class BaseEngine
 
             try
             {
-                await RunStateMove(operation, address, target, killCancellationToken, gracefulCancellationToken);
+                await RunStateMove(
+                    operation, address, target, dryRun, killCancellationToken, gracefulCancellationToken);
                 results.Add((address, true));
             }
             catch (OperationCanceledException)
@@ -146,6 +148,7 @@ public abstract class BaseEngine
         StateMoveOperation operation,
         string address,
         string? target,
+        bool dryRun,
         CancellationToken killCancellationToken,
         CancellationToken gracefulCancellationToken) =>
         throw new NotSupportedException($"{GetType().Name} cannot move state addresses.");
