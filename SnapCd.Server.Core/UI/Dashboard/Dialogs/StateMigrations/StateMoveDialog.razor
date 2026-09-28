@@ -132,14 +132,14 @@
 
     private string AddressPlaceholder => Operation switch
     {
-        StateEditOperation.Import => "aws_s3_bucket.main",
-        _ => "random_pet.old"
+        StateEditOperation.Import => "aws_vpc.main",
+        _ => "aws_vpc.this"
     };
 
     private string TargetPlaceholder => Operation switch
     {
-        StateEditOperation.Import => "my-bucket-name",
-        _ => "random_pet.new"
+        StateEditOperation.Import => "vpc-0a1b2c3d4e5f67890",
+        _ => "aws_vpc.main"
     };
 
     private string FormHelp => Operation switch
@@ -158,10 +158,10 @@
     private string YamlPlaceholder => Operation switch
     {
         StateEditOperation.Move =>
-            "- address: random_pet.old\n  target: random_pet.new\n- address: random_uuid.old\n  target: random_uuid.new",
+            "- address: aws_vpc.this\n  target: aws_vpc.main\n- address: aws_subnet.private\n  target: aws_subnet.private[0]",
         StateEditOperation.Import =>
-            "- address: aws_s3_bucket.main\n  target: my-bucket-name",
-        _ => "- random_pet.gone\n- random_uuid.gone"
+            "- address: aws_vpc.main\n  target: vpc-0a1b2c3d4e5f67890\n- address: aws_subnet.private[0]\n  target: subnet-0123456789abcdef0",
+        _ => "- aws_subnet.legacy\n- aws_route_table.legacy"
     };
 
     private void AddRow()
