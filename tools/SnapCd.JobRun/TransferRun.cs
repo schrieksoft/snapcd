@@ -28,7 +28,8 @@ public static class TransferRun
         AsyncServiceScope scope,
         IPrincipalProvider principal,
         IDbContextFactory<SnapCdDbContext> dbFactory,
-        RunOptions options)
+        RunOptions options,
+        NotificationWatch notifications)
     {
         var counterpartyId = options.CounterpartyModuleId;
 
@@ -75,7 +76,7 @@ public static class TransferRun
             .Create(principal);
 
         var status = await Watch(dbFactory, manualJobs, transfer.Id, options);
-        await Report(dbFactory, services, transfer.Id, options, status);
+        await Report(dbFactory, services, transfer.Id, options, status, notifications);
 
         return status ? 0 : 1;
     }
@@ -182,7 +183,8 @@ public static class TransferRun
         IServiceProvider services,
         Guid transferId,
         RunOptions options,
-        bool completed)
+        bool completed,
+        NotificationWatch notifications)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
 
@@ -224,5 +226,7 @@ public static class TransferRun
         var runner = services.GetRequiredService<FakeRunner>();
         Console.WriteLine();
         Console.WriteLine($"Dispatched  {runner.Dispatched.Count} step(s)");
+        Console.WriteLine($"Page would have refreshed on {notifications.JobUpdates} job change(s) "
+                          + $"and {notifications.LogArrivals} log arrival(s)");
     }
 }

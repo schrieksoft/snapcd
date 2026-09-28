@@ -42,6 +42,11 @@ public static class Run
 
         var runner = services.GetRequiredService<FakeRunner>();
         runner.RunnerId = runnerId.Value;
+        runner.ModuleId = options.ModuleId;
+
+        // Subscribed the way the page is, so a run reports whether the page would have heard it.
+        using var notifications = new NotificationWatch(
+            services, options.ModuleId, line => Console.WriteLine(line));
 
         using var reporting = new CancellationTokenSource();
         _ = runner.ReportPeriodically(reporting.Token);
@@ -74,9 +79,9 @@ public static class Run
         }
 
         if (options.Job == JobKind.Transfer)
-            return await TransferRun.Execute(services, scope, principal, dbFactory, options);
+            return await TransferRun.Execute(services, scope, principal, dbFactory, options, notifications);
 
-        return await ManualRun.Execute(services, scope, principal, dbFactory, options);
+        return await ManualRun.Execute(services, scope, principal, dbFactory, options, notifications);
     }
 
     /// <summary>

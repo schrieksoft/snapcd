@@ -30,7 +30,8 @@ public static class ManualRun
         AsyncServiceScope scope,
         IPrincipalProvider principal,
         IDbContextFactory<SnapCdDbContext> dbFactory,
-        RunOptions options)
+        RunOptions options,
+        NotificationWatch notifications)
     {
         // A manual job refuses an unpaused Module, which is the operator's own first step.
         using (var sagas = scope.ServiceProvider
@@ -59,7 +60,7 @@ public static class ManualRun
         Console.WriteLine($"Started job {job.Id}");
 
         var status = await Watch(dbFactory, manualJobs, job.Id, options);
-        await Report(dbFactory, services, job.Id, status);
+        await Report(dbFactory, services, job.Id, status, notifications);
 
         return status == ExecutionStatus.Completed ? 0 : 1;
     }
@@ -132,7 +133,8 @@ public static class ManualRun
         IDbContextFactory<SnapCdDbContext> dbFactory,
         IServiceProvider services,
         Guid jobId,
-        ExecutionStatus status)
+        ExecutionStatus status,
+        NotificationWatch notifications)
     {
         await using var db = await dbFactory.CreateDbContextAsync();
 
@@ -183,5 +185,25 @@ public static class ManualRun
         Console.WriteLine($"Dispatched  {runner.Dispatched.Count} step(s)");
         foreach (var dispatched in runner.Dispatched)
             Console.WriteLine($"  {dispatched}");
+
+        Console.WriteLine();
+        Console.WriteLine($"Page would have refreshed on {notifications.JobUpdates} job change(s) "
+                          + $"and {notifications.LogArrivals} log arrival(s)");
+
+        if (notifications.JobUpdates == 0)
+            Console.WriteLine("  !! nothing told an open page the job had started or ended");
+
+        if (notifications.LogArrivals == 0)
+            Console.WriteLine("  !! no logs reached the page, so a running job shows nothing");
+
+        // Logs live as a JSON array on the job's own row rather than as rows of their own.
+        var logged = string.IsNullOrWhiteSpace(job?.Logs)
+            ? 0
+            : System.Text.Json.JsonDocument.Parse(job.Logs).RootElement.GetArrayLength();
+
+        Console.WriteLine($"Log entries {logged}");
+
+        if (logged == 0)
+            Console.WriteLine("  !! nothing was stored, so the page has nothing to show");
     }
 }

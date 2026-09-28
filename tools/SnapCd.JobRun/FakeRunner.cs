@@ -10,6 +10,8 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Constants;
+using Serilog.Events;
+using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.Dto.Outputs;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
@@ -32,6 +34,9 @@ public class FakeRunner(
 {
     /// <summary>The pool the run registered against, known only once the Module is read.</summary>
     public Guid RunnerId { get; set; }
+
+    /// <summary>The Module the logs are attributed to.</summary>
+    public Guid ModuleId { get; set; }
 
     private readonly SemaphoreSlim _reporting = new(1, 1);
     private Guid _liveJobId;
@@ -98,6 +103,10 @@ public class FakeRunner(
         // job idles between steps and is failed as abandoned once the threshold passes.
         _liveJobId = jobId;
         _liveTask = endpoint;
+
+        // A real runner streams its output as it works, and the page shows a job's logs from
+        // these. Without them a running job reads as one doing nothing.
+        await SendLog(hub, jobId, endpoint);
 
         // One report at a time: the row is unique per job, so a timer tick landing on top of a
         // step's own report collides.
@@ -255,6 +264,35 @@ public class FakeRunner(
             default:
                 trace($"  !! no canned reply for {endpoint}; the run will stall here");
                 break;
+        }
+    }
+
+    /// <summary>
+    /// One line per step, which is what the page's log panel reads and what raises the event that
+    /// tells an open page to look again.
+    /// </summary>
+    private async Task SendLog(RunnerHub hub, Guid jobId, string task)
+    {
+        try
+        {
+            await hub.AddLogs([
+                new LogEntryDto
+                {
+                    JobId = jobId,
+                    ModuleId = ModuleId,
+                    Timestamp = DateTimeOffset.UtcNow,
+                    BatchTimeStamp = DateTimeOffset.UtcNow,
+                    StackName = "jobrun",
+                    NamespaceName = "jobrun",
+                    Level = LogEventLevel.Information,
+                    Message = $"{task}: running under jobrun",
+                    TaskName = task
+                }
+            ]);
+        }
+        catch (Exception ex)
+        {
+            trace($"  !! log for {task} was refused: {ex.Message}");
         }
     }
 
