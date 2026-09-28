@@ -40,11 +40,33 @@ public partial class Tasks
                     : await PreCheckWithDryRun(operation, engine, request, killToken, gracefulToken);
 
                 await InvokeWithRetryAsync(
-                    () => client.InvokeStatePreCheckCompleted(request.JobId, request.Operation, results),
-                    nameof(client.InvokeStatePreCheckCompleted), request.JobId, connection);
+                    () => ReportPreCheck(client, operation, request.JobId, results),
+                    PreCheckTaskName(request.Operation), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeStatePreCheckFaulted(request.JobId, message, stackTrace));
+                ReportPreCheckFaulted(client, request.Operation, request.JobId, message, stackTrace));
+
+    /// <summary>Each check answers on its own endpoint, as each edit is asked for on its own.</summary>
+    private static Task ReportPreCheck(
+        RunnerHubClient client, StateMoveOperation operation, Guid jobId,
+        List<StateAddressResult> results) =>
+        operation switch
+        {
+            StateMoveOperation.Move => client.InvokeMoveDryRunCompleted(jobId, results),
+            StateMoveOperation.Remove => client.InvokeRemoveDryRunCompleted(jobId, results),
+            StateMoveOperation.Import => client.InvokeImportPreCheckCompleted(jobId, results),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
+
+    private static Task ReportPreCheckFaulted(
+        RunnerHubClient client, string operation, Guid jobId, string? message, string? stackTrace) =>
+        Enum.Parse<StateMoveOperation>(operation) switch
+        {
+            StateMoveOperation.Move => client.InvokeMoveDryRunFaulted(jobId, message, stackTrace),
+            StateMoveOperation.Remove => client.InvokeRemoveDryRunFaulted(jobId, message, stackTrace),
+            StateMoveOperation.Import => client.InvokeImportPreCheckFaulted(jobId, message, stackTrace),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
 
     /// <summary>The step's name as the job records it, which is the endpoint it arrived on.</summary>
     private static string PreCheckTaskName(string operation) =>

@@ -195,17 +195,34 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.StateMoveFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeStatePreCheckCompleted(
-        Guid jobId, string operation, List<StateAddressResult> results)
+    public async Task InvokeMoveDryRunCompleted(Guid jobId, List<StateAddressResult> results)
     {
-        await _hubConnection.InvokeAsync(
-            ServerEndpoints.StatePreCheckCompleted, jobId, operation, results);
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveDryRunCompleted, jobId, results);
     }
 
-    public async Task InvokeStatePreCheckFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeMoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(
-            ServerEndpoints.StatePreCheckFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveDryRunFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRemoveDryRunCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveDryRunCompleted, jobId, results);
+    }
+
+    public async Task InvokeRemoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveDryRunFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeImportPreCheckCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportPreCheckCompleted, jobId, results);
+    }
+
+    public async Task InvokeImportPreCheckFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportPreCheckFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeStateListFilteredCompleted(Guid jobId, List<StateAddressResult> results)

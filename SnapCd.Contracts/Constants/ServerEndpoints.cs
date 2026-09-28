@@ -51,8 +51,14 @@ public static class ServerEndpoints
     public const string StateMoveCompleted = "StateMoveCompleted";
     public const string StateMoveFaulted = "StateMoveFaulted";
 
-    public const string StatePreCheckCompleted = "StatePreCheckCompleted";
-    public const string StatePreCheckFaulted = "StatePreCheckFaulted";
+    public const string MoveDryRunCompleted = "MoveDryRunCompleted";
+    public const string MoveDryRunFaulted = "MoveDryRunFaulted";
+
+    public const string RemoveDryRunCompleted = "RemoveDryRunCompleted";
+    public const string RemoveDryRunFaulted = "RemoveDryRunFaulted";
+
+    public const string ImportPreCheckCompleted = "ImportPreCheckCompleted";
+    public const string ImportPreCheckFaulted = "ImportPreCheckFaulted";
     public const string TransferRefactorDiffCompleted = "TransferRefactorDiffCompleted";
     public const string TransferRefactorDiffFaulted = "TransferRefactorDiffFaulted";
 
