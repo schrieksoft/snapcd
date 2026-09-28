@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
+using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
@@ -100,6 +101,14 @@ public partial class StateMoveStateMachine
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
                     .Activity(x => x.OfType<NotWaitingForApprovalManualJobActivity<StateMoveSaga, TMessage>>())
+                    // Scheduled before the resume is published, not after: anything between the
+                    // publish and the end of the chain is time for the answer to arrive early.
+                    .Schedule(HeartbeatScheduled,
+                        context => new HeartbeatScheduled
+                        {
+                            CorrelationId = context.Saga.CorrelationId,
+                            OrganizationId = context.Saga.OrganizationId
+                        })
                     .Publish(context => new StateMoveResumeEvent
                     {
                         ModuleJobId = context.Saga.CorrelationId,

@@ -137,6 +137,12 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
                 .Activity(x => x.OfType<
                     SendStateMoveStepToRunnerActivity<StateMoveCompleted, StateListFilteredRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "StateListFiltered"))
+                .Schedule(HeartbeatScheduled,
+                    context => new HeartbeatScheduled
+                    {
+                        CorrelationId = context.Saga.CorrelationId,
+                        OrganizationId = context.Saga.OrganizationId
+                    })
                 .TransitionTo(ListPending),
 
             When(MoveFaulted)
