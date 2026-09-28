@@ -27,7 +27,7 @@ public partial class TransferMigrateStateMachine
 {
     public Event<ConsentDecided> ConsentDecidedEvent { get; } = null!;
 
-    public Event<ManualJobResumeEvent> ResumeEvent { get; } = null!;
+    public Event<TransferResumeEvent> ResumeEvent { get; } = null!;
 
     public State WaitingForConsent { get; } = null!;
 
@@ -71,7 +71,7 @@ public partial class TransferMigrateStateMachine
                 })
                 // The step is asked for by a second consume, once this one has committed the
                 // transition. Publishing it here would let the answer arrive first.
-                .Publish(context => new ManualJobResumeEvent
+                .Publish(context => new TransferResumeEvent
                 {
                     ModuleJobId = context.Saga.CorrelationId,
                     OrganizationId = context.Saga.OrganizationId

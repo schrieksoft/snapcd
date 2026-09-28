@@ -23,7 +23,7 @@ public partial class StateMoveStateMachine
 {
     public Event<ApprovalReevaluationRequestedEvent> ApprovalModifiedEvent { get; } = null!;
 
-    public Event<ManualJobResumeEvent> ResumeEvent { get; } = null!;
+    public Event<StateMoveResumeEvent> ResumeEvent { get; } = null!;
 
     public Schedule<StateMoveSaga, ApprovalTimeoutReceived> ApprovalTimeoutScheduled { get; } = null!;
 
@@ -45,7 +45,7 @@ public partial class StateMoveStateMachine
         During(MovePending,
             When(ResumeEvent)
                 .Activity(x => x.OfType<
-                    SendStateMoveStepToRunnerActivity<ManualJobResumeEvent, StateMoveRequested>>())
+                    SendStateMoveStepToRunnerActivity<StateMoveResumeEvent, StateMoveRequested>>())
                 .ThenAsync(context => RecordDispatched(context, TaskOf<StateMoveRequested>())));
 
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
@@ -100,7 +100,7 @@ public partial class StateMoveStateMachine
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
                     .Activity(x => x.OfType<NotWaitingForApprovalManualJobActivity<StateMoveSaga, TMessage>>())
-                    .Publish(context => new ManualJobResumeEvent
+                    .Publish(context => new StateMoveResumeEvent
                     {
                         ModuleJobId = context.Saga.CorrelationId,
                         OrganizationId = context.Saga.OrganizationId

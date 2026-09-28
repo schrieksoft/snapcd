@@ -13,11 +13,18 @@ namespace SnapCd.Server.Core.Events.System;
 /// answer to the wait and the dispatch are two consumes rather than one, so the saga is already in
 /// the state that expects the reply before the step is asked for. Publishing both from one chain
 /// lets a fast answer arrive while the saga is still in the state it is leaving.
+///
+/// Each job kind names its own, as it names its own steps: a message type is what says which saga
+/// a message is for, and two sagas sharing one means both are subscribed to every copy.
 /// </summary>
-public class ManualJobResumeEvent
+public abstract class ManualJobResumeEventBase
 {
     /// <summary>The job that was waiting.</summary>
     public Guid ModuleJobId { get; set; }
 
     public Guid OrganizationId { get; set; }
 }
+
+public class TransferResumeEvent : ManualJobResumeEventBase;
+
+public class StateMoveResumeEvent : ManualJobResumeEventBase;

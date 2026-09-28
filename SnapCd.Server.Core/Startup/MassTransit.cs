@@ -180,6 +180,10 @@ public static class MassTransit
                             cfg.ReceiveEndpoint(queueName, e =>
                             {
                                 e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
+                                // Off here as on Azure, so the two transports accept the same code:
+                                // these endpoints are addressed by name, and a publish that only
+                                // works on one of them is a mistake that ships.
+                                e.ConfigureConsumeTopology = false;
                                 e.ConfigureConsumer(context, consumerType);
                             });
                         }
@@ -191,6 +195,7 @@ public static class MassTransit
                             cfg.ReceiveEndpoint(queueName, e =>
                             {
                                 e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
+                                e.ConfigureConsumeTopology = false;
                                 e.ConfigureConsumer(context, consumerType);
                             });
                         }
