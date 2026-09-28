@@ -175,17 +175,29 @@ public partial class StateMoveStateMachine : MassTransitStateMachine<StateMoveSa
     }
 
     /// <summary>
-    /// What the move itself managed. The addresses it succeeded on are what the list then asks
-    /// about: there is no point asking the state about an address the command refused.
+    /// What the edit itself managed, and what the list should therefore ask the state about. An
+    /// address the command refused is not worth asking about; one it claims to have managed is
+    /// exactly what wants confirming.
+    ///
+    /// A move has two ends and both are checked: the old address should be gone and the new one
+    /// should be there, and a move that only half happened is visible in neither end alone. An
+    /// import's target is the resource's own id rather than an address, so only the address it
+    /// created is asked about.
     /// </summary>
     private static async Task RecordMove(BehaviorContext<StateMoveSaga, StateMoveCompleted> context)
     {
         var results = context.Message.Results;
 
-        var succeeded = results
-            .Where(r => r.Outcome == AddressOutcome.Succeeded)
-            .Select(r => r.Address)
-            .ToList();
+        var managed = results.Where(r => r.Outcome == AddressOutcome.Succeeded).ToList();
+
+        var succeeded = context.Saga.Operation == StateEditOperation.Move
+            ? managed
+                .SelectMany(r => string.IsNullOrWhiteSpace(r.Target)
+                    ? new[] { r.Address }
+                    : [r.Address, r.Target])
+                .Distinct()
+                .ToList()
+            : managed.Select(r => r.Address).ToList();
 
         context.Saga.SucceededJson = JsonSerializer.Serialize(succeeded);
         context.Saga.FailedCount = results.Count(r => r.Outcome == AddressOutcome.Failed);

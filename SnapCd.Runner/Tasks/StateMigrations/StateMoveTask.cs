@@ -29,6 +29,7 @@ public partial class Tasks
 
                 taskContext.LogNarration(
                     $"Running {operation} over {request.Instructions.Count} addresses");
+                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 

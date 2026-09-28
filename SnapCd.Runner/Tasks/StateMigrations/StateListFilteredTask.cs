@@ -10,6 +10,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
+using SnapCd.Runner.Services;
 
 namespace SnapCd.Runner.Tasks;
 
@@ -24,15 +25,30 @@ public partial class Tasks
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken, gracefulToken) =>
             {
-                taskContext.LogNarration($"Checking {request.Addresses.Count} addresses against this module's state");
+                taskContext.LogNarration(
+                    $"Checking {request.Addresses.Count} addresses against this module's state");
+                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
                 var (present, absent) = await engine.StateListFiltered(
                     request.Addresses, killToken, gracefulToken);
 
-                foreach (var address in present) taskContext.LogInformation($"Found: {address}");
-                foreach (var address in absent) taskContext.LogInformation($"Not found: {address}");
+                if (present.Count > 0)
+                {
+                    taskContext.LogInformation("Found");
+                    foreach (var address in present)
+                        taskContext.LogInformation($"  {Ansi.Emphasis(address)}");
+                }
+
+                if (absent.Count > 0)
+                {
+                    if (present.Count > 0) taskContext.LogBreak();
+
+                    taskContext.LogInformation("Not found");
+                    foreach (var address in absent)
+                        taskContext.LogInformation($"  {Ansi.Emphasis(address)}");
+                }
 
                 var results = present
                     .Select(a => new StateAddressResult { Address = a, Outcome = "Present" })
