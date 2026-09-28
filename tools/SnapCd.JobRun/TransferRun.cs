@@ -76,6 +76,7 @@ public static class TransferRun
             .Create(principal);
 
         var status = await Watch(dbFactory, manualJobs, transfer.Id, options);
+        await notifications.SettleAsync();
         await Report(dbFactory, services, transfer.Id, options, status, notifications);
 
         return status ? 0 : 1;

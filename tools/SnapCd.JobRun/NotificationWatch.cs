@@ -42,6 +42,26 @@ public sealed class NotificationWatch : IDisposable
 
     public int LogArrivals => _logArrivals;
 
+    /// <summary>
+    /// The job row reaches its final status before the notification about it has been consumed, so
+    /// a count read the moment the watch loop ends misses the last one. A page has the same race
+    /// and does not care; a report that says nothing arrived does.
+    /// </summary>
+    public async Task SettleAsync()
+    {
+        var seen = _jobUpdates + _logArrivals;
+
+        for (var i = 0; i < 20; i++)
+        {
+            await Task.Delay(250);
+
+            var now = _jobUpdates + _logArrivals;
+            if (now == seen) return;
+
+            seen = now;
+        }
+    }
+
     private Task OnJobUpdated(Guid jobId, Guid moduleId)
     {
         Interlocked.Increment(ref _jobUpdates);

@@ -15,14 +15,22 @@ namespace SnapCd.Server.Core.Consumers.System.Fanout;
 public class ManualJobUpdatedFanoutConsumer : IConsumer<ManualJobUpdatedEvent>
 {
     private readonly ManualJobUpdatedNotificationService _notificationService;
+    private readonly ILogger<ManualJobUpdatedFanoutConsumer> _logger;
 
-    public ManualJobUpdatedFanoutConsumer(ManualJobUpdatedNotificationService notificationService)
+    public ManualJobUpdatedFanoutConsumer(
+        ManualJobUpdatedNotificationService notificationService,
+        ILogger<ManualJobUpdatedFanoutConsumer> logger)
     {
         _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task Consume(ConsumeContext<ManualJobUpdatedEvent> context)
     {
+        _logger.LogDebug(
+            "Telling open pages that manual job {JobId} on Module {ModuleId} changed",
+            context.Message.JobId, context.Message.ModuleId);
+
         await _notificationService.Notify(context.Message.JobId, context.Message.ModuleId);
     }
 }

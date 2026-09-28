@@ -60,6 +60,7 @@ public static class ManualRun
         Console.WriteLine($"Started job {job.Id}");
 
         var status = await Watch(dbFactory, manualJobs, job.Id, options);
+        await notifications.SettleAsync();
         await Report(dbFactory, services, job.Id, status, notifications);
 
         return status == ExecutionStatus.Completed ? 0 : 1;
