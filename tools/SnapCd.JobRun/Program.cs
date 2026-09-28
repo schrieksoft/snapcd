@@ -18,6 +18,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Hubs;
+using SnapCd.Server.Core.Licensing.Services;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Startup;
@@ -49,6 +50,12 @@ builder.Services.Replace(
     ServiceDescriptor.Singleton<IHubContext<RunnerHub>>(
         sp => new FakeHubContext(sp.GetRequiredService<FakeRunner>())));
 builder.Services.AddScoped<RunnerHub>();
+
+// Azure Service Bus is a licensed feature and a console run holds no licence, so the check that
+// would refuse the job is replaced rather than the product's licence gate being loosened.
+if (!options.BusType.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
+    builder.Services.Replace(
+        ServiceDescriptor.Scoped<IPremiumMessageBrokerPolicy, LicensedForTheRun>());
 
 // The database has to exist before the host starts: the transport migrates itself on startup.
 Console.WriteLine($"Database    {options.DatabaseName}");
