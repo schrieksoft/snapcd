@@ -486,4 +486,127 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.CancelGracefulCompleted, jobId);
     }
+
+    // One wrapper per family per outcome, so a task is handed the exact endpoint to answer on
+    // and a wrong one cannot compile.
+
+    public async Task InvokeStateListFilteredGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeStateListFilteredGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeStateListFilteredGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeStateListFilteredInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredInitCompleted, jobId);
+    }
+
+    public async Task InvokeStateListFilteredInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredInitCancelled, jobId);
+    }
+
+    public async Task InvokeStateListFilteredInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeMoveGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeMoveGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeMoveGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeMoveInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveInitCompleted, jobId);
+    }
+
+    public async Task InvokeMoveInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveInitCancelled, jobId);
+    }
+
+    public async Task InvokeMoveInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeImportGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeImportGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeImportGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeImportInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportInitCompleted, jobId);
+    }
+
+    public async Task InvokeImportInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportInitCancelled, jobId);
+    }
+
+    public async Task InvokeImportInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRemoveGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeRemoveGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeRemoveGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRemoveInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveInitCompleted, jobId);
+    }
+
+    public async Task InvokeRemoveInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveInitCancelled, jobId);
+    }
+
+    public async Task InvokeRemoveInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveInitFaulted, jobId, errorMessage, stackTrace);
+    }
 }

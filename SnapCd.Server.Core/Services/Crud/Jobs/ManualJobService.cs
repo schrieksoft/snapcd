@@ -335,10 +335,9 @@ public class ManualJobService : IDisposable
     /// Moves, imports or removes addresses in a Module's state, then checks what is there. Each
     /// address is run on its own, so the job can end partly done.
     /// </summary>
-    public async Task<ManualModuleJob> StartStateMove(
+    public async Task<ManualModuleJob> StartMove(
         Guid moduleId,
         Guid organizationId,
-        StateEditOperation operation,
         IReadOnlyCollection<AddressInstruction> instructions)
     {
         if (_resolvedConfigurationService is null || _bus is null)
@@ -352,9 +351,8 @@ public class ManualJobService : IDisposable
         if (instructions.Count == 0)
             throw new ManualJobNotAllowedException("Name at least one address.");
 
-        if (operation != StateEditOperation.Remove
-            && instructions.Any(i => string.IsNullOrWhiteSpace(i.Target)))
-            throw new ManualJobNotAllowedException($"Every address in a {operation} needs a target.");
+        if (instructions.Any(i => string.IsNullOrWhiteSpace(i.Target)))
+            throw new ManualJobNotAllowedException("Every address in a move needs a target.");
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
@@ -368,7 +366,7 @@ public class ManualJobService : IDisposable
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = JobTypeOf(operation),
+            JobType = ManualJobTypes.StateMove,
             Status = ExecutionStatus.Running
         };
 
@@ -378,11 +376,10 @@ public class ManualJobService : IDisposable
 
         try
         {
-            await _bus.Publish(new StateMoveJobRequested
+            await _bus.Publish(new MoveJobRequested
             {
                 CorrelationId = job.Id,
                 Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
-                Operation = operation,
                 Instructions = instructions.ToList()
             });
         }
@@ -395,13 +392,117 @@ public class ManualJobService : IDisposable
         return job;
     }
 
-    private static string JobTypeOf(StateEditOperation operation) => operation switch
+    public async Task<ManualModuleJob> StartImport(
+        Guid moduleId,
+        Guid organizationId,
+        IReadOnlyCollection<AddressInstruction> instructions)
     {
-        StateEditOperation.Move => ManualJobTypes.StateMove,
-        StateEditOperation.Import => ManualJobTypes.StateImport,
-        StateEditOperation.Remove => ManualJobTypes.StateRemove,
-        _ => throw new ArgumentOutOfRangeException(nameof(operation))
-    };
+        if (_resolvedConfigurationService is null || _bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+
+        if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to write state on Module with Id {moduleId}");
+
+        if (instructions.Count == 0)
+            throw new ManualJobNotAllowedException("Name at least one address.");
+
+        if (instructions.Any(i => string.IsNullOrWhiteSpace(i.Target)))
+            throw new ManualJobNotAllowedException("Every address in an import needs a target.");
+
+        var blocked = await GetBlockedReason(moduleId, organizationId);
+        if (blocked is not null)
+            throw new ManualJobNotAllowedException(blocked);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var job = new ManualModuleJob
+        {
+            Id = Guid.NewGuid(),
+            ModuleId = moduleId,
+            OrganizationId = organizationId,
+            TimestampStart = DateTimeOffset.UtcNow,
+            JobType = ManualJobTypes.StateImport,
+            Status = ExecutionStatus.Running
+        };
+
+        dbContext.ManualModuleJobs.Add(job);
+        await dbContext.SaveChangesAsync();
+        await AnnounceStarted(job);
+
+        try
+        {
+            await _bus.Publish(new ImportJobRequested
+            {
+                CorrelationId = job.Id,
+                Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
+                Instructions = instructions.ToList()
+            });
+        }
+        catch (Exception ex)
+        {
+            await FailJob(job.Id, organizationId, ex.Message);
+            throw;
+        }
+
+        return job;
+    }
+
+    public async Task<ManualModuleJob> StartRemove(
+        Guid moduleId,
+        Guid organizationId,
+        IReadOnlyCollection<AddressInstruction> instructions)
+    {
+        if (_resolvedConfigurationService is null || _bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+
+        if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Principal is not allowed to write state on Module with Id {moduleId}");
+
+        if (instructions.Count == 0)
+            throw new ManualJobNotAllowedException("Name at least one address.");
+
+        var blocked = await GetBlockedReason(moduleId, organizationId);
+        if (blocked is not null)
+            throw new ManualJobNotAllowedException(blocked);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var job = new ManualModuleJob
+        {
+            Id = Guid.NewGuid(),
+            ModuleId = moduleId,
+            OrganizationId = organizationId,
+            TimestampStart = DateTimeOffset.UtcNow,
+            JobType = ManualJobTypes.StateRemove,
+            Status = ExecutionStatus.Running
+        };
+
+        dbContext.ManualModuleJobs.Add(job);
+        await dbContext.SaveChangesAsync();
+        await AnnounceStarted(job);
+
+        try
+        {
+            await _bus.Publish(new RemoveJobRequested
+            {
+                CorrelationId = job.Id,
+                Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
+                Instructions = instructions.ToList()
+            });
+        }
+        catch (Exception ex)
+        {
+            await FailJob(job.Id, organizationId, ex.Message);
+            throw;
+        }
+
+        return job;
+    }
+
 
     public async Task<ManualModuleJob> StartSplitMigrate(
         Guid moduleId,

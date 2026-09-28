@@ -26,6 +26,8 @@ using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Hubs.Handlers;
+using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Hubs.Handlers.ManualJobs;
 using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
 using SnapCd.Server.Core.Hubs.Handlers.Transfers;
 using SnapCd.Server.Core.Services.Crud.Transfers;
@@ -63,6 +65,14 @@ public class RunnerHub : Hub
     private readonly SplitGetModuleHandler _splitGetModuleHandler;
     private readonly TransferStepHandler _transferStepHandler;
     private readonly SharedStepRouter _sharedSteps;
+    private readonly StateListFilteredGetModuleHandler _stateListFilteredGetModuleHandler;
+    private readonly StateListFilteredInitHandler _stateListFilteredInitHandler;
+    private readonly MoveGetModuleHandler _moveGetModuleHandler;
+    private readonly MoveInitHandler _moveInitHandler;
+    private readonly ImportGetModuleHandler _importGetModuleHandler;
+    private readonly ImportInitHandler _importInitHandler;
+    private readonly RemoveGetModuleHandler _removeGetModuleHandler;
+    private readonly RemoveInitHandler _removeInitHandler;
     private readonly SplitInitHandler _splitInitHandler;
     private readonly SplitValidateHandler _splitValidateHandler;
     private readonly SplitPlanHandler _splitPlanHandler;
@@ -102,6 +112,14 @@ public class RunnerHub : Hub
         SplitGetModuleHandler splitGetModuleHandler,
         TransferStepHandler transferStepHandler,
         SharedStepRouter sharedSteps,
+        StateListFilteredGetModuleHandler stateListFilteredGetModuleHandler,
+        StateListFilteredInitHandler stateListFilteredInitHandler,
+        MoveGetModuleHandler moveGetModuleHandler,
+        MoveInitHandler moveInitHandler,
+        ImportGetModuleHandler importGetModuleHandler,
+        ImportInitHandler importInitHandler,
+        RemoveGetModuleHandler removeGetModuleHandler,
+        RemoveInitHandler removeInitHandler,
         SplitInitHandler splitInitHandler,
         SplitValidateHandler splitValidateHandler,
         SplitPlanHandler splitPlanHandler,
@@ -140,6 +158,14 @@ public class RunnerHub : Hub
         _splitGetModuleHandler = splitGetModuleHandler;
         _transferStepHandler = transferStepHandler;
         _sharedSteps = sharedSteps;
+        _stateListFilteredGetModuleHandler = stateListFilteredGetModuleHandler;
+        _stateListFilteredInitHandler = stateListFilteredInitHandler;
+        _moveGetModuleHandler = moveGetModuleHandler;
+        _moveInitHandler = moveInitHandler;
+        _importGetModuleHandler = importGetModuleHandler;
+        _importInitHandler = importInitHandler;
+        _removeGetModuleHandler = removeGetModuleHandler;
+        _removeInitHandler = removeInitHandler;
         _splitInitHandler = splitInitHandler;
         _splitValidateHandler = splitValidateHandler;
         _splitPlanHandler = splitPlanHandler;
@@ -817,30 +843,23 @@ public class RunnerHub : Hub
             });
     }
 
-    public async Task StateMoveCompleted(Guid jobId, List<StateAddressResult> results)
+    public async Task MoveCompleted(Guid jobId, List<StateAddressResult> results)
     {
         var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
 
-        // Which edit this was is on the saga, put there by the request that started it, so the
-        // reply does not carry it back for the server to parse.
-        await _bus.Publish(new StateMoveCompleted
+        await _bus.Publish(new MoveCompleted
         {
             CorrelationId = jobId,
             OrganizationId = auth,
-            Results = results.Select(r => new AddressResult
-            {
-                Address = r.Address,
-                Target = r.Target,
-                Outcome = Enum.Parse<AddressOutcome>(r.Outcome)
-            }).ToList()
+            Results = Addresses(results)
         });
     }
 
-    public async Task StateMoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task MoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
 
-        await _bus.Publish(new StateMoveFaulted
+        await _bus.Publish(new MoveFaulted
         {
             CorrelationId = jobId,
             OrganizationId = auth,
@@ -848,6 +867,142 @@ public class RunnerHub : Hub
             StackTrace = stackTrace
         });
     }
+
+    public async Task ImportCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new ImportCompleted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            Results = Addresses(results)
+        });
+    }
+
+    public async Task ImportFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new ImportFaulted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            ErrorMessage = errorMessage,
+            StackTrace = stackTrace
+        });
+    }
+
+    public async Task RemoveCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new RemoveCompleted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            Results = Addresses(results)
+        });
+    }
+
+    public async Task RemoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new RemoveFaulted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            ErrorMessage = errorMessage,
+            StackTrace = stackTrace
+        });
+    }
+
+    public async Task MoveDryRunCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new MoveDryRunCompleted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            Results = Addresses(results)
+        });
+    }
+
+    public async Task MoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new MoveDryRunFaulted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            ErrorMessage = errorMessage,
+            StackTrace = stackTrace
+        });
+    }
+
+    public async Task RemoveDryRunCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new RemoveDryRunCompleted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            Results = Addresses(results)
+        });
+    }
+
+    public async Task RemoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new RemoveDryRunFaulted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            ErrorMessage = errorMessage,
+            StackTrace = stackTrace
+        });
+    }
+
+    public async Task ImportPreCheckCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new ImportPreCheckCompleted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            Results = Addresses(results)
+        });
+    }
+
+    public async Task ImportPreCheckFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new ImportPreCheckFaulted
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth,
+            ErrorMessage = errorMessage,
+            StackTrace = stackTrace
+        });
+    }
+
+    /// <summary>One address and what became of it, as the runner reported it.</summary>
+    private static List<AddressResult> Addresses(List<StateAddressResult> results) =>
+        results
+            .Select(r => new AddressResult
+            {
+                Address = r.Address,
+                Target = r.Target,
+                Outcome = Enum.Parse<AddressOutcome>(r.Outcome)
+            })
+            .ToList();
 
     public async Task StateListFilteredCompleted(Guid jobId, List<StateAddressResult> results)
     {
@@ -1196,5 +1351,200 @@ public class RunnerHub : Hub
 
         // Publish MassTransit event
         await _cancelGracefulHandler.Complete(jobId);
+    }
+
+    // Each manual family answers on its own endpoints. The endpoint names the family, so the
+    // saga is read from that family's table rather than searched for across all of them.
+
+    public async Task StateListFilteredGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "GetModulePending");
+
+        await _stateListFilteredGetModuleHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task StateListFilteredGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "GetModulePending");
+
+        await _stateListFilteredGetModuleHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task StateListFilteredGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "GetModulePending");
+
+        await _stateListFilteredGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task StateListFilteredInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "InitPending");
+
+        await _stateListFilteredInitHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task StateListFilteredInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "InitPending");
+
+        await _stateListFilteredInitHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task StateListFilteredInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "InitPending");
+
+        await _stateListFilteredInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task MoveGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "GetModulePending");
+
+        await _moveGetModuleHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task MoveGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "GetModulePending");
+
+        await _moveGetModuleHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task MoveGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "GetModulePending");
+
+        await _moveGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task MoveInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "InitPending");
+
+        await _moveInitHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task MoveInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "InitPending");
+
+        await _moveInitHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task MoveInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "InitPending");
+
+        await _moveInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task ImportGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "GetModulePending");
+
+        await _importGetModuleHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task ImportGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "GetModulePending");
+
+        await _importGetModuleHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task ImportGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "GetModulePending");
+
+        await _importGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task ImportInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "InitPending");
+
+        await _importInitHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task ImportInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "InitPending");
+
+        await _importInitHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task ImportInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "InitPending");
+
+        await _importInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task RemoveGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "GetModulePending");
+
+        await _removeGetModuleHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task RemoveGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "GetModulePending");
+
+        await _removeGetModuleHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RemoveGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "GetModulePending");
+
+        await _removeGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task RemoveInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "InitPending");
+
+        await _removeInitHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task RemoveInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "InitPending");
+
+        await _removeInitHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RemoveInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "InitPending");
+
+        await _removeInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 }

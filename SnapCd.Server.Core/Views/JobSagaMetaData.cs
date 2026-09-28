@@ -43,8 +43,14 @@ public enum JobSagaFamily
     /// <summary>Checking which addresses a Module's state holds.</summary>
     StateListFiltered,
 
-    /// <summary>Editing a Module's state: a move, an import or a remove.</summary>
-    StateMove
+    /// <summary>Moving addresses within a Module's state.</summary>
+    Move,
+
+    /// <summary>Bringing existing resources under management.</summary>
+    Import,
+
+    /// <summary>Taking addresses out of a Module's state.</summary>
+    Remove
 }
 
 /// <summary>The outcome of a successful runner authorization: which family owns the job, and its organization.</summary>

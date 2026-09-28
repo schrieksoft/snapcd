@@ -38,15 +38,15 @@ public partial class StateListFilteredStateMachine
     {
         CreateStep<StateListFilteredSelectRunnerInstanceCompleted, StateListFilteredSelectRunnerInstanceFaulted, StateListFilteredGetModuleRequested>(
             SelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
-            "SelectRunnerInstance", GetModulePending,
+            "SelectRunnerInstance", "GetModule", GetModulePending,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
         CreateStep<StateListFilteredGetModuleCompleted, StateListFilteredGetModuleFaulted, StateListFilteredInitRequested>(
-            GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", InitPending,
+            GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", "Init", InitPending,
             context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
         CreateStep<StateListFilteredInitCompleted, StateListFilteredInitFaulted, StateListFilteredRequested>(
-            InitPending, InitCompleted, InitFaulted, "Init", ListPending);
+            InitPending, InitCompleted, InitFaulted, "Init", "StateListFiltered", ListPending);
 
         During(SelectRunnerInstancePending, GetModulePending, InitPending, ListPending,
             When(CancelRequested)
@@ -62,6 +62,7 @@ public partial class StateListFilteredStateMachine
         Event<TCompleted> completedEvent,
         Event<TFaulted> faultedEvent,
         string task,
+        string nextTask,
         State nextState,
         Action<BehaviorContext<StateListFilteredSaga, TCompleted>>? onCompleted = null)
         where TCompleted : ManualStepResponseBase
@@ -73,7 +74,7 @@ public partial class StateListFilteredStateMachine
                 .Then(context => onCompleted?.Invoke(context))
                 .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Succeeded))
                 .Activity(x => x.OfType<SendStateListFilteredStepToRunnerActivity<TCompleted, TNextRequest>>())
-                .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
+                .ThenAsync(context => RecordDispatched(context, nextTask))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
                     {
@@ -95,17 +96,6 @@ public partial class StateListFilteredStateMachine
         );
     }
 
-    /// <summary>
-    /// The step name a job records, taken from its request type. The job's own step keeps the
-    /// job's name; a preamble step drops the prefix and is left with the step's own.
-    /// </summary>
-    private static string TaskOf<TRequest>() where TRequest : StepRequestBase
-    {
-        var name = typeof(TRequest).Name.Replace("Requested", "");
-        var step = name.Replace("StateListFiltered", "");
-
-        return step.Length == 0 ? name : step;
-    }
 
     private static async Task RecordDispatched<TMessage>(
         BehaviorContext<StateListFilteredSaga, TMessage> context, string task)

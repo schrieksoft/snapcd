@@ -19,35 +19,20 @@ using SnapCd.Server.Core.Services;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 
-/// <summary>Sends a batch of addresses to move, import or remove to the runner.</summary>
-public class StateMoveConsumer : IConsumer<StateMoveRequested>
+/// <summary>Sends the addresses to move to the runner this job is pinned to.</summary>
+public class MoveConsumer(
+    ILogger<MoveConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection) : IConsumer<MoveRequested>
 {
-    private readonly ILogger<StateMoveConsumer> _logger;
-    private readonly IHubContext<RunnerHub> _hubContext;
-    private readonly RunnerSelectionService _runnerSelection;
-
-    public StateMoveConsumer(
-        ILogger<StateMoveConsumer> logger,
-        IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection)
-    {
-        _logger = logger;
-        _hubContext = hubContext;
-        _runnerSelection = runnerSelection;
-    }
-
-    public async Task Consume(ConsumeContext<StateMoveRequested> context)
+    public async Task Consume(ConsumeContext<MoveRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
 
         try
         {
-            _logger.LogDebug(
-                "Looking for runner instance '{InstanceName}' in pool {RunnerId} to send {Operation} for job {JobId}",
-                msg.RunnerInstanceName, msg.RunnerId, msg.Operation, jobId);
-
-            var runner = await _runnerSelection.SelectSpecificRunnerAsync(
+            var runner = await runnerSelection.SelectSpecificRunnerAsync(
                 msg.OrganizationId, msg.RunnerId, msg.RunnerInstanceName);
 
             if (runner == null)
@@ -56,30 +41,28 @@ public class StateMoveConsumer : IConsumer<StateMoveRequested>
 
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
-            var instructions = msg.Instructions
-                .Select(i => new StateAddressInstruction { Address = i.Address, Target = i.Target })
-                .ToList();
-
-            await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                EndpointFor(msg.Operation),
+            await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
+                RunnerEndpoints.StateMove,
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
                     OrganizationId = msg.OrganizationId,
                     Metadata = ordinary.Metadata,
                     Engine = ordinary.Engine,
-                    Instructions = instructions
+                    Instructions = msg.Instructions
+                        .Select(i => new StateAddressInstruction { Address = i.Address, Target = i.Target })
+                        .ToList()
                 });
 
-            _logger.LogDebug(
-                "Sent {Operation} to runner {RunnerName} for job {JobId}",
-                msg.Operation, runner.InstanceName, jobId);
+            logger.LogDebug(
+                "Sent StateMove to runner {RunnerName} for job {JobId}",
+                runner.InstanceName, jobId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error dispatching {Operation} for job {JobId}", msg.Operation, jobId);
+            logger.LogError(ex, "Error dispatching StateMove for job {JobId}", jobId);
 
-            await context.Publish(new StateMoveFaulted
+            await context.Publish(new MoveFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,
@@ -89,12 +72,279 @@ public class StateMoveConsumer : IConsumer<StateMoveRequested>
             });
         }
     }
+}
 
-    private static string EndpointFor(StateEditOperation operation) => operation switch
+/// <summary>Sends the addresses to import to the runner this job is pinned to.</summary>
+public class ImportConsumer(
+    ILogger<ImportConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection) : IConsumer<ImportRequested>
+{
+    public async Task Consume(ConsumeContext<ImportRequested> context)
     {
-        StateEditOperation.Move => RunnerEndpoints.StateMove,
-        StateEditOperation.Import => RunnerEndpoints.StateImport,
-        StateEditOperation.Remove => RunnerEndpoints.StateRemove,
-        _ => throw new ArgumentOutOfRangeException(nameof(operation))
-    };
+        var msg = context.Message;
+        var jobId = msg.CorrelationId;
+
+        try
+        {
+            var runner = await runnerSelection.SelectSpecificRunnerAsync(
+                msg.OrganizationId, msg.RunnerId, msg.RunnerInstanceName);
+
+            if (runner == null)
+                throw new InvalidOperationException(
+                    $"No runner instance '{msg.RunnerInstanceName}' available in pool {msg.RunnerId}");
+
+            var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
+
+            await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
+                RunnerEndpoints.StateImport,
+                new StateMoveRequestBase
+                {
+                    JobId = jobId,
+                    OrganizationId = msg.OrganizationId,
+                    Metadata = ordinary.Metadata,
+                    Engine = ordinary.Engine,
+                    Instructions = msg.Instructions
+                        .Select(i => new StateAddressInstruction { Address = i.Address, Target = i.Target })
+                        .ToList()
+                });
+
+            logger.LogDebug(
+                "Sent StateImport to runner {RunnerName} for job {JobId}",
+                runner.InstanceName, jobId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error dispatching StateImport for job {JobId}", jobId);
+
+            await context.Publish(new ImportFaulted
+            {
+                CorrelationId = jobId,
+                OrganizationId = msg.OrganizationId,
+                ErrorMessage = ex.Message,
+                StackTrace = ex.StackTrace,
+                IsServerSideError = true
+            });
+        }
+    }
+}
+
+/// <summary>Sends the addresses to remove to the runner this job is pinned to.</summary>
+public class RemoveConsumer(
+    ILogger<RemoveConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection) : IConsumer<RemoveRequested>
+{
+    public async Task Consume(ConsumeContext<RemoveRequested> context)
+    {
+        var msg = context.Message;
+        var jobId = msg.CorrelationId;
+
+        try
+        {
+            var runner = await runnerSelection.SelectSpecificRunnerAsync(
+                msg.OrganizationId, msg.RunnerId, msg.RunnerInstanceName);
+
+            if (runner == null)
+                throw new InvalidOperationException(
+                    $"No runner instance '{msg.RunnerInstanceName}' available in pool {msg.RunnerId}");
+
+            var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
+
+            await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
+                RunnerEndpoints.StateRemove,
+                new StateMoveRequestBase
+                {
+                    JobId = jobId,
+                    OrganizationId = msg.OrganizationId,
+                    Metadata = ordinary.Metadata,
+                    Engine = ordinary.Engine,
+                    Instructions = msg.Instructions
+                        .Select(i => new StateAddressInstruction { Address = i.Address, Target = i.Target })
+                        .ToList()
+                });
+
+            logger.LogDebug(
+                "Sent StateRemove to runner {RunnerName} for job {JobId}",
+                runner.InstanceName, jobId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error dispatching StateRemove for job {JobId}", jobId);
+
+            await context.Publish(new RemoveFaulted
+            {
+                CorrelationId = jobId,
+                OrganizationId = msg.OrganizationId,
+                ErrorMessage = ex.Message,
+                StackTrace = ex.StackTrace,
+                IsServerSideError = true
+            });
+        }
+    }
+}
+
+/// <summary>Asks the runner what a move would do, before anyone approves it.</summary>
+public class MoveDryRunConsumer(
+    ILogger<MoveDryRunConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection) : IConsumer<MoveDryRunRequested>
+{
+    public async Task Consume(ConsumeContext<MoveDryRunRequested> context)
+    {
+        var msg = context.Message;
+        var jobId = msg.CorrelationId;
+
+        try
+        {
+            var runner = await runnerSelection.SelectSpecificRunnerAsync(
+                msg.OrganizationId, msg.RunnerId, msg.RunnerInstanceName);
+
+            if (runner == null)
+                throw new InvalidOperationException(
+                    $"No runner instance '{msg.RunnerInstanceName}' available in pool {msg.RunnerId}");
+
+            var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
+
+            await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
+                RunnerEndpoints.MoveDryRun,
+                new StateMoveRequestBase
+                {
+                    JobId = jobId,
+                    OrganizationId = msg.OrganizationId,
+                    Metadata = ordinary.Metadata,
+                    Engine = ordinary.Engine,
+                    Instructions = msg.Instructions
+                        .Select(i => new StateAddressInstruction { Address = i.Address, Target = i.Target })
+                        .ToList()
+                });
+
+            logger.LogDebug(
+                "Sent MoveDryRun to runner {RunnerName} for job {JobId}",
+                runner.InstanceName, jobId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error dispatching MoveDryRun for job {JobId}", jobId);
+
+            await context.Publish(new MoveDryRunFaulted
+            {
+                CorrelationId = jobId,
+                OrganizationId = msg.OrganizationId,
+                ErrorMessage = ex.Message,
+                StackTrace = ex.StackTrace,
+                IsServerSideError = true
+            });
+        }
+    }
+}
+
+/// <summary>Asks the runner what a remove would take out, before anyone approves it.</summary>
+public class RemoveDryRunConsumer(
+    ILogger<RemoveDryRunConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection) : IConsumer<RemoveDryRunRequested>
+{
+    public async Task Consume(ConsumeContext<RemoveDryRunRequested> context)
+    {
+        var msg = context.Message;
+        var jobId = msg.CorrelationId;
+
+        try
+        {
+            var runner = await runnerSelection.SelectSpecificRunnerAsync(
+                msg.OrganizationId, msg.RunnerId, msg.RunnerInstanceName);
+
+            if (runner == null)
+                throw new InvalidOperationException(
+                    $"No runner instance '{msg.RunnerInstanceName}' available in pool {msg.RunnerId}");
+
+            var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
+
+            await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
+                RunnerEndpoints.RemoveDryRun,
+                new StateMoveRequestBase
+                {
+                    JobId = jobId,
+                    OrganizationId = msg.OrganizationId,
+                    Metadata = ordinary.Metadata,
+                    Engine = ordinary.Engine,
+                    Instructions = msg.Instructions
+                        .Select(i => new StateAddressInstruction { Address = i.Address, Target = i.Target })
+                        .ToList()
+                });
+
+            logger.LogDebug(
+                "Sent RemoveDryRun to runner {RunnerName} for job {JobId}",
+                runner.InstanceName, jobId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error dispatching RemoveDryRun for job {JobId}", jobId);
+
+            await context.Publish(new RemoveDryRunFaulted
+            {
+                CorrelationId = jobId,
+                OrganizationId = msg.OrganizationId,
+                ErrorMessage = ex.Message,
+                StackTrace = ex.StackTrace,
+                IsServerSideError = true
+            });
+        }
+    }
+}
+
+/// <summary>Asks the runner whether the addresses are free to import onto.</summary>
+public class ImportPreCheckConsumer(
+    ILogger<ImportPreCheckConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection) : IConsumer<ImportPreCheckRequested>
+{
+    public async Task Consume(ConsumeContext<ImportPreCheckRequested> context)
+    {
+        var msg = context.Message;
+        var jobId = msg.CorrelationId;
+
+        try
+        {
+            var runner = await runnerSelection.SelectSpecificRunnerAsync(
+                msg.OrganizationId, msg.RunnerId, msg.RunnerInstanceName);
+
+            if (runner == null)
+                throw new InvalidOperationException(
+                    $"No runner instance '{msg.RunnerInstanceName}' available in pool {msg.RunnerId}");
+
+            var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
+
+            await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
+                RunnerEndpoints.ImportPreCheck,
+                new StateMoveRequestBase
+                {
+                    JobId = jobId,
+                    OrganizationId = msg.OrganizationId,
+                    Metadata = ordinary.Metadata,
+                    Engine = ordinary.Engine,
+                    Instructions = msg.Instructions
+                        .Select(i => new StateAddressInstruction { Address = i.Address, Target = i.Target })
+                        .ToList()
+                });
+
+            logger.LogDebug(
+                "Sent ImportPreCheck to runner {RunnerName} for job {JobId}",
+                runner.InstanceName, jobId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error dispatching ImportPreCheck for job {JobId}", jobId);
+
+            await context.Publish(new ImportPreCheckFaulted
+            {
+                CorrelationId = jobId,
+                OrganizationId = msg.OrganizationId,
+                ErrorMessage = ex.Message,
+                StackTrace = ex.StackTrace,
+                IsServerSideError = true
+            });
+        }
+    }
 }

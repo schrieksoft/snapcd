@@ -20,6 +20,8 @@ using SnapCd.Runner.Constants;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Settings;
 
+using SnapCd.Contracts.Clients;
+
 namespace SnapCd.Runner.Hub;
 
 /// <summary>
@@ -169,10 +171,16 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
+        var client = new RunnerHubClient(_connection!);
+
         // Register handler for GetModule
         _connection.On<GetModuleRequestBase>(RunnerEndpoints.GetModule, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    client.InvokeGetModuleCompleted,
+                    client.InvokeGetModuleCancelled,
+                    client.InvokeGetModuleFaulted); });
                 return Task.CompletedTask;
             }
         );
@@ -180,7 +188,97 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for Init
         _connection.On<InitRequestBase>(RunnerEndpoints.Init, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    client.InvokeInitCompleted,
+                    client.InvokeInitCancelled,
+                    client.InvokeInitFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        // The manual families run the same checkout and init, each answering on its own endpoint.
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.StateListFilteredGetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    client.InvokeStateListFilteredGetModuleCompleted,
+                    client.InvokeStateListFilteredGetModuleCancelled,
+                    client.InvokeStateListFilteredGetModuleFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<InitRequestBase>(RunnerEndpoints.StateListFilteredInit, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    client.InvokeStateListFilteredInitCompleted,
+                    client.InvokeStateListFilteredInitCancelled,
+                    client.InvokeStateListFilteredInitFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.MoveGetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    client.InvokeMoveGetModuleCompleted,
+                    client.InvokeMoveGetModuleCancelled,
+                    client.InvokeMoveGetModuleFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<InitRequestBase>(RunnerEndpoints.MoveInit, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    client.InvokeMoveInitCompleted,
+                    client.InvokeMoveInitCancelled,
+                    client.InvokeMoveInitFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.ImportGetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    client.InvokeImportGetModuleCompleted,
+                    client.InvokeImportGetModuleCancelled,
+                    client.InvokeImportGetModuleFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<InitRequestBase>(RunnerEndpoints.ImportInit, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    client.InvokeImportInitCompleted,
+                    client.InvokeImportInitCancelled,
+                    client.InvokeImportInitFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.RemoveGetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    client.InvokeRemoveGetModuleCompleted,
+                    client.InvokeRemoveGetModuleCancelled,
+                    client.InvokeRemoveGetModuleFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<InitRequestBase>(RunnerEndpoints.RemoveInit, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    client.InvokeRemoveInitCompleted,
+                    client.InvokeRemoveInitCancelled,
+                    client.InvokeRemoveInitFaulted); });
                 return Task.CompletedTask;
             }
         );

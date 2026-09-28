@@ -18,6 +18,8 @@ using SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Views;
 
+using SnapCd.Server.Core.Entities.Sagas.Base;
+
 namespace SnapCd.Server.Core.Services;
 
 /// <summary>
@@ -360,6 +362,80 @@ public class RunnerJobAuthorizationService
         }
 
         return sagaMetaData.OrganizationId;
+    }
+
+    /// <summary>
+    /// Authorizes a runner callback for one manual job family. The endpoint the reply arrived on
+    /// says which family it belongs to, so the saga is read from that family's own table rather
+    /// than searched for across all of them.
+    /// </summary>
+    public async Task<Guid> ValidateRunnerCanAccessManualJob<TSaga>(
+        HubCallerContext hubCallerContext,
+        Guid jobId,
+        string expectedState)
+        where TSaga : ManualJobSagaBase
+    {
+        var organizationId = GetValidatedOrganizationId(hubCallerContext);
+
+        using var connectionRepository = _connectionRepositoryFactory.Create();
+        var connection = await connectionRepository.GetBySignalRConnectionIdAsync(
+            hubCallerContext.ConnectionId, organizationId);
+
+        if (connection == null)
+        {
+            _logger.LogWarning(
+                "Authorization failed: No connection found for connection {ConnectionId}",
+                hubCallerContext.ConnectionId);
+            throw new HubException("Unauthorized: Runner connection not found");
+        }
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var saga = await dbContext.Set<TSaga>().AsNoTracking()
+            .Where(x => x.CorrelationId == jobId && x.OrganizationId == connection.OrganizationId)
+            .Select(x => new
+            {
+                x.CurrentState, x.RunnerId, x.RunnerInstanceName, x.OrganizationId
+            })
+            .FirstOrDefaultAsync();
+
+        if (saga == null)
+        {
+            _logger.LogWarning(
+                "Authorization failed: {Family} job {JobId} not found (Connection: {ConnectionId})",
+                typeof(TSaga).Name, jobId, hubCallerContext.ConnectionId);
+            throw new HubException($"Could not find a Job with correlation id {jobId}.");
+        }
+
+        if (saga.CurrentState != expectedState)
+        {
+            _logger.LogWarning(
+                "Authorization failed: {Family} job {JobId} is in state {CurrentState}, expected {ExpectedState} " +
+                "(Runner: {RunnerId}/{RunnerName})",
+                typeof(TSaga).Name, jobId, saga.CurrentState, expectedState,
+                connection.RunnerId, connection.InstanceName);
+            throw new HubException(
+                $"Unauthorized: Job is in state '{saga.CurrentState}', expected '{expectedState}'");
+        }
+
+        if (saga.RunnerId != connection.RunnerId)
+        {
+            _logger.LogWarning(
+                "Authorization failed: {Family} job {JobId} requires Runner {RequiredRunnerId}, but the caller is {SelectedRunnerId}",
+                typeof(TSaga).Name, jobId, saga.RunnerId, connection.RunnerId);
+            throw new HubException("Unauthorized: This runner's pool is not authorized for this job");
+        }
+
+        if (!string.IsNullOrEmpty(saga.RunnerInstanceName) &&
+            saga.RunnerInstanceName != connection.InstanceName)
+        {
+            _logger.LogWarning(
+                "Authorization failed: {Family} job {JobId} requires specific runner {RequiredRunner}, but caller is {ActualRunner}",
+                typeof(TSaga).Name, jobId, saga.RunnerInstanceName, connection.InstanceName);
+            throw new HubException("Unauthorized: This job requires a specific runner");
+        }
+
+        return saga.OrganizationId;
     }
 
     public async Task<Guid> ValidateRunnerCanAccessSplitMigrateJob(

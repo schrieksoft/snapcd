@@ -131,6 +131,33 @@ public class FakeRunner(
             case RunnerEndpoints.Init:
                 await hub.InitCompleted(jobId);
                 break;
+
+            // The manual families run the same checkout and init, each answering on its own
+            // endpoint, so each is replied to by name.
+            case RunnerEndpoints.StateListFilteredGetModule:
+                await hub.StateListFilteredGetModuleCompleted(jobId);
+                break;
+            case RunnerEndpoints.StateListFilteredInit:
+                await hub.StateListFilteredInitCompleted(jobId);
+                break;
+            case RunnerEndpoints.MoveGetModule:
+                await hub.MoveGetModuleCompleted(jobId);
+                break;
+            case RunnerEndpoints.MoveInit:
+                await hub.MoveInitCompleted(jobId);
+                break;
+            case RunnerEndpoints.ImportGetModule:
+                await hub.ImportGetModuleCompleted(jobId);
+                break;
+            case RunnerEndpoints.ImportInit:
+                await hub.ImportInitCompleted(jobId);
+                break;
+            case RunnerEndpoints.RemoveGetModule:
+                await hub.RemoveGetModuleCompleted(jobId);
+                break;
+            case RunnerEndpoints.RemoveInit:
+                await hub.RemoveInitCompleted(jobId);
+                break;
             case RunnerEndpoints.Validate:
                 await hub.ValidateCompleted(jobId);
                 break;
@@ -235,18 +262,25 @@ public class FakeRunner(
                     .ToList());
                 break;
 
+            // Each edit and each pre-check answers on its own endpoint, so a reply can only reach
+            // the job that asked for it. Every instruction is reported as succeeded.
+            case RunnerEndpoints.MoveDryRun:
+                await hub.MoveDryRunCompleted(jobId, Succeeded(payload));
+                break;
+            case RunnerEndpoints.RemoveDryRun:
+                await hub.RemoveDryRunCompleted(jobId, Succeeded(payload));
+                break;
+            case RunnerEndpoints.ImportPreCheck:
+                await hub.ImportPreCheckCompleted(jobId, Succeeded(payload));
+                break;
             case RunnerEndpoints.StateMove:
+                await hub.MoveCompleted(jobId, Succeeded(payload));
+                break;
             case RunnerEndpoints.StateImport:
+                await hub.ImportCompleted(jobId, Succeeded(payload));
+                break;
             case RunnerEndpoints.StateRemove:
-                // Reports every instruction as succeeded. Which edit this was is on the saga, so
-                // the reply does not say.
-                await hub.StateMoveCompleted(jobId,
-                    (Read<List<StateAddressInstruction>>(payload, "Instructions") ?? [])
-                    .Select(i => new StateAddressResult
-                    {
-                        Address = i.Address, Target = i.Target, Outcome = "Succeeded"
-                    })
-                    .ToList());
+                await hub.RemoveCompleted(jobId, Succeeded(payload));
                 break;
 
             case RunnerEndpoints.Output:
@@ -261,10 +295,21 @@ public class FakeRunner(
                 break;
 
             default:
-                trace($"  !! no canned reply for {endpoint}; the run will stall here");
+                // Always printed, not only under --verbose: an endpoint nobody answers is the end
+                // of the run, and a stall with no reason given reads as the product hanging.
+                Console.WriteLine($"  !! no canned reply for {endpoint}; the run will stall here");
                 break;
         }
     }
+
+    /// <summary>Every instruction the edit was asked for, reported as having worked.</summary>
+    private static List<StateAddressResult> Succeeded(object payload) =>
+        (Read<List<StateAddressInstruction>>(payload, "Instructions") ?? [])
+        .Select(i => new StateAddressResult
+        {
+            Address = i.Address, Target = i.Target, Outcome = "Succeeded"
+        })
+        .ToList();
 
     /// <summary>
     /// One line per step, which is what the page's log panel reads and what raises the event that

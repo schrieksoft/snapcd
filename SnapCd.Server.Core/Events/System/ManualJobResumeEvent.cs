@@ -25,6 +25,24 @@ public abstract class ManualJobResumeEventBase
     public Guid OrganizationId { get; set; }
 }
 
-public class TransferResumeEvent : ManualJobResumeEventBase;
+/// <summary>The counterparty agreed, so this side may start.</summary>
+public class TransferConsented : ManualJobResumeEventBase;
 
-public class StateMoveResumeEvent : ManualJobResumeEventBase;
+/// <summary>A transfer's approval is answered, so the write it was holding may go ahead.</summary>
+public class TransferApproved : ManualJobResumeEventBase;
+
+/// <summary>
+/// The values a transfer's Module was waiting on exist, so it can prove. Separate from the approval
+/// because it resumes a different step: one event per thing that was being waited for.
+/// </summary>
+public class TransferOutputsArrived : ManualJobResumeEventBase;
+
+/// <summary>
+/// A state edit's threshold is answered. One gate, so the fact is the approval itself rather than
+/// the job carrying on: a job that arrives already approved never waits, and is still approved.
+/// </summary>
+public class MoveApproved : ManualJobResumeEventBase;
+
+public class ImportApproved : ManualJobResumeEventBase;
+
+public class RemoveApproved : ManualJobResumeEventBase;

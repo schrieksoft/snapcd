@@ -6,28 +6,33 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 using System.ComponentModel.DataAnnotations;
 using SnapCd.Server.Core.Entities.Sagas.Base;
-using SnapCd.Server.Core.Enums;
 
 namespace SnapCd.Server.Core.Entities.Sagas;
 
 /// <summary>
-/// Moves, imports or removes addresses in a Module's state, then asks the state what is actually
-/// there. The move says which addresses it managed; the list that follows says which of them are
-/// where they were meant to be, and it is the list that anything watching acts on.
+/// What an edit to a Module's state is doing. The edit says which addresses it managed; the list
+/// that follows says which of them are where they were meant to be, and it is the list that
+/// anything watching acts on.
 /// </summary>
-public class StateMoveSaga : ManualJobSagaBase
+public abstract class StateEditSagaBase : ManualJobSagaBase
 {
-    public StateEditOperation Operation { get; set; }
-
     /// <summary>The addresses and their targets, as JSON.</summary>
     public string InstructionsJson { get; set; } = null!;
 
-    /// <summary>The addresses the move reported managing, as JSON: what the list then asks about.</summary>
+    /// <summary>The addresses the edit reported managing, as JSON: what the list then asks about.</summary>
     [MaxLength(4000)] public string? SucceededJson { get; set; }
 
-    /// <summary>How many addresses the move could not manage, which is what makes a job partial.</summary>
+    /// <summary>How many addresses the edit could not manage, which is what makes a job partial.</summary>
     public int FailedCount { get; set; }
 }
+
+/// <summary>Moving addresses to where they should be, after a dry run says what would move.</summary>
+public class MoveSaga : StateEditSagaBase;
+
+/// <summary>Importing addresses from ids they already have, after checking the addresses are free.</summary>
+public class ImportSaga : StateEditSagaBase;
+
+/// <summary>Taking addresses out of state, after a dry run says what would go.</summary>
+public class RemoveSaga : StateEditSagaBase;

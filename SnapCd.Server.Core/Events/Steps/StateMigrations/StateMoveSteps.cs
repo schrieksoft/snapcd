@@ -21,20 +21,56 @@ public class AddressInstruction
 }
 
 /// <summary>
-/// Asks the runner to move, import or remove a batch of addresses. Each runs on its own, so the
-/// reply says which of them worked rather than whether the batch did.
+/// A batch of addresses to act on. Each address runs on its own, so a reply says which of them
+/// worked rather than whether the batch did.
 /// </summary>
-public class StateMoveRequested : StepRequestBase
+public abstract class StateEditRequestBase : StepRequestBase
 {
-    public StateEditOperation Operation { get; set; }
-
     public List<AddressInstruction> Instructions { get; set; } = [];
 }
 
 /// <summary>What the batch managed, address by address.</summary>
-public class StateMoveCompleted : StepResponseBase
+public abstract class StateEditResponseBase : StepResponseBase
 {
     public List<AddressResult> Results { get; set; } = [];
 }
 
-public class StateMoveFaulted : StepFaultedBase;
+public class MoveRequested : StateEditRequestBase;
+
+public class MoveCompleted : StateEditResponseBase;
+
+public class MoveFaulted : StepFaultedBase;
+
+public class ImportRequested : StateEditRequestBase;
+
+public class ImportCompleted : StateEditResponseBase;
+
+public class ImportFaulted : StepFaultedBase;
+
+public class RemoveRequested : StateEditRequestBase;
+
+public class RemoveCompleted : StateEditResponseBase;
+
+public class RemoveFaulted : StepFaultedBase;
+
+/// <summary>
+/// What an edit would do, asked before anyone is asked to approve it. A move and a remove ask the
+/// engine for a dry run; an import has none, so its check is that the addresses are free.
+/// </summary>
+public class MoveDryRunRequested : StateEditRequestBase;
+
+public class MoveDryRunCompleted : StateEditResponseBase;
+
+public class MoveDryRunFaulted : StepFaultedBase;
+
+public class RemoveDryRunRequested : StateEditRequestBase;
+
+public class RemoveDryRunCompleted : StateEditResponseBase;
+
+public class RemoveDryRunFaulted : StepFaultedBase;
+
+public class ImportPreCheckRequested : StateEditRequestBase;
+
+public class ImportPreCheckCompleted : StateEditResponseBase;
+
+public class ImportPreCheckFaulted : StepFaultedBase;

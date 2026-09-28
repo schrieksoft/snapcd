@@ -15,18 +15,21 @@ using SnapCd.Server.Core.Entities.Sagas;
 
 namespace SnapCd.Server.Core.Database.SagaClassMaps;
 
-public class StateMoveSagaClassMap : SagaClassMap<StateMoveSaga>
+/// <summary>The three state edits keep their own tables, as their own sagas.</summary>
+public abstract class StateEditSagaClassMap<TSaga> : SagaClassMap<TSaga>
+    where TSaga : StateEditSagaBase
 {
-    protected override void Configure(EntityTypeBuilder<StateMoveSaga> entity, ModelBuilder modelBuilder)
+    protected abstract string TableName { get; }
+
+    protected override void Configure(EntityTypeBuilder<TSaga> entity, ModelBuilder modelBuilder)
     {
-        entity.ToTable("StateMoveSagas", t => t.UseSqlOutputClause(false));
+        entity.ToTable(TableName, t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.CorrelationId, e.OrganizationId });
 
         entity.HasIndex(e => e.CorrelationId).IsUnique();
 
         entity.Property(x => x.CurrentState).HasMaxLength(64);
-        entity.Property(x => x.Operation).HasConversion<string>().HasMaxLength(50);
 
         entity
             .HasOne<Module>()
@@ -37,4 +40,19 @@ public class StateMoveSagaClassMap : SagaClassMap<StateMoveSaga>
 
         entity.Property(x => x.RowVersion).IsRowVersion();
     }
+}
+
+public class MoveSagaClassMap : StateEditSagaClassMap<MoveSaga>
+{
+    protected override string TableName => "MoveSagas";
+}
+
+public class ImportSagaClassMap : StateEditSagaClassMap<ImportSaga>
+{
+    protected override string TableName => "ImportSagas";
+}
+
+public class RemoveSagaClassMap : StateEditSagaClassMap<RemoveSaga>
+{
+    protected override string TableName => "RemoveSagas";
 }

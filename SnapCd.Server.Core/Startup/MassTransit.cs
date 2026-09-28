@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.StateMachine.StateMigrations;
+using SnapCd.Server.Core.Consumers.Tasks.ManualJobs;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
@@ -260,9 +261,18 @@ public static class MassTransit
         typeof(StateListFilteredConsumer),
         typeof(StateListFilteredGetModuleConsumer),
         typeof(StateListFilteredInitConsumer),
-        typeof(StateMoveGetModuleConsumer),
-        typeof(StateMoveInitConsumer),
-        typeof(StateMoveConsumer),
+        typeof(MoveGetModuleConsumer),
+        typeof(MoveInitConsumer),
+        typeof(ImportGetModuleConsumer),
+        typeof(ImportInitConsumer),
+        typeof(RemoveGetModuleConsumer),
+        typeof(RemoveInitConsumer),
+        typeof(MoveDryRunConsumer),
+        typeof(RemoveDryRunConsumer),
+        typeof(ImportPreCheckConsumer),
+        typeof(MoveConsumer),
+        typeof(ImportConsumer),
+        typeof(RemoveConsumer),
         typeof(TransferJobEndedCompetingConsumer),
         typeof(TransferRefactorDiffConsumer),
 
@@ -289,7 +299,9 @@ public static class MassTransit
         // Selecting an instance is server-side work, so it is published to whichever server is
         // free rather than addressed to the one owning a connection that does not exist yet.
         typeof(StateListFilteredSelectRunnerInstanceConsumer),
-        typeof(StateMoveSelectRunnerInstanceConsumer),
+        typeof(MoveSelectRunnerInstanceConsumer),
+        typeof(ImportSelectRunnerInstanceConsumer),
+        typeof(RemoveSelectRunnerInstanceConsumer),
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(HeartbeatConsumer),
 
@@ -396,7 +408,7 @@ public static class MassTransit
     private static void AddStateMachineActivities(IServiceCollection services)
     {
         services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
-        services.AddScoped(typeof(StateMoveNeedsApprovalActivity<>));
+        services.AddScoped(typeof(StateEditNeedsApprovalActivity<,>));
         services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
         services.AddScoped(typeof(RunnerConnectedActivity<,>));
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
@@ -408,7 +420,7 @@ public static class MassTransit
         // The manual families send their steps to the instance owning the runner's connection,
         // as an ordinary job does, rather than publishing them.
         services.AddScoped(typeof(SendManualStepToRunnerActivity<,,>));
-        services.AddScoped(typeof(SendStateMoveStepToRunnerActivity<,>));
+        services.AddScoped(typeof(SendStateEditStepToRunnerActivity<,,>));
         services.AddScoped(typeof(SendStateListFilteredStepToRunnerActivity<,>));
         services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
     }
@@ -433,7 +445,9 @@ public static class MassTransit
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
         AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
         AddSagaStateMachine<StateListFilteredStateMachine, StateListFilteredSaga>(x);
-        AddSagaStateMachine<StateMoveStateMachine, StateMoveSaga>(x);
+        AddSagaStateMachine<MoveStateMachine, MoveSaga>(x);
+        AddSagaStateMachine<ImportStateMachine, ImportSaga>(x);
+        AddSagaStateMachine<RemoveStateMachine, RemoveSaga>(x);
 
         // module sagas
         AddSagaStateMachine<

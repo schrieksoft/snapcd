@@ -7,7 +7,6 @@
    for terms covering either use. *@
 
 @using MudBlazor
-@using SnapCd.Server.Core.Enums
 @using SnapCd.Server.Core.Events.Steps.StateMigrations
 @using SnapCd.Server.Core.UI.Dashboard.Theme
 @using YamlDotNet.Serialization
@@ -16,8 +15,8 @@
 <MudDialog>
     <TitleContent>
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
-            <MudText>@Verb</MudText>
-            <MudTooltip Text="Each address is run on its own, so a batch that manages some and not others says which. The state is checked afterwards, and that check is what counts as done.">
+            <MudText>Remove</MudText>
+            <MudTooltip Text="Each address is removed on its own, so a batch that manages some and not others says which. The infrastructure is left alone; only the state entry goes.">
                 <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
             </MudTooltip>
             <MudSpacer/>
@@ -31,7 +30,7 @@
     <DialogContent>
         @if (_asCode)
         {
-            <MudText Typo="Typo.body2" Class="mb-2">@CodeHelp</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">A list of addresses.</MudText>
 
             <MudTextField @bind-Value="_yaml"
                           Immediate="true"
@@ -42,31 +41,18 @@
         }
         else
         {
-            <MudText Typo="Typo.body2" Class="mb-3">@FormHelp</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">The infrastructure is left alone; only the state entry goes.</MudText>
 
             @foreach (var row in _rows)
             {
                 <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
                     <MudTextField @bind-Value="row.Address"
                                   Immediate="true"
-                                  Label="@AddressLabel"
+                                  Label="Address"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
                                   Class="snapcd-mono"
-                                  Placeholder="@AddressPlaceholder"/>
-
-                    @if (NeedsTarget)
-                    {
-                        <MudIcon Icon="@SnapCdIcons.ArrowForward" Size="Size.Small" Color="Color.Default"/>
-
-                        <MudTextField @bind-Value="row.Target"
-                                      Immediate="true"
-                                      Label="@TargetLabel"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Class="snapcd-mono"
-                                      Placeholder="@TargetPlaceholder"/>
-                    }
+                                  Placeholder="aws_subnet.legacy"/>
 
                     <MudIconButton Icon="@SnapCdIcons.Delete"
                                    Size="Size.Small"
@@ -89,7 +75,7 @@
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    Disabled="@(!HasSomething)"
-                   OnClick="Confirm">@Verb</MudButton>
+                   OnClick="Confirm">Remove</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    OnClick="Cancel">Cancel</MudButton>
     </DialogActions>
@@ -98,71 +84,18 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    [Parameter] public StateEditOperation Operation { get; set; }
-
     private readonly List<Row> _rows = [new Row()];
     private bool _asCode;
     private string? _yaml;
     private string? _error;
 
-    private bool NeedsTarget => Operation != StateEditOperation.Remove;
+    private const bool NeedsTarget = false;
 
     private bool HasSomething => _asCode
         ? !string.IsNullOrWhiteSpace(_yaml)
         : _rows.Any(r => !string.IsNullOrWhiteSpace(r.Address));
 
-    private string Verb => Operation switch
-    {
-        StateEditOperation.Move => "Move",
-        StateEditOperation.Import => "Import",
-        _ => "Remove"
-    };
-
-    private string AddressLabel => Operation switch
-    {
-        StateEditOperation.Import => "Address to create",
-        _ => "Address"
-    };
-
-    private string TargetLabel => Operation switch
-    {
-        StateEditOperation.Import => "Resource id",
-        _ => "New address"
-    };
-
-    private string AddressPlaceholder => Operation switch
-    {
-        StateEditOperation.Import => "aws_vpc.main",
-        _ => "aws_vpc.this"
-    };
-
-    private string TargetPlaceholder => Operation switch
-    {
-        StateEditOperation.Import => "vpc-0a1b2c3d4e5f67890",
-        _ => "aws_vpc.main"
-    };
-
-    private string FormHelp => Operation switch
-    {
-        StateEditOperation.Move => "Where each address is now, and where it should end up.",
-        StateEditOperation.Import => "The address to create in state, and the id the resource already has.",
-        _ => "The infrastructure is left alone; only the state entry goes."
-    };
-
-    private string CodeHelp => Operation switch
-    {
-        StateEditOperation.Remove => "A list of addresses.",
-        _ => "A list of address and target pairs."
-    };
-
-    private string YamlPlaceholder => Operation switch
-    {
-        StateEditOperation.Move =>
-            "- address: aws_vpc.this\n  target: aws_vpc.main\n- address: aws_subnet.private\n  target: aws_subnet.private[0]",
-        StateEditOperation.Import =>
-            "- address: aws_vpc.main\n  target: vpc-0a1b2c3d4e5f67890\n- address: aws_subnet.private[0]\n  target: subnet-0123456789abcdef0",
-        _ => "- aws_subnet.legacy\n- aws_route_table.legacy"
-    };
+    private const string YamlPlaceholder = "- aws_subnet.legacy\n- aws_route_table.legacy";
 
     private void AddRow()
     {
@@ -218,7 +151,7 @@
             })
             .ToList();
 
-    private string ToYaml(List<AddressInstruction> instructions)
+    private static string ToYaml(List<AddressInstruction> instructions)
     {
         if (instructions.Count == 0) return string.Empty;
 
@@ -226,7 +159,6 @@
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
-        // A remove has nothing but addresses, so it reads as a plain list rather than as pairs.
         return NeedsTarget
             ? serializer.Serialize(instructions)
             : serializer.Serialize(instructions.Select(i => i.Address).ToList());
@@ -259,11 +191,7 @@
         }
         catch (YamlDotNet.Core.YamlException)
         {
-            // The two shapes fail the same way, and the wrong one for the operation is the more
-            // likely mistake, so the message says which one is expected here.
-            problem = NeedsTarget
-                ? "Expected a list of address and target pairs."
-                : "Expected a list of addresses, without targets.";
+            problem = "A list of addresses.";
             return false;
         }
 
@@ -302,11 +230,11 @@
         var missing = instructions.FirstOrDefault(i => NeedsTarget && string.IsNullOrWhiteSpace(i.Target));
         if (missing is not null)
         {
-            _error = $"'{missing.Address}' needs {(Operation == StateEditOperation.Import ? "a resource id" : "a new address")}.";
+            _error = $"'{missing.Address}' needs an address.";
             return;
         }
 
-        MudDialog.Close(DialogResult.Ok(new Choice(Operation, instructions)));
+        MudDialog.Close(DialogResult.Ok(new StateEditDialogBase.Choice(instructions)));
     }
 
     private class Row
@@ -314,7 +242,4 @@
         public string? Address { get; set; }
         public string? Target { get; set; }
     }
-
-    /// <summary>What to run, and over which addresses.</summary>
-    public record Choice(StateEditOperation Operation, List<AddressInstruction> Instructions);
 }

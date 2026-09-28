@@ -16,7 +16,16 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task Init(InitRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Initialises the backend. The callbacks say which endpoints to answer on, so one init serves
+    /// every job family and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task Init(
+        InitRequestBase request,
+        HubConnection connection,
+        Func<Guid, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -73,8 +82,8 @@ public partial class Tasks
                 gracefulCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeInitCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeInitCompleted),
+                () => completed(request.JobId),
+                "InitCompleted",
                 request.JobId,
                 connection);
 
@@ -84,8 +93,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("Init process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeInitCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeInitCancelled),
+                () => cancelled(request.JobId),
+                "InitCancelled",
                 request.JobId,
                 connection);
         }
@@ -94,12 +103,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling Init for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeInitFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace
-                ),
-                nameof(runnerHubClient.InvokeInitFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "InitFaulted",
                 request.JobId,
                 connection);
         }

@@ -13,20 +13,19 @@ using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 
-public class StateMoveSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
+/// <summary>One state edit's sagas, read by the family they belong to.</summary>
+public abstract class StateEditSagaRepository<TSaga>(SnapCdDbContext dbContext) : IJobSagaFamilyRepository
+    where TSaga : StateEditSagaBase
 {
-    public StateMoveSagaRepository Create() => new(dbFactory.CreateDbContext());
-}
+    protected abstract JobSagaFamily Family { get; }
 
-public class StateMoveSagaRepository(SnapCdDbContext dbContext) : IDisposable
-{
     /// <summary>The job's saga, or null when this job belongs to another family.</summary>
     public virtual async Task<JobSagaMetaData?> GetSagaMetaDataOrNull(Guid jobId, Guid organizationId) =>
-        await dbContext.Set<StateMoveSaga>()
+        await dbContext.Set<TSaga>()
             .Where(x => x.CorrelationId == jobId && x.OrganizationId == organizationId)
             .Select(x => new JobSagaMetaData
             {
-                Family = JobSagaFamily.StateMove,
+                Family = Family,
                 CurrentState = x.CurrentState,
                 RunnerId = x.RunnerId,
                 RunnerInstanceName = x.RunnerInstanceName,
@@ -36,4 +35,19 @@ public class StateMoveSagaRepository(SnapCdDbContext dbContext) : IDisposable
             .FirstOrDefaultAsync();
 
     public void Dispose() => dbContext?.Dispose();
+}
+
+public class MoveSagaRepository(SnapCdDbContext dbContext) : StateEditSagaRepository<MoveSaga>(dbContext)
+{
+    protected override JobSagaFamily Family => JobSagaFamily.Move;
+}
+
+public class ImportSagaRepository(SnapCdDbContext dbContext) : StateEditSagaRepository<ImportSaga>(dbContext)
+{
+    protected override JobSagaFamily Family => JobSagaFamily.Import;
+}
+
+public class RemoveSagaRepository(SnapCdDbContext dbContext) : StateEditSagaRepository<RemoveSaga>(dbContext)
+{
+    protected override JobSagaFamily Family => JobSagaFamily.Remove;
 }

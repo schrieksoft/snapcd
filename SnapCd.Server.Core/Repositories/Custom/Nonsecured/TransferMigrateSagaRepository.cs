@@ -19,7 +19,7 @@ public class TransferMigrateSagaRepositoryFactory(IDbContextFactory<SnapCdDbCont
     public TransferMigrateSagaRepository Create() => new(dbFactory.CreateDbContext());
 }
 
-public class TransferMigrateSagaRepository : IDisposable
+public class TransferMigrateSagaRepository : IJobSagaFamilyRepository
 {
     private readonly SnapCdDbContext _dbContext;
 

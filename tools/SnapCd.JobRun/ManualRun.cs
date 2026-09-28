@@ -49,9 +49,12 @@ public static class ManualRun
         {
             JobKind.List => await manualJobs.StartStateListFiltered(
                 options.ModuleId, options.OrganizationId, options.Addresses),
-            JobKind.Move => await StartEdit(manualJobs, options, StateEditOperation.Move),
-            JobKind.Import => await StartEdit(manualJobs, options, StateEditOperation.Import),
-            JobKind.Remove => await StartEdit(manualJobs, options, StateEditOperation.Remove),
+            JobKind.Move => await manualJobs.StartMove(
+                options.ModuleId, options.OrganizationId, Targeted(options)),
+            JobKind.Import => await manualJobs.StartImport(
+                options.ModuleId, options.OrganizationId, Targeted(options)),
+            JobKind.Remove => await manualJobs.StartRemove(
+                options.ModuleId, options.OrganizationId, Bare(options)),
             JobKind.Split => await manualJobs.StartSplitMigrate(
                 options.ModuleId, options.OrganizationId, options.RootDirectory, options.Force),
             _ => throw new NotSupportedException($"No manual run for {options.Job}.")
@@ -67,25 +70,23 @@ public static class ManualRun
     }
 
     /// <summary>
-    /// A move and an import need a target per address; a remove takes none. The default stands in
-    /// for one an operator would name.
+    /// A move and an import name a target per address. The default stands in for one an operator
+    /// would name.
     /// </summary>
-    private static Task<ManualModuleJob> StartEdit(
-        ManualJobService manualJobs, RunOptions options, StateEditOperation operation)
-    {
-        var instructions = options.Addresses
+    private static List<AddressInstruction> Targeted(RunOptions options) =>
+        options.Addresses
             .Select(address => new AddressInstruction
             {
                 Address = address,
-                Target = operation == StateEditOperation.Remove
-                    ? null
-                    : options.Target ?? $"{address}_moved"
+                Target = options.Target ?? $"{address}_moved"
             })
             .ToList();
 
-        return manualJobs.StartStateMove(
-            options.ModuleId, options.OrganizationId, operation, instructions);
-    }
+    /// <summary>A remove names only the address.</summary>
+    private static List<AddressInstruction> Bare(RunOptions options) =>
+        options.Addresses
+            .Select(address => new AddressInstruction { Address = address })
+            .ToList();
 
     private static async Task<ExecutionStatus> Watch(
         IDbContextFactory<SnapCdDbContext> dbFactory,

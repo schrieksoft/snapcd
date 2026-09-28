@@ -23,7 +23,7 @@ public class SplitMigrateSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext
 /// Reads SplitMigrateSagas for runner authorization. Separate from JobSagaRepository, which looks
 /// only in the deployment saga tables.
 /// </summary>
-public class SplitMigrateSagaRepository : IDisposable
+public class SplitMigrateSagaRepository : IJobSagaFamilyRepository
 {
     private readonly SnapCdDbContext _dbContext;
 
@@ -38,6 +38,7 @@ public class SplitMigrateSagaRepository : IDisposable
             .Where(i => i.CorrelationId == correlationId && i.OrganizationId == organizationId)
             .Select(x => new JobSagaMetaData
             {
+                Family = JobSagaFamily.SplitMigrate,
                 CurrentState = x.CurrentState,
                 RunnerId = x.RunnerId,
                 RunnerInstanceName = x.RunnerInstanceName,
@@ -53,6 +54,7 @@ public class SplitMigrateSagaRepository : IDisposable
             .Where(i => i.CorrelationId == correlationId && i.OrganizationId == organizationId)
             .Select(x => new JobSagaMetaData
             {
+                Family = JobSagaFamily.SplitMigrate,
                 CurrentState = x.CurrentState,
                 RunnerId = x.RunnerId,
                 RunnerInstanceName = x.RunnerInstanceName,

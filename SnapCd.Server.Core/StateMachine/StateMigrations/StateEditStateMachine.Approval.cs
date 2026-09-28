@@ -8,6 +8,7 @@
 
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
@@ -20,34 +21,41 @@ using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
-public partial class StateMoveStateMachine
+public abstract partial class StateEditStateMachine<
+    TSaga, TJobRequested, TApproved,
+    TSelectRunnerInstanceRequested, TGetModuleRequested, TInitRequested,
+    TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
+    TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
+    TInitCompleted, TInitCancelled, TInitFaulted,
+    TPreCheckRequested, TPreCheckCompleted, TPreCheckFaulted,
+    TEditRequested, TEditCompleted, TEditFaulted>
 {
     public Event<ApprovalReevaluationRequestedEvent> ApprovalModifiedEvent { get; } = null!;
 
-    public Event<StateMoveResumeEvent> ResumeEvent { get; } = null!;
+    public Event<TApproved> ApprovedEvent { get; } = null!;
 
-    public Schedule<StateMoveSaga, ApprovalTimeoutReceived> ApprovalTimeoutScheduled { get; } = null!;
+    public Schedule<TSaga, ApprovalTimeoutReceived> ApprovalTimeoutScheduled { get; } = null!;
 
     public State WaitingForApproval { get; } = null!;
 
     /// <summary>
     /// The gate on the one irreversible step. Everything before it reads: the checkout, the
-    /// backend. The edit itself writes, and a state edit cannot be undone by running it again, so
-    /// it answers to the same threshold a split and a transfer do. Listing afterwards is a read and
-    /// needs no answer of its own.
+    /// backend, the pre-check saying what the edit would do. The edit itself writes, and a state
+    /// edit cannot be undone by running it again, so it answers to the same threshold a split and a
+    /// transfer do. Listing afterwards is a read and needs no answer of its own.
     /// </summary>
     private void Configure_Approval()
     {
         Event(() => ApprovalModifiedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
-        Event(() => ResumeEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+        Event(() => ApprovedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
 
         // The edit is asked for by a second consume, once this one has committed the transition.
         // Dispatching from the approving chain lets the reply arrive in the state it is leaving.
-        During(MovePending,
-            When(ResumeEvent)
+        During(EditPending,
+            When(ApprovedEvent)
                 .Activity(x => x.OfType<
-                    SendStateMoveStepToRunnerActivity<StateMoveResumeEvent, StateMoveRequested>>())
-                .ThenAsync(context => RecordDispatched(context, TaskOf<StateMoveRequested>())));
+                    SendStateEditStepToRunnerActivity<TSaga, TApproved, TEditRequested>>())
+                .ThenAsync(context => RecordDispatched(context, EditName)));
 
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); });
@@ -57,19 +65,19 @@ public partial class StateMoveStateMachine
 
             When(ApprovalTimeoutScheduled.Received)
                 .Then(context => _logger.LogInformation(
-                    "{Operation} on Module {ModuleId} was not answered in time",
-                    context.Saga.Operation, context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<StateMoveSaga, ApprovalTimeoutReceived>>())
+                    "{Verb} on Module {ModuleId} was not answered in time",
+                    Verb, context.Saga.ModuleId))
+                .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
             // Nothing is on a runner while it waits, so there is nothing to kill or wait out.
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(
-                    "{Operation} on Module {ModuleId} was cancelled while awaiting approval",
-                    context.Saga.Operation, context.Saga.ModuleId))
+                    "{Verb} on Module {ModuleId} was cancelled while awaiting approval",
+                    Verb, context.Saga.ModuleId))
                 .Unschedule(ApprovalTimeoutScheduled)
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<StateMoveSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, CancelManualModuleJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -83,12 +91,12 @@ public partial class StateMoveStateMachine
     /// Approved edits; declined ends the job; neither yet leaves it waiting. The same binder runs
     /// on entry and on every later change, so an already-satisfied threshold never waits.
     /// </summary>
-    private EventActivityBinder<StateMoveSaga, TMessage> DealWithApprovalStatus<TMessage>(
-        EventActivityBinder<StateMoveSaga, TMessage> binder, bool transition = false)
+    private EventActivityBinder<TSaga, TMessage> DealWithApprovalStatus<TMessage>(
+        EventActivityBinder<TSaga, TMessage> binder, bool transition = false)
         where TMessage : class
     {
         return binder
-            .Activity(x => x.OfType<StateMoveNeedsApprovalActivity<TMessage>>())
+            .Activity(x => x.OfType<StateEditNeedsApprovalActivity<TSaga, TMessage>>())
             .IfElse(
                 x => x.Saga.IsApproved,
                 approved => approved
@@ -96,12 +104,12 @@ public partial class StateMoveStateMachine
                     {
                         context.Saga.WaitingSince = null;
                         _logger.LogInformation(
-                            "{Operation} on Module {ModuleId} was approved",
-                            context.Saga.Operation, context.Saga.ModuleId);
+                            "{Verb} on Module {ModuleId} was approved",
+                            Verb, context.Saga.ModuleId);
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
-                    .Activity(x => x.OfType<NotWaitingForApprovalManualJobActivity<StateMoveSaga, TMessage>>())
-                    // Scheduled before the resume is published, not after: anything between the
+                    .Activity(x => x.OfType<NotWaitingForApprovalManualJobActivity<TSaga, TMessage>>())
+                    // Scheduled before the approval is published, not after: anything between the
                     // publish and the end of the chain is time for the answer to arrive early.
                     .Schedule(HeartbeatScheduled,
                         context => new HeartbeatScheduled
@@ -109,34 +117,34 @@ public partial class StateMoveStateMachine
                             CorrelationId = context.Saga.CorrelationId,
                             OrganizationId = context.Saga.OrganizationId
                         })
-                    .Publish(context => new StateMoveResumeEvent
+                    .Publish(context => new TApproved
                     {
                         ModuleJobId = context.Saga.CorrelationId,
                         OrganizationId = context.Saga.OrganizationId
                     })
-                    .TransitionTo(MovePending),
+                    .TransitionTo(EditPending),
                 notApproved => notApproved
                     .IfElse(
                         x => x.Saga.IsDeclined,
                         declined => declined
                             .Then(context => _logger.LogInformation(
-                                "{Operation} on Module {ModuleId} was declined; nothing was changed",
-                                context.Saga.Operation, context.Saga.ModuleId))
+                                "{Verb} on Module {ModuleId} was declined; nothing was changed",
+                                Verb, context.Saga.ModuleId))
                             .Unschedule(ApprovalTimeoutScheduled)
-                            .Activity(x => x.OfType<CancelManualModuleJobActivity<StateMoveSaga, TMessage>>())
+                            .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, TMessage>>())
                             .TransitionTo(Failed)
                             .Finalize(),
                         stillWaiting => stillWaiting
                             .If(
                                 _ => transition,
                                 waiting => waiting
-                                    .Activity(x => x.OfType<WaitingForApprovalManualJobActivity<StateMoveSaga, TMessage>>())
+                                    .Activity(x => x.OfType<WaitingForApprovalManualJobActivity<TSaga, TMessage>>())
                                     .Then(context =>
                                     {
                                         context.Saga.WaitingSince = DateTime.UtcNow;
                                         _logger.LogInformation(
-                                            "{Operation} on Module {ModuleId} is waiting to be approved",
-                                            context.Saga.Operation, context.Saga.ModuleId);
+                                            "{Verb} on Module {ModuleId} is waiting to be approved",
+                                            Verb, context.Saga.ModuleId);
                                     })
                                     // An unset timeout is no timeout: scheduling zero would cancel
                                     // the job as it asks.

@@ -198,10 +198,8 @@ public class TerraformEngine : BaseEngine, IEngine
         if (string.IsNullOrWhiteSpace(target))
             throw new InvalidOperationException($"A move needs a target for {address}.");
 
-        var dry = dryRun ? " -dry-run" : string.Empty;
-
         return RunProcess(
-            $"{_engine} state mv{dry} {Quote(address)} {Quote(target)}",
+            MoveCommand(_engine, address, target, dryRun),
             killCancellationToken,
             gracefulCancellationToken);
     }
@@ -216,7 +214,7 @@ public class TerraformEngine : BaseEngine, IEngine
             throw new InvalidOperationException($"An import needs a resource id for {address}.");
 
         return RunProcess(
-            $"{_engine} import {Quote(address)} {Quote(target)}",
+            ImportCommand(_engine, address, target),
             killCancellationToken,
             gracefulCancellationToken);
     }
@@ -227,13 +225,20 @@ public class TerraformEngine : BaseEngine, IEngine
         CancellationToken killCancellationToken,
         CancellationToken gracefulCancellationToken)
     {
-        var dry = dryRun ? " -dry-run" : string.Empty;
-
         return RunProcess(
-            $"{_engine} state rm{dry} {Quote(address)}",
+            RemoveCommand(_engine, address, dryRun),
             killCancellationToken,
             gracefulCancellationToken);
     }
+
+    public static string MoveCommand(string engine, string address, string? target, bool dryRun = false) =>
+        $"{engine} state mv{(dryRun ? " -dry-run" : string.Empty)} {Quote(address)} {Quote(target)}";
+
+    public static string ImportCommand(string engine, string address, string? target) =>
+        $"{engine} import {Quote(address)} {Quote(target)}";
+
+    public static string RemoveCommand(string engine, string address, bool dryRun = false) =>
+        $"{engine} state rm{(dryRun ? " -dry-run" : string.Empty)} {Quote(address)}";
 
     /// <summary>
     /// Single-quoted so an address with brackets or dots reaches the engine as written. An address

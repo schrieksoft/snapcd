@@ -1,0 +1,258 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+@using SnapCd.Server.Core.Events.Steps.StateMigrations
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+@using YamlDotNet.Serialization
+@using YamlDotNet.Serialization.NamingConventions
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+            <MudText>Move</MudText>
+            <MudTooltip Text="Each address is moved on its own, so a batch that manages some and not others says which. The state is checked afterwards, and that check is what counts as done.">
+                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+            </MudTooltip>
+            <MudSpacer/>
+            <MudTooltip Text="@(_asCode ? "Back to the form" : "Edit as YAML")">
+                <MudIconButton Icon="@(_asCode ? SnapCdIcons.Columns : SnapCdIcons.Code)"
+                               Size="Size.Small"
+                               OnClick="ToggleMode"/>
+            </MudTooltip>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_asCode)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">A list of address and target pairs.</MudText>
+
+            <MudTextField @bind-Value="_yaml"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Lines="14"
+                          Class="snapcd-mono"
+                          Placeholder="@YamlPlaceholder"/>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">Where each address is now, and where it should end up.</MudText>
+
+            @foreach (var row in _rows)
+            {
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+                    <MudTextField @bind-Value="row.Address"
+                                  Immediate="true"
+                                  Label="Address"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Class="snapcd-mono"
+                                  Placeholder="aws_vpc.this"/>
+
+                    @if (NeedsTarget)
+                    {
+                        <MudIcon Icon="@SnapCdIcons.ArrowForward" Size="Size.Small" Color="Color.Default"/>
+
+                        <MudTextField @bind-Value="row.Target"
+                                      Immediate="true"
+                                      Label="New address"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Class="snapcd-mono"
+                                      Placeholder="aws_vpc.main"/>
+                    }
+
+                    <MudIconButton Icon="@SnapCdIcons.Delete"
+                                   Size="Size.Small"
+                                   Disabled="@(_rows.Count == 1)"
+                                   OnClick="@(() => Remove(row))"/>
+                </MudStack>
+            }
+
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       StartIcon="@SnapCdIcons.Add"
+                       OnClick="AddRow"
+                       Class="mt-2">add another</MudButton>
+        }
+
+        @if (_error != null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Error" Class="mt-3">@_error</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   Disabled="@(!HasSomething)"
+                   OnClick="Confirm">Move</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private readonly List<Row> _rows = [new Row()];
+    private bool _asCode;
+    private string? _yaml;
+    private string? _error;
+
+    private const bool NeedsTarget = true;
+
+    private bool HasSomething => _asCode
+        ? !string.IsNullOrWhiteSpace(_yaml)
+        : _rows.Any(r => !string.IsNullOrWhiteSpace(r.Address));
+
+    private const string YamlPlaceholder = "- address: aws_vpc.this\n  target: aws_vpc.main\n- address: aws_subnet.private\n  target: aws_subnet.private[0]";
+
+    private void AddRow()
+    {
+        _error = null;
+        _rows.Add(new Row());
+    }
+
+    private void Remove(Row row)
+    {
+        if (_rows.Count == 1) return;
+
+        _error = null;
+        _rows.Remove(row);
+    }
+
+    /// <summary>
+    /// Carries what has been entered across, so switching to look at the YAML and back does not
+    /// cost the work. A form that cannot represent what the YAML says is left for the YAML.
+    /// </summary>
+    private void ToggleMode()
+    {
+        _error = null;
+
+        if (!_asCode)
+        {
+            _yaml = ToYaml(Filled());
+            _asCode = true;
+            return;
+        }
+
+        if (TryParseYaml(out var parsed, out var problem))
+        {
+            _rows.Clear();
+            foreach (var instruction in parsed)
+                _rows.Add(new Row { Address = instruction.Address, Target = instruction.Target });
+
+            if (_rows.Count == 0) _rows.Add(new Row());
+
+            _asCode = false;
+            return;
+        }
+
+        _error = problem;
+    }
+
+    private List<AddressInstruction> Filled() =>
+        _rows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Address))
+            .Select(r => new AddressInstruction
+            {
+                Address = r.Address!.Trim(),
+                Target = NeedsTarget ? r.Target?.Trim() : null
+            })
+            .ToList();
+
+    private static string ToYaml(List<AddressInstruction> instructions)
+    {
+        if (instructions.Count == 0) return string.Empty;
+
+        var serializer = new SerializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
+
+        return NeedsTarget
+            ? serializer.Serialize(instructions)
+            : serializer.Serialize(instructions.Select(i => i.Address).ToList());
+    }
+
+    private bool TryParseYaml(out List<AddressInstruction> instructions, out string? problem)
+    {
+        instructions = [];
+        problem = null;
+
+        if (string.IsNullOrWhiteSpace(_yaml)) return true;
+
+        var deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+
+        try
+        {
+            if (NeedsTarget)
+            {
+                instructions = deserializer.Deserialize<List<AddressInstruction>>(_yaml) ?? [];
+            }
+            else
+            {
+                instructions = (deserializer.Deserialize<List<string>>(_yaml) ?? [])
+                    .Select(a => new AddressInstruction { Address = a })
+                    .ToList();
+            }
+        }
+        catch (YamlDotNet.Core.YamlException)
+        {
+            problem = "A list of address and target pairs.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm()
+    {
+        List<AddressInstruction> instructions;
+
+        if (_asCode)
+        {
+            if (!TryParseYaml(out instructions, out var problem))
+            {
+                _error = problem;
+                return;
+            }
+        }
+        else
+        {
+            instructions = Filled();
+        }
+
+        instructions = instructions
+            .Where(i => !string.IsNullOrWhiteSpace(i.Address))
+            .ToList();
+
+        if (instructions.Count == 0)
+        {
+            _error = "Name at least one address.";
+            return;
+        }
+
+        var missing = instructions.FirstOrDefault(i => NeedsTarget && string.IsNullOrWhiteSpace(i.Target));
+        if (missing is not null)
+        {
+            _error = $"'{missing.Address}' needs a new address.";
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(new StateEditDialogBase.Choice(instructions)));
+    }
+
+    private class Row
+    {
+        public string? Address { get; set; }
+        public string? Target { get; set; }
+    }
+}

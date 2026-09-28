@@ -20,25 +20,23 @@ namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 /// <summary>
 /// A state edit's steps, with the edit's own payload carried onto the requests that take it.
 /// </summary>
-public class SendStateMoveStepToRunnerActivity<TMessage, TOutgoingMessage>(
+public class SendStateEditStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
-    ILogger<SendToRunnerActivity<StateMoveSaga, TMessage, TOutgoingMessage>> logger)
-    : SendManualStepToRunnerActivity<StateMoveSaga, TMessage, TOutgoingMessage>(
+    ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
+    : SendManualStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
         dbContext, maintenanceMode, logger)
+    where TSaga : StateEditSagaBase, new()
     where TMessage : class
     where TOutgoingMessage : StepRequestBase, new()
 {
-    protected override TOutgoingMessage CreateMessage(StateMoveSaga saga)
+    protected override TOutgoingMessage CreateMessage(TSaga saga)
     {
         var request = base.CreateMessage(saga);
 
-        if (request is StateMoveRequested move)
-        {
-            move.Operation = saga.Operation;
-            move.Instructions =
+        if (request is StateEditRequestBase edit)
+            edit.Instructions =
                 JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
-        }
 
         // The list afterwards asks only about the addresses the edit managed.
         if (request is StateListFilteredRequested list)

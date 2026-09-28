@@ -6,20 +6,15 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.Views;
 
-using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Events.Jobs.Base;
-using SnapCd.Server.Core.Events.Steps.StateMigrations;
-
-namespace SnapCd.Server.Core.Events.Jobs.Module;
+namespace SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 
 /// <summary>
-/// Starts a job that moves, imports or removes addresses in a Module's state, then checks what is
-/// there. Each address is run on its own, so a batch can end partly done.
+/// One saga family, asked whether a job id is one of its own. A job id is unique across families,
+/// so the first family to claim it owns it.
 /// </summary>
-public class StateMoveJobRequested : ModuleJobEventBase
+public interface IJobSagaFamilyRepository : IDisposable
 {
-    public StateEditOperation Operation { get; set; }
-
-    public List<AddressInstruction> Instructions { get; set; } = [];
+    Task<JobSagaMetaData?> GetSagaMetaDataOrNull(Guid correlationId, Guid organizationId);
 }

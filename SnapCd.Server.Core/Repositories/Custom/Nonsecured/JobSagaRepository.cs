@@ -18,96 +18,45 @@ public class JobSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFacto
     public JobSagaRepository Create()
     {
         var dbContext = dbFactory.CreateDbContext();
-        var applyJobSagaRepository = new ApplyJobSagaRepository(dbContext);
-        var destroyJobSagaRepository = new DestroyJobSagaRepository(dbContext);
-        var splitMonolithSagaRepository = new SplitMigrateSagaRepository(dbContext);
-        var transferMigrateSagaRepository = new TransferMigrateSagaRepository(dbContext);
-        var stateListFilteredSagaRepository = new StateListFilteredSagaRepository(dbContext);
-        var stateMoveSagaRepository = new StateMoveSagaRepository(dbContext);
-        return new JobSagaRepository(
-            dbContext, applyJobSagaRepository, destroyJobSagaRepository,
-            splitMonolithSagaRepository, transferMigrateSagaRepository,
-            stateListFilteredSagaRepository, stateMoveSagaRepository);
+
+        return new JobSagaRepository(dbContext, [
+            new ApplyJobSagaRepository(dbContext),
+            new DestroyJobSagaRepository(dbContext),
+            new SplitMigrateSagaRepository(dbContext),
+            new TransferMigrateSagaRepository(dbContext),
+            new StateListFilteredSagaRepository(dbContext),
+            new MoveSagaRepository(dbContext),
+            new ImportSagaRepository(dbContext),
+            new RemoveSagaRepository(dbContext)
+        ]);
     }
 }
 
-public class JobSagaRepository : IDisposable
+public class JobSagaRepository(
+    SnapCdDbContext dbContext,
+    IReadOnlyList<IJobSagaFamilyRepository> families) : IDisposable
 {
-    private readonly SnapCdDbContext _dbContext;
-    private readonly ApplyJobSagaRepository _applyJobSagaRepository;
-    private readonly DestroyJobSagaRepository _destroyJobSagaRepository;
-    private readonly SplitMigrateSagaRepository _splitMonolithSagaRepository;
-    private readonly TransferMigrateSagaRepository _transferMigrateSagaRepository;
-    private readonly StateListFilteredSagaRepository _stateListFilteredSagaRepository;
-    private readonly StateMoveSagaRepository _stateMoveSagaRepository;
-
-    public JobSagaRepository(
-        SnapCdDbContext dbContext,
-        ApplyJobSagaRepository applyJobSagaRepository,
-        DestroyJobSagaRepository destroyJobSagaRepository,
-        SplitMigrateSagaRepository splitMonolithSagaRepository,
-        TransferMigrateSagaRepository transferMigrateSagaRepository,
-        StateListFilteredSagaRepository stateListFilteredSagaRepository,
-        StateMoveSagaRepository stateMoveSagaRepository)
-    {
-        _dbContext = dbContext;
-        _applyJobSagaRepository = applyJobSagaRepository;
-        _destroyJobSagaRepository = destroyJobSagaRepository;
-        _splitMonolithSagaRepository = splitMonolithSagaRepository;
-        _transferMigrateSagaRepository = transferMigrateSagaRepository;
-        _stateListFilteredSagaRepository = stateListFilteredSagaRepository;
-        _stateMoveSagaRepository = stateMoveSagaRepository;
-    }
-
     /// <summary>
     /// Resolves a correlation id to its saga, whichever family owns it. Job ids are unique across
     /// families, so the search order does not affect the result.
     /// </summary>
     public virtual async Task<JobSagaMetaData> GetSagaMetaData(Guid correlationId, Guid organizationId)
     {
-        var metaData = await _applyJobSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
-        if (metaData == null)
-            metaData = await _destroyJobSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
-
-        if (metaData == null)
+        foreach (var family in families)
         {
-            var split = await _splitMonolithSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
-            if (split != null)
-                metaData = new JobSagaMetaData
-                {
-                    Family = JobSagaFamily.SplitMigrate,
-                    CurrentState = split.CurrentState,
-                    RunnerId = split.RunnerId,
-                    RunnerInstanceName = split.RunnerInstanceName,
-                    OrganizationId = split.OrganizationId,
-                    PreviousStateBeforeCancelling = split.PreviousStateBeforeCancelling
-                };
+            var metaData = await family.GetSagaMetaDataOrNull(correlationId, organizationId);
+            if (metaData != null) return metaData;
         }
 
-        if (metaData == null)
-            metaData = await _transferMigrateSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
-
-        if (metaData == null)
-            metaData = await _stateListFilteredSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
-
-        if (metaData == null)
-            metaData = await _stateMoveSagaRepository.GetSagaMetaDataOrNull(correlationId, organizationId);
-
-        if (metaData == null)
-            throw new EntityNotFoundException($"Could not find a Job with correlation id {correlationId} in Organization {organizationId}.");
-
-        return metaData;
+        throw new EntityNotFoundException(
+            $"Could not find a Job with correlation id {correlationId} in Organization {organizationId}.");
     }
-
 
     public void Dispose()
     {
-        _applyJobSagaRepository?.Dispose();
-        _destroyJobSagaRepository?.Dispose();
-        _splitMonolithSagaRepository?.Dispose();
-        _stateListFilteredSagaRepository?.Dispose();
-        _stateMoveSagaRepository?.Dispose();
-        _transferMigrateSagaRepository?.Dispose();
-        _dbContext?.Dispose();
+        foreach (var family in families)
+            family.Dispose();
+
+        dbContext?.Dispose();
     }
 }

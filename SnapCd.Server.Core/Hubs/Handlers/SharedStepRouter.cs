@@ -9,6 +9,7 @@
 
 using SnapCd.Contracts;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using SnapCd.Server.Core.Events.Steps.ManualJobs;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
@@ -41,10 +42,6 @@ public class SharedStepRouter(
         JobSagaFamily.SplitMigrate => splitGetModule.Complete(jobId, auth.OrganizationId),
         JobSagaFamily.TransferMigrate =>
             transferStep.Complete<TransferGetModuleCompleted>(jobId, auth.OrganizationId),
-        JobSagaFamily.StateListFiltered =>
-            transferStep.Complete<StateListFilteredGetModuleCompleted>(jobId, auth.OrganizationId),
-        JobSagaFamily.StateMove =>
-            transferStep.Complete<StateMoveGetModuleCompleted>(jobId, auth.OrganizationId),
         _ => getModule.Complete(jobId)
     };
 
@@ -55,10 +52,6 @@ public class SharedStepRouter(
                 splitGetModule.Fault(jobId, auth.OrganizationId, error, stackTrace),
             JobSagaFamily.TransferMigrate =>
                 transferStep.Fault<TransferGetModuleFaulted>(jobId, auth.OrganizationId, error, stackTrace),
-            JobSagaFamily.StateListFiltered =>
-                transferStep.Fault<StateListFilteredGetModuleFaulted>(jobId, auth.OrganizationId, error, stackTrace),
-            JobSagaFamily.StateMove =>
-                transferStep.Fault<StateMoveGetModuleFaulted>(jobId, auth.OrganizationId, error, stackTrace),
             _ => getModule.Fault(jobId, error, stackTrace)
         };
 
@@ -67,10 +60,6 @@ public class SharedStepRouter(
         JobSagaFamily.SplitMigrate => splitInit.Complete(jobId, auth.OrganizationId),
         JobSagaFamily.TransferMigrate =>
             transferStep.Complete<TransferInitCompleted>(jobId, auth.OrganizationId),
-        JobSagaFamily.StateListFiltered =>
-            transferStep.Complete<StateListFilteredInitCompleted>(jobId, auth.OrganizationId),
-        JobSagaFamily.StateMove =>
-            transferStep.Complete<StateMoveInitCompleted>(jobId, auth.OrganizationId),
         _ => init.Complete(jobId)
     };
 
@@ -80,10 +69,6 @@ public class SharedStepRouter(
             JobSagaFamily.SplitMigrate => splitInit.Fault(jobId, auth.OrganizationId, error, stackTrace),
             JobSagaFamily.TransferMigrate =>
                 transferStep.Fault<TransferInitFaulted>(jobId, auth.OrganizationId, error, stackTrace),
-            JobSagaFamily.StateListFiltered =>
-                transferStep.Fault<StateListFilteredInitFaulted>(jobId, auth.OrganizationId, error, stackTrace),
-            JobSagaFamily.StateMove =>
-                transferStep.Fault<StateMoveInitFaulted>(jobId, auth.OrganizationId, error, stackTrace),
             _ => init.Fault(jobId, error, stackTrace)
         };
 

@@ -212,9 +212,23 @@ public class RunOptions
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),
             Verbose = args.Contains("--verbose"),
-            Timeout = int.TryParse(Get("timeout"), out var t)
-                ? TimeSpan.FromSeconds(t)
-                : TimeSpan.FromMinutes(5),
+            Timeout = ParseTimeout(Get("timeout")),
         };
+    }
+
+    /// <summary>
+    /// Seconds, or a duration such as 13:00. A value the flag cannot read is refused rather than
+    /// defaulted: a run that silently stops early reads as the job stalling.
+    /// </summary>
+    private static TimeSpan ParseTimeout(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return TimeSpan.FromMinutes(5);
+
+        if (int.TryParse(value, out var seconds)) return TimeSpan.FromSeconds(seconds);
+
+        if (TimeSpan.TryParse(value, out var span)) return span;
+
+        throw new ArgumentException(
+            $"--timeout could not read '{value}'. Give seconds (900) or a duration (15:00).");
     }
 }

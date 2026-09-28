@@ -16,7 +16,16 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task GetModule(GetModuleRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Checks out the code a job runs against. The callbacks say which endpoints to answer on, so
+    /// one checkout serves every job family and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task GetModule(
+        GetModuleRequestBase request,
+        HubConnection connection,
+        Func<Guid, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -66,8 +75,8 @@ public partial class Tasks
                 request.SourceDefinitiveRevision);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeGetModuleCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeGetModuleCompleted),
+                () => completed(request.JobId),
+                "GetModuleCompleted",
                 request.JobId,
                 connection);
 
@@ -77,8 +86,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("GetModule process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeGetModuleCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeGetModuleCancelled),
+                () => cancelled(request.JobId),
+                "GetModuleCancelled",
                 request.JobId,
                 connection);
         }
@@ -87,12 +96,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling GetModule for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeGetModuleFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace
-                ),
-                nameof(runnerHubClient.InvokeGetModuleFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "GetModuleFaulted",
                 request.JobId,
                 connection);
         }

@@ -18,7 +18,7 @@ public class StateListFilteredSagaRepositoryFactory(IDbContextFactory<SnapCdDbCo
     public StateListFilteredSagaRepository Create() => new(dbFactory.CreateDbContext());
 }
 
-public class StateListFilteredSagaRepository(SnapCdDbContext dbContext) : IDisposable
+public class StateListFilteredSagaRepository(SnapCdDbContext dbContext) : IJobSagaFamilyRepository
 {
     /// <summary>The job's saga, or null when this job belongs to another family.</summary>
     public virtual async Task<JobSagaMetaData?> GetSagaMetaDataOrNull(Guid jobId, Guid organizationId) =>

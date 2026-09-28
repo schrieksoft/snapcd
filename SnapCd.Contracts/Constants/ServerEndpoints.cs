@@ -113,4 +113,61 @@ public static class ServerEndpoints
     public const string CancelKillCompleted = "CancelKillCompleted";
     public const string CancelGracefulCompleted = "CancelGracefulCompleted";
     
+
+    // Every family reports a shared step on its own endpoint: the runner runs one task,
+    // and the name it answers on says which job asked. Deployment keeps the bare names above.
+
+    public const string SplitGetModuleCompleted = "SplitGetModuleCompleted";
+    public const string SplitGetModuleCancelled = "SplitGetModuleCancelled";
+    public const string SplitGetModuleFaulted = "SplitGetModuleFaulted";
+    public const string SplitInitCompleted = "SplitInitCompleted";
+    public const string SplitInitCancelled = "SplitInitCancelled";
+    public const string SplitInitFaulted = "SplitInitFaulted";
+    public const string SplitValidateCompleted = "SplitValidateCompleted";
+    public const string SplitValidateCancelled = "SplitValidateCancelled";
+    public const string SplitValidateFaulted = "SplitValidateFaulted";
+    public const string SplitPlanCompleted = "SplitPlanCompleted";
+    public const string SplitPlanCancelled = "SplitPlanCancelled";
+    public const string SplitPlanFaulted = "SplitPlanFaulted";
+
+    public const string TransferGetModuleCompleted = "TransferGetModuleCompleted";
+    public const string TransferGetModuleCancelled = "TransferGetModuleCancelled";
+    public const string TransferGetModuleFaulted = "TransferGetModuleFaulted";
+    public const string TransferInitCompleted = "TransferInitCompleted";
+    public const string TransferInitCancelled = "TransferInitCancelled";
+    public const string TransferInitFaulted = "TransferInitFaulted";
+    public const string TransferValidateCompleted = "TransferValidateCompleted";
+    public const string TransferValidateCancelled = "TransferValidateCancelled";
+    public const string TransferValidateFaulted = "TransferValidateFaulted";
+    public const string TransferPlanCompleted = "TransferPlanCompleted";
+    public const string TransferPlanCancelled = "TransferPlanCancelled";
+    public const string TransferPlanFaulted = "TransferPlanFaulted";
+
+    public const string StateListFilteredGetModuleCompleted = "StateListFilteredGetModuleCompleted";
+    public const string StateListFilteredGetModuleCancelled = "StateListFilteredGetModuleCancelled";
+    public const string StateListFilteredGetModuleFaulted = "StateListFilteredGetModuleFaulted";
+    public const string StateListFilteredInitCompleted = "StateListFilteredInitCompleted";
+    public const string StateListFilteredInitCancelled = "StateListFilteredInitCancelled";
+    public const string StateListFilteredInitFaulted = "StateListFilteredInitFaulted";
+
+    public const string MoveGetModuleCompleted = "MoveGetModuleCompleted";
+    public const string MoveGetModuleCancelled = "MoveGetModuleCancelled";
+    public const string MoveGetModuleFaulted = "MoveGetModuleFaulted";
+    public const string MoveInitCompleted = "MoveInitCompleted";
+    public const string MoveInitCancelled = "MoveInitCancelled";
+    public const string MoveInitFaulted = "MoveInitFaulted";
+
+    public const string ImportGetModuleCompleted = "ImportGetModuleCompleted";
+    public const string ImportGetModuleCancelled = "ImportGetModuleCancelled";
+    public const string ImportGetModuleFaulted = "ImportGetModuleFaulted";
+    public const string ImportInitCompleted = "ImportInitCompleted";
+    public const string ImportInitCancelled = "ImportInitCancelled";
+    public const string ImportInitFaulted = "ImportInitFaulted";
+
+    public const string RemoveGetModuleCompleted = "RemoveGetModuleCompleted";
+    public const string RemoveGetModuleCancelled = "RemoveGetModuleCancelled";
+    public const string RemoveGetModuleFaulted = "RemoveGetModuleFaulted";
+    public const string RemoveInitCompleted = "RemoveInitCompleted";
+    public const string RemoveInitCancelled = "RemoveInitCancelled";
+    public const string RemoveInitFaulted = "RemoveInitFaulted";
 }

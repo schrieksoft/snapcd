@@ -17,6 +17,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
+using SnapCd.Server.Core.Events.Steps.ManualJobs;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
@@ -30,6 +31,7 @@ using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
 using SnapCd.Server.Core.StateMachine.StateMigrations;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
@@ -71,6 +73,7 @@ public class StateListFilteredJobTests : IAsyncLifetime
         services.AddScoped<ManualJobStepService>();
         services.AddScoped<ManualJobAddressService>();
         services.AddScoped(typeof(CancelManualModuleJobActivity<,>));
+        services.AddScoped(typeof(SendStateListFilteredStepToRunnerActivity<,>));
 
         services.AddMassTransitTestHarness(x =>
         {

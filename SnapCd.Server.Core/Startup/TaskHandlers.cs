@@ -33,6 +33,14 @@ public static class TaskHandlers
         services.AddScoped<MigrateMapHandler>();
         services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.Transfers.TransferStepHandler>();
         services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.SharedStepRouter>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.StateListFilteredGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.StateListFilteredInitHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.MoveGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.MoveInitHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.ImportGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.ImportInitHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.RemoveGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.ManualJobs.RemoveInitHandler>();
         services.AddScoped<MigrateProveHandler>();
         services.AddScoped<MigrateRunHandler>();
         services.AddScoped<MigrateVerifyHandler>();

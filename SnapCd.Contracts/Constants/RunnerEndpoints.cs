@@ -12,6 +12,21 @@ public static class RunnerEndpoints
 {
     public const string Init = "Init";
     public const string GetModule = "GetModule";
+
+    // The runner runs one checkout and one init whatever asked for it, but each family is dispatched
+    // to its own endpoint so the runner knows which endpoint to answer on.
+    public const string SplitGetModule = "SplitGetModule";
+    public const string SplitInit = "SplitInit";
+    public const string TransferGetModule = "TransferGetModule";
+    public const string TransferInit = "TransferInit";
+    public const string StateListFilteredGetModule = "StateListFilteredGetModule";
+    public const string StateListFilteredInit = "StateListFilteredInit";
+    public const string MoveGetModule = "MoveGetModule";
+    public const string MoveInit = "MoveInit";
+    public const string ImportGetModule = "ImportGetModule";
+    public const string ImportInit = "ImportInit";
+    public const string RemoveGetModule = "RemoveGetModule";
+    public const string RemoveInit = "RemoveInit";
     public const string Validate = "Validate";
     public const string PolicyValidate = "PolicyValidate";
     public const string Variables = "Input";

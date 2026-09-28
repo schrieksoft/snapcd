@@ -127,13 +127,13 @@
                     <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
-                                   OnClick="@(() => StartStateMove(StateEditOperation.Move))">move</MudButton>
+                                   OnClick="StartMove">move</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
-                                   OnClick="@(() => StartStateMove(StateEditOperation.Import))">import</MudButton>
+                                   OnClick="StartImport">import</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
-                                   OnClick="@(() => StartStateMove(StateEditOperation.Remove))">remove</MudButton>
+                                   OnClick="StartRemove">remove</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    Disabled="@(!_canPause || _busy || RunningManualJob is not null)" OnClick="StartStateList">check state</MudButton>
                     </MudStack>
@@ -578,9 +578,21 @@ else
         }
     }
 
-    private async Task StartStateMove(StateEditOperation operation)
+    private Task StartMove() => StartStateEdit<MoveDialog>(
+        "Move", (service, choice) => service.StartMove(Module.Id, OrganizationId, choice.Instructions));
+
+    private Task StartImport() => StartStateEdit<ImportDialog>(
+        "Import", (service, choice) => service.StartImport(Module.Id, OrganizationId, choice.Instructions));
+
+    private Task StartRemove() => StartStateEdit<RemoveDialog>(
+        "Remove", (service, choice) => service.StartRemove(Module.Id, OrganizationId, choice.Instructions));
+
+    /// <summary>Opens one edit's dialog and runs what it returns. The dialog names the edit.</summary>
+    private async Task StartStateEdit<TDialog>(
+        string verb,
+        Func<ManualJobService, StateEditDialogBase.Choice, Task<ManualModuleJob>> start)
+        where TDialog : ComponentBase
     {
-        var parameters = new DialogParameters { { nameof(StateMoveDialog.Operation), operation } };
         var options = new DialogOptions
         {
             CloseButton = true,
@@ -588,20 +600,20 @@ else
             MaxWidth = MaxWidth.Medium,
             FullWidth = true
         };
-        var dialog = await DialogService.ShowAsync<StateMoveDialog>(
-            operation.ToString(), parameters, options);
+
+        var dialog = await DialogService.ShowAsync<TDialog>(verb, options);
 
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
-        if (result.Data is not StateMoveDialog.Choice choice) return;
+        if (result.Data is not StateEditDialogBase.Choice choice) return;
 
         _busy = true;
         try
         {
             using var service = ManualJobServiceFactory.Create(PrincipalProvider);
-            await service.StartStateMove(Module.Id, OrganizationId, choice.Operation, choice.Instructions);
+            await start(service, choice);
 
-            Snackbar.Add($"Running {choice.Operation} over {choice.Instructions.Count} addresses.", Severity.Success);
+            Snackbar.Add($"Running {verb} over {choice.Instructions.Count} addresses.", Severity.Success);
             await Reload();
         }
         catch (Exception e)

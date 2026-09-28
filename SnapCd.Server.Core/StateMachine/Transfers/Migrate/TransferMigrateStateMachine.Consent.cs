@@ -27,7 +27,7 @@ public partial class TransferMigrateStateMachine
 {
     public Event<ConsentDecided> ConsentDecidedEvent { get; } = null!;
 
-    public Event<TransferResumeEvent> ResumeEvent { get; } = null!;
+    public Event<TransferConsented> ConsentedEvent { get; } = null!;
 
     public State WaitingForConsent { get; } = null!;
 
@@ -40,7 +40,7 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private void Configure_Consent()
     {
-        Event(() => ResumeEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+        Event(() => ConsentedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
 
         // Correlated by the transfer, since the answer names that rather than this job.
         Event(() => ConsentDecidedEvent, x => x
@@ -54,7 +54,7 @@ public partial class TransferMigrateStateMachine
         DuringAny(Ignore(ConsentDecidedEvent));
 
         During(SelectRunnerInstancePending,
-            When(ResumeEvent)
+            When(ConsentedEvent)
                 .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance")));
 
@@ -71,7 +71,7 @@ public partial class TransferMigrateStateMachine
                 })
                 // The step is asked for by a second consume, once this one has committed the
                 // transition. Publishing it here would let the answer arrive first.
-                .Publish(context => new TransferResumeEvent
+                .Publish(context => new TransferConsented
                 {
                     ModuleJobId = context.Saga.CorrelationId,
                     OrganizationId = context.Saga.OrganizationId

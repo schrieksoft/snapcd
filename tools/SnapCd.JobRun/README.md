@@ -29,7 +29,7 @@ dotnet run --project tools/SnapCd.JobRun -- \
     --verbose
 ```
 
-`--server` carries no `Database=` entry; the run appends its own. Everything else defaults to what the seeder creates, so no ids need supplying. `--job` picks the kind and defaults to an apply; `--addresses` names what a manual job acts on and `--target` what each becomes. `--keep` leaves the database behind to inspect, `--database` names it, `--timeout` bounds the watch.
+`--server` carries no `Database=` entry; the run appends its own. Everything else defaults to what the seeder creates, so no ids need supplying. `--job` picks the kind and defaults to an apply; `--addresses` names what a manual job acts on and `--target` what each becomes. `--keep` leaves the database behind to inspect, `--database` names it, `--timeout` bounds the watch, in seconds or as a duration such as `15:00`.
 
 A manual job runs against a paused Module, so the run pauses it first, as an operator would.
 

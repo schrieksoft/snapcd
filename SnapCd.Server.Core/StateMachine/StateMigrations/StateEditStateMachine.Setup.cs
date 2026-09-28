@@ -6,7 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-
 using System.Text.Json;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,61 +15,73 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
-
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
-public partial class StateMoveStateMachine
+public abstract partial class StateEditStateMachine<
+    TSaga, TJobRequested, TApproved,
+    TSelectRunnerInstanceRequested, TGetModuleRequested, TInitRequested,
+    TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
+    TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
+    TInitCompleted, TInitCancelled, TInitFaulted,
+    TPreCheckRequested, TPreCheckCompleted, TPreCheckFaulted,
+    TEditRequested, TEditCompleted, TEditFaulted>
 {
     /// <summary>
     /// Everything a job does before it does its own work: pick the runner, fetch the code,
-    /// initialise the backend. A state move needs all three and nothing more, so the preamble
-    /// stops at Init rather than planning.
+    /// initialise the backend, then say what the edit would do. The pre-check is what the approval
+    /// gate gives an approver something to answer against.
     /// </summary>
-    private void Configure_Preamble()
+    private void Configure_Setup()
     {
-        CreateStep<StateMoveSelectRunnerInstanceCompleted, StateMoveSelectRunnerInstanceFaulted, StateMoveGetModuleRequested>(
+        CreateStep<TSelectRunnerInstanceCompleted, TSelectRunnerInstanceFaulted, TGetModuleRequested>(
             SelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
-            "SelectRunnerInstance", GetModulePending,
+            "SelectRunnerInstance", "GetModule", GetModulePending,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
-        CreateStep<StateMoveGetModuleCompleted, StateMoveGetModuleFaulted, StateMoveInitRequested>(
-            GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", InitPending,
+        CreateStep<TGetModuleCompleted, TGetModuleFaulted, TInitRequested>(
+            GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", "Init", InitPending,
             context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
-        // The edit is the one irreversible step, so Init hands to the approval gate rather than
-        // dispatching it: the gate sends it once the threshold is answered.
-        During(InitPending,
+        CreateStep<TInitCompleted, TInitFaulted, TPreCheckRequested>(
+            InitPending, InitCompleted, InitFaulted, "Init", PreCheckName, PreCheckPending);
+
+        // The edit is the one irreversible step, so the pre-check hands to the approval gate rather
+        // than dispatching it: the gate sends it once the threshold is answered.
+        During(PreCheckPending,
             DealWithApprovalStatus(
-                When(InitCompleted)
-                    .ThenAsync(context => RecordCompleted(context, "Init", ManualJobStepStatus.Succeeded)),
+                When(PreCheckCompleted)
+                    .ThenAsync(context => RecordCompleted(
+                        context, PreCheckName, ManualJobStepStatus.Succeeded)),
                 transition: true),
 
-            When(InitFaulted)
-                .ThenAsync(context => RecordCompleted(context, "Init", ManualJobStepStatus.Faulted))
+            When(PreCheckFaulted)
+                .ThenAsync(context => RecordCompleted(
+                    context, PreCheckName, ManualJobStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "Init", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(
+                    context, PreCheckName, ManualJobStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize());
 
-        // Cancel is ignored once the move is running: its addresses are already being written.
-        During(SelectRunnerInstancePending, GetModulePending, InitPending,
+        // Cancel is ignored once the edit is running: its addresses are already being written.
+        During(SelectRunnerInstancePending, GetModulePending, InitPending, PreCheckPending,
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(
-                    "{Operation} on Module {ModuleId} was cancelled before anything was written",
-                    context.Saga.Operation, context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<StateMoveSaga, CancelManualModuleJobRequested>>())
+                    "{Verb} on Module {ModuleId} was cancelled before anything was written",
+                    Verb, context.Saga.ModuleId))
+                .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, CancelManualModuleJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize());
     }
@@ -80,18 +91,19 @@ public partial class StateMoveStateMachine
         Event<TCompleted> completedEvent,
         Event<TFaulted> faultedEvent,
         string task,
+        string nextTask,
         State nextState,
-        Action<BehaviorContext<StateMoveSaga, TCompleted>>? onCompleted = null)
-        where TCompleted : ManualStepResponseBase
-        where TFaulted : ManualStepFaultedBase
+        Action<BehaviorContext<TSaga, TCompleted>>? onCompleted = null)
+        where TCompleted : class
+        where TFaulted : class
         where TNextRequest : StepRequestBase, new()
     {
         During(duringState,
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
                 .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Succeeded))
-                .Activity(x => x.OfType<SendStateMoveStepToRunnerActivity<TCompleted, TNextRequest>>())
-                .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
+                .Activity(x => x.OfType<SendStateEditStepToRunnerActivity<TSaga, TCompleted, TNextRequest>>())
+                .ThenAsync(context => RecordDispatched(context, nextTask))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
                     {
@@ -113,20 +125,9 @@ public partial class StateMoveStateMachine
         );
     }
 
-    /// <summary>
-    /// The step name a job records, taken from its request type. The job's own step keeps the
-    /// job's name; a preamble step drops the prefix and is left with the step's own.
-    /// </summary>
-    private static string TaskOf<TRequest>() where TRequest : StepRequestBase
-    {
-        var name = typeof(TRequest).Name.Replace("Requested", "");
-        var step = name.Replace("StateMove", "");
-
-        return step.Length == 0 ? name : step;
-    }
 
     private static async Task RecordDispatched<TMessage>(
-        BehaviorContext<StateMoveSaga, TMessage> context, string task)
+        BehaviorContext<TSaga, TMessage> context, string task)
         where TMessage : class =>
         await PipeExtensions.GetPayload<IServiceProvider>(context)
             .GetRequiredService<ManualJobStepService>()
@@ -135,7 +136,7 @@ public partial class StateMoveStateMachine
                 null, context.Saga.RunnerInstanceName);
 
     private static async Task RecordCompleted<TMessage>(
-        BehaviorContext<StateMoveSaga, TMessage> context,
+        BehaviorContext<TSaga, TMessage> context,
         string task,
         ManualJobStepStatus status,
         string? errorHeader = null)
@@ -151,7 +152,7 @@ public partial class StateMoveStateMachine
     }
 
     /// <summary>The fields every step request carries, written once so a step cannot go astray.</summary>
-    private static TRequest Request<TRequest>(StateMoveSaga saga)
+    private static TRequest Request<TRequest>(TSaga saga)
         where TRequest : StepRequestBase, new()
     {
         var request = new TRequest
@@ -166,13 +167,11 @@ public partial class StateMoveStateMachine
         if (request is ManualStepRequestBase manualStep)
             manualStep.ModuleId = saga.ModuleId;
 
-        if (request is StateMoveRequested move)
-        {
-            move.Operation = saga.Operation;
-            move.Instructions = JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
-        }
+        if (request is StateEditRequestBase edit)
+            edit.Instructions =
+                JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
 
-        // The list asks only about the addresses the move managed.
+        // The list asks only about the addresses the edit managed.
         if (request is StateListFilteredRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.SucceededJson ?? "[]") ?? [];
 

@@ -24,6 +24,8 @@ public partial class TransferMigrateStateMachine
 {
     public Event<OutputsReevaluationRequestedEvent> OutputsModifiedEvent { get; } = null!;
 
+    public Event<TransferOutputsArrived> OutputsArrivedEvent { get; } = null!;
+
     public State WaitingForOutputs { get; } = null!;
 
     /// <summary>
@@ -34,6 +36,16 @@ public partial class TransferMigrateStateMachine
     private void Configure_Outputs()
     {
         Event(() => OutputsModifiedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+        Event(() => OutputsArrivedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+
+        // The prove is asked for by a second consume, once this one has committed the transition.
+        // Dispatching from the chain that leaves the wait lets the reply arrive in the state it is
+        // leaving, and the runner has been idle throughout so it answers at once.
+        During(MigrateProvePending,
+            When(OutputsArrivedEvent)
+                .Activity(x => x.OfType<
+                    SendTransferStepToRunnerActivity<TransferOutputsArrived, TransferMigrateProveRequested>>())
+                .ThenAsync(context => RecordDispatched(context, "MigrateProve")));
 
         During(WaitingForOutputs,
             DealWithOutputsStatus(When(OutputsModifiedEvent)),
@@ -69,8 +81,11 @@ public partial class TransferMigrateStateMachine
                 x => x.Saga.HasOutputs,
                 available => available
                     .Then(context => context.Saga.WaitingSince = null)
-                    .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TMessage, TransferMigrateProveRequested>>())
-                    .ThenAsync(context => RecordDispatched(context, "MigrateProve"))
+                    .Publish(context => new TransferOutputsArrived
+                    {
+                        ModuleJobId = context.Saga.CorrelationId,
+                        OrganizationId = context.Saga.OrganizationId
+                    })
                     .TransitionTo(MigrateProvePending),
                 waiting => waiting
                     .If(

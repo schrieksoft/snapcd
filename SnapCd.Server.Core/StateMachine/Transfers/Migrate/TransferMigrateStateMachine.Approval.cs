@@ -12,6 +12,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
@@ -22,6 +23,8 @@ namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 public partial class TransferMigrateStateMachine
 {
     public Event<ApprovalReevaluationRequestedEvent> ApprovalModifiedEvent { get; } = null!;
+
+    public Event<TransferApproved> ApprovedEvent { get; } = null!;
     public Event<CancelManualModuleJobRequested> CancelRequested { get; } = null!;
     public Schedule<TransferMigrateSaga, ApprovalTimeoutReceived> ApprovalTimeoutScheduled { get; } = null!;
 
@@ -34,14 +37,16 @@ public partial class TransferMigrateStateMachine
     private void Configure_Approval()
     {
         Event(() => ApprovalModifiedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+        Event(() => ApprovedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
         Event(() => CancelRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); });
 
         During(MigrateRunPending,
-            When(ResumeEvent)
-                .Publish(context => RunRequest(context.Saga))
+            When(ApprovedEvent)
+                .Activity(x => x.OfType<
+                    SendTransferStepToRunnerActivity<TransferApproved, TransferMigrateRunRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "MigrateRun")));
 
         During(WaitingForApproval,
@@ -125,17 +130,17 @@ public partial class TransferMigrateStateMachine
                     .Unschedule(ApprovalTimeoutScheduled)
                     .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<TransferMigrateSaga, TMessage>>())
                     // Dispatched by a second consume, once this one has committed the transition.
-                    .Publish(context => new TransferResumeEvent
-                    {
-                        ModuleJobId = context.Saga.CorrelationId,
-                        OrganizationId = context.Saga.OrganizationId
-                    })
                     .Schedule(HeartbeatScheduled,
                         context => new HeartbeatScheduled
                         {
                             CorrelationId = context.Saga.CorrelationId,
                             OrganizationId = context.Saga.OrganizationId
                         })
+                    .Publish(context => new TransferApproved
+                    {
+                        ModuleJobId = context.Saga.CorrelationId,
+                        OrganizationId = context.Saga.OrganizationId
+                    })
                     .TransitionTo(MigrateRunPending),
                 notApproved => notApproved
                     .IfElse(

@@ -23,7 +23,7 @@ public class ApplyJobSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> db
     }
 }
 
-public class ApplyJobSagaRepository : IDisposable
+public class ApplyJobSagaRepository : IJobSagaFamilyRepository
 {
     private readonly SnapCdDbContext _dbContext;
 
