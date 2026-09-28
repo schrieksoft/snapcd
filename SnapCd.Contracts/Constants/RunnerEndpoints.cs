@@ -29,8 +29,15 @@ public static class RunnerEndpoints
     public const string StateListFiltered = "StateListFiltered";
     public const string StateMove = "StateMove";
 
-    /// <summary>What the edit would do, asked before anyone is asked to approve it.</summary>
-    public const string StateMovePreCheck = "StateMovePreCheck";
+    /// <summary>
+    /// What the edit would do, asked before anyone is asked to approve it. A move and a remove ask
+    /// the engine itself; an import has no such mode, so its check is that the address is free.
+    /// </summary>
+    public const string MoveDryRun = "MoveDryRun";
+
+    public const string RemoveDryRun = "RemoveDryRun";
+
+    public const string ImportPreCheck = "ImportPreCheck";
     public const string StateImport = "StateImport";
     public const string StateRemove = "StateRemove";
     public const string TransferRefactorDiff = "TransferRefactorDiff";

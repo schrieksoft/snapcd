@@ -9,6 +9,7 @@
 
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts.Clients;
+using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
 using SnapCd.Runner.Services;
 
@@ -22,8 +23,8 @@ public partial class Tasks
     /// such mode, so the check is that each address is free: an import onto an occupied address
     /// fails, and that is the precondition worth knowing before approving rather than after.
     /// </summary>
-    public Task StateMovePreCheck(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, nameof(StateMovePreCheck), request.Metadata,
+    public Task StatePreCheck(StateMoveRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, PreCheckTaskName(request.Operation), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken, gracefulToken) =>
             {
@@ -39,11 +40,21 @@ public partial class Tasks
                     : await PreCheckWithDryRun(operation, engine, request, killToken, gracefulToken);
 
                 await InvokeWithRetryAsync(
-                    () => client.InvokeStateMovePreCheckCompleted(request.JobId, request.Operation, results),
-                    nameof(client.InvokeStateMovePreCheckCompleted), request.JobId, connection);
+                    () => client.InvokeStatePreCheckCompleted(request.JobId, request.Operation, results),
+                    nameof(client.InvokeStatePreCheckCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeStateMovePreCheckFaulted(request.JobId, message, stackTrace));
+                client.InvokeStatePreCheckFaulted(request.JobId, message, stackTrace));
+
+    /// <summary>The step's name as the job records it, which is the endpoint it arrived on.</summary>
+    private static string PreCheckTaskName(string operation) =>
+        Enum.Parse<StateMoveOperation>(operation) switch
+        {
+            StateMoveOperation.Move => RunnerEndpoints.MoveDryRun,
+            StateMoveOperation.Remove => RunnerEndpoints.RemoveDryRun,
+            StateMoveOperation.Import => RunnerEndpoints.ImportPreCheck,
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
 
     /// <summary>The engine's own dry run: it prints what it would move or remove, and moves nothing.</summary>
     private static async Task<List<StateAddressResult>> PreCheckWithDryRun(

@@ -51,8 +51,8 @@ public static class ServerEndpoints
     public const string StateMoveCompleted = "StateMoveCompleted";
     public const string StateMoveFaulted = "StateMoveFaulted";
 
-    public const string StateMovePreCheckCompleted = "StateMovePreCheckCompleted";
-    public const string StateMovePreCheckFaulted = "StateMovePreCheckFaulted";
+    public const string StatePreCheckCompleted = "StatePreCheckCompleted";
+    public const string StatePreCheckFaulted = "StatePreCheckFaulted";
     public const string TransferRefactorDiffCompleted = "TransferRefactorDiffCompleted";
     public const string TransferRefactorDiffFaulted = "TransferRefactorDiffFaulted";
 
