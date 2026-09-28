@@ -129,6 +129,12 @@ h1:focus {
   font-size: 14px !important;
 }
 
+/* Inputs holding a system object: an address, a module path, a runner, an id */
+.snapcd-mono input,
+.snapcd-mono textarea {
+  font-family: var(--snap-font-mono, monospace);
+}
+
 /* Stack/namespace/module lists: expanded panel content shows the page background;
    only the panel header keeps the surface color */
 .stack-list .mud-expand-panel,

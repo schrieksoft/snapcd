@@ -578,7 +578,13 @@ else
     private async Task StartStateMove(StateEditOperation operation)
     {
         var parameters = new DialogParameters { { nameof(StateMoveDialog.Operation), operation } };
-        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
         var dialog = await DialogService.ShowAsync<StateMoveDialog>(
             operation.ToString(), parameters, options);
 
