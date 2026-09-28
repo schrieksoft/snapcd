@@ -31,6 +31,7 @@
 @inject IDialogService DialogService
 @inject LogReceivedNotificationService LogReceivedNotificationService
 @inject ManualJobUpdatedNotificationService ManualJobUpdatedNotificationService
+@inject ILogger<ManageManualJobs> Logger
 
 @implements IDisposable
 
@@ -501,6 +502,8 @@ else
             LogReceivedNotificationService.Subscribe(Module.Id, HandleLogReceived);
             ManualJobUpdatedNotificationService.Subscribe(Module.Id, HandleJobUpdated);
             _subscribedModuleId = Module.Id;
+
+            Logger.LogDebug("Manual jobs panel is listening for Module {ModuleId}", Module.Id);
         }
 
         using var moduleRepo = ModuleRepoFactory.Create(PrincipalProvider);
@@ -671,6 +674,8 @@ else
 
     private async Task HandleJobUpdated(Guid jobId, Guid moduleId)
     {
+        Logger.LogDebug("Manual jobs panel heard that job {JobId} changed", jobId);
+
         if (moduleId != Module.Id) return;
 
         using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);

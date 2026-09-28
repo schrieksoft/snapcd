@@ -43,11 +43,16 @@ public class StateMoveConsumer : IConsumer<StateMoveRequested>
 
         try
         {
+            _logger.LogDebug(
+                "Looking for runner instance '{InstanceName}' in pool {RunnerId} to send {Operation} for job {JobId}",
+                msg.RunnerInstanceName, msg.RunnerId, msg.Operation, jobId);
+
             var runner = await _runnerSelection.SelectSpecificRunnerAsync(
                 msg.OrganizationId, msg.RunnerId, msg.RunnerInstanceName);
 
             if (runner == null)
-                throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
+                throw new InvalidOperationException(
+                    $"No runner instance '{msg.RunnerInstanceName}' available in pool {msg.RunnerId}");
 
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
@@ -68,7 +73,7 @@ public class StateMoveConsumer : IConsumer<StateMoveRequested>
                 });
 
             _logger.LogDebug(
-                "Dispatched {Operation} to runner {RunnerName} for job {JobId}",
+                "Sent {Operation} to runner {RunnerName} for job {JobId}",
                 msg.Operation, runner.InstanceName, jobId);
         }
         catch (Exception ex)

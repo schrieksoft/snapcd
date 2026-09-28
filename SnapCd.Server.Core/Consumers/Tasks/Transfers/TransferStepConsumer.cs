@@ -56,16 +56,21 @@ public abstract class TransferStepConsumer<TRequest, TFaulted> : IConsumer<TRequ
         try
         {
 
+            _logger.LogDebug(
+                "Looking for runner instance '{InstanceName}' in pool {RunnerId} to send {Task} for job {JobId}",
+                msg.RunnerInstanceName, msg.RunnerId, task, jobId);
+
             var runner = await _runnerSelection.SelectSpecificRunnerAsync(orgId, msg.RunnerId, msg.RunnerInstanceName);
             if (runner == null)
-                throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
+                throw new InvalidOperationException(
+                    $"No runner instance '{msg.RunnerInstanceName}' available in pool {msg.RunnerId}");
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
                 Endpoint, await BuildPayload(context, jobId));
 
             _logger.LogDebug(
-                "Dispatched {Task} to runner {RunnerName} for Module {ModuleId} of job {JobId}",
-                task, runner.InstanceName, msg.ModuleId, jobId);
+                "Sent {Task} to runner {RunnerName} on connection {ConnectionId} for Module {ModuleId} of job {JobId}",
+                task, runner.InstanceName, runner.SignalRConnectionId, msg.ModuleId, jobId);
         }
         catch (Exception ex)
         {
