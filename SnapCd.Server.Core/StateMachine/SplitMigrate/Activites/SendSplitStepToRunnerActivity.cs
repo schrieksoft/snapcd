@@ -44,7 +44,7 @@ public class SendSplitStepToRunnerActivity<TMessage, TOutgoingMessage>
         }
 
         // Only the push can replace a destination, so only its request carries the flag.
-        if (message is MigrateRunRequested run)
+        if (message is SplitMigrateRunRequested run)
             run.Force = saga.Force;
 
         return message;

@@ -52,7 +52,7 @@ public class SplitInitConsumer : IConsumer<SplitInitRequested>
                 throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Init,
+                RunnerEndpoints.SplitInit,
                 StepRequestBuilders.Init(jobId, orgId, msg.Declared, resolvedEnvVars));
 
             _logger.LogDebug("Dispatched SplitInit request to runner {RunnerName} for job {JobId}",

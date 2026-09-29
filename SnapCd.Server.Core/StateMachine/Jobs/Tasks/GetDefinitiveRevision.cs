@@ -25,6 +25,34 @@ public partial class JobStateMachine<
     TResponseFailed,
     TResponseCompleted,
     TResponseCancelled,
+    TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+    TGetModuleCompleted,
+    TGetModuleCancelled,
+    TGetModuleFaulted,
+    TInitRequested,
+    TInitCompleted,
+    TInitCancelled,
+    TInitFaulted,
+    TValidateRequested,
+    TValidateCompleted,
+    TValidateCancelled,
+    TValidateFaulted,
+    TVariablesRequested,
+    TVariablesCompleted,
+    TVariablesCancelled,
+    TVariablesFaulted,
     TPlanRequested,
     TPlanCompleted,
     TPlanCancelled,
@@ -36,6 +64,34 @@ public partial class JobStateMachine<
     where TResponseFailed : ModuleJobEventCompletedBase, new()
     where TResponseCompleted : ModuleJobEventCompletedBase, new()
     where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    where TGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase, new()
+    where TGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase
+    where TGetDefinitiveRevisionCancelled : StepResponseBase
+    where TGetDefinitiveRevisionFaulted : StepFaultedBase
+    where TPolicyValidateRequested : PolicyValidateRequestedBase, new()
+    where TPolicyValidateCompleted : PolicyValidateCompletedBase
+    where TPolicyValidateCancelled : StepResponseBase
+    where TPolicyValidateFaulted : StepFaultedBase
+    where TOutputRequested : OutputRequestedBase, new()
+    where TOutputCompleted : StepResponseBase
+    where TOutputCancelled : StepResponseBase
+    where TOutputFaulted : StepFaultedBase
+    where TGetModuleRequested : GetModuleRequestedBase, new()
+    where TGetModuleCompleted : StepResponseBase
+    where TGetModuleCancelled : StepResponseBase
+    where TGetModuleFaulted : StepFaultedBase
+    where TInitRequested : InitRequestedBase, new()
+    where TInitCompleted : StepResponseBase
+    where TInitCancelled : StepResponseBase
+    where TInitFaulted : StepFaultedBase
+    where TValidateRequested : ValidateRequestedBase, new()
+    where TValidateCompleted : StepResponseBase
+    where TValidateCancelled : StepResponseBase
+    where TValidateFaulted : StepFaultedBase
+    where TVariablesRequested : VariablesRequestedBase, new()
+    where TVariablesCompleted : StepResponseBase
+    where TVariablesCancelled : StepResponseBase
+    where TVariablesFaulted : StepFaultedBase
     where TPlanRequested : StepRequestBase, new()
     where TPlanCompleted : PlanCompletedBase
     where TPlanCancelled : StepResponseBase
@@ -44,9 +100,9 @@ public partial class JobStateMachine<
     where TApplyFromPlanCancelled : StepResponseBase
 {
     // GetDefinitiveRevision events
-    public Event<GetDefinitiveRevisionCompleted> GetDefinitiveRevisionCompleted { get; } = null!;
-    public Event<GetDefinitiveRevisionCancelled> GetDefinitiveRevisionCancelled { get; } = null!;
-    public Event<GetDefinitiveRevisionFaulted> GetDefinitiveRevisionFaulted { get; } = null!;
+    public Event<TGetDefinitiveRevisionCompleted> GetDefinitiveRevisionCompleted { get; } = null!;
+    public Event<TGetDefinitiveRevisionCancelled> GetDefinitiveRevisionCancelled { get; } = null!;
+    public Event<TGetDefinitiveRevisionFaulted> GetDefinitiveRevisionFaulted { get; } = null!;
 
     // States
     public State GetDefinitiveRevisionPending { get; } = null!;
@@ -72,7 +128,7 @@ public partial class JobStateMachine<
                         context.Saga.CorrelationId);
                 })
                 // Retry sending GetDefinitiveRevisionRequested
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, RunnerReconnectedEvent, GetDefinitiveRevisionRequested>>())
+                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, RunnerReconnectedEvent, TGetDefinitiveRevisionRequested>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     // Still disconnected (race condition) - stay in waiting
@@ -111,10 +167,10 @@ public partial class JobStateMachine<
         // GetDefinitiveRevisionPending state
         During(GetDefinitiveRevisionPending,
             When(GetDefinitiveRevisionCompleted)
-                // Use activity to send GetModuleRequested to specific server instance
+                // Each job kind sends its own request, so the reply reaches its own saga.
                 .Then(context => { context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision; })
-                .Activity(x => x.OfType<SetDefinitiveRevisionActivity<TSaga, GetDefinitiveRevisionCompleted>>())
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, GetDefinitiveRevisionCompleted, GetModuleRequested>>())
+                .Activity(x => x.OfType<SetDefinitiveRevisionActivity<TSaga, TGetDefinitiveRevisionCompleted>>())
+                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TGetDefinitiveRevisionCompleted, TGetModuleRequested>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     // Runner is disconnected - transition to waiting state
@@ -144,9 +200,9 @@ public partial class JobStateMachine<
                 .IfCancelGraceful<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
                 .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             When(GetDefinitiveRevisionCancelled)
-                .ThenCancelled<TSaga, TResponseCancelled, GetDefinitiveRevisionCancelled>(Cancelled),
+                .ThenCancelled<TSaga, TResponseCancelled, TGetDefinitiveRevisionCancelled>(Cancelled),
             When(GetDefinitiveRevisionFaulted)
-                .ThenFaulted<TSaga, TResponseFailed, GetDefinitiveRevisionFaulted>(Failed, _logger),
+                .ThenFaulted<TSaga, TResponseFailed, TGetDefinitiveRevisionFaulted>(Failed, _logger),
             Ignore(SelectRunnerInstanceCompleted),
             Ignore(SelectRunnerInstanceCancelled),
             Ignore(SelectRunnerInstanceFaulted)

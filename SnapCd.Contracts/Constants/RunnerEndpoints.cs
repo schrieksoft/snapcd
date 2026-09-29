@@ -10,11 +10,27 @@ namespace SnapCd.Contracts.Constants;
 
 public static class RunnerEndpoints
 {
-    public const string Init = "Init";
-    public const string GetModule = "GetModule";
 
     // The runner runs one checkout and one init whatever asked for it, but each family is dispatched
     // to its own endpoint so the runner knows which endpoint to answer on.
+    public const string ApplyGetDefinitiveRevision = "ApplyGetDefinitiveRevision";
+    public const string ApplyPolicyValidate = "ApplyPolicyValidate";
+    public const string ApplyOutput = "ApplyOutput";
+    public const string DestroyGetDefinitiveRevision = "DestroyGetDefinitiveRevision";
+    public const string DestroyPolicyValidate = "DestroyPolicyValidate";
+    public const string DestroyOutput = "DestroyOutput";
+    public const string ApplyGetModule = "ApplyGetModule";
+    public const string ApplyInit = "ApplyInit";
+    public const string ApplyValidate = "ApplyValidate";
+    public const string ApplyVariables = "ApplyVariables";
+    public const string DestroyGetModule = "DestroyGetModule";
+    public const string DestroyInit = "DestroyInit";
+    public const string DestroyValidate = "DestroyValidate";
+    public const string DestroyVariables = "DestroyVariables";
+    public const string SplitValidate = "SplitValidate";
+    public const string SplitPlan = "SplitPlan";
+    public const string TransferValidate = "TransferValidate";
+    public const string TransferPlan = "TransferPlan";
     public const string SplitGetModule = "SplitGetModule";
     public const string SplitInit = "SplitInit";
     public const string TransferGetModule = "TransferGetModule";
@@ -27,15 +43,14 @@ public static class RunnerEndpoints
     public const string ImportInit = "ImportInit";
     public const string RemoveGetModule = "RemoveGetModule";
     public const string RemoveInit = "RemoveInit";
-    public const string Validate = "Validate";
     public const string PolicyValidate = "PolicyValidate";
     public const string Variables = "Input";
     public const string GetDefinitiveRevision = "GetDefinitiveRevision";
-    public const string Plan = "Plan";
-    public const string PlanDestroy = "PlanDestroy";
-    public const string PlanEmptyVerify = "PlanEmptyVerify";
-    public const string RefactorValidate = "RefactorValidate";
-    public const string RefactorDiff = "RefactorDiff";
+    public const string ApplyPlan = "ApplyPlan";
+    public const string DestroyPlan = "DestroyPlan";
+    public const string SplitPlanEmptyVerify = "SplitPlanEmptyVerify";
+    public const string SplitRefactorValidate = "SplitRefactorValidate";
+    public const string SplitRefactorDiff = "SplitRefactorDiff";
     public const string TransferMigrateMap = "TransferMigrateMap";
     public const string TransferMigrateProve = "TransferMigrateProve";
     public const string TransferMigrateRun = "TransferMigrateRun";
@@ -57,10 +72,10 @@ public static class RunnerEndpoints
     public const string StateRemove = "StateRemove";
     public const string TransferRefactorDiff = "TransferRefactorDiff";
 
-    public const string MigrateMap = "MigrateMap";
-    public const string MigrateProve = "MigrateProve";
-    public const string MigrateRun = "MigrateRun";
-    public const string MigrateVerify = "MigrateVerify";
+    public const string SplitMigrateMap = "SplitMigrateMap";
+    public const string SplitMigrateProve = "SplitMigrateProve";
+    public const string SplitMigrateRun = "SplitMigrateRun";
+    public const string SplitMigrateVerify = "SplitMigrateVerify";
     public const string ApplyFromPlan = "ApplyFromPlan";
     public const string DestroyFromPlan = "DestroyFromPlan";
     public const string Output = "Output";

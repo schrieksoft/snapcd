@@ -26,9 +26,38 @@ public static class Run
 {
     public static async Task<int> Execute(IServiceProvider services, RunOptions options)
     {
-        // Publishing before the receive endpoints are listening drops the message silently.
-        await services.GetRequiredService<IBusControl>()
-            .WaitForHealthStatus(BusHealthStatus.Healthy, TimeSpan.FromSeconds(30));
+        // Publishing before the receive endpoints are listening drops the message silently, and
+        // WaitForHealthStatus returns on timeout rather than throwing, so a run that gave up
+        // waiting would look identical to one that waited successfully.
+        var waitedFrom = DateTime.UtcNow;
+        var health = await services.GetRequiredService<IBusControl>()
+            .WaitForHealthStatus(BusHealthStatus.Healthy, TimeSpan.FromMinutes(3));
+
+        Console.WriteLine(
+            $"Bus {health} after {(DateTime.UtcNow - waitedFrom).TotalSeconds:0.0}s");
+
+        if (health != BusHealthStatus.Healthy)
+            Console.WriteLine("  !! publishing anyway; the request may be dropped");
+
+        // Bus health is a bus-level signal, so endpoints can still be starting. Wait until they
+        // stop reporting ready: a message sent to an endpoint that is not yet reading sits in its
+        // queue undelivered and the job never starts.
+        var readiness = services.GetRequiredService<EndpointReadiness>();
+        var endpoints = await readiness.WaitUntilSettled(
+            TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(2));
+
+        Console.WriteLine(
+            $"Endpoints ready: {endpoints} after {(DateTime.UtcNow - waitedFrom).TotalSeconds:0.0}s");
+
+        // Deliberately blunt: if a long pause after every endpoint reports ready makes the job
+        // start reliably, the failure is a timing window and readiness is not the whole signal.
+        // If it changes nothing, the message is being lost for a reason unrelated to startup.
+        var settle = TimeSpan.FromSeconds(options.SettleSeconds);
+        if (settle > TimeSpan.Zero)
+        {
+            Console.WriteLine($"Settling for {settle.TotalSeconds:0}s before publishing");
+            await Task.Delay(settle);
+        }
 
         var dbFactory = services.GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
 
@@ -64,15 +93,23 @@ public static class Run
         var approvalFactory = scope.ServiceProvider
             .GetRequiredService<ModuleJobApprovalSecuredRepositoryFactory>();
 
-        if (options.Job == JobKind.Apply)
+        // An apply and a destroy run the same saga closed over their own messages, so the run is
+        // the same but for which one it asks for.
+        if (options.Job is JobKind.Apply or JobKind.Destroy)
         {
             var jobId = Guid.NewGuid();
             using (var jobs = jobFactory.Create(principal))
-                await jobs.Apply(options.ModuleId, options.OrganizationId, jobId);
+            {
+                if (options.Job == JobKind.Apply)
+                    await jobs.Apply(options.ModuleId, options.OrganizationId, jobId);
+                else
+                    await jobs.Destroy(options.ModuleId, options.OrganizationId, jobId);
+            }
 
             Console.WriteLine($"Started job {jobId}");
 
-            var status = await Watch(dbFactory, approvalFactory, principal, jobId, options);
+            var status = await Watch(dbFactory, approvalFactory, principal, jobId, options,
+                services.GetRequiredService<FakeRunner>());
 
             await Report(dbFactory, services, jobId, options, status);
             return status == ExecutionStatus.Completed ? 0 : 1;
@@ -121,15 +158,35 @@ public static class Run
         ModuleJobApprovalSecuredRepositoryFactory approvalFactory,
         IPrincipalProvider principal,
         Guid jobId,
-        RunOptions options)
+        RunOptions options,
+        FakeRunner runner)
     {
         var deadline = DateTime.UtcNow + options.Timeout;
         var approved = false;
         ExecutionStatus? last = null;
 
+        // A job that has not moved in a while is not slow, it is stuck: the steps themselves take
+        // seconds. Waiting out the whole timeout to learn that only delays the verdict.
+        var lastProgress = DateTime.UtcNow;
+        var dispatched = 0;
+        var reportedMissing = false;
+
         while (DateTime.UtcNow < deadline)
         {
             await Task.Delay(500);
+
+            if (runner.Dispatched.Count != dispatched)
+            {
+                dispatched = runner.Dispatched.Count;
+                lastProgress = DateTime.UtcNow;
+            }
+
+            if (DateTime.UtcNow - lastProgress > StallAfter)
+            {
+                Console.WriteLine(
+                    $"  nothing happened for {StallAfter.TotalSeconds:0}s after {dispatched} dispatch(es); giving up");
+                return last ?? ExecutionStatus.Unknown;
+            }
 
             await using var db = await dbFactory.CreateDbContextAsync();
             var job = await db.ModuleJobs
@@ -137,12 +194,24 @@ public static class Run
                 .Select(j => new { j.Status, j.WaitingForApproval })
                 .FirstOrDefaultAsync();
 
-            if (job is null) continue;
+            if (job is null)
+            {
+                // A row that never appears is a different failure from one that fails: the job was
+                // never created, so say which of the two happened rather than reporting Unknown.
+                if (!reportedMissing && DateTime.UtcNow - lastProgress > TimeSpan.FromSeconds(20))
+                {
+                    Console.WriteLine($"  no ModuleJobs row for {jobId} yet");
+                    reportedMissing = true;
+                }
+
+                continue;
+            }
 
             if (job.Status != last)
             {
                 Console.WriteLine($"  job is {job.Status}");
                 last = job.Status;
+                lastProgress = DateTime.UtcNow;
             }
 
             if (job.Status != ExecutionStatus.Running)
@@ -172,6 +241,12 @@ public static class Run
         return last ?? ExecutionStatus.Unknown;
     }
 
+    /// <summary>
+    /// How long a job may go without dispatching anything or changing status before the run calls
+    /// it stuck. A step answered by the fake runner takes seconds, so silence this long is failure.
+    /// </summary>
+    private static readonly TimeSpan StallAfter = TimeSpan.FromSeconds(75);
+
     private static async Task Report(
         IDbContextFactory<SnapCdDbContext> dbFactory,
         IServiceProvider services,
@@ -199,8 +274,8 @@ public static class Run
                 Console.WriteLine($"Plan        {job.PlanTotalChangedCount} changed");
         }
 
-        var runner = services.GetRequiredService<FakeRunner>();
         Console.WriteLine();
+        var runner = services.GetRequiredService<FakeRunner>();
         Console.WriteLine($"Dispatched  {runner.Dispatched.Count} step(s)");
         foreach (var step in runner.Dispatched)
             Console.WriteLine($"  {step}");

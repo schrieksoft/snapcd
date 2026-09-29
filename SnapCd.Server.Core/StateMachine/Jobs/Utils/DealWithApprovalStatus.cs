@@ -25,6 +25,34 @@ public partial class JobStateMachine<
     TResponseFailed,
     TResponseCompleted,
     TResponseCancelled,
+    TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+    TGetModuleCompleted,
+    TGetModuleCancelled,
+    TGetModuleFaulted,
+    TInitRequested,
+    TInitCompleted,
+    TInitCancelled,
+    TInitFaulted,
+    TValidateRequested,
+    TValidateCompleted,
+    TValidateCancelled,
+    TValidateFaulted,
+    TVariablesRequested,
+    TVariablesCompleted,
+    TVariablesCancelled,
+    TVariablesFaulted,
     TPlanRequested,
     TPlanCompleted,
     TPlanCancelled,
@@ -36,6 +64,34 @@ public partial class JobStateMachine<
     where TResponseFailed : ModuleJobEventCompletedBase, new()
     where TResponseCompleted : ModuleJobEventCompletedBase, new()
     where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    where TGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase, new()
+    where TGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase
+    where TGetDefinitiveRevisionCancelled : StepResponseBase
+    where TGetDefinitiveRevisionFaulted : StepFaultedBase
+    where TPolicyValidateRequested : PolicyValidateRequestedBase, new()
+    where TPolicyValidateCompleted : PolicyValidateCompletedBase
+    where TPolicyValidateCancelled : StepResponseBase
+    where TPolicyValidateFaulted : StepFaultedBase
+    where TOutputRequested : OutputRequestedBase, new()
+    where TOutputCompleted : StepResponseBase
+    where TOutputCancelled : StepResponseBase
+    where TOutputFaulted : StepFaultedBase
+    where TGetModuleRequested : GetModuleRequestedBase, new()
+    where TGetModuleCompleted : StepResponseBase
+    where TGetModuleCancelled : StepResponseBase
+    where TGetModuleFaulted : StepFaultedBase
+    where TInitRequested : InitRequestedBase, new()
+    where TInitCompleted : StepResponseBase
+    where TInitCancelled : StepResponseBase
+    where TInitFaulted : StepFaultedBase
+    where TValidateRequested : ValidateRequestedBase, new()
+    where TValidateCompleted : StepResponseBase
+    where TValidateCancelled : StepResponseBase
+    where TValidateFaulted : StepFaultedBase
+    where TVariablesRequested : VariablesRequestedBase, new()
+    where TVariablesCompleted : StepResponseBase
+    where TVariablesCancelled : StepResponseBase
+    where TVariablesFaulted : StepFaultedBase
     where TPlanRequested : StepRequestBase, new()
     where TPlanCompleted : PlanCompletedBase
     where TPlanCancelled : StepResponseBase
@@ -109,7 +165,7 @@ public partial class JobStateMachine<
                         ///////////////////////////////////////////////////
                         z => z
                             .If(
-                                // we set "transition = true" when building the "DealWithApprovalStatus" logic from the "PlanRequested.Pending" state in order to transition to "WaitingForApproval"
+                                // we set "transition = true" when building the "DealWithApprovalStatus" logic from the "ApplyPlanRequested.Pending" state in order to transition to "WaitingForApproval"
                                 _ => transition,
                                 z1 => z1
                                     .Activity(z2 => z2.OfType<WaitingForApprovalModuleJobActivity<TSaga, TMessage>>())

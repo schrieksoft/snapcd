@@ -16,7 +16,16 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task PolicyValidate(PolicyValidateRequestBase request, HubConnection connection)
+    /// <summary>
+    /// The callbacks say which endpoints to answer on, so one implementation serves every job kind
+    /// and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task PolicyValidate(
+        PolicyValidateRequestBase request,
+        HubConnection connection,
+        Func<Guid, PolicyOutcome, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -74,8 +83,8 @@ public partial class Tasks
                 linkedCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePolicyValidateCompleted(request.JobId, outcome),
-                nameof(runnerHubClient.InvokePolicyValidateCompleted),
+                () => completed(request.JobId, outcome),
+                "PolicyValidateCompleted",
                 request.JobId,
                 connection);
 
@@ -85,8 +94,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("PolicyValidate process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePolicyValidateCancelled(request.JobId),
-                nameof(runnerHubClient.InvokePolicyValidateCancelled),
+                () => cancelled(request.JobId),
+                "PolicyValidateCancelled",
                 request.JobId,
                 connection);
         }
@@ -95,12 +104,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling PolicyValidate for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePolicyValidateFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace
-                ),
-                nameof(runnerHubClient.InvokePolicyValidateFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "PolicyValidateFaulted",
                 request.JobId,
                 connection);
         }

@@ -88,7 +88,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     {
         var jobId = await Seed(stopAfterProve: true);
 
-        await _harness.Bus.Publish(new MigrateProveCompleted { CorrelationId = jobId, OrganizationId = _organizationId, ModulesProven = 3, ModulesPlanningClean = 3 });
+        await _harness.Bus.Publish(new SplitMigrateProveCompleted { CorrelationId = jobId, OrganizationId = _organizationId, ModulesProven = 3, ModulesPlanningClean = 3 });
 
         Assert.True(await WaitUntil(() =>
         {
@@ -112,7 +112,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     {
         var jobId = await Seed(stopAfterProve: false);
 
-        await _harness.Bus.Publish(new MigrateProveCompleted { CorrelationId = jobId, OrganizationId = _organizationId, ModulesProven = 3, ModulesPlanningClean = 3 });
+        await _harness.Bus.Publish(new SplitMigrateProveCompleted { CorrelationId = jobId, OrganizationId = _organizationId, ModulesProven = 3, ModulesPlanningClean = 3 });
 
         Assert.True(await WaitUntil(() =>
         {
@@ -127,9 +127,9 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("PlanEmptyVerifyPending")]
-    [InlineData("RefactorDiffPending")]
-    [InlineData("MigrateProvePending")]
+    [InlineData("SplitPlanEmptyVerifyPending")]
+    [InlineData("SplitRefactorDiffPending")]
+    [InlineData("SplitMigrateProvePending")]
     public async Task A_Faulted_Step_Fails_The_Job(string state)
     {
         var jobId = await Seed(stopAfterProve: true, state: state);
@@ -145,9 +145,9 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("PlanEmptyVerifyPending")]
-    [InlineData("RefactorDiffPending")]
-    [InlineData("MigrateProvePending")]
+    [InlineData("SplitPlanEmptyVerifyPending")]
+    [InlineData("SplitRefactorDiffPending")]
+    [InlineData("SplitMigrateProvePending")]
     public async Task A_Cancelled_Step_Cancels_The_Job(string state)
     {
         var jobId = await Seed(stopAfterProve: true, state: state);
@@ -166,9 +166,9 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     [Fact]
     public async Task A_Server_Side_Fault_Records_The_Step_And_The_Error()
     {
-        var jobId = await Seed(stopAfterProve: true, state: "MigrateProvePending");
+        var jobId = await Seed(stopAfterProve: true, state: "SplitMigrateProvePending");
 
-        await _harness.Bus.Publish(new MigrateProveFaulted
+        await _harness.Bus.Publish(new SplitMigrateProveFaulted
         {
             CorrelationId = jobId,
             OrganizationId = _organizationId,
@@ -319,9 +319,9 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     [Fact]
     public async Task A_Faulted_Run_Fails_The_Job()
     {
-        var jobId = await Seed(stopAfterProve: false, state: "MigrateRunPending");
+        var jobId = await Seed(stopAfterProve: false, state: "SplitMigrateRunPending");
 
-        await _harness.Bus.Publish(new MigrateRunFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "target already holds state" });
+        await _harness.Bus.Publish(new SplitMigrateRunFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "target already holds state" });
 
         Assert.True(await WaitUntil(() =>
         {
@@ -380,19 +380,19 @@ public class SplitProveStateMachineTests : IAsyncLifetime
 
     private Task PublishFaultFor(string state, Guid jobId) => state switch
     {
-        "PlanEmptyVerifyPending" => _harness.Bus.Publish(new PlanEmptyVerifyFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "not empty" }),
-        "RefactorDiffPending" => _harness.Bus.Publish(new RefactorDiffFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "committed roots differ from the map" }),
-        _ => _harness.Bus.Publish(new MigrateProveFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "a carved module did not plan clean" })
+        "SplitPlanEmptyVerifyPending" => _harness.Bus.Publish(new SplitPlanEmptyVerifyFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "not empty" }),
+        "SplitRefactorDiffPending" => _harness.Bus.Publish(new SplitRefactorDiffFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "committed roots differ from the map" }),
+        _ => _harness.Bus.Publish(new SplitMigrateProveFaulted { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "a carved module did not plan clean" })
     };
 
     private Task PublishCancelFor(string state, Guid jobId) => state switch
     {
-        "PlanEmptyVerifyPending" => _harness.Bus.Publish(new PlanEmptyVerifyCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
-        "RefactorDiffPending" => _harness.Bus.Publish(new RefactorDiffCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
-        _ => _harness.Bus.Publish(new MigrateProveCancelled { CorrelationId = jobId, OrganizationId = _organizationId })
+        "SplitPlanEmptyVerifyPending" => _harness.Bus.Publish(new SplitPlanEmptyVerifyCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
+        "SplitRefactorDiffPending" => _harness.Bus.Publish(new SplitRefactorDiffCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
+        _ => _harness.Bus.Publish(new SplitMigrateProveCancelled { CorrelationId = jobId, OrganizationId = _organizationId })
     };
 
-    private async Task<Guid> Seed(bool stopAfterProve, string state = "MigrateProvePending", DateTime? waitingSince = null)
+    private async Task<Guid> Seed(bool stopAfterProve, string state = "SplitMigrateProvePending", DateTime? waitingSince = null)
     {
         var jobId = Guid.NewGuid();
         _seeded.Add(jobId);

@@ -32,14 +32,14 @@ public partial class SplitMigrateStateMachine
         Event(() => SplitPlanCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SplitPlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        CreateStep<SplitPlanCompleted, SplitPlanCancelled, SplitPlanFaulted, PlanEmptyVerifyRequested>(
+        CreateStep<SplitPlanCompleted, SplitPlanCancelled, SplitPlanFaulted, SplitPlanEmptyVerifyRequested>(
             PlanWaitingForRunner,
             PlanPending,
             SplitPlanCompleted,
             SplitPlanCancelled,
             SplitPlanFaulted,
-            PlanEmptyVerifyWaitingForRunner,
-            PlanEmptyVerifyPending
+            SplitPlanEmptyVerifyWaitingForRunner,
+            SplitPlanEmptyVerifyPending
         );
     }
 }

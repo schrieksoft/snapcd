@@ -22,9 +22,9 @@ namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
 public partial class TransferMigrateStateMachine
 {
-    public Event<OutputsReevaluationRequestedEvent> OutputsModifiedEvent { get; } = null!;
+    public Event<OutputsReevaluationRequestedEvent> TransferOutputsModifiedEvent { get; } = null!;
 
-    public Event<TransferOutputsArrived> OutputsArrivedEvent { get; } = null!;
+    public Event<TransferOutputsArrived> TransferOutputsArrivedEvent { get; } = null!;
 
     public State WaitingForOutputs { get; } = null!;
 
@@ -35,20 +35,20 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private void Configure_Outputs()
     {
-        Event(() => OutputsModifiedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
-        Event(() => OutputsArrivedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+        Event(() => TransferOutputsModifiedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
+        Event(() => TransferOutputsArrivedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
 
         // The prove is asked for by a second consume, once this one has committed the transition.
         // Dispatching from the chain that leaves the wait lets the reply arrive in the state it is
         // leaving, and the runner has been idle throughout so it answers at once.
-        During(MigrateProvePending,
-            When(OutputsArrivedEvent)
+        During(TransferMigrateProvePending,
+            When(TransferOutputsArrivedEvent)
                 .Activity(x => x.OfType<
                     SendTransferStepToRunnerActivity<TransferOutputsArrived, TransferMigrateProveRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "MigrateProve")));
+                .ThenAsync(context => RecordDispatched(context, "TransferMigrateProve")));
 
         During(WaitingForOutputs,
-            DealWithOutputsStatus(When(OutputsModifiedEvent)),
+            DealWithOutputsStatus(When(TransferOutputsModifiedEvent)),
 
             // The heartbeat from the step that got here is still running, and nothing is on a
             // runner to answer it.
@@ -86,7 +86,7 @@ public partial class TransferMigrateStateMachine
                         ModuleJobId = context.Saga.CorrelationId,
                         OrganizationId = context.Saga.OrganizationId
                     })
-                    .TransitionTo(MigrateProvePending),
+                    .TransitionTo(TransferMigrateProvePending),
                 waiting => waiting
                     .If(
                         _ => transition,

@@ -9,18 +9,23 @@
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
 /// <summary>
 /// Handles completion, cancellation, and fault notifications from runners when they finish initialization.
 /// </summary>
-public class InitHandler
+public abstract class InitHandler<TCompleted, TCancelled, TFaulted>
+    where TCompleted : StepResponseBase, new()
+    where TCancelled : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<InitHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IBus _bus;
 
-    public InitHandler(
-        ILogger<InitHandler> logger,
+    protected InitHandler(
+        ILogger logger,
         IBus bus)
     {
         _logger = logger;
@@ -33,7 +38,7 @@ public class InitHandler
         {
             _logger.LogInformation("Runner completed Init for job {JobId}", jobId);
 
-            await _bus.Publish(new InitCompleted
+            await _bus.Publish(new TCompleted
             {
                 CorrelationId = jobId
             });
@@ -53,7 +58,7 @@ public class InitHandler
         {
             _logger.LogInformation("Runner cancelled Init for job {JobId}", jobId);
 
-            await _bus.Publish(new InitCancelled
+            await _bus.Publish(new TCancelled
             {
                 CorrelationId = jobId
             });
@@ -74,7 +79,7 @@ public class InitHandler
             _logger.LogError("Runner faulted Init for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new InitFaulted
+            await _bus.Publish(new TFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,
@@ -90,3 +95,9 @@ public class InitHandler
         }
     }
 }
+
+public class ApplyInitHandler(ILogger<ApplyInitHandler> logger, IBus bus)
+    : InitHandler<ApplyInitCompleted, ApplyInitCancelled, ApplyInitFaulted>(logger, bus);
+
+public class DestroyInitHandler(ILogger<DestroyInitHandler> logger, IBus bus)
+    : InitHandler<DestroyInitCompleted, DestroyInitCancelled, DestroyInitFaulted>(logger, bus);

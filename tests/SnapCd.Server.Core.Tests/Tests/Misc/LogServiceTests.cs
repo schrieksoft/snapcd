@@ -627,9 +627,9 @@ public class LogServiceTests : IAsyncLifetime
     {
         await _logService.AddLogEntries(new List<LogEntryDto>
         {
-            CreateLogEntry(_testJob2.Id, "Map under comparison:", "RefactorDiff"),
-            CreateLogEntry(_testJob2.Id, "", "RefactorDiff"),
-            CreateLogEntry(_testJob2.Id, "  app  roots/app", "RefactorDiff")
+            CreateLogEntry(_testJob2.Id, "Map under comparison:", "SplitRefactorDiff"),
+            CreateLogEntry(_testJob2.Id, "", "SplitRefactorDiff"),
+            CreateLogEntry(_testJob2.Id, "  app  roots/app", "SplitRefactorDiff")
         });
 
         var entries = await _logService.GetLogEntries(_testJob2.Id);
@@ -638,7 +638,7 @@ public class LogServiceTests : IAsyncLifetime
 
         var byTask = await _logService.GetLogStrings(_testJob2.Id);
         Assert.Contains("Map under comparison:" + Environment.NewLine + Environment.NewLine + "  app  roots/app",
-            byTask["RefactorDiff"]);
+            byTask["SplitRefactorDiff"]);
     }
 
     private static LogEntryDto CreateLogEntry(

@@ -26,10 +26,9 @@ The bus lives in that same database, which is what keeps it isolated: a run poin
 dotnet run --project tools/SnapCd.JobRun -- \
     --server "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True" \
     --job list \
-    --verbose
 ```
 
-`--server` carries no `Database=` entry; the run appends its own. Everything else defaults to what the seeder creates, so no ids need supplying. `--job` picks the kind and defaults to an apply; `--addresses` names what a manual job acts on and `--target` what each becomes. `--keep` leaves the database behind to inspect, `--database` names it, `--timeout` bounds the watch, in seconds or as a duration such as `15:00`.
+`--server` carries no `Database=` entry; the run appends its own. Everything else defaults to what the seeder creates, so no ids need supplying. `--job` picks the kind and defaults to an apply; `--addresses` names what a manual job acts on and `--target` what each becomes. Dispatches and the product's Debug logging are always printed - it is a diagnostic tool. `--keep` leaves the database behind to inspect, `--database` names it, `--timeout` bounds the watch, in seconds or as a duration such as `15:00`.
 
 A manual job runs against a paused Module, so the run pauses it first, as an operator would.
 

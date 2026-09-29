@@ -11,19 +11,25 @@ using SnapCd.Contracts.Dto.VariableSets;
 using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Steps;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
 /// <summary>
 /// Handles completion, cancellation, and fault notifications from runners when they finish Variables collection.
 /// Database work is offloaded to VariablesCompletedInvokedConsumer to avoid blocking SignalR.
 /// </summary>
-public class VariableHandler
+public abstract class VariableHandler<TInvoked, TCompleted, TCancelled, TFaulted>
+    where TInvoked : VariablesCompletedInvokedBase, new()
+    where TCompleted : StepResponseBase, new()
+    where TCancelled : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<VariableHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IBus _bus;
 
-    public VariableHandler(
-        ILogger<VariableHandler> logger,
+    protected VariableHandler(
+        ILogger logger,
         IBus bus)
     {
         _logger = logger;
@@ -37,7 +43,7 @@ public class VariableHandler
             _logger.LogInformation("Runner completed Variables for job {JobId}", jobId);
 
             // Publish to consumer for database work (idempotency handled there)
-            await _bus.Publish(new VariablesCompletedInvoked
+            await _bus.Publish(new TInvoked
             {
                 JobId = jobId,
                 VariableSet = variableSet
@@ -57,7 +63,7 @@ public class VariableHandler
         {
             _logger.LogInformation("Runner cancelled Variables for job {JobId}", jobId);
 
-            await _bus.Publish(new VariablesCancelled
+            await _bus.Publish(new TCancelled
             {
                 CorrelationId = jobId
             });
@@ -78,7 +84,7 @@ public class VariableHandler
             _logger.LogError("Runner faulted Variables for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new VariablesFaulted
+            await _bus.Publish(new TFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,
@@ -94,3 +100,9 @@ public class VariableHandler
         }
     }
 }
+
+public class ApplyVariablesHandler(ILogger<ApplyVariablesHandler> logger, IBus bus)
+    : VariableHandler<ApplyVariablesCompletedInvoked, ApplyVariablesCompleted, ApplyVariablesCancelled, ApplyVariablesFaulted>(logger, bus);
+
+public class DestroyVariablesHandler(ILogger<DestroyVariablesHandler> logger, IBus bus)
+    : VariableHandler<DestroyVariablesCompletedInvoked, DestroyVariablesCompleted, DestroyVariablesCancelled, DestroyVariablesFaulted>(logger, bus);

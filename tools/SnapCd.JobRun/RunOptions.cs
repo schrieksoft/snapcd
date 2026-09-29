@@ -12,6 +12,7 @@ namespace SnapCd.JobRun;
 public enum JobKind
 {
     Apply,
+    Destroy,
     List,
     Move,
     Import,
@@ -92,9 +93,11 @@ public class RunOptions
     /// <summary>The Azure Service Bus namespace, when running on that transport.</summary>
     public string? ServiceBusConnectionString { get; init; }
 
-    public bool Verbose { get; init; }
     public bool Keep { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>Seconds to wait after every endpoint reports ready, before publishing.</summary>
+    public int SettleSeconds { get; init; }
 
     /// <summary>
     /// The server's own settings, layered under the run's overrides. Settings such as the state
@@ -180,7 +183,6 @@ public class RunOptions
                                             AzureServiceBus
                   --timeout       <seconds> default 300
                   --keep                    leave the database behind to inspect
-                  --verbose                 show dispatches and server logs
                 """);
             return null;
         }
@@ -211,8 +213,8 @@ public class RunOptions
             PrincipalId = Guid.TryParse(Get("principal"), out var p) ? p : SeededUserId,
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),
-            Verbose = args.Contains("--verbose"),
             Timeout = ParseTimeout(Get("timeout")),
+            SettleSeconds = int.TryParse(Get("settle"), out var st) ? st : 0,
         };
     }
 

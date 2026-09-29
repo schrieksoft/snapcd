@@ -89,7 +89,7 @@ public partial class SplitMigrateStateMachine
     }
 
     /// <summary>
-    /// Approved sends MigrateRun; declined ends the job; neither yet parks it in WaitingForApproval.
+    /// Approved sends SplitMigrateRun; declined ends the job; neither yet parks it in WaitingForApproval.
     /// </summary>
     private EventActivityBinder<SplitMigrateSaga, TMessage> DealWithApprovalStatus<TMessage>(
         EventActivityBinder<SplitMigrateSaga, TMessage> binder, bool transition)
@@ -106,16 +106,16 @@ public partial class SplitMigrateStateMachine
                         _logger.LogInformation("SplitMigrate: approved, pushing state for job {JobId}", context.Saga.CorrelationId);
                     })
                     .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<SplitMigrateSaga, TMessage>>())
-                    .Activity(z => z.OfType<SendSplitStepToRunnerActivity<TMessage, MigrateRunRequested>>())
+                    .Activity(z => z.OfType<SendSplitStepToRunnerActivity<TMessage, SplitMigrateRunRequested>>())
                     .IfElse(
                         context => context.Saga.PreviousStateBeforeWaiting != null,
                         disconnected => disconnected
                             .Then(context => { context.Saga.WaitingSince = DateTime.UtcNow; })
-                            .TransitionTo(MigrateRunWaitingForRunner),
+                            .TransitionTo(SplitMigrateRunWaitingForRunner),
                         connected => connected
                             .Schedule(HeartbeatScheduled,
                                 context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
-                            .TransitionTo(MigrateRunPending)
+                            .TransitionTo(SplitMigrateRunPending)
                     ),
                 notApproved => notApproved
                     .IfElse(

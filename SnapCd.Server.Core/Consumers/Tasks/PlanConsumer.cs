@@ -24,7 +24,7 @@ namespace SnapCd.Server.Core.Consumers.Tasks;
 /// Server-side consumer that receives Plan requests and dispatches them to runners via SignalR.
 /// Now resolves Terraform variables on the server before dispatching to eliminate circular API calls.
 /// </summary>
-public class PlanConsumer : IConsumer<PlanRequested>
+public class PlanConsumer : IConsumer<ApplyPlanRequested>
 {
     private readonly ILogger<PlanConsumer> _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
@@ -43,7 +43,7 @@ public class PlanConsumer : IConsumer<PlanRequested>
         _paramResolverFactory = paramResolverFactory;
     }
 
-    public async Task Consume(ConsumeContext<PlanRequested> context)
+    public async Task Consume(ConsumeContext<ApplyPlanRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -117,7 +117,7 @@ public class PlanConsumer : IConsumer<PlanRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Plan,
+                RunnerEndpoints.ApplyPlan,
                 new PlanRequestBase
                 {
                     JobId = jobId,
@@ -150,7 +150,7 @@ public class PlanConsumer : IConsumer<PlanRequested>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching Plan request for job {JobId}", jobId);
-            await context.Publish(new PlanFaulted
+            await context.Publish(new ApplyPlanFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,

@@ -51,6 +51,14 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 ? context.Message.DesiredStateHeadline
                 : context.Saga.DesiredStateHeadline;
 
+            _logger.LogDebug(
+                "Gate entered for module {ModuleId} job {JobId}: message wants {MessageState} "
+                + "(SetNewDesiredState={SetNew}), saga is {SagaState}, effective {EffectiveState}, "
+                + "queued {QueuedState}, paused {Paused}",
+                context.Message.ModuleId, context.Message.JobId, context.Message.DesiredStateHeadline,
+                context.Message.SetNewDesiredState, context.Saga.DesiredStateHeadline,
+                effectiveDesiredState, context.Saga.QueuedDesiredStateHeadline, context.Saga.Paused);
+
             if (await _maintenanceMode.IsActiveAsync())
             {
                 if (context.Message.SetNewDesiredState || context.Saga.QueuedDesiredStateHeadline == null)
@@ -112,6 +120,10 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                 context.Message.OrganizationId,
                 context.Message.DesiredStateHeadline);
 
+            _logger.LogDebug(
+                "Gate for module {ModuleId}: currentJob {CurrentJob}, canExecute {CanExecute}",
+                context.Message.ModuleId, currentJob?.Id, canExecute);
+
             if (!canExecute)
             {
                 // effectiveDesiredState already calculated at the top of the method
@@ -166,6 +178,13 @@ public class TriggerModuleJobActivity<TGatekeepingJobRequested> :
                             _logger.LogInformation(
                                 "Running Destroy for module {ModuleId} (no current job)",
                                 context.Message.ModuleId);
+                            break;
+                        default:
+                            // Nothing is dispatched and the job waits forever, so say so.
+                            _logger.LogWarning(
+                                "Gate dispatched nothing for module {ModuleId}: desired state is "
+                                + "{SagaState}, which is neither Applied nor Destroyed",
+                                context.Message.ModuleId, context.Saga.DesiredStateHeadline);
                             break;
                     }
 

@@ -55,7 +55,7 @@ public class SplitPlanConsumer : IConsumer<SplitPlanRequested>
                 throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Plan,
+                RunnerEndpoints.SplitPlan,
                 StepRequestBuilders.Plan(jobId, orgId, msg.Declared, resolvedParameters, isDestroyJob: false));
 
             _logger.LogDebug("Dispatched SplitPlan request to runner {RunnerName} for job {JobId}",

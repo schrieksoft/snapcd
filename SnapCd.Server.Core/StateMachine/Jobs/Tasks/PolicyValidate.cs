@@ -26,6 +26,34 @@ public partial class JobStateMachine<
     TResponseFailed,
     TResponseCompleted,
     TResponseCancelled,
+    TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+    TGetModuleCompleted,
+    TGetModuleCancelled,
+    TGetModuleFaulted,
+    TInitRequested,
+    TInitCompleted,
+    TInitCancelled,
+    TInitFaulted,
+    TValidateRequested,
+    TValidateCompleted,
+    TValidateCancelled,
+    TValidateFaulted,
+    TVariablesRequested,
+    TVariablesCompleted,
+    TVariablesCancelled,
+    TVariablesFaulted,
     TPlanRequested,
     TPlanCompleted,
     TPlanCancelled,
@@ -37,6 +65,34 @@ public partial class JobStateMachine<
     where TResponseFailed : ModuleJobEventCompletedBase, new()
     where TResponseCompleted : ModuleJobEventCompletedBase, new()
     where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    where TGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase, new()
+    where TGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase
+    where TGetDefinitiveRevisionCancelled : StepResponseBase
+    where TGetDefinitiveRevisionFaulted : StepFaultedBase
+    where TPolicyValidateRequested : PolicyValidateRequestedBase, new()
+    where TPolicyValidateCompleted : PolicyValidateCompletedBase
+    where TPolicyValidateCancelled : StepResponseBase
+    where TPolicyValidateFaulted : StepFaultedBase
+    where TOutputRequested : OutputRequestedBase, new()
+    where TOutputCompleted : StepResponseBase
+    where TOutputCancelled : StepResponseBase
+    where TOutputFaulted : StepFaultedBase
+    where TGetModuleRequested : GetModuleRequestedBase, new()
+    where TGetModuleCompleted : StepResponseBase
+    where TGetModuleCancelled : StepResponseBase
+    where TGetModuleFaulted : StepFaultedBase
+    where TInitRequested : InitRequestedBase, new()
+    where TInitCompleted : StepResponseBase
+    where TInitCancelled : StepResponseBase
+    where TInitFaulted : StepFaultedBase
+    where TValidateRequested : ValidateRequestedBase, new()
+    where TValidateCompleted : StepResponseBase
+    where TValidateCancelled : StepResponseBase
+    where TValidateFaulted : StepFaultedBase
+    where TVariablesRequested : VariablesRequestedBase, new()
+    where TVariablesCompleted : StepResponseBase
+    where TVariablesCancelled : StepResponseBase
+    where TVariablesFaulted : StepFaultedBase
     where TPlanRequested : StepRequestBase, new()
     where TPlanCompleted : PlanCompletedBase
     where TPlanCancelled : StepResponseBase
@@ -45,9 +101,9 @@ public partial class JobStateMachine<
     where TApplyFromPlanCancelled : StepResponseBase
 {
     // PolicyValidate events
-    public Event<PolicyValidateCompleted> PolicyValidateCompleted { get; } = null!;
-    public Event<PolicyValidateCancelled> PolicyValidateCancelled { get; } = null!;
-    public Event<PolicyValidateFaulted> PolicyValidateFaulted { get; } = null!;
+    public Event<TPolicyValidateCompleted> PolicyValidateCompleted { get; } = null!;
+    public Event<TPolicyValidateCancelled> PolicyValidateCancelled { get; } = null!;
+    public Event<TPolicyValidateFaulted> PolicyValidateFaulted { get; } = null!;
 
     // PolicyValidate states
     public State PolicyValidatePending { get; } = null!;
@@ -66,7 +122,7 @@ public partial class JobStateMachine<
 
         During(PolicyValidatePending,
             When(PolicyValidateCompleted)
-                .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, PolicyValidateCompleted>>())
+                .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, TPolicyValidateCompleted>>())
                 .IfElse(
                     x => x.Message.Outcome == PolicyOutcome.HardDenied,
                     ///////////////////////////////////////////////////
@@ -81,7 +137,7 @@ public partial class JobStateMachine<
                             ModuleJobId = context.Saga.CorrelationId,
                             CancellationReason = CancellationReason.PolicyDenied
                         })
-                        .Activity(a => a.OfType<PolicyDeniedModuleJobActivity<TSaga, PolicyValidateCompleted>>())
+                        .Activity(a => a.OfType<PolicyDeniedModuleJobActivity<TSaga, TPolicyValidateCompleted>>())
                         .TransitionTo(PolicyDenied)
                         .Finalize(),
                     ///////////////////////////////////////////////////
@@ -100,9 +156,9 @@ public partial class JobStateMachine<
                 .IfCancelGraceful<TSaga, TResponseCancelled, CancelModuleRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
                 .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             When(PolicyValidateCancelled)
-                .ThenCancelled<TSaga, TResponseCancelled, PolicyValidateCancelled>(Cancelled),
+                .ThenCancelled<TSaga, TResponseCancelled, TPolicyValidateCancelled>(Cancelled),
             When(PolicyValidateFaulted)
-                .ThenFaulted<TSaga, TResponseFailed, PolicyValidateFaulted>(Failed, _logger),
+                .ThenFaulted<TSaga, TResponseFailed, TPolicyValidateFaulted>(Failed, _logger),
             Ignore(RunnerReconnectedEvent)
         );
 
@@ -117,7 +173,7 @@ public partial class JobStateMachine<
                         "PolicyValidate: Runner reconnected for job {CorrelationId}, retrying send",
                         context.Saga.CorrelationId);
                 })
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, RunnerReconnectedEvent, PolicyValidateRequested>>())
+                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, RunnerReconnectedEvent, TPolicyValidateRequested>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     whenTrue => whenTrue

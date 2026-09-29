@@ -24,7 +24,7 @@ namespace SnapCd.Server.Core.Consumers.Tasks;
 /// Server-side consumer that receives PlanDestroy requests and dispatches them to runners via SignalR.
 /// Now resolves Terraform variables on the server before dispatching to eliminate circular API calls.
 /// </summary>
-public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
+public class PlanDestroyConsumer : IConsumer<DestroyPlanRequested>
 {
     private readonly ILogger<PlanDestroyConsumer> _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
@@ -43,7 +43,7 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
         _paramResolverFactory = paramResolverFactory;
     }
 
-    public async Task Consume(ConsumeContext<PlanDestroyRequested> context)
+    public async Task Consume(ConsumeContext<DestroyPlanRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -120,7 +120,7 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.PlanDestroy,
+                RunnerEndpoints.DestroyPlan,
                 new PlanDestroyRequestBase
                 {
                     JobId = jobId,
@@ -152,7 +152,7 @@ public class PlanDestroyConsumer : IConsumer<PlanDestroyRequested>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching PlanDestroy request for job {JobId}", jobId);
-            await context.Publish(new PlanDestroyFaulted
+            await context.Publish(new DestroyPlanFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,

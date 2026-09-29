@@ -45,7 +45,7 @@ public class SplitGetModuleConsumer : IConsumer<SplitGetModuleRequested>
                 throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.GetModule,
+                RunnerEndpoints.SplitGetModule,
                 StepRequestBuilders.GetModule(jobId, orgId, msg.Declared));
 
             _logger.LogDebug("Dispatched SplitGetModule request to runner {RunnerName} for job {JobId}",

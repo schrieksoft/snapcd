@@ -10,4 +10,4 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
-public class PlanDestroyRequested : StepRequestBase;
+public class DestroyPlanRequested : StepRequestBase;

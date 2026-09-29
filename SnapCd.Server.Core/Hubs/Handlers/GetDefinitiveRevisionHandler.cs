@@ -9,18 +9,23 @@
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
 /// <summary>
 /// Handles completion, cancellation, and fault notifications from runners when they finish getting the definitive module revision.
 /// </summary>
-public class GetDefinitiveRevisionHandler
+public abstract class GetDefinitiveRevisionHandler<TCompleted, TCancelled, TFaulted>
+    where TCompleted : GetDefinitiveRevisionCompletedBase, new()
+    where TCancelled : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<GetDefinitiveRevisionHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IBus _bus;
 
-    public GetDefinitiveRevisionHandler(
-        ILogger<GetDefinitiveRevisionHandler> logger,
+    protected GetDefinitiveRevisionHandler(
+        ILogger logger,
         IBus bus)
     {
         _logger = logger;
@@ -33,7 +38,7 @@ public class GetDefinitiveRevisionHandler
         {
             _logger.LogInformation("Runner completed GetDefinitiveRevision for job {JobId}", jobId);
 
-            await _bus.Publish(new GetDefinitiveRevisionCompleted
+            await _bus.Publish(new TCompleted
             {
                 DefinitiveRevision = definitiveRevision,
                 CorrelationId = jobId
@@ -54,7 +59,7 @@ public class GetDefinitiveRevisionHandler
         {
             _logger.LogInformation("Runner cancelled GetDefinitiveRevision for job {JobId}", jobId);
 
-            await _bus.Publish(new GetDefinitiveRevisionCancelled
+            await _bus.Publish(new TCancelled
             {
                 CorrelationId = jobId
             });
@@ -75,7 +80,7 @@ public class GetDefinitiveRevisionHandler
             _logger.LogError("Runner faulted GetDefinitiveRevision for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new GetDefinitiveRevisionFaulted
+            await _bus.Publish(new TFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,
@@ -91,3 +96,9 @@ public class GetDefinitiveRevisionHandler
         }
     }
 }
+
+public class ApplyGetDefinitiveRevisionHandler(ILogger<ApplyGetDefinitiveRevisionHandler> logger, IBus bus)
+    : GetDefinitiveRevisionHandler<ApplyGetDefinitiveRevisionCompleted, ApplyGetDefinitiveRevisionCancelled, ApplyGetDefinitiveRevisionFaulted>(logger, bus);
+
+public class DestroyGetDefinitiveRevisionHandler(ILogger<DestroyGetDefinitiveRevisionHandler> logger, IBus bus)
+    : GetDefinitiveRevisionHandler<DestroyGetDefinitiveRevisionCompleted, DestroyGetDefinitiveRevisionCancelled, DestroyGetDefinitiveRevisionFaulted>(logger, bus);

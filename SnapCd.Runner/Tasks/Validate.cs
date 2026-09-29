@@ -16,7 +16,16 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task Validate(ValidateRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Validates the checkout. The callbacks say which endpoints to answer on, so one validate
+    /// serves every job kind and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task Validate(
+        ValidateRequestBase request,
+        HubConnection connection,
+        Func<Guid, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -63,8 +72,8 @@ public partial class Tasks
             await engine.Validate(request.ValidateBeforeHook, request.ValidateAfterHook, killCts.Token, gracefulCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeValidateCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeValidateCompleted),
+                () => completed(request.JobId),
+                "ValidateCompleted",
                 request.JobId,
                 connection);
 
@@ -74,8 +83,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("Validate process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeValidateCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeValidateCancelled),
+                () => cancelled(request.JobId),
+                "ValidateCancelled",
                 request.JobId,
                 connection);
         }
@@ -84,12 +93,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling Validate for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeValidateFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace
-                ),
-                nameof(runnerHubClient.InvokeValidateFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "ValidateFaulted",
                 request.JobId,
                 connection);
         }

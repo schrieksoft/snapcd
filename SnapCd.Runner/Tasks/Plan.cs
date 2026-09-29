@@ -18,7 +18,16 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task Plan(PlanRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Plans the change. The callbacks say which endpoints to answer on: an apply, a destroy, a
+    /// split and a transfer all plan, and each waits for its own reply.
+    /// </summary>
+    public async Task Plan(
+        PlanRequestBase request,
+        HubConnection connection,
+        Func<Guid, PlanCompletedData, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, PolicyOutcome?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -136,8 +145,8 @@ public partial class Tasks
             };
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanCompleted(request.JobId, planData),
-                nameof(runnerHubClient.InvokePlanCompleted),
+                () => completed(request.JobId, planData),
+                "ApplyPlanCompleted",
                 request.JobId,
                 connection);
 
@@ -147,8 +156,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("Plan process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanCancelled(request.JobId),
-                nameof(runnerHubClient.InvokePlanCancelled),
+                () => cancelled(request.JobId),
+                "ApplyPlanCancelled",
                 request.JobId,
                 connection);
         }
@@ -156,13 +165,10 @@ public partial class Tasks
         {
             taskContext.LogError($"Error handling Plan for job {request.JobId}. {ex.Message}");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace,
-                    ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)
-                ),
-                nameof(runnerHubClient.InvokePlanFaulted),
+                () => faulted(
+                    request.JobId, ex.Message, ex.StackTrace,
+                    ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)),
+                "ApplyPlanFaulted",
                 request.JobId,
                 connection);
         }

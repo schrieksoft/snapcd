@@ -16,20 +16,24 @@ using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks;
 
 /// <summary>
 /// Server-side consumer that receives PolicyValidate requests and dispatches them to runners via SignalR.
 /// The policy set is filtered here by job kind (EvaluateOn) so the runner only sees policies it must evaluate.
 /// </summary>
-public class PolicyValidateConsumer : IConsumer<PolicyValidateRequested>
+public abstract class PolicyValidateConsumer<TRequested, TFaulted> : IConsumer<TRequested>
+    where TRequested : PolicyValidateRequestedBase
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<PolicyValidateConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public PolicyValidateConsumer(
-        ILogger<PolicyValidateConsumer> logger,
+    protected PolicyValidateConsumer(
+        ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -38,7 +42,10 @@ public class PolicyValidateConsumer : IConsumer<PolicyValidateRequested>
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<PolicyValidateRequested> context)
+    /// <summary>The runner endpoint this job kind is dispatched to.</summary>
+    protected abstract string Endpoint { get; }
+
+    public async Task Consume(ConsumeContext<TRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -65,7 +72,7 @@ public class PolicyValidateConsumer : IConsumer<PolicyValidateRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.PolicyValidate,
+                Endpoint,
                 new PolicyValidateRequestBase
                 {
                     JobId = jobId,
@@ -90,7 +97,7 @@ public class PolicyValidateConsumer : IConsumer<PolicyValidateRequested>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching PolicyValidate request for job {JobId}", jobId);
-            await context.Publish(new PolicyValidateFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,
@@ -100,4 +107,22 @@ public class PolicyValidateConsumer : IConsumer<PolicyValidateRequested>
             });
         }
     }
+}
+
+public class ApplyPolicyValidateConsumer(
+    ILogger<ApplyPolicyValidateConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : PolicyValidateConsumer<ApplyPolicyValidateRequested, ApplyPolicyValidateFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => RunnerEndpoints.ApplyPolicyValidate;
+}
+
+public class DestroyPolicyValidateConsumer(
+    ILogger<DestroyPolicyValidateConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : PolicyValidateConsumer<DestroyPolicyValidateRequested, DestroyPolicyValidateFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => RunnerEndpoints.DestroyPolicyValidate;
 }

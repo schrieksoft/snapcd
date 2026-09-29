@@ -43,11 +43,11 @@ public partial class TransferMigrateStateMachine
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); });
 
-        During(MigrateRunPending,
+        During(TransferMigrateRunPending,
             When(ApprovedEvent)
                 .Activity(x => x.OfType<
                     SendTransferStepToRunnerActivity<TransferApproved, TransferMigrateRunRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "MigrateRun")));
+                .ThenAsync(context => RecordDispatched(context, "TransferMigrateRun")));
 
         During(WaitingForApproval,
             DealWithApprovalStatus(When(ApprovalModifiedEvent)),
@@ -84,7 +84,7 @@ public partial class TransferMigrateStateMachine
                      SelectRunnerInstancePending, GetModulePending, InitPending, ValidatePending,
                      PlanPending, SelectRunnerInstanceWaitingForRunner, GetModuleWaitingForRunner,
                      InitWaitingForRunner, ValidateWaitingForRunner, PlanWaitingForRunner,
-                     MigrateMapPending, MigrateProvePending
+                     TransferMigrateMapPending, TransferMigrateProvePending
                  })
             During(running,
                 When(CancelRequested)
@@ -98,7 +98,7 @@ public partial class TransferMigrateStateMachine
 
         // Once the write is running its own state has already moved, so cancelling would leave the
         // move half-done. It runs to its end, and a side that failed is finished by its own transfer.
-        foreach (var writing in new[] { MigrateRunPending, MigrateVerifyPending })
+        foreach (var writing in new[] { TransferMigrateRunPending, TransferMigrateVerifyPending })
             During(writing,
                 When(CancelRequested)
                     .Then(context => _logger.LogWarning(
@@ -141,7 +141,7 @@ public partial class TransferMigrateStateMachine
                         ModuleJobId = context.Saga.CorrelationId,
                         OrganizationId = context.Saga.OrganizationId
                     })
-                    .TransitionTo(MigrateRunPending),
+                    .TransitionTo(TransferMigrateRunPending),
                 notApproved => notApproved
                     .IfElse(
                         y => y.Saga.IsDeclined,

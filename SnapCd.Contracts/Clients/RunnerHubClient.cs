@@ -40,40 +40,12 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.GetDefinitiveRevisionFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeGetModuleCompleted(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.GetModuleCompleted, jobId);
-    }
 
-    public async Task InvokeGetModuleCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.GetModuleCancelled, jobId);
-    }
 
-    public async Task InvokeGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.GetModuleFaulted, jobId, errorMessage, stackTrace);
-    }
 
-    public async Task InvokeInitCompleted(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.InitCompleted, jobId);
-    }
 
-    public async Task InvokeInitCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.InitCancelled, jobId);
-    }
 
-    public async Task InvokeInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.InitFaulted, jobId, errorMessage, stackTrace);
-    }
 
-    public async Task InvokeValidateCompleted(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.ValidateCompleted, jobId);
-    }
 
     public async Task InvokePolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
     {
@@ -90,54 +62,46 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeValidateCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.ValidateCancelled, jobId);
-    }
 
-    public async Task InvokeValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.ValidateFaulted, jobId, errorMessage, stackTrace);
-    }
 
     public async Task InvokePlanEmptyVerifyCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanEmptyVerifyCompleted, jobId);
     }
 
     public async Task InvokePlanEmptyVerifyCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanEmptyVerifyCancelled, jobId);
     }
 
     public async Task InvokePlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanEmptyVerifyFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanEmptyVerifyFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeRefactorValidateCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorValidateCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorValidateCompleted, jobId);
     }
 
     public async Task InvokeRefactorValidateCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorValidateCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorValidateCancelled, jobId);
     }
 
     public async Task InvokeRefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorValidateFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorValidateFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeRefactorDiffCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorDiffCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorDiffCompleted, jobId);
     }
 
     public async Task InvokeMigrateRunCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunCompleted, jobId);
     }
 
 
@@ -271,67 +235,67 @@ public class RunnerHubClient
 
     public async Task InvokeMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateMapCompleted, jobId, refactorMapHash, carvedModuleNames, resourcesMoved);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateMapCompleted, jobId, refactorMapHash, carvedModuleNames, resourcesMoved);
     }
 
     public async Task InvokeMigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateProveCompleted, jobId, modulesProven, modulesPlanningClean);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateProveCompleted, jobId, modulesProven, modulesPlanningClean);
     }
 
     public async Task InvokeMigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateVerifyCompleted, jobId, modulesProven, modulesPlanningClean);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateVerifyCompleted, jobId, modulesProven, modulesPlanningClean);
     }
 
     public async Task InvokeRefactorDiffCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorDiffCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorDiffCancelled, jobId);
     }
 
     public async Task InvokeRefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RefactorDiffFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorDiffFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeMigrateMapCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateMapCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateMapCancelled, jobId);
     }
 
     public async Task InvokeMigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateMapFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateMapFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeMigrateProveCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateProveCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateProveCancelled, jobId);
     }
 
     public async Task InvokeMigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateProveFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateProveFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeMigrateRunCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunCancelled, jobId);
     }
 
     public async Task InvokeMigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateRunFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeMigrateVerifyCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateVerifyCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateVerifyCancelled, jobId);
     }
 
     public async Task InvokeMigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.MigrateVerifyFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateVerifyFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
@@ -352,33 +316,33 @@ public class RunnerHubClient
     // Plan
     public async Task InvokePlanCompleted(Guid jobId, PlanCompletedData data)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanCompleted, jobId, data);
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCompleted, jobId, data);
     }
 
     public async Task InvokePlanCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCancelled, jobId);
     }
 
     public async Task InvokePlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     // PlanDestroy
     public async Task InvokePlanDestroyCompleted(Guid jobId, PlanCompletedData data)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyCompleted, jobId, data);
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCompleted, jobId, data);
     }
 
     public async Task InvokePlanDestroyCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCancelled, jobId);
     }
 
     public async Task InvokePlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PlanDestroyFaulted, jobId, errorMessage, stackTrace, policyOutcome);
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     // ApplyFromPlan (flat parameters)
@@ -608,5 +572,358 @@ public class RunnerHubClient
     public async Task InvokeRemoveInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.RemoveInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    // Apply and destroy answer on their own endpoints, so a task is handed the exact pair to use.
+
+    public async Task InvokeApplyGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeApplyGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeApplyGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeApplyInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyInitCompleted, jobId);
+    }
+
+    public async Task InvokeApplyInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyInitCancelled, jobId);
+    }
+
+    public async Task InvokeApplyInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeApplyValidateCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyValidateCompleted, jobId);
+    }
+
+    public async Task InvokeApplyValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyValidateCancelled, jobId);
+    }
+
+    public async Task InvokeApplyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeApplyVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyVariablesCompleted, jobId, variableSet);
+    }
+
+    public async Task InvokeApplyVariablesCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyVariablesCancelled, jobId);
+    }
+
+    public async Task InvokeApplyVariablesFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyVariablesFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeDestroyGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeDestroyGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeDestroyInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyInitCompleted, jobId);
+    }
+
+    public async Task InvokeDestroyInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyInitCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeDestroyValidateCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyValidateCompleted, jobId);
+    }
+
+    public async Task InvokeDestroyValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyValidateCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeDestroyVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyVariablesCompleted, jobId, variableSet);
+    }
+
+    public async Task InvokeDestroyVariablesCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyVariablesCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyVariablesFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyVariablesFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    // Plan and Validate answer per family, so each task is handed the pair it should use.
+
+    public async Task InvokeApplyPlanCompleted(Guid jobId, PlanCompletedData data)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCompleted, jobId, data);
+    }
+
+    public async Task InvokeApplyPlanFaulted(
+        Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.ApplyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
+    }
+
+    public async Task InvokeDestroyPlanCompleted(Guid jobId, PlanCompletedData data)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCompleted, jobId, data);
+    }
+
+    public async Task InvokeDestroyPlanFaulted(
+        Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.DestroyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
+    }
+
+    public async Task InvokeSplitPlanCompleted(Guid jobId, PlanCompletedData data)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanCompleted, jobId, data);
+    }
+
+    public async Task InvokeSplitPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeSplitValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeApplyPlanCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyPlanCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCancelled, jobId);
+    }
+
+    public async Task InvokeSplitPlanCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanCancelled, jobId);
+    }
+
+    public async Task InvokeApplyGetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyGetDefinitiveRevisionCompleted, jobId, definitiveRevision);
+    }
+
+    public async Task InvokeApplyGetDefinitiveRevisionCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyGetDefinitiveRevisionCancelled, jobId);
+    }
+
+    public async Task InvokeApplyGetDefinitiveRevisionFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyGetDefinitiveRevisionFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeApplyPolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPolicyValidateCompleted, jobId, outcome);
+    }
+
+    public async Task InvokeApplyPolicyValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPolicyValidateCancelled, jobId);
+    }
+
+    public async Task InvokeApplyPolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPolicyValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeApplyOutputCompleted(Guid jobId, OutputSetCreateDto? outputSet)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyOutputCompleted, jobId, outputSet);
+    }
+
+    public async Task InvokeApplyOutputCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyOutputCancelled, jobId);
+    }
+
+    public async Task InvokeApplyOutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyOutputFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeDestroyGetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetDefinitiveRevisionCompleted, jobId, definitiveRevision);
+    }
+
+    public async Task InvokeDestroyGetDefinitiveRevisionCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetDefinitiveRevisionCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyGetDefinitiveRevisionFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetDefinitiveRevisionFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeDestroyPolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPolicyValidateCompleted, jobId, outcome);
+    }
+
+    public async Task InvokeDestroyPolicyValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPolicyValidateCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyPolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPolicyValidateFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeDestroyOutputCompleted(Guid jobId, OutputSetCreateDto? outputSet)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputCompleted, jobId, outputSet);
+    }
+
+    public async Task InvokeDestroyOutputCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputCancelled, jobId);
+    }
+
+    public async Task InvokeDestroyOutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeSplitGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeSplitGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeSplitGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeSplitInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitInitCompleted, jobId);
+    }
+
+    public async Task InvokeSplitInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitInitCancelled, jobId);
+    }
+
+    public async Task InvokeSplitInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeSplitValidateCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitValidateCompleted, jobId);
+    }
+
+    public async Task InvokeSplitValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitValidateCancelled, jobId);
+    }
+
+
+    public async Task InvokeTransferGetModuleCompleted(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferGetModuleCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferGetModuleFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.TransferGetModuleFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferInitCompleted(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferInitCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferInitFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.TransferInitFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferValidateCompleted(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferValidateCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferValidateFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.TransferValidateFaulted, jobId, moduleId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeTransferPlanCompleted(Guid jobId, Guid moduleId, PlanCompletedData data)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferPlanCompleted, jobId, moduleId, data);
+    }
+
+    public async Task InvokeTransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.TransferPlanFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
 }

@@ -13,27 +13,15 @@ public static class ServerEndpoints
     public const string GetDefinitiveRevisionCompleted = "GetDefinitiveRevisionCompleted";
     public const string GetDefinitiveRevisionCancelled = "GetDefinitiveRevisionCancelled";
     public const string GetDefinitiveRevisionFaulted = "GetDefinitiveRevisionFaulted";
-
-    public const string GetModuleCompleted = "GetModuleCompleted";
-    public const string GetModuleCancelled = "GetModuleCancelled";
-    public const string GetModuleFaulted = "GetModuleFaulted";
-    
-    public const string InitCompleted = "InitCompleted";
-    public const string InitCancelled = "InitCancelled";
-    public const string InitFaulted = "InitFaulted";
-    
-    public const string ValidateCompleted = "ValidateCompleted";
-    public const string ValidateCancelled = "ValidateCancelled";
-    public const string ValidateFaulted = "ValidateFaulted";
-    public const string PlanEmptyVerifyCompleted = "PlanEmptyVerifyCompleted";
-    public const string PlanEmptyVerifyCancelled = "PlanEmptyVerifyCancelled";
-    public const string PlanEmptyVerifyFaulted = "PlanEmptyVerifyFaulted";
-    public const string RefactorValidateCompleted = "RefactorValidateCompleted";
-    public const string RefactorValidateCancelled = "RefactorValidateCancelled";
-    public const string RefactorValidateFaulted = "RefactorValidateFaulted";
-    public const string RefactorDiffCompleted = "RefactorDiffCompleted";
-    public const string RefactorDiffCancelled = "RefactorDiffCancelled";
-    public const string RefactorDiffFaulted = "RefactorDiffFaulted";
+    public const string SplitPlanEmptyVerifyCompleted = "SplitPlanEmptyVerifyCompleted";
+    public const string SplitPlanEmptyVerifyCancelled = "SplitPlanEmptyVerifyCancelled";
+    public const string SplitPlanEmptyVerifyFaulted = "SplitPlanEmptyVerifyFaulted";
+    public const string SplitRefactorValidateCompleted = "SplitRefactorValidateCompleted";
+    public const string SplitRefactorValidateCancelled = "SplitRefactorValidateCancelled";
+    public const string SplitRefactorValidateFaulted = "SplitRefactorValidateFaulted";
+    public const string SplitRefactorDiffCompleted = "SplitRefactorDiffCompleted";
+    public const string SplitRefactorDiffCancelled = "SplitRefactorDiffCancelled";
+    public const string SplitRefactorDiffFaulted = "SplitRefactorDiffFaulted";
     // A transfer runs the same slices against one of two Modules, so its replies are separate
     // endpoints carrying the Module they are for.
     public const string TransferMigrateMapCompleted = "TransferMigrateMapCompleted";
@@ -62,18 +50,18 @@ public static class ServerEndpoints
     public const string TransferRefactorDiffCompleted = "TransferRefactorDiffCompleted";
     public const string TransferRefactorDiffFaulted = "TransferRefactorDiffFaulted";
 
-    public const string MigrateMapCompleted = "MigrateMapCompleted";
-    public const string MigrateMapCancelled = "MigrateMapCancelled";
-    public const string MigrateMapFaulted = "MigrateMapFaulted";
-    public const string MigrateProveCompleted = "MigrateProveCompleted";
-    public const string MigrateProveCancelled = "MigrateProveCancelled";
-    public const string MigrateProveFaulted = "MigrateProveFaulted";
-    public const string MigrateRunCompleted = "MigrateRunCompleted";
-    public const string MigrateRunCancelled = "MigrateRunCancelled";
-    public const string MigrateRunFaulted = "MigrateRunFaulted";
-    public const string MigrateVerifyCompleted = "MigrateVerifyCompleted";
-    public const string MigrateVerifyCancelled = "MigrateVerifyCancelled";
-    public const string MigrateVerifyFaulted = "MigrateVerifyFaulted";
+    public const string SplitMigrateMapCompleted = "SplitMigrateMapCompleted";
+    public const string SplitMigrateMapCancelled = "SplitMigrateMapCancelled";
+    public const string SplitMigrateMapFaulted = "SplitMigrateMapFaulted";
+    public const string SplitMigrateProveCompleted = "SplitMigrateProveCompleted";
+    public const string SplitMigrateProveCancelled = "SplitMigrateProveCancelled";
+    public const string SplitMigrateProveFaulted = "SplitMigrateProveFaulted";
+    public const string SplitMigrateRunCompleted = "SplitMigrateRunCompleted";
+    public const string SplitMigrateRunCancelled = "SplitMigrateRunCancelled";
+    public const string SplitMigrateRunFaulted = "SplitMigrateRunFaulted";
+    public const string SplitMigrateVerifyCompleted = "SplitMigrateVerifyCompleted";
+    public const string SplitMigrateVerifyCancelled = "SplitMigrateVerifyCancelled";
+    public const string SplitMigrateVerifyFaulted = "SplitMigrateVerifyFaulted";
     public const string PolicyValidateCompleted = "PolicyValidateCompleted";
     public const string PolicyValidateCancelled = "PolicyValidateCancelled";
     public const string PolicyValidateFaulted = "PolicyValidateFaulted";
@@ -82,13 +70,13 @@ public static class ServerEndpoints
     public const string VariablesCancelled = "VariablesCancelled";
     public const string VariablesFaulted = "VariablesFaulted";
 
-    public const string PlanCompleted = "PlanCompleted";
-    public const string PlanCancelled = "PlanCancelled";
-    public const string PlanFaulted = "PlanFaulted";
+    public const string ApplyPlanCompleted = "ApplyPlanCompleted";
+    public const string ApplyPlanCancelled = "ApplyPlanCancelled";
+    public const string ApplyPlanFaulted = "ApplyPlanFaulted";
 
-    public const string PlanDestroyCompleted = "PlanDestroyCompleted";
-    public const string PlanDestroyCancelled = "PlanDestroyCancelled";
-    public const string PlanDestroyFaulted = "PlanDestroyFaulted";
+    public const string DestroyPlanCompleted = "DestroyPlanCompleted";
+    public const string DestroyPlanCancelled = "DestroyPlanCancelled";
+    public const string DestroyPlanFaulted = "DestroyPlanFaulted";
 
     public const string ApplyFromPlanCompleted = "ApplyFromPlanCompleted";
     public const string ApplyFromPlanCancelled = "ApplyFromPlanCancelled";
@@ -170,4 +158,51 @@ public static class ServerEndpoints
     public const string RemoveInitCompleted = "RemoveInitCompleted";
     public const string RemoveInitCancelled = "RemoveInitCancelled";
     public const string RemoveInitFaulted = "RemoveInitFaulted";
+
+    public const string ApplyGetModuleCompleted = "ApplyGetModuleCompleted";
+    public const string ApplyGetModuleCancelled = "ApplyGetModuleCancelled";
+    public const string ApplyGetModuleFaulted = "ApplyGetModuleFaulted";
+    public const string ApplyInitCompleted = "ApplyInitCompleted";
+    public const string ApplyInitCancelled = "ApplyInitCancelled";
+    public const string ApplyInitFaulted = "ApplyInitFaulted";
+    public const string ApplyValidateCompleted = "ApplyValidateCompleted";
+    public const string ApplyValidateCancelled = "ApplyValidateCancelled";
+    public const string ApplyValidateFaulted = "ApplyValidateFaulted";
+    public const string ApplyVariablesCompleted = "ApplyVariablesCompleted";
+    public const string ApplyVariablesCancelled = "ApplyVariablesCancelled";
+    public const string ApplyVariablesFaulted = "ApplyVariablesFaulted";
+
+    public const string DestroyGetModuleCompleted = "DestroyGetModuleCompleted";
+    public const string DestroyGetModuleCancelled = "DestroyGetModuleCancelled";
+    public const string DestroyGetModuleFaulted = "DestroyGetModuleFaulted";
+    public const string DestroyInitCompleted = "DestroyInitCompleted";
+    public const string DestroyInitCancelled = "DestroyInitCancelled";
+    public const string DestroyInitFaulted = "DestroyInitFaulted";
+    public const string DestroyValidateCompleted = "DestroyValidateCompleted";
+    public const string DestroyValidateCancelled = "DestroyValidateCancelled";
+    public const string DestroyValidateFaulted = "DestroyValidateFaulted";
+    public const string DestroyVariablesCompleted = "DestroyVariablesCompleted";
+    public const string DestroyVariablesCancelled = "DestroyVariablesCancelled";
+    public const string DestroyVariablesFaulted = "DestroyVariablesFaulted";
+
+
+    public const string ApplyGetDefinitiveRevisionCompleted = "ApplyGetDefinitiveRevisionCompleted";
+    public const string ApplyGetDefinitiveRevisionCancelled = "ApplyGetDefinitiveRevisionCancelled";
+    public const string ApplyGetDefinitiveRevisionFaulted = "ApplyGetDefinitiveRevisionFaulted";
+    public const string ApplyPolicyValidateCompleted = "ApplyPolicyValidateCompleted";
+    public const string ApplyPolicyValidateCancelled = "ApplyPolicyValidateCancelled";
+    public const string ApplyPolicyValidateFaulted = "ApplyPolicyValidateFaulted";
+    public const string ApplyOutputCompleted = "ApplyOutputCompleted";
+    public const string ApplyOutputCancelled = "ApplyOutputCancelled";
+    public const string ApplyOutputFaulted = "ApplyOutputFaulted";
+    public const string DestroyGetDefinitiveRevisionCompleted = "DestroyGetDefinitiveRevisionCompleted";
+    public const string DestroyGetDefinitiveRevisionCancelled = "DestroyGetDefinitiveRevisionCancelled";
+    public const string DestroyGetDefinitiveRevisionFaulted = "DestroyGetDefinitiveRevisionFaulted";
+    public const string DestroyPolicyValidateCompleted = "DestroyPolicyValidateCompleted";
+    public const string DestroyPolicyValidateCancelled = "DestroyPolicyValidateCancelled";
+    public const string DestroyPolicyValidateFaulted = "DestroyPolicyValidateFaulted";
+    public const string DestroyOutputCompleted = "DestroyOutputCompleted";
+    public const string DestroyOutputCancelled = "DestroyOutputCancelled";
+    public const string DestroyOutputFaulted = "DestroyOutputFaulted";
+
 }

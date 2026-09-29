@@ -35,7 +35,7 @@ public class PlanDestroyHandler
         {
             _logger.LogInformation("Runner completed PlanDestroy for job {JobId}", jobId);
 
-            await _bus.Publish(new PlanDestroyCompleted
+            await _bus.Publish(new DestroyPlanCompleted
             {
                 CorrelationId = jobId,
                 PolicyOutcome = data.PolicyOutcome,
@@ -76,7 +76,7 @@ public class PlanDestroyHandler
         {
             _logger.LogInformation("Runner cancelled PlanDestroy for job {JobId}", jobId);
 
-            await _bus.Publish(new PlanDestroyCancelled
+            await _bus.Publish(new DestroyPlanCancelled
             {
                 CorrelationId = jobId
             });
@@ -97,7 +97,7 @@ public class PlanDestroyHandler
             _logger.LogError("Runner faulted PlanDestroy for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new PlanDestroyFaulted
+            await _bus.Publish(new DestroyPlanFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,

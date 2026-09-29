@@ -104,14 +104,14 @@ public partial class SplitMigrateStateMachine : MassTransitStateMachine<SplitMig
         Configure_Init();
         Configure_Validate();
         Configure_Plan();
-        Configure_PlanEmptyVerify();
-        Configure_RefactorValidate();
-        Configure_RefactorDiff();
-        Configure_MigrateMap();
-        Configure_MigrateProve();
+        Configure_SplitPlanEmptyVerify();
+        Configure_SplitRefactorValidate();
+        Configure_SplitRefactorDiff();
+        Configure_SplitMigrateMap();
+        Configure_SplitMigrateProve();
         Configure_Approval();
-        Configure_MigrateRun();
-        Configure_MigrateVerify();
+        Configure_SplitMigrateRun();
+        Configure_SplitMigrateVerify();
 
         // A cancel that arrives after the job ended has nothing to do, but must not fault: an
         // unhandled event is retried and then dead-lettered, which looks like a broken cancel.

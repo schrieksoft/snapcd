@@ -9,6 +9,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
+using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 
@@ -16,7 +17,16 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task Output(OutputRequestBase request, HubConnection connection)
+    /// <summary>
+    /// The callbacks say which endpoints to answer on, so one implementation serves every job kind
+    /// and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task Output(
+        OutputRequestBase request,
+        HubConnection connection,
+        Func<Guid, OutputSetCreateDto?, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -78,8 +88,8 @@ public partial class Tasks
             var moduleOutputSet = await engine.ParseJsonToModuleOutputSet(moduleOutputJson, outputSources);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeOutputCompleted(request.JobId, moduleOutputSet),
-                nameof(runnerHubClient.InvokeOutputCompleted),
+                () => completed(request.JobId, moduleOutputSet),
+                "OutputCompleted",
                 request.JobId,
                 connection);
         }
@@ -87,8 +97,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("Output process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeOutputCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeOutputCancelled),
+                () => cancelled(request.JobId),
+                "OutputCancelled",
                 request.JobId,
                 connection);
         }
@@ -96,8 +106,8 @@ public partial class Tasks
         {
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeOutputFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeOutputFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "OutputFaulted",
                 request.JobId,
                 connection);
         }

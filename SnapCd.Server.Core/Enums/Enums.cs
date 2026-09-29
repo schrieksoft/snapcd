@@ -81,50 +81,6 @@ public enum JobState
     Unknown
 }
 
-public enum TaskEndpoint
-{
-    Started,
-    SelectRunnerInstanceCompleted,
-    SelectRunnerInstanceCancelled,
-    SelectRunnerInstanceFaulted,
-    GetDefinitiveRevisionCompleted,
-    GetDefinitiveRevisionCancelled,
-    GetDefinitiveRevisionFaulted,
-    GetModuleCompleted,
-    GetModuleCancelled,
-    GetModuleFaulted,
-    InitCompleted,
-    InitCancelled,
-    InitFaulted,
-    ValidateCompleted,
-    ValidateCancelled,
-    ValidateFaulted,
-    VariablesCompleted,
-    VariablesCancelled,
-    VariablesFaulted,
-    PlanCompleted,
-    PlanCancelled,
-    PlanFaulted,
-    PlanDestroyCompleted,
-    PlanDestroyCancelled,
-    PlanDestroyFaulted,
-    ApplyFromPlanCompleted,
-    ApplyFromPlanCancelled,
-    ApplyFromPlanFaulted,
-    DestroyFromPlanCompleted,
-    DestroyFromPlanCancelled,
-    DestroyFromPlanFaulted,
-    OutputCompleted,
-    OutputCancelled,
-    OutputFaulted,
-    ReportRunningTask,
-    CancelKillCompleted,
-    CancelGracefulCompleted,
-    PolicyValidateCompleted,
-    PolicyValidateCancelled,
-    PolicyValidateFaulted
-}
-
 /// <summary>
 /// Represents a saga state that a job can be in.
 /// </summary>

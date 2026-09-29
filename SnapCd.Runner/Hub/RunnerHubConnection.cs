@@ -164,35 +164,114 @@ public class RunnerHubConnection : IAsyncDisposable
         };
 
         // Register handler for GetDefinitiveRevision
-        _connection.On<GetDefinitiveRevisionRequest>(RunnerEndpoints.GetDefinitiveRevision, (request) =>
+        var client = new RunnerHubClient(_connection!);
+
+        _connection.On<GetDefinitiveRevisionRequest>(RunnerEndpoints.ApplyGetDefinitiveRevision, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.GetDefinitiveRevision(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.GetDefinitiveRevision(
+                    request, _connection,
+                    client.InvokeApplyGetDefinitiveRevisionCompleted,
+                    client.InvokeApplyGetDefinitiveRevisionCancelled,
+                    client.InvokeApplyGetDefinitiveRevisionFaulted); });
                 return Task.CompletedTask;
             }
         );
 
-        var client = new RunnerHubClient(_connection!);
+        _connection.On<GetDefinitiveRevisionRequest>(RunnerEndpoints.DestroyGetDefinitiveRevision, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.GetDefinitiveRevision(
+                    request, _connection,
+                    client.InvokeDestroyGetDefinitiveRevisionCompleted,
+                    client.InvokeDestroyGetDefinitiveRevisionCancelled,
+                    client.InvokeDestroyGetDefinitiveRevisionFaulted); });
+                return Task.CompletedTask;
+            }
+        );
 
-        // Register handler for GetModule
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.GetModule, (request) =>
+
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.ApplyGetModule, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.GetModule(
                     request, _connection,
-                    client.InvokeGetModuleCompleted,
-                    client.InvokeGetModuleCancelled,
-                    client.InvokeGetModuleFaulted); });
+                    client.InvokeApplyGetModuleCompleted,
+                    client.InvokeApplyGetModuleCancelled,
+                    client.InvokeApplyGetModuleFaulted); });
                 return Task.CompletedTask;
             }
         );
 
-        // Register handler for Init
-        _connection.On<InitRequestBase>(RunnerEndpoints.Init, (request) =>
+        _connection.On<InitRequestBase>(RunnerEndpoints.ApplyInit, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.Init(
                     request, _connection,
-                    client.InvokeInitCompleted,
-                    client.InvokeInitCancelled,
-                    client.InvokeInitFaulted); });
+                    client.InvokeApplyInitCompleted,
+                    client.InvokeApplyInitCancelled,
+                    client.InvokeApplyInitFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<ValidateRequestBase>(RunnerEndpoints.ApplyValidate, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Validate(
+                    request, _connection,
+                    client.InvokeApplyValidateCompleted,
+                    client.InvokeApplyValidateCancelled,
+                    client.InvokeApplyValidateFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<VariablesRequestBase>(RunnerEndpoints.ApplyVariables, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Variables(
+                    request, _connection,
+                    client.InvokeApplyVariablesCompleted,
+                    client.InvokeApplyVariablesCancelled,
+                    client.InvokeApplyVariablesFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.DestroyGetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    client.InvokeDestroyGetModuleCompleted,
+                    client.InvokeDestroyGetModuleCancelled,
+                    client.InvokeDestroyGetModuleFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<InitRequestBase>(RunnerEndpoints.DestroyInit, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    client.InvokeDestroyInitCompleted,
+                    client.InvokeDestroyInitCancelled,
+                    client.InvokeDestroyInitFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<ValidateRequestBase>(RunnerEndpoints.DestroyValidate, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Validate(
+                    request, _connection,
+                    client.InvokeDestroyValidateCompleted,
+                    client.InvokeDestroyValidateCancelled,
+                    client.InvokeDestroyValidateFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<VariablesRequestBase>(RunnerEndpoints.DestroyVariables, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Variables(
+                    request, _connection,
+                    client.InvokeDestroyVariablesCompleted,
+                    client.InvokeDestroyVariablesCancelled,
+                    client.InvokeDestroyVariablesFaulted); });
                 return Task.CompletedTask;
             }
         );
@@ -283,25 +362,17 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
-        // Register handler for Validate
-        _connection.On<ValidateRequestBase>(RunnerEndpoints.Validate, (request) =>
-            {
-                Task.Run(async () => { await _tasks.Value.Validate(request, _connection); });
-                return Task.CompletedTask;
-            }
-        );
-
         // Register handler for PolicyValidate
-        _connection.On<RefactorValidateRequestBase>(RunnerEndpoints.RefactorValidate, (request) =>
+        _connection.On<SplitRefactorValidateRequestBase>(RunnerEndpoints.SplitRefactorValidate, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.RefactorValidate(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SplitRefactorValidate(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<RefactorDiffRequestBase>(RunnerEndpoints.RefactorDiff, (request) =>
+        _connection.On<SplitRefactorDiffRequestBase>(RunnerEndpoints.SplitRefactorDiff, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.RefactorDiff(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SplitRefactorDiff(request, _connection); });
                 return Task.CompletedTask;
             }
         );
@@ -309,6 +380,53 @@ public class RunnerHubConnection : IAsyncDisposable
 
 
 
+
+        // A transfer runs two Modules under one job, so its replies name the Module as well.
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.TransferGetModule, (request) =>
+            {
+                var moduleId = request.Metadata.ModuleId;
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    jobId => client.InvokeTransferGetModuleCompleted(jobId, moduleId),
+                    _ => Task.CompletedTask,
+                    (jobId, error, stack) => client.InvokeTransferGetModuleFaulted(jobId, moduleId, error, stack)); });
+                return Task.CompletedTask;
+            });
+
+        // A transfer runs two Modules under one job, so its replies name the Module as well.
+        _connection.On<InitRequestBase>(RunnerEndpoints.TransferInit, (request) =>
+            {
+                var moduleId = request.Metadata.ModuleId;
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    jobId => client.InvokeTransferInitCompleted(jobId, moduleId),
+                    _ => Task.CompletedTask,
+                    (jobId, error, stack) => client.InvokeTransferInitFaulted(jobId, moduleId, error, stack)); });
+                return Task.CompletedTask;
+            });
+
+        // A transfer runs two Modules under one job, so its replies name the Module as well.
+        _connection.On<ValidateRequestBase>(RunnerEndpoints.TransferValidate, (request) =>
+            {
+                var moduleId = request.Metadata.ModuleId;
+                Task.Run(async () => { await _tasks.Value.Validate(
+                    request, _connection,
+                    jobId => client.InvokeTransferValidateCompleted(jobId, moduleId),
+                    _ => Task.CompletedTask,
+                    (jobId, error, stack) => client.InvokeTransferValidateFaulted(jobId, moduleId, error, stack)); });
+                return Task.CompletedTask;
+            });
+
+        _connection.On<PlanRequestBase>(RunnerEndpoints.TransferPlan, (request) =>
+            {
+                var moduleId = request.Metadata.ModuleId;
+                Task.Run(async () => { await _tasks.Value.Plan(
+                    request, _connection,
+                    (jobId, data) => client.InvokeTransferPlanCompleted(jobId, moduleId, data),
+                    _ => Task.CompletedTask,
+                    (jobId, error, stack, _) => client.InvokeTransferPlanFaulted(jobId, moduleId, error, stack)); });
+                return Task.CompletedTask;
+            });
 
         _connection.On<TransferMigrateMapRequestBase>(RunnerEndpoints.TransferMigrateMap, (request) =>
             {
@@ -398,67 +516,123 @@ public class RunnerHubConnection : IAsyncDisposable
                 return Task.CompletedTask;
             });
 
-        _connection.On<MigrateMapRequestBase>(RunnerEndpoints.MigrateMap, (request) =>
+        _connection.On<SplitMigrateMapRequestBase>(RunnerEndpoints.SplitMigrateMap, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.MigrateMap(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SplitMigrateMap(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<MigrateProveRequestBase>(RunnerEndpoints.MigrateProve, (request) =>
+        _connection.On<SplitMigrateProveRequestBase>(RunnerEndpoints.SplitMigrateProve, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.MigrateProve(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SplitMigrateProve(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<MigrateRunRequestBase>(RunnerEndpoints.MigrateRun, (request) =>
+        _connection.On<SplitMigrateRunRequestBase>(RunnerEndpoints.SplitMigrateRun, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.MigrateRun(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SplitMigrateRun(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<MigrateVerifyRequestBase>(RunnerEndpoints.MigrateVerify, (request) =>
+        _connection.On<SplitMigrateVerifyRequestBase>(RunnerEndpoints.SplitMigrateVerify, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.MigrateVerify(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SplitMigrateVerify(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<PlanEmptyVerifyRequestBase>(RunnerEndpoints.PlanEmptyVerify, (request) =>
+        _connection.On<SplitPlanEmptyVerifyRequestBase>(RunnerEndpoints.SplitPlanEmptyVerify, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.PlanEmptyVerify(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.SplitPlanEmptyVerify(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
         // Register handler for PolicyValidate
-        _connection.On<PolicyValidateRequestBase>(RunnerEndpoints.PolicyValidate, (request) =>
+        _connection.On<PolicyValidateRequestBase>(RunnerEndpoints.ApplyPolicyValidate, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.PolicyValidate(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.PolicyValidate(
+                    request, _connection,
+                    client.InvokeApplyPolicyValidateCompleted,
+                    client.InvokeApplyPolicyValidateCancelled,
+                    client.InvokeApplyPolicyValidateFaulted); });
                 return Task.CompletedTask;
             }
         );
 
-        // Register handler for Input
-        _connection.On<VariablesRequestBase>(RunnerEndpoints.Variables, (request) =>
+        _connection.On<PolicyValidateRequestBase>(RunnerEndpoints.DestroyPolicyValidate, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.Variables(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.PolicyValidate(
+                    request, _connection,
+                    client.InvokeDestroyPolicyValidateCompleted,
+                    client.InvokeDestroyPolicyValidateCancelled,
+                    client.InvokeDestroyPolicyValidateFaulted); });
                 return Task.CompletedTask;
             }
         );
 
         // Register handler for Plan
-        _connection.On<PlanRequestBase>(RunnerEndpoints.Plan, (request) =>
+        // An apply, a destroy, a split and a transfer all plan; each answers on its own endpoint.
+        _connection.On<PlanRequestBase>(RunnerEndpoints.ApplyPlan, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.Plan(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Plan(
+                    request, _connection,
+                    client.InvokeApplyPlanCompleted,
+                    client.InvokeApplyPlanCancelled,
+                    client.InvokeApplyPlanFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.SplitGetModule, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.GetModule(
+                    request, _connection,
+                    client.InvokeSplitGetModuleCompleted,
+                    client.InvokeSplitGetModuleCancelled,
+                    client.InvokeSplitGetModuleFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<InitRequestBase>(RunnerEndpoints.SplitInit, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Init(
+                    request, _connection,
+                    client.InvokeSplitInitCompleted,
+                    client.InvokeSplitInitCancelled,
+                    client.InvokeSplitInitFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<ValidateRequestBase>(RunnerEndpoints.SplitValidate, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Validate(
+                    request, _connection,
+                    client.InvokeSplitValidateCompleted,
+                    client.InvokeSplitValidateCancelled,
+                    client.InvokeSplitValidateFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<PlanRequestBase>(RunnerEndpoints.SplitPlan, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Plan(
+                    request, _connection,
+                    (jobId, data) => client.InvokeSplitPlanCompleted(jobId, data),
+                    client.InvokeSplitPlanCancelled,
+                    (jobId, error, stack, _) => client.InvokeSplitPlanFaulted(jobId, error, stack)); });
                 return Task.CompletedTask;
             }
         );
 
         // Register handler for PlanDestroy
-        _connection.On<PlanDestroyRequestBase>(RunnerEndpoints.PlanDestroy, (request) =>
+        _connection.On<PlanDestroyRequestBase>(RunnerEndpoints.DestroyPlan, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.PlanDestroy(request, _connection); });
                 return Task.CompletedTask;
@@ -482,9 +656,24 @@ public class RunnerHubConnection : IAsyncDisposable
         );
 
         // Register handler for Output
-        _connection.On<OutputRequestBase>(RunnerEndpoints.Output, (request) =>
+        _connection.On<OutputRequestBase>(RunnerEndpoints.ApplyOutput, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.Output(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.Output(
+                    request, _connection,
+                    client.InvokeApplyOutputCompleted,
+                    client.InvokeApplyOutputCancelled,
+                    client.InvokeApplyOutputFaulted); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<OutputRequestBase>(RunnerEndpoints.DestroyOutput, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.Output(
+                    request, _connection,
+                    client.InvokeDestroyOutputCompleted,
+                    client.InvokeDestroyOutputCancelled,
+                    client.InvokeDestroyOutputFaulted); });
                 return Task.CompletedTask;
             }
         );

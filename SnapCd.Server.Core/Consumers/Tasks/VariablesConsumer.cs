@@ -15,20 +15,24 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks;
 
 /// <summary>
 /// Server-side consumer that receives Input requests and dispatches them to runners via SignalR.
 /// Replaces the old runner-side consumer pattern with direct hub invocation.
 /// </summary>
-public class VariablesConsumer : IConsumer<VariablesRequested>
+public abstract class VariablesConsumer<TRequested, TFaulted> : IConsumer<TRequested>
+    where TRequested : VariablesRequestedBase
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<VariablesConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public VariablesConsumer(
-        ILogger<VariablesConsumer> logger,
+    protected VariablesConsumer(
+        ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -37,7 +41,10 @@ public class VariablesConsumer : IConsumer<VariablesRequested>
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<VariablesRequested> context)
+    /// <summary>The runner endpoint this job kind is dispatched to.</summary>
+    protected abstract string Endpoint { get; }
+
+    public async Task Consume(ConsumeContext<TRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -65,7 +72,7 @@ public class VariablesConsumer : IConsumer<VariablesRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Variables,
+                Endpoint,
                 new VariablesRequestBase
                 {
                     JobId = jobId,
@@ -89,7 +96,7 @@ public class VariablesConsumer : IConsumer<VariablesRequested>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching Variables request for job {JobId}", jobId);
-            await context.Publish(new VariablesFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,
@@ -99,4 +106,22 @@ public class VariablesConsumer : IConsumer<VariablesRequested>
             });
         }
     }
+}
+
+public class ApplyVariablesConsumer(
+    ILogger<ApplyVariablesConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : VariablesConsumer<ApplyVariablesRequested, ApplyVariablesFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => RunnerEndpoints.ApplyVariables;
+}
+
+public class DestroyVariablesConsumer(
+    ILogger<DestroyVariablesConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : VariablesConsumer<DestroyVariablesRequested, DestroyVariablesFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => RunnerEndpoints.DestroyVariables;
 }

@@ -60,12 +60,7 @@ public static class Factories
         services.AddScoped<RunnerSecuredRepositoryFactory>();
         services.AddScoped<ModuleSagaRepositoryFactory>();
         services.AddScoped<ModuleSagaSecuredRepositoryFactory>();
-        services.AddScoped<ApplyJobSagaRepositoryFactory>();
-        services.AddScoped<DestroyJobSagaRepositoryFactory>();
         services.AddScoped<ServicePrincipalRepositoryFactory>();
-        services.AddScoped<JobSagaRepositoryFactory>();
-        services.AddScoped<SplitMigrateSagaRepositoryFactory>();
-        services.AddScoped<TransferMigrateSagaRepositoryFactory>();
         services.AddScoped<ManualModuleJobSecuredRepositoryFactory>();
         services.AddScoped<OrganizationSecuredRepositoryFactory>();
         services.AddScoped<UserRepositoryFactory>();
@@ -232,8 +227,6 @@ public static class Factories
         services.AddScoped<LiteralOutputSecuredRepositoryFactory>();
         services.AddScoped<SecretOutputRepositoryFactory>();
         services.AddScoped<SecretOutputSecuredRepositoryFactory>();
-        services.AddScoped<ApplyJobSagaRepositoryFactory>();
-        services.AddScoped<DestroyJobSagaRepositoryFactory>();
         services.AddScoped<OrganizationServiceFactory>();
         services.AddScoped<DependencyGraphServiceFactory>();
         services.AddScoped<DestroyModuleGraphServiceFactory>();

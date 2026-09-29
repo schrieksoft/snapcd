@@ -122,14 +122,36 @@ public class FakeRunner(
 
         switch (endpoint)
         {
-            case RunnerEndpoints.GetDefinitiveRevision:
-                await hub.GetDefinitiveRevisionCompleted(jobId, "0000000000000000000000000000000000000000");
+            case RunnerEndpoints.ApplyGetDefinitiveRevision:
+                await hub.ApplyGetDefinitiveRevisionCompleted(jobId, "0000000000000000000000000000000000000000");
                 break;
-            case RunnerEndpoints.GetModule:
-                await hub.GetModuleCompleted(jobId);
+            case RunnerEndpoints.DestroyGetDefinitiveRevision:
+                await hub.DestroyGetDefinitiveRevisionCompleted(jobId, "0000000000000000000000000000000000000000");
                 break;
-            case RunnerEndpoints.Init:
-                await hub.InitCompleted(jobId);
+            // Apply and destroy answer on their own endpoints, as every other family does.
+            case RunnerEndpoints.ApplyGetModule:
+                await hub.ApplyGetModuleCompleted(jobId);
+                break;
+            case RunnerEndpoints.ApplyInit:
+                await hub.ApplyInitCompleted(jobId);
+                break;
+            case RunnerEndpoints.ApplyValidate:
+                await hub.ApplyValidateCompleted(jobId);
+                break;
+            case RunnerEndpoints.ApplyVariables:
+                await hub.ApplyVariablesCompleted(jobId, null);
+                break;
+            case RunnerEndpoints.DestroyGetModule:
+                await hub.DestroyGetModuleCompleted(jobId);
+                break;
+            case RunnerEndpoints.DestroyInit:
+                await hub.DestroyInitCompleted(jobId);
+                break;
+            case RunnerEndpoints.DestroyValidate:
+                await hub.DestroyValidateCompleted(jobId);
+                break;
+            case RunnerEndpoints.DestroyVariables:
+                await hub.DestroyVariablesCompleted(jobId, null);
                 break;
 
             // The manual families run the same checkout and init, each answering on its own
@@ -158,22 +180,19 @@ public class FakeRunner(
             case RunnerEndpoints.RemoveInit:
                 await hub.RemoveInitCompleted(jobId);
                 break;
-            case RunnerEndpoints.Validate:
-                await hub.ValidateCompleted(jobId);
+            case RunnerEndpoints.ApplyPolicyValidate:
+                await hub.ApplyPolicyValidateCompleted(jobId, PolicyOutcome);
                 break;
-            case RunnerEndpoints.Variables:
-                await hub.VariablesCompleted(jobId, null);
+            case RunnerEndpoints.DestroyPolicyValidate:
+                await hub.DestroyPolicyValidateCompleted(jobId, PolicyOutcome);
                 break;
-            case RunnerEndpoints.PolicyValidate:
-                await hub.PolicyValidateCompleted(jobId, PolicyOutcome);
-                break;
-            case RunnerEndpoints.Plan:
+            case RunnerEndpoints.ApplyPlan:
             {
                 // A transfer needs a clean plan to go ahead, while an apply with nothing to
                 // change routes to Output instead and never reaches the apply.
                 var changed = PlansClean ? 0 : ChangedCount;
 
-                await hub.PlanCompleted(jobId, new PlanCompletedData
+                await hub.ApplyPlanCompleted(jobId, new PlanCompletedData
                 {
                     TotalChangedCount = changed,
                     CreateCount = changed,
@@ -182,12 +201,67 @@ public class FakeRunner(
                 });
                 break;
             }
-            case RunnerEndpoints.PlanEmptyVerify:
-                await hub.PlanEmptyVerifyCompleted(jobId);
+            case RunnerEndpoints.SplitGetModule:
+                await hub.SplitGetModuleCompleted(jobId);
+                break;
+            case RunnerEndpoints.SplitInit:
+                await hub.SplitInitCompleted(jobId);
+                break;
+            case RunnerEndpoints.SplitValidate:
+                await hub.SplitValidateCompleted(jobId);
+                break;
+            case RunnerEndpoints.SplitPlan:
+                await hub.SplitPlanCompleted(jobId, new PlanCompletedData
+                {
+                    TotalChangedCount = ChangedCount,
+                    CreateCount = ChangedCount,
+                    TotalCountAfter = ChangedCount,
+                    PolicyOutcome = PolicyOutcome
+                });
+                break;
+            case RunnerEndpoints.SplitPlanEmptyVerify:
+                await hub.SplitPlanEmptyVerifyCompleted(jobId);
                 break;
             case RunnerEndpoints.ApplyFromPlan:
                 await hub.ApplyFromPlanCompleted(jobId, ChangedCount);
                 break;
+
+            // A destroy plans what it would remove, then removes it, leaving nothing in state.
+            case RunnerEndpoints.DestroyPlan:
+                await hub.DestroyPlanCompleted(jobId, new PlanCompletedData
+                {
+                    TotalChangedCount = ChangedCount,
+                    DestroyCount = ChangedCount,
+                    TotalCountAfter = 0,
+                    PolicyOutcome = PolicyOutcome
+                });
+                break;
+            case RunnerEndpoints.DestroyFromPlan:
+                await hub.DestroyFromPlanCompleted(jobId, 0);
+                break;
+            case RunnerEndpoints.TransferGetModule:
+                await hub.TransferGetModuleCompleted(jobId, Read<Guid>(payload, "ModuleId"));
+                break;
+            case RunnerEndpoints.TransferInit:
+                await hub.TransferInitCompleted(jobId, Read<Guid>(payload, "ModuleId"));
+                break;
+            case RunnerEndpoints.TransferValidate:
+                await hub.TransferValidateCompleted(jobId, Read<Guid>(payload, "ModuleId"));
+                break;
+            case RunnerEndpoints.TransferPlan:
+            {
+                // A transfer needs a clean plan to go ahead.
+                var changed = PlansClean ? 0 : ChangedCount;
+
+                await hub.TransferPlanCompleted(jobId, Read<Guid>(payload, "ModuleId"), new PlanCompletedData
+                {
+                    TotalChangedCount = changed,
+                    CreateCount = changed,
+                    TotalCountAfter = changed,
+                    PolicyOutcome = PolicyOutcome
+                });
+                break;
+            }
             case RunnerEndpoints.TransferMigrateMap:
             {
                 var moduleId = Read<Guid>(payload, "ModuleId");
@@ -234,23 +308,23 @@ public class FakeRunner(
                 break;
             }
 
-            case RunnerEndpoints.RefactorValidate:
-                await hub.RefactorValidateCompleted(jobId);
+            case RunnerEndpoints.SplitRefactorValidate:
+                await hub.SplitRefactorValidateCompleted(jobId);
                 break;
-            case RunnerEndpoints.RefactorDiff:
-                await hub.RefactorDiffCompleted(jobId);
+            case RunnerEndpoints.SplitRefactorDiff:
+                await hub.SplitRefactorDiffCompleted(jobId);
                 break;
-            case RunnerEndpoints.MigrateMap:
-                await hub.MigrateMapCompleted(jobId, "jobrun", [CarvedModuleName], ChangedCount);
+            case RunnerEndpoints.SplitMigrateMap:
+                await hub.SplitMigrateMapCompleted(jobId, "jobrun", [CarvedModuleName], ChangedCount);
                 break;
-            case RunnerEndpoints.MigrateProve:
-                await hub.MigrateProveCompleted(jobId, ModulesProven, ModulesProven);
+            case RunnerEndpoints.SplitMigrateProve:
+                await hub.SplitMigrateProveCompleted(jobId, ModulesProven, ModulesProven);
                 break;
-            case RunnerEndpoints.MigrateRun:
-                await hub.MigrateRunCompleted(jobId);
+            case RunnerEndpoints.SplitMigrateRun:
+                await hub.SplitMigrateRunCompleted(jobId);
                 break;
-            case RunnerEndpoints.MigrateVerify:
-                await hub.MigrateVerifyCompleted(jobId, ModulesProven, ModulesProven);
+            case RunnerEndpoints.SplitMigrateVerify:
+                await hub.SplitMigrateVerifyCompleted(jobId, ModulesProven, ModulesProven);
                 break;
 
             case RunnerEndpoints.StateListFiltered:
@@ -283,10 +357,18 @@ public class FakeRunner(
                 await hub.RemoveCompleted(jobId, Succeeded(payload));
                 break;
 
-            case RunnerEndpoints.Output:
+            case RunnerEndpoints.DestroyOutput:
+                await hub.DestroyOutputCompleted(jobId, new OutputSetCreateDto
+                {
+                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    Checksum = "jobrun",
+                    Outputs = []
+                });
+                break;
+            case RunnerEndpoints.ApplyOutput:
                 // An empty set rather than null: the consumer stores the set and publishes the
                 // saga's completion from the same branch, so a null ends the job's progress.
-                await hub.OutputCompleted(jobId, new OutputSetCreateDto
+                await hub.ApplyOutputCompleted(jobId, new OutputSetCreateDto
                 {
                     Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                     Checksum = "jobrun",
@@ -295,8 +377,8 @@ public class FakeRunner(
                 break;
 
             default:
-                // Always printed, not only under --verbose: an endpoint nobody answers is the end
-                // of the run, and a stall with no reason given reads as the product hanging.
+                // An endpoint nobody answers is the end of the run, and a stall with no reason
+                // given reads as the product hanging.
                 Console.WriteLine($"  !! no canned reply for {endpoint}; the run will stall here");
                 break;
         }
@@ -370,10 +452,18 @@ public class FakeRunner(
 
     private static T? Read<T>(object payload, string name)
     {
-        var value = payload.GetType()
-            .GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
-            ?.GetValue(payload);
+        var value = Property(payload, name);
+
+        // Ordinary step requests carry the Module id under Metadata; transfer-specific ones
+        // carry it at the top level.
+        if (value is null && name == "ModuleId" && Property(payload, "Metadata") is { } metadata)
+            value = Property(metadata, "ModuleId");
 
         return value is null ? default : (T)value;
     }
+
+    private static object? Property(object target, string name) =>
+        target.GetType()
+            .GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
+            ?.GetValue(target);
 }

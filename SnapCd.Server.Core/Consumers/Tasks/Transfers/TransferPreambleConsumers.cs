@@ -32,7 +32,7 @@ public class TransferGetModuleConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.GetModule;
+    protected override string Endpoint => RunnerEndpoints.TransferGetModule;
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferGetModuleRequested> context, Guid jobId)
     {
@@ -62,7 +62,7 @@ public class TransferInitConsumer
         _paramResolverFactory = paramResolverFactory;
     }
 
-    protected override string Endpoint => RunnerEndpoints.Init;
+    protected override string Endpoint => RunnerEndpoints.TransferInit;
 
     protected override async Task<object> BuildPayload(ConsumeContext<TransferInitRequested> context, Guid jobId)
     {
@@ -86,7 +86,7 @@ public class TransferValidateConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.Validate;
+    protected override string Endpoint => RunnerEndpoints.TransferValidate;
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferValidateRequested> context, Guid jobId)
     {
@@ -116,7 +116,7 @@ public class TransferPlanConsumer
         _paramResolverFactory = paramResolverFactory;
     }
 
-    protected override string Endpoint => RunnerEndpoints.Plan;
+    protected override string Endpoint => RunnerEndpoints.TransferPlan;
 
     protected override async Task<object> BuildPayload(ConsumeContext<TransferPlanRequested> context, Guid jobId)
     {

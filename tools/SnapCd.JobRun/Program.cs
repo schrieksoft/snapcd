@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using SnapCd.Contracts;
 using SnapCd.JobRun;
@@ -35,7 +36,17 @@ builder.Configuration
 
 builder.Logging.ClearProviders();
 builder.Logging.AddSimpleConsole(c => c.SingleLine = true);
-builder.Logging.SetMinimumLevel(options.Verbose ? LogLevel.Debug : LogLevel.Warning);
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+// The server's appsettings pins "SnapCd" to Information and configuration outranks
+// SetMinimumLevel, so without this filter every LogDebug the product writes is discarded - which
+// is most of what says why a job did not move. This is a diagnostic tool, so it says everything.
+builder.Logging.AddFilter("SnapCd", LogLevel.Debug);
+builder.Logging.AddFilter("MassTransit", LogLevel.Information);
+builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
+
+builder.Services.AddSingleton<EndpointReadiness>();
+builder.Services.AddSingleton<IReceiveEndpointObserver>(sp => sp.GetRequiredService<EndpointReadiness>());
 
 ServerComposition.AddServerServices(builder.Services, builder.Configuration, options.ConnectionString);
 
@@ -45,7 +56,7 @@ builder.Services.Replace(ServiceDescriptor.Scoped<IPrincipalProvider>(_ => new L
 // The runner is answered in-process, so the dispatch seam is replaced rather than the hub itself.
 builder.Services.AddSingleton(sp => new FakeRunner(
     sp, options.ConnectionId, options.OrganizationId, options.RunnerInstanceName,
-    line => { if (options.Verbose) Console.WriteLine(line); }));
+    Console.WriteLine));
 builder.Services.Replace(
     ServiceDescriptor.Singleton<IHubContext<RunnerHub>>(
         sp => new FakeHubContext(sp.GetRequiredService<FakeRunner>())));

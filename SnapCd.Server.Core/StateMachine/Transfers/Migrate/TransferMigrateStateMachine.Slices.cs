@@ -36,29 +36,29 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private void Configure_Slices()
     {
-        During(MigrateMapPending,
+        During(TransferMigrateMapPending,
             DealWithOutputsStatus(
-                When(MigrateMapCompleted)
-                    .ThenAsync(context => RecordCompleted(context, "MigrateMap", ManualJobStepStatus.Succeeded))
+                When(TransferMigrateMapCompleted)
+                    .ThenAsync(context => RecordCompleted(context, "TransferMigrateMap", ManualJobStepStatus.Succeeded))
                     .Then(context => context.Saga.NeedsOutputsJson =
                         JsonSerializer.Serialize(context.Message.NeedsOutputs)),
                 transition: true),
 
-            When(MigrateMapFaulted)
-                .ThenAsync(context => RecordCompleted(context, "MigrateMap", ManualJobStepStatus.Faulted))
+            When(TransferMigrateMapFaulted)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateMap", ManualJobStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "MigrateMap", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateMap", ManualJobStepStatus.Faulted,
                     "The runner stopped responding."))
-                .Then(LostRunner("MigrateMap")).ThenJobFailed().TransitionTo(Failed).Finalize()
+                .Then(LostRunner("TransferMigrateMap")).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
-        During(MigrateProvePending,
+        During(TransferMigrateProvePending,
             // Exit 2 is demonolith answering no: it ran, so it is a verdict rather than a fault.
-            When(MigrateProveCompleted)
-                .ThenAsync(context => RecordCompleted(context, "MigrateProve",
+            When(TransferMigrateProveCompleted)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateProve",
                     context.Message.ExitCode == 0 ? ManualJobStepStatus.Succeeded : ManualJobStepStatus.Refused))
                 .Then(context =>
                 {
@@ -77,57 +77,57 @@ public partial class TransferMigrateStateMachine
                             context.Saga.ModuleId, context.Message.Verdict))
                         .ThenJobFailed().TransitionTo(Failed).Finalize()),
 
-            When(MigrateProveFaulted)
-                .ThenAsync(context => RecordCompleted(context, "MigrateProve", ManualJobStepStatus.Faulted))
+            When(TransferMigrateProveFaulted)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateProve", ManualJobStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "MigrateProve", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateProve", ManualJobStepStatus.Faulted,
                     "The runner stopped responding."))
-                .Then(LostRunner("MigrateProve")).ThenJobFailed().TransitionTo(Failed).Finalize()
+                .Then(LostRunner("TransferMigrateProve")).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
         // The write. From here the Module's state has changed, so a failure is a failed transfer
         // rather than something to undo.
-        During(MigrateRunPending,
-            When(MigrateRunCompleted)
-                .ThenAsync(context => RecordCompleted(context, "MigrateRun", ManualJobStepStatus.Succeeded))
+        During(TransferMigrateRunPending,
+            When(TransferMigrateRunCompleted)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateRun", ManualJobStepStatus.Succeeded))
                 .ThenAsync(RecordAddresses)
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferMigrateRunCompleted, TransferMigrateVerifyRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "MigrateVerify"))
-                .TransitionTo(MigrateVerifyPending),
+                .ThenAsync(context => RecordDispatched(context, "TransferMigrateVerify"))
+                .TransitionTo(TransferMigrateVerifyPending),
 
-            When(MigrateRunFaulted)
-                .ThenAsync(context => RecordCompleted(context, "MigrateRun", ManualJobStepStatus.Faulted))
+            When(TransferMigrateRunFaulted)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateRun", ManualJobStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "MigrateRun", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateRun", ManualJobStepStatus.Faulted,
                     "The runner stopped responding."))
-                .Then(LostRunner("MigrateRun")).ThenJobFailed().TransitionTo(Failed).Finalize()
+                .Then(LostRunner("TransferMigrateRun")).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
-        During(MigrateVerifyPending,
-            When(MigrateVerifyCompleted)
-                .ThenAsync(context => RecordCompleted(context, "MigrateVerify", ManualJobStepStatus.Succeeded))
+        During(TransferMigrateVerifyPending,
+            When(TransferMigrateVerifyCompleted)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateVerify", ManualJobStepStatus.Succeeded))
                 .Then(context => _logger.LogInformation(
                     "Transfer: Module {ModuleId} landed",
                     context.Saga.ModuleId))
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferMigrateVerifyCompleted, TransferOutputsRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "Outputs"))
-                .TransitionTo(OutputsPending),
+                .ThenAsync(context => RecordDispatched(context, "TransferOutputs"))
+                .TransitionTo(TransferOutputsPending),
 
-            When(MigrateVerifyFaulted)
-                .ThenAsync(context => RecordCompleted(context, "MigrateVerify", ManualJobStepStatus.Faulted))
+            When(TransferMigrateVerifyFaulted)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateVerify", ManualJobStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "MigrateVerify", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateVerify", ManualJobStepStatus.Faulted,
                     "The runner stopped responding."))
-                .Then(LostRunner("MigrateVerify")).ThenJobFailed().TransitionTo(Failed).Finalize()
+                .Then(LostRunner("TransferMigrateVerify")).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
     }
 
@@ -177,13 +177,13 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private void Configure_OutputsStep()
     {
-        During(OutputsPending,
-            When(OutputsCompleted)
-                .ThenAsync(context => RecordCompleted(context, "Outputs", ManualJobStepStatus.Succeeded))
+        During(TransferOutputsPending,
+            When(TransferOutputsCompleted)
+                .ThenAsync(context => RecordCompleted(context, "TransferOutputs", ManualJobStepStatus.Succeeded))
                 .ThenJobCompleted().TransitionTo(Completed).Finalize(),
 
-            When(OutputsFaulted)
-                .ThenAsync(context => RecordCompleted(context, "Outputs", ManualJobStepStatus.Faulted))
+            When(TransferOutputsFaulted)
+                .ThenAsync(context => RecordCompleted(context, "TransferOutputs", ManualJobStepStatus.Faulted))
                 .Then(context => _logger.LogWarning(
                     "Transfer: Module {ModuleId} landed but its outputs could not be read",
                     context.Saga.ModuleId))
@@ -191,9 +191,9 @@ public partial class TransferMigrateStateMachine
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "Outputs", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "TransferOutputs", ManualJobStepStatus.Faulted,
                     "The runner stopped responding."))
-                .Then(LostRunner("Outputs")).ThenJobCompleted().TransitionTo(Completed).Finalize()
+                .Then(LostRunner("TransferOutputs")).ThenJobCompleted().TransitionTo(Completed).Finalize()
         );
     }
 

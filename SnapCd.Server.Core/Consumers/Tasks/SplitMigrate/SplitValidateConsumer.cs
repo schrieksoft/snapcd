@@ -45,7 +45,7 @@ public class SplitValidateConsumer : IConsumer<SplitValidateRequested>
                 throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Validate,
+                RunnerEndpoints.SplitValidate,
                 StepRequestBuilders.Validate(jobId, orgId, msg.Declared));
 
             _logger.LogDebug("Dispatched SplitValidate request to runner {RunnerName} for job {JobId}",

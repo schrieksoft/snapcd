@@ -49,18 +49,18 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     public Event<TransferInitFaulted> InitFaulted { get; } = null!;
     public Event<TransferValidateCompleted> ValidateCompleted { get; } = null!;
     public Event<TransferValidateFaulted> ValidateFaulted { get; } = null!;
-    public Event<TransferPlanCompleted> PlanCompleted { get; } = null!;
-    public Event<TransferPlanFaulted> PlanFaulted { get; } = null!;
-    public Event<TransferMigrateMapCompleted> MigrateMapCompleted { get; } = null!;
-    public Event<TransferMigrateMapFaulted> MigrateMapFaulted { get; } = null!;
-    public Event<TransferMigrateProveCompleted> MigrateProveCompleted { get; } = null!;
-    public Event<TransferMigrateProveFaulted> MigrateProveFaulted { get; } = null!;
-    public Event<TransferMigrateRunCompleted> MigrateRunCompleted { get; } = null!;
-    public Event<TransferMigrateRunFaulted> MigrateRunFaulted { get; } = null!;
-    public Event<TransferMigrateVerifyCompleted> MigrateVerifyCompleted { get; } = null!;
-    public Event<TransferMigrateVerifyFaulted> MigrateVerifyFaulted { get; } = null!;
-    public Event<TransferOutputsCompleted> OutputsCompleted { get; } = null!;
-    public Event<TransferOutputsFaulted> OutputsFaulted { get; } = null!;
+    public Event<TransferPlanCompleted> ApplyPlanCompleted { get; } = null!;
+    public Event<TransferPlanFaulted> ApplyPlanFaulted { get; } = null!;
+    public Event<TransferMigrateMapCompleted> TransferMigrateMapCompleted { get; } = null!;
+    public Event<TransferMigrateMapFaulted> TransferMigrateMapFaulted { get; } = null!;
+    public Event<TransferMigrateProveCompleted> TransferMigrateProveCompleted { get; } = null!;
+    public Event<TransferMigrateProveFaulted> TransferMigrateProveFaulted { get; } = null!;
+    public Event<TransferMigrateRunCompleted> TransferMigrateRunCompleted { get; } = null!;
+    public Event<TransferMigrateRunFaulted> TransferMigrateRunFaulted { get; } = null!;
+    public Event<TransferMigrateVerifyCompleted> TransferMigrateVerifyCompleted { get; } = null!;
+    public Event<TransferMigrateVerifyFaulted> TransferMigrateVerifyFaulted { get; } = null!;
+    public Event<TransferOutputsCompleted> TransferOutputsCompleted { get; } = null!;
+    public Event<TransferOutputsFaulted> TransferOutputsFaulted { get; } = null!;
 
     /// <summary>The state move landed. Terminal.</summary>
     public State Completed { get; } = null!;
@@ -79,11 +79,11 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     public State ValidateWaitingForRunner { get; } = null!;
     public State PlanWaitingForRunner { get; } = null!;
 
-    public State MigrateMapPending { get; } = null!;
-    public State MigrateProvePending { get; } = null!;
-    public State MigrateRunPending { get; } = null!;
-    public State MigrateVerifyPending { get; } = null!;
-    public State OutputsPending { get; } = null!;
+    public State TransferMigrateMapPending { get; } = null!;
+    public State TransferMigrateProvePending { get; } = null!;
+    public State TransferMigrateRunPending { get; } = null!;
+    public State TransferMigrateVerifyPending { get; } = null!;
+    public State TransferOutputsPending { get; } = null!;
 
     /// <summary>The job ended without landing. Terminal; finishing this Module is a new job.</summary>
     public State Failed { get; } = null!;
@@ -121,18 +121,18 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
         Event(() => InitFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ValidateCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ValidateFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => PlanCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => PlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateMapCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateMapFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateProveCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateProveFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateRunCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateRunFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateVerifyCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => OutputsCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => OutputsFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => MigrateVerifyFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => ApplyPlanCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => ApplyPlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateMapCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateMapFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateProveCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateProveFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateRunCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateRunFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateVerifyCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferOutputsCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferOutputsFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateVerifyFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         Configure_Approval();
 

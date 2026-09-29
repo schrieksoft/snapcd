@@ -15,19 +15,23 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks;
 
 /// <summary>
 /// Server-side consumer that receives GetDefinitiveRevision requests and dispatches them to runners via SignalR.
 /// </summary>
-public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequested>
+public abstract class GetDefinitiveRevisionConsumer<TRequested, TFaulted> : IConsumer<TRequested>
+    where TRequested : GetDefinitiveRevisionRequestedBase
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<GetDefinitiveRevisionConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public GetDefinitiveRevisionConsumer(
-        ILogger<GetDefinitiveRevisionConsumer> logger,
+    protected GetDefinitiveRevisionConsumer(
+        ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -36,7 +40,10 @@ public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequ
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<GetDefinitiveRevisionRequested> context)
+    /// <summary>The runner endpoint this job kind is dispatched to.</summary>
+    protected abstract string Endpoint { get; }
+
+    public async Task Consume(ConsumeContext<TRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -64,7 +71,7 @@ public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequ
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.GetDefinitiveRevision,
+                Endpoint,
                 new GetDefinitiveRevisionRequest
                 {
                     JobId = jobId,
@@ -90,7 +97,7 @@ public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequ
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching GetDefinitiveRevision request for job {JobId}", jobId);
-            await context.Publish(new GetDefinitiveRevisionFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,
@@ -100,4 +107,22 @@ public class GetDefinitiveRevisionConsumer : IConsumer<GetDefinitiveRevisionRequ
             });
         }
     }
+}
+
+public class ApplyGetDefinitiveRevisionConsumer(
+    ILogger<ApplyGetDefinitiveRevisionConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : GetDefinitiveRevisionConsumer<ApplyGetDefinitiveRevisionRequested, ApplyGetDefinitiveRevisionFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => RunnerEndpoints.ApplyGetDefinitiveRevision;
+}
+
+public class DestroyGetDefinitiveRevisionConsumer(
+    ILogger<DestroyGetDefinitiveRevisionConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : GetDefinitiveRevisionConsumer<DestroyGetDefinitiveRevisionRequested, DestroyGetDefinitiveRevisionFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => RunnerEndpoints.DestroyGetDefinitiveRevision;
 }

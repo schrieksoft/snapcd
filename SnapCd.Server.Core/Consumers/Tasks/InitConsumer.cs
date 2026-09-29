@@ -17,21 +17,25 @@ using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks;
 
 /// <summary>
 /// Server-side consumer that receives Init requests and dispatches them to runners via SignalR.
 /// Now resolves environment variables on the server before dispatching to eliminate circular API calls.
 /// </summary>
-public class InitConsumer : IConsumer<InitRequested>
+public abstract class InitConsumer<TRequested, TFaulted> : IConsumer<TRequested>
+    where TRequested : InitRequestedBase
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<InitConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
     private readonly ParamResolverFactory _paramResolverFactory;
 
-    public InitConsumer(
-        ILogger<InitConsumer> logger,
+    protected InitConsumer(
+        ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection,
         ParamResolverFactory paramResolverFactory)
@@ -42,7 +46,10 @@ public class InitConsumer : IConsumer<InitRequested>
         _paramResolverFactory = paramResolverFactory;
     }
 
-    public async Task Consume(ConsumeContext<InitRequested> context)
+    /// <summary>The runner endpoint this job kind is dispatched to.</summary>
+    protected abstract string Endpoint { get; }
+
+    public async Task Consume(ConsumeContext<TRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -116,7 +123,7 @@ public class InitConsumer : IConsumer<InitRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Init,
+                Endpoint,
                 new InitRequestBase
                 {
                     JobId = jobId,
@@ -151,7 +158,7 @@ public class InitConsumer : IConsumer<InitRequested>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching Init request for job {JobId}", jobId);
-            await context.Publish(new InitFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,
@@ -161,4 +168,26 @@ public class InitConsumer : IConsumer<InitRequested>
             });
         }
     }
+}
+
+public class ApplyInitConsumer(
+    ILogger<ApplyInitConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection,
+    ParamResolverFactory paramResolverFactory)
+    : InitConsumer<ApplyInitRequested, ApplyInitFaulted>(
+        logger, hubContext, runnerSelection, paramResolverFactory)
+{
+    protected override string Endpoint => RunnerEndpoints.ApplyInit;
+}
+
+public class DestroyInitConsumer(
+    ILogger<DestroyInitConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection,
+    ParamResolverFactory paramResolverFactory)
+    : InitConsumer<DestroyInitRequested, DestroyInitFaulted>(
+        logger, hubContext, runnerSelection, paramResolverFactory)
+{
+    protected override string Endpoint => RunnerEndpoints.DestroyInit;
 }

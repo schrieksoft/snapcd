@@ -256,7 +256,7 @@ public partial class TransferMigrateStateMachine
         // The plan ends the preamble rather than sending another request.
         During(PlanPending,
             // A transfer proves against a clean plan, so a dirty one ends this Module's run here.
-            When(PlanCompleted, context => context.Message.TotalChangedCount != 0)
+            When(ApplyPlanCompleted, context => context.Message.TotalChangedCount != 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Refused))
                 .Then(context => _logger.LogInformation(
                     "Transfer: Module {ModuleId} plans {Count} changes; a transfer needs a clean plan",
@@ -265,12 +265,12 @@ public partial class TransferMigrateStateMachine
 
             // Clean: straight on to this Module's own slices, which it runs without being told.
             // Filtered explicitly, because two handlers for one event both run otherwise.
-            When(PlanCompleted, context => context.Message.TotalChangedCount == 0)
+            When(ApplyPlanCompleted, context => context.Message.TotalChangedCount == 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Succeeded))
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferPlanCompleted, TransferMigrateMapRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "MigrateMap"))
-                .TransitionTo(MigrateMapPending),
-            When(PlanFaulted)
+                .ThenAsync(context => RecordDispatched(context, "TransferMigrateMap"))
+                .TransitionTo(TransferMigrateMapPending),
+            When(ApplyPlanFaulted)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
 

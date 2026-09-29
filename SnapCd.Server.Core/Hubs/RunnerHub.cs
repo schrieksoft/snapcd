@@ -55,16 +55,23 @@ public class RunnerHub : Hub
     private readonly IBus _bus;
     private readonly ILogger<RunnerHub> _logger;
     private readonly RunnerJobAuthorizationService _authorizationService;
-    private readonly GetDefinitiveRevisionHandler _getModuleDefinitiveRevisionHandler;
-    private readonly GetModuleHandler _getModuleHandler;
-    private readonly InitHandler _initHandler;
-    private readonly ValidateHandler _validateHandler;
-    private readonly PolicyValidateHandler _policyValidateHandler;
-    private readonly VariableHandler _variableHandler;
+    private readonly ApplyGetDefinitiveRevisionHandler _applyGetDefinitiveRevisionHandler;
+    private readonly DestroyGetDefinitiveRevisionHandler _destroyGetDefinitiveRevisionHandler;
+    private readonly ApplyPolicyValidateHandler _applyPolicyValidateHandler;
+    private readonly DestroyPolicyValidateHandler _destroyPolicyValidateHandler;
+    private readonly ApplyOutputHandler _applyOutputHandler;
+    private readonly DestroyOutputHandler _destroyOutputHandler;
     private readonly PlanHandler _planHandler;
     private readonly SplitGetModuleHandler _splitGetModuleHandler;
     private readonly TransferStepHandler _transferStepHandler;
-    private readonly SharedStepRouter _sharedSteps;
+    private readonly ApplyGetModuleHandler _applyGetModuleHandler;
+    private readonly ApplyInitHandler _applyInitHandler;
+    private readonly ApplyValidateHandler _applyValidateHandler;
+    private readonly ApplyVariablesHandler _applyVariablesHandler;
+    private readonly DestroyGetModuleHandler _destroyGetModuleHandler;
+    private readonly DestroyInitHandler _destroyInitHandler;
+    private readonly DestroyValidateHandler _destroyValidateHandler;
+    private readonly DestroyVariablesHandler _destroyVariablesHandler;
     private readonly StateListFilteredGetModuleHandler _stateListFilteredGetModuleHandler;
     private readonly StateListFilteredInitHandler _stateListFilteredInitHandler;
     private readonly MoveGetModuleHandler _moveGetModuleHandler;
@@ -76,17 +83,16 @@ public class RunnerHub : Hub
     private readonly SplitInitHandler _splitInitHandler;
     private readonly SplitValidateHandler _splitValidateHandler;
     private readonly SplitPlanHandler _splitPlanHandler;
-    private readonly PlanEmptyVerifyHandler _planEmptyVerifyHandler;
-    private readonly RefactorValidateHandler _refactorValidateHandler;
-    private readonly RefactorDiffHandler _refactorDiffHandler;
-    private readonly MigrateMapHandler _migrateMapHandler;
-    private readonly MigrateProveHandler _migrateProveHandler;
-    private readonly MigrateRunHandler _migrateRunHandler;
-    private readonly MigrateVerifyHandler _migrateVerifyHandler;
+    private readonly SplitPlanEmptyVerifyHandler _planEmptyVerifyHandler;
+    private readonly SplitRefactorValidateHandler _refactorValidateHandler;
+    private readonly SplitRefactorDiffHandler _refactorDiffHandler;
+    private readonly SplitMigrateMapHandler _migrateMapHandler;
+    private readonly SplitMigrateProveHandler _migrateProveHandler;
+    private readonly SplitMigrateRunHandler _migrateRunHandler;
+    private readonly SplitMigrateVerifyHandler _migrateVerifyHandler;
     private readonly PlanDestroyHandler _planDestroyHandler;
     private readonly ApplyFromPlanHandler _applyFromPlanHandler;
     private readonly DestroyFromPlanHandler _destroyFromPlanHandler;
-    private readonly OutputHandler _outputHandler;
     private readonly SourceRefreshHandler _sourceRefreshHandler;
     private readonly RunnerConnectionValidator _connectionValidator;
     private readonly ServerSettings _serverSettings;
@@ -102,16 +108,23 @@ public class RunnerHub : Hub
         IBus bus,
         ILogger<RunnerHub> logger,
         RunnerJobAuthorizationService authorizationService,
-        GetDefinitiveRevisionHandler getModuleDefinitiveRevisionHandler,
-        GetModuleHandler getModuleHandler,
-        InitHandler initHandler,
-        ValidateHandler validateHandler,
-        PolicyValidateHandler policyValidateHandler,
-        VariableHandler variableHandler,
+        ApplyGetDefinitiveRevisionHandler applyGetDefinitiveRevisionHandler,
+        DestroyGetDefinitiveRevisionHandler destroyGetDefinitiveRevisionHandler,
+        ApplyPolicyValidateHandler applyPolicyValidateHandler,
+        DestroyPolicyValidateHandler destroyPolicyValidateHandler,
+        ApplyOutputHandler applyOutputHandler,
+        DestroyOutputHandler destroyOutputHandler,
         PlanHandler planHandler,
         SplitGetModuleHandler splitGetModuleHandler,
         TransferStepHandler transferStepHandler,
-        SharedStepRouter sharedSteps,
+        ApplyGetModuleHandler applyGetModuleHandler,
+        ApplyInitHandler applyInitHandler,
+        ApplyValidateHandler applyValidateHandler,
+        ApplyVariablesHandler applyVariablesHandler,
+        DestroyGetModuleHandler destroyGetModuleHandler,
+        DestroyInitHandler destroyInitHandler,
+        DestroyValidateHandler destroyValidateHandler,
+        DestroyVariablesHandler destroyVariablesHandler,
         StateListFilteredGetModuleHandler stateListFilteredGetModuleHandler,
         StateListFilteredInitHandler stateListFilteredInitHandler,
         MoveGetModuleHandler moveGetModuleHandler,
@@ -123,17 +136,16 @@ public class RunnerHub : Hub
         SplitInitHandler splitInitHandler,
         SplitValidateHandler splitValidateHandler,
         SplitPlanHandler splitPlanHandler,
-        PlanEmptyVerifyHandler planEmptyVerifyHandler,
-        RefactorValidateHandler refactorValidateHandler,
-        RefactorDiffHandler refactorDiffHandler,
-        MigrateMapHandler migrateMapHandler,
-        MigrateProveHandler migrateProveHandler,
-        MigrateRunHandler migrateRunHandler,
-        MigrateVerifyHandler migrateVerifyHandler,
+        SplitPlanEmptyVerifyHandler planEmptyVerifyHandler,
+        SplitRefactorValidateHandler refactorValidateHandler,
+        SplitRefactorDiffHandler refactorDiffHandler,
+        SplitMigrateMapHandler migrateMapHandler,
+        SplitMigrateProveHandler migrateProveHandler,
+        SplitMigrateRunHandler migrateRunHandler,
+        SplitMigrateVerifyHandler migrateVerifyHandler,
         PlanDestroyHandler planDestroyHandler,
         ApplyFromPlanHandler applyFromPlanHandler,
         DestroyFromPlanHandler destroyFromPlanHandler,
-        OutputHandler outputHandler,
         SourceRefreshHandler sourceRefreshHandler,
         RunnerConnectionValidator connectionValidator,
         IOptions<ServerSettings> serverSettings,
@@ -148,16 +160,23 @@ public class RunnerHub : Hub
         _bus = bus;
         _logger = logger;
         _authorizationService = authorizationService;
-        _getModuleDefinitiveRevisionHandler = getModuleDefinitiveRevisionHandler;
-        _getModuleHandler = getModuleHandler;
-        _initHandler = initHandler;
-        _validateHandler = validateHandler;
-        _policyValidateHandler = policyValidateHandler;
-        _variableHandler = variableHandler;
+        _applyGetDefinitiveRevisionHandler = applyGetDefinitiveRevisionHandler;
+        _destroyGetDefinitiveRevisionHandler = destroyGetDefinitiveRevisionHandler;
+        _applyPolicyValidateHandler = applyPolicyValidateHandler;
+        _destroyPolicyValidateHandler = destroyPolicyValidateHandler;
+        _applyOutputHandler = applyOutputHandler;
+        _destroyOutputHandler = destroyOutputHandler;
         _planHandler = planHandler;
         _splitGetModuleHandler = splitGetModuleHandler;
         _transferStepHandler = transferStepHandler;
-        _sharedSteps = sharedSteps;
+        _applyGetModuleHandler = applyGetModuleHandler;
+        _applyInitHandler = applyInitHandler;
+        _applyValidateHandler = applyValidateHandler;
+        _applyVariablesHandler = applyVariablesHandler;
+        _destroyGetModuleHandler = destroyGetModuleHandler;
+        _destroyInitHandler = destroyInitHandler;
+        _destroyValidateHandler = destroyValidateHandler;
+        _destroyVariablesHandler = destroyVariablesHandler;
         _stateListFilteredGetModuleHandler = stateListFilteredGetModuleHandler;
         _stateListFilteredInitHandler = stateListFilteredInitHandler;
         _moveGetModuleHandler = moveGetModuleHandler;
@@ -179,7 +198,6 @@ public class RunnerHub : Hub
         _planDestroyHandler = planDestroyHandler;
         _applyFromPlanHandler = applyFromPlanHandler;
         _destroyFromPlanHandler = destroyFromPlanHandler;
-        _outputHandler = outputHandler;
         _sourceRefreshHandler = sourceRefreshHandler;
         _connectionValidator = connectionValidator;
         _serverSettings = serverSettings.Value;
@@ -472,222 +490,113 @@ public class RunnerHub : Hub
     }
 
 
-    /// <summary>
-    /// Called by runner when GetDefinitiveRevision task completes successfully.
-    /// </summary>
-    public async Task GetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
-    {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.GetDefinitiveRevisionCompleted);
 
-        await _getModuleDefinitiveRevisionHandler.Complete(jobId, definitiveRevision);
+
+
+
+
+
+
+
+
+
+
+
+    public async Task SplitValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _splitValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-    /// <summary>
-    /// Called by runner when GetDefinitiveRevision task is cancelled.
-    /// </summary>
-    public async Task GetDefinitiveRevisionCancelled(Guid jobId)
+    public async Task TransferValidateFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.GetDefinitiveRevisionCancelled);
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.ValidatePending, moduleId);
 
-        await _getModuleDefinitiveRevisionHandler.Cancel(jobId);
-    }
-
-    /// <summary>
-    /// Called by runner when GetDefinitiveRevision task faults with an error.
-    /// </summary>
-    public async Task GetDefinitiveRevisionFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.GetDefinitiveRevisionFaulted);
-
-        await _getModuleDefinitiveRevisionHandler.Fault(jobId, errorMessage, stackTrace);
-    }
-
-    /// <summary>
-    /// Called by runner when GetModule task completes successfully.
-    /// </summary>
-    public async Task GetModuleCompleted(Guid jobId)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.GetModuleCompleted, SplitMigrateTaskEndpoint.GetModuleCompleted);
-
-        await _sharedSteps.GetModuleCompleted(auth, jobId);
-    }
-
-    /// <summary>
-    /// Called by runner when GetModule task is cancelled.
-    /// </summary>
-    public async Task GetModuleCancelled(Guid jobId)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.GetModuleCancelled, SplitMigrateTaskEndpoint.GetModuleCancelled);
-
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitGetModuleHandler.Cancel(jobId, auth.OrganizationId);
-        else
-            await _getModuleHandler.Cancel(jobId);
-    }
-
-    /// <summary>
-    /// Called by runner when GetModule task faults with an error.
-    /// </summary>
-    public async Task GetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.GetModuleFaulted, SplitMigrateTaskEndpoint.GetModuleFaulted);
-
-        await _sharedSteps.GetModuleFaulted(auth, jobId, errorMessage, stackTrace);
-    }
-
-    /// <summary>
-    /// Called by runner when Init task completes successfully.
-    /// </summary>
-    public async Task InitCompleted(Guid jobId)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.InitCompleted, SplitMigrateTaskEndpoint.InitCompleted);
-
-        await _sharedSteps.InitCompleted(auth, jobId);
-    }
-
-    /// <summary>
-    /// Called by runner when Init task is cancelled.
-    /// </summary>
-    public async Task InitCancelled(Guid jobId)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.InitCancelled, SplitMigrateTaskEndpoint.InitCancelled);
-
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitInitHandler.Cancel(jobId, auth.OrganizationId);
-        else
-            await _initHandler.Cancel(jobId);
-    }
-
-    /// <summary>
-    /// Called by runner when Init task faults with an error.
-    /// </summary>
-    public async Task InitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.InitFaulted, SplitMigrateTaskEndpoint.InitFaulted);
-
-        await _sharedSteps.InitFaulted(auth, jobId, errorMessage, stackTrace);
-    }
-
-    /// <summary>
-    /// Called by runner when Validate task completes successfully.
-    /// </summary>
-    public async Task ValidateCompleted(Guid jobId)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.ValidateCompleted, SplitMigrateTaskEndpoint.ValidateCompleted);
-
-        await _sharedSteps.ValidateCompleted(auth, jobId);
-    }
-
-    /// <summary>
-    /// Called by runner when Validate task is cancelled.
-    /// </summary>
-    public async Task ValidateCancelled(Guid jobId)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.ValidateCancelled, SplitMigrateTaskEndpoint.ValidateCancelled);
-
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitValidateHandler.Cancel(jobId, auth.OrganizationId);
-        else
-            await _validateHandler.Cancel(jobId);
+        await _transferStepHandler.Fault<TransferValidateFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
 
 
-    public async Task ValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.ValidateFaulted, SplitMigrateTaskEndpoint.ValidateFaulted);
 
-        await _sharedSteps.ValidateFaulted(auth, jobId, errorMessage, stackTrace);
+
+
+
+
+
+
+
+    public async Task ApplyPlanCompleted(Guid jobId, PlanCompletedData data)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.PlanPending);
+
+        await _planHandler.Complete(jobId, data);
     }
 
-    /// <summary>
-    /// Called by runner when PolicyValidate task completes (any outcome, including a hard deny).
-    /// </summary>
-    public async Task PolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    public async Task SplitPlanCompleted(Guid jobId, PlanCompletedData data)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PolicyValidateCompleted);
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.PlanPending);
 
-        await _policyValidateHandler.Complete(jobId, outcome);
+        await _splitPlanHandler.Complete(jobId, organizationId, data.TotalChangedCount);
     }
 
-    /// <summary>
-    /// Called by runner when PolicyValidate task is cancelled.
-    /// </summary>
-    public async Task PolicyValidateCancelled(Guid jobId)
+    public async Task TransferPlanCompleted(Guid jobId, Guid moduleId, PlanCompletedData data)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PolicyValidateCancelled);
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.PlanPending, moduleId);
 
-        await _policyValidateHandler.Cancel(jobId);
-    }
-
-    public async Task PolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PolicyValidateFaulted);
-
-        await _policyValidateHandler.Fault(jobId, errorMessage, stackTrace);
-    }
-
-    public async Task VariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
-    {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.VariablesCompleted);
-
-        await _variableHandler.Complete(jobId, variableSet);
+        await _transferStepHandler.Complete<TransferPlanCompleted>(
+            jobId, moduleId, organizationId, c => c.TotalChangedCount = data.TotalChangedCount);
     }
 
 
-    public async Task VariablesCancelled(Guid jobId)
+    public async Task ApplyPlanCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.VariablesCancelled);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.PlanPending);
 
-        await _variableHandler.Cancel(jobId);
+        await _planHandler.Cancel(jobId);
+    }
+
+    public async Task SplitPlanCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.PlanPending);
+
+        await _splitPlanHandler.Cancel(jobId, organizationId);
     }
 
 
-    public async Task VariablesFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task ApplyPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.VariablesFaulted);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.PlanPending);
 
-        await _variableHandler.Fault(jobId, errorMessage, stackTrace);
+        await _planHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
     }
 
-
-    public async Task PlanCompleted(Guid jobId, PlanCompletedData data)
+    public async Task SplitPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.PlanCompleted, SplitMigrateTaskEndpoint.PlanCompleted);
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.PlanPending);
 
-        await _sharedSteps.PlanCompleted(auth, jobId, data);
+        await _splitPlanHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-
-    public async Task PlanCancelled(Guid jobId)
+    public async Task TransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.PlanCancelled, SplitMigrateTaskEndpoint.PlanCancelled);
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.PlanPending, moduleId);
 
-        if (auth.Family == JobSagaFamily.SplitMigrate)
-            await _splitPlanHandler.Cancel(jobId, auth.OrganizationId);
-        else
-            await _planHandler.Cancel(jobId);
-    }
-
-
-    public async Task PlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
-    {
-        var auth = await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.PlanFaulted, SplitMigrateTaskEndpoint.PlanFaulted);
-
-        await _sharedSteps.PlanFaulted(auth, jobId, errorMessage, stackTrace, policyOutcome);
+        await _transferStepHandler.Fault<TransferPlanFaulted>(
+            jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
 
 
@@ -702,75 +611,75 @@ public class RunnerHub : Hub
 
 
 
-    public async Task PlanEmptyVerifyCompleted(Guid jobId)
+    public async Task SplitPlanEmptyVerifyCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.PlanEmptyVerifyCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitPlanEmptyVerifyPending);
 
         await _planEmptyVerifyHandler.Complete(jobId, organizationId);
     }
 
-    public async Task PlanEmptyVerifyCancelled(Guid jobId)
+    public async Task SplitPlanEmptyVerifyCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.PlanEmptyVerifyCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitPlanEmptyVerifyPending);
 
         await _planEmptyVerifyHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task PlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task SplitPlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.PlanEmptyVerifyFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitPlanEmptyVerifyPending);
 
         await _planEmptyVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
 
-    public async Task RefactorValidateCompleted(Guid jobId)
+    public async Task SplitRefactorValidateCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.RefactorValidateCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitRefactorValidatePending);
 
         await _refactorValidateHandler.Complete(jobId, organizationId);
     }
 
-    public async Task RefactorValidateCancelled(Guid jobId)
+    public async Task SplitRefactorValidateCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.RefactorValidateCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitRefactorValidatePending);
 
         await _refactorValidateHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task RefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task SplitRefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.RefactorValidateFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitRefactorValidatePending);
 
         await _refactorValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task RefactorDiffCompleted(Guid jobId)
+    public async Task SplitRefactorDiffCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.RefactorDiffCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitRefactorDiffPending);
 
         await _refactorDiffHandler.Complete(jobId, organizationId);
     }
 
-    public async Task RefactorDiffCancelled(Guid jobId)
+    public async Task SplitRefactorDiffCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.RefactorDiffCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitRefactorDiffPending);
 
         await _refactorDiffHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task RefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task SplitRefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.RefactorDiffFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitRefactorDiffPending);
 
         await _refactorDiffHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -789,8 +698,8 @@ public class RunnerHub : Hub
 
     public async Task TransferMigrateMapCompleted(Guid jobId, Guid moduleId, List<string> needsOutputs)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateMap");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateMapPending, moduleId);
 
         await _transferStepHandler.Complete<TransferMigrateMapCompleted>(
             jobId, moduleId, organizationId, c => c.NeedsOutputs = needsOutputs);
@@ -798,8 +707,8 @@ public class RunnerHub : Hub
 
     public async Task TransferMigrateMapFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateMap");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateMapPending, moduleId);
 
         await _transferStepHandler.Fault<TransferMigrateMapFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
@@ -808,8 +717,8 @@ public class RunnerHub : Hub
     public async Task TransferMigrateProveCompleted(
         Guid jobId, Guid moduleId, int exitCode, Dictionary<string, string> outputs, string? verdict)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateProve");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateProvePending, moduleId);
 
         await _transferStepHandler.Complete<TransferMigrateProveCompleted>(
             jobId, moduleId, organizationId, c =>
@@ -822,8 +731,8 @@ public class RunnerHub : Hub
 
     public async Task TransferMigrateProveFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateProve");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateProvePending, moduleId);
 
         await _transferStepHandler.Fault<TransferMigrateProveFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
@@ -832,8 +741,8 @@ public class RunnerHub : Hub
     public async Task TransferMigrateRunCompleted(
         Guid jobId, Guid moduleId, List<string> transferredAddresses, bool gaveUp)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateRun");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateRunPending, moduleId);
 
         await _transferStepHandler.Complete<TransferMigrateRunCompleted>(
             jobId, moduleId, organizationId, c =>
@@ -1036,8 +945,8 @@ public class RunnerHub : Hub
 
     public async Task TransferOutputsCompleted(Guid jobId, Guid moduleId, OutputSetCreateDto? outputSet)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Outputs");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferOutputsPending, moduleId);
 
         // Storing opens its own transaction, so it happens in a consumer rather than in the
         // saga, whose context is already in one.
@@ -1052,8 +961,8 @@ public class RunnerHub : Hub
 
     public async Task TransferOutputsFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "Outputs");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferOutputsPending, moduleId);
 
         await _transferStepHandler.Fault<TransferOutputsFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
@@ -1061,8 +970,8 @@ public class RunnerHub : Hub
 
     public async Task TransferMigrateRunFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateRun");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateRunPending, moduleId);
 
         await _transferStepHandler.Fault<TransferMigrateRunFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
@@ -1070,16 +979,16 @@ public class RunnerHub : Hub
 
     public async Task TransferMigrateVerifyCompleted(Guid jobId, Guid moduleId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateVerify");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateVerifyPending, moduleId);
 
         await _transferStepHandler.Complete<TransferMigrateVerifyCompleted>(jobId, moduleId, organizationId);
     }
 
     public async Task TransferMigrateVerifyFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "MigrateVerify");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateVerifyPending, moduleId);
 
         await _transferStepHandler.Fault<TransferMigrateVerifyFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
@@ -1087,8 +996,8 @@ public class RunnerHub : Hub
 
     public async Task TransferRefactorDiffCompleted(Guid jobId, Guid moduleId, int exitCode, string? verdict)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "RefactorDiff");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferRefactorDiffPending, moduleId);
 
         await _transferStepHandler.Complete<TransferRefactorDiffCompleted>(
             jobId, moduleId, organizationId, c =>
@@ -1100,192 +1009,183 @@ public class RunnerHub : Hub
 
     public async Task TransferRefactorDiffFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessTransferJob(
-            Context, jobId, moduleId, "RefactorDiff");
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferRefactorDiffPending, moduleId);
 
         await _transferStepHandler.Fault<TransferRefactorDiffFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task MigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
+    public async Task SplitMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateMapCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateMapPending);
 
         await _migrateMapHandler.Complete(jobId, organizationId, refactorMapHash, carvedModuleNames, resourcesMoved);
     }
 
-    public async Task MigrateMapCancelled(Guid jobId)
+    public async Task SplitMigrateMapCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateMapCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateMapPending);
 
         await _migrateMapHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task MigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task SplitMigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateMapFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateMapPending);
 
         await _migrateMapHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task MigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    public async Task SplitMigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateProveCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateProvePending);
 
         await _migrateProveHandler.Complete(jobId, organizationId, modulesProven, modulesPlanningClean);
     }
 
-    public async Task MigrateProveCancelled(Guid jobId)
+    public async Task SplitMigrateProveCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateProveCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateProvePending);
 
         await _migrateProveHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task MigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task SplitMigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateProveFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateProvePending);
 
         await _migrateProveHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task MigrateRunCompleted(Guid jobId)
+    public async Task SplitMigrateRunCompleted(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateRunCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateRunPending);
 
         await _migrateRunHandler.Complete(jobId, organizationId);
     }
 
-    public async Task MigrateRunCancelled(Guid jobId)
+    public async Task SplitMigrateRunCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateRunCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateRunPending);
 
         await _migrateRunHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task MigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task SplitMigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateRunFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateRunPending);
 
         await _migrateRunHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task MigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    public async Task SplitMigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateVerifyCompleted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateVerifyPending);
 
         await _migrateVerifyHandler.Complete(jobId, organizationId, modulesProven, modulesPlanningClean);
     }
 
-    public async Task MigrateVerifyCancelled(Guid jobId)
+    public async Task SplitMigrateVerifyCancelled(Guid jobId)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateVerifyCancelled);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateVerifyPending);
 
         await _migrateVerifyHandler.Cancel(jobId, organizationId);
     }
 
-    public async Task MigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task SplitMigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessSplitMigrateJob(
-            Context, jobId, SplitMigrateTaskEndpoint.MigrateVerifyFaulted);
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.SplitMigrateVerifyPending);
 
         await _migrateVerifyHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task PlanDestroyCompleted(Guid jobId, PlanCompletedData data)
+    public async Task DestroyPlanCompleted(Guid jobId, PlanCompletedData data)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanDestroyCompleted);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.PlanPending);
 
         await _planDestroyHandler.Complete(jobId, data);
     }
 
-    public async Task PlanDestroyCancelled(Guid jobId)
+    public async Task DestroyPlanCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanDestroyCancelled);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.PlanPending);
 
         await _planDestroyHandler.Cancel(jobId);
     }
 
-    public async Task PlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
+    public async Task DestroyPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.PlanDestroyFaulted);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.PlanPending);
 
         await _planDestroyHandler.Fault(jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     public async Task ApplyFromPlanCompleted(Guid jobId, int? actualResourceCount)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.ApplyFromPlanCompleted);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.ApplyFromPlanPending);
 
         await _applyFromPlanHandler.Complete(jobId, actualResourceCount);
     }
 
     public async Task ApplyFromPlanCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.ApplyFromPlanCancelled);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.ApplyFromPlanPending);
 
         await _applyFromPlanHandler.Cancel(jobId);
     }
 
     public async Task ApplyFromPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, int? actualResourceCount)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.ApplyFromPlanFaulted);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.ApplyFromPlanPending);
 
         await _applyFromPlanHandler.Fault(jobId, errorMessage, stackTrace, actualResourceCount);
     }
 
     public async Task DestroyFromPlanCompleted(Guid jobId, int? actualResourceCount)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.DestroyFromPlanCompleted);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.ApplyFromPlanPending);
 
         await _destroyFromPlanHandler.Complete(jobId, actualResourceCount);
     }
 
     public async Task DestroyFromPlanCancelled(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.DestroyFromPlanCancelled);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.ApplyFromPlanPending);
 
         await _destroyFromPlanHandler.Cancel(jobId);
     }
 
     public async Task DestroyFromPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, int? actualResourceCount)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.DestroyFromPlanFaulted);
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.ApplyFromPlanPending);
 
         await _destroyFromPlanHandler.Fault(jobId, errorMessage, stackTrace, actualResourceCount);
     }
 
-    public async Task OutputCompleted(Guid jobId, OutputSetCreateDto? outputSet)
-    {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.OutputCompleted);
 
-        await _outputHandler.Complete(jobId, outputSet);
-    }
 
-    public async Task OutputCancelled(Guid jobId)
-    {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.OutputCancelled);
-
-        await _outputHandler.Cancel(jobId);
-    }
-
-    public async Task OutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _authorizationService.ValidateRunnerCanAccessJob(Context, jobId, TaskEndpoint.OutputFaulted);
-
-        await _outputHandler.Fault(jobId, errorMessage, stackTrace);
-    }
 
     public async Task SourceRefreshCompleted(
         string sourceUrl,
@@ -1333,8 +1233,8 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task CancelKillCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.CancelKillCompleted, SplitMigrateTaskEndpoint.CancelKillCompleted);
+        await _authorizationService.ValidateRunnerCanCancelJob(
+            Context, jobId, SagaStates.CancellingImmediateKill);
 
         // Publish MassTransit event
         await _cancelKillHandler.Complete(jobId);
@@ -1346,8 +1246,8 @@ public class RunnerHub : Hub
     /// </summary>
     public async Task CancelGracefulCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanAccessJob(
-            Context, jobId, TaskEndpoint.CancelGracefulCompleted, SplitMigrateTaskEndpoint.CancelGracefulCompleted);
+        await _authorizationService.ValidateRunnerCanCancelJob(
+            Context, jobId, SagaStates.CancellingImmediateGraceful);
 
         // Publish MassTransit event
         await _cancelGracefulHandler.Complete(jobId);
@@ -1359,7 +1259,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredGetModuleCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _stateListFilteredGetModuleHandler.Complete(jobId, organizationId);
     }
@@ -1367,7 +1267,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredGetModuleCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _stateListFilteredGetModuleHandler.Cancel(jobId, organizationId);
     }
@@ -1375,7 +1275,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _stateListFilteredGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1383,7 +1283,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredInitCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.InitPending);
 
         await _stateListFilteredInitHandler.Complete(jobId, organizationId);
     }
@@ -1391,7 +1291,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredInitCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.InitPending);
 
         await _stateListFilteredInitHandler.Cancel(jobId, organizationId);
     }
@@ -1399,7 +1299,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<StateListFilteredSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.InitPending);
 
         await _stateListFilteredInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1407,7 +1307,7 @@ public class RunnerHub : Hub
     public async Task MoveGetModuleCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<MoveSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _moveGetModuleHandler.Complete(jobId, organizationId);
     }
@@ -1415,7 +1315,7 @@ public class RunnerHub : Hub
     public async Task MoveGetModuleCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<MoveSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _moveGetModuleHandler.Cancel(jobId, organizationId);
     }
@@ -1423,7 +1323,7 @@ public class RunnerHub : Hub
     public async Task MoveGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<MoveSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _moveGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1431,7 +1331,7 @@ public class RunnerHub : Hub
     public async Task MoveInitCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<MoveSaga>(Context, jobId, SagaStates.InitPending);
 
         await _moveInitHandler.Complete(jobId, organizationId);
     }
@@ -1439,7 +1339,7 @@ public class RunnerHub : Hub
     public async Task MoveInitCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<MoveSaga>(Context, jobId, SagaStates.InitPending);
 
         await _moveInitHandler.Cancel(jobId, organizationId);
     }
@@ -1447,7 +1347,7 @@ public class RunnerHub : Hub
     public async Task MoveInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<MoveSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<MoveSaga>(Context, jobId, SagaStates.InitPending);
 
         await _moveInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1455,7 +1355,7 @@ public class RunnerHub : Hub
     public async Task ImportGetModuleCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<ImportSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _importGetModuleHandler.Complete(jobId, organizationId);
     }
@@ -1463,7 +1363,7 @@ public class RunnerHub : Hub
     public async Task ImportGetModuleCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<ImportSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _importGetModuleHandler.Cancel(jobId, organizationId);
     }
@@ -1471,7 +1371,7 @@ public class RunnerHub : Hub
     public async Task ImportGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<ImportSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _importGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1479,7 +1379,7 @@ public class RunnerHub : Hub
     public async Task ImportInitCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<ImportSaga>(Context, jobId, SagaStates.InitPending);
 
         await _importInitHandler.Complete(jobId, organizationId);
     }
@@ -1487,7 +1387,7 @@ public class RunnerHub : Hub
     public async Task ImportInitCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<ImportSaga>(Context, jobId, SagaStates.InitPending);
 
         await _importInitHandler.Cancel(jobId, organizationId);
     }
@@ -1495,7 +1395,7 @@ public class RunnerHub : Hub
     public async Task ImportInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<ImportSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<ImportSaga>(Context, jobId, SagaStates.InitPending);
 
         await _importInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1503,7 +1403,7 @@ public class RunnerHub : Hub
     public async Task RemoveGetModuleCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<RemoveSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _removeGetModuleHandler.Complete(jobId, organizationId);
     }
@@ -1511,7 +1411,7 @@ public class RunnerHub : Hub
     public async Task RemoveGetModuleCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<RemoveSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _removeGetModuleHandler.Cancel(jobId, organizationId);
     }
@@ -1519,7 +1419,7 @@ public class RunnerHub : Hub
     public async Task RemoveGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "GetModulePending");
+            .ValidateRunnerCanAccessJob<RemoveSaga>(Context, jobId, SagaStates.GetModulePending);
 
         await _removeGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1527,7 +1427,7 @@ public class RunnerHub : Hub
     public async Task RemoveInitCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<RemoveSaga>(Context, jobId, SagaStates.InitPending);
 
         await _removeInitHandler.Complete(jobId, organizationId);
     }
@@ -1535,7 +1435,7 @@ public class RunnerHub : Hub
     public async Task RemoveInitCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<RemoveSaga>(Context, jobId, SagaStates.InitPending);
 
         await _removeInitHandler.Cancel(jobId, organizationId);
     }
@@ -1543,8 +1443,462 @@ public class RunnerHub : Hub
     public async Task RemoveInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessManualJob<RemoveSaga>(Context, jobId, "InitPending");
+            .ValidateRunnerCanAccessJob<RemoveSaga>(Context, jobId, SagaStates.InitPending);
 
         await _removeInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    // Apply and destroy answer on their own endpoints: the endpoint names the job kind, so the
+    // saga is read from that kind's own table.
+
+    public async Task ApplyGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _applyGetModuleHandler.Complete(jobId);
+    }
+
+    public async Task ApplyGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _applyGetModuleHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _applyGetModuleHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task ApplyInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _applyInitHandler.Complete(jobId);
+    }
+
+    public async Task ApplyInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _applyInitHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _applyInitHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task ApplyValidateCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _applyValidateHandler.Complete(jobId);
+    }
+
+    public async Task ApplyValidateCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _applyValidateHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _applyValidateHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task ApplyVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.VariablesPending);
+
+        await _applyVariablesHandler.Complete(jobId, variableSet);
+    }
+
+    public async Task ApplyVariablesCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.VariablesPending);
+
+        await _applyVariablesHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyVariablesFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.VariablesPending);
+
+        await _applyVariablesHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task DestroyGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _destroyGetModuleHandler.Complete(jobId);
+    }
+
+    public async Task DestroyGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _destroyGetModuleHandler.Cancel(jobId);
+    }
+
+    public async Task DestroyGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _destroyGetModuleHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task DestroyInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _destroyInitHandler.Complete(jobId);
+    }
+
+    public async Task DestroyInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _destroyInitHandler.Cancel(jobId);
+    }
+
+    public async Task DestroyInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _destroyInitHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task DestroyValidateCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _destroyValidateHandler.Complete(jobId);
+    }
+
+    public async Task DestroyValidateCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _destroyValidateHandler.Cancel(jobId);
+    }
+
+    public async Task DestroyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _destroyValidateHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task DestroyVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.VariablesPending);
+
+        await _destroyVariablesHandler.Complete(jobId, variableSet);
+    }
+
+    public async Task DestroyVariablesCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.VariablesPending);
+
+        await _destroyVariablesHandler.Cancel(jobId);
+    }
+
+    public async Task DestroyVariablesFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.VariablesPending);
+
+        await _destroyVariablesHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    // Apply and destroy answer on their own endpoints for these steps too.
+
+    public async Task ApplyGetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.GetDefinitiveRevisionPending);
+
+        await _applyGetDefinitiveRevisionHandler.Complete(jobId, definitiveRevision);
+    }
+
+    public async Task ApplyGetDefinitiveRevisionCancelled(Guid jobId)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.GetDefinitiveRevisionPending);
+
+        await _applyGetDefinitiveRevisionHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyGetDefinitiveRevisionFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.GetDefinitiveRevisionPending);
+
+        await _applyGetDefinitiveRevisionHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task DestroyGetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.GetDefinitiveRevisionPending);
+
+        await _destroyGetDefinitiveRevisionHandler.Complete(jobId, definitiveRevision);
+    }
+
+    public async Task DestroyGetDefinitiveRevisionCancelled(Guid jobId)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.GetDefinitiveRevisionPending);
+
+        await _destroyGetDefinitiveRevisionHandler.Cancel(jobId);
+    }
+
+    public async Task DestroyGetDefinitiveRevisionFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.GetDefinitiveRevisionPending);
+
+        await _destroyGetDefinitiveRevisionHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task ApplyPolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.PolicyValidatePending);
+
+        await _applyPolicyValidateHandler.Complete(jobId, outcome);
+    }
+
+    public async Task ApplyPolicyValidateCancelled(Guid jobId)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.PolicyValidatePending);
+
+        await _applyPolicyValidateHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyPolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.PolicyValidatePending);
+
+        await _applyPolicyValidateHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task DestroyPolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.PolicyValidatePending);
+
+        await _destroyPolicyValidateHandler.Complete(jobId, outcome);
+    }
+
+    public async Task DestroyPolicyValidateCancelled(Guid jobId)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.PolicyValidatePending);
+
+        await _destroyPolicyValidateHandler.Cancel(jobId);
+    }
+
+    public async Task DestroyPolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.PolicyValidatePending);
+
+        await _destroyPolicyValidateHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task ApplyOutputCompleted(Guid jobId, OutputSetCreateDto? outputSet)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.OutputPending);
+
+        await _applyOutputHandler.Complete(jobId, outputSet);
+    }
+
+    public async Task ApplyOutputCancelled(Guid jobId)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.OutputPending);
+
+        await _applyOutputHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyOutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId, SagaStates.OutputPending);
+
+        await _applyOutputHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task DestroyOutputCompleted(Guid jobId, OutputSetCreateDto? outputSet)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.OutputPending);
+
+        await _destroyOutputHandler.Complete(jobId, outputSet);
+    }
+
+    public async Task DestroyOutputCancelled(Guid jobId)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.OutputPending);
+
+        await _destroyOutputHandler.Cancel(jobId);
+    }
+
+    public async Task DestroyOutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId, SagaStates.OutputPending);
+
+        await _destroyOutputHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    // Split answers on its own endpoints for the setup steps too.
+
+    public async Task SplitGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _splitGetModuleHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task SplitGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _splitGetModuleHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task SplitGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.GetModulePending);
+
+        await _splitGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task SplitInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _splitInitHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task SplitInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _splitInitHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task SplitInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.InitPending);
+
+        await _splitInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task SplitValidateCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _splitValidateHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task SplitValidateCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.ValidatePending);
+
+        await _splitValidateHandler.Cancel(jobId, organizationId);
+    }
+
+    // Transfer answers on its own endpoints for the setup steps too.
+
+    public async Task TransferGetModuleCompleted(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.GetModulePending, moduleId);
+
+        await _transferStepHandler.Complete<TransferGetModuleCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferGetModuleFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.GetModulePending, moduleId);
+
+        await _transferStepHandler.Fault<TransferGetModuleFaulted>(jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferInitCompleted(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.InitPending, moduleId);
+
+        await _transferStepHandler.Complete<TransferInitCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferInitFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.InitPending, moduleId);
+
+        await _transferStepHandler.Fault<TransferInitFaulted>(jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferValidateCompleted(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+                Context, jobId, SagaStates.ValidatePending, moduleId);
+
+        await _transferStepHandler.Complete<TransferValidateCompleted>(jobId, moduleId, organizationId);
     }
 }
