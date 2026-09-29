@@ -44,8 +44,8 @@ public abstract partial class StateEditStateMachine<
     TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
-    TPreCheckRequested, TPreCheckCompleted, TPreCheckFaulted,
-    TEditRequested, TEditCompleted, TEditFaulted>
+    TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
+    TEditRequested, TEditCompleted, TEditCancelled, TEditFaulted>
     : MassTransitStateMachine<TSaga>
     where TSaga : StateEditSagaBase, new()
     where TJobRequested : StateEditJobRequestedBase
@@ -64,9 +64,11 @@ public abstract partial class StateEditStateMachine<
     where TInitFaulted : StateMigrationStepFaultedBase
     where TPreCheckRequested : StateEditRequestBase, new()
     where TPreCheckCompleted : StateEditResponseBase
+    where TPreCheckCancelled : StepResponseBase
     where TPreCheckFaulted : StepFaultedBase
     where TEditRequested : StateEditRequestBase, new()
     where TEditCompleted : StateEditResponseBase
+    where TEditCancelled : StepResponseBase
     where TEditFaulted : StepFaultedBase
 {
     private readonly ILogger _logger;
@@ -96,8 +98,10 @@ public abstract partial class StateEditStateMachine<
     public Event<TInitCancelled> InitCancelled { get; } = null!;
     public Event<TInitFaulted> InitFaulted { get; } = null!;
     public Event<TPreCheckCompleted> PreCheckCompleted { get; } = null!;
+    public Event<TPreCheckCancelled> PreCheckCancelled { get; } = null!;
     public Event<TPreCheckFaulted> PreCheckFaulted { get; } = null!;
     public Event<TEditCompleted> EditCompleted { get; } = null!;
+    public Event<TEditCancelled> EditCancelled { get; } = null!;
     public Event<TEditFaulted> EditFaulted { get; } = null!;
     public Event<StateListFilteredCompleted> ListCompleted { get; } = null!;
     public Event<StateListFilteredFaulted> ListFaulted { get; } = null!;
@@ -135,8 +139,10 @@ public abstract partial class StateEditStateMachine<
         Event(() => InitCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => InitFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PreCheckCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => PreCheckCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PreCheckFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => EditCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => EditCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => EditFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ListCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ListFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
@@ -196,6 +202,11 @@ public abstract partial class StateEditStateMachine<
                         OrganizationId = context.Saga.OrganizationId
                     })
                 .TransitionTo(ListPending),
+
+            When(EditCancelled)
+                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Cancelled))
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, TEditCancelled>>())
+                .TransitionTo(Failed).Finalize(),
 
             When(EditFaulted)
                 .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Faulted))

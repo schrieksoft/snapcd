@@ -17,5 +17,8 @@ public abstract class TransferStepRequestBase : StateMigrationStepRequestBase;
 /// <summary>A transfer step's reply.</summary>
 public class TransferStepResponseBase : StateMigrationStepResponseBase;
 
+/// <summary>A transfer step that stopped because the job was cancelled.</summary>
+public class TransferStepCancelledBase : TransferStepResponseBase;
+
 /// <summary>A transfer step that failed, and what broke.</summary>
 public class TransferStepFaultedBase : StateMigrationStepFaultedBase;

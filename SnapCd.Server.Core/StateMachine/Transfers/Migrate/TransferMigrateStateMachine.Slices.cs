@@ -44,6 +44,9 @@ public partial class TransferMigrateStateMachine
                         JsonSerializer.Serialize(context.Message.NeedsOutputs)),
                 transition: true),
 
+            When(TransferMigrateMapCancelled)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateMap", StateMigrationStepStatus.Cancelled))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
             When(TransferMigrateMapFaulted)
                 .ThenAsync(context => RecordCompleted(context, "TransferMigrateMap", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
@@ -77,6 +80,9 @@ public partial class TransferMigrateStateMachine
                             context.Saga.ModuleId, context.Message.Verdict))
                         .ThenJobFailed().TransitionTo(Failed).Finalize()),
 
+            When(TransferMigrateProveCancelled)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateProve", StateMigrationStepStatus.Cancelled))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
             When(TransferMigrateProveFaulted)
                 .ThenAsync(context => RecordCompleted(context, "TransferMigrateProve", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
@@ -98,6 +104,9 @@ public partial class TransferMigrateStateMachine
                 .ThenAsync(context => RecordDispatched(context, "TransferMigrateVerify"))
                 .TransitionTo(TransferMigrateVerifyPending),
 
+            When(TransferMigrateRunCancelled)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateRun", StateMigrationStepStatus.Cancelled))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
             When(TransferMigrateRunFaulted)
                 .ThenAsync(context => RecordCompleted(context, "TransferMigrateRun", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
@@ -119,6 +128,9 @@ public partial class TransferMigrateStateMachine
                 .ThenAsync(context => RecordDispatched(context, "TransferOutputs"))
                 .TransitionTo(TransferOutputsPending),
 
+            When(TransferMigrateVerifyCancelled)
+                .ThenAsync(context => RecordCompleted(context, "TransferMigrateVerify", StateMigrationStepStatus.Cancelled))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
             When(TransferMigrateVerifyFaulted)
                 .ThenAsync(context => RecordCompleted(context, "TransferMigrateVerify", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
@@ -181,6 +193,10 @@ public partial class TransferMigrateStateMachine
             When(TransferOutputsCompleted)
                 .ThenAsync(context => RecordCompleted(context, "TransferOutputs", StateMigrationStepStatus.Succeeded))
                 .ThenJobCompleted().TransitionTo(Completed).Finalize(),
+
+            When(TransferOutputsCancelled)
+                .ThenAsync(context => RecordCompleted(context, "TransferOutputs", StateMigrationStepStatus.Cancelled))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
 
             When(TransferOutputsFaulted)
                 .ThenAsync(context => RecordCompleted(context, "TransferOutputs", StateMigrationStepStatus.Faulted))

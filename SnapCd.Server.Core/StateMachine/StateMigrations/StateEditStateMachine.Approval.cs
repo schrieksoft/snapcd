@@ -27,8 +27,8 @@ public abstract partial class StateEditStateMachine<
     TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
-    TPreCheckRequested, TPreCheckCompleted, TPreCheckFaulted,
-    TEditRequested, TEditCompleted, TEditFaulted>
+    TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
+    TEditRequested, TEditCompleted, TEditCancelled, TEditFaulted>
 {
     public Event<ApprovalReevaluationRequestedEvent> ApprovalModifiedEvent { get; } = null!;
 

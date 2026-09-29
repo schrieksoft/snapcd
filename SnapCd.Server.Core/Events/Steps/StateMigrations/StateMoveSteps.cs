@@ -39,17 +39,23 @@ public class MoveRequested : StateEditRequestBase;
 
 public class MoveCompleted : StateEditResponseBase;
 
+public class MoveCancelled : StepResponseBase;
+
 public class MoveFaulted : StepFaultedBase;
 
 public class ImportRequested : StateEditRequestBase;
 
 public class ImportCompleted : StateEditResponseBase;
 
+public class ImportCancelled : StepResponseBase;
+
 public class ImportFaulted : StepFaultedBase;
 
 public class RemoveRequested : StateEditRequestBase;
 
 public class RemoveCompleted : StateEditResponseBase;
+
+public class RemoveCancelled : StepResponseBase;
 
 public class RemoveFaulted : StepFaultedBase;
 
@@ -61,16 +67,22 @@ public class MoveDryRunRequested : StateEditRequestBase;
 
 public class MoveDryRunCompleted : StateEditResponseBase;
 
+public class MoveDryRunCancelled : StepResponseBase;
+
 public class MoveDryRunFaulted : StepFaultedBase;
 
 public class RemoveDryRunRequested : StateEditRequestBase;
 
 public class RemoveDryRunCompleted : StateEditResponseBase;
 
+public class RemoveDryRunCancelled : StepResponseBase;
+
 public class RemoveDryRunFaulted : StepFaultedBase;
 
 public class ImportPreCheckRequested : StateEditRequestBase;
 
 public class ImportPreCheckCompleted : StateEditResponseBase;
+
+public class ImportPreCheckCancelled : StepResponseBase;
 
 public class ImportPreCheckFaulted : StepFaultedBase;

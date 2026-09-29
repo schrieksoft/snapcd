@@ -49,7 +49,8 @@ public partial class Tasks
                     nameof(client.InvokeTransferMigrateRunCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeTransferMigrateRunFaulted(request.JobId, request.ModuleId, message, stackTrace));
+                client.InvokeTransferMigrateRunFaulted(request.JobId, request.ModuleId, message, stackTrace),
+            client => client.InvokeTransferMigrateRunCancelled(request.JobId, request.ModuleId));
 
     /// <summary>Checks the written state plans clean, which closes this Module's move.</summary>
     public Task TransferMigrateVerify(TransferMigrateVerifyRequestBase request, HubConnection connection) =>
@@ -71,7 +72,8 @@ public partial class Tasks
                     nameof(client.InvokeTransferMigrateVerifyCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeTransferMigrateVerifyFaulted(request.JobId, request.ModuleId, message, stackTrace));
+                client.InvokeTransferMigrateVerifyFaulted(request.JobId, request.ModuleId, message, stackTrace),
+            client => client.InvokeTransferMigrateVerifyCancelled(request.JobId, request.ModuleId));
 
     /// <summary>
     /// Reads this Module's outputs once its state holds the moved resources, so the other side of
@@ -94,5 +96,6 @@ public partial class Tasks
                     nameof(client.InvokeTransferOutputsCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeTransferOutputsFaulted(request.JobId, request.ModuleId, message, stackTrace));
+                client.InvokeTransferOutputsFaulted(request.JobId, request.ModuleId, message, stackTrace),
+            client => client.InvokeTransferOutputsCancelled(request.JobId, request.ModuleId));
 }

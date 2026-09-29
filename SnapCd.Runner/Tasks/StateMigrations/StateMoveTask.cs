@@ -50,7 +50,8 @@ public partial class Tasks
                     nameof(client.InvokeMoveDryRunCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeMoveDryRunFaulted(request.JobId, message, stackTrace));
+                client.InvokeMoveDryRunFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeMoveDryRunCancelled(request.JobId));
 
     /// <summary>
     /// What a remove would take out, asked of the engine itself. state rm -dry-run prints what it
@@ -78,7 +79,8 @@ public partial class Tasks
                     nameof(client.InvokeRemoveDryRunCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeRemoveDryRunFaulted(request.JobId, message, stackTrace));
+                client.InvokeRemoveDryRunFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeRemoveDryRunCancelled(request.JobId));
 
     /// <summary>
     /// An import has no dry run, so this is a different question answered a different way: whether
@@ -125,7 +127,8 @@ public partial class Tasks
                     nameof(client.InvokeImportPreCheckCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeImportPreCheckFaulted(request.JobId, message, stackTrace));
+                client.InvokeImportPreCheckFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeImportPreCheckCancelled(request.JobId));
 
     /// <summary>Moves each address to where it should be. One command per address.</summary>
     public Task Move(StateMoveRequestBase request, HubConnection connection) =>
@@ -147,7 +150,8 @@ public partial class Tasks
                     nameof(client.InvokeMoveCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeMoveFaulted(request.JobId, message, stackTrace));
+                client.InvokeMoveFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeMoveCancelled(request.JobId));
 
     /// <summary>Imports each address from the id it already has. One command per address.</summary>
     public Task Import(StateMoveRequestBase request, HubConnection connection) =>
@@ -169,7 +173,8 @@ public partial class Tasks
                     nameof(client.InvokeMoveCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeMoveFaulted(request.JobId, message, stackTrace));
+                client.InvokeMoveFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeMoveCancelled(request.JobId));
 
     /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
     public Task Remove(StateMoveRequestBase request, HubConnection connection) =>
@@ -191,7 +196,8 @@ public partial class Tasks
                     nameof(client.InvokeMoveCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeMoveFaulted(request.JobId, message, stackTrace));
+                client.InvokeMoveFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeMoveCancelled(request.JobId));
 
     /// <summary>What each address ended up as, with the target it was given.</summary>
     private static List<StateAddressResult> Results(

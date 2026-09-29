@@ -22,27 +22,37 @@ public static class ServerEndpoints
     // A transfer runs the same slices against one of two Modules, so its replies are separate
     // endpoints carrying the Module they are for.
     public const string TransferMigrateMapCompleted = "TransferMigrateMapCompleted";
+    public const string TransferMigrateMapCancelled = "TransferMigrateMapCancelled";
     public const string TransferMigrateMapFaulted = "TransferMigrateMapFaulted";
     public const string TransferMigrateProveCompleted = "TransferMigrateProveCompleted";
+    public const string TransferMigrateProveCancelled = "TransferMigrateProveCancelled";
     public const string TransferMigrateProveFaulted = "TransferMigrateProveFaulted";
     public const string TransferMigrateRunCompleted = "TransferMigrateRunCompleted";
+    public const string TransferMigrateRunCancelled = "TransferMigrateRunCancelled";
     public const string TransferMigrateRunFaulted = "TransferMigrateRunFaulted";
     public const string TransferMigrateVerifyCompleted = "TransferMigrateVerifyCompleted";
+    public const string TransferMigrateVerifyCancelled = "TransferMigrateVerifyCancelled";
     public const string TransferMigrateVerifyFaulted = "TransferMigrateVerifyFaulted";
     public const string TransferOutputsCompleted = "TransferOutputsCompleted";
+    public const string TransferOutputsCancelled = "TransferOutputsCancelled";
     public const string TransferOutputsFaulted = "TransferOutputsFaulted";
     public const string StateListFilteredCompleted = "StateListFilteredCompleted";
+    public const string StateListFilteredCancelled = "StateListFilteredCancelled";
     public const string StateListFilteredFaulted = "StateListFilteredFaulted";
     public const string MoveCompleted = "MoveCompleted";
+    public const string MoveCancelled = "MoveCancelled";
     public const string MoveFaulted = "MoveFaulted";
 
     public const string MoveDryRunCompleted = "MoveDryRunCompleted";
+    public const string MoveDryRunCancelled = "MoveDryRunCancelled";
     public const string MoveDryRunFaulted = "MoveDryRunFaulted";
 
     public const string RemoveDryRunCompleted = "RemoveDryRunCompleted";
+    public const string RemoveDryRunCancelled = "RemoveDryRunCancelled";
     public const string RemoveDryRunFaulted = "RemoveDryRunFaulted";
 
     public const string ImportPreCheckCompleted = "ImportPreCheckCompleted";
+    public const string ImportPreCheckCancelled = "ImportPreCheckCancelled";
     public const string ImportPreCheckFaulted = "ImportPreCheckFaulted";
 
     public const string SplitMigrateMapCompleted = "SplitMigrateMapCompleted";

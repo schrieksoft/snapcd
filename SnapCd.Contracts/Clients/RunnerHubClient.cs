@@ -95,6 +95,11 @@ public class RunnerHubClient
             ServerEndpoints.TransferMigrateMapCompleted, jobId, moduleId, needsOutputs);
     }
 
+    public async Task InvokeTransferMigrateMapCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateMapCancelled, jobId, moduleId);
+    }
+
     public async Task InvokeTransferMigrateMapFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateMapFaulted, jobId, moduleId, errorMessage, stackTrace);
@@ -105,6 +110,11 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateProveCompleted,
             jobId, moduleId, exitCode, outputs, verdict);
+    }
+
+    public async Task InvokeTransferMigrateProveCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateProveCancelled, jobId, moduleId);
     }
 
     public async Task InvokeTransferMigrateProveFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -119,6 +129,11 @@ public class RunnerHubClient
             ServerEndpoints.TransferMigrateRunCompleted, jobId, moduleId, transferredAddresses, gaveUp);
     }
 
+    public async Task InvokeTransferMigrateRunCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateRunCancelled, jobId, moduleId);
+    }
+
     public async Task InvokeTransferMigrateRunFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateRunFaulted, jobId, moduleId, errorMessage, stackTrace);
@@ -127,6 +142,11 @@ public class RunnerHubClient
     public async Task InvokeMoveCompleted(Guid jobId, List<StateAddressResult> results)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.MoveCompleted, jobId, results);
+    }
+
+    public async Task InvokeMoveCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveCancelled, jobId);
     }
 
     public async Task InvokeMoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
@@ -139,6 +159,11 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.MoveDryRunCompleted, jobId, results);
     }
 
+    public async Task InvokeMoveDryRunCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveDryRunCancelled, jobId);
+    }
+
     public async Task InvokeMoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.MoveDryRunFaulted, jobId, errorMessage, stackTrace);
@@ -147,6 +172,11 @@ public class RunnerHubClient
     public async Task InvokeRemoveDryRunCompleted(Guid jobId, List<StateAddressResult> results)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.RemoveDryRunCompleted, jobId, results);
+    }
+
+    public async Task InvokeRemoveDryRunCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveDryRunCancelled, jobId);
     }
 
     public async Task InvokeRemoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
@@ -159,6 +189,11 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ImportPreCheckCompleted, jobId, results);
     }
 
+    public async Task InvokeImportPreCheckCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportPreCheckCancelled, jobId);
+    }
+
     public async Task InvokeImportPreCheckFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.ImportPreCheckFaulted, jobId, errorMessage, stackTrace);
@@ -167,6 +202,11 @@ public class RunnerHubClient
     public async Task InvokeStateListFilteredCompleted(Guid jobId, List<StateAddressResult> results)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredCompleted, jobId, results);
+    }
+
+    public async Task InvokeStateListFilteredCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredCancelled, jobId);
     }
 
     public async Task InvokeStateListFilteredFaulted(Guid jobId, string? errorMessage, string? stackTrace)
@@ -182,6 +222,11 @@ public class RunnerHubClient
             ServerEndpoints.TransferOutputsCompleted, jobId, moduleId, outputSet);
     }
 
+    public async Task InvokeTransferOutputsCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferOutputsCancelled, jobId, moduleId);
+    }
+
     public async Task InvokeTransferOutputsFaulted(
         Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
@@ -192,6 +237,11 @@ public class RunnerHubClient
     public async Task InvokeTransferMigrateVerifyCompleted(Guid jobId, Guid moduleId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferMigrateVerifyCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyCancelled, jobId, moduleId);
     }
 
     public async Task InvokeTransferMigrateVerifyFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -798,6 +848,11 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferGetModuleCompleted, jobId, moduleId);
     }
 
+    public async Task InvokeTransferGetModuleCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferGetModuleCancelled, jobId, moduleId);
+    }
+
     public async Task InvokeTransferGetModuleFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(
@@ -807,6 +862,11 @@ public class RunnerHubClient
     public async Task InvokeTransferInitCompleted(Guid jobId, Guid moduleId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferInitCompleted, jobId, moduleId);
+    }
+
+    public async Task InvokeTransferInitCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferInitCancelled, jobId, moduleId);
     }
 
     public async Task InvokeTransferInitFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -820,6 +880,11 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferValidateCompleted, jobId, moduleId);
     }
 
+    public async Task InvokeTransferValidateCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferValidateCancelled, jobId, moduleId);
+    }
+
     public async Task InvokeTransferValidateFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(
@@ -829,6 +894,11 @@ public class RunnerHubClient
     public async Task InvokeTransferPlanCompleted(Guid jobId, Guid moduleId, PlanCompletedData data)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferPlanCompleted, jobId, moduleId, data);
+    }
+
+    public async Task InvokeTransferPlanCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.TransferPlanCancelled, jobId, moduleId);
     }
 
     public async Task InvokeTransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)

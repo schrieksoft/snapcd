@@ -32,6 +32,8 @@ public class TransferMigrateMapCompleted : TransferStepResponseBase
     public List<string> NeedsOutputs { get; set; } = [];
 }
 
+public class TransferMigrateMapCancelled : TransferStepCancelledBase;
+
 public class TransferMigrateMapFaulted : TransferStepFaultedBase;
 
 /// <summary>
@@ -58,6 +60,8 @@ public class TransferMigrateProveCompleted : TransferStepResponseBase
     public string? Verdict { get; set; }
 }
 
+public class TransferMigrateProveCancelled : TransferStepCancelledBase;
+
 public class TransferMigrateProveFaulted : TransferStepFaultedBase;
 
 public class TransferMigrateRunRequested : TransferStepRequestBase
@@ -77,6 +81,8 @@ public class TransferMigrateRunCompleted : TransferStepResponseBase
     public bool GaveUp { get; set; }
 }
 
+public class TransferMigrateRunCancelled : TransferStepCancelledBase;
+
 public class TransferMigrateRunFaulted : TransferStepFaultedBase;
 
 public class TransferMigrateVerifyRequested : TransferStepRequestBase
@@ -84,6 +90,8 @@ public class TransferMigrateVerifyRequested : TransferStepRequestBase
 }
 
 public class TransferMigrateVerifyCompleted : TransferStepResponseBase;
+
+public class TransferMigrateVerifyCancelled : TransferStepCancelledBase;
 
 public class TransferMigrateVerifyFaulted : TransferStepFaultedBase;
 
@@ -100,5 +108,7 @@ public class TransferOutputsCompleted : TransferStepResponseBase
 {
     public OutputSetCreateDto? OutputSet { get; set; }
 }
+
+public class TransferOutputsCancelled : TransferStepCancelledBase;
 
 public class TransferOutputsFaulted : TransferStepFaultedBase;

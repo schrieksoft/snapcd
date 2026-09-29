@@ -388,7 +388,7 @@ public class RunnerHubConnection : IAsyncDisposable
                 Task.Run(async () => { await _tasks.Value.GetModule(
                     request, _connection,
                     jobId => client.InvokeTransferGetModuleCompleted(jobId, moduleId),
-                    _ => Task.CompletedTask,
+                    jobId => client.InvokeTransferGetModuleCancelled(jobId, moduleId),
                     (jobId, error, stack) => client.InvokeTransferGetModuleFaulted(jobId, moduleId, error, stack)); });
                 return Task.CompletedTask;
             });
@@ -400,7 +400,7 @@ public class RunnerHubConnection : IAsyncDisposable
                 Task.Run(async () => { await _tasks.Value.Init(
                     request, _connection,
                     jobId => client.InvokeTransferInitCompleted(jobId, moduleId),
-                    _ => Task.CompletedTask,
+                    jobId => client.InvokeTransferInitCancelled(jobId, moduleId),
                     (jobId, error, stack) => client.InvokeTransferInitFaulted(jobId, moduleId, error, stack)); });
                 return Task.CompletedTask;
             });
@@ -412,7 +412,7 @@ public class RunnerHubConnection : IAsyncDisposable
                 Task.Run(async () => { await _tasks.Value.Validate(
                     request, _connection,
                     jobId => client.InvokeTransferValidateCompleted(jobId, moduleId),
-                    _ => Task.CompletedTask,
+                    jobId => client.InvokeTransferValidateCancelled(jobId, moduleId),
                     (jobId, error, stack) => client.InvokeTransferValidateFaulted(jobId, moduleId, error, stack)); });
                 return Task.CompletedTask;
             });
@@ -423,7 +423,7 @@ public class RunnerHubConnection : IAsyncDisposable
                 Task.Run(async () => { await _tasks.Value.Plan(
                     request, _connection,
                     (jobId, data) => client.InvokeTransferPlanCompleted(jobId, moduleId, data),
-                    _ => Task.CompletedTask,
+                    jobId => client.InvokeTransferPlanCancelled(jobId, moduleId),
                     (jobId, error, stack, _) => client.InvokeTransferPlanFaulted(jobId, moduleId, error, stack)); });
                 return Task.CompletedTask;
             });

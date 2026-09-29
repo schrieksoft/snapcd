@@ -68,8 +68,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("TransferMigrateMap was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateMapFaulted(request.JobId, request.ModuleId, "Cancelled.", null),
-                nameof(runnerHubClient.InvokeTransferMigrateMapFaulted),
+                () => runnerHubClient.InvokeTransferMigrateMapCancelled(request.JobId, request.ModuleId),
+                nameof(runnerHubClient.InvokeTransferMigrateMapCancelled),
                 request.JobId,
                 connection);
         }
@@ -145,8 +145,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("TransferMigrateProve was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeTransferMigrateProveFaulted(request.JobId, request.ModuleId, "Cancelled.", null),
-                nameof(runnerHubClient.InvokeTransferMigrateProveFaulted),
+                () => runnerHubClient.InvokeTransferMigrateProveCancelled(request.JobId, request.ModuleId),
+                nameof(runnerHubClient.InvokeTransferMigrateProveCancelled),
                 request.JobId,
                 connection);
         }

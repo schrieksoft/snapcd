@@ -21,6 +21,8 @@ public class TransferSelectRunnerInstanceCompleted : TransferStepResponseBase
     public string RunnerInstanceName { get; set; } = string.Empty;
 }
 
+public class TransferSelectRunnerInstanceCancelled : TransferStepCancelledBase;
+
 public class TransferSelectRunnerInstanceFaulted : TransferStepFaultedBase;
 
 /// <summary>Checks the participant's source out at the ref it consented to prove.</summary>
@@ -36,17 +38,23 @@ public class TransferGetModuleCompleted : TransferStepResponseBase
     public string? DefinitiveRevision { get; set; }
 }
 
+public class TransferGetModuleCancelled : TransferStepCancelledBase;
+
 public class TransferGetModuleFaulted : TransferStepFaultedBase;
 
 public class TransferInitRequested : TransferStepRequestBase;
 
 public class TransferInitCompleted : TransferStepResponseBase;
 
+public class TransferInitCancelled : TransferStepCancelledBase;
+
 public class TransferInitFaulted : TransferStepFaultedBase;
 
 public class TransferValidateRequested : TransferStepRequestBase;
 
 public class TransferValidateCompleted : TransferStepResponseBase;
+
+public class TransferValidateCancelled : TransferStepCancelledBase;
 
 public class TransferValidateFaulted : TransferStepFaultedBase;
 
@@ -60,5 +68,7 @@ public class TransferPlanCompleted : TransferStepResponseBase
 {
     public int TotalChangedCount { get; set; }
 }
+
+public class TransferPlanCancelled : TransferStepCancelledBase;
 
 public class TransferPlanFaulted : TransferStepFaultedBase;

@@ -60,5 +60,6 @@ public partial class Tasks
                     nameof(client.InvokeStateListFilteredCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeStateListFilteredFaulted(request.JobId, message, stackTrace));
+                client.InvokeStateListFilteredFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeStateListFilteredCancelled(request.JobId));
 }

@@ -57,6 +57,24 @@ public class TransferStepHandler
         await _bus.Publish(completed);
     }
 
+    public Task Cancel<TCancelled>(Guid jobId, Guid organizationId)
+        where TCancelled : StateMigrationStepResponseBase, new()
+        => Cancel<TCancelled>(jobId, Guid.Empty, organizationId);
+
+    public async Task Cancel<TCancelled>(Guid jobId, Guid moduleId, Guid organizationId)
+        where TCancelled : StateMigrationStepResponseBase, new()
+    {
+        _logger.LogInformation("Runner cancelled {Step} for Module {ModuleId} of job {JobId}",
+            typeof(TCancelled).Name, moduleId, jobId);
+
+        await _bus.Publish(new TCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = organizationId,
+            ModuleId = moduleId
+        });
+    }
+
     public async Task Fault<TFaulted>(
         Guid jobId, Guid moduleId, Guid organizationId, string? errorMessage, string? stackTrace)
         where TFaulted : StateMigrationStepFaultedBase, new()

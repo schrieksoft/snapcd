@@ -31,8 +31,8 @@ public abstract partial class StateEditStateMachine<
     TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
-    TPreCheckRequested, TPreCheckCompleted, TPreCheckFaulted,
-    TEditRequested, TEditCompleted, TEditFaulted>
+    TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
+    TEditRequested, TEditCompleted, TEditCancelled, TEditFaulted>
 {
     /// <summary>
     /// Everything a job does before it does its own work: pick the runner, fetch the code,
@@ -41,17 +41,20 @@ public abstract partial class StateEditStateMachine<
     /// </summary>
     private void Configure_Setup()
     {
-        CreateStep<TSelectRunnerInstanceCompleted, TSelectRunnerInstanceFaulted, TGetModuleRequested>(
-            SelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
+        CreateStep<TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted, TGetModuleRequested>(
+            SelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceCancelled,
+            SelectRunnerInstanceFaulted,
             "SelectRunnerInstance", "GetModule", GetModulePending,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
-        CreateStep<TGetModuleCompleted, TGetModuleFaulted, TInitRequested>(
-            GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", "Init", InitPending,
+        CreateStep<TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted, TInitRequested>(
+            GetModulePending, GetModuleCompleted, GetModuleCancelled, GetModuleFaulted,
+            "GetModule", "Init", InitPending,
             context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
-        CreateStep<TInitCompleted, TInitFaulted, TPreCheckRequested>(
-            InitPending, InitCompleted, InitFaulted, "Init", PreCheckName, PreCheckPending);
+        CreateStep<TInitCompleted, TInitCancelled, TInitFaulted, TPreCheckRequested>(
+            InitPending, InitCompleted, InitCancelled, InitFaulted,
+            "Init", PreCheckName, PreCheckPending);
 
         // The edit is the one irreversible step, so the pre-check hands to the approval gate rather
         // than dispatching it: the gate sends it once the threshold is answered.
@@ -61,6 +64,12 @@ public abstract partial class StateEditStateMachine<
                     .ThenAsync(context => RecordCompleted(
                         context, PreCheckName, StateMigrationStepStatus.Succeeded)),
                 transition: true),
+
+            When(PreCheckCancelled)
+                .ThenAsync(context => RecordCompleted(
+                    context, PreCheckName, StateMigrationStepStatus.Cancelled))
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, TPreCheckCancelled>>())
+                .TransitionTo(Failed).Finalize(),
 
             When(PreCheckFaulted)
                 .ThenAsync(context => RecordCompleted(
@@ -86,15 +95,17 @@ public abstract partial class StateEditStateMachine<
                 .Finalize());
     }
 
-    private void CreateStep<TCompleted, TFaulted, TNextRequest>(
+    private void CreateStep<TCompleted, TCancelled, TFaulted, TNextRequest>(
         State duringState,
         Event<TCompleted> completedEvent,
+        Event<TCancelled> cancelledEvent,
         Event<TFaulted> faultedEvent,
         string task,
         string nextTask,
         State nextState,
         Action<BehaviorContext<TSaga, TCompleted>>? onCompleted = null)
         where TCompleted : class
+        where TCancelled : class
         where TFaulted : class
         where TNextRequest : StepRequestBase, new()
     {
@@ -111,6 +122,14 @@ public abstract partial class StateEditStateMachine<
                         OrganizationId = context.Saga.OrganizationId
                     })
                 .TransitionTo(nextState),
+
+            When(cancelledEvent)
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Cancelled))
+                .Then(context => _logger.LogInformation(
+                    "{Verb} on Module {ModuleId} was cancelled at {Task}",
+                    Verb, context.Saga.ModuleId, task))
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, TCancelled>>())
+                .TransitionTo(Failed).Finalize(),
 
             When(faultedEvent)
                 .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Faulted))

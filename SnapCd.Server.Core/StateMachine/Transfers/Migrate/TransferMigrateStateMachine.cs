@@ -42,24 +42,34 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
 
     // From the runner, each naming the Module it is for
     public Event<TransferSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
+    public Event<TransferSelectRunnerInstanceCancelled> SelectRunnerInstanceCancelled { get; } = null!;
     public Event<TransferSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
     public Event<TransferGetModuleCompleted> GetModuleCompleted { get; } = null!;
+    public Event<TransferGetModuleCancelled> GetModuleCancelled { get; } = null!;
     public Event<TransferGetModuleFaulted> GetModuleFaulted { get; } = null!;
     public Event<TransferInitCompleted> InitCompleted { get; } = null!;
+    public Event<TransferInitCancelled> InitCancelled { get; } = null!;
     public Event<TransferInitFaulted> InitFaulted { get; } = null!;
     public Event<TransferValidateCompleted> ValidateCompleted { get; } = null!;
+    public Event<TransferValidateCancelled> ValidateCancelled { get; } = null!;
     public Event<TransferValidateFaulted> ValidateFaulted { get; } = null!;
     public Event<TransferPlanCompleted> ApplyPlanCompleted { get; } = null!;
+    public Event<TransferPlanCancelled> ApplyPlanCancelled { get; } = null!;
     public Event<TransferPlanFaulted> ApplyPlanFaulted { get; } = null!;
     public Event<TransferMigrateMapCompleted> TransferMigrateMapCompleted { get; } = null!;
+    public Event<TransferMigrateMapCancelled> TransferMigrateMapCancelled { get; } = null!;
     public Event<TransferMigrateMapFaulted> TransferMigrateMapFaulted { get; } = null!;
     public Event<TransferMigrateProveCompleted> TransferMigrateProveCompleted { get; } = null!;
+    public Event<TransferMigrateProveCancelled> TransferMigrateProveCancelled { get; } = null!;
     public Event<TransferMigrateProveFaulted> TransferMigrateProveFaulted { get; } = null!;
     public Event<TransferMigrateRunCompleted> TransferMigrateRunCompleted { get; } = null!;
+    public Event<TransferMigrateRunCancelled> TransferMigrateRunCancelled { get; } = null!;
     public Event<TransferMigrateRunFaulted> TransferMigrateRunFaulted { get; } = null!;
     public Event<TransferMigrateVerifyCompleted> TransferMigrateVerifyCompleted { get; } = null!;
+    public Event<TransferMigrateVerifyCancelled> TransferMigrateVerifyCancelled { get; } = null!;
     public Event<TransferMigrateVerifyFaulted> TransferMigrateVerifyFaulted { get; } = null!;
     public Event<TransferOutputsCompleted> TransferOutputsCompleted { get; } = null!;
+    public Event<TransferOutputsCancelled> TransferOutputsCancelled { get; } = null!;
     public Event<TransferOutputsFaulted> TransferOutputsFaulted { get; } = null!;
 
     /// <summary>The state move landed. Terminal.</summary>
@@ -114,24 +124,34 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
 
         // Every runner reply names its Module, so a transfer's two jobs are never confused.
         Event(() => SelectRunnerInstanceCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => SelectRunnerInstanceCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SelectRunnerInstanceFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => GetModuleCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => GetModuleCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => GetModuleFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => InitCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => InitCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => InitFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ValidateCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => ValidateCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ValidateFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ApplyPlanCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => ApplyPlanCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ApplyPlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateMapCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateMapCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateMapFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateProveCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateProveCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateProveFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateRunCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateRunCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateRunFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateVerifyCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferOutputsCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferOutputsCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferOutputsFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => TransferMigrateVerifyCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => TransferMigrateVerifyFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         Configure_Approval();

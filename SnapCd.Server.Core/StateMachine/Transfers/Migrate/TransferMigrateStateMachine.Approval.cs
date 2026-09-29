@@ -76,34 +76,25 @@ public partial class TransferMigrateStateMachine
             Ignore(HeartbeatRequested.Completed2)
         );
 
-        // Cancelling a running transfer ends it: this is what replaces withdrawing, since a
-        // transfer is a job. The step already dispatched runs out on the runner; nothing further
-        // is sent.
+        // Cancelling a running transfer ends it in every state, including while its state is being
+        // written: a cancel kill stops the job wherever it is, and a side left part-written is
+        // finished by its own transfer.
         foreach (var running in new[]
                  {
                      TransferSelectRunnerInstancePending, TransferGetModulePending, TransferInitPending, TransferValidatePending,
                      TransferPlanPending, TransferSelectRunnerInstanceWaitingForRunner, TransferGetModuleWaitingForRunner,
                      TransferInitWaitingForRunner, TransferValidateWaitingForRunner, TransferPlanWaitingForRunner,
-                     TransferMigrateMapPending, TransferMigrateProvePending
+                     TransferMigrateMapPending, TransferMigrateProvePending,
+                     TransferMigrateRunPending, TransferMigrateVerifyPending
                  })
             During(running,
                 When(CancelRequested)
                     .Then(context => _logger.LogInformation(
-                        "Transfer: cancelled for Module {ModuleId}; nothing was written",
+                        "Transfer: cancelled for Module {ModuleId}",
                         context.Saga.ModuleId))
                     .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                     .TransitionTo(Failed)
                     .Finalize()
-            );
-
-        // Once the write is running its own state has already moved, so cancelling would leave the
-        // move half-done. It runs to its end, and a side that failed is finished by its own transfer.
-        foreach (var writing in new[] { TransferMigrateRunPending, TransferMigrateVerifyPending })
-            During(writing,
-                When(CancelRequested)
-                    .Then(context => _logger.LogWarning(
-                        "Transfer: cancel ignored for Module {ModuleId}; its state is being written",
-                        context.Saga.ModuleId))
             );
     }
 

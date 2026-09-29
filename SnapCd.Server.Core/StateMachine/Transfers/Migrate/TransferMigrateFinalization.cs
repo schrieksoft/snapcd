@@ -23,6 +23,11 @@ public static class TransferMigrateFinalization
         where TMessage : class =>
         binder.Activity(x => x.OfType<FailStateMigrationJobActivity<TransferMigrateSaga, TMessage>>());
 
+    public static EventActivityBinder<TransferMigrateSaga, TMessage> ThenJobCancelled<TMessage>(
+        this EventActivityBinder<TransferMigrateSaga, TMessage> binder)
+        where TMessage : class =>
+        binder.Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, TMessage>>());
+
     public static EventActivityBinder<TransferMigrateSaga, TMessage> ThenJobCompleted<TMessage>(
         this EventActivityBinder<TransferMigrateSaga, TMessage> binder)
         where TMessage : class =>

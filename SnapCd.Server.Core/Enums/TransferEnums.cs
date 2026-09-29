@@ -60,6 +60,9 @@ public enum StateMigrationStepStatus
     /// <summary>The slice or its transport failed.</summary>
     Faulted,
 
+    /// <summary>The job was cancelled while this step was running.</summary>
+    Cancelled,
+
     /// <summary>A producer this step depends on did not succeed.</summary>
     Skipped,
 

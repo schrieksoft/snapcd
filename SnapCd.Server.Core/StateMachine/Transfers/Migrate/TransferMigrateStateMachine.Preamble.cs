@@ -33,15 +33,17 @@ public partial class TransferMigrateStateMachine
     /// over the step's own types so the five steps differ only in which events they name, the way
     /// JobStateMachine is generic over Apply's and Destroy's.
     /// </summary>
-    private void CreateStep<TCompleted, TFaulted, TNextRequest>(
+    private void CreateStep<TCompleted, TCancelled, TFaulted, TNextRequest>(
         State duringState,
         Event<TCompleted> completedEvent,
+        Event<TCancelled> cancelledEvent,
         Event<TFaulted> faultedEvent,
         string task,
         State nextState,
         State nextWaitingState,
         Action<BehaviorContext<TransferMigrateSaga, TCompleted>>? onCompleted = null)
         where TCompleted : TransferStepResponseBase
+        where TCancelled : TransferStepCancelledBase
         where TFaulted : TransferStepFaultedBase
         where TNextRequest : TransferStepRequestBase, new()
     {
@@ -73,6 +75,13 @@ public partial class TransferMigrateStateMachine
                                 OrganizationId = context.Saga.OrganizationId
                             })
                         .TransitionTo(nextState)),
+            When(cancelledEvent)
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Cancelled))
+                .Then(context => _logger.LogInformation(
+                    "Transfer: Module {ModuleId} cancelled at {Task}",
+                    context.Saga.ModuleId, task))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
+
             When(faultedEvent)
                 .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Faulted))
                 .Then(context =>
@@ -212,8 +221,10 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private void Configure_Preamble()
     {
-        CreateStep<TransferSelectRunnerInstanceCompleted, TransferSelectRunnerInstanceFaulted, TransferGetModuleRequested>(
-            TransferSelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
+        CreateStep<TransferSelectRunnerInstanceCompleted, TransferSelectRunnerInstanceCancelled,
+            TransferSelectRunnerInstanceFaulted, TransferGetModuleRequested>(
+            TransferSelectRunnerInstancePending, SelectRunnerInstanceCompleted,
+            SelectRunnerInstanceCancelled, SelectRunnerInstanceFaulted,
             "SelectRunnerInstance", TransferGetModulePending, TransferGetModuleWaitingForRunner,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
@@ -224,6 +235,10 @@ public partial class TransferMigrateStateMachine
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferGetModuleCompleted, TransferInitRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "Init"))
                 .TransitionTo(TransferInitPending),
+
+            When(GetModuleCancelled)
+                .ThenAsync(context => RecordCompleted(context, "GetModule", StateMigrationStepStatus.Cancelled))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
 
             When(GetModuleFaulted)
                 .ThenAsync(context => RecordCompleted(context, "GetModule", StateMigrationStepStatus.Faulted))
@@ -247,11 +262,13 @@ public partial class TransferMigrateStateMachine
             Ignore(HeartbeatRequested.Completed2)
         );
 
-        CreateStep<TransferInitCompleted, TransferInitFaulted, TransferValidateRequested>(
-            TransferInitPending, InitCompleted, InitFaulted, "Init", TransferValidatePending, TransferValidateWaitingForRunner);
+        CreateStep<TransferInitCompleted, TransferInitCancelled, TransferInitFaulted, TransferValidateRequested>(
+            TransferInitPending, InitCompleted, InitCancelled, InitFaulted,
+            "Init", TransferValidatePending, TransferValidateWaitingForRunner);
 
-        CreateStep<TransferValidateCompleted, TransferValidateFaulted, TransferPlanRequested>(
-            TransferValidatePending, ValidateCompleted, ValidateFaulted, "Validate", TransferPlanPending, TransferPlanWaitingForRunner);
+        CreateStep<TransferValidateCompleted, TransferValidateCancelled, TransferValidateFaulted, TransferPlanRequested>(
+            TransferValidatePending, ValidateCompleted, ValidateCancelled, ValidateFaulted,
+            "Validate", TransferPlanPending, TransferPlanWaitingForRunner);
 
         // The plan ends the preamble rather than sending another request.
         During(TransferPlanPending,
@@ -270,6 +287,10 @@ public partial class TransferMigrateStateMachine
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferPlanCompleted, TransferMigrateMapRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "TransferMigrateMap"))
                 .TransitionTo(TransferMigrateMapPending),
+            When(ApplyPlanCancelled)
+                .ThenAsync(context => RecordCompleted(context, "Plan", StateMigrationStepStatus.Cancelled))
+                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
+
             When(ApplyPlanFaulted)
                 .ThenAsync(context => RecordCompleted(context, "Plan", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),

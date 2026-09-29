@@ -18,7 +18,7 @@ public partial class Tasks
 {
     /// <summary>
     /// The scaffolding every transfer step shares: cancellation registration, periodic reporting,
-    /// and turning an unhandled exception into the step's own faulted reply.
+    /// and turning a cancel or an unhandled exception into the step's own reply.
     /// </summary>
     private async Task RunTransferStep(
         Guid jobId,
@@ -28,7 +28,8 @@ public partial class Tasks
         int reportFrequencySeconds,
         HubConnection connection,
         Func<RunnerTaskContext, RunnerHubClient, CancellationToken, Task> run,
-        Func<RunnerHubClient, string?, string?, Task> fault)
+        Func<RunnerHubClient, string?, string?, Task> fault,
+        Func<RunnerHubClient, Task> cancel)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(jobId, killCts, CancellationType.ImmediateKill);
@@ -51,7 +52,7 @@ public partial class Tasks
         {
             taskContext.LogWarning($"{task} was cancelled.");
             await InvokeWithRetryAsync(
-                () => fault(runnerHubClient, "Cancelled.", null), $"{task}Faulted", jobId, connection);
+                () => cancel(runnerHubClient), $"{task}Cancelled", jobId, connection);
         }
         catch (Exception ex)
         {

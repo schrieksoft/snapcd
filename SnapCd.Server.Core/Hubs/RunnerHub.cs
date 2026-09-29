@@ -507,6 +507,14 @@ public class RunnerHub : Hub
         await _splitValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
+    public async Task TransferValidateCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferValidatePending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferValidateCancelled>(jobId, moduleId, organizationId);
+    }
+
     public async Task TransferValidateFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
@@ -584,6 +592,14 @@ public class RunnerHub : Hub
             .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitPlanPending);
 
         await _splitPlanHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferPlanCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferPlanPending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferPlanCancelled>(jobId, moduleId, organizationId);
     }
 
     public async Task TransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -702,6 +718,14 @@ public class RunnerHub : Hub
             jobId, moduleId, organizationId, c => c.NeedsOutputs = needsOutputs);
     }
 
+    public async Task TransferMigrateMapCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateMapPending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferMigrateMapCancelled>(jobId, moduleId, organizationId);
+    }
+
     public async Task TransferMigrateMapFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
@@ -724,6 +748,14 @@ public class RunnerHub : Hub
                 c.Outputs = outputs;
                 c.Verdict = verdict;
             });
+    }
+
+    public async Task TransferMigrateProveCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateProvePending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferMigrateProveCancelled>(jobId, moduleId, organizationId);
     }
 
     public async Task TransferMigrateProveFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -758,6 +790,17 @@ public class RunnerHub : Hub
             CorrelationId = jobId,
             OrganizationId = auth,
             Results = Addresses(results)
+        });
+    }
+
+    public async Task MoveCancelled(Guid jobId)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new MoveCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth
         });
     }
 
@@ -836,6 +879,17 @@ public class RunnerHub : Hub
         });
     }
 
+    public async Task MoveDryRunCancelled(Guid jobId)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new MoveDryRunCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth
+        });
+    }
+
     public async Task MoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
@@ -861,6 +915,17 @@ public class RunnerHub : Hub
         });
     }
 
+    public async Task RemoveDryRunCancelled(Guid jobId)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new RemoveDryRunCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth
+        });
+    }
+
     public async Task RemoveDryRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
@@ -883,6 +948,17 @@ public class RunnerHub : Hub
             CorrelationId = jobId,
             OrganizationId = auth,
             Results = Addresses(results)
+        });
+    }
+
+    public async Task ImportPreCheckCancelled(Guid jobId)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new ImportPreCheckCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth
         });
     }
 
@@ -927,6 +1003,17 @@ public class RunnerHub : Hub
         });
     }
 
+    public async Task StateListFilteredCancelled(Guid jobId)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new StateListFilteredCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth
+        });
+    }
+
     public async Task StateListFilteredFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
@@ -956,6 +1043,14 @@ public class RunnerHub : Hub
         });
     }
 
+    public async Task TransferOutputsCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferOutputsPending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferOutputsCancelled>(jobId, moduleId, organizationId);
+    }
+
     public async Task TransferOutputsFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
@@ -963,6 +1058,14 @@ public class RunnerHub : Hub
 
         await _transferStepHandler.Fault<TransferOutputsFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task TransferMigrateRunCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateRunPending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferMigrateRunCancelled>(jobId, moduleId, organizationId);
     }
 
     public async Task TransferMigrateRunFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -980,6 +1083,14 @@ public class RunnerHub : Hub
             Context, jobId, SagaStates.TransferMigrateVerifyPending, moduleId);
 
         await _transferStepHandler.Complete<TransferMigrateVerifyCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferMigrateVerifyCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferMigrateVerifyPending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferMigrateVerifyCancelled>(jobId, moduleId, organizationId);
     }
 
     public async Task TransferMigrateVerifyFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
@@ -1843,6 +1954,14 @@ public class RunnerHub : Hub
         await _transferStepHandler.Complete<TransferGetModuleCompleted>(jobId, moduleId, organizationId);
     }
 
+    public async Task TransferGetModuleCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferGetModulePending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferGetModuleCancelled>(jobId, moduleId, organizationId);
+    }
+
     public async Task TransferGetModuleFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
@@ -1859,6 +1978,14 @@ public class RunnerHub : Hub
                 Context, jobId, SagaStates.TransferInitPending, moduleId);
 
         await _transferStepHandler.Complete<TransferInitCompleted>(jobId, moduleId, organizationId);
+    }
+
+    public async Task TransferInitCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, SagaStates.TransferInitPending, moduleId);
+
+        await _transferStepHandler.Cancel<TransferInitCancelled>(jobId, moduleId, organizationId);
     }
 
     public async Task TransferInitFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)

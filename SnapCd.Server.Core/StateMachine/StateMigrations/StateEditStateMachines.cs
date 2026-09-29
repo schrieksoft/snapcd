@@ -28,8 +28,8 @@ public class MoveStateMachine(ILogger<MoveStateMachine> logger)
         MoveSelectRunnerInstanceCompleted, MoveSelectRunnerInstanceCancelled, MoveSelectRunnerInstanceFaulted,
         MoveGetModuleCompleted, MoveGetModuleCancelled, MoveGetModuleFaulted,
         MoveInitCompleted, MoveInitCancelled, MoveInitFaulted,
-        MoveDryRunRequested, MoveDryRunCompleted, MoveDryRunFaulted,
-        MoveRequested, MoveCompleted, MoveFaulted>(logger)
+        MoveDryRunRequested, MoveDryRunCompleted, MoveDryRunCancelled, MoveDryRunFaulted,
+        MoveRequested, MoveCompleted, MoveCancelled, MoveFaulted>(logger)
 {
     protected override string Verb => "Move";
 
@@ -76,8 +76,8 @@ public class ImportStateMachine(ILogger<ImportStateMachine> logger)
         ImportSelectRunnerInstanceCompleted, ImportSelectRunnerInstanceCancelled, ImportSelectRunnerInstanceFaulted,
         ImportGetModuleCompleted, ImportGetModuleCancelled, ImportGetModuleFaulted,
         ImportInitCompleted, ImportInitCancelled, ImportInitFaulted,
-        ImportPreCheckRequested, ImportPreCheckCompleted, ImportPreCheckFaulted,
-        ImportRequested, ImportCompleted, ImportFaulted>(logger)
+        ImportPreCheckRequested, ImportPreCheckCompleted, ImportPreCheckCancelled, ImportPreCheckFaulted,
+        ImportRequested, ImportCompleted, ImportCancelled, ImportFaulted>(logger)
 {
     protected override string Verb => "Import";
 
@@ -99,8 +99,8 @@ public class RemoveStateMachine(ILogger<RemoveStateMachine> logger)
         RemoveSelectRunnerInstanceCompleted, RemoveSelectRunnerInstanceCancelled, RemoveSelectRunnerInstanceFaulted,
         RemoveGetModuleCompleted, RemoveGetModuleCancelled, RemoveGetModuleFaulted,
         RemoveInitCompleted, RemoveInitCancelled, RemoveInitFaulted,
-        RemoveDryRunRequested, RemoveDryRunCompleted, RemoveDryRunFaulted,
-        RemoveRequested, RemoveCompleted, RemoveFaulted>(logger)
+        RemoveDryRunRequested, RemoveDryRunCompleted, RemoveDryRunCancelled, RemoveDryRunFaulted,
+        RemoveRequested, RemoveCompleted, RemoveCancelled, RemoveFaulted>(logger)
 {
     protected override string Verb => "Remove";
 

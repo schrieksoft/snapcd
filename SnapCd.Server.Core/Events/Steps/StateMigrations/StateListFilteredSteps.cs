@@ -24,6 +24,8 @@ public class StateListFilteredCompleted : StepResponseBase
     public List<AddressResult> Results { get; set; } = [];
 }
 
+public class StateListFilteredCancelled : StepResponseBase;
+
 public class StateListFilteredFaulted : StepFaultedBase;
 
 /// <summary>One address and what became of it.</summary>
