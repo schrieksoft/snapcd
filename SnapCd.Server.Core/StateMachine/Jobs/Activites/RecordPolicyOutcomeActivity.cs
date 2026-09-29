@@ -37,7 +37,7 @@ public class RecordPolicyOutcomeActivity<TSaga, TMessage> :
     {
         var outcome = context.Message switch
         {
-            PolicyValidateCompleted completed => (PolicyOutcome?)completed.Outcome,
+            PolicyValidateCompletedBase completed => (PolicyOutcome?)completed.Outcome,
             PlanCompletedBase plan => plan.PolicyOutcome,
             StepFaultedBase faulted => faulted.PolicyOutcome,
             _ => null

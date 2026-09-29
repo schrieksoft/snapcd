@@ -62,8 +62,8 @@ public partial class Tasks
             await engine.RunProcess(command, killCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeRefactorDiffCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeRefactorDiffCompleted),
+                () => runnerHubClient.InvokeSplitRefactorDiffCompleted(request.JobId),
+                nameof(runnerHubClient.InvokeSplitRefactorDiffCompleted),
                 request.JobId,
                 connection);
 
@@ -73,8 +73,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitRefactorDiff was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeRefactorDiffCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeRefactorDiffCancelled),
+                () => runnerHubClient.InvokeSplitRefactorDiffCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeSplitRefactorDiffCancelled),
                 request.JobId,
                 connection);
         }
@@ -83,8 +83,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitRefactorDiff for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeRefactorDiffFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeRefactorDiffFaulted),
+                () => runnerHubClient.InvokeSplitRefactorDiffFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeSplitRefactorDiffFaulted),
                 request.JobId,
                 connection);
         }

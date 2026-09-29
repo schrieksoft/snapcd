@@ -77,8 +77,8 @@ public partial class Tasks
                     "State holds no resources — this module is already destroyed. Reporting an empty destroy plan.");
 
                 await InvokeWithRetryAsync(
-                    () => runnerHubClient.InvokePlanDestroyCompleted(request.JobId, new PlanCompletedData()),
-                    nameof(runnerHubClient.InvokePlanDestroyCompleted),
+                    () => runnerHubClient.InvokeDestroyPlanCompleted(request.JobId, new PlanCompletedData()),
+                    nameof(runnerHubClient.InvokeDestroyPlanCompleted),
                     request.JobId,
                     connection);
 
@@ -156,8 +156,8 @@ public partial class Tasks
             };
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanDestroyCompleted(request.JobId, planData),
-                nameof(runnerHubClient.InvokePlanDestroyCompleted),
+                () => runnerHubClient.InvokeDestroyPlanCompleted(request.JobId, planData),
+                nameof(runnerHubClient.InvokeDestroyPlanCompleted),
                 request.JobId,
                 connection);
 
@@ -167,8 +167,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("Destroy plan process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanDestroyCancelled(request.JobId),
-                nameof(runnerHubClient.InvokePlanDestroyCancelled),
+                () => runnerHubClient.InvokeDestroyPlanCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeDestroyPlanCancelled),
                 request.JobId,
                 connection);
         }
@@ -177,13 +177,13 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling PlanDestroy for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanDestroyFaulted(
+                () => runnerHubClient.InvokeDestroyPlanFaulted(
                     request.JobId,
                     ex.Message,
                     ex.StackTrace,
                     ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)
                 ),
-                nameof(runnerHubClient.InvokePlanDestroyFaulted),
+                nameof(runnerHubClient.InvokeDestroyPlanFaulted),
                 request.JobId,
                 connection);
         }

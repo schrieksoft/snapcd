@@ -10,9 +10,9 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
+public abstract class PlanFaultedBase : StepFaultedBase;
+
 /// <summary>
 /// Event indicating that plan has faulted with an error.
 /// </summary>
-public class ApplyPlanFaulted : StepFaultedBase
-{
-}
+public class ApplyPlanFaulted : PlanFaultedBase;

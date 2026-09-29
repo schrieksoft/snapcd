@@ -1202,18 +1202,33 @@ public class RunnerHub : Hub
         await _reportRunningTaskHandler.Report(organizationId, jobId, taskName, runnerId, runnerInstanceName);
     }
 
-    /// <summary>
-    /// Called by runner when kill cancellation completes.
-    /// Publishes KillCancelCompleted event to MassTransit and completes the TCS if waiting.
-    /// </summary>
-    public async Task CancelKillCompleted(Guid jobId)
+    /// <summary>Called by the runner when a kill cancellation completes on a apply job.</summary>
+    public async Task ApplyCancelKillCompleted(Guid jobId)
     {
-        await _authorizationService.ValidateRunnerCanCancelJob(
+        await _authorizationService.ValidateRunnerCanAccessJob<ApplyJobSaga>(
             Context, jobId, SagaStates.CancellingImmediateKill);
 
-        // Publish MassTransit event
-        await _cancelKillHandler.Complete(jobId);
+        await _cancelKillHandler.Complete<Events.Steps.ApplyCancelKillCompleted>(jobId);
     }
+
+    /// <summary>Called by the runner when a kill cancellation completes on a destroy job.</summary>
+    public async Task DestroyCancelKillCompleted(Guid jobId)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob<DestroyJobSaga>(
+            Context, jobId, SagaStates.CancellingImmediateKill);
+
+        await _cancelKillHandler.Complete<Events.Steps.DestroyCancelKillCompleted>(jobId);
+    }
+
+    /// <summary>Called by the runner when a kill cancellation completes on a split job.</summary>
+    public async Task SplitCancelKillCompleted(Guid jobId)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(
+            Context, jobId, SagaStates.CancellingImmediateKill);
+
+        await _cancelKillHandler.Complete<Events.Steps.SplitCancelKillCompleted>(jobId);
+    }
+
 
     // Each manual family answers on its own endpoints. The endpoint names the family, so the
     // saga is read from that family's table rather than searched for across all of them.

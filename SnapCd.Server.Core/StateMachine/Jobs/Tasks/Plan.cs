@@ -58,6 +58,7 @@ public partial class JobStateMachine<
     TPlanRequested,
     TPlanCompleted,
     TPlanCancelled,
+    TPlanFaulted,
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
@@ -100,6 +101,7 @@ public partial class JobStateMachine<
     where TPlanRequested : StepRequestBase, new()
     where TPlanCompleted : PlanCompletedBase
     where TPlanCancelled : StepResponseBase
+    where TPlanFaulted : StepFaultedBase, new()
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
@@ -110,8 +112,8 @@ public partial class JobStateMachine<
     // Plan events
     public Event<TPlanRequested> ApplyPlanRequested { get; } = null!;
     public Event<TPlanCompleted> ApplyPlanCompleted { get; } = null!;
-    public Event<ApplyPlanCancelled> ApplyPlanCancelled { get; } = null!;
-    public Event<ApplyPlanFaulted> ApplyPlanFaulted { get; } = null!;
+    public Event<TPlanCancelled> ApplyPlanCancelled { get; } = null!;
+    public Event<TPlanFaulted> ApplyPlanFaulted { get; } = null!;
 
     // Plan states
     public State PlanPending { get; } = null!;
@@ -210,7 +212,7 @@ public partial class JobStateMachine<
                 .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             When(ApplyPlanCancelled)
-                .ThenCancelled<TSaga, TResponseCancelled, ApplyPlanCancelled>(Cancelled),
+                .ThenCancelled<TSaga, TResponseCancelled, TPlanCancelled>(Cancelled),
             When(ApplyPlanFaulted)
                 .IfElse(
                     x => x.Message.PolicyOutcome == PolicyOutcome.HardDenied,
@@ -219,7 +221,7 @@ public partial class JobStateMachine<
                     // runs inside the plan) — refuse the job, don't fail it.
                     ///////////////////////////////////////////////////
                     x => x
-                        .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, ApplyPlanFaulted>>())
+                        .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, TPlanFaulted>>())
                         .Publish(context => new TResponseCancelled
                         {
                             ModuleId = context.Saga.ModuleId,
@@ -227,10 +229,10 @@ public partial class JobStateMachine<
                             ModuleJobId = context.Saga.CorrelationId,
                             CancellationReason = CancellationReason.PolicyDenied
                         })
-                        .Activity(a => a.OfType<PolicyDeniedModuleJobActivity<TSaga, ApplyPlanFaulted>>())
+                        .Activity(a => a.OfType<PolicyDeniedModuleJobActivity<TSaga, TPlanFaulted>>())
                         .TransitionTo(PolicyDenied)
                         .Finalize(),
-                    x => x.ThenFaulted<TSaga, TResponseFailed, ApplyPlanFaulted>(Failed, _logger)
+                    x => x.ThenFaulted<TSaga, TResponseFailed, TPlanFaulted>(Failed, _logger)
                 ),
             Ignore(RunnerReconnectedEvent)
         );

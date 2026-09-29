@@ -66,8 +66,8 @@ public partial class Tasks
             ReportPushes(taskContext, request.RootDirectory);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateRunCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeMigrateRunCompleted),
+                () => runnerHubClient.InvokeSplitMigrateRunCompleted(request.JobId),
+                nameof(runnerHubClient.InvokeSplitMigrateRunCompleted),
                 request.JobId,
                 connection);
 
@@ -77,8 +77,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitMigrateRun was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateRunCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeMigrateRunCancelled),
+                () => runnerHubClient.InvokeSplitMigrateRunCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeSplitMigrateRunCancelled),
                 request.JobId,
                 connection);
         }
@@ -93,8 +93,8 @@ public partial class Tasks
             ReportPushes(taskContext, request.RootDirectory);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateRunFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeMigrateRunFaulted),
+                () => runnerHubClient.InvokeSplitMigrateRunFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeSplitMigrateRunFaulted),
                 request.JobId,
                 connection);
         }

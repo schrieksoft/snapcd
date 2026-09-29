@@ -16,21 +16,23 @@ public abstract class CancelKillRequestedBase : CorrelationBase
     public Guid RunnerId { get; set; }
 }
 
+public abstract class CancelKillCompletedBase : StepResponseBase;
+
 public class ApplyCancelKillRequested : CancelKillRequestedBase;
 
-public class ApplyCancelKillCompleted : StepResponseBase;
+public class ApplyCancelKillCompleted : CancelKillCompletedBase;
 
 public class DummyApplyCancelKillCompleted : StepResponseBase;
 
 public class DestroyCancelKillRequested : CancelKillRequestedBase;
 
-public class DestroyCancelKillCompleted : StepResponseBase;
+public class DestroyCancelKillCompleted : CancelKillCompletedBase;
 
 public class DummyDestroyCancelKillCompleted : StepResponseBase;
 
 public class SplitCancelKillRequested : CancelKillRequestedBase;
 
-public class SplitCancelKillCompleted : StepResponseBase;
+public class SplitCancelKillCompleted : CancelKillCompletedBase;
 
 public class DummySplitCancelKillCompleted : StepResponseBase;
 

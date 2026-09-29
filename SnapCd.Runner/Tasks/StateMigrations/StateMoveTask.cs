@@ -143,11 +143,11 @@ public partial class Tasks
                     dryRun: false, killToken);
 
                 await InvokeWithRetryAsync(
-                    () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
-                    nameof(client.InvokeStateMoveCompleted), request.JobId, connection);
+                    () => client.InvokeMoveCompleted(request.JobId, Results(outcomes, request)),
+                    nameof(client.InvokeMoveCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeStateMoveFaulted(request.JobId, message, stackTrace));
+                client.InvokeMoveFaulted(request.JobId, message, stackTrace));
 
     /// <summary>Imports each address from the id it already has. One command per address.</summary>
     public Task Import(StateMoveRequestBase request, HubConnection connection) =>
@@ -165,11 +165,11 @@ public partial class Tasks
                     killToken);
 
                 await InvokeWithRetryAsync(
-                    () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
-                    nameof(client.InvokeStateMoveCompleted), request.JobId, connection);
+                    () => client.InvokeMoveCompleted(request.JobId, Results(outcomes, request)),
+                    nameof(client.InvokeMoveCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeStateMoveFaulted(request.JobId, message, stackTrace));
+                client.InvokeMoveFaulted(request.JobId, message, stackTrace));
 
     /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
     public Task Remove(StateMoveRequestBase request, HubConnection connection) =>
@@ -187,11 +187,11 @@ public partial class Tasks
                     dryRun: false, killToken);
 
                 await InvokeWithRetryAsync(
-                    () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
-                    nameof(client.InvokeStateMoveCompleted), request.JobId, connection);
+                    () => client.InvokeMoveCompleted(request.JobId, Results(outcomes, request)),
+                    nameof(client.InvokeMoveCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeStateMoveFaulted(request.JobId, message, stackTrace));
+                client.InvokeMoveFaulted(request.JobId, message, stackTrace));
 
     /// <summary>What each address ended up as, with the target it was given.</summary>
     private static List<StateAddressResult> Results(

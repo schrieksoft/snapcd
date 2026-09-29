@@ -70,6 +70,7 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyPlanCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,

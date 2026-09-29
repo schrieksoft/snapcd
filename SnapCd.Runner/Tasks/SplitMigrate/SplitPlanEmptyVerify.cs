@@ -77,8 +77,8 @@ public partial class Tasks
                 taskContext.LogError(summary);
 
                 await InvokeWithRetryAsync(
-                    () => runnerHubClient.InvokePlanEmptyVerifyFaulted(request.JobId, summary, null),
-                    nameof(runnerHubClient.InvokePlanEmptyVerifyFaulted),
+                    () => runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted(request.JobId, summary, null),
+                    nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted),
                     request.JobId,
                     connection);
 
@@ -88,8 +88,8 @@ public partial class Tasks
             taskContext.LogInformation("Plan is empty");
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanEmptyVerifyCompleted(request.JobId),
-                nameof(runnerHubClient.InvokePlanEmptyVerifyCompleted),
+                () => runnerHubClient.InvokeSplitPlanEmptyVerifyCompleted(request.JobId),
+                nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyCompleted),
                 request.JobId,
                 connection);
 
@@ -99,8 +99,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitPlanEmptyVerify was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanEmptyVerifyCancelled(request.JobId),
-                nameof(runnerHubClient.InvokePlanEmptyVerifyCancelled),
+                () => runnerHubClient.InvokeSplitPlanEmptyVerifyCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyCancelled),
                 request.JobId,
                 connection);
         }
@@ -109,8 +109,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitPlanEmptyVerify for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanEmptyVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokePlanEmptyVerifyFaulted),
+                () => runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeSplitPlanEmptyVerifyFaulted),
                 request.JobId,
                 connection);
         }

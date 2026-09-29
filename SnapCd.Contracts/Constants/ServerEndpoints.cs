@@ -10,9 +10,6 @@ namespace SnapCd.Contracts.Constants;
 
 public static class ServerEndpoints
 {
-    public const string GetDefinitiveRevisionCompleted = "GetDefinitiveRevisionCompleted";
-    public const string GetDefinitiveRevisionCancelled = "GetDefinitiveRevisionCancelled";
-    public const string GetDefinitiveRevisionFaulted = "GetDefinitiveRevisionFaulted";
     public const string SplitPlanEmptyVerifyCompleted = "SplitPlanEmptyVerifyCompleted";
     public const string SplitPlanEmptyVerifyCancelled = "SplitPlanEmptyVerifyCancelled";
     public const string SplitPlanEmptyVerifyFaulted = "SplitPlanEmptyVerifyFaulted";
@@ -36,8 +33,8 @@ public static class ServerEndpoints
     public const string TransferOutputsFaulted = "TransferOutputsFaulted";
     public const string StateListFilteredCompleted = "StateListFilteredCompleted";
     public const string StateListFilteredFaulted = "StateListFilteredFaulted";
-    public const string StateMoveCompleted = "StateMoveCompleted";
-    public const string StateMoveFaulted = "StateMoveFaulted";
+    public const string MoveCompleted = "MoveCompleted";
+    public const string MoveFaulted = "MoveFaulted";
 
     public const string MoveDryRunCompleted = "MoveDryRunCompleted";
     public const string MoveDryRunFaulted = "MoveDryRunFaulted";
@@ -60,13 +57,6 @@ public static class ServerEndpoints
     public const string SplitMigrateVerifyCompleted = "SplitMigrateVerifyCompleted";
     public const string SplitMigrateVerifyCancelled = "SplitMigrateVerifyCancelled";
     public const string SplitMigrateVerifyFaulted = "SplitMigrateVerifyFaulted";
-    public const string PolicyValidateCompleted = "PolicyValidateCompleted";
-    public const string PolicyValidateCancelled = "PolicyValidateCancelled";
-    public const string PolicyValidateFaulted = "PolicyValidateFaulted";
-    
-    public const string VariablesCompleted = "VariablesCompleted";
-    public const string VariablesCancelled = "VariablesCancelled";
-    public const string VariablesFaulted = "VariablesFaulted";
 
     public const string ApplyPlanCompleted = "ApplyPlanCompleted";
     public const string ApplyPlanCancelled = "ApplyPlanCancelled";
@@ -83,10 +73,6 @@ public static class ServerEndpoints
     public const string DestroyFromPlanCompleted = "DestroyFromPlanCompleted";
     public const string DestroyFromPlanCancelled = "DestroyFromPlanCancelled";
     public const string DestroyFromPlanFaulted = "DestroyFromPlanFaulted";
-
-    public const string OutputCompleted = "OutputCompleted";
-    public const string OutputCancelled = "OutputCancelled";
-    public const string OutputFaulted = "OutputFaulted";
 
     public const string SourceRefreshCompleted = "SourceRefreshCompleted";
     public const string SourceRefreshCompletedV2 = "SourceRefreshCompletedV2";

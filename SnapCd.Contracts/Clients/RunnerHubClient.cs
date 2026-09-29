@@ -25,20 +25,6 @@ public class RunnerHubClient
         _hubConnection = hubConnection;
     }
 
-    public async Task InvokeGetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.GetDefinitiveRevisionCompleted, jobId, definitiveRevision);
-    }
-
-    public async Task InvokeGetDefinitiveRevisionCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.GetDefinitiveRevisionCancelled, jobId);
-    }
-
-    public async Task InvokeGetDefinitiveRevisionFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.GetDefinitiveRevisionFaulted, jobId, errorMessage, stackTrace);
-    }
 
 
 
@@ -47,59 +33,49 @@ public class RunnerHubClient
 
 
 
-    public async Task InvokePolicyValidateCompleted(Guid jobId, PolicyOutcome outcome)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateCompleted, jobId, outcome);
-    }
-
-    public async Task InvokePolicyValidateCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateCancelled, jobId);
-    }
-
-    public async Task InvokePolicyValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.PolicyValidateFaulted, jobId, errorMessage, stackTrace);
-    }
 
 
 
-    public async Task InvokePlanEmptyVerifyCompleted(Guid jobId)
+
+
+
+
+    public async Task InvokeSplitPlanEmptyVerifyCompleted(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanEmptyVerifyCompleted, jobId);
     }
 
-    public async Task InvokePlanEmptyVerifyCancelled(Guid jobId)
+    public async Task InvokeSplitPlanEmptyVerifyCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanEmptyVerifyCancelled, jobId);
     }
 
-    public async Task InvokePlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeSplitPlanEmptyVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanEmptyVerifyFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeRefactorValidateCompleted(Guid jobId)
+    public async Task InvokeSplitRefactorValidateCompleted(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorValidateCompleted, jobId);
     }
 
-    public async Task InvokeRefactorValidateCancelled(Guid jobId)
+    public async Task InvokeSplitRefactorValidateCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorValidateCancelled, jobId);
     }
 
-    public async Task InvokeRefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeSplitRefactorValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorValidateFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeRefactorDiffCompleted(Guid jobId)
+    public async Task InvokeSplitRefactorDiffCompleted(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorDiffCompleted, jobId);
     }
 
-    public async Task InvokeMigrateRunCompleted(Guid jobId)
+    public async Task InvokeSplitMigrateRunCompleted(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunCompleted, jobId);
     }
@@ -148,14 +124,14 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateRunFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeStateMoveCompleted(Guid jobId, List<StateAddressResult> results)
+    public async Task InvokeMoveCompleted(Guid jobId, List<StateAddressResult> results)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateMoveCompleted, jobId, results);
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveCompleted, jobId, results);
     }
 
-    public async Task InvokeStateMoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeMoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateMoveFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeMoveDryRunCompleted(Guid jobId, List<StateAddressResult> results)
@@ -223,114 +199,102 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
+    public async Task InvokeSplitMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateMapCompleted, jobId, refactorMapHash, carvedModuleNames, resourcesMoved);
     }
 
-    public async Task InvokeMigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    public async Task InvokeSplitMigrateProveCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateProveCompleted, jobId, modulesProven, modulesPlanningClean);
     }
 
-    public async Task InvokeMigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
+    public async Task InvokeSplitMigrateVerifyCompleted(Guid jobId, int modulesProven, int modulesPlanningClean)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateVerifyCompleted, jobId, modulesProven, modulesPlanningClean);
     }
 
-    public async Task InvokeRefactorDiffCancelled(Guid jobId)
+    public async Task InvokeSplitRefactorDiffCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorDiffCancelled, jobId);
     }
 
-    public async Task InvokeRefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeSplitRefactorDiffFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitRefactorDiffFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeMigrateMapCancelled(Guid jobId)
+    public async Task InvokeSplitMigrateMapCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateMapCancelled, jobId);
     }
 
-    public async Task InvokeMigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeSplitMigrateMapFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateMapFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeMigrateProveCancelled(Guid jobId)
+    public async Task InvokeSplitMigrateProveCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateProveCancelled, jobId);
     }
 
-    public async Task InvokeMigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeSplitMigrateProveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateProveFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeMigrateRunCancelled(Guid jobId)
+    public async Task InvokeSplitMigrateRunCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunCancelled, jobId);
     }
 
-    public async Task InvokeMigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeSplitMigrateRunFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeMigrateVerifyCancelled(Guid jobId)
+    public async Task InvokeSplitMigrateVerifyCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateVerifyCancelled, jobId);
     }
 
-    public async Task InvokeMigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeSplitMigrateVerifyFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateVerifyFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeVariablesCompleted(Guid jobId, VariableSetCreateDto? variableSet)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.VariablesCompleted, jobId, variableSet);
-    }
 
-    public async Task InvokeVariablesCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.VariablesCancelled, jobId);
-    }
 
-    public async Task InvokeVariablesFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.VariablesFaulted, jobId, errorMessage, stackTrace);
-    }
 
     // Plan
-    public async Task InvokePlanCompleted(Guid jobId, PlanCompletedData data)
+    public async Task InvokeApplyPlanCompleted(Guid jobId, PlanCompletedData data)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCompleted, jobId, data);
     }
 
-    public async Task InvokePlanCancelled(Guid jobId)
+    public async Task InvokeApplyPlanCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCancelled, jobId);
     }
 
-    public async Task InvokePlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
+    public async Task InvokeApplyPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
 
     // PlanDestroy
-    public async Task InvokePlanDestroyCompleted(Guid jobId, PlanCompletedData data)
+    public async Task InvokeDestroyPlanCompleted(Guid jobId, PlanCompletedData data)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCompleted, jobId, data);
     }
 
-    public async Task InvokePlanDestroyCancelled(Guid jobId)
+    public async Task InvokeDestroyPlanCancelled(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCancelled, jobId);
     }
 
-    public async Task InvokePlanDestroyFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
+    public async Task InvokeDestroyPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome = null)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
     }
@@ -368,20 +332,8 @@ public class RunnerHubClient
     }
 
     // Output
-    public async Task InvokeOutputCompleted(Guid jobId, OutputSetCreateDto? outputSet)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.OutputCompleted, jobId, outputSet);
-    }
 
-    public async Task InvokeOutputCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.OutputCancelled, jobId);
-    }
 
-    public async Task InvokeOutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.OutputFaulted, jobId, errorMessage, stackTrace);
-    }
 
 
     // SourceRefresh (stateless - no JobId, matched by source parameters)
@@ -420,10 +372,6 @@ public class RunnerHubClient
     }
 
     // Heartbeat
-    public async Task InvokeHeartbeatResponse(string requestId, bool isActive)
-    {
-        await _hubConnection.InvokeAsync("HeartbeatResponse", requestId, isActive);
-    }
 
     public async Task InvokeReportRunningTask(Guid jobId, string taskName, Guid runnerId, string? runnerInstanceName)
     {
@@ -694,30 +642,6 @@ public class RunnerHubClient
 
     // Plan and Validate answer per family, so each task is handed the pair it should use.
 
-    public async Task InvokeApplyPlanCompleted(Guid jobId, PlanCompletedData data)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCompleted, jobId, data);
-    }
-
-    public async Task InvokeApplyPlanFaulted(
-        Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome)
-    {
-        await _hubConnection.InvokeAsync(
-            ServerEndpoints.ApplyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
-    }
-
-    public async Task InvokeDestroyPlanCompleted(Guid jobId, PlanCompletedData data)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCompleted, jobId, data);
-    }
-
-    public async Task InvokeDestroyPlanFaulted(
-        Guid jobId, string? errorMessage, string? stackTrace, PolicyOutcome? policyOutcome)
-    {
-        await _hubConnection.InvokeAsync(
-            ServerEndpoints.DestroyPlanFaulted, jobId, errorMessage, stackTrace, policyOutcome);
-    }
-
     public async Task InvokeSplitPlanCompleted(Guid jobId, PlanCompletedData data)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanCompleted, jobId, data);
@@ -731,16 +655,6 @@ public class RunnerHubClient
     public async Task InvokeSplitValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitValidateFaulted, jobId, errorMessage, stackTrace);
-    }
-
-    public async Task InvokeApplyPlanCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyPlanCancelled, jobId);
-    }
-
-    public async Task InvokeDestroyPlanCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyPlanCancelled, jobId);
     }
 
     public async Task InvokeSplitPlanCancelled(Guid jobId)

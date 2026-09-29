@@ -66,8 +66,8 @@ public partial class Tasks
 
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateMapCompleted(request.JobId, refactorMapHash, carvedModuleNames, resourcesMoved),
-                nameof(runnerHubClient.InvokeMigrateMapCompleted),
+                () => runnerHubClient.InvokeSplitMigrateMapCompleted(request.JobId, refactorMapHash, carvedModuleNames, resourcesMoved),
+                nameof(runnerHubClient.InvokeSplitMigrateMapCompleted),
                 request.JobId,
                 connection);
 
@@ -77,8 +77,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitMigrateMap was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateMapCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeMigrateMapCancelled),
+                () => runnerHubClient.InvokeSplitMigrateMapCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeSplitMigrateMapCancelled),
                 request.JobId,
                 connection);
         }
@@ -87,8 +87,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitMigrateMap for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateMapFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeMigrateMapFaulted),
+                () => runnerHubClient.InvokeSplitMigrateMapFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeSplitMigrateMapFaulted),
                 request.JobId,
                 connection);
         }

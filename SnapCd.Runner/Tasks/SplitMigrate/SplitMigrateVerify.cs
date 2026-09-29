@@ -69,8 +69,8 @@ public partial class Tasks
 
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateVerifyCompleted(request.JobId, modulesProven, modulesPlanningClean),
-                nameof(runnerHubClient.InvokeMigrateVerifyCompleted),
+                () => runnerHubClient.InvokeSplitMigrateVerifyCompleted(request.JobId, modulesProven, modulesPlanningClean),
+                nameof(runnerHubClient.InvokeSplitMigrateVerifyCompleted),
                 request.JobId,
                 connection);
 
@@ -80,8 +80,8 @@ public partial class Tasks
         {
             taskContext.LogWarning("SplitMigrateVerify was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateVerifyCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeMigrateVerifyCancelled),
+                () => runnerHubClient.InvokeSplitMigrateVerifyCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeSplitMigrateVerifyCancelled),
                 request.JobId,
                 connection);
         }
@@ -90,8 +90,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling SplitMigrateVerify for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeMigrateVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
-                nameof(runnerHubClient.InvokeMigrateVerifyFaulted),
+                () => runnerHubClient.InvokeSplitMigrateVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeSplitMigrateVerifyFaulted),
                 request.JobId,
                 connection);
         }

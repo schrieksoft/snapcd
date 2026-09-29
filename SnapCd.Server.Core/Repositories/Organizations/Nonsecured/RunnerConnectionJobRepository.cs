@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using EntityFramework.Exceptions.Common;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -104,7 +105,31 @@ public class RunnerConnectionJobRepository : GenericOrganizationChildRepository<
                 TaskName = taskName
             };
 
-            await Create(newJob);
+            try
+            {
+                await Create(newJob);
+            }
+            catch (UniqueConstraintException)
+            {
+                // A step reports once when it starts and again on every liveness tick, so two
+                // reports for one job can be consumed at the same time: both read no row and both
+                // insert. The index decides which one wins, and the loser updates instead.
+                DbContext.Entry(newJob).State = EntityState.Detached;
+
+                var winner = await DbContext.RunnerConnectionJobs
+                    .Where(rcj => rcj.OrganizationId == organizationId &&
+                                  rcj.ModuleJobId == moduleJobId &&
+                                  rcj.RunnerConnection.RunnerId == runnerId &&
+                                  rcj.RunnerConnection.InstanceName == runnerInstanceName)
+                    .FirstOrDefaultAsync();
+
+                if (winner is null) throw;
+
+                winner.RunnerConnectionId = runnerConnection.Id;
+                winner.TaskName = taskName;
+
+                await Update(winner);
+            }
         }
     }
 }

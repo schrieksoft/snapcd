@@ -63,6 +63,7 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyPlanCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
@@ -106,6 +107,7 @@ using DestroyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.DestroyPlanRequested,
     SnapCd.Server.Core.Events.Steps.DestroyPlanCompleted,
     SnapCd.Server.Core.Events.Steps.DestroyPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyPlanFaulted,
     SnapCd.Server.Core.Events.Steps.DestroyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.DestroyFromPlanCompleted,
     SnapCd.Server.Core.Events.Steps.DestroyFromPlanCancelled,
@@ -305,7 +307,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
 
         var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
-        Assert.False(await _harness.Published.Any<PolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.False(await _harness.Published.Any<ApplyPolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]
@@ -331,7 +333,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
         // DestroyFromPlanRequested from it).
         var state = await WaitForSagaState(jobId, true, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/destroy path, got {state}");
-        Assert.False(await _harness.Published.Any<PolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.False(await _harness.Published.Any<DestroyPolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]
@@ -339,7 +341,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: false, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
+        await _harness.Bus.Publish(new ApplyPolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
 
         Assert.True(await _harness.Published.Any<ApplyModuleCancelled>(x =>
             x.Context.Message.ModuleJobId == jobId && x.Context.Message.CancellationReason == CancellationReason.PolicyDenied));
@@ -361,7 +363,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: true, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
+        await _harness.Bus.Publish(new DestroyPolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
 
         Assert.True(await _harness.Published.Any<DestroyModuleCancelled>(x =>
             x.Context.Message.ModuleJobId == jobId && x.Context.Message.CancellationReason == CancellationReason.PolicyDenied));
@@ -382,7 +384,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: false, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.SoftWarned });
+        await _harness.Bus.Publish(new ApplyPolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.SoftWarned });
 
         var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
@@ -397,7 +399,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: false, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "conftest not found" });
+        await _harness.Bus.Publish(new ApplyPolicyValidateFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "conftest not found" });
 
         Assert.True(await _harness.Published.Any<ApplyModuleFailed>(x => x.Context.Message.ModuleJobId == jobId));
 
@@ -452,7 +454,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
 
         var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
-        Assert.False(await _harness.Published.Any<PolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.False(await _harness.Published.Any<ApplyPolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]

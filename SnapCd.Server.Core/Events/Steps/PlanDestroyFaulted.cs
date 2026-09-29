@@ -13,6 +13,6 @@ namespace SnapCd.Server.Core.Events.Steps;
 /// <summary>
 /// Event indicating that plan destroy has faulted with an error.
 /// </summary>
-public class DestroyPlanFaulted : ApplyPlanFaulted
+public class DestroyPlanFaulted : PlanFaultedBase
 {
 }

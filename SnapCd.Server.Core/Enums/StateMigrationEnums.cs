@@ -9,17 +9,6 @@
 
 namespace SnapCd.Server.Core.Enums;
 
-/// <summary>
-/// What a state-editing job was asked to do. It is the job's own kind; what each address ended up
-/// recorded as is <see cref="AddressOperation"/>, which splits an mv into its two ends.
-/// </summary>
-public enum StateEditOperation
-{
-    Move,
-    Import,
-    Remove
-}
-
 /// <summary>What a job did to one address. One table serves every operation, so this says which.</summary>
 public enum AddressOperation
 {
