@@ -68,13 +68,13 @@
         <PackageReference Include="Hangfire.Core" Version="1.8.22" />
         <PackageReference Include="Hangfire.SqlServer" Version="1.8.22" />
         <PackageReference Include="KubeOps.Operator" Version="9.11.9" />
-        <PackageReference Include="MassTransit" Version="8.5.5" />
-        <PackageReference Include="MassTransit.Azure.ServiceBus.Core" Version="8.5.5" />
-        <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.5.5" />
-        <PackageReference Include="MassTransit.Quartz" Version="8.5.5" />
-        <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.5" />
-        <PackageReference Include="MassTransit.AmazonSQS" Version="8.5.5" />
-        <PackageReference Include="MassTransit.SqlTransport.SqlServer" Version="8.5.5" />
+        <PackageReference Include="MassTransit" Version="8.5.10" />
+        <PackageReference Include="MassTransit.Azure.ServiceBus.Core" Version="8.5.10" />
+        <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.5.10" />
+        <PackageReference Include="MassTransit.Quartz" Version="8.5.10" />
+        <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.10" />
+        <PackageReference Include="MassTransit.AmazonSQS" Version="8.5.10" />
+        <PackageReference Include="MassTransit.SqlTransport.SqlServer" Version="8.5.10" />
         <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />

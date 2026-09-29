@@ -25,7 +25,7 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Utils.Helpers;
 using SnapCd.Server.Core.Misc.ViewModels.Authorization;
 using static OpenIddict.Abstractions.OpenIddictConstants;
-using AsyncEnumerableExtensions = MassTransit.Internals.AsyncEnumerableExtensions;
+using AsyncEnumerableExtensions = System.Linq.AsyncEnumerable;
 
 namespace SnapCd.Server.Core.Controllers.OpenIddict;
 
