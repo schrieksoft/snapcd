@@ -11,7 +11,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Contracts;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -98,15 +100,55 @@ public static class Run
         if (options.Job is JobKind.Apply or JobKind.Destroy)
         {
             var jobId = Guid.NewGuid();
-            using (var jobs = jobFactory.Create(principal))
+
+            async Task Request(Guid id)
             {
+                using var jobs = jobFactory.Create(principal);
                 if (options.Job == JobKind.Apply)
-                    await jobs.Apply(options.ModuleId, options.OrganizationId, jobId);
+                    await jobs.Apply(options.ModuleId, options.OrganizationId, id);
                 else
-                    await jobs.Destroy(options.ModuleId, options.OrganizationId, jobId);
+                    await jobs.Destroy(options.ModuleId, options.OrganizationId, id);
             }
 
+            // A throwaway send first, to test whether it is only ever the first message on a fresh
+            // transport schema that goes undelivered. The id is not a real job, so the gate finds
+            // no Module and does nothing with it.
+            if (options.WarmUpSend)
+            {
+                var warmUp = await services.GetRequiredService<IBus>()
+                    .GetSendEndpoint(new Uri("queue:module"));
+                await warmUp.Send(new GatekeepingJobRequested
+                {
+                    ModuleId = Guid.Empty,
+                    OrganizationId = options.OrganizationId,
+                    DesiredStateHeadline = DesiredStateHeadline.Applied,
+                    SetNewDesiredState = false,
+                    JobId = Guid.Empty
+                }, sendContext =>
+                {
+                    // Correlates to no saga, so if it is delivered it is discarded and if it is
+                    // not it must expire: without a TTL the transport keeps the row for ever.
+                    sendContext.TimeToLive = TimeSpan.FromSeconds(30);
+                });
+
+                Console.WriteLine("Warm-up message sent");
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            }
+
+            await Request(jobId);
             Console.WriteLine($"Started job {jobId}");
+
+            // Asking again in the same process says whether the bus is dead for the run or only
+            // the first request was lost: a second job that starts means the first was dropped.
+            for (var attempt = 1; attempt <= options.RetryRequests; attempt++)
+            {
+                var started = await WaitForJobRow(dbFactory, principal, jobId, TimeSpan.FromSeconds(20));
+                if (started) break;
+
+                jobId = Guid.NewGuid();
+                await Request(jobId);
+                Console.WriteLine($"  !! no job row after 20s; re-requested as {jobId} (attempt {attempt + 1})");
+            }
 
             var status = await Watch(dbFactory, approvalFactory, principal, jobId, options,
                 services.GetRequiredService<FakeRunner>());
@@ -151,6 +193,21 @@ public static class Run
 
         await db.SaveChangesAsync();
         return runnerId;
+    }
+
+    /// <summary>Polls for the job's row, which is the first thing the saga writes.</summary>
+    private static async Task<bool> WaitForJobRow(
+        IDbContextFactory<SnapCdDbContext> dbFactory, IPrincipalProvider principal, Guid jobId, TimeSpan within)
+    {
+        var deadline = DateTime.UtcNow + within;
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(500);
+            await using var db = await dbFactory.CreateDbContextAsync();
+            if (await db.ModuleJobs.AnyAsync(j => j.Id == jobId)) return true;
+        }
+
+        return false;
     }
 
     private static async Task<ExecutionStatus> Watch(

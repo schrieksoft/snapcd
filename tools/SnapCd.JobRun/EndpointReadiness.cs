@@ -22,6 +22,7 @@ public class EndpointReadiness : IReceiveEndpointObserver
 {
     private readonly object _gate = new();
     private readonly HashSet<string> _ready = [];
+    private readonly HashSet<string> _faults = [];
     private DateTime _lastReady = DateTime.UtcNow;
 
     public int ReadyCount
@@ -49,7 +50,24 @@ public class EndpointReadiness : IReceiveEndpointObserver
 
     public Task Completed(ReceiveEndpointCompleted completed) => Task.CompletedTask;
 
-    public Task Faulted(ReceiveEndpointFaulted faulted) => Task.CompletedTask;
+    /// <summary>
+    /// An endpoint that reported ready and then faulted still counts towards ReadyCount, so a
+    /// fault is printed rather than swallowed: otherwise "Endpoints ready: 126" reads as proof the
+    /// bus is listening when it is only proof that 126 endpoints once said so.
+    /// </summary>
+    public Task Faulted(ReceiveEndpointFaulted faulted)
+    {
+        lock (_gate)
+            _faults.Add(faulted.InputAddress.ToString());
+
+        Console.WriteLine($"  !! endpoint faulted: {faulted.InputAddress} - {faulted.Exception.Message}");
+        return Task.CompletedTask;
+    }
+
+    public IReadOnlyCollection<string> Faults
+    {
+        get { lock (_gate) return _faults.ToList(); }
+    }
 
     /// <summary>
     /// Waits until no endpoint has reported ready for <paramref name="quiet"/>, which is as close

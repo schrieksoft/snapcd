@@ -30,9 +30,14 @@ if (options is null) return 1;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration.Sources.Clear();
-builder.Configuration
-    .AddJsonFile(options.ServerAppSettingsPath, optional: false)
-    .AddInMemoryCollection(options.Configuration);
+builder.Configuration.AddJsonFile(options.ServerAppSettingsPath, optional: false);
+
+// Layered over the base rather than replacing it: the overlay carries the Azure namespace, while
+// the signing keys and everything else still come from the base file.
+if (options.ServerAppSettingsOverlayPath is { } overlay)
+    builder.Configuration.AddJsonFile(overlay, optional: false);
+
+builder.Configuration.AddInMemoryCollection(options.Configuration);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddSimpleConsole(c => c.SingleLine = true);
@@ -42,7 +47,8 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 // SetMinimumLevel, so without this filter every LogDebug the product writes is discarded - which
 // is most of what says why a job did not move. This is a diagnostic tool, so it says everything.
 builder.Logging.AddFilter("SnapCd", LogLevel.Debug);
-builder.Logging.AddFilter("MassTransit", LogLevel.Information);
+builder.Logging.AddFilter("MassTransit",
+    options.TransportTrace ? LogLevel.Debug : LogLevel.Information);
 builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
 
 builder.Services.AddSingleton<EndpointReadiness>();

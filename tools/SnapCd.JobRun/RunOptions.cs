@@ -99,34 +99,62 @@ public class RunOptions
     /// <summary>Seconds to wait after every endpoint reports ready, before publishing.</summary>
     public int SettleSeconds { get; init; }
 
+    /// <summary>How many times to ask again when no job row appears.</summary>
+    public int RetryRequests { get; init; }
+
+    /// <summary>Sends a throwaway message before the real one.</summary>
+    public bool WarmUpSend { get; init; }
+
+    /// <summary>
+    /// MassTransit's own logging at Debug, which shows queue and topic creation, the
+    /// subscriptions binding them, and which saga consumed a message. On by default: it is what
+    /// distinguishes a message nothing consumed from one that was never routed anywhere.
+    /// </summary>
+    public bool TransportTrace { get; init; }
+
     /// <summary>
     /// The server's own settings, layered under the run's overrides. Settings such as the state
     /// store's encryption key have to match the server's or existing rows will not decrypt.
     /// </summary>
     public required string ServerAppSettingsPath { get; init; }
 
+    /// <summary>A second settings file layered over the first, for the Azure namespace.</summary>
+    public string? ServerAppSettingsOverlayPath { get; init; }
+
     public string ConnectionString =>
         $"{MasterConnectionString.TrimEnd(';')};Database={DatabaseName}";
 
     /// <summary>The bus shares the run's database, so the run needs no broker of its own.</summary>
-    public Dictionary<string, string?> Configuration => new()
+    public Dictionary<string, string?> Configuration
     {
-        ["ConnectionString"] = ConnectionString,
-        ["Server:InstanceId"] = ServerInstanceId.ToString(),
-        ["ServiceBus:BusType"] = BusType,
-        ["ServiceBus:TransportOptions:AzureServiceBus:ConnectionString"] = ServiceBusConnectionString,
-        ["ServiceBus:TransportOptions:SqlServer:ConnectionString"] = ConnectionString,
+        get
+        {
+            var settings = new Dictionary<string, string?>
+            {
+                ["ConnectionString"] = ConnectionString,
+                ["Server:InstanceId"] = ServerInstanceId.ToString(),
+                ["ServiceBus:BusType"] = BusType,
+                ["ServiceBus:TransportOptions:SqlServer:ConnectionString"] = ConnectionString,
 
-        // Selects DebugDataSeeder, which creates the organization, user, runner and Module the
-        // run uses. Without it the seeder makes a bare production tenant with no Module.
-        ["UseDebugDataSeeder"] = "true",
+                // Selects DebugDataSeeder, which creates the organization, user, runner and Module
+                // the run uses. Without it the seeder makes a bare production tenant with no Module.
+                ["UseDebugDataSeeder"] = "true",
 
-        // DebugDataSeeder builds on the preseed rather than repeating it: its Module references
-        // the preseeded runner and its missions the preseeded agent, so without this it fails on
-        // a foreign key.
-        ["ProductionDataSeeder:Preseeded:Enabled"] = "true",
+                // DebugDataSeeder builds on the preseed rather than repeating it: its Module
+                // references the preseeded runner and its missions the preseeded agent, so without
+                // this it fails on a foreign key.
+                ["ProductionDataSeeder:Preseeded:Enabled"] = "true"
+            };
 
-    };
+            // Left unset, the namespace comes from the server's own appsettings, so a run on Azure
+            // needs no connection string of its own.
+            if (ServiceBusConnectionString is not null)
+                settings["ServiceBus:TransportOptions:AzureServiceBus:ConnectionString"] =
+                    ServiceBusConnectionString;
+
+            return settings;
+        }
+    }
 
     /// <summary>Walks up to the repo root, so the run works from any working directory.</summary>
     private static string DefaultAppSettingsPath()
@@ -183,6 +211,7 @@ public class RunOptions
                                             AzureServiceBus
                   --timeout       <seconds> default 300
                   --keep                    leave the database behind to inspect
+                  --quiet-transport         drop MassTransit to Information (trace is on by default)
                 """);
             return null;
         }
@@ -192,6 +221,7 @@ public class RunOptions
             MasterConnectionString = server,
             DatabaseName = Get("database") ?? $"SnapCdJobRun_{DateTime.Now:yyyyMMdd_HHmmss}",
             ServerAppSettingsPath = Get("appsettings") ?? DefaultAppSettingsPath(),
+            ServerAppSettingsOverlayPath = Get("appsettings-overlay"),
             Job = Enum.TryParse<JobKind>(Get("job"), ignoreCase: true, out var kind) ? kind : JobKind.Apply,
             Target = Get("target"),
             RootDirectory = Get("root"),
@@ -213,8 +243,11 @@ public class RunOptions
             PrincipalId = Guid.TryParse(Get("principal"), out var p) ? p : SeededUserId,
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),
+            TransportTrace = !args.Contains("--quiet-transport"),
             Timeout = ParseTimeout(Get("timeout")),
             SettleSeconds = int.TryParse(Get("settle"), out var st) ? st : 0,
+            RetryRequests = int.TryParse(Get("retry-requests"), out var rr) ? rr : 0,
+            WarmUpSend = args.Contains("--warm-up"),
         };
     }
 
