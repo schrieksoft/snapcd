@@ -30,8 +30,8 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject LogReceivedNotificationService LogReceivedNotificationService
-@inject ManualJobUpdatedNotificationService ManualJobUpdatedNotificationService
-@inject ILogger<ManageManualJobs> Logger
+@inject StateMigrationUpdatedNotificationService StateMigrationUpdatedNotificationService
+@inject ILogger<ManageStateMigrations> Logger
 
 @implements IDisposable
 
@@ -92,7 +92,7 @@
                         @* Agreeing starts this module's own side, so it waits like any launcher.
                            Refusing only closes the transfer and stays available. *@
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
+                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                    OnClick="@(() => Answer(true))">agree</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    Disabled="@(!_canPause || _busy)"
@@ -101,7 +101,7 @@
                 </MudStack>
             }
 
-            @if (RunningManualJob is { } running)
+            @if (RunningStateMigration is { } running)
             {
                 <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
                     <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small"/>
@@ -116,9 +116,9 @@
                 <MudTabPanel Text="Demonolith jobs" Style="text-transform: none">
                     <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)" OnClick="StartSplit">split</MudButton>
+                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)" OnClick="StartSplit">split</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || _transfer is not null || RunningManualJob is not null)"
+                                   Disabled="@(!_canPause || _busy || _transfer is not null || RunningStateMigration is not null)"
                                    OnClick="StartTransfer">transfer</MudButton>
                     </MudStack>
                 </MudTabPanel>
@@ -126,16 +126,16 @@
                 <MudTabPanel Text="@($"{EngineName} jobs")" Style="text-transform: none">
                     <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
+                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                    OnClick="StartMove">move</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
+                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                    OnClick="StartImport">import</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)"
+                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                    OnClick="StartRemove">remove</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningManualJob is not null)" OnClick="StartStateList">check state</MudButton>
+                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)" OnClick="StartStateList">check state</MudButton>
                     </MudStack>
                 </MudTabPanel>
             </MudTabs>
@@ -306,15 +306,15 @@ else
 
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
-    [Inject] private ManualJobServiceFactory ManualJobServiceFactory { get; set; } = null!;
+    [Inject] private StateMigrationServiceFactory StateMigrationServiceFactory { get; set; } = null!;
     [Inject] private TransferServiceFactory TransferServiceFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> TransferDbContextFactory { get; set; } = null!;
-    [Inject] private ManualModuleJobSecuredRepositoryFactory ManualJobRepoFactory { get; set; } = null!;
+    [Inject] private StateMigrationJobSecuredRepositoryFactory StateMigrationRepoFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
 
     private string? _blockedReason;
-    private List<ManualModuleJob> _jobs = [];
-    private Dictionary<Guid, List<ManualModuleJobAddress>> _addresses = [];
+    private List<StateMigrationJob> _jobs = [];
+    private Dictionary<Guid, List<StateMigrationJobAddress>> _addresses = [];
 
     /// <summary>
     /// Green for what worked or is there, red for what did not. A "Present" is the same good news
@@ -346,7 +346,7 @@ else
 
         await using var db = await TransferDbContextFactory.CreateDbContextAsync();
 
-        _addresses = (await db.ManualModuleJobAddresses.AsNoTracking()
+        _addresses = (await db.StateMigrationJobAddresses.AsNoTracking()
                 .Where(a => jobIds.Contains(a.JobId) && a.OrganizationId == OrganizationId)
                 .OrderBy(a => a.Address)
                 .ToListAsync())
@@ -356,24 +356,24 @@ else
     private readonly Dictionary<Guid, ListLogs> _listLogsRefs = new();
     private readonly HashSet<Guid> _loadedLogs = [];
     private Guid? _subscribedModuleId;
-    private ManualModuleJob? _selected;
+    private StateMigrationJob? _selected;
 
     private IApprovalSource GetApprovalSource() =>
-        _approvalSource ??= new ManualJobApprovalSource(
-            ManualJobRepoFactory,
-            ManualJobServiceFactory,
+        _approvalSource ??= new StateMigrationApprovalSource(
+            StateMigrationRepoFactory,
+            StateMigrationServiceFactory,
             DbContextFactory,
             PrincipalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor()));
 
     private IApprovalSource? _approvalSource;
 
     /// A manual job of this module's own, still going. Its own panel below shows what it is doing.
-    private ManualModuleJob? RunningManualJob =>
+    private StateMigrationJob? RunningStateMigration =>
         _jobs.FirstOrDefault(j => j.Status == ExecutionStatus.Running);
 
     /// Inside a paused module, any remaining block is work still draining: the pause itself is not one.
     private bool IsDraining =>
-        ModuleSaga is { Paused: true } && _blockedReason is not null && RunningManualJob is null;
+        ModuleSaga is { Paused: true } && _blockedReason is not null && RunningStateMigration is null;
 
     private bool _canPause;
     private bool _busy;
@@ -474,7 +474,7 @@ else
         _busy = true;
         try
         {
-            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
             await service.StartStateListFiltered(Module.Id, OrganizationId, addresses);
 
             Snackbar.Add($"Checking {addresses.Count} addresses against this module's state.", Severity.Success);
@@ -497,10 +497,10 @@ else
             if (_subscribedModuleId is { } previous)
             {
                 LogReceivedNotificationService.Unsubscribe(previous, HandleLogReceived);
-                ManualJobUpdatedNotificationService.Unsubscribe(previous, HandleJobUpdated);
+                StateMigrationUpdatedNotificationService.Unsubscribe(previous, HandleJobUpdated);
             }
             LogReceivedNotificationService.Subscribe(Module.Id, HandleLogReceived);
-            ManualJobUpdatedNotificationService.Subscribe(Module.Id, HandleJobUpdated);
+            StateMigrationUpdatedNotificationService.Subscribe(Module.Id, HandleJobUpdated);
             _subscribedModuleId = Module.Id;
 
             Logger.LogDebug("Manual jobs panel is listening for Module {ModuleId}", Module.Id);
@@ -509,10 +509,10 @@ else
         using var moduleRepo = ModuleRepoFactory.Create(PrincipalProvider);
         _canPause = moduleRepo.CanPause(Module.Id, OrganizationId);
 
-        using var manualJobService = ManualJobServiceFactory.Create(PrincipalProvider);
-        _blockedReason = await manualJobService.GetBlockedReason(Module.Id, OrganizationId);
+        using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
+        _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);
 
-        using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
+        using var jobRepo = StateMigrationRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
         await LoadAddresses();
         await LoadNamespaceDefaultEngine();
@@ -590,7 +590,7 @@ else
     /// <summary>Opens one edit's dialog and runs what it returns. The dialog names the edit.</summary>
     private async Task StartStateEdit<TDialog>(
         string verb,
-        Func<ManualJobService, StateEditDialogBase.Choice, Task<ManualModuleJob>> start)
+        Func<StateMigrationService, StateEditDialogBase.Choice, Task<StateMigrationJob>> start)
         where TDialog : ComponentBase
     {
         var options = new DialogOptions
@@ -610,7 +610,7 @@ else
         _busy = true;
         try
         {
-            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
             await start(service, choice);
 
             Snackbar.Add($"Running {verb} over {choice.Instructions.Count} addresses.", Severity.Success);
@@ -650,7 +650,7 @@ else
         _busy = true;
         try
         {
-            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
             await service.StartSplitMigrate(Module.Id, OrganizationId, choice.RootDirectory, choice.Force, rederiveBackend: choice.RederiveBackend);
 
             Snackbar.Add("Split started.", Severity.Success);
@@ -669,7 +669,7 @@ else
     private async Task CancelJob(Guid jobId, bool waitingForApproval)
     {
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
-        var parameters = new DialogParameters<CancelManualModuleJobDialog>
+        var parameters = new DialogParameters<CancelStateMigrationJobDialog>
         {
             { x => x.JobId, jobId },
             { x => x.ModuleId, Module.Id },
@@ -678,7 +678,7 @@ else
             { x => x.WaitingForApproval, waitingForApproval }
         };
 
-        var dialog = await DialogService.ShowAsync<CancelManualModuleJobDialog>("Cancel", parameters, options);
+        var dialog = await DialogService.ShowAsync<CancelStateMigrationJobDialog>("Cancel", parameters, options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false }) await Reload();
@@ -690,13 +690,13 @@ else
 
         if (moduleId != Module.Id) return;
 
-        using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
+        using var jobRepo = StateMigrationRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
         await LoadAddresses();
 
 
-        using var manualJobService = ManualJobServiceFactory.Create(PrincipalProvider);
-        _blockedReason = await manualJobService.GetBlockedReason(Module.Id, OrganizationId);
+        using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
+        _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);
 
         await InvokeAsync(StateHasChanged);
     }
@@ -716,11 +716,11 @@ else
         if (_subscribedModuleId is { } moduleId)
         {
             LogReceivedNotificationService.Unsubscribe(moduleId, HandleLogReceived);
-            ManualJobUpdatedNotificationService.Unsubscribe(moduleId, HandleJobUpdated);
+            StateMigrationUpdatedNotificationService.Unsubscribe(moduleId, HandleJobUpdated);
         }
     }
 
-    private async Task OnPanelExpanded(bool isExpanded, ManualModuleJob job)
+    private async Task OnPanelExpanded(bool isExpanded, StateMigrationJob job)
     {
         if (!isExpanded)
         {
@@ -740,10 +740,10 @@ else
 
     private async Task Reload()
     {
-        using var manualJobService = ManualJobServiceFactory.Create(PrincipalProvider);
-        _blockedReason = await manualJobService.GetBlockedReason(Module.Id, OrganizationId);
+        using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
+        _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);
 
-        using var jobRepo = ManualJobRepoFactory.Create(PrincipalProvider);
+        using var jobRepo = StateMigrationRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
         await LoadAddresses();
 
@@ -771,5 +771,5 @@ else
 
     /// The stored value names the saga table; the tab shows the operation.
     private static string FormatJobType(string jobType) =>
-        jobType == ManualJobTypes.SplitMigrate ? "SplitMigrate" : jobType;
+        jobType == StateMigrationTypes.SplitMigrate ? "SplitMigrate" : jobType;
 }

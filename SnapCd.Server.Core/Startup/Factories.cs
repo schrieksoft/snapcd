@@ -61,7 +61,7 @@ public static class Factories
         services.AddScoped<ModuleSagaRepositoryFactory>();
         services.AddScoped<ModuleSagaSecuredRepositoryFactory>();
         services.AddScoped<ServicePrincipalRepositoryFactory>();
-        services.AddScoped<ManualModuleJobSecuredRepositoryFactory>();
+        services.AddScoped<StateMigrationJobSecuredRepositoryFactory>();
         services.AddScoped<OrganizationSecuredRepositoryFactory>();
         services.AddScoped<UserRepositoryFactory>();
         services.AddScoped<UserSecuredRepositoryFactory>();
@@ -236,9 +236,9 @@ public static class Factories
         services.AddScoped<ResolvedConfigurationServiceFactory>();
         services.AddScoped<JobServiceFactory>();
         services.AddScoped<SecuredJobServiceFactory>();
-        services.AddScoped<ManualJobServiceFactory>();
+        services.AddScoped<StateMigrationServiceFactory>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferServiceFactory>();
-        services.AddScoped<SnapCd.Server.Core.Services.Crud.StateMigrations.ManualJobAddressService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.StateMigrations.StateMigrationAddressService>();
         services.AddScoped<SourceChangedServiceFactory>();
         services.AddScoped<AccessTokenServiceFactory>();
         services.AddScoped<UserManagerFactory>();

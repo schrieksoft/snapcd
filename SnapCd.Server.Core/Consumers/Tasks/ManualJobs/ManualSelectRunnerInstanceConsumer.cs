@@ -7,23 +7,23 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Services;
 
-namespace SnapCd.Server.Core.Consumers.Tasks.ManualJobs;
+namespace SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 
 /// <summary>
 /// Pins a manual job's Module to a runner instance, so every later step of that job reaches the
 /// same one. Each job kind names its own events, so the reply routes back to the saga that asked.
 /// </summary>
-public abstract class ManualSelectRunnerInstanceConsumer<TRequest, TCompleted, TFaulted>(
+public abstract class StateMigrationSelectRunnerInstanceConsumer<TRequest, TCompleted, TFaulted>(
     ILogger logger,
     RunnerSelectionService runnerSelection,
     RunnerJobAuthorizationService authorizationService)
     : IConsumer<TRequest>
-    where TRequest : ManualStepRequestBase
-    where TCompleted : ManualStepResponseBase, new()
-    where TFaulted : ManualStepFaultedBase, new()
+    where TRequest : StateMigrationStepRequestBase
+    where TCompleted : StateMigrationStepResponseBase, new()
+    where TFaulted : StateMigrationStepFaultedBase, new()
 {
     /// <summary>Carries the pinned instance onto the reply, which each kind's event names itself.</summary>
     protected abstract void SetInstanceName(TCompleted completed, string instanceName);

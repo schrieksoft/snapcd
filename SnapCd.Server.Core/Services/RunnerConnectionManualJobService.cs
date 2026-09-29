@@ -16,16 +16,16 @@ namespace SnapCd.Server.Core.Services;
 /// reads it to decide whether the runner is still alive. A plain service rather than a repository:
 /// the table is internal bookkeeping with no DTO, no events and nothing to secure.
 /// </summary>
-public class RunnerConnectionManualJobService
+public class RunnerConnectionStateMigrationService
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
-    public RunnerConnectionManualJobService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public RunnerConnectionStateMigrationService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task CreateOrUpdate(Guid organizationId, Guid manualModuleJobId, string taskName, Guid runnerId, string? runnerInstanceName)
+    public async Task CreateOrUpdate(Guid organizationId, Guid stateMigrationJobId, string taskName, Guid runnerId, string? runnerInstanceName)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
 
@@ -40,9 +40,9 @@ public class RunnerConnectionManualJobService
             throw new InvalidOperationException(
                 $"No active runner connection found for runner {runnerId} with instance name '{runnerInstanceName}' in organization {organizationId}");
 
-        var existing = await db.RunnerConnectionManualJobs
+        var existing = await db.RunnerConnectionStateMigrations
             .Where(r => r.OrganizationId == organizationId &&
-                        r.ManualModuleJobId == manualModuleJobId &&
+                        r.StateMigrationJobId == stateMigrationJobId &&
                         r.RunnerConnection.RunnerId == runnerId &&
                         r.RunnerConnection.InstanceName == runnerInstanceName)
             .FirstOrDefaultAsync();
@@ -55,12 +55,12 @@ public class RunnerConnectionManualJobService
         }
         else
         {
-            db.RunnerConnectionManualJobs.Add(new RunnerConnectionManualJob
+            db.RunnerConnectionStateMigrations.Add(new RunnerConnectionStateMigration
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = organizationId,
                 RunnerConnectionId = connection.Id,
-                ManualModuleJobId = manualModuleJobId,
+                StateMigrationJobId = stateMigrationJobId,
                 TaskName = taskName
             });
         }
@@ -69,12 +69,12 @@ public class RunnerConnectionManualJobService
     }
 
     /// <summary>When the runner last reported on this job, or null if it never has.</summary>
-    public async Task<DateTime?> LastReportedAt(Guid organizationId, Guid manualModuleJobId)
+    public async Task<DateTime?> LastReportedAt(Guid organizationId, Guid stateMigrationJobId)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        return await db.RunnerConnectionManualJobs
-            .Where(r => r.OrganizationId == organizationId && r.ManualModuleJobId == manualModuleJobId)
+        return await db.RunnerConnectionStateMigrations
+            .Where(r => r.OrganizationId == organizationId && r.StateMigrationJobId == stateMigrationJobId)
             .Select(r => (DateTime?)r.ModifiedDateTime)
             .FirstOrDefaultAsync();
     }

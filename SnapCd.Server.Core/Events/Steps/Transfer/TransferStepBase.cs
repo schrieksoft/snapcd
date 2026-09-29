@@ -7,15 +7,15 @@
 // for terms covering either use.
 
 
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
 
 /// <summary>Parameters every transfer step needs, beyond those an ordinary job step carries.</summary>
-public abstract class TransferStepRequestBase : ManualStepRequestBase;
+public abstract class TransferStepRequestBase : StateMigrationStepRequestBase;
 
 /// <summary>A transfer step's reply.</summary>
-public class TransferStepResponseBase : ManualStepResponseBase;
+public class TransferStepResponseBase : StateMigrationStepResponseBase;
 
 /// <summary>A transfer step that failed, and what broke.</summary>
-public class TransferStepFaultedBase : ManualStepFaultedBase;
+public class TransferStepFaultedBase : StateMigrationStepFaultedBase;

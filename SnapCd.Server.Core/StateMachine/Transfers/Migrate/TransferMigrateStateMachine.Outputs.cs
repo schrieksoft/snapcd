@@ -14,8 +14,8 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
@@ -61,7 +61,7 @@ public partial class TransferMigrateStateMachine
                 .Then(context => _logger.LogInformation(
                     "Transfer: cancelled while awaiting outputs for Module {ModuleId}",
                     context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize()
         );

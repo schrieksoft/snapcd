@@ -22,15 +22,15 @@ namespace SnapCd.Server.Core.Consumers.System.Competing;
 /// </summary>
 public class TransferJobEndedCompetingConsumer(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
-    TransferServiceFactory transferServiceFactory) : IConsumer<ManualJobUpdatedEvent>
+    TransferServiceFactory transferServiceFactory) : IConsumer<StateMigrationUpdatedEvent>
 {
-    public async Task Consume(ConsumeContext<ManualJobUpdatedEvent> context)
+    public async Task Consume(ConsumeContext<StateMigrationUpdatedEvent> context)
     {
         var message = context.Message;
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
-        var transferId = await dbContext.ManualModuleJobs.AsNoTracking()
+        var transferId = await dbContext.StateMigrationJobs.AsNoTracking()
             .Where(j => j.Id == message.JobId && j.OrganizationId == message.OrganizationId)
             .Select(j => j.TransferId)
             .FirstOrDefaultAsync();

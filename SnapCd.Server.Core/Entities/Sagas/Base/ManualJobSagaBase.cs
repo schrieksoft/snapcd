@@ -13,4 +13,4 @@ namespace SnapCd.Server.Core.Entities.Sagas.Base;
 /// Shared state for operator-initiated jobs. Kept as a distinct base so finalization and approval
 /// machinery can serve any manual job without reaching into a specific one.
 /// </summary>
-public class ManualJobSagaBase : JobSagaBase;
+public class StateMigrationSagaBase : JobSagaBase;

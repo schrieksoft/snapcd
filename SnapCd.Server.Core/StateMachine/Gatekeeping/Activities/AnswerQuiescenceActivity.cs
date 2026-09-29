@@ -40,7 +40,7 @@ public class AnswerQuiescenceActivity<TMessage> : IStateMachineActivity<ModuleSa
             var organizationId = context.Saga.OrganizationId;
 
             var running = await dbContext.ModuleJobs.AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.IsCurrent == true)
-                          || await dbContext.ManualModuleJobs.AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.Status == ExecutionStatus.Running);
+                          || await dbContext.StateMigrationJobs.AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId && j.Status == ExecutionStatus.Running);
 
             if (!running)
             {

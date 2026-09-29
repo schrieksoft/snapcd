@@ -25,7 +25,7 @@ namespace SnapCd.Server.Core.Services.Crud.Transfers;
 public class TransferServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory,
-    ManualJobServiceFactory manualJobServiceFactory,
+    StateMigrationServiceFactory stateMigrationServiceFactory,
     IBus bus)
 {
     public TransferService Create(IPrincipalProvider? principalProvider = null)
@@ -35,7 +35,7 @@ public class TransferServiceFactory(
         return new TransferService(
             dbFactory,
             moduleSecuredRepositoryFactory.Create(provider),
-            manualJobServiceFactory.Create(provider),
+            stateMigrationServiceFactory.Create(provider),
             provider,
             bus);
     }
@@ -48,7 +48,7 @@ public class TransferServiceFactory(
 public class TransferService(
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     ModuleSecuredRepository moduleSecuredRepository,
-    ManualJobService manualJobService,
+    StateMigrationService stateMigrationService,
     IPrincipalProvider principalProvider,
     IBus bus) : IDisposable
 {
@@ -69,15 +69,15 @@ public class TransferService(
                 $"Principal is not allowed to start a transfer from Module with Id {moduleId}");
 
         if (counterpartyModuleId == moduleId)
-            throw new ManualJobNotAllowedException("A Module cannot transfer to itself.");
+            throw new StateMigrationNotAllowedException("A Module cannot transfer to itself.");
 
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         await EnsureModuleExists(dbContext, counterpartyModuleId, organizationId);
 
-        var blocked = await manualJobService.GetBlockedReason(moduleId, organizationId);
+        var blocked = await stateMigrationService.GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new ManualJobNotAllowedException(blocked);
+            throw new StateMigrationNotAllowedException(blocked);
 
         var transfer = new Transfer
         {
@@ -103,7 +103,7 @@ public class TransferService(
         });
 
         // The job starts now either way; unless told not to, its first step is the wait.
-        await manualJobService.StartTransferMigrate(
+        await stateMigrationService.StartTransferMigrate(
             moduleId, counterpartyModuleId, organizationId, moduleRef, transfer.Id,
             awaitConsent: !startImmediately);
 
@@ -125,21 +125,21 @@ public class TransferService(
         var transfer = await LoadTransfer(dbContext, transferId, organizationId);
 
         if (transfer.CounterpartyModuleId != moduleId)
-            throw new ManualJobNotAllowedException("Only the counterparty answers a transfer.");
+            throw new StateMigrationNotAllowedException("Only the counterparty answers a transfer.");
 
         if (!moduleSecuredRepository.CanConsent(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to answer for Module with Id {moduleId}");
 
         if (transfer.ConsentStatus != ConsentStatus.Pending)
-            throw new ManualJobNotAllowedException(
+            throw new StateMigrationNotAllowedException(
                 $"This transfer has already been answered: {transfer.ConsentStatus}.");
 
         if (granted)
         {
-            var blocked = await manualJobService.GetBlockedReason(moduleId, organizationId);
+            var blocked = await stateMigrationService.GetBlockedReason(moduleId, organizationId);
             if (blocked is not null)
-                throw new ManualJobNotAllowedException(blocked);
+                throw new StateMigrationNotAllowedException(blocked);
         }
 
         transfer.ConsentStatus = granted ? ConsentStatus.Granted : ConsentStatus.Refused;
@@ -159,7 +159,7 @@ public class TransferService(
 
         // This side has nothing running yet; the initiator's job is already waiting on the answer.
         if (granted)
-            await manualJobService.StartTransferMigrate(
+            await stateMigrationService.StartTransferMigrate(
                 transfer.CounterpartyModuleId, transfer.ModuleId, organizationId,
                 transfer.CounterpartyRef, transfer.Id);
 
@@ -186,7 +186,7 @@ public class TransferService(
 
         if (transfer is null || transfer.ClosedAt != null) return;
 
-        var jobs = await dbContext.ManualModuleJobs.AsNoTracking()
+        var jobs = await dbContext.StateMigrationJobs.AsNoTracking()
             .Where(j => j.TransferId == transferId && j.OrganizationId == organizationId)
             .Select(j => j.Status)
             .ToListAsync();
@@ -223,7 +223,7 @@ public class TransferService(
         }
         catch (DbUpdateException)
         {
-            throw new ManualJobNotAllowedException(message);
+            throw new StateMigrationNotAllowedException(message);
         }
     }
 

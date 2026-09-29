@@ -39,18 +39,18 @@ public class RunnerConnectionJobCleanupJob
 
             var cutoffTime = DateTime.UtcNow.AddMinutes(-10);
 
-            var oldManualRecords = await dbContext.RunnerConnectionManualJobs
+            var oldStateMigrationRecords = await dbContext.RunnerConnectionStateMigrations
                 .Where(r => r.ModifiedDateTime < cutoffTime)
                 .ToListAsync();
 
-            if (oldManualRecords.Count > 0)
+            if (oldStateMigrationRecords.Count > 0)
             {
-                dbContext.RunnerConnectionManualJobs.RemoveRange(oldManualRecords);
+                dbContext.RunnerConnectionStateMigrations.RemoveRange(oldStateMigrationRecords);
                 await dbContext.SaveChangesAsync();
 
                 _logger.LogDebug(
-                    "Cleaned up {Count} old RunnerConnectionManualJob record(s)",
-                    oldManualRecords.Count);
+                    "Cleaned up {Count} old RunnerConnectionStateMigration record(s)",
+                    oldStateMigrationRecords.Count);
             }
 
             // Find all RunnerConnectionJob records older than 10 minutes

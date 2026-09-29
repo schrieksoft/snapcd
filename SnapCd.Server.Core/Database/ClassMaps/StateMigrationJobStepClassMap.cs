@@ -13,32 +13,39 @@ using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Database.ClassMaps;
 
-public class ManualModuleJobArtefactClassMap : IEntityTypeConfiguration<ManualModuleJobArtefact>
+public class StateMigrationJobStepClassMap : IEntityTypeConfiguration<StateMigrationJobStep>
 {
-    public void Configure(EntityTypeBuilder<ManualModuleJobArtefact> entity)
+    public void Configure(EntityTypeBuilder<StateMigrationJobStep> entity)
     {
-        entity.ToTable("ManualModuleJobArtefacts", t => t.UseSqlOutputClause(false));
+        entity.ToTable("StateMigrationJobSteps", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
+
+        entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50);
 
         entity.HasIndex(e => e.Id).IsUnique();
 
         entity
             .HasOne(e => e.Organization)
-            .WithMany(x => x.ManualModuleJobArtefacts)
+            .WithMany(x => x.StateMigrationJobSteps)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // One artefact per name per job: a re-run of a slice replaces its predecessor.
+        // One row per attempt at a task for a Module within a job.
         entity
-            .HasIndex(e => new { e.JobId, e.Name, e.OrganizationId })
+            .HasIndex(e => new { e.JobId, e.ModuleId, e.Task, e.Attempt, e.OrganizationId })
             .IsUnique();
 
         entity
             .HasOne(e => e.Job)
-            .WithMany(j => j.Artefacts)
+            .WithMany(j => j.Steps)
             .HasForeignKey(e => new { e.JobId, e.OrganizationId })
             .HasPrincipalKey(j => new { j.Id, j.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
+
+        // The fan-in query: every step a Transfer has run, without walking its jobs.
+        entity.HasIndex(e => e.TransferId);
+
+        entity.HasIndex(e => e.ModuleId);
     }
 }

@@ -30,7 +30,7 @@ public partial class SplitMigrateStateMachine
     public Event<SplitCancelKillCompleted> CancelKillCompleted { get; } = null!;
 
 
-    public Event<CancelManualModuleJobRequested> CancelManualModuleJobRequested { get; } = null!;
+    public Event<CancelStateMigrationJobRequested> CancelStateMigrationJobRequested { get; } = null!;
 
     public State CancellingImmediateKill { get; } = null!;
     public State CancellingAfterCurrent { get; } = null!;
@@ -40,9 +40,9 @@ public partial class SplitMigrateStateMachine
 
     private void Configure_Cancel()
     {
-        Event(() => CancelManualModuleJobRequested, x => x
+        Event(() => CancelStateMigrationJobRequested, x => x
             .CorrelateById(m => m.Message.CorrelationId)
-            .OnMissingInstance(m => m.ExecuteAsync(context => FinalizeWithoutSaga(context, context.Message.CorrelationId, context.Message.OrganizationId, nameof(CancelManualModuleJobRequested)))));
+            .OnMissingInstance(m => m.ExecuteAsync(context => FinalizeWithoutSaga(context, context.Message.CorrelationId, context.Message.OrganizationId, nameof(CancelStateMigrationJobRequested)))));
 
         Request(() => CancelKillRequested, x => x.KillCancellationRequestId, o => { o.Timeout = CancelRequestTimeout; });
         Event(() => CancelKillCompleted, x => x
@@ -59,19 +59,19 @@ public partial class SplitMigrateStateMachine
         During(CancellingImmediateKill,
             [
                 .. CancelHandlers(),
-                When(CancelManualModuleJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
-                Ignore(CancelManualModuleJobRequested),
+                When(CancelStateMigrationJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
+                Ignore(CancelStateMigrationJobRequested),
                 When(CancelKillRequested.TimeoutExpired).ThenSplitCancelTimedOut(_logger, Cancelled)
             ]);
         During(CancellingAfterCurrent,
             [
                 .. CancelHandlers(),
-                When(CancelManualModuleJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
-                Ignore(CancelManualModuleJobRequested)
+                When(CancelStateMigrationJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
+                Ignore(CancelStateMigrationJobRequested)
             ]);
 
         During(Cancelled,
-            Ignore(CancelManualModuleJobRequested),
+            Ignore(CancelStateMigrationJobRequested),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
@@ -83,7 +83,7 @@ public partial class SplitMigrateStateMachine
     /// The cancel request this saga is waiting on should have timed out by now. A margin over the
     /// request's own timeout keeps a merely-late timeout from being treated as a lost one.
     /// </summary>
-    private static bool TimeoutIsOverdue(BehaviorContext<SplitMigrateSaga, CancelManualModuleJobRequested> context) =>
+    private static bool TimeoutIsOverdue(BehaviorContext<SplitMigrateSaga, CancelStateMigrationJobRequested> context) =>
         context.Saga.WaitingSince is { } since && DateTime.UtcNow - since > CancelRequestTimeout + TimeSpan.FromSeconds(15);
 
     /// <summary>
@@ -94,14 +94,14 @@ public partial class SplitMigrateStateMachine
     private async Task FinalizeWithoutSaga(ConsumeContext context, Guid jobId, Guid organizationId, string eventName)
     {
         var serviceProvider = PipeExtensions.GetPayload<IServiceProvider>(context);
-        var repository = serviceProvider.GetRequiredService<ManualModuleJobRepository>();
+        var repository = serviceProvider.GetRequiredService<StateMigrationJobRepository>();
         var publishEndpoint = serviceProvider.GetRequiredService<IPublishEndpoint>();
 
         _logger.LogWarning("Saga missing for {EventType} on manual job {JobId}, finalizing directly", eventName, jobId);
 
         // Published, so this reaches every saga: an id belonging to an ordinary job is not ours to
         // finalize. The repository throws rather than returning null.
-        ManualModuleJob job;
+        StateMigrationJob job;
         try
         {
             job = await repository.Get(jobId, organizationId);

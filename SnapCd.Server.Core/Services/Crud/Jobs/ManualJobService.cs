@@ -25,15 +25,15 @@ using MassTransit;
 
 namespace SnapCd.Server.Core.Services.Crud.Jobs;
 
-public class ManualJobServiceFactory(
+public class StateMigrationServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory,
     ResolvedConfigurationServiceFactory resolvedConfigurationServiceFactory,
     IBus bus)
 {
-    public ManualJobService Create(IPrincipalProvider? principalProvider = null)
+    public StateMigrationService Create(IPrincipalProvider? principalProvider = null)
     {
-        return new ManualJobService(
+        return new StateMigrationService(
             dbFactory,
             moduleSecuredRepositoryFactory.Create(principalProvider),
             resolvedConfigurationServiceFactory.Create(),
@@ -46,14 +46,14 @@ public class ManualJobServiceFactory(
 /// a manual job that cannot start is refused rather than queued, so it never fires at an
 /// unpredictable later moment.
 /// </summary>
-public class ManualJobService : IDisposable
+public class StateMigrationService : IDisposable
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ModuleSecuredRepository _moduleSecuredRepository;
     private readonly ResolvedConfigurationService? _resolvedConfigurationService;
     private readonly IBus? _bus;
 
-    public ManualJobService(
+    public StateMigrationService(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         ModuleSecuredRepository moduleSecuredRepository,
         ResolvedConfigurationService? resolvedConfigurationService = null,
@@ -88,11 +88,11 @@ public class ManualJobService : IDisposable
         if (hasRunningModuleJob)
             return "A job is still finishing on this module. Manual jobs become available once it is quiet.";
 
-        var hasRunningManualJob = await dbContext.ManualModuleJobs.AsNoTracking()
+        var hasRunningStateMigration = await dbContext.StateMigrationJobs.AsNoTracking()
             .AnyAsync(j => j.ModuleId == moduleId && j.OrganizationId == organizationId
                            && j.Status == ExecutionStatus.Running);
 
-        if (hasRunningManualJob)
+        if (hasRunningStateMigration)
             return "A manual job is already running on this module.";
 
         // A manual job is pinned to one runner for its whole life, so one dispatched with nothing
@@ -140,11 +140,11 @@ public class ManualJobService : IDisposable
     /// finalization activities announced a change before, which left every other viewer's
     /// launchers live until something else refreshed them.
     /// </summary>
-    private async Task AnnounceStarted(ManualModuleJob job)
+    private async Task AnnounceStarted(StateMigrationJob job)
     {
         if (_bus is null) return;
 
-        await _bus.Publish(new ManualJobUpdatedEvent
+        await _bus.Publish(new StateMigrationUpdatedEvent
         {
             JobId = job.Id,
             ModuleId = job.ModuleId,
@@ -152,7 +152,7 @@ public class ManualJobService : IDisposable
         });
     }
 
-    public async Task<ManualModuleJob> Start(
+    public async Task<StateMigrationJob> Start(
         Guid moduleId,
         Guid organizationId,
         string jobType,
@@ -164,13 +164,13 @@ public class ManualJobService : IDisposable
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new ManualJobNotAllowedException(blocked);
+            throw new StateMigrationNotAllowedException(blocked);
 
         var correlationId = optionalCorrelationId ?? Guid.NewGuid();
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = new ManualModuleJob
+        var job = new StateMigrationJob
         {
             Id = correlationId,
             ModuleId = moduleId,
@@ -180,7 +180,7 @@ public class ManualJobService : IDisposable
             Status = ExecutionStatus.Running
         };
 
-        dbContext.ManualModuleJobs.Add(job);
+        dbContext.StateMigrationJobs.Add(job);
 
         try
         {
@@ -189,7 +189,7 @@ public class ManualJobService : IDisposable
         catch (DbUpdateException)
         {
             // The filtered unique index is the real guarantee: the check above can be raced.
-            throw new ManualJobNotAllowedException("A manual job is already running on this module.");
+            throw new StateMigrationNotAllowedException("A manual job is already running on this module.");
         }
 
         await AnnounceStarted(job);
@@ -205,7 +205,7 @@ public class ManualJobService : IDisposable
     /// a value the other side produces knows whose outputs to wait for; the two are started
     /// separately and nothing here coordinates them.
     /// </summary>
-    public async Task<ManualModuleJob> StartTransferMigrate(
+    public async Task<StateMigrationJob> StartTransferMigrate(
         Guid moduleId,
         Guid counterpartyModuleId,
         Guid organizationId,
@@ -215,22 +215,22 @@ public class ManualJobService : IDisposable
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
 
         if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to write state on Module with Id {moduleId}");
 
         if (counterpartyModuleId == moduleId)
-            throw new ManualJobNotAllowedException("A Module cannot transfer to itself.");
+            throw new StateMigrationNotAllowedException("A Module cannot transfer to itself.");
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new ManualJobNotAllowedException($"{await ModuleName(dbContext, moduleId)}: {blocked}");
+            throw new StateMigrationNotAllowedException($"{await ModuleName(dbContext, moduleId)}: {blocked}");
 
-        var job = new ManualModuleJob
+        var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
             ModuleId = moduleId,
@@ -238,11 +238,11 @@ public class ManualJobService : IDisposable
             ProveRef = proveRef,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.TransferMigrate,
+            JobType = StateMigrationTypes.TransferMigrate,
             Status = ExecutionStatus.Running
         };
 
-        dbContext.ManualModuleJobs.Add(job);
+        dbContext.StateMigrationJobs.Add(job);
         await dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
@@ -279,37 +279,37 @@ public class ManualJobService : IDisposable
     /// Asks which of these addresses are in a Module's state. Writes nothing, so it needs only what
     /// any manual job needs: the Module free to run.
     /// </summary>
-    public async Task<ManualModuleJob> StartStateListFiltered(
+    public async Task<StateMigrationJob> StartStateListFiltered(
         Guid moduleId, Guid organizationId, IReadOnlyCollection<string> addresses)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
 
         if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to run manual jobs on Module with Id {moduleId}");
 
         if (addresses.Count == 0)
-            throw new ManualJobNotAllowedException("Name at least one address to check.");
+            throw new StateMigrationNotAllowedException("Name at least one address to check.");
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new ManualJobNotAllowedException(blocked);
+            throw new StateMigrationNotAllowedException(blocked);
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = new ManualModuleJob
+        var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.StateListFiltered,
+            JobType = StateMigrationTypes.StateListFiltered,
             Status = ExecutionStatus.Running
         };
 
-        dbContext.ManualModuleJobs.Add(job);
+        dbContext.StateMigrationJobs.Add(job);
         await dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
@@ -335,42 +335,42 @@ public class ManualJobService : IDisposable
     /// Moves, imports or removes addresses in a Module's state, then checks what is there. Each
     /// address is run on its own, so the job can end partly done.
     /// </summary>
-    public async Task<ManualModuleJob> StartMove(
+    public async Task<StateMigrationJob> StartMove(
         Guid moduleId,
         Guid organizationId,
         IReadOnlyCollection<AddressInstruction> instructions)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
 
         if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to write state on Module with Id {moduleId}");
 
         if (instructions.Count == 0)
-            throw new ManualJobNotAllowedException("Name at least one address.");
+            throw new StateMigrationNotAllowedException("Name at least one address.");
 
         if (instructions.Any(i => string.IsNullOrWhiteSpace(i.Target)))
-            throw new ManualJobNotAllowedException("Every address in a move needs a target.");
+            throw new StateMigrationNotAllowedException("Every address in a move needs a target.");
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new ManualJobNotAllowedException(blocked);
+            throw new StateMigrationNotAllowedException(blocked);
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = new ManualModuleJob
+        var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.StateMove,
+            JobType = StateMigrationTypes.StateMove,
             Status = ExecutionStatus.Running
         };
 
-        dbContext.ManualModuleJobs.Add(job);
+        dbContext.StateMigrationJobs.Add(job);
         await dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
@@ -392,42 +392,42 @@ public class ManualJobService : IDisposable
         return job;
     }
 
-    public async Task<ManualModuleJob> StartImport(
+    public async Task<StateMigrationJob> StartImport(
         Guid moduleId,
         Guid organizationId,
         IReadOnlyCollection<AddressInstruction> instructions)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
 
         if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to write state on Module with Id {moduleId}");
 
         if (instructions.Count == 0)
-            throw new ManualJobNotAllowedException("Name at least one address.");
+            throw new StateMigrationNotAllowedException("Name at least one address.");
 
         if (instructions.Any(i => string.IsNullOrWhiteSpace(i.Target)))
-            throw new ManualJobNotAllowedException("Every address in an import needs a target.");
+            throw new StateMigrationNotAllowedException("Every address in an import needs a target.");
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new ManualJobNotAllowedException(blocked);
+            throw new StateMigrationNotAllowedException(blocked);
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = new ManualModuleJob
+        var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.StateImport,
+            JobType = StateMigrationTypes.StateImport,
             Status = ExecutionStatus.Running
         };
 
-        dbContext.ManualModuleJobs.Add(job);
+        dbContext.StateMigrationJobs.Add(job);
         await dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
@@ -449,39 +449,39 @@ public class ManualJobService : IDisposable
         return job;
     }
 
-    public async Task<ManualModuleJob> StartRemove(
+    public async Task<StateMigrationJob> StartRemove(
         Guid moduleId,
         Guid organizationId,
         IReadOnlyCollection<AddressInstruction> instructions)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
 
         if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to write state on Module with Id {moduleId}");
 
         if (instructions.Count == 0)
-            throw new ManualJobNotAllowedException("Name at least one address.");
+            throw new StateMigrationNotAllowedException("Name at least one address.");
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
-            throw new ManualJobNotAllowedException(blocked);
+            throw new StateMigrationNotAllowedException(blocked);
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = new ManualModuleJob
+        var job = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.StateRemove,
+            JobType = StateMigrationTypes.StateRemove,
             Status = ExecutionStatus.Running
         };
 
-        dbContext.ManualModuleJobs.Add(job);
+        dbContext.StateMigrationJobs.Add(job);
         await dbContext.SaveChangesAsync();
         await AnnounceStarted(job);
 
@@ -504,7 +504,7 @@ public class ManualJobService : IDisposable
     }
 
 
-    public async Task<ManualModuleJob> StartSplitMigrate(
+    public async Task<StateMigrationJob> StartSplitMigrate(
         Guid moduleId,
         Guid organizationId,
         string? rootDirectory,
@@ -514,13 +514,13 @@ public class ManualJobService : IDisposable
     {
         // A state migration only ever runs the configured branch; a ref belongs to a prove job.
         if (sourceRevision is not null)
-            throw new ManualJobNotAllowedException("A state migration runs the module's configured branch. Only a prove job can be given a ref.");
+            throw new StateMigrationNotAllowedException("A state migration runs the module's configured branch. Only a prove job can be given a ref.");
 
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
 
-        var job = await Start(moduleId, organizationId, ManualJobTypes.SplitMigrate);
+        var job = await Start(moduleId, organizationId, StateMigrationTypes.SplitMigrate);
 
         try
         {
@@ -550,20 +550,20 @@ public class ManualJobService : IDisposable
     /// ref, with nothing written. Paused like every manual job: the proof plans the module's real
     /// state, so an apply running alongside it would share the runner's working directory.
     /// </summary>
-    public async Task<ManualModuleJob> StartSplitProve(
+    public async Task<StateMigrationJob> StartSplitProve(
         Guid moduleId,
         Guid organizationId,
         string? rootDirectory,
         string sourceRevision)
     {
         if (!SourceRevisionOverride.IsValidRef(sourceRevision))
-            throw new ManualJobNotAllowedException($"'{sourceRevision}' is not a usable git ref.");
+            throw new StateMigrationNotAllowedException($"'{sourceRevision}' is not a usable git ref.");
 
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
 
-        var job = await Start(moduleId, organizationId, ManualJobTypes.SplitProve);
+        var job = await Start(moduleId, organizationId, StateMigrationTypes.SplitProve);
 
         try
         {
@@ -595,13 +595,13 @@ public class ManualJobService : IDisposable
     {
         if (_bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to cancel a job.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to cancel a job.");
 
         if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"Principal is not allowed to cancel manual jobs on Module with Id {moduleId}");
 
-        await _bus.Publish(new CancelManualModuleJobRequested
+        await _bus.Publish(new CancelStateMigrationJobRequested
         {
             CorrelationId = jobId,
             OrganizationId = organizationId,
@@ -618,7 +618,7 @@ public class ManualJobService : IDisposable
     {
         if (_bus is null)
             throw new InvalidOperationException(
-                $"{nameof(ManualJobService)} was constructed without the dependencies needed to record a decision.");
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to record a decision.");
 
         if (!_moduleSecuredRepository.CanPause(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
@@ -626,20 +626,20 @@ public class ManualJobService : IDisposable
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = await dbContext.ManualModuleJobs
+        var job = await dbContext.StateMigrationJobs
             .FirstOrDefaultAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
 
         if (job is null)
             throw new EntityNotFoundException($"Manual job '{jobId}' not found");
 
         if (job.WaitingForApproval != true)
-            throw new ManualJobNotAllowedException("This job is not waiting for approval.");
+            throw new StateMigrationNotAllowedException("This job is not waiting for approval.");
 
-        dbContext.ManualModuleJobApprovals.Add(new ManualModuleJobApproval
+        dbContext.StateMigrationJobApprovals.Add(new StateMigrationJobApproval
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
-            ManualModuleJobId = jobId,
+            StateMigrationJobId = jobId,
             DecisionDateTime = DateTime.UtcNow,
             Declined = declined,
             PrincipalId = _moduleSecuredRepository.PrincipalProvider.GetSubject(organizationId),
@@ -654,7 +654,7 @@ public class ManualJobService : IDisposable
         catch (DbUpdateException)
         {
             // One decision per principal per job, enforced by the index rather than by this check.
-            throw new ManualJobNotAllowedException("You have already decided on this job.");
+            throw new StateMigrationNotAllowedException("You have already decided on this job.");
         }
 
         await _bus.Publish(new ApprovalReevaluationRequestedEvent
@@ -668,7 +668,7 @@ public class ManualJobService : IDisposable
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = await dbContext.ManualModuleJobs
+        var job = await dbContext.StateMigrationJobs
             .FirstOrDefaultAsync(j => j.Id == jobId && j.OrganizationId == organizationId);
 
         if (job is null) return;
@@ -697,7 +697,7 @@ public class ManualJobService : IDisposable
 
         var timestamp = DateTimeOffset.UtcNow;
 
-        dbContext.ManualModuleJobs.Add(new ManualModuleJob
+        dbContext.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = correlationId,
             ModuleId = moduleId,

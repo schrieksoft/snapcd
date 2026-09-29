@@ -22,7 +22,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// raw state and can carry anything state carries. The saga deletes these from every terminal path;
 /// nothing here is a durable record.
 /// </summary>
-public class ManualModuleJobArtefact : AuditBase, IEntity
+public class StateMigrationJobArtefact : AuditBase, IEntity
 {
     /// <summary>The artefact's id.</summary>
     public Guid Id { get; set; }
@@ -42,7 +42,7 @@ public class ManualModuleJobArtefact : AuditBase, IEntity
     /// <summary>The file's bytes, encrypted. Never logged, never returned to a page.</summary>
     public string Ciphertext { get; set; } = null!;
 
-    [JsonIgnore] public ManualModuleJob Job { get; set; } = null!;
+    [JsonIgnore] public StateMigrationJob Job { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId()

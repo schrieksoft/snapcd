@@ -574,9 +574,9 @@ public class LogServiceTests : IAsyncLifetime
     // A manual job's logs are the only channel a runner-side failure reaches the
     // operator on: the job row records no runner error.
     [Fact]
-    public async Task AddLogEntries_ManualJob_AppendsAndReadsBack()
+    public async Task AddLogEntries_StateMigration_AppendsAndReadsBack()
     {
-        var manualJob = new ManualModuleJob
+        var stateMigration = new StateMigrationJob
         {
             Id = Guid.NewGuid(),
             OrganizationId = _fixture.Organizations["0"].Id,
@@ -585,21 +585,21 @@ public class LogServiceTests : IAsyncLifetime
             Status = ExecutionStatus.Running,
             JobType = "SplitProve"
         };
-        _dbContext.ManualModuleJobs.Add(manualJob);
+        _dbContext.StateMigrationJobs.Add(stateMigration);
         await _dbContext.SaveChangesAsync();
 
         await _logService.AddLogEntries(new List<LogEntryDto>
         {
-            CreateLogEntry(manualJob.Id, "could not find the revision", "SplitProve")
+            CreateLogEntry(stateMigration.Id, "could not find the revision", "SplitProve")
         });
 
-        var entries = await _logService.GetLogEntries(manualJob.Id);
+        var entries = await _logService.GetLogEntries(stateMigration.Id);
         Assert.Single(entries);
         Assert.Equal("could not find the revision", entries[0].Message);
 
         await using var verify = _fixture.CreateDbContext();
-        var stored = await verify.ManualModuleJobs
-            .Where(j => j.Id == manualJob.Id)
+        var stored = await verify.StateMigrationJobs
+            .Where(j => j.Id == stateMigration.Id)
             .Select(j => j.Logs)
             .FirstAsync();
         Assert.False(string.IsNullOrEmpty(stored));

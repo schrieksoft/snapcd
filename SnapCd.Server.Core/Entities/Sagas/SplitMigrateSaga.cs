@@ -17,7 +17,7 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// job needs — correlation, concurrency, cancellation, heartbeat, approval, the pinned runner
 /// instance — and adds what only this job has.
 /// </summary>
-public class SplitMigrateSaga : ManualJobSagaBase
+public class SplitMigrateSaga : StateMigrationSagaBase
 {
     /// <summary>Monolith root within the checkout, passed as --root-dir.</summary>
     [MaxLength(1000)] public string? RootDirectory { get; set; }

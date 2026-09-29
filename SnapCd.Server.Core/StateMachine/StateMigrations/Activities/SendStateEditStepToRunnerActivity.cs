@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
@@ -24,7 +24,7 @@ public class SendStateEditStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
     ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
-    : SendManualStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
+    : SendStateMigrationStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
         dbContext, maintenanceMode, logger)
     where TSaga : StateEditSagaBase, new()
     where TMessage : class

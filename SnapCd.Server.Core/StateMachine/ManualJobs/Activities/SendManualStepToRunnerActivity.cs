@@ -9,11 +9,11 @@
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>
 /// Sends a manual job's step to the server instance that owns the runner's connection, the way an
@@ -21,12 +21,12 @@ namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 /// endpoint carries no topic subscription, so a published step reaches it on the SQL transport and
 /// is dropped on Azure Service Bus.
 /// </summary>
-public class SendManualStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
+public class SendStateMigrationStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
     ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
     : SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(dbContext, maintenanceMode, logger)
-    where TSaga : ManualJobSagaBase
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
     where TOutgoingMessage : StepRequestBase, new()
 {
@@ -35,8 +35,8 @@ public class SendManualStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
         var request = base.CreateMessage(saga);
 
         // Which Module the step is for: a manual job names it, an ordinary one has only its own.
-        if (request is ManualStepRequestBase manualStep)
-            manualStep.ModuleId = saga.ModuleId;
+        if (request is StateMigrationStepRequestBase stateMigrationStep)
+            stateMigrationStep.ModuleId = saga.ModuleId;
 
         return request;
     }

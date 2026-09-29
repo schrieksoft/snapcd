@@ -9,10 +9,10 @@
 namespace SnapCd.Server.Core.Entities.Definition;
 
 /// <summary>
-/// Values for <see cref="ManualModuleJob.JobType"/>. The value names the saga table holding the
+/// Values for <see cref="StateMigrationJob.JobType"/>. The value names the saga table holding the
 /// job's state, so with the job's Id it is a complete pointer to that state.
 /// </summary>
-public static class ManualJobTypes
+public static class StateMigrationTypes
 {
     public const string SplitMigrate = nameof(Sagas.SplitMigrateSaga);
 

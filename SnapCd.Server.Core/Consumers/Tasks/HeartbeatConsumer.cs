@@ -42,9 +42,9 @@ public class HeartbeatConsumer : IConsumer<HeartbeatRequested>
         {
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-            var lastReportedAt = msg.IsManualJob
-                ? await dbContext.RunnerConnectionManualJobs
-                    .Where(r => r.OrganizationId == orgId && r.ManualModuleJobId == correlationId)
+            var lastReportedAt = msg.IsStateMigration
+                ? await dbContext.RunnerConnectionStateMigrations
+                    .Where(r => r.OrganizationId == orgId && r.StateMigrationJobId == correlationId)
                     .Select(r => (DateTime?)r.ModifiedDateTime)
                     .FirstOrDefaultAsync()
                 : await dbContext.RunnerConnectionJobs

@@ -1634,452 +1634,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FailedOnServerSideStep")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("JobNumber")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobNumber"));
-
-                    b.Property<string>("JobType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Logs")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ProveRef")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("ServerSideError")
-                        .HasMaxLength(16000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ServerSideErrorHeader")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTimeOffset?>("TimestampEnd")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("TimestampStart")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("TransferId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool?>("WaitingForApproval")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("WaitingForConsent")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("WaitingForRunner")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("ModuleId");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("ModuleId", "OrganizationId")
-                        .IsUnique()
-                        .HasFilter("[Status] = 'Running'");
-
-                    b.HasIndex("ModuleId", "TimestampStart", "OrganizationId");
-
-                    b.ToTable("ManualModuleJobs", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobAddress", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("JobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Operation")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Outcome")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTimeOffset>("RecordedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Target")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("JobId", "OrganizationId");
-
-                    b.HasIndex("OrganizationId", "ModuleId", "Address");
-
-                    b.HasIndex("JobId", "Address", "Operation", "OrganizationId")
-                        .IsUnique();
-
-                    b.ToTable("ManualModuleJobAddresses", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobApproval", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("AgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DecisionDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("Declined")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("ManualModuleJobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<Guid>("PrincipalId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("ManualModuleJobId");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("PrincipalId");
-
-                    b.HasIndex("ManualModuleJobId", "OrganizationId");
-
-                    b.HasIndex("ManualModuleJobId", "PrincipalId", "OrganizationId")
-                        .IsUnique();
-
-                    b.ToTable("ManualModuleJobApprovals", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobArtefact", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Ciphertext")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("JobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("JobId", "OrganizationId");
-
-                    b.HasIndex("JobId", "Name", "OrganizationId")
-                        .IsUnique();
-
-                    b.ToTable("ManualModuleJobArtefacts", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobStep", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Attempt")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTimeOffset?>("EndedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Error")
-                        .HasMaxLength(16000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ErrorHeader")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<int?>("ExitCode")
-                        .HasColumnType("int");
-
-                    b.Property<string>("InputKey")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<Guid>("JobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Log")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("RunnerInstanceName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTimeOffset?>("StartedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Task")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("TransferId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("ModuleId");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("TransferId");
-
-                    b.HasIndex("JobId", "OrganizationId");
-
-                    b.HasIndex("JobId", "ModuleId", "Task", "Attempt", "OrganizationId")
-                        .IsUnique();
-
-                    b.ToTable("ManualModuleJobSteps", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6225,7 +5779,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("RunnerConnectionJobs");
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionManualJob", b =>
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionStateMigration", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
@@ -6247,9 +5801,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<DateTime>("CreatedDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("ManualModuleJobId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -6267,6 +5818,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("RunnerConnectionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("StateMigrationJobId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("TaskName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -6279,14 +5833,14 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("ManualModuleJobId", "OrganizationId");
-
                     b.HasIndex("RunnerConnectionId", "OrganizationId");
 
-                    b.HasIndex("RunnerConnectionId", "ManualModuleJobId", "OrganizationId")
+                    b.HasIndex("StateMigrationJobId", "OrganizationId");
+
+                    b.HasIndex("RunnerConnectionId", "StateMigrationJobId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("RunnerConnectionManualJobs");
+                    b.ToTable("RunnerConnectionStateMigrations");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerSupplies.RunnerModuleSupply", b =>
@@ -7067,6 +6621,452 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("StateFileId", "OrganizationId");
 
                     b.ToTable("StateFileVersions");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailedOnServerSideStep")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("JobNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobNumber"));
+
+                    b.Property<string>("JobType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Logs")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProveRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ServerSideError")
+                        .HasMaxLength(16000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ServerSideErrorHeader")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset?>("TimestampEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("TimestampStart")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("TransferId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool?>("WaitingForApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("WaitingForConsent")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("WaitingForRunner")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Running'");
+
+                    b.HasIndex("ModuleId", "TimestampStart", "OrganizationId");
+
+                    b.ToTable("StateMigrationJobs", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobAddress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Target")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("JobId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId", "ModuleId", "Address");
+
+                    b.HasIndex("JobId", "Address", "Operation", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("StateMigrationJobAddresses", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DecisionDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Declined")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("PrincipalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("StateMigrationJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("PrincipalId");
+
+                    b.HasIndex("StateMigrationJobId");
+
+                    b.HasIndex("StateMigrationJobId", "OrganizationId");
+
+                    b.HasIndex("StateMigrationJobId", "PrincipalId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("StateMigrationJobApprovals", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobArtefact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Ciphertext")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("JobId", "OrganizationId");
+
+                    b.HasIndex("JobId", "Name", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("StateMigrationJobArtefacts", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempt")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(16000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ErrorHeader")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int?>("ExitCode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("InputKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Log")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RunnerInstanceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Task")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("TransferId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("TransferId");
+
+                    b.HasIndex("JobId", "OrganizationId");
+
+                    b.HasIndex("JobId", "ModuleId", "Task", "Attempt", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("StateMigrationJobSteps", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateStore", b =>
@@ -10590,101 +10590,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany("ManualModuleJobs")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
-                        .WithMany()
-                        .HasForeignKey("ModuleId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Module");
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobAddress", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", "Job")
-                        .WithMany("Addresses")
-                        .HasForeignKey("JobId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Job");
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobApproval", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany("ManualModuleJobApprovals")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", "ManualModuleJob")
-                        .WithMany("ManualModuleJobApprovals")
-                        .HasForeignKey("ManualModuleJobId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ManualModuleJob");
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobArtefact", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany("ManualModuleJobArtefacts")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", "Job")
-                        .WithMany("Artefacts")
-                        .HasForeignKey("JobId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Job");
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJobStep", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany("ManualModuleJobSteps")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", "Job")
-                        .WithMany("Steps")
-                        .HasForeignKey("JobId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Job");
-
-                    b.Navigation("Organization");
-                });
-
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Missions.ModuleMission", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -11714,18 +11619,12 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("RunnerConnection");
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionManualJob", b =>
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionStateMigration", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", "ManualModuleJob")
-                        .WithMany()
-                        .HasForeignKey("ManualModuleJobId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.RunnerConnection", "RunnerConnection")
@@ -11734,11 +11633,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ManualModuleJob");
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", "StateMigrationJob")
+                        .WithMany()
+                        .HasForeignKey("StateMigrationJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Organization");
 
                     b.Navigation("RunnerConnection");
+
+                    b.Navigation("StateMigrationJob");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerSupplies.RunnerModuleSupply", b =>
@@ -11921,6 +11826,101 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
 
                     b.Navigation("StateFile");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("StateMigrationJobs")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany()
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobAddress", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", "Job")
+                        .WithMany("Addresses")
+                        .HasForeignKey("JobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobApproval", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("StateMigrationJobApprovals")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", "StateMigrationJob")
+                        .WithMany("StateMigrationJobApprovals")
+                        .HasForeignKey("StateMigrationJobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("StateMigrationJob");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobArtefact", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("StateMigrationJobArtefacts")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", "Job")
+                        .WithMany("Artefacts")
+                        .HasForeignKey("JobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobStep", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("StateMigrationJobSteps")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", "Job")
+                        .WithMany("Steps")
+                        .HasForeignKey("JobId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateStore", b =>
@@ -12919,17 +12919,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("StackAssignments");
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ManualModuleJob", b =>
-                {
-                    b.Navigation("Addresses");
-
-                    b.Navigation("Artefacts");
-
-                    b.Navigation("ManualModuleJobApprovals");
-
-                    b.Navigation("Steps");
-                });
-
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Module", b =>
                 {
                     b.Navigation("AdditionalTriggerPaths");
@@ -13092,14 +13081,6 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("Groups");
 
-                    b.Navigation("ManualModuleJobApprovals");
-
-                    b.Navigation("ManualModuleJobArtefacts");
-
-                    b.Navigation("ManualModuleJobSteps");
-
-                    b.Navigation("ManualModuleJobs");
-
                     b.Navigation("ModuleAdditionalTriggerPaths");
 
                     b.Navigation("ModuleExtraFiles");
@@ -13183,6 +13164,14 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("StackRoleAssignments");
 
                     b.Navigation("Stacks");
+
+                    b.Navigation("StateMigrationJobApprovals");
+
+                    b.Navigation("StateMigrationJobArtefacts");
+
+                    b.Navigation("StateMigrationJobSteps");
+
+                    b.Navigation("StateMigrationJobs");
 
                     b.Navigation("VariableSets");
 
@@ -13271,6 +13260,17 @@ namespace SnapCd.Server.Host.Database.Migrations
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFile", b =>
                 {
                     b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", b =>
+                {
+                    b.Navigation("Addresses");
+
+                    b.Navigation("Artefacts");
+
+                    b.Navigation("StateMigrationJobApprovals");
+
+                    b.Navigation("Steps");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateStore", b =>

@@ -20,7 +20,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// fan-in decision ("has every participant finished this stage") is a query over these rows, and
 /// the same query is what the job page renders, so the saga carries no counters.
 /// </summary>
-public class ManualModuleJobStep : AuditBase, IEntity
+public class StateMigrationJobStep : AuditBase, IEntity
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
@@ -37,7 +37,7 @@ public class ManualModuleJobStep : AuditBase, IEntity
 
     public int Attempt { get; set; }
 
-    public ManualJobStepStatus Status { get; set; }
+    public StateMigrationStepStatus Status { get; set; }
 
     public int? ExitCode { get; set; }
 
@@ -60,7 +60,7 @@ public class ManualModuleJobStep : AuditBase, IEntity
 
     public string? Log { get; set; }
 
-    [JsonIgnore] public ManualModuleJob Job { get; set; } = null!;
+    [JsonIgnore] public StateMigrationJob Job { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId()

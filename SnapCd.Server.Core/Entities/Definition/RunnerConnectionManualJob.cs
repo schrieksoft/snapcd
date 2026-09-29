@@ -17,7 +17,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// foreign key is what makes the heartbeat's lookup safe, and one table serving both would leave
 /// every reader asserting which of two columns is set.
 /// </summary>
-public class RunnerConnectionManualJob : AuditBase, IEntity, IOrganizationChild
+public class RunnerConnectionStateMigration : AuditBase, IEntity, IOrganizationChild
 {
     public Guid Id { get; set; }
 
@@ -25,7 +25,7 @@ public class RunnerConnectionManualJob : AuditBase, IEntity, IOrganizationChild
 
     public Guid RunnerConnectionId { get; set; }
 
-    public Guid ManualModuleJobId { get; set; }
+    public Guid StateMigrationJobId { get; set; }
 
     [MaxLength(255)] public string TaskName { get; set; } = null!;
 
@@ -33,7 +33,7 @@ public class RunnerConnectionManualJob : AuditBase, IEntity, IOrganizationChild
 
     public virtual RunnerConnection RunnerConnection { get; set; } = null!;
 
-    public virtual ManualModuleJob ManualModuleJob { get; set; } = null!;
+    public virtual StateMigrationJob StateMigrationJob { get; set; } = null!;
 
     public Guid ParentId()
     {

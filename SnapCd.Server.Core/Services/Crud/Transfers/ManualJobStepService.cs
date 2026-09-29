@@ -38,11 +38,11 @@ public enum StageOutcome
 /// participant finished this stage") is a query over these rows, and the same query is what the job
 /// page renders, so the saga carries no counters.
 /// </summary>
-public class ManualJobStepService
+public class StateMigrationStepService
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
-    public ManualJobStepService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+    public StateMigrationStepService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
         _dbContextFactory = dbContextFactory;
     }
@@ -59,7 +59,7 @@ public class ManualJobStepService
 
         var attempt = await NextAttempt(dbContext, jobId, organizationId, moduleId, task);
 
-        dbContext.ManualModuleJobSteps.Add(new ManualModuleJobStep
+        dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -68,7 +68,7 @@ public class ManualJobStepService
             ModuleId = moduleId,
             Task = task,
             Attempt = attempt,
-            Status = ManualJobStepStatus.Running,
+            Status = StateMigrationStepStatus.Running,
             RunnerInstanceName = runnerInstanceName,
             InputKey = inputKey,
             StartedAt = DateTimeOffset.UtcNow
@@ -81,7 +81,7 @@ public class ManualJobStepService
     /// <summary>Records a slice's reply against its latest attempt.</summary>
     public async Task Completed(
         Guid jobId, Guid organizationId, Guid moduleId, string task,
-        ManualJobStepStatus status, int? exitCode = null,
+        StateMigrationStepStatus status, int? exitCode = null,
         string? errorHeader = null, string? error = null)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -108,7 +108,7 @@ public class ManualJobStepService
 
         var attempt = await NextAttempt(dbContext, jobId, organizationId, moduleId, task);
 
-        dbContext.ManualModuleJobSteps.Add(new ManualModuleJobStep
+        dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -117,7 +117,7 @@ public class ManualJobStepService
             ModuleId = moduleId,
             Task = task,
             Attempt = attempt,
-            Status = ManualJobStepStatus.Skipped,
+            Status = StateMigrationStepStatus.Skipped,
             StartedAt = DateTimeOffset.UtcNow,
             EndedAt = DateTimeOffset.UtcNow
         });
@@ -136,7 +136,7 @@ public class ManualJobStepService
 
         var attempt = await NextAttempt(dbContext, jobId, organizationId, moduleId, task);
 
-        dbContext.ManualModuleJobSteps.Add(new ManualModuleJobStep
+        dbContext.StateMigrationJobSteps.Add(new StateMigrationJobStep
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
@@ -145,7 +145,7 @@ public class ManualJobStepService
             ModuleId = moduleId,
             Task = task,
             Attempt = attempt,
-            Status = ManualJobStepStatus.Succeeded,
+            Status = StateMigrationStepStatus.Succeeded,
             InputKey = inputKey,
             StartedAt = DateTimeOffset.UtcNow,
             EndedAt = DateTimeOffset.UtcNow
@@ -162,20 +162,20 @@ public class ManualJobStepService
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        await dbContext.ManualModuleJobSteps
+        await dbContext.StateMigrationJobSteps
             .Where(s => s.JobId == jobId
                         && s.OrganizationId == organizationId
                         && s.ModuleId == moduleId
-                        && s.Status == ManualJobStepStatus.Succeeded)
-            .ExecuteUpdateAsync(u => u.SetProperty(s => s.Status, ManualJobStepStatus.Stale));
+                        && s.Status == StateMigrationStepStatus.Succeeded)
+            .ExecuteUpdateAsync(u => u.SetProperty(s => s.Status, StateMigrationStepStatus.Stale));
     }
 
     /// <summary>The latest attempt at each task, which is what the verdict and the matrix read.</summary>
-    public async Task<IReadOnlyList<ManualModuleJobStep>> Latest(Guid jobId, Guid organizationId)
+    public async Task<IReadOnlyList<StateMigrationJobStep>> Latest(Guid jobId, Guid organizationId)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var steps = await dbContext.ManualModuleJobSteps.AsNoTracking()
+        var steps = await dbContext.StateMigrationJobSteps.AsNoTracking()
             .Where(s => s.JobId == jobId && s.OrganizationId == organizationId)
             .ToListAsync();
 
@@ -196,20 +196,20 @@ public class ManualJobStepService
             .Where(s => s.Task == task)
             .ToDictionary(s => s.ModuleId);
 
-        var statuses = new List<ManualJobStepStatus>();
+        var statuses = new List<StateMigrationStepStatus>();
         foreach (var moduleId in moduleIds)
         {
             if (!latest.TryGetValue(moduleId, out var step)) return StageOutcome.Waiting;
-            if (step.Status is ManualJobStepStatus.Pending or ManualJobStepStatus.Running) return StageOutcome.Waiting;
+            if (step.Status is StateMigrationStepStatus.Pending or StateMigrationStepStatus.Running) return StageOutcome.Waiting;
             statuses.Add(step.Status);
         }
 
-        if (statuses.Any(s => s == ManualJobStepStatus.Faulted)) return StageOutcome.Faulted;
+        if (statuses.Any(s => s == StateMigrationStepStatus.Faulted)) return StageOutcome.Faulted;
 
         // A refusal is the slice answering no, which is a red verdict rather than a fault.
-        if (statuses.Any(s => s == ManualJobStepStatus.Refused)) return StageOutcome.Refused;
+        if (statuses.Any(s => s == StateMigrationStepStatus.Refused)) return StageOutcome.Refused;
 
-        if (statuses.Any(s => s is ManualJobStepStatus.Skipped or ManualJobStepStatus.Stale))
+        if (statuses.Any(s => s is StateMigrationStepStatus.Skipped or StateMigrationStepStatus.Stale))
             return StageOutcome.Incomplete;
 
         return StageOutcome.Succeeded;
@@ -218,7 +218,7 @@ public class ManualJobStepService
     private static async Task<int> NextAttempt(
         SnapCdDbContext dbContext, Guid jobId, Guid organizationId, Guid moduleId, string task)
     {
-        var latest = await dbContext.ManualModuleJobSteps.AsNoTracking()
+        var latest = await dbContext.StateMigrationJobSteps.AsNoTracking()
             .Where(s => s.JobId == jobId && s.OrganizationId == organizationId
                         && s.ModuleId == moduleId && s.Task == task)
             .OrderByDescending(s => s.Attempt)
@@ -227,10 +227,10 @@ public class ManualJobStepService
         return (latest?.Attempt ?? 0) + 1;
     }
 
-    private static async Task<ManualModuleJobStep?> Latest(
+    private static async Task<StateMigrationJobStep?> Latest(
         SnapCdDbContext dbContext, Guid jobId, Guid organizationId, Guid moduleId, string task)
     {
-        return await dbContext.ManualModuleJobSteps
+        return await dbContext.StateMigrationJobSteps
             .Where(s => s.JobId == jobId && s.OrganizationId == organizationId
                         && s.ModuleId == moduleId && s.Task == task)
             .OrderByDescending(s => s.Attempt)

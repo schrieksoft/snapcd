@@ -8,10 +8,10 @@
 
 using SnapCd.Server.Core.Events.Steps.Base;
 
-namespace SnapCd.Server.Core.Events.Steps.ManualJobs;
+namespace SnapCd.Server.Core.Events.Steps.StateMigrations;
 
 /// <summary>Parameters every manual job step needs, beyond those an ordinary job step carries.</summary>
-public abstract class ManualStepRequestBase : StepRequestBase
+public abstract class StateMigrationStepRequestBase : StepRequestBase
 {
     /// <summary>The Module this step is for.</summary>
     public Guid ModuleId { get; set; }
@@ -21,14 +21,14 @@ public abstract class ManualStepRequestBase : StepRequestBase
 }
 
 /// <summary>A manual job step's reply.</summary>
-public class ManualStepResponseBase : StepResponseBase
+public class StateMigrationStepResponseBase : StepResponseBase
 {
     /// <summary>Which Module answered.</summary>
     public Guid ModuleId { get; set; }
 }
 
 /// <summary>A manual job step that failed, and what broke.</summary>
-public class ManualStepFaultedBase : ManualStepResponseBase
+public class StateMigrationStepFaultedBase : StateMigrationStepResponseBase
 {
     public string? ErrorMessage { get; set; }
     public string? StackTrace { get; set; }

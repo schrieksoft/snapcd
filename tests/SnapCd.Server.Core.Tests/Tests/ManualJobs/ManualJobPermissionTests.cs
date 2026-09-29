@@ -22,20 +22,20 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
-namespace SnapCd.Server.Core.Tests.Tests.ManualJobs;
+namespace SnapCd.Server.Core.Tests.Tests.StateMigrations;
 
 /// <summary>
 /// Pause, start and decide all sit behind the Pause verb: Owners and Contributors may, Readers may
 /// not. Each refusal is a PrincipalNotAuthorizedException, never a silent no-op.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
-public class ManualJobPermissionTests : IAsyncLifetime
+public class StateMigrationPermissionTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private Guid _moduleId;
     private Guid _organizationId;
 
-    public ManualJobPermissionTests(Fixture fixture) => _fixture = fixture;
+    public StateMigrationPermissionTests(Fixture fixture) => _fixture = fixture;
 
     public Task InitializeAsync()
     {
@@ -52,7 +52,7 @@ public class ManualJobPermissionTests : IAsyncLifetime
         saga.PausedBy = null;
         saga.PausedAt = null;
         saga.PauseReason = null;
-        db.ManualModuleJobs.RemoveRange(db.ManualModuleJobs.Where(j => j.ModuleId == _moduleId));
+        db.StateMigrationJobs.RemoveRange(db.StateMigrationJobs.Where(j => j.ModuleId == _moduleId));
         await db.SaveChangesAsync();
     }
 
@@ -88,7 +88,7 @@ public class ManualJobPermissionTests : IAsyncLifetime
     {
         await SetPaused(true);
         using var service = Service(Reader);
-        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(() => service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate));
+        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(() => service.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class ManualJobPermissionTests : IAsyncLifetime
     {
         await SetPaused(true);
         using var service = Service(Contributor);
-        var job = await service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate);
+        var job = await service.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate);
         Assert.Equal(ExecutionStatus.Running, job.Status);
     }
 
@@ -106,7 +106,7 @@ public class ManualJobPermissionTests : IAsyncLifetime
         await SetPaused(true);
         Guid jobId;
         using (var owner = Service(Owner))
-            jobId = (await owner.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate)).Id;
+            jobId = (await owner.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate)).Id;
 
         using var reader = Service(Reader);
         await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(() => reader.Decide(jobId, _moduleId, _organizationId, false));
@@ -118,19 +118,19 @@ public class ManualJobPermissionTests : IAsyncLifetime
         await SetPaused(true);
         Guid jobId;
         using (var owner = Service(Owner))
-            jobId = (await owner.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate)).Id;
+            jobId = (await owner.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate)).Id;
         await using (var db = _fixture.CreateDbContext())
         {
-            (await db.ManualModuleJobs.SingleAsync(j => j.Id == jobId)).WaitingForApproval = true;
+            (await db.StateMigrationJobs.SingleAsync(j => j.Id == jobId)).WaitingForApproval = true;
             await db.SaveChangesAsync();
         }
 
         using var contributor = Service(Contributor);
         await contributor.Decide(jobId, _moduleId, _organizationId, false);
-        await Assert.ThrowsAsync<ManualJobNotAllowedException>(() => contributor.Decide(jobId, _moduleId, _organizationId, false));
+        await Assert.ThrowsAsync<StateMigrationNotAllowedException>(() => contributor.Decide(jobId, _moduleId, _organizationId, false));
 
         await using (var db = _fixture.CreateDbContext())
-            Assert.Equal(1, await db.ManualModuleJobApprovals.CountAsync(a => a.ManualModuleJobId == jobId));
+            Assert.Equal(1, await db.StateMigrationJobApprovals.CountAsync(a => a.StateMigrationJobId == jobId));
     }
 
     private ModuleSagaSecuredRepository SagaRepository(Guid principalId)
@@ -142,13 +142,13 @@ public class ManualJobPermissionTests : IAsyncLifetime
         return new ModuleSagaSecuredRepository(new ModuleSagaRepository(_fixture.CreateDbContext(), _fixture.CreateMockBus()), secured);
     }
 
-    private ManualJobService Service(Guid principalId)
+    private StateMigrationService Service(Guid principalId)
     {
         var principalProvider = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, _organizationId);
         var secured = new ModuleSecuredRepository(
             new ModuleRepository(_fixture.CreateDbContext(), principalProvider, _fixture.CreateMockBus(), _fixture.CreateModuleSettings()),
             principalProvider);
-        return new ManualJobService(DbContextFactory(), secured, null, _fixture.CreateMockBus());
+        return new StateMigrationService(DbContextFactory(), secured, null, _fixture.CreateMockBus());
     }
 
     private IDbContextFactory<SnapCdDbContext> DbContextFactory()

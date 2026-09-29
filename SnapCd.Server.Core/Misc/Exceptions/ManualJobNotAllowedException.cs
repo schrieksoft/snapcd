@@ -10,9 +10,9 @@
 namespace SnapCd.Server.Core.Misc.Exceptions;
 
 /// <summary>Thrown when a manual job cannot start: the Module is not paused, or work is already in flight.</summary>
-public class ManualJobNotAllowedException : Exception
+public class StateMigrationNotAllowedException : Exception
 {
-    public ManualJobNotAllowedException(string message) : base(message)
+    public StateMigrationNotAllowedException(string message) : base(message)
     {
     }
 }

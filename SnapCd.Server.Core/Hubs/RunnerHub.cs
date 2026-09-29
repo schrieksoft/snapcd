@@ -27,7 +27,7 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Hubs.Handlers;
 using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.Hubs.Handlers.ManualJobs;
+using SnapCd.Server.Core.Hubs.Handlers.StateMigrations;
 using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
 using SnapCd.Server.Core.Hubs.Handlers.Transfers;
 using SnapCd.Server.Core.Services.Crud.Transfers;

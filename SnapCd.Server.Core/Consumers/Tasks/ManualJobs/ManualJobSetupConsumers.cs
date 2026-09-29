@@ -11,25 +11,25 @@ using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Consumers.Tasks.Builders;
 using SnapCd.Server.Core.Consumers.Tasks.Transfers;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 
-namespace SnapCd.Server.Core.Consumers.Tasks.ManualJobs;
+namespace SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 
 /// <summary>
 /// Checks out the code the job runs against. One dispatch serves every manual family, because the
 /// runner does one checkout; the faulted reply is the asking family's own, so a dispatch that fails
 /// reaches the saga that asked.
 /// </summary>
-public abstract class ManualJobGetModuleConsumer<TRequested, TFaulted>(
+public abstract class StateMigrationGetModuleConsumer<TRequested, TFaulted>(
     ILogger logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection)
     : TransferStepConsumer<TRequested, TFaulted>(logger, hubContext, runnerSelection)
-    where TRequested : ManualGetModuleRequestedBase
-    where TFaulted : ManualStepFaultedBase, new()
+    where TRequested : StateMigrationGetModuleRequestedBase
+    where TFaulted : StateMigrationStepFaultedBase, new()
 {
     protected override Task<object> BuildPayload(
         ConsumeContext<TRequested> context, Guid jobId)
@@ -45,14 +45,14 @@ public abstract class ManualJobGetModuleConsumer<TRequested, TFaulted>(
 }
 
 /// <summary>Initialises the backend, so the state is reachable.</summary>
-public abstract class ManualJobInitConsumer<TRequested, TFaulted>(
+public abstract class StateMigrationInitConsumer<TRequested, TFaulted>(
     ILogger logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
     ParamResolverFactory paramResolverFactory)
     : TransferStepConsumer<TRequested, TFaulted>(logger, hubContext, runnerSelection)
-    where TRequested : ManualStepRequestBase
-    where TFaulted : ManualStepFaultedBase, new()
+    where TRequested : StateMigrationStepRequestBase
+    where TFaulted : StateMigrationStepFaultedBase, new()
 {
     protected override async Task<object> BuildPayload(
         ConsumeContext<TRequested> context, Guid jobId)
@@ -72,7 +72,7 @@ public class StateListFilteredSelectRunnerInstanceConsumer(
     ILogger<StateListFilteredSelectRunnerInstanceConsumer> logger,
     RunnerSelectionService runnerSelection,
     RunnerJobAuthorizationService authorizationService)
-    : ManualSelectRunnerInstanceConsumer<
+    : StateMigrationSelectRunnerInstanceConsumer<
         StateListFilteredSelectRunnerInstanceRequested,
         StateListFilteredSelectRunnerInstanceCompleted,
         StateListFilteredSelectRunnerInstanceFaulted>(logger, runnerSelection, authorizationService)
@@ -86,7 +86,7 @@ public class StateListFilteredGetModuleConsumer(
     ILogger<StateListFilteredGetModuleConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection)
-    : ManualJobGetModuleConsumer<StateListFilteredGetModuleRequested, StateListFilteredGetModuleFaulted>(logger, hubContext, runnerSelection)
+    : StateMigrationGetModuleConsumer<StateListFilteredGetModuleRequested, StateListFilteredGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
     protected override string Endpoint => RunnerEndpoints.StateListFilteredGetModule;
 }
@@ -96,7 +96,7 @@ public class StateListFilteredInitConsumer(
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
     ParamResolverFactory paramResolverFactory)
-    : ManualJobInitConsumer<StateListFilteredInitRequested, StateListFilteredInitFaulted>(
+    : StateMigrationInitConsumer<StateListFilteredInitRequested, StateListFilteredInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
     protected override string Endpoint => RunnerEndpoints.StateListFilteredInit;
@@ -106,7 +106,7 @@ public class MoveSelectRunnerInstanceConsumer(
     ILogger<MoveSelectRunnerInstanceConsumer> logger,
     RunnerSelectionService runnerSelection,
     RunnerJobAuthorizationService authorizationService)
-    : ManualSelectRunnerInstanceConsumer<
+    : StateMigrationSelectRunnerInstanceConsumer<
         MoveSelectRunnerInstanceRequested,
         MoveSelectRunnerInstanceCompleted,
         MoveSelectRunnerInstanceFaulted>(logger, runnerSelection, authorizationService)
@@ -120,7 +120,7 @@ public class MoveGetModuleConsumer(
     ILogger<MoveGetModuleConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection)
-    : ManualJobGetModuleConsumer<MoveGetModuleRequested, MoveGetModuleFaulted>(logger, hubContext, runnerSelection)
+    : StateMigrationGetModuleConsumer<MoveGetModuleRequested, MoveGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
     protected override string Endpoint => RunnerEndpoints.MoveGetModule;
 }
@@ -130,7 +130,7 @@ public class MoveInitConsumer(
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
     ParamResolverFactory paramResolverFactory)
-    : ManualJobInitConsumer<MoveInitRequested, MoveInitFaulted>(
+    : StateMigrationInitConsumer<MoveInitRequested, MoveInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
     protected override string Endpoint => RunnerEndpoints.MoveInit;
@@ -140,7 +140,7 @@ public class ImportSelectRunnerInstanceConsumer(
     ILogger<ImportSelectRunnerInstanceConsumer> logger,
     RunnerSelectionService runnerSelection,
     RunnerJobAuthorizationService authorizationService)
-    : ManualSelectRunnerInstanceConsumer<
+    : StateMigrationSelectRunnerInstanceConsumer<
         ImportSelectRunnerInstanceRequested,
         ImportSelectRunnerInstanceCompleted,
         ImportSelectRunnerInstanceFaulted>(logger, runnerSelection, authorizationService)
@@ -154,7 +154,7 @@ public class ImportGetModuleConsumer(
     ILogger<ImportGetModuleConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection)
-    : ManualJobGetModuleConsumer<ImportGetModuleRequested, ImportGetModuleFaulted>(logger, hubContext, runnerSelection)
+    : StateMigrationGetModuleConsumer<ImportGetModuleRequested, ImportGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
     protected override string Endpoint => RunnerEndpoints.ImportGetModule;
 }
@@ -164,7 +164,7 @@ public class ImportInitConsumer(
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
     ParamResolverFactory paramResolverFactory)
-    : ManualJobInitConsumer<ImportInitRequested, ImportInitFaulted>(
+    : StateMigrationInitConsumer<ImportInitRequested, ImportInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
     protected override string Endpoint => RunnerEndpoints.ImportInit;
@@ -174,7 +174,7 @@ public class RemoveSelectRunnerInstanceConsumer(
     ILogger<RemoveSelectRunnerInstanceConsumer> logger,
     RunnerSelectionService runnerSelection,
     RunnerJobAuthorizationService authorizationService)
-    : ManualSelectRunnerInstanceConsumer<
+    : StateMigrationSelectRunnerInstanceConsumer<
         RemoveSelectRunnerInstanceRequested,
         RemoveSelectRunnerInstanceCompleted,
         RemoveSelectRunnerInstanceFaulted>(logger, runnerSelection, authorizationService)
@@ -188,7 +188,7 @@ public class RemoveGetModuleConsumer(
     ILogger<RemoveGetModuleConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection)
-    : ManualJobGetModuleConsumer<RemoveGetModuleRequested, RemoveGetModuleFaulted>(logger, hubContext, runnerSelection)
+    : StateMigrationGetModuleConsumer<RemoveGetModuleRequested, RemoveGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
     protected override string Endpoint => RunnerEndpoints.RemoveGetModule;
 }
@@ -198,7 +198,7 @@ public class RemoveInitConsumer(
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
     ParamResolverFactory paramResolverFactory)
-    : ManualJobInitConsumer<RemoveInitRequested, RemoveInitFaulted>(
+    : StateMigrationInitConsumer<RemoveInitRequested, RemoveInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
     protected override string Endpoint => RunnerEndpoints.RemoveInit;

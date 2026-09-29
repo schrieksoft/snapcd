@@ -8,7 +8,7 @@
 
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
@@ -21,10 +21,10 @@ public static class TransferMigrateFinalization
     public static EventActivityBinder<TransferMigrateSaga, TMessage> ThenJobFailed<TMessage>(
         this EventActivityBinder<TransferMigrateSaga, TMessage> binder)
         where TMessage : class =>
-        binder.Activity(x => x.OfType<FailManualModuleJobActivity<TransferMigrateSaga, TMessage>>());
+        binder.Activity(x => x.OfType<FailStateMigrationJobActivity<TransferMigrateSaga, TMessage>>());
 
     public static EventActivityBinder<TransferMigrateSaga, TMessage> ThenJobCompleted<TMessage>(
         this EventActivityBinder<TransferMigrateSaga, TMessage> binder)
         where TMessage : class =>
-        binder.Activity(x => x.OfType<CompleteManualModuleJobActivity<TransferMigrateSaga, TMessage>>());
+        binder.Activity(x => x.OfType<CompleteStateMigrationJobActivity<TransferMigrateSaga, TMessage>>());
 }

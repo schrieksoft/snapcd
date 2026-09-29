@@ -10,7 +10,7 @@
 using System.Text.Json;
 using MassTransit;
 using Microsoft.Extensions.Logging;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Runners;

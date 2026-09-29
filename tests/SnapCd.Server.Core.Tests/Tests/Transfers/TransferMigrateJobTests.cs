@@ -28,8 +28,8 @@ using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using SnapCd.Server.Core.Tests.Infrastructure;
@@ -71,15 +71,15 @@ public class TransferMigrateJobTests : IAsyncLifetime
             Options.Create(new StateStoreSettings { EncryptionKey = Convert.ToBase64String(new byte[32]) })));
         services.AddScoped<IMaintenanceModeService, MaintenanceModeService>();
         services.AddScoped<IPrincipalProvider>(_ => new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_organizationId]));
-        services.AddScoped<ManualModuleJobRepository>();
-        services.AddScoped<ManualJobStepService>();
+        services.AddScoped<StateMigrationJobRepository>();
+        services.AddScoped<StateMigrationStepService>();
         // MassTransit resolves activities from the container, and nothing registers them by
         // convention; the approval gate needs its three.
         services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
         services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
-        services.AddScoped(typeof(WaitingForApprovalManualJobActivity<,>));
-        services.AddScoped(typeof(NotWaitingForApprovalManualJobActivity<,>));
-        services.AddScoped(typeof(CancelManualModuleJobActivity<,>));
+        services.AddScoped(typeof(WaitingForApprovalStateMigrationActivity<,>));
+        services.AddScoped(typeof(NotWaitingForApprovalStateMigrationActivity<,>));
+        services.AddScoped(typeof(CancelStateMigrationJobActivity<,>));
         services.AddScoped(typeof(RunnerConnectedActivity<,>));
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
         services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));
@@ -115,13 +115,13 @@ public class TransferMigrateJobTests : IAsyncLifetime
             ServerInstanceId = Guid.NewGuid()
         });
 
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = _jobId,
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.TransferMigrate,
+            JobType = StateMigrationTypes.TransferMigrate,
             Status = ExecutionStatus.Running
         });
         await db.SaveChangesAsync();
@@ -136,9 +136,9 @@ public class TransferMigrateJobTests : IAsyncLifetime
         (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = null;
         await db.SaveChangesAsync();
 
-        await db.ManualModuleJobApprovals.Where(a => a.ManualModuleJobId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobApprovals.Where(a => a.StateMigrationJobId == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
         await db.RunnerConnections.Where(rc => rc.OrganizationId == _organizationId).ExecuteDeleteAsync();
         await db.OutputSets.Where(o => o.ModuleId == _counterpartyId).ExecuteDeleteAsync();
     }
@@ -513,11 +513,11 @@ public class TransferMigrateJobTests : IAsyncLifetime
             // the collection, so a neighbour's cleanup can reset it between the two.
             (await db.Modules.SingleAsync(m => m.Id == _moduleId)).StateMigrationApprovalThreshold = 1;
 
-            db.ManualModuleJobApprovals.Add(new ManualModuleJobApproval
+            db.StateMigrationJobApprovals.Add(new StateMigrationJobApproval
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = _organizationId,
-                ManualModuleJobId = _jobId,
+                StateMigrationJobId = _jobId,
                 PrincipalId = Guid.NewGuid(),
                 PrincipalDiscriminator = PrincipalDiscriminator.User,
                 DecisionDateTime = DateTime.UtcNow,
@@ -553,7 +553,7 @@ public class TransferMigrateJobTests : IAsyncLifetime
     private bool JobHasEnded()
     {
         using var db = _fixture.CreateDbContext();
-        return db.ManualModuleJobs.AsNoTracking()
+        return db.StateMigrationJobs.AsNoTracking()
             .Any(j => j.Id == _jobId && j.Status != ExecutionStatus.Running);
     }
 

@@ -15,6 +15,6 @@ public class HeartbeatRequested : StepResponseBase
     public string? RunnerInstanceName { get; set; }
     public Guid RunnerId { get; set; }
 
-    /// <summary>CorrelationId is a ManualModuleJob rather than a ModuleJob, so liveness is read from the parallel table.</summary>
-    public bool IsManualJob { get; set; }
+    /// <summary>CorrelationId is a StateMigrationJob rather than a ModuleJob, so liveness is read from the parallel table.</summary>
+    public bool IsStateMigration { get; set; }
 }

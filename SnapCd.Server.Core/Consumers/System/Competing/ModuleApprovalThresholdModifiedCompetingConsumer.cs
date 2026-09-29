@@ -30,7 +30,7 @@ public class ModuleApprovalThresholdModifiedCompetingConsumer : IConsumer<Module
             .Select(x => x.Id).ToList();
 
         // Manual jobs gate on their own threshold and park in the same state, so they re-evaluate too.
-        jobsId.AddRange(_dbContext.ManualModuleJobs
+        jobsId.AddRange(_dbContext.StateMigrationJobs
             .Where(x => x.ModuleId == context.Message.ModuleId && x.WaitingForApproval == true)
             .Select(x => x.Id));
 

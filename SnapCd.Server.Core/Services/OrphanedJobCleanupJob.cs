@@ -15,18 +15,18 @@ namespace SnapCd.Server.Core.Services;
 public class OrphanedJobCleanupJob
 {
     private readonly OrphanedJobCleanupService _cleanupService;
-    private readonly ManualModuleJobRepositoryFactory _manualModuleJobRepositoryFactory;
+    private readonly StateMigrationJobRepositoryFactory _stateMigrationJobRepositoryFactory;
     private readonly IBus _bus;
     private readonly ILogger<OrphanedJobCleanupJob> _logger;
 
     public OrphanedJobCleanupJob(
         OrphanedJobCleanupService cleanupService,
-        ManualModuleJobRepositoryFactory manualModuleJobRepositoryFactory,
+        StateMigrationJobRepositoryFactory stateMigrationJobRepositoryFactory,
         IBus bus,
         ILogger<OrphanedJobCleanupJob> logger)
     {
         _cleanupService = cleanupService;
-        _manualModuleJobRepositoryFactory = manualModuleJobRepositoryFactory;
+        _stateMigrationJobRepositoryFactory = stateMigrationJobRepositoryFactory;
         _bus = bus;
         _logger = logger;
     }
@@ -36,9 +36,9 @@ public class OrphanedJobCleanupJob
     /// is closed here directly. Leaving it open would block every future manual job on the Module
     /// through the filtered unique index.
     /// </summary>
-    private async Task CleanUpManualJobs()
+    private async Task CleanUpStateMigrations()
     {
-        var orphaned = await _cleanupService.ListOrphanedManualJobs();
+        var orphaned = await _cleanupService.ListOrphanedStateMigrations();
 
         foreach (var job in orphaned)
         {
@@ -46,7 +46,7 @@ public class OrphanedJobCleanupJob
                 "Found orphaned manual {JobType} job {JobId} in organization {OrganizationId}, closing it",
                 job.JobType, job.Id, job.OrganizationId);
 
-            using var repository = _manualModuleJobRepositoryFactory.Create();
+            using var repository = _stateMigrationJobRepositoryFactory.Create();
             await repository.FinalizeWithServerError(
                 job.Id,
                 job.OrganizationId,
@@ -76,7 +76,7 @@ public class OrphanedJobCleanupJob
                     OrganizationId = job.OrganizationId
                 });
             }
-            await CleanUpManualJobs();
+            await CleanUpStateMigrations();
         }
         catch (Exception ex)
         {

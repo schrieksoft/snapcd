@@ -152,7 +152,7 @@ public static class JobExtensionMethods
                             OrganizationId = context.Saga.OrganizationId,
                             RunnerInstanceName = context.Saga.RunnerInstanceName,
                             RunnerId = context.Saga.RunnerId,
-                            IsManualJob = context.Saga is ManualJobSagaBase
+                            IsStateMigration = context.Saga is StateMigrationSagaBase
                         }));
     }
 

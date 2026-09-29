@@ -71,11 +71,11 @@ public static class TransferRun
 
         Console.WriteLine("  the counterparty agreed, so both sides go ahead");
 
-        var manualJobs = scope.ServiceProvider
-            .GetRequiredService<SnapCd.Server.Core.Services.Crud.Jobs.ManualJobServiceFactory>()
+        var stateMigrations = scope.ServiceProvider
+            .GetRequiredService<SnapCd.Server.Core.Services.Crud.Jobs.StateMigrationServiceFactory>()
             .Create(principal);
 
-        var status = await Watch(dbFactory, manualJobs, transfer.Id, options);
+        var status = await Watch(dbFactory, stateMigrations, transfer.Id, options);
         await notifications.SettleAsync();
         await Report(dbFactory, services, transfer.Id, options, status, notifications);
 
@@ -96,7 +96,7 @@ public static class TransferRun
             await Task.Delay(500);
 
             await using var db = await dbFactory.CreateDbContextAsync();
-            var waiting = await db.ManualModuleJobs
+            var waiting = await db.StateMigrationJobs
                 .Where(j => j.TransferId == transferId && j.WaitingForConsent == true)
                 .AnyAsync();
 
@@ -113,7 +113,7 @@ public static class TransferRun
     /// <summary>Both sides have to end before the transfer has.</summary>
     private static async Task<bool> Watch(
         IDbContextFactory<SnapCdDbContext> dbFactory,
-        SnapCd.Server.Core.Services.Crud.Jobs.ManualJobService manualJobs,
+        SnapCd.Server.Core.Services.Crud.Jobs.StateMigrationService stateMigrations,
         Guid transferId,
         RunOptions options)
     {
@@ -128,7 +128,7 @@ public static class TransferRun
 
             await using var db = await dbFactory.CreateDbContextAsync();
 
-            var jobs = await db.ManualModuleJobs
+            var jobs = await db.StateMigrationJobs
                 .Where(j => j.TransferId == transferId)
                 .Select(j => new { j.Id, j.ModuleId, j.Status, j.WaitingForApproval })
                 .ToListAsync();
@@ -138,7 +138,7 @@ public static class TransferRun
                          j.WaitingForApproval == true && !approved.Contains(j.Id)))
             {
                 Console.WriteLine($"  approving Module {job.ModuleId}");
-                await manualJobs.Decide(
+                await stateMigrations.Decide(
                     job.Id, job.ModuleId, options.OrganizationId, declined: false);
                 approved.Add(job.Id);
             }
@@ -190,7 +190,7 @@ public static class TransferRun
         await using var db = await dbFactory.CreateDbContextAsync();
 
         var transfer = await db.Transfers.AsNoTracking().FirstOrDefaultAsync(t => t.Id == transferId);
-        var jobs = await db.ManualModuleJobs.AsNoTracking()
+        var jobs = await db.StateMigrationJobs.AsNoTracking()
             .Where(j => j.TransferId == transferId)
             .OrderBy(j => j.TimestampStart)
             .ToListAsync();
@@ -207,7 +207,7 @@ public static class TransferRun
             if (!string.IsNullOrWhiteSpace(job.ServerSideErrorHeader))
                 Console.WriteLine($"  error: {job.ServerSideErrorHeader}");
 
-            var steps = await db.ManualModuleJobSteps.AsNoTracking()
+            var steps = await db.StateMigrationJobSteps.AsNoTracking()
                 .Where(s => s.JobId == job.Id)
                 .OrderBy(s => s.StartedAt)
                 .ToListAsync();
@@ -215,7 +215,7 @@ public static class TransferRun
             foreach (var step in steps)
                 Console.WriteLine($"  {step.Task,-24} {step.Status}");
 
-            var addresses = await db.ManualModuleJobAddresses.AsNoTracking()
+            var addresses = await db.StateMigrationJobAddresses.AsNoTracking()
                 .Where(a => a.JobId == job.Id)
                 .OrderBy(a => a.Address)
                 .ToListAsync();

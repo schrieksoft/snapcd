@@ -13,15 +13,15 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
-public class CancelManualModuleJobActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+public class CancelStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
-    private readonly ManualModuleJobRepository _repository;
+    private readonly StateMigrationJobRepository _repository;
 
-    public CancelManualModuleJobActivity(ManualModuleJobRepository repository)
+    public CancelStateMigrationJobActivity(StateMigrationJobRepository repository)
     {
         _repository = repository;
     }
@@ -36,7 +36,7 @@ public class CancelManualModuleJobActivity<TSaga, TMessage> : IStateMachineActiv
             ExecutionStatus.Cancelled,
             DateTimeOffset.UtcNow);
 
-        await context.Publish(new ManualJobUpdatedEvent
+        await context.Publish(new StateMigrationUpdatedEvent
         {
             JobId = context.Saga.CorrelationId,
             ModuleId = context.Saga.ModuleId,

@@ -10,29 +10,29 @@
 using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 /// <summary>
 /// Ending a manual job. The job row carries the outcome and is what the Module's page reads, so
 /// every terminal transition goes through here rather than just transitioning.
 /// </summary>
-public static class ManualJobFinalization
+public static class StateMigrationFinalization
 {
     public static EventActivityBinder<TSaga, TMessage> ThenJobFailed<TSaga, TMessage>(
         this EventActivityBinder<TSaga, TMessage> binder)
-        where TSaga : ManualJobSagaBase
+        where TSaga : StateMigrationSagaBase
         where TMessage : class =>
-        binder.Activity(x => x.OfType<FailManualModuleJobActivity<TSaga, TMessage>>());
+        binder.Activity(x => x.OfType<FailStateMigrationJobActivity<TSaga, TMessage>>());
 
     public static EventActivityBinder<TSaga, TMessage> ThenJobCompleted<TSaga, TMessage>(
         this EventActivityBinder<TSaga, TMessage> binder)
-        where TSaga : ManualJobSagaBase
+        where TSaga : StateMigrationSagaBase
         where TMessage : class =>
-        binder.Activity(x => x.OfType<CompleteManualModuleJobActivity<TSaga, TMessage>>());
+        binder.Activity(x => x.OfType<CompleteStateMigrationJobActivity<TSaga, TMessage>>());
 
     public static EventActivityBinder<TSaga, TMessage> ThenJobPartiallyCompleted<TSaga, TMessage>(
         this EventActivityBinder<TSaga, TMessage> binder)
-        where TSaga : ManualJobSagaBase
+        where TSaga : StateMigrationSagaBase
         where TMessage : class =>
-        binder.Activity(x => x.OfType<PartiallyCompleteManualModuleJobActivity<TSaga, TMessage>>());
+        binder.Activity(x => x.OfType<PartiallyCompleteStateMigrationJobActivity<TSaga, TMessage>>());
 }

@@ -10,19 +10,19 @@ using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>
 /// Writes the job row's waiting-for-approval flag, which is what the dashboard reads to decide
 /// whether to offer the decision. The saga's own state is not visible to it.
 /// </summary>
-public class WaitingForApprovalManualJobActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+public class WaitingForApprovalStateMigrationActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
-    private readonly ManualModuleJobRepository _repository;
+    private readonly StateMigrationJobRepository _repository;
 
-    public WaitingForApprovalManualJobActivity(ManualModuleJobRepository repository)
+    public WaitingForApprovalStateMigrationActivity(StateMigrationJobRepository repository)
     {
         _repository = repository;
     }

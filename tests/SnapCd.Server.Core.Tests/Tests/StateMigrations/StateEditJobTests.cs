@@ -18,7 +18,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
@@ -29,8 +29,8 @@ using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.Tests.Infrastructure;
@@ -55,13 +55,13 @@ public abstract class StateEditJobTests<
     where TSaga : StateEditSagaBase, new()
     where TStateMachine : class, SagaStateMachine<TSaga>
     where TJobRequested : StateEditJobRequestedBase, new()
-    where TApproved : ManualJobResumeEventBase, new()
-    where TSelectRunnerInstanceRequested : ManualStepRequestBase, new()
-    where TGetModuleRequested : ManualGetModuleRequestedBase, new()
-    where TInitRequested : ManualStepRequestBase, new()
-    where TSelectRunnerInstanceCompleted : ManualSelectRunnerInstanceCompletedBase, new()
-    where TGetModuleCompleted : ManualGetModuleCompletedBase, new()
-    where TInitCompleted : ManualStepResponseBase, new()
+    where TApproved : StateMigrationResumeEventBase, new()
+    where TSelectRunnerInstanceRequested : StateMigrationStepRequestBase, new()
+    where TGetModuleRequested : StateMigrationGetModuleRequestedBase, new()
+    where TInitRequested : StateMigrationStepRequestBase, new()
+    where TSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase, new()
+    where TGetModuleCompleted : StateMigrationGetModuleCompletedBase, new()
+    where TInitCompleted : StateMigrationStepResponseBase, new()
     where TPreCheckRequested : StateEditRequestBase, new()
     where TPreCheckCompleted : StateEditResponseBase, new()
     where TEditRequested : StateEditRequestBase, new()
@@ -100,15 +100,15 @@ public abstract class StateEditJobTests<
         services.AddScoped<IMaintenanceModeService, MaintenanceModeService>();
         services.AddScoped<IPrincipalProvider>(_ =>
             new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_organizationId]));
-        services.AddScoped<ManualModuleJobRepository>();
-        services.AddScoped<ManualJobStepService>();
-        services.AddScoped<ManualJobAddressService>();
-        services.AddScoped(typeof(CancelManualModuleJobActivity<,>));
-        services.AddScoped(typeof(PartiallyCompleteManualModuleJobActivity<,>));
+        services.AddScoped<StateMigrationJobRepository>();
+        services.AddScoped<StateMigrationStepService>();
+        services.AddScoped<StateMigrationAddressService>();
+        services.AddScoped(typeof(CancelStateMigrationJobActivity<,>));
+        services.AddScoped(typeof(PartiallyCompleteStateMigrationJobActivity<,>));
         services.AddScoped(typeof(StateEditNeedsApprovalActivity<,>));
         services.AddScoped(typeof(SendStateEditStepToRunnerActivity<,,>));
-        services.AddScoped(typeof(WaitingForApprovalManualJobActivity<,>));
-        services.AddScoped(typeof(NotWaitingForApprovalManualJobActivity<,>));
+        services.AddScoped(typeof(WaitingForApprovalStateMigrationActivity<,>));
+        services.AddScoped(typeof(NotWaitingForApprovalStateMigrationActivity<,>));
 
         services.AddMassTransitTestHarness(x =>
         {
@@ -126,7 +126,7 @@ public abstract class StateEditJobTests<
         await _harness.Start();
 
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = _jobId,
             ModuleId = _moduleId,
@@ -144,10 +144,10 @@ public abstract class StateEditJobTests<
 
         await using var db = _fixture.CreateDbContext();
         await db.Set<TSaga>().Where(s => s.CorrelationId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobAddresses.Where(a => a.JobId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobApprovals.Where(a => a.ManualModuleJobId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobAddresses.Where(a => a.JobId == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobApprovals.Where(a => a.StateMigrationJobId == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
     }
 
     /// <summary>
@@ -208,7 +208,7 @@ public abstract class StateEditJobTests<
             "the job was not recorded as partially completed");
 
         await using var db = _fixture.CreateDbContext();
-        var rows = await db.ManualModuleJobAddresses.AsNoTracking()
+        var rows = await db.StateMigrationJobAddresses.AsNoTracking()
             .Where(a => a.JobId == _jobId).ToListAsync();
 
         Assert.Equal(AddressOutcome.Failed,
@@ -238,7 +238,7 @@ public abstract class StateEditJobTests<
         Assert.True(await WaitUntil(() => JobStatus() != ExecutionStatus.Running), "the job never ended");
 
         await using var db = _fixture.CreateDbContext();
-        var checkedRow = Assert.Single(await db.ManualModuleJobAddresses.AsNoTracking()
+        var checkedRow = Assert.Single(await db.StateMigrationJobAddresses.AsNoTracking()
             .Where(a => a.JobId == _jobId && a.Operation == AddressOperation.List).ToListAsync());
 
         Assert.Equal(AddressOutcome.Absent, checkedRow.Outcome);
@@ -305,7 +305,7 @@ public abstract class StateEditJobTests<
         Assert.Contains("random_pet.new", list.Addresses);
 
         await using var db = _fixture.CreateDbContext();
-        var rows = await db.ManualModuleJobAddresses.AsNoTracking()
+        var rows = await db.StateMigrationJobAddresses.AsNoTracking()
             .Where(a => a.JobId == _jobId).OrderBy(a => a.Address).ToListAsync();
 
         Assert.Equal(2, rows.Count);
@@ -390,10 +390,10 @@ public abstract class StateEditJobTests<
     private async Task Approve()
     {
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobApprovals.Add(new ManualModuleJobApproval
+        db.StateMigrationJobApprovals.Add(new StateMigrationJobApproval
         {
             Id = Guid.NewGuid(),
-            ManualModuleJobId = _jobId,
+            StateMigrationJobId = _jobId,
             OrganizationId = _organizationId,
             PrincipalId = Guid.NewGuid(),
             PrincipalDiscriminator = PrincipalDiscriminator.User,
@@ -463,7 +463,7 @@ public abstract class StateEditJobTests<
     private ExecutionStatus JobStatus()
     {
         using var db = _fixture.CreateDbContext();
-        return db.ManualModuleJobs.AsNoTracking()
+        return db.StateMigrationJobs.AsNoTracking()
             .Where(j => j.Id == _jobId).Select(j => j.Status).Single();
     }
 
@@ -488,7 +488,7 @@ public class MoveJobTests(Fixture fixture) : StateEditJobTests<
     MoveDryRunRequested, MoveDryRunCompleted,
     MoveRequested, MoveCompleted, MoveFaulted>(fixture)
 {
-    protected override string JobType => ManualJobTypes.StateMove;
+    protected override string JobType => StateMigrationTypes.StateMove;
 
     protected override AddressOperation RowOperation => AddressOperation.MoveFrom;
 
@@ -509,7 +509,7 @@ public class ImportJobTests(Fixture fixture) : StateEditJobTests<
     ImportPreCheckRequested, ImportPreCheckCompleted,
     ImportRequested, ImportCompleted, ImportFaulted>(fixture)
 {
-    protected override string JobType => ManualJobTypes.StateImport;
+    protected override string JobType => StateMigrationTypes.StateImport;
 
     protected override AddressOperation RowOperation => AddressOperation.Import;
 }
@@ -523,7 +523,7 @@ public class RemoveJobTests(Fixture fixture) : StateEditJobTests<
     RemoveDryRunRequested, RemoveDryRunCompleted,
     RemoveRequested, RemoveCompleted, RemoveFaulted>(fixture)
 {
-    protected override string JobType => ManualJobTypes.StateRemove;
+    protected override string JobType => StateMigrationTypes.StateRemove;
 
     protected override AddressOperation RowOperation => AddressOperation.Remove;
 }

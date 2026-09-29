@@ -120,11 +120,11 @@ public class StuckJobDetectionTests : IAsyncLifetime
         await _provider.DisposeAsync();
 
         await using var db = _fixture.CreateDbContext();
-        await db.Set<SplitMigrateSaga>().Where(s => _seededManualJobs.Contains(s.CorrelationId)).ExecuteDeleteAsync();
-        await db.ManualModuleJobs.Where(j => _seededManualJobs.Contains(j.Id)).ExecuteDeleteAsync();
+        await db.Set<SplitMigrateSaga>().Where(s => _seededStateMigrations.Contains(s.CorrelationId)).ExecuteDeleteAsync();
+        await db.StateMigrationJobs.Where(j => _seededStateMigrations.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
-    private readonly List<Guid> _seededManualJobs = [];
+    private readonly List<Guid> _seededStateMigrations = [];
 
     private StuckJobDetectionService CreateService()
         => new(
@@ -186,9 +186,9 @@ public class StuckJobDetectionTests : IAsyncLifetime
     public async Task Detects_A_Manual_Job_Whose_Saga_Never_Progressed()
     {
         // One Running manual job per module, enforced by a filtered unique index.
-        var deaf = await SeedManualJob("SelectRunnerInstancePending", startedMinutesAgo: 90, waitingSince: null, moduleId: _fixture.Modules["0000"].Id);
-        var fresh = await SeedManualJob("SelectRunnerInstancePending", startedMinutesAgo: 5, waitingSince: null, moduleId: _fixture.Modules["0001"].Id);
-        var parked = await SeedManualJob("GetModuleWaitingForRunner", startedMinutesAgo: 90, waitingSince: DateTime.UtcNow.AddMinutes(-2), moduleId: _fixture.Modules["0002"].Id);
+        var deaf = await SeedStateMigration("SelectRunnerInstancePending", startedMinutesAgo: 90, waitingSince: null, moduleId: _fixture.Modules["0000"].Id);
+        var fresh = await SeedStateMigration("SelectRunnerInstancePending", startedMinutesAgo: 5, waitingSince: null, moduleId: _fixture.Modules["0001"].Id);
+        var parked = await SeedStateMigration("GetModuleWaitingForRunner", startedMinutesAgo: 90, waitingSince: DateTime.UtcNow.AddMinutes(-2), moduleId: _fixture.Modules["0002"].Id);
 
         var stuck = await CreateService().FindStuckJobsAsync();
         var ids = stuck.Select(s => s.JobId).ToHashSet();
@@ -200,35 +200,35 @@ public class StuckJobDetectionTests : IAsyncLifetime
 
         var reported = stuck.Single(s => s.JobId == deaf);
         Assert.Equal("SelectRunnerInstancePending", reported.State);
-        Assert.Equal(ManualJobTypes.SplitProve, reported.JobType);
+        Assert.Equal(StateMigrationTypes.SplitProve, reported.JobType);
         Assert.True(reported.Stalled > TimeSpan.FromMinutes(60));
     }
 
     [Fact]
     public async Task Ignores_A_Finished_Manual_Job()
     {
-        var done = await SeedManualJob("Completed", startedMinutesAgo: 120, waitingSince: null, status: ExecutionStatus.Completed);
+        var done = await SeedStateMigration("Completed", startedMinutesAgo: 120, waitingSince: null, status: ExecutionStatus.Completed);
 
         var stuck = await CreateService().FindStuckJobsAsync();
 
         Assert.DoesNotContain(done, stuck.Select(s => s.JobId));
     }
 
-    private async Task<Guid> SeedManualJob(string state, int startedMinutesAgo, DateTime? waitingSince, ExecutionStatus status = ExecutionStatus.Running, Guid? moduleId = null)
+    private async Task<Guid> SeedStateMigration(string state, int startedMinutesAgo, DateTime? waitingSince, ExecutionStatus status = ExecutionStatus.Running, Guid? moduleId = null)
     {
         var jobId = Guid.NewGuid();
         var onModule = moduleId ?? _module.Id;
-        _seededManualJobs.Add(jobId);
+        _seededStateMigrations.Add(jobId);
 
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = jobId,
             OrganizationId = _module.OrganizationId,
             ModuleId = onModule,
             TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-startedMinutesAgo),
             TimestampEnd = status == ExecutionStatus.Running ? null : DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.SplitProve,
+            JobType = StateMigrationTypes.SplitProve,
             Status = status
         });
         db.Set<SplitMigrateSaga>().Add(new SplitMigrateSaga

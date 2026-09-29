@@ -16,7 +16,7 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// Asks which addresses are in a Module's state. It runs the same preamble as any other job
 /// because listing state needs a checkout and an initialised backend, then reports and ends.
 /// </summary>
-public class StateListFilteredSaga : ManualJobSagaBase
+public class StateListFilteredSaga : StateMigrationSagaBase
 {
     /// <summary>The addresses to ask about, as JSON. Nothing is reported about any other.</summary>
     [MaxLength(4000)] public string AddressesJson { get; set; } = null!;

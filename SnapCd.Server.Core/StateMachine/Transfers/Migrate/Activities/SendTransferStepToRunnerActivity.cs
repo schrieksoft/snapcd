@@ -9,11 +9,11 @@
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 
@@ -24,7 +24,7 @@ public class SendTransferStepToRunnerActivity<TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
     ILogger<SendToRunnerActivity<TransferMigrateSaga, TMessage, TOutgoingMessage>> logger)
-    : SendManualStepToRunnerActivity<TransferMigrateSaga, TMessage, TOutgoingMessage>(
+    : SendStateMigrationStepToRunnerActivity<TransferMigrateSaga, TMessage, TOutgoingMessage>(
         dbContext, maintenanceMode, logger)
     where TMessage : class
     where TOutgoingMessage : StepRequestBase, new()
@@ -33,8 +33,8 @@ public class SendTransferStepToRunnerActivity<TMessage, TOutgoingMessage>(
     {
         var request = base.CreateMessage(saga);
 
-        if (request is ManualStepRequestBase manualStep)
-            manualStep.RootDirectory = saga.RootDirectory;
+        if (request is StateMigrationStepRequestBase stateMigrationStep)
+            stateMigrationStep.RootDirectory = saga.RootDirectory;
 
         // Only the checkout takes a ref, and it takes the transfer's rather than the Module's own.
         if (request is TransferGetModuleRequested getModule)

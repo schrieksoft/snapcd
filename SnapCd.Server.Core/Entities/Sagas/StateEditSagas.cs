@@ -16,7 +16,7 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// that follows says which of them are where they were meant to be, and it is the list that
 /// anything watching acts on.
 /// </summary>
-public abstract class StateEditSagaBase : ManualJobSagaBase
+public abstract class StateEditSagaBase : StateMigrationSagaBase
 {
     /// <summary>The addresses and their targets, as JSON.</summary>
     public string InstructionsJson { get; set; } = null!;

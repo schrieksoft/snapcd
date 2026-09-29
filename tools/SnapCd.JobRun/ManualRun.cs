@@ -23,7 +23,7 @@ namespace SnapCd.JobRun;
 /// The manual job kinds, which run against a paused Module rather than through the gatekeeper.
 /// Each one records its own steps, so those are the evidence rather than the job's logs.
 /// </summary>
-public static class ManualRun
+public static class StateMigrationRun
 {
     public static async Task<int> Execute(
         IServiceProvider services,
@@ -42,27 +42,27 @@ public static class ManualRun
 
         Console.WriteLine("Paused the module");
 
-        var manualJobs = scope.ServiceProvider
-            .GetRequiredService<ManualJobServiceFactory>().Create(principal);
+        var stateMigrations = scope.ServiceProvider
+            .GetRequiredService<StateMigrationServiceFactory>().Create(principal);
 
         var job = options.Job switch
         {
-            JobKind.List => await manualJobs.StartStateListFiltered(
+            JobKind.List => await stateMigrations.StartStateListFiltered(
                 options.ModuleId, options.OrganizationId, options.Addresses),
-            JobKind.Move => await manualJobs.StartMove(
+            JobKind.Move => await stateMigrations.StartMove(
                 options.ModuleId, options.OrganizationId, Targeted(options)),
-            JobKind.Import => await manualJobs.StartImport(
+            JobKind.Import => await stateMigrations.StartImport(
                 options.ModuleId, options.OrganizationId, Targeted(options)),
-            JobKind.Remove => await manualJobs.StartRemove(
+            JobKind.Remove => await stateMigrations.StartRemove(
                 options.ModuleId, options.OrganizationId, Bare(options)),
-            JobKind.Split => await manualJobs.StartSplitMigrate(
+            JobKind.Split => await stateMigrations.StartSplitMigrate(
                 options.ModuleId, options.OrganizationId, options.RootDirectory, options.Force),
             _ => throw new NotSupportedException($"No manual run for {options.Job}.")
         };
 
         Console.WriteLine($"Started job {job.Id}");
 
-        var status = await Watch(dbFactory, manualJobs, job.Id, options);
+        var status = await Watch(dbFactory, stateMigrations, job.Id, options);
         await notifications.SettleAsync();
         await Report(dbFactory, services, job.Id, status, notifications);
 
@@ -90,7 +90,7 @@ public static class ManualRun
 
     private static async Task<ExecutionStatus> Watch(
         IDbContextFactory<SnapCdDbContext> dbFactory,
-        ManualJobService manualJobs,
+        StateMigrationService stateMigrations,
         Guid jobId,
         RunOptions options)
     {
@@ -103,7 +103,7 @@ public static class ManualRun
             await Task.Delay(500);
 
             await using var db = await dbFactory.CreateDbContextAsync();
-            var job = await db.ManualModuleJobs
+            var job = await db.StateMigrationJobs
                 .Where(j => j.Id == jobId)
                 .Select(j => new { j.Status, j.WaitingForApproval })
                 .FirstOrDefaultAsync();
@@ -122,7 +122,7 @@ public static class ManualRun
             if (job.WaitingForApproval == true && !approved)
             {
                 Console.WriteLine("  approving");
-                await manualJobs.Decide(jobId, options.ModuleId, options.OrganizationId, declined: false);
+                await stateMigrations.Decide(jobId, options.ModuleId, options.OrganizationId, declined: false);
                 approved = true;
             }
         }
@@ -140,7 +140,7 @@ public static class ManualRun
     {
         await using var db = await dbFactory.CreateDbContextAsync();
 
-        var job = await db.ManualModuleJobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == jobId);
+        var job = await db.StateMigrationJobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == jobId);
 
         Console.WriteLine();
         Console.WriteLine($"Result      {status}");
@@ -153,7 +153,7 @@ public static class ManualRun
                 Console.WriteLine($"Error       {job.ServerSideErrorHeader}");
         }
 
-        var steps = await db.ManualModuleJobSteps.AsNoTracking()
+        var steps = await db.StateMigrationJobSteps.AsNoTracking()
             .Where(s => s.JobId == jobId)
             .OrderBy(s => s.StartedAt)
             .ToListAsync();
@@ -169,7 +169,7 @@ public static class ManualRun
                 Console.WriteLine($"  {"",-24} {step.ErrorHeader}");
         }
 
-        var addresses = await db.ManualModuleJobAddresses.AsNoTracking()
+        var addresses = await db.StateMigrationJobAddresses.AsNoTracking()
             .Where(a => a.JobId == jobId)
             .OrderBy(a => a.Address)
             .ToListAsync();

@@ -16,14 +16,14 @@ using SnapCd.Server.Core.Entities.Interfaces;
 namespace SnapCd.Server.Core.Entities.Definition;
 
 /// <summary>
-/// An approve or decline decision on a ManualModuleJob. Parallel to ModuleJobApproval rather than
+/// An approve or decline decision on a StateMigrationJob. Parallel to ModuleJobApproval rather than
 /// a generalisation of it, so the two job kinds keep their own foreign keys and cascade behaviour.
 /// </summary>
-public class ManualModuleJobApproval : AuditBase, IEntity, IJobApproval
+public class StateMigrationJobApproval : AuditBase, IEntity, IJobApproval
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
-    public Guid ManualModuleJobId { get; set; }
+    public Guid StateMigrationJobId { get; set; }
 
     public Guid PrincipalId { get; set; }
 
@@ -42,11 +42,11 @@ public class ManualModuleJobApproval : AuditBase, IEntity, IJobApproval
 
     public bool Declined { get; set; }
 
-    [JsonIgnore] public ManualModuleJob ManualModuleJob { get; set; } = null!;
+    [JsonIgnore] public StateMigrationJob StateMigrationJob { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId()
     {
-        return ManualModuleJobId;
+        return StateMigrationJobId;
     }
 }

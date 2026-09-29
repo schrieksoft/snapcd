@@ -160,7 +160,7 @@ public static class Run
         if (options.Job == JobKind.Transfer)
             return await TransferRun.Execute(services, scope, principal, dbFactory, options, notifications);
 
-        return await ManualRun.Execute(services, scope, principal, dbFactory, options, notifications);
+        return await StateMigrationRun.Execute(services, scope, principal, dbFactory, options, notifications);
     }
 
     /// <summary>

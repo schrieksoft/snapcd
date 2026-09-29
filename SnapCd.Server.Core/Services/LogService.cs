@@ -60,15 +60,15 @@ public class LogService
                     .FromSqlRaw("SELECT * FROM ModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
                     .SingleOrDefaultAsync();
 
-                ManualModuleJob? manualJob = null;
+                StateMigrationJob? stateMigration = null;
                 if (moduleJob == null)
                 {
-                    manualJob = await dbContext.ManualModuleJobs
-                        .FromSqlRaw("SELECT * FROM ManualModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
+                    stateMigration = await dbContext.StateMigrationJobs
+                        .FromSqlRaw("SELECT * FROM StateMigrationJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
                         .SingleOrDefaultAsync();
                 }
 
-                if (moduleJob == null && manualJob == null)
+                if (moduleJob == null && stateMigration == null)
                 {
                     // A runner-side failure reaches the operator only through its logs.
                     _logger.LogWarning(
@@ -78,7 +78,7 @@ public class LogService
                     continue;
                 }
 
-                var currentLogs = moduleJob != null ? moduleJob.Logs : manualJob!.Logs;
+                var currentLogs = moduleJob != null ? moduleJob.Logs : stateMigration!.Logs;
 
                 // Parse existing logs or create new array
                 List<LogEntryDto> existingLogs = new();
@@ -104,7 +104,7 @@ public class LogService
                 if (moduleJob != null)
                     moduleJob.Logs = serialized;
                 else
-                    manualJob!.Logs = serialized;
+                    stateMigration!.Logs = serialized;
 
                 await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -127,7 +127,7 @@ public class LogService
             .Where(j => j.Id == correlationId)
             .Select(j => new { j.Logs })
             .FirstOrDefaultAsync()
-            ?? await dbContext.ManualModuleJobs
+            ?? await dbContext.StateMigrationJobs
                 .Where(j => j.Id == correlationId)
                 .Select(j => new { j.Logs })
                 .FirstOrDefaultAsync();

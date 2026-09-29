@@ -22,7 +22,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// Why an address failed is in the job's logs. The row records that it did, which is what makes a
 /// job partially completed and says which addresses to try again.
 /// </summary>
-public class ManualModuleJobAddress : AuditBase, IEntity
+public class StateMigrationJobAddress : AuditBase, IEntity
 {
     public Guid Id { get; set; }
 
@@ -48,7 +48,7 @@ public class ManualModuleJobAddress : AuditBase, IEntity
     /// <summary>When the job reported this address. Per-address timings are not measured.</summary>
     public DateTimeOffset RecordedAt { get; set; }
 
-    [JsonIgnore] public ManualModuleJob Job { get; set; } = null!;
+    [JsonIgnore] public StateMigrationJob Job { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId() => JobId;

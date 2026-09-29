@@ -16,7 +16,7 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
@@ -42,7 +42,7 @@ public static class SplitMigrateExtensionMethods
                 OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
-            .Activity(x => x.OfType<FailManualModuleJobActivity<SplitMigrateSaga, TFaulted>>())
+            .Activity(x => x.OfType<FailStateMigrationJobActivity<SplitMigrateSaga, TFaulted>>())
             .TransitionTo(failed)
             .Finalize();
     }
@@ -58,7 +58,7 @@ public static class SplitMigrateExtensionMethods
                 OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
-            .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMigrateSaga, TCancelled>>())
+            .Activity(x => x.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, TCancelled>>())
             .TransitionTo(cancelled)
             .Finalize();
     }
@@ -74,7 +74,7 @@ public static class SplitMigrateExtensionMethods
                 OrganizationId = context.Saga.OrganizationId,
                 ModuleJobId = context.Saga.CorrelationId
             })
-            .Activity(x => x.OfType<CompleteManualModuleJobActivity<SplitMigrateSaga, TCompleted>>())
+            .Activity(x => x.OfType<CompleteStateMigrationJobActivity<SplitMigrateSaga, TCompleted>>())
             .TransitionTo(completed)
             .Finalize();
     }
@@ -83,8 +83,8 @@ public static class SplitMigrateExtensionMethods
     /// A cancel clicked again after its timeout should already have fired. The timeout was lost, so
     /// nothing else will end this job: close it here rather than leaving the saga cancelling forever.
     /// </summary>
-    public static EventActivityBinder<SplitMigrateSaga, CancelManualModuleJobRequested> ThenSplitCancelForced(this
-        EventActivityBinder<SplitMigrateSaga, CancelManualModuleJobRequested> binder, ILogger logger, State cancelled)
+    public static EventActivityBinder<SplitMigrateSaga, CancelStateMigrationJobRequested> ThenSplitCancelForced(this
+        EventActivityBinder<SplitMigrateSaga, CancelStateMigrationJobRequested> binder, ILogger logger, State cancelled)
     {
         return binder
             .Then(context => logger.LogWarning(
@@ -97,7 +97,7 @@ public static class SplitMigrateExtensionMethods
                 ModuleJobId = context.Saga.CorrelationId,
                 CancellationReason = CancellationReason.UserRequested
             })
-            .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMigrateSaga, CancelManualModuleJobRequested>>())
+            .Activity(x => x.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, CancelStateMigrationJobRequested>>())
             .TransitionTo(cancelled)
             .Finalize();
     }
@@ -121,7 +121,7 @@ public static class SplitMigrateExtensionMethods
                 ModuleJobId = context.Saga.CorrelationId,
                 CancellationReason = CancellationReason.UserRequested
             })
-            .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMigrateSaga, RequestTimeoutExpired<TRequest>>>())
+            .Activity(x => x.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, RequestTimeoutExpired<TRequest>>>())
             .TransitionTo(cancelled)
             .Finalize();
     }
@@ -136,7 +136,7 @@ public static class SplitMigrateExtensionMethods
                 ModuleJobId = context.Saga.CorrelationId,
                 OrganizationId = context.Saga.OrganizationId
             })
-            .Activity(x => x.OfType<FailManualModuleJobActivity<SplitMigrateSaga, HeartbeatFailed>>())
+            .Activity(x => x.OfType<FailStateMigrationJobActivity<SplitMigrateSaga, HeartbeatFailed>>())
             .TransitionTo(failed)
             .Finalize();
     }

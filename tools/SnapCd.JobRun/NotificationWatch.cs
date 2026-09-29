@@ -18,7 +18,7 @@ namespace SnapCd.JobRun;
 /// </summary>
 public sealed class NotificationWatch : IDisposable
 {
-    private readonly ManualJobUpdatedNotificationService _jobUpdated;
+    private readonly StateMigrationUpdatedNotificationService _jobUpdated;
     private readonly LogReceivedNotificationService _logReceived;
     private readonly Guid _moduleId;
     private readonly Action<string> _trace;
@@ -29,7 +29,7 @@ public sealed class NotificationWatch : IDisposable
     public NotificationWatch(
         IServiceProvider services, Guid moduleId, Action<string> trace)
     {
-        _jobUpdated = services.GetRequiredService<ManualJobUpdatedNotificationService>();
+        _jobUpdated = services.GetRequiredService<StateMigrationUpdatedNotificationService>();
         _logReceived = services.GetRequiredService<LogReceivedNotificationService>();
         _moduleId = moduleId;
         _trace = trace;

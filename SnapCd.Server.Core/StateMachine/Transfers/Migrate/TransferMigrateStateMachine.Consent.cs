@@ -18,8 +18,8 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
@@ -61,7 +61,7 @@ public partial class TransferMigrateStateMachine
         During(WaitingForConsent,
             When(ConsentDecidedEvent, context => context.Message.Granted)
                 .ThenAsync(context => RecordCompleted(
-                    context, "WaitForCounterpartyConsent", ManualJobStepStatus.Succeeded))
+                    context, "WaitForCounterpartyConsent", StateMigrationStepStatus.Succeeded))
                 .Activity(x => x.OfType<NotWaitingForConsentActivity<TransferMigrateSaga, ConsentDecided>>())
                 .Then(context =>
                 {
@@ -81,7 +81,7 @@ public partial class TransferMigrateStateMachine
             // Refused ends this side too: there is nothing for it to move into.
             When(ConsentDecidedEvent, context => !context.Message.Granted)
                 .ThenAsync(context => RecordCompleted(
-                    context, "WaitForCounterpartyConsent", ManualJobStepStatus.Refused))
+                    context, "WaitForCounterpartyConsent", StateMigrationStepStatus.Refused))
                 .Activity(x => x.OfType<NotWaitingForConsentActivity<TransferMigrateSaga, ConsentDecided>>())
                 .Then(context => _logger.LogInformation(
                     "Transfer: {Counterparty} refused, so Module {ModuleId} writes nothing",
@@ -91,13 +91,13 @@ public partial class TransferMigrateStateMachine
             // Nothing is on a runner yet, so there is nothing to kill or wait out.
             When(CancelRequested)
                 .ThenAsync(context => RecordCompleted(
-                    context, "WaitForCounterpartyConsent", ManualJobStepStatus.Faulted,
+                    context, "WaitForCounterpartyConsent", StateMigrationStepStatus.Faulted,
                     "Cancelled while waiting."))
-                .Activity(x => x.OfType<NotWaitingForConsentActivity<TransferMigrateSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<NotWaitingForConsentActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                 .Then(context => _logger.LogInformation(
                     "Transfer: cancelled while Module {ModuleId} waited to be agreed to",
                     context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize()
         );

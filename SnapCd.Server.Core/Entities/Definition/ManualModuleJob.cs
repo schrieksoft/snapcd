@@ -20,7 +20,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// because IsCurrent there drives dependency resolution and the gatekeeper's dequeue check, and
 /// manual work is neither a deployment nor a reason for dependents to wait.
 /// </summary>
-public class ManualModuleJob : AuditBase, IEntity, IModuleChild
+public class StateMigrationJob : AuditBase, IEntity, IModuleChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
@@ -67,14 +67,14 @@ public class ManualModuleJob : AuditBase, IEntity, IModuleChild
 
     public string? Logs { get; set; }
 
-    public List<ManualModuleJobApproval> ManualModuleJobApprovals { get; set; } = null!;
+    public List<StateMigrationJobApproval> StateMigrationJobApprovals { get; set; } = null!;
 
-    public List<ManualModuleJobStep> Steps { get; set; } = null!;
+    public List<StateMigrationJobStep> Steps { get; set; } = null!;
 
     /// <summary>Every address this job touched, and what became of each.</summary>
-    public List<ManualModuleJobAddress> Addresses { get; set; } = null!;
+    public List<StateMigrationJobAddress> Addresses { get; set; } = null!;
 
-    public List<ManualModuleJobArtefact> Artefacts { get; set; } = null!;
+    public List<StateMigrationJobArtefact> Artefacts { get; set; } = null!;
 
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;

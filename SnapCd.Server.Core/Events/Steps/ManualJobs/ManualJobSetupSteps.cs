@@ -8,7 +8,7 @@
 
 using SnapCd.Server.Core.Events.Steps.Base;
 
-namespace SnapCd.Server.Core.Events.Steps.ManualJobs;
+namespace SnapCd.Server.Core.Events.Steps.StateMigrations;
 
 /// <summary>
 /// The steps every manual job runs before its own work: pick the runner instance the job is pinned
@@ -18,76 +18,76 @@ namespace SnapCd.Server.Core.Events.Steps.ManualJobs;
 /// messages either way. A dispatch queue is named after its message type, so a shared request would
 /// put four families on one queue; and a reply has to find one saga.
 /// </summary>
-public abstract class ManualGetModuleRequestedBase : ManualStepRequestBase
+public abstract class StateMigrationGetModuleRequestedBase : StateMigrationStepRequestBase
 {
     /// <summary>The ref to check out, where the job runs against one other than the Module's own.</summary>
     public string? SourceRevisionOverride { get; set; }
 }
 
-public class StateListFilteredSelectRunnerInstanceRequested : ManualStepRequestBase;
-public class StateListFilteredGetModuleRequested : ManualGetModuleRequestedBase;
-public class StateListFilteredInitRequested : ManualStepRequestBase;
+public class StateListFilteredSelectRunnerInstanceRequested : StateMigrationStepRequestBase;
+public class StateListFilteredGetModuleRequested : StateMigrationGetModuleRequestedBase;
+public class StateListFilteredInitRequested : StateMigrationStepRequestBase;
 
-public class MoveSelectRunnerInstanceRequested : ManualStepRequestBase;
-public class MoveGetModuleRequested : ManualGetModuleRequestedBase;
-public class MoveInitRequested : ManualStepRequestBase;
+public class MoveSelectRunnerInstanceRequested : StateMigrationStepRequestBase;
+public class MoveGetModuleRequested : StateMigrationGetModuleRequestedBase;
+public class MoveInitRequested : StateMigrationStepRequestBase;
 
-public class ImportSelectRunnerInstanceRequested : ManualStepRequestBase;
-public class ImportGetModuleRequested : ManualGetModuleRequestedBase;
-public class ImportInitRequested : ManualStepRequestBase;
+public class ImportSelectRunnerInstanceRequested : StateMigrationStepRequestBase;
+public class ImportGetModuleRequested : StateMigrationGetModuleRequestedBase;
+public class ImportInitRequested : StateMigrationStepRequestBase;
 
-public class RemoveSelectRunnerInstanceRequested : ManualStepRequestBase;
-public class RemoveGetModuleRequested : ManualGetModuleRequestedBase;
-public class RemoveInitRequested : ManualStepRequestBase;
+public class RemoveSelectRunnerInstanceRequested : StateMigrationStepRequestBase;
+public class RemoveGetModuleRequested : StateMigrationGetModuleRequestedBase;
+public class RemoveInitRequested : StateMigrationStepRequestBase;
 
 /// <summary>A reply naming the instance the job is now pinned to.</summary>
-public abstract class ManualSelectRunnerInstanceCompletedBase : ManualStepResponseBase
+public abstract class StateMigrationSelectRunnerInstanceCompletedBase : StateMigrationStepResponseBase
 {
     public string RunnerInstanceName { get; set; } = null!;
 }
 
 /// <summary>A reply naming the ref the checkout resolved to.</summary>
-public abstract class ManualGetModuleCompletedBase : ManualStepResponseBase
+public abstract class StateMigrationGetModuleCompletedBase : StateMigrationStepResponseBase
 {
     public string? DefinitiveRevision { get; set; }
 }
 
-public class StateListFilteredSelectRunnerInstanceCompleted : ManualSelectRunnerInstanceCompletedBase;
-public class StateListFilteredSelectRunnerInstanceCancelled : ManualStepResponseBase;
-public class StateListFilteredSelectRunnerInstanceFaulted : ManualStepFaultedBase;
-public class StateListFilteredGetModuleCompleted : ManualGetModuleCompletedBase;
-public class StateListFilteredGetModuleCancelled : ManualStepResponseBase;
-public class StateListFilteredGetModuleFaulted : ManualStepFaultedBase;
-public class StateListFilteredInitCompleted : ManualStepResponseBase;
-public class StateListFilteredInitCancelled : ManualStepResponseBase;
-public class StateListFilteredInitFaulted : ManualStepFaultedBase;
+public class StateListFilteredSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
+public class StateListFilteredSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
+public class StateListFilteredSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class StateListFilteredGetModuleCompleted : StateMigrationGetModuleCompletedBase;
+public class StateListFilteredGetModuleCancelled : StateMigrationStepResponseBase;
+public class StateListFilteredGetModuleFaulted : StateMigrationStepFaultedBase;
+public class StateListFilteredInitCompleted : StateMigrationStepResponseBase;
+public class StateListFilteredInitCancelled : StateMigrationStepResponseBase;
+public class StateListFilteredInitFaulted : StateMigrationStepFaultedBase;
 
-public class MoveSelectRunnerInstanceCompleted : ManualSelectRunnerInstanceCompletedBase;
-public class MoveSelectRunnerInstanceCancelled : ManualStepResponseBase;
-public class MoveSelectRunnerInstanceFaulted : ManualStepFaultedBase;
-public class MoveGetModuleCompleted : ManualGetModuleCompletedBase;
-public class MoveGetModuleCancelled : ManualStepResponseBase;
-public class MoveGetModuleFaulted : ManualStepFaultedBase;
-public class MoveInitCompleted : ManualStepResponseBase;
-public class MoveInitCancelled : ManualStepResponseBase;
-public class MoveInitFaulted : ManualStepFaultedBase;
+public class MoveSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
+public class MoveSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
+public class MoveSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class MoveGetModuleCompleted : StateMigrationGetModuleCompletedBase;
+public class MoveGetModuleCancelled : StateMigrationStepResponseBase;
+public class MoveGetModuleFaulted : StateMigrationStepFaultedBase;
+public class MoveInitCompleted : StateMigrationStepResponseBase;
+public class MoveInitCancelled : StateMigrationStepResponseBase;
+public class MoveInitFaulted : StateMigrationStepFaultedBase;
 
-public class ImportSelectRunnerInstanceCompleted : ManualSelectRunnerInstanceCompletedBase;
-public class ImportSelectRunnerInstanceCancelled : ManualStepResponseBase;
-public class ImportSelectRunnerInstanceFaulted : ManualStepFaultedBase;
-public class ImportGetModuleCompleted : ManualGetModuleCompletedBase;
-public class ImportGetModuleCancelled : ManualStepResponseBase;
-public class ImportGetModuleFaulted : ManualStepFaultedBase;
-public class ImportInitCompleted : ManualStepResponseBase;
-public class ImportInitCancelled : ManualStepResponseBase;
-public class ImportInitFaulted : ManualStepFaultedBase;
+public class ImportSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
+public class ImportSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
+public class ImportSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class ImportGetModuleCompleted : StateMigrationGetModuleCompletedBase;
+public class ImportGetModuleCancelled : StateMigrationStepResponseBase;
+public class ImportGetModuleFaulted : StateMigrationStepFaultedBase;
+public class ImportInitCompleted : StateMigrationStepResponseBase;
+public class ImportInitCancelled : StateMigrationStepResponseBase;
+public class ImportInitFaulted : StateMigrationStepFaultedBase;
 
-public class RemoveSelectRunnerInstanceCompleted : ManualSelectRunnerInstanceCompletedBase;
-public class RemoveSelectRunnerInstanceCancelled : ManualStepResponseBase;
-public class RemoveSelectRunnerInstanceFaulted : ManualStepFaultedBase;
-public class RemoveGetModuleCompleted : ManualGetModuleCompletedBase;
-public class RemoveGetModuleCancelled : ManualStepResponseBase;
-public class RemoveGetModuleFaulted : ManualStepFaultedBase;
-public class RemoveInitCompleted : ManualStepResponseBase;
-public class RemoveInitCancelled : ManualStepResponseBase;
-public class RemoveInitFaulted : ManualStepFaultedBase;
+public class RemoveSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
+public class RemoveSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
+public class RemoveSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class RemoveGetModuleCompleted : StateMigrationGetModuleCompletedBase;
+public class RemoveGetModuleCancelled : StateMigrationStepResponseBase;
+public class RemoveGetModuleFaulted : StateMigrationStepFaultedBase;
+public class RemoveInitCompleted : StateMigrationStepResponseBase;
+public class RemoveInitCancelled : StateMigrationStepResponseBase;
+public class RemoveInitFaulted : StateMigrationStepFaultedBase;

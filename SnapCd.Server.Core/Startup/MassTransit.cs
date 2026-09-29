@@ -7,10 +7,10 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.StateMachine.StateMigrations;
-using SnapCd.Server.Core.Consumers.Tasks.ManualJobs;
+using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using System.Reflection;
@@ -362,7 +362,7 @@ public static class MassTransit
     [
         typeof(JobCreatedFanoutConsumer),
         typeof(JobUpdatedFanoutConsumer),
-        typeof(ManualJobUpdatedFanoutConsumer),
+        typeof(StateMigrationUpdatedFanoutConsumer),
         typeof(LogReceivedFanoutConsumer),
         typeof(RunnerAvailabilityModifiedFanoutConsumer),
         typeof(AgentAvailabilityModifiedFanoutConsumer),
@@ -429,7 +429,7 @@ public static class MassTransit
         // The manual families send their steps to the instance owning the runner's connection,
         // as an ordinary job does, rather than publishing them.
         services.AddScoped(typeof(SendToRunnerActivity<,,>));
-        services.AddScoped(typeof(SendManualStepToRunnerActivity<,,>));
+        services.AddScoped(typeof(SendStateMigrationStepToRunnerActivity<,,>));
         services.AddScoped(typeof(SendStateEditStepToRunnerActivity<,,>));
         services.AddScoped(typeof(SendStateListFilteredStepToRunnerActivity<,>));
         services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));

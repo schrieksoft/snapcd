@@ -38,9 +38,9 @@ public partial class SplitMigrateStateMachine
         During(SplitMigrateVerifyWaitingForRunner,
             When(SplitMigrateVerifyWaitingForRunner.Enter)
                 .Activity(x => x.OfType<CheckRunnerConnectionActivity<SplitMigrateSaga, SplitMigrateVerifyCompleted>>()),
-            When(CancelManualModuleJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelAfterCurrent<SplitMigrateSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
+            When(CancelStateMigrationJobRequested)
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
@@ -57,9 +57,9 @@ public partial class SplitMigrateStateMachine
                 .ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
                 .ThenSplitTimedOut(Failed),
-            When(CancelManualModuleJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelAfterCurrent<SplitMigrateSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
+            When(CancelStateMigrationJobRequested)
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
             When(SplitMigrateVerifyCancelled)
                 .ThenSplitCancelled(Cancelled),
             When(SplitMigrateVerifyFaulted)

@@ -9,12 +9,12 @@
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Services.Approvals;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 
 public class SplitMigrateNeedsApprovalActivity<TMessage>
-    : ManualJobNeedsApprovalActivity<SplitMigrateSaga, TMessage>
+    : StateMigrationNeedsApprovalActivity<SplitMigrateSaga, TMessage>
     where TMessage : class
 {
     public SplitMigrateNeedsApprovalActivity(SnapCdDbContext dbContext) : base(dbContext)

@@ -16,43 +16,43 @@ using SnapCd.Server.Core.Misc.Exceptions;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-public class ManualModuleJobRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
+public class StateMigrationJobRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
 {
-    public ManualModuleJobRepository Create()
+    public StateMigrationJobRepository Create()
     {
-        return new ManualModuleJobRepository(dbFactory.CreateDbContext());
+        return new StateMigrationJobRepository(dbFactory.CreateDbContext());
     }
 }
 
 /// <summary>
-/// Writes to ManualModuleJobs. Deliberately not ModuleJobRepository: that one carries deployment
+/// Writes to StateMigrationJobs. Deliberately not ModuleJobRepository: that one carries deployment
 /// vocabulary a manual job has no use for — ActualStateHeadline, IsCurrent, DefinitiveRevision —
 /// and sharing it would let a deployment-motivated change silently alter how manual jobs close.
 /// </summary>
-public class ManualModuleJobRepository : IDisposable
+public class StateMigrationJobRepository : IDisposable
 {
     private readonly SnapCdDbContext _dbContext;
 
-    public ManualModuleJobRepository(SnapCdDbContext dbContext)
+    public StateMigrationJobRepository(SnapCdDbContext dbContext)
     {
         _dbContext = dbContext;
     }
 
-    public async Task<ManualModuleJob> Get(Guid id, Guid organizationId)
+    public async Task<StateMigrationJob> Get(Guid id, Guid organizationId)
     {
-        var job = await _dbContext.ManualModuleJobs
+        var job = await _dbContext.StateMigrationJobs
             .FirstOrDefaultAsync(j => j.Id == id && j.OrganizationId == organizationId);
 
         if (job == null)
             throw new EntityNotFoundException(
-                $"{nameof(ManualModuleJob)} with Id {id} in Organization {organizationId} not found.");
+                $"{nameof(StateMigrationJob)} with Id {id} in Organization {organizationId} not found.");
 
         return job;
     }
 
-    public async Task<List<ManualModuleJob>> ListByModule(Guid moduleId, Guid organizationId, int take = 50)
+    public async Task<List<StateMigrationJob>> ListByModule(Guid moduleId, Guid organizationId, int take = 50)
     {
-        return await _dbContext.ManualModuleJobs
+        return await _dbContext.StateMigrationJobs
             .AsNoTracking()
             .Where(j => j.ModuleId == moduleId && j.OrganizationId == organizationId)
             .OrderByDescending(j => j.TimestampStart)
@@ -60,11 +60,11 @@ public class ManualModuleJobRepository : IDisposable
             .ToListAsync();
     }
 
-    public async Task<List<ManualModuleJobApproval>> ListApprovals(Guid jobId, Guid organizationId)
+    public async Task<List<StateMigrationJobApproval>> ListApprovals(Guid jobId, Guid organizationId)
     {
-        return await _dbContext.ManualModuleJobApprovals
+        return await _dbContext.StateMigrationJobApprovals
             .AsNoTracking()
-            .Where(a => a.ManualModuleJobId == jobId && a.OrganizationId == organizationId)
+            .Where(a => a.StateMigrationJobId == jobId && a.OrganizationId == organizationId)
             .OrderByDescending(a => a.DecisionDateTime)
             .ToListAsync();
     }

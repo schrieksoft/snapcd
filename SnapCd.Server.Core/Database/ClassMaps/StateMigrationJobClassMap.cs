@@ -13,11 +13,11 @@ using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Database.ClassMaps;
 
-public class ManualModuleJobClassMap : IEntityTypeConfiguration<ManualModuleJob>
+public class StateMigrationJobClassMap : IEntityTypeConfiguration<StateMigrationJob>
 {
-    public void Configure(EntityTypeBuilder<ManualModuleJob> entity)
+    public void Configure(EntityTypeBuilder<StateMigrationJob> entity)
     {
-        entity.ToTable("ManualModuleJobs", t => t.UseSqlOutputClause(false));
+        entity.ToTable("StateMigrationJobs", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
@@ -32,7 +32,7 @@ public class ManualModuleJobClassMap : IEntityTypeConfiguration<ManualModuleJob>
 
         entity
             .HasOne(e => e.Organization)
-            .WithMany(x => x.ManualModuleJobs)
+            .WithMany(x => x.StateMigrationJobs)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 

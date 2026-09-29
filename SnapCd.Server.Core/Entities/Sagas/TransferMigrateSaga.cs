@@ -15,7 +15,7 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// One Module's state move within a transfer run, an ordinary manual job on that Module's runner.
 /// The Modules in a run move in parallel; what actually moved is recorded in the transfer's ledger.
 /// </summary>
-public class TransferMigrateSaga : ManualJobSagaBase
+public class TransferMigrateSaga : StateMigrationSagaBase
 {
     /// <summary>
     /// The Module on the other side of the move. Held only so a plan that reads a value the other

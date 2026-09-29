@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
@@ -25,7 +25,7 @@ using SnapCd.Server.Core.Services.Crud.StateMigrations;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
@@ -40,7 +40,7 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
     private readonly ILogger<StateListFilteredStateMachine> _logger;
 
     public Event<StateListFilteredJobRequested> JobRequested { get; } = null!;
-    public Event<CancelManualModuleJobRequested> CancelRequested { get; } = null!;
+    public Event<CancelStateMigrationJobRequested> CancelRequested { get; } = null!;
 
     public Event<StateListFilteredSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
     public Event<StateListFilteredSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
@@ -121,17 +121,17 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
 
         During(ListPending,
             When(ListCompleted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", ManualJobStepStatus.Succeeded))
+                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Succeeded))
                 .ThenAsync(ReportAddresses)
                 .ThenJobCompleted().TransitionTo(Completed).Finalize(),
 
             When(ListFaulted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", ManualJobStepStatus.Faulted))
+                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
@@ -149,7 +149,7 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
 
         var services = PipeExtensions.GetPayload<IServiceProvider>(context);
 
-        await services.GetRequiredService<ManualJobAddressService>().Record(
+        await services.GetRequiredService<StateMigrationAddressService>().Record(
             context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId,
             AddressOperation.List, results);
 

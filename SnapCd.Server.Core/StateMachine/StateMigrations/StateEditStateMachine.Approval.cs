@@ -15,8 +15,8 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
@@ -67,7 +67,7 @@ public abstract partial class StateEditStateMachine<
                 .Then(context => _logger.LogInformation(
                     "{Verb} on Module {ModuleId} was not answered in time",
                     Verb, context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, ApprovalTimeoutReceived>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -77,7 +77,7 @@ public abstract partial class StateEditStateMachine<
                     "{Verb} on Module {ModuleId} was cancelled while awaiting approval",
                     Verb, context.Saga.ModuleId))
                 .Unschedule(ApprovalTimeoutScheduled)
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -108,7 +108,7 @@ public abstract partial class StateEditStateMachine<
                             Verb, context.Saga.ModuleId);
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
-                    .Activity(x => x.OfType<NotWaitingForApprovalManualJobActivity<TSaga, TMessage>>())
+                    .Activity(x => x.OfType<NotWaitingForApprovalStateMigrationActivity<TSaga, TMessage>>())
                     // Scheduled before the approval is published, not after: anything between the
                     // publish and the end of the chain is time for the answer to arrive early.
                     .Schedule(HeartbeatScheduled,
@@ -131,14 +131,14 @@ public abstract partial class StateEditStateMachine<
                                 "{Verb} on Module {ModuleId} was declined; nothing was changed",
                                 Verb, context.Saga.ModuleId))
                             .Unschedule(ApprovalTimeoutScheduled)
-                            .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, TMessage>>())
+                            .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, TMessage>>())
                             .TransitionTo(Failed)
                             .Finalize(),
                         stillWaiting => stillWaiting
                             .If(
                                 _ => transition,
                                 waiting => waiting
-                                    .Activity(x => x.OfType<WaitingForApprovalManualJobActivity<TSaga, TMessage>>())
+                                    .Activity(x => x.OfType<WaitingForApprovalStateMigrationActivity<TSaga, TMessage>>())
                                     .Then(context =>
                                     {
                                         context.Saga.WaitingSince = DateTime.UtcNow;

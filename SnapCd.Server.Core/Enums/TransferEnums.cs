@@ -43,7 +43,7 @@ public enum ConsentStatus
 }
 
 /// <summary>The outcome of one dispatched step.</summary>
-public enum ManualJobStepStatus
+public enum StateMigrationStepStatus
 {
     /// <summary>Not yet dispatched.</summary>
     Pending,

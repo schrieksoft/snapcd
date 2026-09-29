@@ -10,10 +10,10 @@ namespace SnapCd.Server.Core.Events.System;
 
 /// <summary>
 /// A manual job's status changed. Published by the finalization activities rather than by a
-/// repository: ManualModuleJobRepository is a plain writer, not a generic repository, so no
+/// repository: StateMigrationJobRepository is a plain writer, not a generic repository, so no
 /// updated event is emitted on save.
 /// </summary>
-public class ManualJobUpdatedEvent
+public class StateMigrationUpdatedEvent
 {
     public Guid JobId { get; set; }
     public Guid ModuleId { get; set; }

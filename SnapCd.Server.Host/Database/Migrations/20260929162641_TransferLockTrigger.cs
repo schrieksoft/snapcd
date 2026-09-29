@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+﻿// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
 // Copyright (c) 2026 Karl Schriek / Schrieksoft.
 // No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
 // embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
-
 
 using Microsoft.EntityFrameworkCore.Migrations;
 using SnapCd.Server.Host.Database.Migrations.Sql;
@@ -14,6 +13,7 @@ using SnapCd.Server.Host.Database.Migrations.Sql;
 
 namespace SnapCd.Server.Host.Database.Migrations
 {
+    /// <inheritdoc />
     /// <summary>
     /// Deploys the trigger that maintains TransferLocks, from the SQL file of the same name.
     ///
@@ -25,7 +25,7 @@ namespace SnapCd.Server.Host.Database.Migrations
     public partial class TransferLockTrigger : Migration
     {
         private const string SqlResource =
-            "SnapCd.Server.Host.Database.Migrations.Sql.20260925104304_TransferLockTrigger.sql";
+            "SnapCd.Server.Host.Database.Migrations.Sql.20260929162641_TransferLockTrigger.sql";
 
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

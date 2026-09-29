@@ -10,7 +10,7 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using Xunit;
 
-namespace SnapCd.Server.Core.Tests.Tests.ManualJobs;
+namespace SnapCd.Server.Core.Tests.Tests.StateMigrations;
 
 /// <summary>
 /// A job may run at an explicit ref. The ref must be safe to hand to git, and the override must

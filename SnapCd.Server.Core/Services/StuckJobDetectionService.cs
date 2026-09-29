@@ -67,7 +67,7 @@ public class StuckJobDetectionService
                 stuck.Add(new StuckJob(saga.CorrelationId, saga.JobType, saga.OrganizationId, saga.ModuleId, saga.CurrentState, saga.WaitingSince.Value, stalled));
         }
 
-        stuck.AddRange(await FindManualJobsWithoutProgressAsync(db, now));
+        stuck.AddRange(await FindStateMigrationsWithoutProgressAsync(db, now));
 
         return stuck;
     }
@@ -77,12 +77,12 @@ public class StuckJobDetectionService
     /// need a WaitingSince, and a heartbeat needs a dispatched step, so a saga that never received
     /// its first reply is invisible to both: the job runs forever with nothing watching it.
     /// </summary>
-    private async Task<List<StuckJob>> FindManualJobsWithoutProgressAsync(SnapCdDbContext db, DateTime now)
+    private async Task<List<StuckJob>> FindStateMigrationsWithoutProgressAsync(SnapCdDbContext db, DateTime now)
     {
-        var threshold = TimeSpan.FromMinutes(_settings.ManualJobNoProgressThresholdMinutes);
+        var threshold = TimeSpan.FromMinutes(_settings.StateMigrationNoProgressThresholdMinutes);
         var cutoff = new DateTimeOffset(now, TimeSpan.Zero) - threshold;
 
-        var running = await db.ManualModuleJobs.AsNoTracking()
+        var running = await db.StateMigrationJobs.AsNoTracking()
             .Where(j => j.Status == ExecutionStatus.Running && j.TimestampStart < cutoff)
             .Select(j => new { j.Id, j.OrganizationId, j.ModuleId, j.JobType, j.TimestampStart })
             .ToListAsync();

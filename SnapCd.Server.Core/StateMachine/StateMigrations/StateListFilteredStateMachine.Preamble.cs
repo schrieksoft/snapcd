@@ -17,11 +17,11 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
@@ -52,7 +52,7 @@ public partial class StateListFilteredStateMachine
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(
                     "State list on Module {ModuleId} was cancelled", context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<StateListFilteredSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<StateListFilteredSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize());
     }
@@ -65,14 +65,14 @@ public partial class StateListFilteredStateMachine
         string nextTask,
         State nextState,
         Action<BehaviorContext<StateListFilteredSaga, TCompleted>>? onCompleted = null)
-        where TCompleted : ManualStepResponseBase
-        where TFaulted : ManualStepFaultedBase
+        where TCompleted : StateMigrationStepResponseBase
+        where TFaulted : StateMigrationStepFaultedBase
         where TNextRequest : StepRequestBase, new()
     {
         During(duringState,
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
-                .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Succeeded))
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Succeeded))
                 .Activity(x => x.OfType<SendStateListFilteredStepToRunnerActivity<TCompleted, TNextRequest>>())
                 .ThenAsync(context => RecordDispatched(context, nextTask))
                 .Schedule(HeartbeatScheduled,
@@ -84,13 +84,13 @@ public partial class StateListFilteredStateMachine
                 .TransitionTo(nextState),
 
             When(faultedEvent)
-                .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Faulted))
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
@@ -101,7 +101,7 @@ public partial class StateListFilteredStateMachine
         BehaviorContext<StateListFilteredSaga, TMessage> context, string task)
         where TMessage : class =>
         await PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<ManualJobStepService>()
+            .GetRequiredService<StateMigrationStepService>()
             .Dispatched(
                 context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId, task,
                 null, context.Saga.RunnerInstanceName);
@@ -109,14 +109,14 @@ public partial class StateListFilteredStateMachine
     private static async Task RecordCompleted<TMessage>(
         BehaviorContext<StateListFilteredSaga, TMessage> context,
         string task,
-        ManualJobStepStatus status,
+        StateMigrationStepStatus status,
         string? errorHeader = null)
         where TMessage : class
     {
         var faulted = context.Message as StepFaultedBase;
 
         await PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<ManualJobStepService>()
+            .GetRequiredService<StateMigrationStepService>()
             .Completed(
                 context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId, task, status,
                 errorHeader: faulted?.ErrorMessage ?? errorHeader, error: faulted?.StackTrace);
@@ -135,8 +135,8 @@ public partial class StateListFilteredStateMachine
             Declared = JsonSerializer.Deserialize<ResolvedModule>(saga.DeclaredJson)!
         };
 
-        if (request is ManualStepRequestBase manualStep)
-            manualStep.ModuleId = saga.ModuleId;
+        if (request is StateMigrationStepRequestBase stateMigrationStep)
+            stateMigrationStep.ModuleId = saga.ModuleId;
 
         if (request is StateListFilteredRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.AddressesJson) ?? [];

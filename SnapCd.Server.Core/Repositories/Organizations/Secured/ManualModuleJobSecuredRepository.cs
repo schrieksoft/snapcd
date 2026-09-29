@@ -17,16 +17,16 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
-public class ManualModuleJobSecuredRepositoryFactory(
+public class StateMigrationJobSecuredRepositoryFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory)
 {
-    public ManualModuleJobSecuredRepository Create(IPrincipalProvider? principalProvider = null)
+    public StateMigrationJobSecuredRepository Create(IPrincipalProvider? principalProvider = null)
     {
         principalProvider ??= new HttpContextPrincipalProvider(new HttpContextAccessor());
 
-        return new ManualModuleJobSecuredRepository(
-            new ManualModuleJobRepository(dbFactory.CreateDbContext()),
+        return new StateMigrationJobSecuredRepository(
+            new StateMigrationJobRepository(dbFactory.CreateDbContext()),
             moduleSecuredRepositoryFactory.Create(principalProvider));
     }
 }
@@ -35,20 +35,20 @@ public class ManualModuleJobSecuredRepositoryFactory(
 /// Reading a Module's manual jobs is reading the Module: the jobs carry no permissions of their
 /// own, so access is delegated rather than duplicated.
 /// </summary>
-public class ManualModuleJobSecuredRepository : IDisposable
+public class StateMigrationJobSecuredRepository : IDisposable
 {
-    private readonly ManualModuleJobRepository _repository;
+    private readonly StateMigrationJobRepository _repository;
     private readonly ModuleSecuredRepository _moduleSecuredRepository;
 
-    public ManualModuleJobSecuredRepository(
-        ManualModuleJobRepository repository,
+    public StateMigrationJobSecuredRepository(
+        StateMigrationJobRepository repository,
         ModuleSecuredRepository moduleSecuredRepository)
     {
         _repository = repository;
         _moduleSecuredRepository = moduleSecuredRepository;
     }
 
-    public async Task<List<ManualModuleJob>> ListByModule(Guid moduleId, Guid organizationId, int take = 50)
+    public async Task<List<StateMigrationJob>> ListByModule(Guid moduleId, Guid organizationId, int take = 50)
     {
         if (!_moduleSecuredRepository.CanRead(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
@@ -57,7 +57,7 @@ public class ManualModuleJobSecuredRepository : IDisposable
         return await _repository.ListByModule(moduleId, organizationId, take);
     }
 
-    public async Task<ManualModuleJob> Get(Guid id, Guid moduleId, Guid organizationId)
+    public async Task<StateMigrationJob> Get(Guid id, Guid moduleId, Guid organizationId)
     {
         if (!_moduleSecuredRepository.CanRead(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
@@ -67,7 +67,7 @@ public class ManualModuleJobSecuredRepository : IDisposable
     }
 
     /// <summary>Decisions recorded against a job, newest first.</summary>
-    public async Task<List<ManualModuleJobApproval>> ListApprovals(Guid jobId, Guid moduleId, Guid organizationId)
+    public async Task<List<StateMigrationJobApproval>> ListApprovals(Guid jobId, Guid moduleId, Guid organizationId)
     {
         if (!_moduleSecuredRepository.CanRead(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(

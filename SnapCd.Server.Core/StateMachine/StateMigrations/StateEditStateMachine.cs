@@ -16,14 +16,14 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.Crud.StateMigrations;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
@@ -49,19 +49,19 @@ public abstract partial class StateEditStateMachine<
     : MassTransitStateMachine<TSaga>
     where TSaga : StateEditSagaBase, new()
     where TJobRequested : StateEditJobRequestedBase
-    where TApproved : ManualJobResumeEventBase, new()
-    where TSelectRunnerInstanceRequested : ManualStepRequestBase, new()
-    where TGetModuleRequested : ManualGetModuleRequestedBase, new()
-    where TInitRequested : ManualStepRequestBase, new()
-    where TSelectRunnerInstanceCompleted : ManualSelectRunnerInstanceCompletedBase
-    where TSelectRunnerInstanceCancelled : ManualStepResponseBase
-    where TSelectRunnerInstanceFaulted : ManualStepFaultedBase
-    where TGetModuleCompleted : ManualGetModuleCompletedBase
-    where TGetModuleCancelled : ManualStepResponseBase
-    where TGetModuleFaulted : ManualStepFaultedBase
-    where TInitCompleted : ManualStepResponseBase
-    where TInitCancelled : ManualStepResponseBase
-    where TInitFaulted : ManualStepFaultedBase
+    where TApproved : StateMigrationResumeEventBase, new()
+    where TSelectRunnerInstanceRequested : StateMigrationStepRequestBase, new()
+    where TGetModuleRequested : StateMigrationGetModuleRequestedBase, new()
+    where TInitRequested : StateMigrationStepRequestBase, new()
+    where TSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase
+    where TSelectRunnerInstanceCancelled : StateMigrationStepResponseBase
+    where TSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase
+    where TGetModuleCompleted : StateMigrationGetModuleCompletedBase
+    where TGetModuleCancelled : StateMigrationStepResponseBase
+    where TGetModuleFaulted : StateMigrationStepFaultedBase
+    where TInitCompleted : StateMigrationStepResponseBase
+    where TInitCancelled : StateMigrationStepResponseBase
+    where TInitFaulted : StateMigrationStepFaultedBase
     where TPreCheckRequested : StateEditRequestBase, new()
     where TPreCheckCompleted : StateEditResponseBase
     where TPreCheckFaulted : StepFaultedBase
@@ -84,7 +84,7 @@ public abstract partial class StateEditStateMachine<
     protected abstract string EditName { get; }
 
     public Event<TJobRequested> JobRequested { get; } = null!;
-    public Event<CancelManualModuleJobRequested> CancelRequested { get; } = null!;
+    public Event<CancelStateMigrationJobRequested> CancelRequested { get; } = null!;
 
     public Event<TSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
     public Event<TSelectRunnerInstanceCancelled> SelectRunnerInstanceCancelled { get; } = null!;
@@ -184,7 +184,7 @@ public abstract partial class StateEditStateMachine<
         // The edit reports what it managed; the list that follows reports what is actually there.
         During(EditPending,
             When(EditCompleted)
-                .ThenAsync(context => RecordCompleted(context, EditName, ManualJobStepStatus.Succeeded))
+                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Succeeded))
                 .ThenAsync(RecordEdit)
                 .Activity(x => x.OfType<
                     SendStateEditStepToRunnerActivity<TSaga, TEditCompleted, StateListFilteredRequested>>())
@@ -198,19 +198,19 @@ public abstract partial class StateEditStateMachine<
                 .TransitionTo(ListPending),
 
             When(EditFaulted)
-                .ThenAsync(context => RecordCompleted(context, EditName, ManualJobStepStatus.Faulted))
+                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, EditName, ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
         During(ListPending,
             When(ListCompleted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", ManualJobStepStatus.Succeeded))
+                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Succeeded))
                 .ThenAsync(ReportAddresses)
                 .IfElse(
                     context => context.Saga.FailedCount == 0,
@@ -223,12 +223,12 @@ public abstract partial class StateEditStateMachine<
 
             // The edit already happened, so a failed list leaves the job done but unobserved.
             When(ListFaulted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", ManualJobStepStatus.Faulted))
+                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted))
                 .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize()
         );
@@ -243,7 +243,7 @@ public abstract partial class StateEditStateMachine<
 
     /// <summary>Anything filed beyond the addresses the edit was asked for.</summary>
     protected virtual Task RecordExtraRows(
-        TSaga saga, List<AddressResult> results, ManualJobAddressService addresses) =>
+        TSaga saga, List<AddressResult> results, StateMigrationAddressService addresses) =>
         Task.CompletedTask;
 
     /// <summary>
@@ -261,7 +261,7 @@ public abstract partial class StateEditStateMachine<
         if (results.Count == 0) return;
 
         var addresses = PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<ManualJobAddressService>();
+            .GetRequiredService<StateMigrationAddressService>();
 
         await addresses.Record(
             context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId,
@@ -281,7 +281,7 @@ public abstract partial class StateEditStateMachine<
         if (results.Count == 0) return;
 
         await PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<ManualJobAddressService>()
+            .GetRequiredService<StateMigrationAddressService>()
             .Record(
                 context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId,
                 AddressOperation.List, results);

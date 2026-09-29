@@ -9,9 +9,9 @@
 @using SnapCd.Server.Core.Services.Crud.Jobs
 @using SnapCd.Server.Core.Services.PrincipalProvider
 
-@inject ManualJobServiceFactory ManualJobServiceFactory
+@inject StateMigrationServiceFactory StateMigrationServiceFactory
 @inject ISnackbar Snackbar
-@inject ILogger<CancelManualModuleJobDialog> Logger
+@inject ILogger<CancelStateMigrationJobDialog> Logger
 
 <MudDialog>
     <DialogContent>
@@ -57,7 +57,7 @@
     {
         try
         {
-            using var service = ManualJobServiceFactory.Create(PrincipalProvider);
+            using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
             await service.Cancel(JobId, ModuleId, OrganizationId,
                 WaitingForApproval ? CancellationType.ImmediateKill : _cancellationType);
 

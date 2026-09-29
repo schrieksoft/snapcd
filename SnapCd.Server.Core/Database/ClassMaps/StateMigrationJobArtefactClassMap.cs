@@ -13,36 +13,32 @@ using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Database.ClassMaps;
 
-public class ManualModuleJobAddressClassMap : IEntityTypeConfiguration<ManualModuleJobAddress>
+public class StateMigrationJobArtefactClassMap : IEntityTypeConfiguration<StateMigrationJobArtefact>
 {
-    public void Configure(EntityTypeBuilder<ManualModuleJobAddress> entity)
+    public void Configure(EntityTypeBuilder<StateMigrationJobArtefact> entity)
     {
-        entity.ToTable("ManualModuleJobAddresses", t => t.UseSqlOutputClause(false));
+        entity.ToTable("StateMigrationJobArtefacts", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
-        entity.Property(e => e.Operation).HasConversion<string>().HasMaxLength(50);
-        entity.Property(e => e.Outcome).HasConversion<string>().HasMaxLength(50);
-
         entity.HasIndex(e => e.Id).IsUnique();
-
-        // One row per address per operation within a job: an mv writes both halves itself.
-        entity.HasIndex(e => new { e.JobId, e.Address, e.Operation, e.OrganizationId }).IsUnique();
-
-        // "What happened to this address" across every job that touched it.
-        entity.HasIndex(e => new { e.OrganizationId, e.ModuleId, e.Address });
-
-        entity
-            .HasOne(e => e.Job)
-            .WithMany(j => j.Addresses)
-            .HasForeignKey(e => new { e.JobId, e.OrganizationId })
-            .HasPrincipalKey(j => new { j.Id, j.OrganizationId })
-            .OnDelete(DeleteBehavior.Cascade);
 
         entity
             .HasOne(e => e.Organization)
-            .WithMany()
+            .WithMany(x => x.StateMigrationJobArtefacts)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // One artefact per name per job: a re-run of a slice replaces its predecessor.
+        entity
+            .HasIndex(e => new { e.JobId, e.Name, e.OrganizationId })
+            .IsUnique();
+
+        entity
+            .HasOne(e => e.Job)
+            .WithMany(j => j.Artefacts)
+            .HasForeignKey(e => new { e.JobId, e.OrganizationId })
+            .HasPrincipalKey(j => new { j.Id, j.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

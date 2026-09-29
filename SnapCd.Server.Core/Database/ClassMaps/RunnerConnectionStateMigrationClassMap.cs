@@ -12,21 +12,21 @@ using SnapCd.Server.Core.Entities.Definition;
 namespace SnapCd.Server.Core.Database.ClassMaps;
 
 /// <summary>Mirrors RunnerConnectionJobClassMap, keyed on a manual job instead.</summary>
-public class RunnerConnectionManualJobClassMap : IEntityTypeConfiguration<RunnerConnectionManualJob>
+public class RunnerConnectionStateMigrationClassMap : IEntityTypeConfiguration<RunnerConnectionStateMigration>
 {
-    public void Configure(EntityTypeBuilder<RunnerConnectionManualJob> entity)
+    public void Configure(EntityTypeBuilder<RunnerConnectionStateMigration> entity)
     {
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
         entity.HasIndex(e => e.Id).IsUnique();
 
         entity
-            .HasIndex(e => new { e.RunnerConnectionId, e.ManualModuleJobId, e.OrganizationId })
+            .HasIndex(e => new { e.RunnerConnectionId, e.StateMigrationJobId, e.OrganizationId })
             .IsUnique();
 
         entity.HasIndex(e => new { e.RunnerConnectionId, e.OrganizationId });
 
-        entity.HasIndex(e => new { e.ManualModuleJobId, e.OrganizationId });
+        entity.HasIndex(e => new { e.StateMigrationJobId, e.OrganizationId });
 
         entity
             .HasOne(e => e.Organization)
@@ -42,9 +42,9 @@ public class RunnerConnectionManualJobClassMap : IEntityTypeConfiguration<Runner
             .OnDelete(DeleteBehavior.Cascade);
 
         entity
-            .HasOne(e => e.ManualModuleJob)
+            .HasOne(e => e.StateMigrationJob)
             .WithMany()
-            .HasForeignKey(e => new { e.ManualModuleJobId, e.OrganizationId })
+            .HasForeignKey(e => new { e.StateMigrationJobId, e.OrganizationId })
             .HasPrincipalKey(mj => new { mj.Id, mj.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
     }

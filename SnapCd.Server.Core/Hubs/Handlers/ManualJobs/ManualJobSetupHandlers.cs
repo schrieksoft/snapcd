@@ -7,19 +7,19 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 
-namespace SnapCd.Server.Core.Hubs.Handlers.ManualJobs;
+namespace SnapCd.Server.Core.Hubs.Handlers.StateMigrations;
 
 /// <summary>
 /// Publishes one manual family's reply to a setup step. Each family has its own handler because
 /// each has its own messages: the endpoint the runner answered on decides which handler runs, so
 /// nothing has to work out afterwards which saga was waiting.
 /// </summary>
-public abstract class ManualStepHandler<TCompleted, TCancelled, TFaulted>(ILogger logger, IBus bus)
-    where TCompleted : ManualStepResponseBase, new()
-    where TCancelled : ManualStepResponseBase, new()
-    where TFaulted : ManualStepFaultedBase, new()
+public abstract class StateMigrationStepHandler<TCompleted, TCancelled, TFaulted>(ILogger logger, IBus bus)
+    where TCompleted : StateMigrationStepResponseBase, new()
+    where TCancelled : StateMigrationStepResponseBase, new()
+    where TFaulted : StateMigrationStepFaultedBase, new()
 {
     protected abstract string Step { get; }
 
@@ -57,49 +57,49 @@ public abstract class ManualStepHandler<TCompleted, TCancelled, TFaulted>(ILogge
 // One handler per family per step: twelve names, each publishing exactly one family's reply.
 
 public class StateListFilteredGetModuleHandler(ILogger<StateListFilteredGetModuleHandler> logger, IBus bus)
-    : ManualStepHandler<StateListFilteredGetModuleCompleted, StateListFilteredGetModuleCancelled, StateListFilteredGetModuleFaulted>(logger, bus)
+    : StateMigrationStepHandler<StateListFilteredGetModuleCompleted, StateListFilteredGetModuleCancelled, StateListFilteredGetModuleFaulted>(logger, bus)
 {
     protected override string Step => "GetModule";
 }
 
 public class StateListFilteredInitHandler(ILogger<StateListFilteredInitHandler> logger, IBus bus)
-    : ManualStepHandler<StateListFilteredInitCompleted, StateListFilteredInitCancelled, StateListFilteredInitFaulted>(logger, bus)
+    : StateMigrationStepHandler<StateListFilteredInitCompleted, StateListFilteredInitCancelled, StateListFilteredInitFaulted>(logger, bus)
 {
     protected override string Step => "Init";
 }
 
 public class MoveGetModuleHandler(ILogger<MoveGetModuleHandler> logger, IBus bus)
-    : ManualStepHandler<MoveGetModuleCompleted, MoveGetModuleCancelled, MoveGetModuleFaulted>(logger, bus)
+    : StateMigrationStepHandler<MoveGetModuleCompleted, MoveGetModuleCancelled, MoveGetModuleFaulted>(logger, bus)
 {
     protected override string Step => "GetModule";
 }
 
 public class MoveInitHandler(ILogger<MoveInitHandler> logger, IBus bus)
-    : ManualStepHandler<MoveInitCompleted, MoveInitCancelled, MoveInitFaulted>(logger, bus)
+    : StateMigrationStepHandler<MoveInitCompleted, MoveInitCancelled, MoveInitFaulted>(logger, bus)
 {
     protected override string Step => "Init";
 }
 
 public class ImportGetModuleHandler(ILogger<ImportGetModuleHandler> logger, IBus bus)
-    : ManualStepHandler<ImportGetModuleCompleted, ImportGetModuleCancelled, ImportGetModuleFaulted>(logger, bus)
+    : StateMigrationStepHandler<ImportGetModuleCompleted, ImportGetModuleCancelled, ImportGetModuleFaulted>(logger, bus)
 {
     protected override string Step => "GetModule";
 }
 
 public class ImportInitHandler(ILogger<ImportInitHandler> logger, IBus bus)
-    : ManualStepHandler<ImportInitCompleted, ImportInitCancelled, ImportInitFaulted>(logger, bus)
+    : StateMigrationStepHandler<ImportInitCompleted, ImportInitCancelled, ImportInitFaulted>(logger, bus)
 {
     protected override string Step => "Init";
 }
 
 public class RemoveGetModuleHandler(ILogger<RemoveGetModuleHandler> logger, IBus bus)
-    : ManualStepHandler<RemoveGetModuleCompleted, RemoveGetModuleCancelled, RemoveGetModuleFaulted>(logger, bus)
+    : StateMigrationStepHandler<RemoveGetModuleCompleted, RemoveGetModuleCancelled, RemoveGetModuleFaulted>(logger, bus)
 {
     protected override string Step => "GetModule";
 }
 
 public class RemoveInitHandler(ILogger<RemoveInitHandler> logger, IBus bus)
-    : ManualStepHandler<RemoveInitCompleted, RemoveInitCancelled, RemoveInitFaulted>(logger, bus)
+    : StateMigrationStepHandler<RemoveInitCompleted, RemoveInitCancelled, RemoveInitFaulted>(logger, bus)
 {
     protected override string Step => "Init";
 }

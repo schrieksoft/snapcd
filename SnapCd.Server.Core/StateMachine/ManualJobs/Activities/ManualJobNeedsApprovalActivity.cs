@@ -12,20 +12,20 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>
 /// Resolves whether a manual job has enough approvals. Parallel to NeedsApprovalJobActivity, which
 /// reads ModuleJobApprovals and switches on the deployment saga types. The threshold is supplied by
 /// the concrete job type rather than resolved here, so a second manual job brings its own.
 /// </summary>
-public abstract class ManualJobNeedsApprovalActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+public abstract class StateMigrationNeedsApprovalActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
     private readonly SnapCdDbContext _dbContext;
 
-    protected ManualJobNeedsApprovalActivity(SnapCdDbContext dbContext)
+    protected StateMigrationNeedsApprovalActivity(SnapCdDbContext dbContext)
     {
         _dbContext = dbContext;
     }
@@ -39,8 +39,8 @@ public abstract class ManualJobNeedsApprovalActivity<TSaga, TMessage> : IStateMa
     {
         var threshold = await ResolveThreshold(context.Saga.ModuleId, context.Saga.OrganizationId, _dbContext);
 
-        var approvals = await _dbContext.ManualModuleJobApprovals
-            .Where(x => x.ManualModuleJobId == context.Saga.CorrelationId
+        var approvals = await _dbContext.StateMigrationJobApprovals
+            .Where(x => x.StateMigrationJobId == context.Saga.CorrelationId
                         && x.OrganizationId == context.Saga.OrganizationId)
             .ToListAsync();
 

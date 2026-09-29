@@ -15,20 +15,20 @@ using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 /// <summary>
 /// Closes a failed manual job. Parallel to FailModuleJobActivity rather than shared: that one
 /// writes ModuleJobs and sets an ActualStateHeadline, which is deployment vocabulary a split has
 /// no equivalent for.
 /// </summary>
-public class FailManualModuleJobActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+public class FailStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
-    private readonly ManualModuleJobRepository _repository;
+    private readonly StateMigrationJobRepository _repository;
 
-    public FailManualModuleJobActivity(ManualModuleJobRepository repository)
+    public FailStateMigrationJobActivity(StateMigrationJobRepository repository)
     {
         _repository = repository;
     }
@@ -62,7 +62,7 @@ public class FailManualModuleJobActivity<TSaga, TMessage> : IStateMachineActivit
                 DateTimeOffset.UtcNow);
         }
 
-        await context.Publish(new ManualJobUpdatedEvent
+        await context.Publish(new StateMigrationUpdatedEvent
         {
             JobId = context.Saga.CorrelationId,
             ModuleId = context.Saga.ModuleId,

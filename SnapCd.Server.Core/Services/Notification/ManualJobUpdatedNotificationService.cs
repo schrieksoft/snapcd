@@ -10,7 +10,7 @@ using System.Collections.Concurrent;
 
 namespace SnapCd.Server.Core.Services.Notification;
 
-public class ManualJobUpdatedNotificationService
+public class StateMigrationUpdatedNotificationService
 {
     private readonly ConcurrentDictionary<Guid, List<Func<Guid, Guid, Task>>> _subscriptions = new();
 

@@ -9,7 +9,7 @@
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Services.Approvals;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
@@ -18,7 +18,7 @@ namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 /// same threshold a split and a transfer answer to.
 /// </summary>
 public class StateEditNeedsApprovalActivity<TSaga, TMessage>(SnapCdDbContext dbContext)
-    : ManualJobNeedsApprovalActivity<TSaga, TMessage>(dbContext)
+    : StateMigrationNeedsApprovalActivity<TSaga, TMessage>(dbContext)
     where TSaga : StateEditSagaBase, new()
     where TMessage : class
 {

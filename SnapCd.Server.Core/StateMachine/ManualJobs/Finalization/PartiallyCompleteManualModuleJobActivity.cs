@@ -13,19 +13,19 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 
 /// <summary>
 /// Ends a job that did some of what it was asked. The work that succeeded stands, so this is not a
 /// failure: the addresses that did not are recorded and can be run again.
 /// </summary>
-public class PartiallyCompleteManualModuleJobActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+public class PartiallyCompleteStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
-    private readonly ManualModuleJobRepository _repository;
+    private readonly StateMigrationJobRepository _repository;
 
-    public PartiallyCompleteManualModuleJobActivity(ManualModuleJobRepository repository)
+    public PartiallyCompleteStateMigrationJobActivity(StateMigrationJobRepository repository)
     {
         _repository = repository;
     }
@@ -40,7 +40,7 @@ public class PartiallyCompleteManualModuleJobActivity<TSaga, TMessage> : IStateM
             ExecutionStatus.PartiallyCompleted,
             DateTimeOffset.UtcNow);
 
-        await context.Publish(new ManualJobUpdatedEvent
+        await context.Publish(new StateMigrationUpdatedEvent
         {
             JobId = context.Saga.CorrelationId,
             ModuleId = context.Saga.ModuleId,

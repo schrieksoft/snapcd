@@ -17,19 +17,19 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 namespace SnapCd.Server.Core.UI.Dashboard.Components.Approvals;
 
 /// <summary>
-/// Approvals on a manual job. The decisions live in ManualModuleJobApprovals and the threshold is
+/// Approvals on a manual job. The decisions live in StateMigrationJobApprovals and the threshold is
 /// the state-migration one, which a split shares with every other job that writes state.
 /// </summary>
-public class ManualJobApprovalSource : IApprovalSource
+public class StateMigrationApprovalSource : IApprovalSource
 {
-    private readonly ManualModuleJobSecuredRepositoryFactory _jobRepoFactory;
-    private readonly ManualJobServiceFactory _serviceFactory;
+    private readonly StateMigrationJobSecuredRepositoryFactory _jobRepoFactory;
+    private readonly StateMigrationServiceFactory _serviceFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IPrincipalProvider _principalProvider;
 
-    public ManualJobApprovalSource(
-        ManualModuleJobSecuredRepositoryFactory jobRepoFactory,
-        ManualJobServiceFactory serviceFactory,
+    public StateMigrationApprovalSource(
+        StateMigrationJobSecuredRepositoryFactory jobRepoFactory,
+        StateMigrationServiceFactory serviceFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IPrincipalProvider principalProvider)
     {

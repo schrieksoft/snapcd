@@ -115,8 +115,8 @@ public partial class SplitMigrateStateMachine : MassTransitStateMachine<SplitMig
 
         // A cancel that arrives after the job ended has nothing to do, but must not fault: an
         // unhandled event is retried and then dead-lettered, which looks like a broken cancel.
-        During(Completed, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
-        During(Failed, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
-        During(Cancelled, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
+        During(Completed, Ignore(RunnerReconnectedEvent), Ignore(CancelStateMigrationJobRequested));
+        During(Failed, Ignore(RunnerReconnectedEvent), Ignore(CancelStateMigrationJobRequested));
+        During(Cancelled, Ignore(RunnerReconnectedEvent), Ignore(CancelStateMigrationJobRequested));
     }
 }

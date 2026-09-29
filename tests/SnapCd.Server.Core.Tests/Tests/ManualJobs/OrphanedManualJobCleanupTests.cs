@@ -20,7 +20,7 @@ using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
-namespace SnapCd.Server.Core.Tests.Tests.ManualJobs;
+namespace SnapCd.Server.Core.Tests.Tests.StateMigrations;
 
 /// <summary>
 /// A manual job left Running with no saga blocks every later manual job on its Module through
@@ -28,7 +28,7 @@ namespace SnapCd.Server.Core.Tests.Tests.ManualJobs;
 /// up again.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
-public class OrphanedManualJobCleanupTests : IAsyncLifetime
+public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private IDbContextFactory<SnapCdDbContext> _dbContextFactory = null!;
@@ -36,7 +36,7 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
     private Guid _organizationId;
     private readonly List<Guid> _seeded = [];
 
-    public OrphanedManualJobCleanupTests(Fixture fixture) => _fixture = fixture;
+    public OrphanedStateMigrationCleanupTests(Fixture fixture) => _fixture = fixture;
 
     public Task InitializeAsync()
     {
@@ -52,7 +52,7 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
     {
         await using var db = _fixture.CreateDbContext();
         db.Set<SplitMigrateSaga>().RemoveRange(db.Set<SplitMigrateSaga>().Where(s => _seeded.Contains(s.CorrelationId)));
-        db.ManualModuleJobs.RemoveRange(db.ManualModuleJobs.Where(j => _seeded.Contains(j.Id)));
+        db.StateMigrationJobs.RemoveRange(db.StateMigrationJobs.Where(j => _seeded.Contains(j.Id)));
         var saga = await db.Set<ModuleSaga>().FirstAsync(s => s.CorrelationId == _moduleId);
         saga.Paused = false;
         await db.SaveChangesAsync();
@@ -63,9 +63,9 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: false, ended: false);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedManualJobs();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
 
-        Assert.Contains(orphaned, j => j.Id == jobId && j.JobType == ManualJobTypes.SplitMigrate && j.OrganizationId == _organizationId);
+        Assert.Contains(orphaned, j => j.Id == jobId && j.JobType == StateMigrationTypes.SplitMigrate && j.OrganizationId == _organizationId);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: true, ended: false);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedManualJobs();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
 
         Assert.DoesNotContain(orphaned, j => j.Id == jobId);
     }
@@ -83,7 +83,7 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
     {
         var jobId = await SeedJob(withSaga: false, ended: true);
 
-        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedManualJobs();
+        var orphaned = await new OrphanedJobCleanupService(_dbContextFactory).ListOrphanedStateMigrations();
 
         Assert.DoesNotContain(orphaned, j => j.Id == jobId);
     }
@@ -97,14 +97,14 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
 
         var job = new OrphanedJobCleanupJob(
             new OrphanedJobCleanupService(_dbContextFactory),
-            new ManualModuleJobRepositoryFactory(_dbContextFactory),
+            new StateMigrationJobRepositoryFactory(_dbContextFactory),
             _fixture.CreateMockBus(),
             NullLogger<OrphanedJobCleanupJob>.Instance);
         await job.ExecuteJob();
 
         await using (var db = _fixture.CreateDbContext())
         {
-            var closed = await db.ManualModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
+            var closed = await db.StateMigrationJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
             Assert.Equal(ExecutionStatus.Failed, closed.Status);
             Assert.NotNull(closed.TimestampEnd);
             Assert.Equal("This job was abandoned.", closed.ServerSideErrorHeader);
@@ -121,7 +121,7 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
         var secured = new ModuleSecuredRepository(
             new ModuleRepository(_fixture.CreateDbContext(), principalProvider, _fixture.CreateMockBus(), _fixture.CreateModuleSettings()),
             principalProvider);
-        using var service = new ManualJobService(_dbContextFactory, secured);
+        using var service = new StateMigrationService(_dbContextFactory, secured);
         return await service.GetBlockedReason(_moduleId, _organizationId);
     }
 
@@ -130,14 +130,14 @@ public class OrphanedManualJobCleanupTests : IAsyncLifetime
         var jobId = Guid.NewGuid();
         _seeded.Add(jobId);
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = jobId,
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-5),
             TimestampEnd = ended ? DateTimeOffset.UtcNow : null,
-            JobType = ManualJobTypes.SplitMigrate,
+            JobType = StateMigrationTypes.SplitMigrate,
             Status = ended ? ExecutionStatus.Completed : ExecutionStatus.Running
         });
         if (withSaga)

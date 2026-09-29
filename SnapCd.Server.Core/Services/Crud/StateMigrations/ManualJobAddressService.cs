@@ -19,7 +19,7 @@ namespace SnapCd.Server.Core.Services.Crud.StateMigrations;
 /// The per-address record of what a job did. Every job that moves or observes state writes these,
 /// so "what happened to this resource" has one answer whichever job type touched it.
 /// </summary>
-public class ManualJobAddressService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
+public class StateMigrationAddressService(IDbContextFactory<SnapCdDbContext> dbContextFactory)
 {
     public async Task Record(
         Guid jobId,
@@ -35,7 +35,7 @@ public class ManualJobAddressService(IDbContextFactory<SnapCdDbContext> dbContex
         var now = DateTimeOffset.UtcNow;
 
         foreach (var result in results)
-            dbContext.ManualModuleJobAddresses.Add(new ManualModuleJobAddress
+            dbContext.StateMigrationJobAddresses.Add(new StateMigrationJobAddress
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = organizationId,

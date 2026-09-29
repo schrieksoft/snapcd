@@ -19,8 +19,8 @@ using SnapCd.Server.Core.Events.Steps.SplitMigrate;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 
 namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
@@ -58,12 +58,12 @@ public partial class SplitMigrateStateMachine
                     ModuleJobId = context.Saga.CorrelationId,
                     CancellationReason = CancellationReason.ApprovalTimeout
                 })
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMigrateSaga, ApprovalTimeoutReceived>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Cancelled)
                 .Finalize(),
             // Nothing is running on a runner here, so there is no step to kill or wait out: every
             // cancellation type ends the job immediately, as a decline does.
-            When(CancelManualModuleJobRequested)
+            When(CancelStateMigrationJobRequested)
                 .Then(context =>
                 {
                     _logger.LogInformation("SplitMigrate: cancelled while awaiting approval for job {JobId}", context.Saga.CorrelationId);
@@ -76,7 +76,7 @@ public partial class SplitMigrateStateMachine
                     ModuleJobId = context.Saga.CorrelationId,
                     CancellationReason = CancellationReason.UserRequested
                 })
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<SplitMigrateSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Cancelled)
                 .Finalize(),
             Ignore(RunnerReconnectedEvent),
@@ -85,7 +85,7 @@ public partial class SplitMigrateStateMachine
             Ignore(HeartbeatRequested.Completed2)
         );
 
-        During(Declined, Ignore(RunnerReconnectedEvent), Ignore(CancelManualModuleJobRequested));
+        During(Declined, Ignore(RunnerReconnectedEvent), Ignore(CancelStateMigrationJobRequested));
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public partial class SplitMigrateStateMachine
                         context.Saga.WaitingSince = null;
                         _logger.LogInformation("SplitMigrate: approved, pushing state for job {JobId}", context.Saga.CorrelationId);
                     })
-                    .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<SplitMigrateSaga, TMessage>>())
+                    .Activity(z => z.OfType<NotWaitingForApprovalStateMigrationActivity<SplitMigrateSaga, TMessage>>())
                     .Activity(z => z.OfType<SendSplitStepToRunnerActivity<TMessage, SplitMigrateRunRequested>>())
                     .IfElse(
                         context => context.Saga.PreviousStateBeforeWaiting != null,
@@ -132,14 +132,14 @@ public partial class SplitMigrateStateMachine
                                 ModuleJobId = context.Saga.CorrelationId,
                                 CancellationReason = CancellationReason.ApprovalDeclined
                             })
-                            .Activity(z => z.OfType<CancelManualModuleJobActivity<SplitMigrateSaga, TMessage>>())
+                            .Activity(z => z.OfType<CancelStateMigrationJobActivity<SplitMigrateSaga, TMessage>>())
                             .TransitionTo(Declined)
                             .Finalize(),
                         stillWaiting => stillWaiting
                             .If(
                                 _ => transition,
                                 z1 => z1
-                                    .Activity(z2 => z2.OfType<WaitingForApprovalManualJobActivity<SplitMigrateSaga, TMessage>>())
+                                    .Activity(z2 => z2.OfType<WaitingForApprovalStateMigrationActivity<SplitMigrateSaga, TMessage>>())
                                     .Then(context =>
                                     {
                                         context.Saga.WaitingSince = DateTime.UtcNow;

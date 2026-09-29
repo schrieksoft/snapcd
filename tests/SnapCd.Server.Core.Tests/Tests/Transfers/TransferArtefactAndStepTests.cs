@@ -44,9 +44,9 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await using var db = _fixture.CreateDbContext();
-        await db.ManualModuleJobArtefacts.Where(a => _seededJobs.Contains(a.JobId)).ExecuteDeleteAsync();
-        await db.ManualModuleJobSteps.Where(s => _seededJobs.Contains(s.JobId)).ExecuteDeleteAsync();
-        await db.ManualModuleJobs.Where(j => _seededJobs.Contains(j.Id)).ExecuteDeleteAsync();
+        await db.StateMigrationJobArtefacts.Where(a => _seededJobs.Contains(a.JobId)).ExecuteDeleteAsync();
+        await db.StateMigrationJobSteps.Where(s => _seededJobs.Contains(s.JobId)).ExecuteDeleteAsync();
+        await db.StateMigrationJobs.Where(j => _seededJobs.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         await ArtefactService().Store(jobId, _organizationId, "fragment-app.tfstate", "super-secret-password");
 
         await using var db = _fixture.CreateDbContext();
-        var row = await db.ManualModuleJobArtefacts.AsNoTracking().SingleAsync(a => a.JobId == jobId);
+        var row = await db.StateMigrationJobArtefacts.AsNoTracking().SingleAsync(a => a.JobId == jobId);
 
         Assert.DoesNotContain("super-secret-password", row.Ciphertext);
     }
@@ -85,7 +85,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         Assert.Equal("second", await service.Read(jobId, _organizationId, "outputs-app.yaml"));
 
         await using var db = _fixture.CreateDbContext();
-        Assert.Equal(1, await db.ManualModuleJobArtefacts.CountAsync(a => a.JobId == jobId));
+        Assert.Equal(1, await db.StateMigrationJobArtefacts.CountAsync(a => a.JobId == jobId));
     }
 
     [Fact]
@@ -116,20 +116,20 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         var steps = StepService();
 
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Refused, exitCode: 2);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Refused, exitCode: 2);
 
         var attempt = await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, exitCode: 0);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, exitCode: 0);
 
         Assert.Equal(2, attempt);
 
         await using var db = _fixture.CreateDbContext();
-        var all = await db.ManualModuleJobSteps.AsNoTracking()
+        var all = await db.StateMigrationJobSteps.AsNoTracking()
             .Where(s => s.JobId == jobId).OrderBy(s => s.Attempt).ToListAsync();
 
         Assert.Equal(2, all.Count);
-        Assert.Equal(ManualJobStepStatus.Refused, all[0].Status);
-        Assert.Equal(ManualJobStepStatus.Succeeded, all[1].Status);
+        Assert.Equal(StateMigrationStepStatus.Refused, all[0].Status);
+        Assert.Equal(StateMigrationStepStatus.Succeeded, all[1].Status);
     }
 
     /// <summary>The verdict reads the latest attempt, so an earlier refusal does not outvote a retry.</summary>
@@ -140,14 +140,14 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         var steps = StepService();
 
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Refused, exitCode: 2);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Refused, exitCode: 2);
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, exitCode: 0);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, exitCode: 0);
 
         var latest = await steps.Latest(jobId, _organizationId);
 
         var step = Assert.Single(latest);
-        Assert.Equal(ManualJobStepStatus.Succeeded, step.Status);
+        Assert.Equal(StateMigrationStepStatus.Succeeded, step.Status);
         Assert.Equal(2, step.Attempt);
     }
 
@@ -160,7 +160,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         await steps.Reused(jobId, _organizationId, _moduleId, "TransferMigrateProve", "key-abc");
 
         var step = Assert.Single(await steps.Latest(jobId, _organizationId));
-        Assert.Equal(ManualJobStepStatus.Succeeded, step.Status);
+        Assert.Equal(StateMigrationStepStatus.Succeeded, step.Status);
         Assert.Equal("key-abc", step.InputKey);
     }
 
@@ -173,7 +173,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         await steps.Skipped(jobId, _organizationId, _moduleId, "TransferMigrateProve");
 
         var step = Assert.Single(await steps.Latest(jobId, _organizationId));
-        Assert.Equal(ManualJobStepStatus.Skipped, step.Status);
+        Assert.Equal(StateMigrationStepStatus.Skipped, step.Status);
     }
 
     /// <summary>A producer retried after this succeeded means the result no longer counts.</summary>
@@ -184,12 +184,12 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         var steps = StepService();
 
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, exitCode: 0);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, exitCode: 0);
 
         await steps.MarkStale(jobId, _organizationId, _moduleId);
 
         var step = Assert.Single(await steps.Latest(jobId, _organizationId));
-        Assert.Equal(ManualJobStepStatus.Stale, step.Status);
+        Assert.Equal(StateMigrationStepStatus.Stale, step.Status);
     }
 
     /// <summary>
@@ -208,10 +208,10 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
 
         Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
 
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
         Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
 
-        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
         Assert.Equal(StageOutcome.Succeeded, await Stage(steps, jobId, other));
     }
 
@@ -224,7 +224,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         var steps = StepService();
 
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
 
         Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
     }
@@ -238,9 +238,9 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         var steps = StepService();
 
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
         await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", ManualJobStepStatus.Refused, 2);
+        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", StateMigrationStepStatus.Refused, 2);
 
         Assert.Equal(StageOutcome.Refused, await Stage(steps, jobId, other));
     }
@@ -254,9 +254,9 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         var steps = StepService();
 
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Refused, 2);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Refused, 2);
         await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", ManualJobStepStatus.Faulted);
+        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", StateMigrationStepStatus.Faulted);
 
         Assert.Equal(StageOutcome.Faulted, await Stage(steps, jobId, other));
     }
@@ -270,13 +270,13 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         var steps = StepService();
 
         await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", ManualJobStepStatus.Succeeded, 0);
+        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
         await steps.Reused(jobId, _organizationId, other, "TransferMigrateProve", "key-abc");
 
         Assert.Equal(StageOutcome.Succeeded, await Stage(steps, jobId, other));
     }
 
-    private Task<StageOutcome> Stage(ManualJobStepService steps, Guid jobId, Guid other) =>
+    private Task<StageOutcome> Stage(StateMigrationStepService steps, Guid jobId, Guid other) =>
         steps.Stage(jobId, _organizationId, "TransferMigrateProve", [_moduleId, other]);
 
     private async Task<Guid> SeedJob()
@@ -285,13 +285,13 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         _seededJobs.Add(jobId);
 
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = jobId,
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.TransferProve,
+            JobType = StateMigrationTypes.TransferProve,
             Status = ExecutionStatus.Running
         });
         await db.SaveChangesAsync();
@@ -304,7 +304,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
             EncryptionKey = Convert.ToBase64String(new byte[32])
         })));
 
-    private ManualJobStepService StepService() => new(DbContextFactory());
+    private StateMigrationStepService StepService() => new(DbContextFactory());
 
     private IDbContextFactory<SnapCdDbContext> DbContextFactory()
     {

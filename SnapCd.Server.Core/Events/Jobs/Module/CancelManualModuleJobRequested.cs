@@ -15,7 +15,7 @@ namespace SnapCd.Server.Core.Events.Jobs.Module;
 /// published: one contract shared by both job families would deliver every cancel to every saga,
 /// and each saga's missing-instance fallback would then act on ids that are not its own.
 /// </summary>
-public class CancelManualModuleJobRequested : CorrelationBase, ICancelRequest
+public class CancelStateMigrationJobRequested : CorrelationBase, ICancelRequest
 {
     public CancellationType CancellationType { get; set; }
 }

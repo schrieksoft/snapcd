@@ -17,7 +17,7 @@ namespace SnapCd.Server.Core.Events.System;
 /// Each job kind names its own, as it names its own steps: a message type is what says which saga
 /// a message is for, and two sagas sharing one means both are subscribed to every copy.
 /// </summary>
-public abstract class ManualJobResumeEventBase
+public abstract class StateMigrationResumeEventBase
 {
     /// <summary>The job that was waiting.</summary>
     public Guid ModuleJobId { get; set; }
@@ -26,23 +26,23 @@ public abstract class ManualJobResumeEventBase
 }
 
 /// <summary>The counterparty agreed, so this side may start.</summary>
-public class TransferConsented : ManualJobResumeEventBase;
+public class TransferConsented : StateMigrationResumeEventBase;
 
 /// <summary>A transfer's approval is answered, so the write it was holding may go ahead.</summary>
-public class TransferApproved : ManualJobResumeEventBase;
+public class TransferApproved : StateMigrationResumeEventBase;
 
 /// <summary>
 /// The values a transfer's Module was waiting on exist, so it can prove. Separate from the approval
 /// because it resumes a different step: one event per thing that was being waited for.
 /// </summary>
-public class TransferOutputsArrived : ManualJobResumeEventBase;
+public class TransferOutputsArrived : StateMigrationResumeEventBase;
 
 /// <summary>
 /// A state edit's threshold is answered. One gate, so the fact is the approval itself rather than
 /// the job carrying on: a job that arrives already approved never waits, and is still approved.
 /// </summary>
-public class MoveApproved : ManualJobResumeEventBase;
+public class MoveApproved : StateMigrationResumeEventBase;
 
-public class ImportApproved : ManualJobResumeEventBase;
+public class ImportApproved : StateMigrationResumeEventBase;
 
-public class RemoveApproved : ManualJobResumeEventBase;
+public class RemoveApproved : StateMigrationResumeEventBase;

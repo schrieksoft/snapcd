@@ -14,8 +14,8 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
@@ -25,7 +25,7 @@ public partial class TransferMigrateStateMachine
     public Event<ApprovalReevaluationRequestedEvent> ApprovalModifiedEvent { get; } = null!;
 
     public Event<TransferApproved> ApprovedEvent { get; } = null!;
-    public Event<CancelManualModuleJobRequested> CancelRequested { get; } = null!;
+    public Event<CancelStateMigrationJobRequested> CancelRequested { get; } = null!;
     public Schedule<TransferMigrateSaga, ApprovalTimeoutReceived> ApprovalTimeoutScheduled { get; } = null!;
 
     public State WaitingForApproval { get; } = null!;
@@ -56,7 +56,7 @@ public partial class TransferMigrateStateMachine
                 .Then(context => _logger.LogInformation(
                     "Transfer: approval timed out for Module {ModuleId}",
                     context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, ApprovalTimeoutReceived>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, ApprovalTimeoutReceived>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -66,7 +66,7 @@ public partial class TransferMigrateStateMachine
                     "Transfer: cancelled while awaiting approval for Module {ModuleId}",
                     context.Saga.ModuleId))
                 .Unschedule(ApprovalTimeoutScheduled)
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize(),
 
@@ -91,7 +91,7 @@ public partial class TransferMigrateStateMachine
                     .Then(context => _logger.LogInformation(
                         "Transfer: cancelled for Module {ModuleId}; nothing was written",
                         context.Saga.ModuleId))
-                    .Activity(x => x.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, CancelManualModuleJobRequested>>())
+                    .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                     .TransitionTo(Failed)
                     .Finalize()
             );
@@ -128,7 +128,7 @@ public partial class TransferMigrateStateMachine
                             context.Saga.ModuleId);
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
-                    .Activity(z => z.OfType<NotWaitingForApprovalManualJobActivity<TransferMigrateSaga, TMessage>>())
+                    .Activity(z => z.OfType<NotWaitingForApprovalStateMigrationActivity<TransferMigrateSaga, TMessage>>())
                     // Dispatched by a second consume, once this one has committed the transition.
                     .Schedule(HeartbeatScheduled,
                         context => new HeartbeatScheduled
@@ -150,14 +150,14 @@ public partial class TransferMigrateStateMachine
                                 "Transfer: declined for Module {ModuleId}; nothing written",
                                 context.Saga.ModuleId))
                             .Unschedule(ApprovalTimeoutScheduled)
-                            .Activity(z => z.OfType<CancelManualModuleJobActivity<TransferMigrateSaga, TMessage>>())
+                            .Activity(z => z.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, TMessage>>())
                             .TransitionTo(Failed)
                             .Finalize(),
                         stillWaiting => stillWaiting
                             .If(
                                 _ => transition,
                                 z1 => z1
-                                    .Activity(z2 => z2.OfType<WaitingForApprovalManualJobActivity<TransferMigrateSaga, TMessage>>())
+                                    .Activity(z2 => z2.OfType<WaitingForApprovalStateMigrationActivity<TransferMigrateSaga, TMessage>>())
                                     .Then(context =>
                                     {
                                         context.Saga.WaitingSince = DateTime.UtcNow;

@@ -12,20 +12,20 @@ using SnapCd.Server.Core.Services.Notification;
 
 namespace SnapCd.Server.Core.Consumers.System.Fanout;
 
-public class ManualJobUpdatedFanoutConsumer : IConsumer<ManualJobUpdatedEvent>
+public class StateMigrationUpdatedFanoutConsumer : IConsumer<StateMigrationUpdatedEvent>
 {
-    private readonly ManualJobUpdatedNotificationService _notificationService;
-    private readonly ILogger<ManualJobUpdatedFanoutConsumer> _logger;
+    private readonly StateMigrationUpdatedNotificationService _notificationService;
+    private readonly ILogger<StateMigrationUpdatedFanoutConsumer> _logger;
 
-    public ManualJobUpdatedFanoutConsumer(
-        ManualJobUpdatedNotificationService notificationService,
-        ILogger<ManualJobUpdatedFanoutConsumer> logger)
+    public StateMigrationUpdatedFanoutConsumer(
+        StateMigrationUpdatedNotificationService notificationService,
+        ILogger<StateMigrationUpdatedFanoutConsumer> logger)
     {
         _notificationService = notificationService;
         _logger = logger;
     }
 
-    public async Task Consume(ConsumeContext<ManualJobUpdatedEvent> context)
+    public async Task Consume(ConsumeContext<StateMigrationUpdatedEvent> context)
     {
         _logger.LogDebug(
             "Telling open pages that manual job {JobId} on Module {ModuleId} changed",

@@ -13,7 +13,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>
 /// Whether the runner this job is pinned to is connected, recorded on the saga so the step that
@@ -24,7 +24,7 @@ namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
 /// fails the job. Parking instead lets the reconnect re-send it.
 /// </summary>
 public class RunnerConnectedActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
     private readonly SnapCdDbContext _dbContext;

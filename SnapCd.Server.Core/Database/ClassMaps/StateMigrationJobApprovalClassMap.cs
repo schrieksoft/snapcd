@@ -13,11 +13,11 @@ using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Database.ClassMaps;
 
-public class ManualModuleJobApprovalClassMap : IEntityTypeConfiguration<ManualModuleJobApproval>
+public class StateMigrationJobApprovalClassMap : IEntityTypeConfiguration<StateMigrationJobApproval>
 {
-    public void Configure(EntityTypeBuilder<ManualModuleJobApproval> entity)
+    public void Configure(EntityTypeBuilder<StateMigrationJobApproval> entity)
     {
-        entity.ToTable("ManualModuleJobApprovals", t => t.UseSqlOutputClause(false));
+        entity.ToTable("StateMigrationJobApprovals", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
@@ -27,23 +27,23 @@ public class ManualModuleJobApprovalClassMap : IEntityTypeConfiguration<ManualMo
 
         entity
             .HasOne(e => e.Organization)
-            .WithMany(x => x.ManualModuleJobApprovals)
+            .WithMany(x => x.StateMigrationJobApprovals)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // One decision per principal per job, enforced by the database rather than by the caller.
         entity
-            .HasIndex(p => new { p.ManualModuleJobId, p.PrincipalId, p.OrganizationId })
+            .HasIndex(p => new { p.StateMigrationJobId, p.PrincipalId, p.OrganizationId })
             .IsUnique();
 
         entity
-            .HasOne(e => e.ManualModuleJob)
-            .WithMany(u => u.ManualModuleJobApprovals)
-            .HasForeignKey(e => new { e.ManualModuleJobId, e.OrganizationId })
+            .HasOne(e => e.StateMigrationJob)
+            .WithMany(u => u.StateMigrationJobApprovals)
+            .HasForeignKey(e => new { e.StateMigrationJobId, e.OrganizationId })
             .HasPrincipalKey(u => new { u.Id, u.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
 
-        entity.HasIndex(a => a.ManualModuleJobId);
+        entity.HasIndex(a => a.StateMigrationJobId);
 
         entity.HasIndex(a => a.PrincipalId);
     }

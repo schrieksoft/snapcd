@@ -11,16 +11,16 @@ using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>Clears the waiting mark once the runner is back and the step has been re-sent.</summary>
 public class NotWaitingForRunnerActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
-    private readonly ManualModuleJobRepository _jobs;
+    private readonly StateMigrationJobRepository _jobs;
 
-    public NotWaitingForRunnerActivity(ManualModuleJobRepository jobs) => _jobs = jobs;
+    public NotWaitingForRunnerActivity(StateMigrationJobRepository jobs) => _jobs = jobs;
 
     public async Task Execute(BehaviorContext<TSaga, TMessage> context, IBehavior<TSaga, TMessage> next)
     {

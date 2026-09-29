@@ -15,12 +15,12 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
@@ -59,19 +59,19 @@ public abstract partial class StateEditStateMachine<
             DealWithApprovalStatus(
                 When(PreCheckCompleted)
                     .ThenAsync(context => RecordCompleted(
-                        context, PreCheckName, ManualJobStepStatus.Succeeded)),
+                        context, PreCheckName, StateMigrationStepStatus.Succeeded)),
                 transition: true),
 
             When(PreCheckFaulted)
                 .ThenAsync(context => RecordCompleted(
-                    context, PreCheckName, ManualJobStepStatus.Faulted))
+                    context, PreCheckName, StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
                 .ThenAsync(context => RecordCompleted(
-                    context, PreCheckName, ManualJobStepStatus.Faulted,
+                    context, PreCheckName, StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize());
 
@@ -81,7 +81,7 @@ public abstract partial class StateEditStateMachine<
                 .Then(context => _logger.LogInformation(
                     "{Verb} on Module {ModuleId} was cancelled before anything was written",
                     Verb, context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelManualModuleJobActivity<TSaga, CancelManualModuleJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize());
     }
@@ -101,7 +101,7 @@ public abstract partial class StateEditStateMachine<
         During(duringState,
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
-                .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Succeeded))
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Succeeded))
                 .Activity(x => x.OfType<SendStateEditStepToRunnerActivity<TSaga, TCompleted, TNextRequest>>())
                 .ThenAsync(context => RecordDispatched(context, nextTask))
                 .Schedule(HeartbeatScheduled,
@@ -113,13 +113,13 @@ public abstract partial class StateEditStateMachine<
                 .TransitionTo(nextState),
 
             When(faultedEvent)
-                .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Faulted))
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, task, ManualJobStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
@@ -130,7 +130,7 @@ public abstract partial class StateEditStateMachine<
         BehaviorContext<TSaga, TMessage> context, string task)
         where TMessage : class =>
         await PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<ManualJobStepService>()
+            .GetRequiredService<StateMigrationStepService>()
             .Dispatched(
                 context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId, task,
                 null, context.Saga.RunnerInstanceName);
@@ -138,14 +138,14 @@ public abstract partial class StateEditStateMachine<
     private static async Task RecordCompleted<TMessage>(
         BehaviorContext<TSaga, TMessage> context,
         string task,
-        ManualJobStepStatus status,
+        StateMigrationStepStatus status,
         string? errorHeader = null)
         where TMessage : class
     {
         var faulted = context.Message as StepFaultedBase;
 
         await PipeExtensions.GetPayload<IServiceProvider>(context)
-            .GetRequiredService<ManualJobStepService>()
+            .GetRequiredService<StateMigrationStepService>()
             .Completed(
                 context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.ModuleId, task, status,
                 errorHeader: faulted?.ErrorMessage ?? errorHeader, error: faulted?.StackTrace);
@@ -164,8 +164,8 @@ public abstract partial class StateEditStateMachine<
             Declared = JsonSerializer.Deserialize<ResolvedModule>(saga.DeclaredJson)!
         };
 
-        if (request is ManualStepRequestBase manualStep)
-            manualStep.ModuleId = saga.ModuleId;
+        if (request is StateMigrationStepRequestBase stateMigrationStep)
+            stateMigrationStep.ModuleId = saga.ModuleId;
 
         if (request is StateEditRequestBase edit)
             edit.Instructions =

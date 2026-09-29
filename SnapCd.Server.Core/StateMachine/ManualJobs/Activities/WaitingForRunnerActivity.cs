@@ -11,19 +11,19 @@ using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>
 /// Marks the job as waiting for its runner. The job row is what the page reads, so a parked job
 /// that does not say so is indistinguishable from one that is working.
 /// </summary>
 public class WaitingForRunnerActivity<TSaga, TMessage> : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
-    private readonly ManualModuleJobRepository _jobs;
+    private readonly StateMigrationJobRepository _jobs;
 
-    public WaitingForRunnerActivity(ManualModuleJobRepository jobs) => _jobs = jobs;
+    public WaitingForRunnerActivity(StateMigrationJobRepository jobs) => _jobs = jobs;
 
     public async Task Execute(BehaviorContext<TSaga, TMessage> context, IBehavior<TSaga, TMessage> next)
     {

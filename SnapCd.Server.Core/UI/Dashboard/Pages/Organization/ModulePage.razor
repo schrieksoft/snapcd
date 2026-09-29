@@ -201,9 +201,9 @@
                 <ViewVariables Module="_module" StackName="@StackName"/>
             }
 
-            @if (_showing == ShowingType.ManualJobs)
+            @if (_showing == ShowingType.StateMigrations)
             {
-                <ManageManualJobs Module="_module"
+                <ManageStateMigrations Module="_module"
                                   ModuleSaga="_moduleSaga"
                                   PrincipalProvider="_literalPrincipalProvider"/>
             }
@@ -372,7 +372,7 @@
         new() { Key = nameof(ShowingType.Variables), Label = "Variables" },
         new() { Key = nameof(ShowingType.Outputs), Label = "Outputs" },
         new() { Key = nameof(ShowingType.Configure), Label = "Configuration" },
-        new() { Key = nameof(ShowingType.ManualJobs), Label = "Manual Jobs" }
+        new() { Key = nameof(ShowingType.StateMigrations), Label = "Manual Jobs" }
     ];
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
@@ -1318,7 +1318,7 @@
         Outputs,
         Variables,
         Configure,
-        ManualJobs
+        StateMigrations
     }
 
     // Disposes the timer and unsubscribes the notifications tied to the currently
@@ -1367,7 +1367,9 @@
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
             "configure" => ShowingType.Configure,
-            "manualjobs" => ShowingType.ManualJobs,
+            "statemigrations" => ShowingType.StateMigrations,
+            // The tab was called this before it was renamed; links to it still exist.
+            "manualjobs" => ShowingType.StateMigrations,
             _ => null
         };
     }
@@ -1380,7 +1382,7 @@
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",
             ShowingType.Configure => "Configure",
-            ShowingType.ManualJobs => "ManualJobs",
+            ShowingType.StateMigrations => "StateMigrations",
             _ => null
         };
     }

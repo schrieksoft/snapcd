@@ -11,14 +11,14 @@ using SnapCd.Server.Core.StateMachine.SplitMigrate.Activites;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
-namespace SnapCd.Server.Core.Tests.Tests.ManualJobs;
+namespace SnapCd.Server.Core.Tests.Tests.StateMigrations;
 
 /// <summary>
 /// The approval threshold for a state migration resolves Module, then Namespace default, then 1.
 /// Unlike apply and destroy the fallback is one, because the push is irreversible.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
-public class ManualJobApprovalThresholdTests : IAsyncLifetime
+public class StateMigrationApprovalThresholdTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private Guid _moduleId;
@@ -27,7 +27,7 @@ public class ManualJobApprovalThresholdTests : IAsyncLifetime
     private int? _originalModule;
     private int? _originalNamespace;
 
-    public ManualJobApprovalThresholdTests(Fixture fixture) => _fixture = fixture;
+    public StateMigrationApprovalThresholdTests(Fixture fixture) => _fixture = fixture;
 
     public async Task InitializeAsync()
     {

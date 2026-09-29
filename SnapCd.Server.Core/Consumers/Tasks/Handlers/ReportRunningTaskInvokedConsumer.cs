@@ -24,18 +24,18 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
 {
     private readonly ILogger<ReportRunningTaskInvokedConsumer> _logger;
     private readonly RunnerConnectionJobRepositoryFactory _runnerConnectionJobRepositoryFactory;
-    private readonly RunnerConnectionManualJobService _runnerConnectionManualJobService;
+    private readonly RunnerConnectionStateMigrationService _runnerConnectionStateMigrationService;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
     public ReportRunningTaskInvokedConsumer(
         ILogger<ReportRunningTaskInvokedConsumer> logger,
         RunnerConnectionJobRepositoryFactory runnerConnectionJobRepositoryFactory,
-        RunnerConnectionManualJobService runnerConnectionManualJobService,
+        RunnerConnectionStateMigrationService runnerConnectionStateMigrationService,
         IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
         _logger = logger;
         _runnerConnectionJobRepositoryFactory = runnerConnectionJobRepositoryFactory;
-        _runnerConnectionManualJobService = runnerConnectionManualJobService;
+        _runnerConnectionStateMigrationService = runnerConnectionStateMigrationService;
         _dbContextFactory = dbContextFactory;
     }
 
@@ -46,12 +46,12 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
         try
         {
             await using var db = await _dbContextFactory.CreateDbContextAsync();
-            var isManualJob = await db.ManualModuleJobs
+            var isStateMigration = await db.StateMigrationJobs
                 .AnyAsync(j => j.Id == message.JobId && j.OrganizationId == message.OrganizationId);
 
-            if (isManualJob)
+            if (isStateMigration)
             {
-                await _runnerConnectionManualJobService.CreateOrUpdate(
+                await _runnerConnectionStateMigrationService.CreateOrUpdate(
                     message.OrganizationId,
                     message.JobId,
                     message.TaskName,

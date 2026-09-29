@@ -40,9 +40,9 @@ public partial class SplitMigrateStateMachine
         Event(() => SelectRunnerInstanceFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         During(SplitSelectRunnerInstancePending,
-            When(CancelManualModuleJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelAfterCurrent<SplitMigrateSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
+            When(CancelStateMigrationJobRequested)
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelStateMigrationJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelAfterCurrent<SplitMigrateSaga, CancelStateMigrationJobRequested>(_logger, CancellingAfterCurrent),
             When(SelectRunnerInstanceCompleted)
                 .Then(context => { context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName; })
                 .Activity(x => x.OfType<SendSplitStepToRunnerActivity<SelectRunnerInstanceCompleted, SplitGetModuleRequested>>())

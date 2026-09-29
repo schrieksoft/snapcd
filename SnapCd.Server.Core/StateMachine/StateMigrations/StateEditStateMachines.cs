@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.Crud.StateMigrations;
@@ -53,7 +53,7 @@ public class MoveStateMachine(ILogger<MoveStateMachine> logger)
 
     /// <summary>A move touches two addresses, and either should be findable by its own name.</summary>
     protected override Task RecordExtraRows(
-        MoveSaga saga, List<AddressResult> results, ManualJobAddressService addresses) =>
+        MoveSaga saga, List<AddressResult> results, StateMigrationAddressService addresses) =>
         addresses.Record(
             saga.CorrelationId, saga.OrganizationId, saga.ModuleId, AddressOperation.MoveTo,
             results

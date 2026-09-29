@@ -56,7 +56,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         services.AddScoped<SnapCdDbContext>(sp => sp.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext());
         services.AddScoped<IMaintenanceModeService, MaintenanceModeService>();
         services.AddScoped<IPrincipalProvider>(_ => new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_organizationId]));
-        services.AddScoped<ManualModuleJobRepository>();
+        services.AddScoped<StateMigrationJobRepository>();
         services.AddMassTransitTestHarness(x =>
         {
             x.AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>()
@@ -78,9 +78,9 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         await _provider.DisposeAsync();
 
         await using var db = _fixture.CreateDbContext();
-        await db.ManualModuleJobApprovals.Where(a => _seeded.Contains(a.ManualModuleJobId)).ExecuteDeleteAsync();
+        await db.StateMigrationJobApprovals.Where(a => _seeded.Contains(a.StateMigrationJobId)).ExecuteDeleteAsync();
         await db.Set<SplitMigrateSaga>().Where(s => _seeded.Contains(s.CorrelationId)).ExecuteDeleteAsync();
-        await db.ManualModuleJobs.Where(j => _seeded.Contains(j.Id)).ExecuteDeleteAsync();
+        await db.StateMigrationJobs.Where(j => _seeded.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
@@ -93,11 +93,11 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Completed;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Completed;
         }));
         Assert.True(_harness.Published.Select<SplitMigrateCompleted>().Any(m => m.Context.Message.ModuleJobId == jobId));
         await using var check = _fixture.CreateDbContext();
-        var job = await check.ManualModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
+        var job = await check.StateMigrationJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
         Assert.NotNull(job.TimestampEnd);
         Assert.NotEqual(true, job.WaitingForApproval);
         Assert.True(await WaitUntil(() =>
@@ -120,7 +120,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
             return db.Set<SplitMigrateSaga>().AsNoTracking().SingleOrDefault(s => s.CorrelationId == jobId)?.CurrentState == "WaitingForApproval";
         }));
         await using var check = _fixture.CreateDbContext();
-        var job = await check.ManualModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
+        var job = await check.StateMigrationJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
         Assert.Equal(ExecutionStatus.Running, job.Status);
         Assert.True(job.WaitingForApproval);
         Assert.Empty(_harness.Published.Select<SplitMigrateCompleted>().Where(m => m.Context.Message.ModuleJobId == jobId));
@@ -139,7 +139,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
         }), $"the job was not failed from {state}");
         Assert.True(_harness.Published.Select<SplitMigrateFailed>().Any(m => m.Context.Message.ModuleJobId == jobId));
     }
@@ -157,7 +157,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
         }), $"the job was not cancelled from {state}");
         Assert.True(_harness.Published.Select<SplitMigrateCancelled>().Any(m => m.Context.Message.ModuleJobId == jobId));
     }
@@ -180,10 +180,10 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
         }));
         await using var check = _fixture.CreateDbContext();
-        var job = await check.ManualModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
+        var job = await check.StateMigrationJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
         Assert.Contains("the runner went away", job.ServerSideError);
         Assert.NotNull(job.ServerSideErrorHeader);
     }
@@ -220,7 +220,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
 
         Assert.Null(await ConsumedCancel(jobId));
         await using var db = _fixture.CreateDbContext();
-        Assert.Equal(ExecutionStatus.Running, (await db.ManualModuleJobs.AsNoTracking().SingleAsync(j => j.Id == jobId)).Status);
+        Assert.Equal(ExecutionStatus.Running, (await db.StateMigrationJobs.AsNoTracking().SingleAsync(j => j.Id == jobId)).Status);
         Assert.Equal(state, db.Set<SplitMigrateSaga>().AsNoTracking().Single(s => s.CorrelationId == jobId).CurrentState);
     }
 
@@ -240,7 +240,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
         }), "the stuck job was not forced closed");
         Assert.True(_harness.Published.Select<SplitMigrateCancelled>().Any(m => m.Context.Message.ModuleJobId == jobId));
     }
@@ -288,7 +288,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
         }), "the declined job did not end");
         Assert.True(_harness.Published.Select<SplitMigrateCancelled>()
             .Any(m => m.Context.Message.ModuleJobId == jobId
@@ -307,7 +307,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Cancelled;
         }), "the job was not cancelled from the approval gate");
         Assert.True(_harness.Published.Select<SplitMigrateCancelled>().Any(m => m.Context.Message.ModuleJobId == jobId));
         Assert.Empty(_harness.Published.Select<CancelKillRequested>().Where(m => m.Context.Message.CorrelationId == jobId));
@@ -324,7 +324,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         Assert.True(await WaitUntil(() =>
         {
             using var db = _fixture.CreateDbContext();
-            return db.ManualModuleJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
+            return db.StateMigrationJobs.AsNoTracking().Single(j => j.Id == jobId).Status == ExecutionStatus.Failed;
         }), "a faulted run did not fail the job");
         Assert.True(_harness.Published.Select<SplitMigrateFailed>().Any(m => m.Context.Message.ModuleJobId == jobId));
     }
@@ -339,18 +339,18 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     private async Task MarkWaitingForApproval(Guid jobId)
     {
         await using var db = _fixture.CreateDbContext();
-        (await db.ManualModuleJobs.SingleAsync(j => j.Id == jobId)).WaitingForApproval = true;
+        (await db.StateMigrationJobs.SingleAsync(j => j.Id == jobId)).WaitingForApproval = true;
         await db.SaveChangesAsync();
     }
 
     private async Task Approve(Guid jobId, Guid principalId, bool declined)
     {
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobApprovals.Add(new ManualModuleJobApproval
+        db.StateMigrationJobApprovals.Add(new StateMigrationJobApproval
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
-            ManualModuleJobId = jobId,
+            StateMigrationJobId = jobId,
             DecisionDateTime = DateTime.UtcNow,
             Declined = declined,
             PrincipalId = principalId,
@@ -359,7 +359,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
-    private Task PublishCancel(Guid jobId) => _harness.Bus.Publish(new CancelManualModuleJobRequested
+    private Task PublishCancel(Guid jobId) => _harness.Bus.Publish(new CancelStateMigrationJobRequested
     {
         CorrelationId = jobId,
         OrganizationId = _organizationId,
@@ -370,10 +370,10 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     private async Task<Exception?> ConsumedCancel(Guid jobId)
     {
         Assert.True(await WaitUntil(() =>
-            _harness.Consumed.Select<CancelManualModuleJobRequested>().Any(m => m.Context.Message.CorrelationId == jobId)),
+            _harness.Consumed.Select<CancelStateMigrationJobRequested>().Any(m => m.Context.Message.CorrelationId == jobId)),
             "the cancel was never consumed");
 
-        return _harness.Consumed.Select<CancelManualModuleJobRequested>().First(m => m.Context.Message.CorrelationId == jobId).Exception;
+        return _harness.Consumed.Select<CancelStateMigrationJobRequested>().First(m => m.Context.Message.CorrelationId == jobId).Exception;
     }
 
     private Task PublishFaultFor(string state, Guid jobId) => state switch
@@ -395,13 +395,13 @@ public class SplitProveStateMachineTests : IAsyncLifetime
         var jobId = Guid.NewGuid();
         _seeded.Add(jobId);
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = jobId,
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = stopAfterProve ? ManualJobTypes.SplitProve : ManualJobTypes.SplitMigrate,
+            JobType = stopAfterProve ? StateMigrationTypes.SplitProve : StateMigrationTypes.SplitMigrate,
             Status = ExecutionStatus.Running
         });
         db.Set<SplitMigrateSaga>().Add(new SplitMigrateSaga

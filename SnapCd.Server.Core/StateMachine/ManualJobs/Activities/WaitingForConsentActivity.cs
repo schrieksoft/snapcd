@@ -11,15 +11,15 @@ using MassTransit;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-namespace SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>
 /// Marks a job as waiting for the other module to agree. The wait has no timeout, so a job that
 /// does not say it is waiting is indistinguishable from a hung one.
 /// </summary>
-public class WaitingForConsentActivity<TSaga, TMessage>(ManualModuleJobRepository jobs)
+public class WaitingForConsentActivity<TSaga, TMessage>(StateMigrationJobRepository jobs)
     : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
     public async Task Execute(BehaviorContext<TSaga, TMessage> context, IBehavior<TSaga, TMessage> next)
@@ -40,9 +40,9 @@ public class WaitingForConsentActivity<TSaga, TMessage>(ManualModuleJobRepositor
 }
 
 /// <summary>Clears the mark once the other module has answered, either way.</summary>
-public class NotWaitingForConsentActivity<TSaga, TMessage>(ManualModuleJobRepository jobs)
+public class NotWaitingForConsentActivity<TSaga, TMessage>(StateMigrationJobRepository jobs)
     : IStateMachineActivity<TSaga, TMessage>
-    where TSaga : ManualJobSagaBase
+    where TSaga : StateMigrationSagaBase
     where TMessage : class
 {
     public async Task Execute(BehaviorContext<TSaga, TMessage> context, IBehavior<TSaga, TMessage> next)

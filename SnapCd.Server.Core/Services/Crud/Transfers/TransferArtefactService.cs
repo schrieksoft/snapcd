@@ -39,7 +39,7 @@ public class TransferArtefactService
 
         var ciphertext = Convert.ToBase64String(_encryption.Encrypt(Encoding.UTF8.GetBytes(content)));
 
-        var existing = await dbContext.ManualModuleJobArtefacts
+        var existing = await dbContext.StateMigrationJobArtefacts
             .FirstOrDefaultAsync(a => a.JobId == jobId && a.Name == name && a.OrganizationId == organizationId);
 
         if (existing != null)
@@ -48,7 +48,7 @@ public class TransferArtefactService
         }
         else
         {
-            dbContext.ManualModuleJobArtefacts.Add(new ManualModuleJobArtefact
+            dbContext.StateMigrationJobArtefacts.Add(new StateMigrationJobArtefact
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = organizationId,
@@ -66,7 +66,7 @@ public class TransferArtefactService
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var artefact = await dbContext.ManualModuleJobArtefacts.AsNoTracking()
+        var artefact = await dbContext.StateMigrationJobArtefacts.AsNoTracking()
             .FirstOrDefaultAsync(a => a.JobId == jobId && a.Name == name && a.OrganizationId == organizationId);
 
         return artefact == null
@@ -82,7 +82,7 @@ public class TransferArtefactService
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        return await dbContext.ManualModuleJobArtefacts
+        return await dbContext.StateMigrationJobArtefacts
             .Where(a => a.JobId == jobId && a.OrganizationId == organizationId)
             .ExecuteDeleteAsync();
     }

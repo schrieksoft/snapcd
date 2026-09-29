@@ -26,5 +26,5 @@ public class StuckJobDetectionSettings
     /// the waits above this catches a saga that is simply deaf: no heartbeat is scheduled until a
     /// step dispatches, so a reply lost before then leaves the job running with nothing to time out.
     /// </summary>
-    public int ManualJobNoProgressThresholdMinutes { get; set; } = 30;
+    public int StateMigrationNoProgressThresholdMinutes { get; set; } = 30;
 }

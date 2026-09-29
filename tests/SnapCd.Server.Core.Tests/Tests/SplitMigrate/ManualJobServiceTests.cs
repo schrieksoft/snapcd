@@ -29,14 +29,14 @@ namespace SnapCd.Server.Core.Tests.Tests.SplitMigrate;
 /// admission control. Each refusal must name the condition that blocked it.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
-public class ManualJobServiceTests : IAsyncLifetime
+public class StateMigrationServiceTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private SnapCdDbContext _dbContext = null!;
     private Guid _moduleId;
     private Guid _organizationId;
 
-    public ManualJobServiceTests(Fixture fixture) => _fixture = fixture;
+    public StateMigrationServiceTests(Fixture fixture) => _fixture = fixture;
 
     public Task InitializeAsync()
     {
@@ -49,7 +49,7 @@ public class ManualJobServiceTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await ResetPause();
-        await RemoveManualJobs();
+        await RemoveStateMigrations();
         await _dbContext.DisposeAsync();
     }
 
@@ -80,7 +80,7 @@ public class ManualJobServiceTests : IAsyncLifetime
     public async Task Refuses_When_A_Manual_Job_Is_Already_Running()
     {
         await SetPaused(true);
-        await AddRunningManualJob();
+        await AddRunningStateMigration();
 
         using var service = CreateService();
         var reason = await service.GetBlockedReason(_moduleId, _organizationId);
@@ -106,8 +106,8 @@ public class ManualJobServiceTests : IAsyncLifetime
 
         using var service = CreateService();
 
-        await Assert.ThrowsAsync<ManualJobNotAllowedException>(
-            () => service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate));
+        await Assert.ThrowsAsync<StateMigrationNotAllowedException>(
+            () => service.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate));
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public class ManualJobServiceTests : IAsyncLifetime
         var correlationId = Guid.NewGuid();
 
         using var service = CreateService();
-        var job = await service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate, correlationId);
+        var job = await service.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate, correlationId);
 
         Assert.Equal(correlationId, job.Id);
         Assert.Equal(ExecutionStatus.Running, job.Status);
@@ -158,11 +158,11 @@ public class ManualJobServiceTests : IAsyncLifetime
         await SetPaused(true);
 
         using var service = CreateService();
-        await Assert.ThrowsAsync<ManualJobNotAllowedException>(
+        await Assert.ThrowsAsync<StateMigrationNotAllowedException>(
             () => service.StartSplitProve(_moduleId, _organizationId, null, "-b"));
 
         await using var db = _fixture.CreateDbContext();
-        Assert.Equal(0, await db.ManualModuleJobs.CountAsync(j => j.ModuleId == _moduleId));
+        Assert.Equal(0, await db.StateMigrationJobs.CountAsync(j => j.ModuleId == _moduleId));
     }
 
     [Fact]
@@ -171,12 +171,12 @@ public class ManualJobServiceTests : IAsyncLifetime
         await SetPaused(true);
 
         using var service = CreateService();
-        var ex = await Assert.ThrowsAsync<ManualJobNotAllowedException>(
+        var ex = await Assert.ThrowsAsync<StateMigrationNotAllowedException>(
             () => service.StartSplitMigrate(_moduleId, _organizationId, null, false, "feature/split"));
 
         Assert.Contains("configured branch", ex.Message);
         await using var db = _fixture.CreateDbContext();
-        Assert.Equal(0, await db.ManualModuleJobs.CountAsync(j => j.ModuleId == _moduleId && j.Status == ExecutionStatus.Running));
+        Assert.Equal(0, await db.StateMigrationJobs.CountAsync(j => j.ModuleId == _moduleId && j.Status == ExecutionStatus.Running));
     }
 
     [Fact]
@@ -194,27 +194,27 @@ public class ManualJobServiceTests : IAsyncLifetime
         Assert.Equal(1, results.Count(r => r));
 
         await using var db = _fixture.CreateDbContext();
-        var running = await db.ManualModuleJobs
+        var running = await db.StateMigrationJobs
             .CountAsync(j => j.ModuleId == _moduleId && j.Status == ExecutionStatus.Running);
 
         Assert.Equal(1, running);
         return;
 
-        async Task<bool> Attempt(ManualJobService service)
+        async Task<bool> Attempt(StateMigrationService service)
         {
             try
             {
-                await service.Start(_moduleId, _organizationId, ManualJobTypes.SplitMigrate);
+                await service.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate);
                 return true;
             }
-            catch (ManualJobNotAllowedException)
+            catch (StateMigrationNotAllowedException)
             {
                 return false;
             }
         }
     }
 
-    private ManualJobService CreateService()
+    private StateMigrationService CreateService()
     {
         var principalProvider = _fixture.CreatePrincipalProvider(
             _fixture.OrganizationPrincipals["0"][OrganizationRole.Owner].DirectUser.Id,
@@ -225,7 +225,7 @@ public class ManualJobServiceTests : IAsyncLifetime
             new ModuleRepository(_fixture.CreateDbContext(), principalProvider, _fixture.CreateMockBus(), _fixture.CreateModuleSettings()),
             principalProvider);
 
-        return new ManualJobService(DbContextFactory(), securedRepository);
+        return new StateMigrationService(DbContextFactory(), securedRepository);
     }
 
     /// The fixture hands out contexts, not a factory; the service needs one of its own.
@@ -262,26 +262,26 @@ public class ManualJobServiceTests : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
-    private async Task AddRunningManualJob()
+    private async Task AddRunningStateMigration()
     {
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = Guid.NewGuid(),
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.SplitMigrate,
+            JobType = StateMigrationTypes.SplitMigrate,
             Status = ExecutionStatus.Running
         });
         await db.SaveChangesAsync();
     }
 
-    private async Task RemoveManualJobs()
+    private async Task RemoveStateMigrations()
     {
         await using var db = _fixture.CreateDbContext();
-        var manual = await db.ManualModuleJobs.Where(j => j.ModuleId == _moduleId).ToListAsync();
-        db.ManualModuleJobs.RemoveRange(manual);
+        var manual = await db.StateMigrationJobs.Where(j => j.ModuleId == _moduleId).ToListAsync();
+        db.StateMigrationJobs.RemoveRange(manual);
 
         var jobs = await db.ModuleJobs.Where(j => j.ModuleId == _moduleId && j.IsCurrent == true).ToListAsync();
         db.ModuleJobs.RemoveRange(jobs);

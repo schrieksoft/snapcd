@@ -17,7 +17,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
-using SnapCd.Server.Core.Events.Steps.ManualJobs;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.Transfer;
 using SnapCd.Server.Core.Events.System;
@@ -29,7 +29,7 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Finalization;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.Tests.Infrastructure;
@@ -69,10 +69,10 @@ public class StateListFilteredJobTests : IAsyncLifetime
             Options.Create(new StateStoreSettings { EncryptionKey = Convert.ToBase64String(new byte[32]) })));
         services.AddScoped<IMaintenanceModeService, MaintenanceModeService>();
         services.AddScoped<IPrincipalProvider>(_ => new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_organizationId]));
-        services.AddScoped<ManualModuleJobRepository>();
-        services.AddScoped<ManualJobStepService>();
-        services.AddScoped<ManualJobAddressService>();
-        services.AddScoped(typeof(CancelManualModuleJobActivity<,>));
+        services.AddScoped<StateMigrationJobRepository>();
+        services.AddScoped<StateMigrationStepService>();
+        services.AddScoped<StateMigrationAddressService>();
+        services.AddScoped(typeof(CancelStateMigrationJobActivity<,>));
         services.AddScoped(typeof(SendStateListFilteredStepToRunnerActivity<,>));
 
         services.AddMassTransitTestHarness(x =>
@@ -91,13 +91,13 @@ public class StateListFilteredJobTests : IAsyncLifetime
         await _harness.Start();
 
         await using var db = _fixture.CreateDbContext();
-        db.ManualModuleJobs.Add(new ManualModuleJob
+        db.StateMigrationJobs.Add(new StateMigrationJob
         {
             Id = _jobId,
             ModuleId = _moduleId,
             OrganizationId = _organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = ManualJobTypes.StateListFiltered,
+            JobType = StateMigrationTypes.StateListFiltered,
             Status = ExecutionStatus.Running
         });
         await db.SaveChangesAsync();
@@ -109,9 +109,9 @@ public class StateListFilteredJobTests : IAsyncLifetime
 
         await using var db = _fixture.CreateDbContext();
         await db.Set<StateListFilteredSaga>().Where(s => s.CorrelationId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobAddresses.Where(a => a.JobId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
-        await db.ManualModuleJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobAddresses.Where(a => a.JobId == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobSteps.Where(s => s.JobId == _jobId).ExecuteDeleteAsync();
+        await db.StateMigrationJobs.Where(j => j.Id == _jobId).ExecuteDeleteAsync();
     }
 
     /// <summary>
@@ -165,7 +165,7 @@ public class StateListFilteredJobTests : IAsyncLifetime
         Assert.True(await WaitUntil(JobHasEnded), "the job row was never closed out");
 
         await using var db = _fixture.CreateDbContext();
-        var rows = await db.ManualModuleJobAddresses.AsNoTracking()
+        var rows = await db.StateMigrationJobAddresses.AsNoTracking()
             .Where(a => a.JobId == _jobId).OrderBy(a => a.Address).ToListAsync();
 
         Assert.Equal(2, rows.Count);
@@ -196,7 +196,7 @@ public class StateListFilteredJobTests : IAsyncLifetime
     {
         await RunToList(["random_pet.a"]);
 
-        await _harness.Bus.Publish(new CancelManualModuleJobRequested
+        await _harness.Bus.Publish(new CancelStateMigrationJobRequested
         {
             CorrelationId = _jobId,
             OrganizationId = _organizationId
@@ -289,7 +289,7 @@ public class StateListFilteredJobTests : IAsyncLifetime
     private bool JobHasEnded()
     {
         using var db = _fixture.CreateDbContext();
-        return db.ManualModuleJobs.AsNoTracking()
+        return db.StateMigrationJobs.AsNoTracking()
             .Any(j => j.Id == _jobId && j.Status != ExecutionStatus.Running);
     }
 

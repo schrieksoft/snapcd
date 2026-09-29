@@ -9,7 +9,7 @@
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Services.Approvals;
-using SnapCd.Server.Core.StateMachine.ManualJobs.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 
@@ -18,7 +18,7 @@ namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 /// on the Module whose state is about to change.
 /// </summary>
 public class TransferMigrateNeedsApprovalActivity<TMessage>
-    : ManualJobNeedsApprovalActivity<TransferMigrateSaga, TMessage>
+    : StateMigrationNeedsApprovalActivity<TransferMigrateSaga, TMessage>
     where TMessage : class
 {
     public TransferMigrateNeedsApprovalActivity(SnapCdDbContext dbContext) : base(dbContext)
