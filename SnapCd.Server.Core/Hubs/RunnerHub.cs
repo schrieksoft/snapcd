@@ -505,7 +505,7 @@ public class RunnerHub : Hub
     public async Task SplitValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.ValidatePending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitValidatePending);
 
         await _splitValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -514,7 +514,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.ValidatePending, moduleId);
+                Context, jobId, SagaStates.TransferValidatePending, moduleId);
 
         await _transferStepHandler.Fault<TransferValidateFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
@@ -540,7 +540,7 @@ public class RunnerHub : Hub
     public async Task SplitPlanCompleted(Guid jobId, PlanCompletedData data)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.PlanPending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitPlanPending);
 
         await _splitPlanHandler.Complete(jobId, organizationId, data.TotalChangedCount);
     }
@@ -549,7 +549,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.PlanPending, moduleId);
+                Context, jobId, SagaStates.TransferPlanPending, moduleId);
 
         await _transferStepHandler.Complete<TransferPlanCompleted>(
             jobId, moduleId, organizationId, c => c.TotalChangedCount = data.TotalChangedCount);
@@ -567,7 +567,7 @@ public class RunnerHub : Hub
     public async Task SplitPlanCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.PlanPending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitPlanPending);
 
         await _splitPlanHandler.Cancel(jobId, organizationId);
     }
@@ -584,7 +584,7 @@ public class RunnerHub : Hub
     public async Task SplitPlanFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.PlanPending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitPlanPending);
 
         await _splitPlanHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -593,7 +593,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.PlanPending, moduleId);
+                Context, jobId, SagaStates.TransferPlanPending, moduleId);
 
         await _transferStepHandler.Fault<TransferPlanFaulted>(
             jobId, moduleId, organizationId, errorMessage, stackTrace);
@@ -1259,7 +1259,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredGetModuleCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.GetModulePending);
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.StateListFilteredGetModulePending);
 
         await _stateListFilteredGetModuleHandler.Complete(jobId, organizationId);
     }
@@ -1267,7 +1267,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredGetModuleCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.GetModulePending);
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.StateListFilteredGetModulePending);
 
         await _stateListFilteredGetModuleHandler.Cancel(jobId, organizationId);
     }
@@ -1275,7 +1275,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.GetModulePending);
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.StateListFilteredGetModulePending);
 
         await _stateListFilteredGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1283,7 +1283,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredInitCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.InitPending);
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.StateListFilteredInitPending);
 
         await _stateListFilteredInitHandler.Complete(jobId, organizationId);
     }
@@ -1291,7 +1291,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredInitCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.InitPending);
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.StateListFilteredInitPending);
 
         await _stateListFilteredInitHandler.Cancel(jobId, organizationId);
     }
@@ -1299,7 +1299,7 @@ public class RunnerHub : Hub
     public async Task StateListFilteredInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.InitPending);
+            .ValidateRunnerCanAccessJob<StateListFilteredSaga>(Context, jobId, SagaStates.StateListFilteredInitPending);
 
         await _stateListFilteredInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1794,7 +1794,7 @@ public class RunnerHub : Hub
     public async Task SplitGetModuleCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.GetModulePending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitGetModulePending);
 
         await _splitGetModuleHandler.Complete(jobId, organizationId);
     }
@@ -1802,7 +1802,7 @@ public class RunnerHub : Hub
     public async Task SplitGetModuleCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.GetModulePending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitGetModulePending);
 
         await _splitGetModuleHandler.Cancel(jobId, organizationId);
     }
@@ -1810,7 +1810,7 @@ public class RunnerHub : Hub
     public async Task SplitGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.GetModulePending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitGetModulePending);
 
         await _splitGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1818,7 +1818,7 @@ public class RunnerHub : Hub
     public async Task SplitInitCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.InitPending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitInitPending);
 
         await _splitInitHandler.Complete(jobId, organizationId);
     }
@@ -1826,7 +1826,7 @@ public class RunnerHub : Hub
     public async Task SplitInitCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.InitPending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitInitPending);
 
         await _splitInitHandler.Cancel(jobId, organizationId);
     }
@@ -1834,7 +1834,7 @@ public class RunnerHub : Hub
     public async Task SplitInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.InitPending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitInitPending);
 
         await _splitInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
@@ -1842,7 +1842,7 @@ public class RunnerHub : Hub
     public async Task SplitValidateCompleted(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.ValidatePending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitValidatePending);
 
         await _splitValidateHandler.Complete(jobId, organizationId);
     }
@@ -1850,7 +1850,7 @@ public class RunnerHub : Hub
     public async Task SplitValidateCancelled(Guid jobId)
     {
         var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.ValidatePending);
+            .ValidateRunnerCanAccessJob<SplitMigrateSaga>(Context, jobId, SagaStates.SplitValidatePending);
 
         await _splitValidateHandler.Cancel(jobId, organizationId);
     }
@@ -1861,7 +1861,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.GetModulePending, moduleId);
+                Context, jobId, SagaStates.TransferGetModulePending, moduleId);
 
         await _transferStepHandler.Complete<TransferGetModuleCompleted>(jobId, moduleId, organizationId);
     }
@@ -1870,7 +1870,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.GetModulePending, moduleId);
+                Context, jobId, SagaStates.TransferGetModulePending, moduleId);
 
         await _transferStepHandler.Fault<TransferGetModuleFaulted>(jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
@@ -1879,7 +1879,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.InitPending, moduleId);
+                Context, jobId, SagaStates.TransferInitPending, moduleId);
 
         await _transferStepHandler.Complete<TransferInitCompleted>(jobId, moduleId, organizationId);
     }
@@ -1888,7 +1888,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.InitPending, moduleId);
+                Context, jobId, SagaStates.TransferInitPending, moduleId);
 
         await _transferStepHandler.Fault<TransferInitFaulted>(jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
@@ -1897,7 +1897,7 @@ public class RunnerHub : Hub
     {
         var organizationId = await _authorizationService
             .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, SagaStates.ValidatePending, moduleId);
+                Context, jobId, SagaStates.TransferValidatePending, moduleId);
 
         await _transferStepHandler.Complete<TransferValidateCompleted>(jobId, moduleId, organizationId);
     }

@@ -96,14 +96,14 @@ public partial class SplitMigrateStateMachine : MassTransitStateMachine<SplitMig
                     OrganizationId = context.Saga.OrganizationId,
                     Declared = JsonSerializer.Deserialize<ResolvedModule>(context.Saga.DeclaredJson)!
                 })
-                .TransitionTo(SelectRunnerInstancePending)
+                .TransitionTo(SplitSelectRunnerInstancePending)
         );
 
-        Configure_SelectRunnerInstance();
-        Configure_GetModule();
-        Configure_Init();
-        Configure_Validate();
-        Configure_Plan();
+        Configure_SplitSelectRunnerInstance();
+        Configure_SplitGetModule();
+        Configure_SplitInit();
+        Configure_SplitValidate();
+        Configure_SplitPlan();
         Configure_SplitPlanEmptyVerify();
         Configure_SplitRefactorValidate();
         Configure_SplitRefactorDiff();

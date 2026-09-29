@@ -81,9 +81,9 @@ public partial class TransferMigrateStateMachine
         // is sent.
         foreach (var running in new[]
                  {
-                     SelectRunnerInstancePending, GetModulePending, InitPending, ValidatePending,
-                     PlanPending, SelectRunnerInstanceWaitingForRunner, GetModuleWaitingForRunner,
-                     InitWaitingForRunner, ValidateWaitingForRunner, PlanWaitingForRunner,
+                     TransferSelectRunnerInstancePending, TransferGetModulePending, TransferInitPending, TransferValidatePending,
+                     TransferPlanPending, TransferSelectRunnerInstanceWaitingForRunner, TransferGetModuleWaitingForRunner,
+                     TransferInitWaitingForRunner, TransferValidateWaitingForRunner, TransferPlanWaitingForRunner,
                      TransferMigrateMapPending, TransferMigrateProvePending
                  })
             During(running,

@@ -37,18 +37,18 @@ public partial class StateListFilteredStateMachine
     private void Configure_Preamble()
     {
         CreateStep<StateListFilteredSelectRunnerInstanceCompleted, StateListFilteredSelectRunnerInstanceFaulted, StateListFilteredGetModuleRequested>(
-            SelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
-            "SelectRunnerInstance", "GetModule", GetModulePending,
+            StateListFilteredSelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
+            "SelectRunnerInstance", "GetModule", StateListFilteredGetModulePending,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
         CreateStep<StateListFilteredGetModuleCompleted, StateListFilteredGetModuleFaulted, StateListFilteredInitRequested>(
-            GetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", "Init", InitPending,
+            StateListFilteredGetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", "Init", StateListFilteredInitPending,
             context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
         CreateStep<StateListFilteredInitCompleted, StateListFilteredInitFaulted, StateListFilteredRequested>(
-            InitPending, InitCompleted, InitFaulted, "Init", "StateListFiltered", ListPending);
+            StateListFilteredInitPending, InitCompleted, InitFaulted, "Init", "StateListFiltered", ListPending);
 
-        During(SelectRunnerInstancePending, GetModulePending, InitPending, ListPending,
+        During(StateListFilteredSelectRunnerInstancePending, StateListFilteredGetModulePending, StateListFilteredInitPending, ListPending,
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(
                     "State list on Module {ModuleId} was cancelled", context.Saga.ModuleId))

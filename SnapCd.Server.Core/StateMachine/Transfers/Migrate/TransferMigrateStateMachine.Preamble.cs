@@ -213,17 +213,17 @@ public partial class TransferMigrateStateMachine
     private void Configure_Preamble()
     {
         CreateStep<TransferSelectRunnerInstanceCompleted, TransferSelectRunnerInstanceFaulted, TransferGetModuleRequested>(
-            SelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
-            "SelectRunnerInstance", GetModulePending, GetModuleWaitingForRunner,
+            TransferSelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
+            "SelectRunnerInstance", TransferGetModulePending, TransferGetModuleWaitingForRunner,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
-        During(GetModulePending,
+        During(TransferGetModulePending,
             When(GetModuleCompleted)
                 .Then(context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision)
                 .ThenAsync(context => RecordCompleted(context, "GetModule", ManualJobStepStatus.Succeeded))
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferGetModuleCompleted, TransferInitRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "Init"))
-                .TransitionTo(InitPending),
+                .TransitionTo(TransferInitPending),
 
             When(GetModuleFaulted)
                 .ThenAsync(context => RecordCompleted(context, "GetModule", ManualJobStepStatus.Faulted))
@@ -237,24 +237,24 @@ public partial class TransferMigrateStateMachine
                 .Then(LostRunner("GetModule")).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
-        During(InitWaitingForRunner,
+        During(TransferInitWaitingForRunner,
             When(RunnerReconnectedEvent)
                 .Then(context => context.Saga.WaitingSince = null)
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<RunnerReconnectedEvent, TransferInitRequested>>())
-                .TransitionTo(InitPending),
+                .TransitionTo(TransferInitPending),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2)
         );
 
         CreateStep<TransferInitCompleted, TransferInitFaulted, TransferValidateRequested>(
-            InitPending, InitCompleted, InitFaulted, "Init", ValidatePending, ValidateWaitingForRunner);
+            TransferInitPending, InitCompleted, InitFaulted, "Init", TransferValidatePending, TransferValidateWaitingForRunner);
 
         CreateStep<TransferValidateCompleted, TransferValidateFaulted, TransferPlanRequested>(
-            ValidatePending, ValidateCompleted, ValidateFaulted, "Validate", PlanPending, PlanWaitingForRunner);
+            TransferValidatePending, ValidateCompleted, ValidateFaulted, "Validate", TransferPlanPending, TransferPlanWaitingForRunner);
 
         // The plan ends the preamble rather than sending another request.
-        During(PlanPending,
+        During(TransferPlanPending,
             // A transfer proves against a clean plan, so a dirty one ends this Module's run here.
             When(ApplyPlanCompleted, context => context.Message.TotalChangedCount != 0)
                 .ThenAsync(context => RecordCompleted(context, "Plan", ManualJobStepStatus.Refused))

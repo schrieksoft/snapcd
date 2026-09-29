@@ -53,7 +53,7 @@ public partial class TransferMigrateStateMachine
         // waiting for it; for the other it is news about a job it is already running.
         DuringAny(Ignore(ConsentDecidedEvent));
 
-        During(SelectRunnerInstancePending,
+        During(TransferSelectRunnerInstancePending,
             When(ConsentedEvent)
                 .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance")));
@@ -76,7 +76,7 @@ public partial class TransferMigrateStateMachine
                     ModuleJobId = context.Saga.CorrelationId,
                     OrganizationId = context.Saga.OrganizationId
                 })
-                .TransitionTo(SelectRunnerInstancePending),
+                .TransitionTo(TransferSelectRunnerInstancePending),
 
             // Refused ends this side too: there is nothing for it to move into.
             When(ConsentDecidedEvent, context => !context.Message.Granted)

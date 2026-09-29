@@ -65,19 +65,19 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     /// <summary>The state move landed. Terminal.</summary>
     public State Completed { get; } = null!;
 
-    public State SelectRunnerInstancePending { get; } = null!;
-    public State GetModulePending { get; } = null!;
-    public State InitPending { get; } = null!;
-    public State ValidatePending { get; } = null!;
-    public State PlanPending { get; } = null!;
+    public State TransferSelectRunnerInstancePending { get; } = null!;
+    public State TransferGetModulePending { get; } = null!;
+    public State TransferInitPending { get; } = null!;
+    public State TransferValidatePending { get; } = null!;
+    public State TransferPlanPending { get; } = null!;
 
     // Each step's twin, entered when the runner is gone at send time. The step is re-sent on
     // reconnect rather than failed, because a runner restart is ordinary.
-    public State SelectRunnerInstanceWaitingForRunner { get; } = null!;
-    public State GetModuleWaitingForRunner { get; } = null!;
-    public State InitWaitingForRunner { get; } = null!;
-    public State ValidateWaitingForRunner { get; } = null!;
-    public State PlanWaitingForRunner { get; } = null!;
+    public State TransferSelectRunnerInstanceWaitingForRunner { get; } = null!;
+    public State TransferGetModuleWaitingForRunner { get; } = null!;
+    public State TransferInitWaitingForRunner { get; } = null!;
+    public State TransferValidateWaitingForRunner { get; } = null!;
+    public State TransferPlanWaitingForRunner { get; } = null!;
 
     public State TransferMigrateMapPending { get; } = null!;
     public State TransferMigrateProvePending { get; } = null!;
@@ -169,7 +169,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                     ahead => ahead
                         .Publish(context => Request<TransferSelectRunnerInstanceRequested>(context.Saga))
                         .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
-                        .TransitionTo(SelectRunnerInstancePending))
+                        .TransitionTo(TransferSelectRunnerInstancePending))
         );
 
         Configure_Preamble();

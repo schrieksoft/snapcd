@@ -18,23 +18,23 @@ public partial class SplitMigrateStateMachine
     public Event<SplitPlanCancelled> SplitPlanCancelled { get; } = null!;
     public Event<SplitPlanFaulted> SplitPlanFaulted { get; } = null!;
 
-    public State PlanPending { get; } = null!;
-    public State PlanWaitingForRunner { get; } = null!;
+    public State SplitPlanPending { get; } = null!;
+    public State SplitPlanWaitingForRunner { get; } = null!;
 
     /// <summary>
     /// An ordinary step. The runner fails it when the plan is not empty: a monolith with pending
     /// changes cannot be split, because the carve would be proved against a baseline that was
     /// never real.
     /// </summary>
-    private void Configure_Plan()
+    private void Configure_SplitPlan()
     {
         Event(() => SplitPlanCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SplitPlanCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SplitPlanFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         CreateStep<SplitPlanCompleted, SplitPlanCancelled, SplitPlanFaulted, SplitPlanEmptyVerifyRequested>(
-            PlanWaitingForRunner,
-            PlanPending,
+            SplitPlanWaitingForRunner,
+            SplitPlanPending,
             SplitPlanCompleted,
             SplitPlanCancelled,
             SplitPlanFaulted,

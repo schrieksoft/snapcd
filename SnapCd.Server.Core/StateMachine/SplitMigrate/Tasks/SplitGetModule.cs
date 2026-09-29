@@ -20,23 +20,23 @@ public partial class SplitMigrateStateMachine
     public Event<SplitGetModuleCancelled> SplitGetModuleCancelled { get; } = null!;
     public Event<SplitGetModuleFaulted> SplitGetModuleFaulted { get; } = null!;
 
-    public State GetModulePending { get; } = null!;
-    public State GetModuleWaitingForRunner { get; } = null!;
+    public State SplitGetModulePending { get; } = null!;
+    public State SplitGetModuleWaitingForRunner { get; } = null!;
 
-    private void Configure_GetModule()
+    private void Configure_SplitGetModule()
     {
         Event(() => SplitGetModuleCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SplitGetModuleCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SplitGetModuleFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         CreateStep<SplitGetModuleCompleted, SplitGetModuleCancelled, SplitGetModuleFaulted, SplitInitRequested>(
-            GetModuleWaitingForRunner,
-            GetModulePending,
+            SplitGetModuleWaitingForRunner,
+            SplitGetModulePending,
             SplitGetModuleCompleted,
             SplitGetModuleCancelled,
             SplitGetModuleFaulted,
-            InitWaitingForRunner,
-            InitPending
+            SplitInitWaitingForRunner,
+            SplitInitPending
         );
     }
 }

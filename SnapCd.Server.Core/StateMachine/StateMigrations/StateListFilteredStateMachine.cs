@@ -55,9 +55,9 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
     public Request<StateListFilteredSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<StateListFilteredSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
-    public State SelectRunnerInstancePending { get; } = null!;
-    public State GetModulePending { get; } = null!;
-    public State InitPending { get; } = null!;
+    public State StateListFilteredSelectRunnerInstancePending { get; } = null!;
+    public State StateListFilteredGetModulePending { get; } = null!;
+    public State StateListFilteredInitPending { get; } = null!;
     public State ListPending { get; } = null!;
 
     public State Completed { get; } = null!;
@@ -114,7 +114,7 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
                 })
                 .Publish(context => Request<StateListFilteredSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
-                .TransitionTo(SelectRunnerInstancePending)
+                .TransitionTo(StateListFilteredSelectRunnerInstancePending)
         );
 
         Configure_Preamble();

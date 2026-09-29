@@ -27,19 +27,19 @@ public partial class SplitMigrateStateMachine
     public Event<SelectRunnerInstanceCancelled> SelectRunnerInstanceCancelled { get; } = null!;
     public Event<SelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
 
-    public State SelectRunnerInstancePending { get; } = null!;
+    public State SplitSelectRunnerInstancePending { get; } = null!;
 
     /// <summary>
     /// Pins the runner instance for the whole job. Every later step dispatches to it, so the
     /// working directory and demonolith's local artifacts persist across the pipeline.
     /// </summary>
-    private void Configure_SelectRunnerInstance()
+    private void Configure_SplitSelectRunnerInstance()
     {
         Event(() => SelectRunnerInstanceCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SelectRunnerInstanceCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SelectRunnerInstanceFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        During(SelectRunnerInstancePending,
+        During(SplitSelectRunnerInstancePending,
             When(CancelManualModuleJobRequested)
                 .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelGraceful<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
@@ -57,11 +57,11 @@ public partial class SplitMigrateStateMachine
                                 "SelectRunnerInstance: Runner disconnected for job {CorrelationId}, entering waiting state",
                                 context.Saga.CorrelationId);
                         })
-                        .TransitionTo(GetModuleWaitingForRunner),
+                        .TransitionTo(SplitGetModuleWaitingForRunner),
                     whenFalse => whenFalse
                         .Schedule(HeartbeatScheduled,
                             context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
-                        .TransitionTo(GetModulePending)
+                        .TransitionTo(SplitGetModulePending)
                 ),
             When(SelectRunnerInstanceCancelled)
                 .ThenSplitCancelled(Cancelled),

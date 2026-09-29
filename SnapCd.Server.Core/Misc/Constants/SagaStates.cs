@@ -15,7 +15,6 @@ namespace SnapCd.Server.Core.Misc.Constants;
 /// </summary>
 public static class SagaStates
 {
-    public const string SelectRunnerInstancePending = nameof(SelectRunnerInstancePending);
     public const string GetDefinitiveRevisionPending = nameof(GetDefinitiveRevisionPending);
     public const string GetModulePending = nameof(GetModulePending);
     public const string InitPending = nameof(InitPending);
@@ -40,6 +39,17 @@ public static class SagaStates
     public const string SplitMigrateRunPending = nameof(SplitMigrateRunPending);
     public const string SplitMigrateVerifyPending = nameof(SplitMigrateVerifyPending);
     public const string TransferOutputsPending = nameof(TransferOutputsPending);
+
+    public const string SplitGetModulePending = nameof(SplitGetModulePending);
+    public const string SplitInitPending = nameof(SplitInitPending);
+    public const string SplitPlanPending = nameof(SplitPlanPending);
+    public const string SplitValidatePending = nameof(SplitValidatePending);
+    public const string StateListFilteredGetModulePending = nameof(StateListFilteredGetModulePending);
+    public const string StateListFilteredInitPending = nameof(StateListFilteredInitPending);
+    public const string TransferGetModulePending = nameof(TransferGetModulePending);
+    public const string TransferInitPending = nameof(TransferInitPending);
+    public const string TransferPlanPending = nameof(TransferPlanPending);
+    public const string TransferValidatePending = nameof(TransferValidatePending);
 
     public const string CancellingImmediateKill = nameof(CancellingImmediateKill);
     public const string CancellingImmediateGraceful = nameof(CancellingImmediateGraceful);

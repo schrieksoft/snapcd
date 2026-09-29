@@ -20,23 +20,23 @@ public partial class SplitMigrateStateMachine
     public Event<SplitValidateCancelled> SplitValidateCancelled { get; } = null!;
     public Event<SplitValidateFaulted> SplitValidateFaulted { get; } = null!;
 
-    public State ValidatePending { get; } = null!;
-    public State ValidateWaitingForRunner { get; } = null!;
+    public State SplitValidatePending { get; } = null!;
+    public State SplitValidateWaitingForRunner { get; } = null!;
 
-    private void Configure_Validate()
+    private void Configure_SplitValidate()
     {
         Event(() => SplitValidateCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SplitValidateCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => SplitValidateFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
         CreateStep<SplitValidateCompleted, SplitValidateCancelled, SplitValidateFaulted, SplitPlanRequested>(
-            ValidateWaitingForRunner,
-            ValidatePending,
+            SplitValidateWaitingForRunner,
+            SplitValidatePending,
             SplitValidateCompleted,
             SplitValidateCancelled,
             SplitValidateFaulted,
-            PlanWaitingForRunner,
-            PlanPending
+            SplitPlanWaitingForRunner,
+            SplitPlanPending
         );
     }
 }
