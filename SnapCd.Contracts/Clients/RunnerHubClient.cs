@@ -223,16 +223,6 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeTransferRefactorDiffCompleted(Guid jobId, Guid moduleId, int exitCode, string? verdict)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.TransferRefactorDiffCompleted, jobId, moduleId, exitCode, verdict);
-    }
-
-    public async Task InvokeTransferRefactorDiffFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.TransferRefactorDiffFaulted, jobId, moduleId, errorMessage, stackTrace);
-    }
-
     public async Task InvokeMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateMapCompleted, jobId, refactorMapHash, carvedModuleNames, resourcesMoved);

@@ -37,12 +37,6 @@ public class TransferOutputsRequestBase : TransferSliceRequestBase
 }
 
 /// <summary>
-/// Asks whether the code in this root still matches its own copy of the map. Checks that root
-/// alone, which is what the command does by default.
-/// </summary>
-public class TransferRefactorDiffRequestBase : TransferSliceRequestBase;
-
-/// <summary>
 /// Writes this Module's share of the move into its own state. The receiver injects; the source
 /// strips, and demonolith refuses to strip until the receiver's committed run receipt is in this
 /// root's checkout.

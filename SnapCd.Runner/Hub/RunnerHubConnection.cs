@@ -510,12 +510,6 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
-        _connection.On<TransferRefactorDiffRequestBase>(RunnerEndpoints.TransferRefactorDiff, (request) =>
-            {
-                Task.Run(async () => { await _tasks.Value.TransferRefactorDiff(request, _connection); });
-                return Task.CompletedTask;
-            });
-
         _connection.On<SplitMigrateMapRequestBase>(RunnerEndpoints.SplitMigrateMap, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.SplitMigrateMap(request, _connection); });

@@ -68,7 +68,6 @@ public static class RunnerEndpoints
     public const string ImportPreCheck = "ImportPreCheck";
     public const string StateImport = "StateImport";
     public const string StateRemove = "StateRemove";
-    public const string TransferRefactorDiff = "TransferRefactorDiff";
 
     public const string SplitMigrateMap = "SplitMigrateMap";
     public const string SplitMigrateProve = "SplitMigrateProve";

@@ -29,7 +29,6 @@ public static class SagaStates
     public const string TransferMigrateProvePending = nameof(TransferMigrateProvePending);
     public const string TransferMigrateRunPending = nameof(TransferMigrateRunPending);
     public const string TransferMigrateVerifyPending = nameof(TransferMigrateVerifyPending);
-    public const string TransferRefactorDiffPending = nameof(TransferRefactorDiffPending);
 
     public const string SplitPlanEmptyVerifyPending = nameof(SplitPlanEmptyVerifyPending);
     public const string SplitRefactorValidatePending = nameof(SplitRefactorValidatePending);

@@ -281,7 +281,6 @@ public static class MassTransit
         typeof(ImportConsumer),
         typeof(RemoveConsumer),
         typeof(TransferJobEndedCompetingConsumer),
-        typeof(TransferRefactorDiffConsumer),
 
         // cancel
         typeof(CancelKillConsumer),

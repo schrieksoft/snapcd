@@ -60,24 +60,6 @@ public class TransferMigrateProveCompleted : TransferStepResponseBase
 
 public class TransferMigrateProveFaulted : TransferStepFaultedBase;
 
-/// <summary>
-/// `transfer refactor diff` for one participant: does the code in this root still match its own
-/// copy of the map. Checks that root alone, which is the command's default.
-/// </summary>
-public class TransferRefactorDiffRequested : TransferStepRequestBase
-{
-}
-
-public class TransferRefactorDiffCompleted : TransferStepResponseBase
-{
-    /// <summary>0 when in sync, 2 when the committed code has drifted from the map.</summary>
-    public int ExitCode { get; set; }
-
-    public string? Verdict { get; set; }
-}
-
-public class TransferRefactorDiffFaulted : TransferStepFaultedBase;
-
 public class TransferMigrateRunRequested : TransferStepRequestBase
 {
 

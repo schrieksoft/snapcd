@@ -47,8 +47,6 @@ public static class ServerEndpoints
 
     public const string ImportPreCheckCompleted = "ImportPreCheckCompleted";
     public const string ImportPreCheckFaulted = "ImportPreCheckFaulted";
-    public const string TransferRefactorDiffCompleted = "TransferRefactorDiffCompleted";
-    public const string TransferRefactorDiffFaulted = "TransferRefactorDiffFaulted";
 
     public const string SplitMigrateMapCompleted = "SplitMigrateMapCompleted";
     public const string SplitMigrateMapCancelled = "SplitMigrateMapCancelled";

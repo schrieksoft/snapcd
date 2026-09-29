@@ -81,37 +81,6 @@ public class TransferMigrateProveConsumer
 }
 
 /// <summary>
-/// Checks the committed code against the map, so a Module whose code has moved on since the map
-/// was made is caught before its state is touched.
-/// </summary>
-public class TransferRefactorDiffConsumer
-    : TransferStepConsumer<TransferRefactorDiffRequested, TransferRefactorDiffFaulted>
-{
-    public TransferRefactorDiffConsumer(
-        ILogger<TransferRefactorDiffConsumer> logger,
-        IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection)
-        : base(logger, hubContext, runnerSelection) { }
-
-    protected override string Endpoint => RunnerEndpoints.TransferRefactorDiff;
-
-    protected override Task<object> BuildPayload(ConsumeContext<TransferRefactorDiffRequested> context, Guid jobId)
-    {
-        var msg = context.Message;
-
-        return Task.FromResult<object>(new TransferRefactorDiffRequestBase
-        {
-            JobId = jobId,
-            OrganizationId = msg.OrganizationId,
-            ModuleId = msg.ModuleId,
-            Metadata = StepRequestBuilders.MetadataFor(msg.Declared),
-            Engine = msg.Declared.Engine,
-            RootDirectory = msg.RootDirectory
-        });
-    }
-}
-
-/// <summary>
 /// Writes this Module's share of the move into its own state. The receiver injects, the source
 /// strips; demonolith refuses to strip without the receiver's run receipt, which travels here.
 /// </summary>

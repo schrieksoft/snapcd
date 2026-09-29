@@ -994,28 +994,6 @@ public class RunnerHub : Hub
             jobId, moduleId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task TransferRefactorDiffCompleted(Guid jobId, Guid moduleId, int exitCode, string? verdict)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-            Context, jobId, SagaStates.TransferRefactorDiffPending, moduleId);
-
-        await _transferStepHandler.Complete<TransferRefactorDiffCompleted>(
-            jobId, moduleId, organizationId, c =>
-            {
-                c.ExitCode = exitCode;
-                c.Verdict = verdict;
-            });
-    }
-
-    public async Task TransferRefactorDiffFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-            Context, jobId, SagaStates.TransferRefactorDiffPending, moduleId);
-
-        await _transferStepHandler.Fault<TransferRefactorDiffFaulted>(
-            jobId, moduleId, organizationId, errorMessage, stackTrace);
-    }
-
     public async Task SplitMigrateMapCompleted(Guid jobId, string? refactorMapHash, List<string> carvedModuleNames, int resourcesMoved)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<SplitMigrateSaga>(

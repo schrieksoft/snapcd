@@ -275,10 +275,6 @@ public class FakeRunner(
                     jobId, Read<Guid>(payload, "ModuleId"), 0,
                     new Dictionary<string, string>(), "clean");
                 break;
-            case RunnerEndpoints.TransferRefactorDiff:
-                await hub.TransferRefactorDiffCompleted(
-                    jobId, Read<Guid>(payload, "ModuleId"), 0, "clean");
-                break;
             case RunnerEndpoints.TransferMigrateRun:
                 await hub.TransferMigrateRunCompleted(
                     jobId, Read<Guid>(payload, "ModuleId"), TransferredAddresses, gaveUp: false);
