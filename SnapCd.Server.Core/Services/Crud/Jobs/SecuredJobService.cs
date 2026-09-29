@@ -138,7 +138,10 @@ public class SecuredJobService : IDisposable
                 "Cannot create new Apply jobs: configured message-broker backend requires the PremiumMessageBroker feature. " +
                 "Either set ServiceBus:BusType=SqlServer or upgrade to a Lite/Enterprise licence.");
 
-        await _bus.Publish(new GatekeepingJobRequested
+        // One saga instance owns this Module, on one endpoint, so the message is addressed to it
+        // rather than published: a topic subscription is routing that has to resolve first.
+        var gate = await _bus.GetSendEndpoint(new Uri("queue:module"));
+        await gate.Send(new GatekeepingJobRequested
         {
             ModuleId = moduleId,
             OrganizationId = organizationId,
@@ -146,7 +149,7 @@ public class SecuredJobService : IDisposable
             SetNewDesiredState = true,
             JobId = jobId,
             RunnerInstanceNameOverride = runnerInstanceNameOverride
-        }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
+        }, sendContext => { sendContext.TimeToLive = TimeSpan.FromMinutes(5); });
     }
 
     public async Task Destroy(Guid moduleId, Guid organizationId, Guid jobId, string? runnerInstanceNameOverride = null)
@@ -167,7 +170,10 @@ public class SecuredJobService : IDisposable
                 "Cannot create new Destroy jobs: configured message-broker backend requires the PremiumMessageBroker feature. " +
                 "Either set ServiceBus:BusType=SqlServer or upgrade to a Lite/Enterprise licence.");
 
-        await _bus.Publish(new GatekeepingJobRequested
+        // One saga instance owns this Module, on one endpoint, so the message is addressed to it
+        // rather than published: a topic subscription is routing that has to resolve first.
+        var gate = await _bus.GetSendEndpoint(new Uri("queue:module"));
+        await gate.Send(new GatekeepingJobRequested
         {
             ModuleId = moduleId,
             OrganizationId = organizationId,
@@ -175,7 +181,7 @@ public class SecuredJobService : IDisposable
             SetNewDesiredState = true,
             JobId = jobId,
             RunnerInstanceNameOverride = runnerInstanceNameOverride
-        }, publishContext => { publishContext.TimeToLive = TimeSpan.FromMinutes(5); });
+        }, sendContext => { sendContext.TimeToLive = TimeSpan.FromMinutes(5); });
     }
 
     public async Task RunQueued(Guid moduleId, Guid namespaceId, Guid organizationId)
