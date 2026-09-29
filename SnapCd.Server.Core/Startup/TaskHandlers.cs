@@ -57,7 +57,6 @@ public static class TaskHandlers
         services.AddScoped<SourceRefreshHandler>();
         services.AddScoped<ReportRunningTaskHandler>();
         services.AddScoped<CancelKillHandler>();
-        services.AddScoped<CancelGracefulHandler>();
 
         return services;
     }

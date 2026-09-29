@@ -84,8 +84,7 @@ public class TerraformEngine : BaseEngine, IEngine
         string? beforeHook,
         string? afterHook,
         EngineBackendConfiguration backendConfig,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var merged = new Dictionary<string, string>(RunnerEnvVars);
         foreach (var kvp in resolvedEnvVars)
@@ -130,7 +129,7 @@ public class TerraformEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/init.sh", script);
 
-        return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        return await RunProcess(script, killCancellationToken);
     }
 
     private static string BuildBackendConfigArgs(List<EngineArrayFlagEntry> backendConfigEntries)
@@ -158,8 +157,7 @@ public class TerraformEngine : BaseEngine, IEngine
     public async Task Validate(
         string? beforeHook = null,
         string? afterHook = null,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var baseScript = $"{_engine} validate";
 
@@ -171,7 +169,7 @@ public class TerraformEngine : BaseEngine, IEngine
 
         try
         {
-            await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+            await RunProcess(script, killCancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -192,43 +190,37 @@ public class TerraformEngine : BaseEngine, IEngine
         string address,
         string? target,
         bool dryRun,
-        CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken)
+        CancellationToken killCancellationToken)
     {
         if (string.IsNullOrWhiteSpace(target))
             throw new InvalidOperationException($"A move needs a target for {address}.");
 
         return RunProcess(
             MoveCommand(_engine, address, target, dryRun),
-            killCancellationToken,
-            gracefulCancellationToken);
+            killCancellationToken);
     }
 
     protected override Task RunImport(
         string address,
         string? target,
-        CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken)
+        CancellationToken killCancellationToken)
     {
         if (string.IsNullOrWhiteSpace(target))
             throw new InvalidOperationException($"An import needs a resource id for {address}.");
 
         return RunProcess(
             ImportCommand(_engine, address, target),
-            killCancellationToken,
-            gracefulCancellationToken);
+            killCancellationToken);
     }
 
     protected override Task RunRemove(
         string address,
         bool dryRun,
-        CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken)
+        CancellationToken killCancellationToken)
     {
         return RunProcess(
             RemoveCommand(_engine, address, dryRun),
-            killCancellationToken,
-            gracefulCancellationToken);
+            killCancellationToken);
     }
 
     public static string MoveCommand(string engine, string address, string? target, bool dryRun = false) =>
@@ -252,13 +244,12 @@ public class TerraformEngine : BaseEngine, IEngine
     /// to display. An empty state is a Module that has never been applied, not a failure.
     /// </summary>
     protected override async Task<HashSet<string>> ListState(
-        CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken)
+        CancellationToken killCancellationToken)
     {
         try
         {
             var output = await RunProcess(
-                $"{_engine} state list", killCancellationToken, gracefulCancellationToken, logOutput: false);
+                $"{_engine} state list", killCancellationToken, logOutput: false);
 
             return output
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries)
@@ -267,15 +258,15 @@ public class TerraformEngine : BaseEngine, IEngine
                 .ToHashSet();
         }
         catch (ProcessFailedException)
-            when (!killCancellationToken.IsCancellationRequested && !gracefulCancellationToken.IsCancellationRequested)
+            when (!killCancellationToken.IsCancellationRequested)
         {
             return [];
         }
     }
 
-    public async Task<int> Statistics(CancellationToken killCancellationToken = default, CancellationToken gracefulCancellationToken = default)
+    public async Task<int> Statistics(CancellationToken killCancellationToken = default)
     {
-        var resources = await RunProcess($"{_engine} state list", killCancellationToken, gracefulCancellationToken);
+        var resources = await RunProcess($"{_engine} state list", killCancellationToken);
 
         var lines = resources.Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Where(line => !line.Trim().StartsWith("data."))
@@ -283,13 +274,13 @@ public class TerraformEngine : BaseEngine, IEngine
         return lines.Length;
     }
 
-    public async Task<int> CountResourcesInState(CancellationToken killCancellationToken = default, CancellationToken gracefulCancellationToken = default)
+    public async Task<int> CountResourcesInState(CancellationToken killCancellationToken = default)
     {
         try
         {
-            return await Statistics(killCancellationToken, gracefulCancellationToken);
+            return await Statistics(killCancellationToken);
         }
-        catch (ProcessFailedException) when (!killCancellationToken.IsCancellationRequested && !gracefulCancellationToken.IsCancellationRequested)
+        catch (ProcessFailedException) when (!killCancellationToken.IsCancellationRequested)
         {
             // `state list` exits non-zero when no state file exists at all, which is the
             // never-applied module — nothing to destroy.
@@ -301,8 +292,7 @@ public class TerraformEngine : BaseEngine, IEngine
         Dictionary<string, string> parameters,
         string? planBeforeHook,
         string? planAfterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var tfVarsString = string.Join("", parameters.Select(kvp => $"{kvp.Key}={kvp.Value}\n"));
 
@@ -319,15 +309,14 @@ public class TerraformEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/plan.sh", script);
 
-        return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        return await RunProcess(script, killCancellationToken);
     }
 
     public async Task<string> PlanDestroy(
         Dictionary<string, string> parameters,
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var tfVarsString = string.Join("", parameters.Select(kvp => $"{kvp.Key}={kvp.Value}\n"));
 
@@ -344,14 +333,13 @@ public class TerraformEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/plan_destroy.sh", script);
 
-        return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        return await RunProcess(script, killCancellationToken);
     }
 
     public async Task<string> DestroyFromPlan(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var applyCommand = AppendFlagArgs($"{_engine} apply {GetPlanDestroyPath()}");
         var mainCommand = $"{applyCommand}\n{_engine} state list | grep -v '^data\\.' | wc -l > {SnapCdDir}/statistics.txt";
@@ -364,14 +352,13 @@ public class TerraformEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/destroy.sh", script);
 
-        return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        return await RunProcess(script, killCancellationToken);
     }
 
     public async Task<string> ApplyFromPlan(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var applyCmd = AppendFlagArgs($"{_engine} apply {GetPlanApplyPath()}");
         var mainCommand = $"{applyCmd}\n{_engine} state list | grep -v '^data\\.' | wc -l > {SnapCdDir}/statistics.txt";
@@ -384,14 +371,13 @@ public class TerraformEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/apply.sh", script);
 
-        return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        return await RunProcess(script, killCancellationToken);
     }
 
     public async Task<string> Output(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var outputCommand = AppendFlagArgs($"{_engine} output -json");
 
@@ -403,7 +389,7 @@ public class TerraformEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/output.sh", script);
 
-        await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        await RunProcess(script, killCancellationToken);
 
         using var reader = new StreamReader($"{SnapCdDir}/output.json");
         var output = reader.ReadToEnd();
@@ -446,15 +432,14 @@ public class TerraformEngine : BaseEngine, IEngine
 
     public async Task<string> ExportPlanJson(
         bool isDestroyJob,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var planPath = isDestroyJob ? GetPlanDestroyPath() : GetPlanApplyPath();
         var jsonPath = isDestroyJob ? $"{SnapCdDir}/destroy_plan.json" : $"{SnapCdDir}/plan.json";
 
         // Redirect to file: the plan JSON contains sensitive values and must not stream into logs.
         var script = $"{_engine} show -json {planPath} > {jsonPath}";
-        await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        await RunProcess(script, killCancellationToken);
 
         return jsonPath;
     }

@@ -31,11 +31,9 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(Output),
@@ -83,7 +81,7 @@ public partial class Tasks
                 engine.GetInitDir(),
                 extraFileNames);
 
-            var moduleOutputJson = await engine.Output(request.OutputBeforeHook, request.OutputAfterHook, killCts.Token, gracefulCts.Token);
+            var moduleOutputJson = await engine.Output(request.OutputBeforeHook, request.OutputAfterHook, killCts.Token);
 
             var moduleOutputSet = await engine.ParseJsonToModuleOutputSet(moduleOutputJson, outputSources);
 
@@ -122,7 +120,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

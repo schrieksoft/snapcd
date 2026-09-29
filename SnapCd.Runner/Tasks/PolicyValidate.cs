@@ -30,11 +30,9 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(PolicyValidate),
@@ -63,7 +61,7 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var planJsonPath = await engine.ExportPlanJson(request.IsDestroyJob, killCts.Token, gracefulCts.Token);
+            var planJsonPath = await engine.ExportPlanJson(request.IsDestroyJob, killCts.Token);
 
             var scratchDir = Path.Combine(engine.GetSnapCdDir(), "policies");
             if (Directory.Exists(scratchDir))
@@ -74,7 +72,7 @@ public partial class Tasks
             // is emitted before the evaluator's own messages instead.
             taskContext.LogBreak();
 
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
             var outcome = await _policyEvaluationService.EvaluateAsync(
                 request.Policies,
                 planJsonPath,
@@ -120,7 +118,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

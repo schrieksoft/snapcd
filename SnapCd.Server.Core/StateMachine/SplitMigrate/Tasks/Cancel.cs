@@ -26,16 +26,13 @@ namespace SnapCd.Server.Core.StateMachine.SplitMigrate;
 
 public partial class SplitMigrateStateMachine
 {
-    public Request<SplitMigrateSaga, CancelKillRequested, DummyCancelKillCompleted> CancelKillRequested { get; } = null!;
-    public Event<CancelKillCompleted> CancelKillCompleted { get; } = null!;
+    public Request<SplitMigrateSaga, SplitCancelKillRequested, DummySplitCancelKillCompleted> CancelKillRequested { get; } = null!;
+    public Event<SplitCancelKillCompleted> CancelKillCompleted { get; } = null!;
 
-    public Request<SplitMigrateSaga, CancelGracefulRequested, DummyCancelGracefulCompleted> CancelGracefulRequested { get; } = null!;
-    public Event<CancelGracefulCompleted> CancelGracefulCompleted { get; } = null!;
 
     public Event<CancelManualModuleJobRequested> CancelManualModuleJobRequested { get; } = null!;
 
     public State CancellingImmediateKill { get; } = null!;
-    public State CancellingImmediateGraceful { get; } = null!;
     public State CancellingAfterCurrent { get; } = null!;
     public State Cancelled { get; } = null!;
 
@@ -50,12 +47,7 @@ public partial class SplitMigrateStateMachine
         Request(() => CancelKillRequested, x => x.KillCancellationRequestId, o => { o.Timeout = CancelRequestTimeout; });
         Event(() => CancelKillCompleted, x => x
             .CorrelateById(y => y.Message.CorrelationId)
-            .OnMissingInstance(m => m.ExecuteAsync(context => FinalizeWithoutSaga(context, context.Message.CorrelationId, context.Message.OrganizationId, nameof(CancelKillCompleted)))));
-
-        Request(() => CancelGracefulRequested, x => x.GracefulCancellationRequestId, o => { o.Timeout = CancelRequestTimeout; });
-        Event(() => CancelGracefulCompleted, x => x
-            .CorrelateById(y => y.Message.CorrelationId)
-            .OnMissingInstance(m => m.ExecuteAsync(context => FinalizeWithoutSaga(context, context.Message.CorrelationId, context.Message.OrganizationId, nameof(CancelGracefulCompleted)))));
+            .OnMissingInstance(m => m.ExecuteAsync(context => FinalizeWithoutSaga(context, context.Message.CorrelationId, context.Message.OrganizationId, nameof(SplitCancelKillCompleted)))));
 
         // A step that reports back while cancelling ends the job rather than continuing the chain.
         // The timeouts matter most when no step was ever dispatched: the runner has nothing to
@@ -70,13 +62,6 @@ public partial class SplitMigrateStateMachine
                 When(CancelManualModuleJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
                 Ignore(CancelManualModuleJobRequested),
                 When(CancelKillRequested.TimeoutExpired).ThenSplitCancelTimedOut(_logger, Cancelled)
-            ]);
-        During(CancellingImmediateGraceful,
-            [
-                .. CancelHandlers(),
-                When(CancelManualModuleJobRequested, TimeoutIsOverdue).ThenSplitCancelForced(_logger, Cancelled),
-                Ignore(CancelManualModuleJobRequested),
-                When(CancelGracefulRequested.TimeoutExpired).ThenSplitCancelTimedOut(_logger, Cancelled)
             ]);
         During(CancellingAfterCurrent,
             [
@@ -152,7 +137,6 @@ public partial class SplitMigrateStateMachine
         When(SplitMigrateRunCompleted).ThenSplitCancelled(Cancelled),
         When(SplitMigrateVerifyCompleted).ThenSplitCancelled(Cancelled),
         When(CancelKillCompleted).ThenSplitCancelled(Cancelled),
-        When(CancelGracefulCompleted).ThenSplitCancelled(Cancelled),
         Ignore(RunnerReconnectedEvent),
         Ignore(HeartbeatScheduled.Received),
         Ignore(HeartbeatRequested.Completed),

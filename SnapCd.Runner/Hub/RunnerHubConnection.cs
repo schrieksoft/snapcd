@@ -699,18 +699,23 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
-        // Register handler for CancelKill
-        _connection.On<CancelKillRequest>(RunnerEndpoints.CancelKill, (request) =>
+        _connection.On<CancelKillRequest>(RunnerEndpoints.ApplyCancelKill, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.CancelKill(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.ApplyCancelKill(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        // Register handler for CancelGraceful
-        _connection.On<CancelGracefulRequest>(RunnerEndpoints.CancelGraceful, (request) =>
+        _connection.On<CancelKillRequest>(RunnerEndpoints.DestroyCancelKill, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.CancelGraceful(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.DestroyCancelKill(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<CancelKillRequest>(RunnerEndpoints.SplitCancelKill, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.SplitCancelKill(request, _connection); });
                 return Task.CompletedTask;
             }
         );

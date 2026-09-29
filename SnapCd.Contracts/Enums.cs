@@ -473,7 +473,6 @@ public enum SecretDiscriminator
 public enum CancellationType
 {
     AfterCurrent,
-    ImmediateGraceful,
     ImmediateKill
 }
 

@@ -62,7 +62,10 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;
 
 namespace SnapCd.Server.Core.Tests.Tests.StateMachine;
 
@@ -130,8 +133,7 @@ public class JobCancelReliabilityTests : IAsyncLifetime
     /// </summary>
     [Theory]
     [InlineData("CancellingImmediateKill")]
-    [InlineData("CancellingImmediateGraceful")]
-    public async Task Cancelling_Again_Inside_The_Window_Changes_Nothing(string state)
+        public async Task Cancelling_Again_Inside_The_Window_Changes_Nothing(string state)
     {
         var jobId = await Seed(state, DateTime.UtcNow.AddSeconds(-5));
 
@@ -145,8 +147,7 @@ public class JobCancelReliabilityTests : IAsyncLifetime
 
     [Theory]
     [InlineData("CancellingImmediateKill")]
-    [InlineData("CancellingImmediateGraceful")]
-    public async Task Cancelling_Again_After_The_Timeout_Was_Due_Forces_It_Closed(string state)
+        public async Task Cancelling_Again_After_The_Timeout_Was_Due_Forces_It_Closed(string state)
     {
         var jobId = await Seed(state, DateTime.UtcNow.AddMinutes(-10));
 
@@ -201,8 +202,7 @@ public class JobCancelReliabilityTests : IAsyncLifetime
     /// <summary>The mode already in flight in that state, so the cancel is a repeat and not an escalation.</summary>
     private static CancellationType ModeOf(string state) => state switch
     {
-        "CancellingImmediateGraceful" => CancellationType.ImmediateGraceful,
-        _ => CancellationType.ImmediateKill
+                _ => CancellationType.ImmediateKill
     };
 
     private Task PublishCancel(Guid jobId, CancellationType mode = CancellationType.ImmediateKill) =>

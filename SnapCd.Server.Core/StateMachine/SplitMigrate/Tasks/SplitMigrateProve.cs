@@ -41,8 +41,7 @@ public partial class SplitMigrateStateMachine
             When(SplitMigrateProveWaitingForRunner.Enter)
                 .Activity(x => x.OfType<SnapCd.Server.Core.StateMachine.Jobs.Activites.CheckRunnerConnectionActivity<SplitMigrateSaga, SplitMigrateProveCompleted>>()),
             When(CancelManualModuleJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<SplitMigrateSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             Ignore(RunnerReconnectedEvent),
             Ignore(HeartbeatScheduled.Received),
@@ -66,8 +65,7 @@ public partial class SplitMigrateStateMachine
             When(HeartbeatRequested.Completed2)
                 .ThenSplitTimedOut(Failed),
             When(CancelManualModuleJobRequested)
-                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
+                .IfCancelKill<SplitMigrateSaga, SplitMigrateCancelled, CancelManualModuleJobRequested, SplitCancelKillRequested, DummySplitCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
                 .IfCancelAfterCurrent<SplitMigrateSaga, CancelManualModuleJobRequested>(_logger, CancellingAfterCurrent),
             When(SplitMigrateProveCancelled)
                 .ThenSplitCancelled(Cancelled),

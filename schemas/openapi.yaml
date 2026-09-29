@@ -1015,7 +1015,7 @@ paths:
       - name: cancellationType
         in: query
         schema:
-          default: ImmediateGraceful
+          default: AfterCurrent
           $ref: '#/components/schemas/CancellationType'
       responses:
         '200':
@@ -27854,7 +27854,6 @@ components:
     CancellationType:
       enum:
       - AfterCurrent
-      - ImmediateGraceful
       - ImmediateKill
     ColorTargetType:
       enum:

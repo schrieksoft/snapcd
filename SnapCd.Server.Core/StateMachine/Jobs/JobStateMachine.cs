@@ -73,7 +73,10 @@ public partial class JobStateMachine<
     TPlanCancelled,
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
-    TApplyFromPlanCancelled>
+    TApplyFromPlanCancelled,
+    TCancelKillRequested,
+    TDummyCancelKillCompleted,
+    TCancelKillCompleted>
     : MassTransitStateMachine<TSaga>
     where TSaga : JobSagaBase
     where TRequest : ModuleJobEventBase
@@ -114,6 +117,9 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TCancelKillRequested : CancelKillRequestedBase, new()
+    where TDummyCancelKillCompleted : class
+    where TCancelKillCompleted : StepResponseBase
 {
     private readonly ILogger<JobStateMachine<
         TSaga,
@@ -154,7 +160,10 @@ public partial class JobStateMachine<
         TPlanCancelled,
         TApplyFromPlanRequested,
         TApplyFromPlanCompleted,
-        TApplyFromPlanCancelled
+        TApplyFromPlanCancelled,
+        TCancelKillRequested,
+        TDummyCancelKillCompleted,
+        TCancelKillCompleted
     >> _logger;
 
     public Event<TRequest> ModuleRequest { get; } = null!;
@@ -207,7 +216,10 @@ public partial class JobStateMachine<
             TPlanCancelled,
             TApplyFromPlanRequested,
             TApplyFromPlanCompleted,
-            TApplyFromPlanCancelled
+            TApplyFromPlanCancelled,
+            TCancelKillRequested,
+            TDummyCancelKillCompleted,
+            TCancelKillCompleted
         >> logger
     )
     {

@@ -20,14 +20,17 @@ namespace SnapCd.Server.Core.Consumers.Tasks;
 /// Server-side consumer that receives kill cancellation requests and dispatches them to runners via SignalR.
 /// Runner will respond by publishing KillCancelCompleted event directly to MassTransit.
 /// </summary>
-public class CancelKillConsumer : IConsumer<CancelKillRequested>
+public abstract class CancelKillConsumer<TRequested> : IConsumer<TRequested>
+    where TRequested : CancelKillRequestedBase
 {
-    private readonly ILogger<CancelKillConsumer> _logger;
+    protected abstract string Endpoint { get; }
+
+    private readonly ILogger _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
 
-    public CancelKillConsumer(
-        ILogger<CancelKillConsumer> logger,
+    protected CancelKillConsumer(
+        ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory)
     {
@@ -36,7 +39,7 @@ public class CancelKillConsumer : IConsumer<CancelKillRequested>
         _connectionRepositoryFactory = connectionRepositoryFactory;
     }
 
-    public async Task Consume(ConsumeContext<CancelKillRequested> context)
+    public async Task Consume(ConsumeContext<TRequested> context)
     {
         var msg = context.Message;
         var correlationId = msg.CorrelationId;
@@ -71,7 +74,7 @@ public class CancelKillConsumer : IConsumer<CancelKillRequested>
             // Send kill cancellation request to specific client (fire and forget)
             // Runner will publish KillCancelCompleted event when done
             await _hubContext.Clients.Client(connection.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.CancelKill,
+                Endpoint,
                 new CancelKillRequest
                 {
                     JobId = correlationId
@@ -84,4 +87,38 @@ public class CancelKillConsumer : IConsumer<CancelKillRequested>
             _logger.LogError(ex, "Kill cancellation failed for job {CorrelationId}", correlationId);
         }
     }
+}
+
+
+public class ApplyCancelKillConsumer : CancelKillConsumer<ApplyCancelKillRequested>
+{
+    public ApplyCancelKillConsumer(
+        ILogger<ApplyCancelKillConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerConnectionRepositoryFactory connectionRepositoryFactory)
+        : base(logger, hubContext, connectionRepositoryFactory) { }
+
+    protected override string Endpoint => RunnerEndpoints.ApplyCancelKill;
+}
+
+public class DestroyCancelKillConsumer : CancelKillConsumer<DestroyCancelKillRequested>
+{
+    public DestroyCancelKillConsumer(
+        ILogger<DestroyCancelKillConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerConnectionRepositoryFactory connectionRepositoryFactory)
+        : base(logger, hubContext, connectionRepositoryFactory) { }
+
+    protected override string Endpoint => RunnerEndpoints.DestroyCancelKill;
+}
+
+public class SplitCancelKillConsumer : CancelKillConsumer<SplitCancelKillRequested>
+{
+    public SplitCancelKillConsumer(
+        ILogger<SplitCancelKillConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerConnectionRepositoryFactory connectionRepositoryFactory)
+        : base(logger, hubContext, connectionRepositoryFactory) { }
+
+    protected override string Endpoint => RunnerEndpoints.SplitCancelKill;
 }

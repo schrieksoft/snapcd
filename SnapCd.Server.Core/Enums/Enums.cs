@@ -106,7 +106,6 @@ public enum ModuleJobSagaState
     Cancelled,
 
     CancellingImmediateKill,
-    CancellingImmediateGraceful,
     CancellingAfterCurrent,
     Declined,
     WaitingForApproval,

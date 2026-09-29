@@ -22,10 +22,8 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(SplitMigrateMap),
@@ -57,7 +55,7 @@ public partial class Tasks
             var command = DemonolithCommand.Build("split migrate map", request.RootDirectory, request.Engine);
             if (request.RederiveBackend) command += " --rederive-backend";
 
-            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token);
 
             // The receipt is the durable record and is versioned; the stdout report is neither.
             // It stays on the runner — only these few fields are reported back.
@@ -104,7 +102,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

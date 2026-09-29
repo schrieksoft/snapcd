@@ -430,15 +430,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ReportRunningTask, jobId, taskName, runnerId, runnerInstanceName);
     }
 
-    // Cancellation
-    public async Task InvokeCancelKillCompleted(Guid jobId)
+    // Cancellation: one wrapper per family, as every other step has
+
+    public async Task InvokeApplyCancelKillCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.CancelKillCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyCancelKillCompleted, jobId);
     }
 
-    public async Task InvokeCancelGracefulCompleted(Guid jobId)
+    public async Task InvokeDestroyCancelKillCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.CancelGracefulCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.DestroyCancelKillCompleted, jobId);
+    }
+
+    public async Task InvokeSplitCancelKillCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.SplitCancelKillCompleted, jobId);
     }
 
     // One wrapper per family per outcome, so a task is handed the exact endpoint to answer on

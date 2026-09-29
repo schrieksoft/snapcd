@@ -211,8 +211,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     /// </summary>
     [Theory]
     [InlineData("CancellingImmediateKill")]
-    [InlineData("CancellingImmediateGraceful")]
-    [InlineData("CancellingAfterCurrent")]
+        [InlineData("CancellingAfterCurrent")]
     public async Task Cancelling_Again_Inside_The_Window_Changes_Nothing(string state)
     {
         var jobId = await Seed(stopAfterProve: true, state: state, waitingSince: DateTime.UtcNow.AddSeconds(-5));
@@ -231,8 +230,7 @@ public class SplitProveStateMachineTests : IAsyncLifetime
     /// </summary>
     [Theory]
     [InlineData("CancellingImmediateKill")]
-    [InlineData("CancellingImmediateGraceful")]
-    [InlineData("CancellingAfterCurrent")]
+        [InlineData("CancellingAfterCurrent")]
     public async Task Cancelling_Again_After_The_Timeout_Was_Due_Forces_It_Closed(string state)
     {
         var jobId = await Seed(stopAfterProve: true, state: state, waitingSince: DateTime.UtcNow.AddMinutes(-10));

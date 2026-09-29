@@ -51,7 +51,6 @@ public static class SagaStates
     public const string TransferValidatePending = nameof(TransferValidatePending);
 
     public const string CancellingImmediateKill = nameof(CancellingImmediateKill);
-    public const string CancellingImmediateGraceful = nameof(CancellingImmediateGraceful);
     public const string CancellingAfterCurrent = nameof(CancellingAfterCurrent);
 
     /// <summary>
@@ -61,7 +60,6 @@ public static class SagaStates
     public static readonly HashSet<string> Cancelling =
     [
         CancellingImmediateKill,
-        CancellingImmediateGraceful,
         CancellingAfterCurrent
     ];
 }

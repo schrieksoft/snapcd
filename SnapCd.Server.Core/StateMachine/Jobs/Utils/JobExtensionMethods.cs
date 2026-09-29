@@ -222,16 +222,19 @@ public static class JobExtensionMethods
     }
 
 
-    public static EventActivityBinder<TSaga, TCancelRequest> IfCancelKill<TSaga, TResponseCancelled, TCancelRequest>(
+    public static EventActivityBinder<TSaga, TCancelRequest> IfCancelKill<TSaga, TResponseCancelled, TCancelRequest,
+        TCancelKillRequested, TDummyCancelKillCompleted>(
         this EventActivityBinder<TSaga, TCancelRequest> binder,
         ILogger logger,
-        Request<TSaga, CancelKillRequested, DummyCancelKillCompleted> killCancelRequested,
+        Request<TSaga, TCancelKillRequested, TDummyCancelKillCompleted> killCancelRequested,
         State? transitionTo,
         State? cancelledState
     )
         where TSaga : JobSagaBase
         where TResponseCancelled : ModuleJobEventCompletedBase, new()
         where TCancelRequest : class, ICancelRequest
+        where TCancelKillRequested : CancelKillRequestedBase, new()
+        where TDummyCancelKillCompleted : class
     {
         return binder
             .If(x => x.Message.CancellationType == CancellationType.ImmediateKill,
@@ -260,56 +263,7 @@ public static class JobExtensionMethods
                             return null;
 #pragma warning restore CS8603
                         },
-                        context => new CancelKillRequested
-                        {
-                            OrganizationId = context.Saga.OrganizationId,
-                            CorrelationId = context.Saga.CorrelationId,
-                            RunnerInstanceName = context.Saga.RunnerInstanceName,
-                            RunnerId = context.Saga.RunnerId
-                        })
-            );
-    }
-
-
-    public static EventActivityBinder<TSaga, TCancelRequest> IfCancelGraceful<TSaga, TResponseCancelled, TCancelRequest>(
-        this EventActivityBinder<TSaga, TCancelRequest> binder,
-        ILogger logger,
-        Request<TSaga, CancelGracefulRequested, DummyCancelGracefulCompleted> gracefulCancelRequested,
-        State? transitionTo,
-        State? cancelledState
-    )
-        where TSaga : JobSagaBase
-        where TResponseCancelled : ModuleJobEventCompletedBase, new()
-        where TCancelRequest : class, ICancelRequest
-    {
-        return binder
-            .If(x => x.Message.CancellationType == CancellationType.ImmediateGraceful,
-                x => x
-                    .Then(_ => { logger.LogDebug("Publishing GracefulCancelRequested and transitioning to Cancelling"); })
-                    .Then(context =>
-                    {
-                        context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;
-                        context.Saga.WaitingSince = DateTime.UtcNow;
-                    })
-                    .TransitionTo(transitionTo)
-                    .Request(gracefulCancelRequested,
-                        context =>
-                        {
-                            if (context.Saga.ServerInstanceId.HasValue)
-                            {
-                                var endpointUri = MassTransitHelpers.GetConsumerEndpoint(
-                                    context.Saga.ServerInstanceId.Value,
-                                    nameof(CancelGracefulRequested));
-                                return new Uri(endpointUri);
-                            }
-
-                            // MassTransit's address-provider lambda allows null to mean "use default address",
-                            // even though the declared return type is non-nullable Uri.
-#pragma warning disable CS8603
-                            return null;
-#pragma warning restore CS8603
-                        },
-                        context => new CancelGracefulRequested
+                        context => new TCancelKillRequested
                         {
                             OrganizationId = context.Saga.OrganizationId,
                             CorrelationId = context.Saga.CorrelationId,

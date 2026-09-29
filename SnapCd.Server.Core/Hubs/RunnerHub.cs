@@ -99,7 +99,6 @@ public class RunnerHub : Hub
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly ReportRunningTaskHandler _reportRunningTaskHandler;
     private readonly CancelKillHandler _cancelKillHandler;
-    private readonly CancelGracefulHandler _cancelGracefulHandler;
 
     public RunnerHub(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
@@ -151,8 +150,7 @@ public class RunnerHub : Hub
         IOptions<ServerSettings> serverSettings,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         ReportRunningTaskHandler reportRunningTaskHandler,
-        CancelKillHandler cancelKillHandler,
-        CancelGracefulHandler cancelGracefulHandler)
+        CancelKillHandler cancelKillHandler)
     {
         _dbContextFactory = dbContextFactory;
         _logService = logService;
@@ -204,7 +202,6 @@ public class RunnerHub : Hub
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _reportRunningTaskHandler = reportRunningTaskHandler;
         _cancelKillHandler = cancelKillHandler;
-        _cancelGracefulHandler = cancelGracefulHandler;
     }
 
 
@@ -1216,19 +1213,6 @@ public class RunnerHub : Hub
 
         // Publish MassTransit event
         await _cancelKillHandler.Complete(jobId);
-    }
-
-    /// <summary>
-    /// Called by runner when graceful cancellation completes.
-    /// Publishes GracefulCancelCompleted event to MassTransit and completes the TCS if waiting.
-    /// </summary>
-    public async Task CancelGracefulCompleted(Guid jobId)
-    {
-        await _authorizationService.ValidateRunnerCanCancelJob(
-            Context, jobId, SagaStates.CancellingImmediateGraceful);
-
-        // Publish MassTransit event
-        await _cancelGracefulHandler.Complete(jobId);
     }
 
     // Each manual family answers on its own endpoints. The endpoint names the family, so the

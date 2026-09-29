@@ -109,7 +109,6 @@ public abstract class ModuleGetter
         bool cleanInitEnabled,
         List<ExtraFileDto>? extraFiles,
         CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default,
         string? remoteDefinitiveRevision = null)
     {
         // This task runs no external process, so the blank line that would precede a command's

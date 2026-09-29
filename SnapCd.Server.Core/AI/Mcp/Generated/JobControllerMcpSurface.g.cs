@@ -66,7 +66,7 @@ The Job must be pending approval. The calling principal is recorded as the decli
     [McpServerTool(Name = "jobs_cancel")]
     [Description(@"Cancel a running Job
 
-CancellationType: AfterCurrent (let current step finish), ImmediateGraceful (signal runner to stop), ImmediateKill (force terminate).")]
+CancellationType: AfterCurrent (let current step finish), ImmediateKill (force terminate).")]
     public static System.Threading.Tasks.Task JobsCancel(
         SnapCd.Server.Core.Services.Crud.Jobs.JobOrchestrationService service,
         [Description(@"Organization ID")] System.Guid organizationId,

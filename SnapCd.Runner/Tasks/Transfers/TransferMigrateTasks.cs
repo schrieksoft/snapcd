@@ -25,7 +25,7 @@ public partial class Tasks
     public Task TransferMigrateRun(TransferMigrateRunRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, request.ModuleId, nameof(TransferMigrateRun), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration("Now running demonolith transfer migrate run");
 
@@ -38,7 +38,7 @@ public partial class Tasks
                 var command = DemonolithCommand.Build(
                     "transfer migrate run", request.RootDirectory, request.Engine, "--no-receipt-check");
 
-                await engine.RunProcess(command, killToken, gracefulToken);
+                await engine.RunProcess(command, killToken);
 
                 var receipt = TransferReceipt.Read(request.RootDirectory, TransferReceipt.RunReceiptFile);
 
@@ -55,7 +55,7 @@ public partial class Tasks
     public Task TransferMigrateVerify(TransferMigrateVerifyRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, request.ModuleId, nameof(TransferMigrateVerify), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration("Now running demonolith transfer migrate verify");
 
@@ -64,7 +64,7 @@ public partial class Tasks
 
                 var command = DemonolithCommand.Build("transfer migrate verify", request.RootDirectory, request.Engine);
 
-                await engine.RunProcess(command, killToken, gracefulToken);
+                await engine.RunProcess(command, killToken);
 
                 await InvokeWithRetryAsync(
                     () => client.InvokeTransferMigrateVerifyCompleted(request.JobId, request.ModuleId),
@@ -80,13 +80,13 @@ public partial class Tasks
     public Task TransferOutputs(TransferOutputsRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, request.ModuleId, nameof(TransferOutputs), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration("Now reading this module's outputs");
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
-                var json = await engine.Output(null, null, killToken, gracefulToken);
+                var json = await engine.Output(null, null, killToken);
                 var outputSet = await engine.ParseJsonToModuleOutputSet(json);
 
                 await InvokeWithRetryAsync(

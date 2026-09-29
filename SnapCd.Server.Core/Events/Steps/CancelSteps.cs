@@ -10,8 +10,27 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
-public class CancelGracefulRequested : CorrelationBase
+public abstract class CancelKillRequestedBase : CorrelationBase
 {
     public string? RunnerInstanceName { get; set; }
     public Guid RunnerId { get; set; }
 }
+
+public class ApplyCancelKillRequested : CancelKillRequestedBase;
+
+public class ApplyCancelKillCompleted : StepResponseBase;
+
+public class DummyApplyCancelKillCompleted : StepResponseBase;
+
+public class DestroyCancelKillRequested : CancelKillRequestedBase;
+
+public class DestroyCancelKillCompleted : StepResponseBase;
+
+public class DummyDestroyCancelKillCompleted : StepResponseBase;
+
+public class SplitCancelKillRequested : CancelKillRequestedBase;
+
+public class SplitCancelKillCompleted : StepResponseBase;
+
+public class DummySplitCancelKillCompleted : StepResponseBase;
+

@@ -32,7 +32,6 @@
             <MudSelect T="CancellationType" @bind-Value="_selectedCancellationType" Label="Cancellation Type" Dense="true"
                        Margin="Margin.Dense">
                 <MudSelectItem Value="CancellationType.AfterCurrent">Cancel after current</MudSelectItem>
-                @* <MudSelectItem Value="CancellationType.ImmediateGraceful">Cancel current step gracefully</MudSelectItem> *@
                 <MudSelectItem Value="CancellationType.ImmediateKill">Kill current step</MudSelectItem>
             </MudSelect>
         }

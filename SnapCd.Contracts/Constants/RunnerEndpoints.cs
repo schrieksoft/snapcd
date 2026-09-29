@@ -43,7 +43,6 @@ public static class RunnerEndpoints
     public const string ImportInit = "ImportInit";
     public const string RemoveGetModule = "RemoveGetModule";
     public const string RemoveInit = "RemoveInit";
-    public const string Variables = "Input";
     public const string ApplyPlan = "ApplyPlan";
     public const string DestroyPlan = "DestroyPlan";
     public const string SplitPlanEmptyVerify = "SplitPlanEmptyVerify";
@@ -76,7 +75,8 @@ public static class RunnerEndpoints
     public const string ApplyFromPlan = "ApplyFromPlan";
     public const string DestroyFromPlan = "DestroyFromPlan";
     public const string SourceRefresh = "SourceRefresh";
-    public const string CancelKill = "CancelKill";
-    public const string CancelGraceful = "CancelGraceful";
+    public const string ApplyCancelKill = "ApplyCancelKill";
+    public const string DestroyCancelKill = "DestroyCancelKill";
+    public const string SplitCancelKill = "SplitCancelKill";
     public const string Ping = "Ping";
 }

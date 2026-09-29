@@ -23,7 +23,7 @@ public partial class Tasks
     public Task StateListFiltered(StateListFilteredRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, nameof(StateListFiltered), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration(
                     $"Checking {request.Addresses.Count} addresses against this module's state");
@@ -32,7 +32,7 @@ public partial class Tasks
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
                 var (present, absent) = await engine.StateListFiltered(
-                    request.Addresses, killToken, gracefulToken);
+                    request.Addresses, killToken);
 
                 if (present.Count > 0)
                 {

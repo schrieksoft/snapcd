@@ -22,7 +22,7 @@ public static class AgentEndpoints
     public const string AutoFix = "AutoFix";
 
     /// <summary>Server → agent: cancel an in-flight mission run (the agent twin of
-    /// <c>RunnerEndpoints.CancelGraceful</c>). Carries a <c>CancelMissionRequest</c>.</summary>
+    /// <c>RunnerEndpoints.ApplyCancelKill</c>). Carries a <c>CancelMissionRequest</c>.</summary>
     public const string CancelMission = "CancelMission";
     public const string Ping = "Ping";
 }

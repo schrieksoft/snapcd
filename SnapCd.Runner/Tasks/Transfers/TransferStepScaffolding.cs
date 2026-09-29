@@ -27,16 +27,14 @@ public partial class Tasks
         JobMetadata metadata,
         int reportFrequencySeconds,
         HubConnection connection,
-        Func<RunnerTaskContext, RunnerHubClient, CancellationToken, CancellationToken, Task> run,
+        Func<RunnerTaskContext, RunnerHubClient, CancellationToken, Task> run,
         Func<RunnerHubClient, string?, string?, Task> fault)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(jobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(jobId, gracefulCts, CancellationType.ImmediateGraceful);
 
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             jobId, task, connection, TimeSpan.FromSeconds(reportFrequencySeconds), reportingCts.Token);
 
@@ -46,7 +44,7 @@ public partial class Tasks
 
         try
         {
-            await run(taskContext, runnerHubClient, killCts.Token, gracefulCts.Token);
+            await run(taskContext, runnerHubClient, killCts.Token);
             taskContext.LogSection($"Completed {task}");
         }
         catch (OperationCanceledException)
@@ -70,7 +68,6 @@ public partial class Tasks
             catch { /* Already logged */ }
 
             _processRegistry.Remove(jobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(jobId, CancellationType.ImmediateGraceful);
         }
     }
 }

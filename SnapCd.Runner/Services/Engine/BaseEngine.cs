@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
@@ -21,14 +20,6 @@ using SnapCd.Runner.Utils;
 using File = System.IO.File;
 
 namespace SnapCd.Runner.Services;
-
-public static class NativeMethods
-{
-    [DllImport("libc", SetLastError = true)]
-    public static extern int kill(int pid, int sig);
-
-    public const int Sigint = 2;
-}
 
 /// <summary>
 /// Process failure that preserves captured stdout/stderr — callers that need to classify the
@@ -89,10 +80,9 @@ public abstract class BaseEngine
     /// </summary>
     public virtual async Task<(List<string> Present, List<string> Absent)> StateListFiltered(
         IReadOnlyCollection<string> addresses,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
-        var inState = await ListState(killCancellationToken, gracefulCancellationToken);
+        var inState = await ListState(killCancellationToken);
 
         return Compare(addresses, inState);
     }
@@ -113,8 +103,7 @@ public abstract class BaseEngine
     public virtual async Task<List<(string Address, bool Succeeded)>> Move(
         IReadOnlyCollection<(string Address, string? Target)> instructions,
         bool dryRun = false,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var results = new List<(string, bool)>();
 
@@ -124,7 +113,7 @@ public abstract class BaseEngine
 
             try
             {
-                await RunMove(address, target, dryRun, killCancellationToken, gracefulCancellationToken);
+                await RunMove(address, target, dryRun, killCancellationToken);
                 results.Add((address, true));
             }
             catch (OperationCanceledException)
@@ -144,8 +133,7 @@ public abstract class BaseEngine
     /// <summary>Imports each address from the id it already has, one command per address.</summary>
     public virtual async Task<List<(string Address, bool Succeeded)>> Import(
         IReadOnlyCollection<(string Address, string? Target)> instructions,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var results = new List<(string, bool)>();
 
@@ -155,7 +143,7 @@ public abstract class BaseEngine
 
             try
             {
-                await RunImport(address, target, killCancellationToken, gracefulCancellationToken);
+                await RunImport(address, target, killCancellationToken);
                 results.Add((address, true));
             }
             catch (OperationCanceledException)
@@ -176,8 +164,7 @@ public abstract class BaseEngine
     public virtual async Task<List<(string Address, bool Succeeded)>> Remove(
         IReadOnlyCollection<string> addresses,
         bool dryRun = false,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var results = new List<(string, bool)>();
 
@@ -187,7 +174,7 @@ public abstract class BaseEngine
 
             try
             {
-                await RunRemove(address, dryRun, killCancellationToken, gracefulCancellationToken);
+                await RunRemove(address, dryRun, killCancellationToken);
                 results.Add((address, true));
             }
             catch (OperationCanceledException)
@@ -206,23 +193,22 @@ public abstract class BaseEngine
 
     protected virtual Task RunMove(
         string address, string? target, bool dryRun,
-        CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken) =>
+        CancellationToken killCancellationToken) =>
         throw new NotSupportedException($"{GetType().Name} cannot move state addresses.");
 
     protected virtual Task RunImport(
         string address, string? target,
-        CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken) =>
+        CancellationToken killCancellationToken) =>
         throw new NotSupportedException($"{GetType().Name} cannot import state addresses.");
 
     protected virtual Task RunRemove(
         string address, bool dryRun,
-        CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken) =>
+        CancellationToken killCancellationToken) =>
         throw new NotSupportedException($"{GetType().Name} cannot remove state addresses.");
 
     /// <summary>Every address in this Module's state. Never logged, never sent on.</summary>
     protected virtual Task<HashSet<string>> ListState(
-        CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken) =>
+        CancellationToken killCancellationToken) =>
         throw new NotSupportedException($"{GetType().Name} cannot list state addresses.");
 
     /// <summary>
@@ -232,7 +218,6 @@ public abstract class BaseEngine
     public async Task<string> RunProcess(
         string script,
         CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken,
         bool logOutput = true)
     {
         EnsureEnvVarsLoaded();
@@ -263,18 +248,6 @@ public abstract class BaseEngine
         var process = new Process { StartInfo = startInfo };
         var outputBuilder = new StringBuilder();
         var errorBuilder = new StringBuilder();
-
-        gracefulCancellationToken.Register(() =>
-        {
-            if (!process.HasExited)
-            {
-                var result = NativeMethods.kill(process.Id, NativeMethods.Sigint);
-                if (result == 0)
-                    Context.LogInformation("Sent SIGINT to process for graceful termination.");
-                else
-                    Context.LogError("Failed to send SIGINT. Process might already be terminated or access is denied.");
-            }
-        });
 
         killCancellationToken.Register(() =>
         {
@@ -314,8 +287,7 @@ public abstract class BaseEngine
         process.BeginErrorReadLine();
 
         using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
-                   killCancellationToken,
-                   gracefulCancellationToken))
+                   killCancellationToken))
         {
             await process.WaitForExitAsync(linkedCts.Token);
         }

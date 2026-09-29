@@ -31,7 +31,7 @@ public partial class Tasks
     public Task MoveDryRun(StateMoveRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.MoveDryRun, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration(
                     $"Checking what a move over {request.Instructions.Count} addresses would do");
@@ -41,7 +41,7 @@ public partial class Tasks
 
                 var outcomes = await engine.Move(
                     request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
-                    dryRun: true, killToken, gracefulToken);
+                    dryRun: true, killToken);
 
                 var results = Results(outcomes, request);
 
@@ -59,7 +59,7 @@ public partial class Tasks
     public Task RemoveDryRun(StateMoveRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.RemoveDryRun, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration(
                     $"Checking what removing {request.Instructions.Count} addresses would take out");
@@ -69,7 +69,7 @@ public partial class Tasks
 
                 var outcomes = await engine.Remove(
                     request.Instructions.Select(i => i.Address).ToList(),
-                    dryRun: true, killToken, gracefulToken);
+                    dryRun: true, killToken);
 
                 var results = Results(outcomes, request);
 
@@ -88,7 +88,7 @@ public partial class Tasks
     public Task ImportPreCheck(StateMoveRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.ImportPreCheck, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration(
                     $"Checking whether {request.Instructions.Count} addresses are free to import onto");
@@ -97,7 +97,7 @@ public partial class Tasks
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
                 var (present, _) = await engine.StateListFiltered(
-                    request.Instructions.Select(i => i.Address).ToList(), killToken, gracefulToken);
+                    request.Instructions.Select(i => i.Address).ToList(), killToken);
 
                 var occupied = present.ToHashSet();
                 var results = new List<StateAddressResult>();
@@ -131,7 +131,7 @@ public partial class Tasks
     public Task Move(StateMoveRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateMove, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration($"Moving {request.Instructions.Count} addresses");
                 taskContext.LogBreak();
@@ -140,7 +140,7 @@ public partial class Tasks
 
                 var outcomes = await engine.Move(
                     request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
-                    dryRun: false, killToken, gracefulToken);
+                    dryRun: false, killToken);
 
                 await InvokeWithRetryAsync(
                     () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
@@ -153,7 +153,7 @@ public partial class Tasks
     public Task Import(StateMoveRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateImport, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration($"Importing {request.Instructions.Count} addresses");
                 taskContext.LogBreak();
@@ -162,7 +162,7 @@ public partial class Tasks
 
                 var outcomes = await engine.Import(
                     request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
-                    killToken, gracefulToken);
+                    killToken);
 
                 await InvokeWithRetryAsync(
                     () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),
@@ -175,7 +175,7 @@ public partial class Tasks
     public Task Remove(StateMoveRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateRemove, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
-            async (taskContext, client, killToken, gracefulToken) =>
+            async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration($"Removing {request.Instructions.Count} addresses from state");
                 taskContext.LogBreak();
@@ -184,7 +184,7 @@ public partial class Tasks
 
                 var outcomes = await engine.Remove(
                     request.Instructions.Select(i => i.Address).ToList(),
-                    dryRun: false, killToken, gracefulToken);
+                    dryRun: false, killToken);
 
                 await InvokeWithRetryAsync(
                     () => client.InvokeStateMoveCompleted(request.JobId, Results(outcomes, request)),

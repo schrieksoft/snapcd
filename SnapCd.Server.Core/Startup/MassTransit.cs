@@ -283,8 +283,9 @@ public static class MassTransit
         typeof(TransferJobEndedCompetingConsumer),
 
         // cancel
-        typeof(CancelKillConsumer),
-        typeof(CancelGracefulConsumer)
+        typeof(ApplyCancelKillConsumer),
+        typeof(DestroyCancelKillConsumer),
+        typeof(SplitCancelKillConsumer)
     ];
 
     // Agent mission (Layer 2) dispatch consumers - instance-specific endpoints for targeted sends, like runners
@@ -499,7 +500,10 @@ public static class MassTransit
                 ApplyPlanCancelled,
                 ApplyFromPlanRequested,
                 ApplyFromPlanCompleted,
-                ApplyFromPlanCancelled
+                ApplyFromPlanCancelled,
+                ApplyCancelKillRequested,
+                DummyApplyCancelKillCompleted,
+                ApplyCancelKillCompleted
             >,
             ApplyJobSaga>(x);
 
@@ -543,7 +547,10 @@ public static class MassTransit
                 DestroyPlanCancelled,
                 DestroyFromPlanRequested,
                 DestroyFromPlanCompleted,
-                DestroyFromPlanCancelled
+                DestroyFromPlanCancelled,
+                DestroyCancelKillRequested,
+                DummyDestroyCancelKillCompleted,
+                DestroyCancelKillCompleted
             >, DestroyJobSaga>(x);
     }
 

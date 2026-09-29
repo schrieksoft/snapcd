@@ -36,8 +36,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
     public Task<string> ExportPlanJson(
         bool isDestroyJob,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         // CrossGuard policies run inside the preview itself; the PolicyValidate step is never
         // dispatched for Pulumi modules.
@@ -83,8 +82,7 @@ public class PulumiEngine : BaseEngine, IEngine
         string? beforeHook,
         string? afterHook,
         EngineBackendConfiguration backendConfig,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var merged = new Dictionary<string, string>(RunnerEnvVars);
         foreach (var kvp in resolvedEnvVars)
@@ -117,14 +115,13 @@ public class PulumiEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/init.sh", script);
 
-        return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        return await RunProcess(script, killCancellationToken);
     }
 
     public async Task Validate(
         string? beforeHook = null,
         string? afterHook = null,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         // Pulumi has no direct validate equivalent.
         // Run a preview as a best-effort validation.
@@ -136,17 +133,16 @@ public class PulumiEngine : BaseEngine, IEngine
             afterHook,
             killCancellationToken);
 
-        await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        await RunProcess(script, killCancellationToken);
     }
 
     public async Task<string> Plan(
         Dictionary<string, string> parameters,
         string? planBeforeHook,
         string? planAfterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
-        await WriteConfigValues(parameters, killCancellationToken, gracefulCancellationToken);
+        await WriteConfigValues(parameters, killCancellationToken);
 
         var planPath = GetPlanPath();
         var phaseArgs = GetFlagArgs();
@@ -160,17 +156,16 @@ public class PulumiEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/plan.sh", script);
 
-        return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        return await RunProcess(script, killCancellationToken);
     }
 
     public async Task<string> PlanDestroy(
         Dictionary<string, string> parameters,
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
-        await WriteConfigValues(parameters, killCancellationToken, gracefulCancellationToken);
+        await WriteConfigValues(parameters, killCancellationToken);
 
         var destroyPreviewPath = GetDestroyPreviewPath();
         var phaseArgs = GetFlagArgs();
@@ -186,7 +181,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/plan_destroy.sh", script);
 
-        var result = await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        var result = await RunProcess(script, killCancellationToken);
 
         LogDestroyPreview(destroyPreviewPath);
 
@@ -196,8 +191,7 @@ public class PulumiEngine : BaseEngine, IEngine
     public async Task<string> ApplyFromPlan(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var exportPath = $"{SnapCdDir}/{ExportFileName}";
         var phaseArgs = GetFlagArgs();
@@ -211,7 +205,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/apply.sh", script);
 
-        var result = await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        var result = await RunProcess(script, killCancellationToken);
 
         await WriteStatisticsFromExport(exportPath);
 
@@ -221,8 +215,7 @@ public class PulumiEngine : BaseEngine, IEngine
     public async Task<string> DestroyFromPlan(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var exportPath = $"{SnapCdDir}/{ExportFileName}";
         var phaseArgs = GetFlagArgs();
@@ -236,7 +229,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/destroy.sh", script);
 
-        var result = await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        var result = await RunProcess(script, killCancellationToken);
 
         await WriteStatisticsFromExport(exportPath);
 
@@ -246,8 +239,7 @@ public class PulumiEngine : BaseEngine, IEngine
     public async Task<string> Output(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var outputPath = $"{SnapCdDir}/{OutputFileName}";
         var phaseArgs = GetFlagArgs();
@@ -259,7 +251,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         await File.WriteAllTextAsync($"{SnapCdDir}/output.sh", script);
 
-        await RunProcess(script, killCancellationToken, gracefulCancellationToken);
+        await RunProcess(script, killCancellationToken);
 
         var rawJson = await File.ReadAllTextAsync(outputPath);
         var rawOutputs = JObject.Parse(rawJson);
@@ -281,27 +273,24 @@ public class PulumiEngine : BaseEngine, IEngine
     }
 
     public async Task<int> Statistics(
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         var exportPath = $"{SnapCdDir}/{ExportFileName}";
         await RunProcess(
             $"pulumi stack export > {exportPath}",
-            killCancellationToken,
-            gracefulCancellationToken);
+            killCancellationToken);
 
         return CountResourcesFromExport(exportPath);
     }
 
     public async Task<int> CountResourcesInState(
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default)
+        CancellationToken killCancellationToken = default)
     {
         try
         {
-            return await Statistics(killCancellationToken, gracefulCancellationToken);
+            return await Statistics(killCancellationToken);
         }
-        catch (ProcessFailedException) when (!killCancellationToken.IsCancellationRequested && !gracefulCancellationToken.IsCancellationRequested)
+        catch (ProcessFailedException) when (!killCancellationToken.IsCancellationRequested)
         {
             // A stack that was never created cannot be exported — nothing to destroy.
             return 0;
@@ -438,8 +427,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
     private async Task WriteConfigValues(
         Dictionary<string, string> parameters,
-        CancellationToken killCancellationToken,
-        CancellationToken gracefulCancellationToken)
+        CancellationToken killCancellationToken)
     {
         if (parameters.Count == 0) return;
 
@@ -449,7 +437,7 @@ public class PulumiEngine : BaseEngine, IEngine
 
         var configScript = string.Join("\n", configCommands);
         await File.WriteAllTextAsync($"{SnapCdDir}/config.sh", configScript);
-        await RunProcess(configScript, killCancellationToken, gracefulCancellationToken);
+        await RunProcess(configScript, killCancellationToken);
     }
 
     private void LogDestroyPreview(string previewPath)

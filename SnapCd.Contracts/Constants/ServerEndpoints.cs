@@ -96,8 +96,9 @@ public static class ServerEndpoints
 
     public const string ReportRunningTask = "ReportRunningTask";
     
-    public const string CancelKillCompleted = "CancelKillCompleted";
-    public const string CancelGracefulCompleted = "CancelGracefulCompleted";
+    public const string ApplyCancelKillCompleted = "ApplyCancelKillCompleted";
+    public const string DestroyCancelKillCompleted = "DestroyCancelKillCompleted";
+    public const string SplitCancelKillCompleted = "SplitCancelKillCompleted";
     
 
     // Every family reports a shared step on its own endpoint: the runner runs one task,

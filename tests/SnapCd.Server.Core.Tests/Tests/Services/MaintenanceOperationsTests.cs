@@ -67,7 +67,10 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 
@@ -330,7 +333,7 @@ public class MaintenanceOperationsTests : IAsyncLifetime
         var pending = await SeedSaga("PlanPending", "ops-cancel");
         var approval = await SeedSaga("WaitingForApproval", "ops-cancel");
 
-        var result = await CreateService().CancelAllJobsAsync(CancellationType.ImmediateGraceful);
+        var result = await CreateService().CancelAllJobsAsync(CancellationType.AfterCurrent);
 
         Assert.True(await _harness.Published.Any<CancelModuleRequested>(x => x.Context.Message.CorrelationId == pending));
         Assert.True(await _harness.Published.Any<CancelModuleRequested>(x => x.Context.Message.CorrelationId == approval));
@@ -341,7 +344,7 @@ public class MaintenanceOperationsTests : IAsyncLifetime
         {
             await using var db = _fixture.CreateDbContext();
             var saga = await db.ApplyJobSagas.AsNoTracking().SingleAsync(s => s.CorrelationId == pending);
-            if (saga.CurrentState == "CancellingImmediateGraceful") return;
+            if (saga.CurrentState == "CancellingAfterCurrent") return;
             await Task.Delay(100);
         }
 

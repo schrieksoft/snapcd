@@ -66,7 +66,10 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;
 using DestroyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Entities.Sagas.DestroyJobSaga,
     SnapCd.Server.Core.Events.Jobs.Module.DestroyModuleRequested,
@@ -106,7 +109,10 @@ using DestroyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Steps.DestroyPlanCancelled,
     SnapCd.Server.Core.Events.Steps.DestroyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.DestroyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.DestroyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.DestroyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyDestroyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyCancelKillCompleted>;
 
 namespace SnapCd.Server.Core.Tests.Tests.StateMachine;
 

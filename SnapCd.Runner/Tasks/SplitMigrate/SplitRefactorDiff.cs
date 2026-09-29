@@ -26,10 +26,8 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(SplitRefactorDiff),
@@ -61,7 +59,7 @@ public partial class Tasks
             // refactor diff takes no --engine: it compares files without asking the engine.
             var command = DemonolithCommand.Build("split refactor diff", request.RootDirectory, engine: null);
 
-            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeRefactorDiffCompleted(request.JobId),
@@ -100,7 +98,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

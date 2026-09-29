@@ -24,10 +24,8 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(TransferMigrateMap),
@@ -55,7 +53,7 @@ public partial class Tasks
 
             var command = DemonolithCommand.Build("transfer migrate map", request.RootDirectory, request.Engine);
 
-            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeTransferMigrateMapCompleted(
@@ -92,7 +90,6 @@ public partial class Tasks
             catch { /* Already logged */ }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 
@@ -102,10 +99,8 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(TransferMigrateProve),
@@ -133,7 +128,7 @@ public partial class Tasks
 
             var command = DemonolithCommand.Build("transfer migrate prove", request.RootDirectory, request.Engine);
 
-            await engine.RunProcess(command, killCts.Token, gracefulCts.Token);
+            await engine.RunProcess(command, killCts.Token);
 
             var outputs = await TransferFiles.ReadOutputs(request.RootDirectory);
 
@@ -172,7 +167,6 @@ public partial class Tasks
             catch { /* Already logged */ }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

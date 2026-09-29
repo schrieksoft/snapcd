@@ -188,7 +188,6 @@ else
                     This cannot be undone.
                 </MudText>
                 <MudSelect T="CancellationType" @bind-Value="_cancellationType" Label="Cancellation type" Style="max-width: 300px;" Class="mb-2">
-                    <MudSelectItem Value="CancellationType.ImmediateGraceful">ImmediateGraceful — let the current step stop cleanly</MudSelectItem>
                     <MudSelectItem Value="CancellationType.AfterCurrent">AfterCurrent — wait for the current step to finish</MudSelectItem>
                     <MudSelectItem Value="CancellationType.ImmediateKill">ImmediateKill — stop now, may leave state locked</MudSelectItem>
                 </MudSelect>
@@ -399,7 +398,7 @@ else
     private TransportDepths? _transport;
     private ResumeSweepResult? _sweepResult;
     private CancelAllResult? _cancelResult;
-    private CancellationType _cancellationType = CancellationType.ImmediateGraceful;
+    private CancellationType _cancellationType = CancellationType.AfterCurrent;
     private string? _reason;
     private string? _error;
 
