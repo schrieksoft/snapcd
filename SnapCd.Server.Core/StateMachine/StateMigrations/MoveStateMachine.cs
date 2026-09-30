@@ -12,6 +12,7 @@ using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.Crud.StateMigrations;
+using SnapCd.Server.Core.Events.Steps;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
@@ -27,7 +28,8 @@ public class MoveStateMachine(ILogger<MoveStateMachine> logger)
         MoveGetModuleCompleted, MoveGetModuleCancelled, MoveGetModuleFaulted,
         MoveInitCompleted, MoveInitCancelled, MoveInitFaulted,
         MoveDryRunRequested, MoveDryRunCompleted, MoveDryRunCancelled, MoveDryRunFaulted,
-        MoveRequested, MoveCompleted, MoveCancelled, MoveFaulted>(logger)
+        MoveRequested, MoveCompleted, MoveCancelled, MoveFaulted,
+        MoveCancelKillRequested, DummyMoveCancelKillCompleted, MoveCancelKillCompleted>(logger)
 {
     protected override string Verb => "Move";
 

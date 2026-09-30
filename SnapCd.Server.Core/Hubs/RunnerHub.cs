@@ -1362,6 +1362,27 @@ public class RunnerHub : Hub
         await _cancelKillHandler.Complete<Events.Steps.SplitCancelKillCompleted>(jobId);
     }
 
+    public async Task MoveCancelKillCompleted(Guid jobId)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob<MoveSaga>(Context, jobId);
+
+        await _cancelKillHandler.Complete<Events.Steps.MoveCancelKillCompleted>(jobId);
+    }
+
+    public async Task ImportCancelKillCompleted(Guid jobId)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob<ImportSaga>(Context, jobId);
+
+        await _cancelKillHandler.Complete<Events.Steps.ImportCancelKillCompleted>(jobId);
+    }
+
+    public async Task RemoveCancelKillCompleted(Guid jobId)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob<RemoveSaga>(Context, jobId);
+
+        await _cancelKillHandler.Complete<Events.Steps.RemoveCancelKillCompleted>(jobId);
+    }
+
 
     // Each manual family answers on its own endpoints. The endpoint names the family, so the
     // saga is read from that family's table rather than searched for across all of them.

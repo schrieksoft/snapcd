@@ -32,7 +32,8 @@ public abstract partial class TerraformStateMigrationStateMachine<
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
     TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
-    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted>
+    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted,
+    TCancelKillRequested, TDummyCancelKillCompleted, TCancelKillCompleted>
 {
     /// <summary>
     /// Everything a job does before it does its own work: pick the runner, fetch the code,

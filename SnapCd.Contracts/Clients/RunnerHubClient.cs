@@ -475,6 +475,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitCancelKillCompleted, jobId);
     }
 
+    public async Task InvokeMoveCancelKillCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.MoveCancelKillCompleted, jobId);
+    }
+
+    public async Task InvokeImportCancelKillCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportCancelKillCompleted, jobId);
+    }
+
+    public async Task InvokeRemoveCancelKillCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveCancelKillCompleted, jobId);
+    }
+
     // One wrapper per family per outcome, so a task is handed the exact endpoint to answer on
     // and a wrong one cannot compile.
 

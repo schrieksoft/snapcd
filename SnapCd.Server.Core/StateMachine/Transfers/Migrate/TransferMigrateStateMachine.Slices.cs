@@ -204,6 +204,15 @@ public partial class TransferMigrateStateMachine
                     "Transfer: Module {ModuleId} landed but its outputs could not be read",
                     context.Saga.ModuleId))
                 .ThenJobCompleted().TransitionTo(Completed).Finalize(),
+
+            // The transfer has landed by then, so the outputs read is the operator's to abandon
+            // and the job completes, as it does when that read faults.
+            When(CancelRequested)
+                .Then(context => _logger.LogInformation(
+                    "Transfer: outputs read cancelled for Module {ModuleId}",
+                    context.Saga.ModuleId))
+                .ThenAsync(context => RecordCompleted(context, "TransferOutputs", StateMigrationStepStatus.Cancelled))
+                .ThenJobCompleted().TransitionTo(Completed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)

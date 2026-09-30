@@ -28,7 +28,8 @@ public abstract partial class TerraformStateMigrationStateMachine<
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
     TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
-    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted>
+    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted,
+    TCancelKillRequested, TDummyCancelKillCompleted, TCancelKillCompleted>
 {
     public Event<ApprovalReevaluationRequestedEvent> ApprovalModifiedEvent { get; } = null!;
 

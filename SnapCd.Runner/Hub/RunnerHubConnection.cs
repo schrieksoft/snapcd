@@ -720,6 +720,27 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
+        _connection.On<CancelKillRequest>(RunnerEndpoints.MoveCancelKill, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.MoveCancelKill(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<CancelKillRequest>(RunnerEndpoints.ImportCancelKill, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.ImportCancelKill(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
+        _connection.On<CancelKillRequest>(RunnerEndpoints.RemoveCancelKill, (request) =>
+            {
+                Task.Run(async () => { await _tasks.Value.RemoveCancelKill(request, _connection); });
+                return Task.CompletedTask;
+            }
+        );
+
         // Start the connection
         await _connection.StartAsync(cancellationToken);
         _logger.LogInformation("Connected to SignalR hub");

@@ -293,7 +293,10 @@ public static class MassTransit
         // cancel
         typeof(ApplyCancelKillConsumer),
         typeof(DestroyCancelKillConsumer),
-        typeof(SplitCancelKillConsumer)
+        typeof(SplitCancelKillConsumer),
+        typeof(MoveCancelKillConsumer),
+        typeof(ImportCancelKillConsumer),
+        typeof(RemoveCancelKillConsumer)
     ];
 
     // Agent mission (Layer 2) dispatch consumers - instance-specific endpoints for targeted sends, like runners

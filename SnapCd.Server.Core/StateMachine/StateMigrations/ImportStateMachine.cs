@@ -11,6 +11,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Events.Steps;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
@@ -26,7 +27,8 @@ public class ImportStateMachine(ILogger<ImportStateMachine> logger)
         ImportGetModuleCompleted, ImportGetModuleCancelled, ImportGetModuleFaulted,
         ImportInitCompleted, ImportInitCancelled, ImportInitFaulted,
         ImportPreCheckRequested, ImportPreCheckCompleted, ImportPreCheckCancelled, ImportPreCheckFaulted,
-        ImportRequested, ImportCompleted, ImportCancelled, ImportFaulted>(logger)
+        ImportRequested, ImportCompleted, ImportCancelled, ImportFaulted,
+        ImportCancelKillRequested, DummyImportCancelKillCompleted, ImportCancelKillCompleted>(logger)
 {
     protected override string Verb => "Import";
 

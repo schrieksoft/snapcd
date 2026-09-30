@@ -103,6 +103,9 @@ public static class ServerEndpoints
     public const string ApplyCancelKillCompleted = "ApplyCancelKillCompleted";
     public const string DestroyCancelKillCompleted = "DestroyCancelKillCompleted";
     public const string SplitCancelKillCompleted = "SplitCancelKillCompleted";
+    public const string MoveCancelKillCompleted = "MoveCancelKillCompleted";
+    public const string ImportCancelKillCompleted = "ImportCancelKillCompleted";
+    public const string RemoveCancelKillCompleted = "RemoveCancelKillCompleted";
     
 
     // Every family reports a shared step on its own endpoint: the runner runs one task,

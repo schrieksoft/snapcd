@@ -122,3 +122,36 @@ public class SplitCancelKillConsumer : CancelKillConsumer<SplitCancelKillRequest
 
     protected override string Endpoint => RunnerEndpoints.SplitCancelKill;
 }
+
+public class MoveCancelKillConsumer : CancelKillConsumer<MoveCancelKillRequested>
+{
+    public MoveCancelKillConsumer(
+        ILogger<MoveCancelKillConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerConnectionRepositoryFactory connectionRepositoryFactory)
+        : base(logger, hubContext, connectionRepositoryFactory) { }
+
+    protected override string Endpoint => RunnerEndpoints.MoveCancelKill;
+}
+
+public class ImportCancelKillConsumer : CancelKillConsumer<ImportCancelKillRequested>
+{
+    public ImportCancelKillConsumer(
+        ILogger<ImportCancelKillConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerConnectionRepositoryFactory connectionRepositoryFactory)
+        : base(logger, hubContext, connectionRepositoryFactory) { }
+
+    protected override string Endpoint => RunnerEndpoints.ImportCancelKill;
+}
+
+public class RemoveCancelKillConsumer : CancelKillConsumer<RemoveCancelKillRequested>
+{
+    public RemoveCancelKillConsumer(
+        ILogger<RemoveCancelKillConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerConnectionRepositoryFactory connectionRepositoryFactory)
+        : base(logger, hubContext, connectionRepositoryFactory) { }
+
+    protected override string Endpoint => RunnerEndpoints.RemoveCancelKill;
+}

@@ -27,6 +27,18 @@ public partial class Tasks
         CancelKill(request, connection,
             c => c.InvokeSplitCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeSplitCancelKillCompleted));
 
+    public Task MoveCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeMoveCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeMoveCancelKillCompleted));
+
+    public Task ImportCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeImportCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeImportCancelKillCompleted));
+
+    public Task RemoveCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeRemoveCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeRemoveCancelKillCompleted));
+
     /// <summary>
     /// Killing the process is the same work for every family; the endpoint the outcome is reported
     /// on is not, so the caller hands in the reply to make.

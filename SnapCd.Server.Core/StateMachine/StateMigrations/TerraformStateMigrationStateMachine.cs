@@ -45,7 +45,8 @@ public abstract partial class TerraformStateMigrationStateMachine<
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
     TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
-    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted>
+    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted,
+    TCancelKillRequested, TDummyCancelKillCompleted, TCancelKillCompleted>
     : MassTransitStateMachine<TSaga>
     where TSaga : TerraformStateMigrationSagaBase, new()
     where TJobRequested : TerraformStateMigrationJobRequestedBase
@@ -70,6 +71,9 @@ public abstract partial class TerraformStateMigrationStateMachine<
     where TMigrateStateCompleted : TerraformStateMigrationResponseBase
     where TMigrateStateCancelled : StepResponseBase
     where TMigrateStateFaulted : StepFaultedBase
+    where TCancelKillRequested : CancelKillRequestedBase, new()
+    where TDummyCancelKillCompleted : class
+    where TCancelKillCompleted : CancelKillCompletedBase
 {
     private readonly ILogger _logger;
 
@@ -186,6 +190,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
 
         Configure_Approval();
         Configure_Setup();
+        Configure_CancelKill();
 
         // The state migration reports what it managed; the list that follows reports what is actually there.
         During(MigrateStatePending,
@@ -235,6 +240,15 @@ public abstract partial class TerraformStateMigrationStateMachine<
             // The state migration already happened, so a failed list leaves the job done but unobserved.
             When(ListFaulted)
                 .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Faulted))
+                .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize(),
+
+            // Nothing is being written by then, so the read is the operator's to abandon. The
+            // migration still happened, so the job completes rather than failing.
+            When(CancelRequested)
+                .Then(context => _logger.LogInformation(
+                    "{Verb} on Module {ModuleId} was cancelled while listing what it wrote",
+                    Verb, context.Saga.ModuleId))
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Cancelled))
                 .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),

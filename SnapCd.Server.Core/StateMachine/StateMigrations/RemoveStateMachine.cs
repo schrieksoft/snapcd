@@ -11,6 +11,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Events.Steps;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
@@ -26,7 +27,8 @@ public class RemoveStateMachine(ILogger<RemoveStateMachine> logger)
         RemoveGetModuleCompleted, RemoveGetModuleCancelled, RemoveGetModuleFaulted,
         RemoveInitCompleted, RemoveInitCancelled, RemoveInitFaulted,
         RemoveDryRunRequested, RemoveDryRunCompleted, RemoveDryRunCancelled, RemoveDryRunFaulted,
-        RemoveRequested, RemoveCompleted, RemoveCancelled, RemoveFaulted>(logger)
+        RemoveRequested, RemoveCompleted, RemoveCancelled, RemoveFaulted,
+        RemoveCancelKillRequested, DummyRemoveCancelKillCompleted, RemoveCancelKillCompleted>(logger)
 {
     protected override string Verb => "Remove";
 

@@ -36,3 +36,21 @@ public class SplitCancelKillCompleted : CancelKillCompletedBase;
 
 public class DummySplitCancelKillCompleted : StepResponseBase;
 
+
+public class MoveCancelKillRequested : CancelKillRequestedBase;
+
+public class MoveCancelKillCompleted : CancelKillCompletedBase;
+
+public class DummyMoveCancelKillCompleted : StepResponseBase;
+
+public class ImportCancelKillRequested : CancelKillRequestedBase;
+
+public class ImportCancelKillCompleted : CancelKillCompletedBase;
+
+public class DummyImportCancelKillCompleted : StepResponseBase;
+
+public class RemoveCancelKillRequested : CancelKillRequestedBase;
+
+public class RemoveCancelKillCompleted : CancelKillCompletedBase;
+
+public class DummyRemoveCancelKillCompleted : StepResponseBase;

@@ -78,5 +78,8 @@ public static class RunnerEndpoints
     public const string ApplyCancelKill = "ApplyCancelKill";
     public const string DestroyCancelKill = "DestroyCancelKill";
     public const string SplitCancelKill = "SplitCancelKill";
+    public const string MoveCancelKill = "MoveCancelKill";
+    public const string ImportCancelKill = "ImportCancelKill";
+    public const string RemoveCancelKill = "RemoveCancelKill";
     public const string Ping = "Ping";
 }
