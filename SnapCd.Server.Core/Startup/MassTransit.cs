@@ -95,6 +95,14 @@ public static class MassTransit
             AddSagaStateMachines(x);
             x.AddServerConsumers(instanceId, additionalCompetingConsumerTypes, fanoutTypes);
 
+            // Endpoints configured by ConfigureEndpoints get no retry of their own, and a saga
+            // commits its transition at the end of the consume that dispatched a step - so a reply
+            // that arrives first is rejected, and without this the first rejection is final and the
+            // message dead-letters. The retry re-runs the consumer in process against a saga that
+            // has since settled.
+            x.AddConfigureEndpointsCallback((_, _, endpoint) =>
+                endpoint.UseMessageRetry(r => r.Interval(5, 1000)));
+
             switch (serviceBusSettings.BusType)
             {
                 case BusType.AzureServiceBus:

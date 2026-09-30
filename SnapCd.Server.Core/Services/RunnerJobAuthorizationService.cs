@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR;
+using SnapCd.Contracts.Constants;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -127,46 +128,18 @@ public class RunnerJobAuthorizationService
     }
 
     /// <summary>
-    /// Authorizes a runner callback that every family answers on the same endpoint, so the family
-    /// is not known from the endpoint and each candidate saga is tried in turn.
-    /// </summary>
-    public async Task<Guid> ValidateRunnerCanCancelJob(
-        HubCallerContext hubCallerContext,
-        Guid jobId,
-        string expectedState)
-    {
-        foreach (var attempt in new Func<Task<Guid>>[]
-                 {
-                     () => ValidateRunnerCanAccessJob<ApplyJobSaga>(hubCallerContext, jobId, expectedState),
-                     () => ValidateRunnerCanAccessJob<DestroyJobSaga>(hubCallerContext, jobId, expectedState),
-                     () => ValidateRunnerCanAccessJob<SplitMigrateSaga>(hubCallerContext, jobId, expectedState)
-                 })
-        {
-            try
-            {
-                return await attempt();
-            }
-            catch (HubException)
-            {
-            }
-        }
-
-        _logger.LogWarning(
-            "Authorization failed: no job {JobId} in state {ExpectedState} for connection {ConnectionId}",
-            jobId, expectedState, hubCallerContext.ConnectionId);
-        throw new HubException($"Could not find a Job with correlation id {jobId}.");
-    }
-
-    /// <summary>
-    /// Authorizes a runner callback for one job family. The endpoint the reply arrived on says
-    /// which family it belongs to, so the saga is read from that family's own table rather than
-    /// searched for across all of them. A transfer runs two Modules under one job, so the Module
-    /// is named as well and the runner must be the one that Module was pinned to.
+    /// Authorizes a runner callback for one job family: that the connection is known, the job
+    /// exists, and the caller is the runner instance the job was pinned to. Whether the saga is in
+    /// a state that accepts the reply is the saga's own decision, raised as an unhandled event and
+    /// retried by the endpoint, so it is not answered here.
+    ///
+    /// The endpoint the reply arrived on says which family it belongs to, so the saga is read from
+    /// that family's own table rather than searched for across all of them. A transfer runs two
+    /// Modules under one job, so the Module is named as well.
     /// </summary>
     public async Task<Guid> ValidateRunnerCanAccessJob<TSaga>(
         HubCallerContext hubCallerContext,
         Guid jobId,
-        string expectedState,
         Guid? moduleId = null)
         where TSaga : JobSagaBase
     {
@@ -194,11 +167,7 @@ public class RunnerJobAuthorizationService
             query = query.Where(x => x.ModuleId == moduleId.Value);
 
         var saga = await query
-            .Select(x => new
-            {
-                x.CurrentState, x.PreviousStateBeforeCancelling,
-                x.RunnerId, x.RunnerInstanceName, x.OrganizationId
-            })
+            .Select(x => new { x.RunnerId, x.RunnerInstanceName, x.OrganizationId })
             .FirstOrDefaultAsync();
 
         if (saga == null)
@@ -207,23 +176,6 @@ public class RunnerJobAuthorizationService
                 "Authorization failed: {Family} job {JobId} not found (Module: {ModuleId}, Connection: {ConnectionId})",
                 family, jobId, moduleId, hubCallerContext.ConnectionId);
             throw new HubException($"Could not find a Job with correlation id {jobId}.");
-        }
-
-        // A step dispatched before a cancellation arrived still reports back on the state it was
-        // dispatched in, so that state is accepted while the saga is cancelling.
-        var isStateValid = saga.CurrentState == expectedState
-                           || (SagaStates.Cancelling.Contains(saga.CurrentState)
-                               && saga.PreviousStateBeforeCancelling == expectedState);
-
-        if (!isStateValid)
-        {
-            _logger.LogWarning(
-                "Authorization failed: {Family} job {JobId} is in state {CurrentState}, expected {ExpectedState} " +
-                "(Runner: {RunnerId}/{RunnerName})",
-                family, jobId, saga.CurrentState, expectedState,
-                connection.RunnerId, connection.InstanceName);
-            throw new HubException(
-                $"Unauthorized: Job is in state '{saga.CurrentState}', expected '{expectedState}'");
         }
 
         if (saga.RunnerId != connection.RunnerId)
@@ -244,8 +196,8 @@ public class RunnerJobAuthorizationService
         }
 
         _logger.LogDebug(
-            "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for {Family} job {JobId} in state {State}",
-            connection.RunnerId, connection.InstanceName, family, jobId, expectedState);
+            "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for {Family} job {JobId}",
+            connection.RunnerId, connection.InstanceName, family, jobId);
 
         return saga.OrganizationId;
     }

@@ -18,7 +18,10 @@ public enum JobKind
     Import,
     Remove,
     Split,
-    Transfer
+    Transfer,
+
+    /// <summary>Not a job kind: forces the state-transition race. See RaceRun.</summary>
+    Race
 }
 
 /// <summary>
@@ -104,6 +107,12 @@ public class RunOptions
 
     /// <summary>Sends a throwaway message before the real one.</summary>
     public bool WarmUpSend { get; init; }
+
+    /// <summary>
+    /// For --job race: leave the job unapproved, so the state that refuses the event never
+    /// changes and every retry is spent. Shows the retry exhausting rather than rescuing.
+    /// </summary>
+    public bool RaceWithoutApproval { get; init; }
 
     /// <summary>
     /// MassTransit's own logging at Debug, which shows queue and topic creation, the
@@ -196,7 +205,8 @@ public class RunOptions
                                             "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True"
                   --database      <name>    default: a fresh name per run
                   --job           <kind>    apply (default), list, move, import, remove,
-                                            split or transfer
+                                            split, transfer, or race to force the
+                                            state-transition race
                   --counterparty  <guid>    the transfer's other Module
                   --needs         <a,b>     the outputs the consuming side waits for
                   --addresses     <a,b,c>   the addresses the job names
@@ -248,6 +258,7 @@ public class RunOptions
             SettleSeconds = int.TryParse(Get("settle"), out var st) ? st : 0,
             RetryRequests = int.TryParse(Get("retry-requests"), out var rr) ? rr : 0,
             WarmUpSend = args.Contains("--warm-up"),
+            RaceWithoutApproval = args.Contains("--race-without-approval"),
         };
     }
 

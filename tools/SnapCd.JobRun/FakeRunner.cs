@@ -9,6 +9,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Contracts;
+using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.Constants;
 using Serilog.Events;
 using SnapCd.Contracts.Dto.Misc;
@@ -120,6 +121,20 @@ public class FakeRunner(
             _reporting.Release();
         }
 
+        // The same retry the real runner uses, so a reply that beats the saga's transition is
+        // answered here exactly as it would be in production.
+        await HubInvocationRetry.InvokeAsync(
+            () => Reply(hub, endpoint, payload, jobId),
+            onAttemptFailed: (ex, attempt, delay) =>
+            {
+                trace($"  -> {endpoint} rejected (attempt {attempt}): {ex.Message}");
+                return Task.FromResult(delay);
+            });
+    }
+
+    /// <summary>The canned answer for one dispatched endpoint.</summary>
+    private async Task Reply(RunnerHub hub, string endpoint, object payload, Guid jobId)
+    {
         switch (endpoint)
         {
             case RunnerEndpoints.ApplyGetDefinitiveRevision:

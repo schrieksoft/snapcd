@@ -8,6 +8,7 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.SignalR;
+using SnapCd.Contracts.Constants;
 
 namespace SnapCd.Server.Core.Hubs.Filters;
 
@@ -49,7 +50,9 @@ public class TokenValidationFilter : IHubFilter
                         expirationTime,
                         now);
 
-                    throw new HubException("TokenExpired: The authentication token has expired. Please reconnect with a fresh token.");
+                    throw new HubException(
+                        $"{HubErrorCodes.TokenExpired}: The authentication token has expired. "
+                        + "Please reconnect with a fresh token.");
                 }
             }
         }

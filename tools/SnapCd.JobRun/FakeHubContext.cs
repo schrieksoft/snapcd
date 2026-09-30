@@ -58,25 +58,13 @@ public class FakeHubContext(FakeRunner runner) : IHubContext<RunnerHub>
         }
 
         /// <summary>
-        /// A step's reply is only accepted once the saga has moved into the state that expects
-        /// it. Real work takes long enough that this is never close, but an answer given at once
-        /// can arrive first, and the rejection says exactly that, so it is worth another go.
+        /// Answers at once, the way a fast step does. A reply that beats the saga's transition is
+        /// retried in <see cref="FakeRunner.Handle"/>, on the same terms the real runner uses.
         /// </summary>
         private async Task Reply(string method, object payload, CancellationToken cancellationToken)
         {
-            for (var attempt = 1; ; attempt++)
-            {
-                await Task.Delay(250, cancellationToken);
-
-                try
-                {
-                    await runner.Handle(method, payload);
-                    return;
-                }
-                catch (HubException ex) when (ex.Message.Contains("expected") && attempt < 20)
-                {
-                }
-            }
+            await Task.Yield();
+            await runner.Handle(method, payload);
         }
     }
 }
