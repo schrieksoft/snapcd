@@ -135,6 +135,13 @@ h1:focus {
   font-family: var(--snap-font-mono, monospace);
 }
 
+/* A placeholder teaching an indentation-sensitive format has to align like the text
+   that replaces it, and ::placeholder does not inherit the rule above. */
+.snapcd-mono input::placeholder,
+.snapcd-mono textarea::placeholder {
+  font-family: var(--snap-font-mono, monospace);
+}
+
 /* Stack/namespace/module lists: expanded panel content shows the page background;
    only the panel header keeps the surface color */
 .stack-list .mud-expand-panel,

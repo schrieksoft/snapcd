@@ -40,11 +40,19 @@ public class StateMigrationServiceTests : IAsyncLifetime
 
     private const string ConnectedInstance = "state-migration-service-tests";
 
+    private StateManagementEngine? _originalModuleEngine;
+    private StateManagementEngine? _originalNamespaceEngine;
+
     public async Task InitializeAsync()
     {
         _dbContext = _fixture.CreateDbContext();
         _moduleId = _fixture.Modules["0000"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
+
+        var module = _dbContext.Modules.AsNoTracking().First(m => m.Id == _moduleId);
+        _originalModuleEngine = module.Engine;
+        _originalNamespaceEngine = _dbContext.Namespaces.AsNoTracking()
+            .First(n => n.Id == module.NamespaceId).DefaultEngine;
 
         // A state migration is refused unless the Module's runner is connected.
         var runnerId = _dbContext.Modules.AsNoTracking().First(m => m.Id == _moduleId).RunnerId;
@@ -67,6 +75,8 @@ public class StateMigrationServiceTests : IAsyncLifetime
     {
         await ResetPause();
         await RemoveStateMigrations();
+        await SetModuleEngine(_originalModuleEngine);
+        await SetNamespaceDefaultEngine(_originalNamespaceEngine);
         _dbContext.RunnerConnections.RemoveRange(
             _dbContext.RunnerConnections.Where(rc => rc.InstanceName == ConnectedInstance));
         await _dbContext.SaveChangesAsync();
@@ -117,6 +127,69 @@ public class StateMigrationServiceTests : IAsyncLifetime
         var reason = await service.GetBlockedReason(_moduleId, _organizationId);
 
         Assert.Null(reason);
+    }
+
+    [Fact]
+    public async Task Refuses_A_Pulumi_Module()
+    {
+        await SetPaused(true);
+        await SetModuleEngine(StateManagementEngine.Pulumi);
+
+        using var service = CreateService();
+        var reason = await service.GetBlockedReason(_moduleId, _organizationId);
+
+        Assert.Contains("Pulumi", reason);
+    }
+
+    [Fact]
+    public async Task Refuses_A_Module_Inheriting_Pulumi_From_Its_Namespace()
+    {
+        await SetPaused(true);
+        await SetModuleEngine(null);
+        await SetNamespaceDefaultEngine(StateManagementEngine.Pulumi);
+
+        using var service = CreateService();
+        var reason = await service.GetBlockedReason(_moduleId, _organizationId);
+
+        Assert.Contains("Pulumi", reason);
+    }
+
+    [Fact]
+    public async Task Allows_A_Module_With_No_Engine_Anywhere()
+    {
+        // Configuration resolves an unset engine to OpenTofu, which has the state commands.
+        await SetPaused(true);
+        await SetModuleEngine(null);
+        await SetNamespaceDefaultEngine(null);
+
+        using var service = CreateService();
+
+        Assert.Null(await service.GetBlockedReason(_moduleId, _organizationId));
+    }
+
+    [Theory]
+    [InlineData(StateManagementEngine.Terraform)]
+    [InlineData(StateManagementEngine.OpenTofu)]
+    public async Task Allows_The_Terraform_Lineage(StateManagementEngine engine)
+    {
+        await SetPaused(true);
+        await SetModuleEngine(engine);
+
+        using var service = CreateService();
+
+        Assert.Null(await service.GetBlockedReason(_moduleId, _organizationId));
+    }
+
+    [Fact]
+    public async Task Start_Refuses_A_Pulumi_Module()
+    {
+        await SetPaused(true);
+        await SetModuleEngine(StateManagementEngine.Pulumi);
+
+        using var service = CreateService();
+
+        await Assert.ThrowsAsync<StateMigrationNotAllowedException>(
+            () => service.Start(_moduleId, _organizationId, StateMigrationTypes.SplitMigrate));
     }
 
     [Fact]
@@ -261,6 +334,23 @@ public class StateMigrationServiceTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         var saga = await db.Set<ModuleSaga>().FirstAsync(s => s.CorrelationId == _moduleId);
         saga.Paused = paused;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SetModuleEngine(StateManagementEngine? engine)
+    {
+        await using var db = _fixture.CreateDbContext();
+        var module = await db.Modules.FirstAsync(m => m.Id == _moduleId);
+        module.Engine = engine;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SetNamespaceDefaultEngine(StateManagementEngine? engine)
+    {
+        await using var db = _fixture.CreateDbContext();
+        var module = await db.Modules.AsNoTracking().FirstAsync(m => m.Id == _moduleId);
+        var ns = await db.Namespaces.FirstAsync(n => n.Id == module.NamespaceId);
+        ns.DefaultEngine = engine;
         await db.SaveChangesAsync();
     }
 

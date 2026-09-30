@@ -829,6 +829,17 @@ public class RunnerHub : Hub
         });
     }
 
+    public async Task ImportCancelled(Guid jobId)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new ImportCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth
+        });
+    }
+
     public async Task ImportFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
@@ -851,6 +862,17 @@ public class RunnerHub : Hub
             CorrelationId = jobId,
             OrganizationId = auth,
             Results = Addresses(results)
+        });
+    }
+
+    public async Task RemoveCancelled(Guid jobId)
+    {
+        var auth = await _authorizationService.ValidateIsForCurrentConnection(Context, jobId);
+
+        await _bus.Publish(new RemoveCancelled
+        {
+            CorrelationId = jobId,
+            OrganizationId = auth
         });
     }
 

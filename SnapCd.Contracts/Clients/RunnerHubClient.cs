@@ -154,6 +154,36 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.MoveFaulted, jobId, errorMessage, stackTrace);
     }
 
+    public async Task InvokeImportCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportCompleted, jobId, results);
+    }
+
+    public async Task InvokeImportCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportCancelled, jobId);
+    }
+
+    public async Task InvokeImportFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ImportFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRemoveCompleted(Guid jobId, List<StateAddressResult> results)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveCompleted, jobId, results);
+    }
+
+    public async Task InvokeRemoveCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveCancelled, jobId);
+    }
+
+    public async Task InvokeRemoveFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RemoveFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeMoveDryRunCompleted(Guid jobId, List<StateAddressResult> results)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.MoveDryRunCompleted, jobId, results);

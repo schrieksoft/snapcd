@@ -101,7 +101,27 @@ public class StateMigrationService : IDisposable
         if (!await HasConnectedRunner(dbContext, moduleId, organizationId))
             return "No runner is connected for this module.";
 
+        var engine = await ResolvedEngine(dbContext, moduleId, organizationId);
+
+        if (!engine.SupportsStateMigrations())
+            return $"State migrations are not available for {engine} modules.";
+
         return null;
+    }
+
+    /// <summary>
+    /// The engine a Module runs on, resolving the same way the configuration does: the Module's own,
+    /// else its Namespace's default, else OpenTofu.
+    /// </summary>
+    private static async Task<StateManagementEngine> ResolvedEngine(
+        SnapCdDbContext dbContext, Guid moduleId, Guid organizationId)
+    {
+        var engines = await dbContext.Modules.AsNoTracking()
+            .Where(m => m.Id == moduleId && m.OrganizationId == organizationId)
+            .Select(m => new { m.Engine, NamespaceDefault = m.Namespace.DefaultEngine })
+            .FirstOrDefaultAsync();
+
+        return engines?.Engine ?? engines?.NamespaceDefault ?? StateManagementEngine.OpenTofu;
     }
 
     /// <summary>

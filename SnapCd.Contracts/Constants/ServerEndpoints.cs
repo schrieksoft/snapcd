@@ -43,6 +43,14 @@ public static class ServerEndpoints
     public const string MoveCancelled = "MoveCancelled";
     public const string MoveFaulted = "MoveFaulted";
 
+    public const string ImportCompleted = "ImportCompleted";
+    public const string ImportCancelled = "ImportCancelled";
+    public const string ImportFaulted = "ImportFaulted";
+
+    public const string RemoveCompleted = "RemoveCompleted";
+    public const string RemoveCancelled = "RemoveCancelled";
+    public const string RemoveFaulted = "RemoveFaulted";
+
     public const string MoveDryRunCompleted = "MoveDryRunCompleted";
     public const string MoveDryRunCancelled = "MoveDryRunCancelled";
     public const string MoveDryRunFaulted = "MoveDryRunFaulted";

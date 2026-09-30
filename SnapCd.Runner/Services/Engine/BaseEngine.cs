@@ -475,6 +475,7 @@ public abstract class BaseEngine
             }
 
             Context.LogNarration("Environment Variables loaded from file");
+            Context.LogBreak();
             return true;
         }
         catch (Exception ex)

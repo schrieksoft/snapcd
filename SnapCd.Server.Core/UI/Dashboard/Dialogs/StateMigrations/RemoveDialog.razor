@@ -20,11 +20,12 @@
                 <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
             </MudTooltip>
             <MudSpacer/>
-            <MudTooltip Text="@(_asCode ? "Back to the form" : "Edit as YAML")">
-                <MudIconButton Icon="@(_asCode ? SnapCdIcons.Columns : SnapCdIcons.Code)"
-                               Size="Size.Small"
-                               OnClick="ToggleMode"/>
-            </MudTooltip>
+            @* Labelled, not icon-only: the YAML mode went unnoticed behind a bare glyph. *@
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Small"
+                       StartIcon="@(_asCode ? SnapCdIcons.Columns : SnapCdIcons.Code)"
+                       OnClick="ToggleMode">
+                @(_asCode ? "Form" : "YAML")
+            </MudButton>
         </MudStack>
     </TitleContent>
     <DialogContent>

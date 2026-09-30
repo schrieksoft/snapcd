@@ -66,7 +66,7 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error cancelling job: {ex.Message}", Severity.Error);
-            Logger.LogError(ex, "Error cancelling manual job {JobId}", JobId);
+            Logger.LogError(ex, "Error cancelling state migration {JobId}", JobId);
         }
     }
 

@@ -45,9 +45,13 @@ public partial class Tasks
 
                 var results = Results(outcomes, request);
 
-                await InvokeWithRetryAsync(
+                await ReportAddressOutcomes(
+                    taskContext, connection, request.JobId, results,
                     () => client.InvokeMoveDryRunCompleted(request.JobId, results),
-                    nameof(client.InvokeMoveDryRunCompleted), request.JobId, connection);
+                    nameof(client.InvokeMoveDryRunCompleted),
+                    summary => client.InvokeMoveDryRunFaulted(request.JobId, summary, null),
+                    nameof(client.InvokeMoveDryRunFaulted),
+                    "Move");
             },
             (client, message, stackTrace) =>
                 client.InvokeMoveDryRunFaulted(request.JobId, message, stackTrace),
@@ -74,9 +78,13 @@ public partial class Tasks
 
                 var results = Results(outcomes, request);
 
-                await InvokeWithRetryAsync(
+                await ReportAddressOutcomes(
+                    taskContext, connection, request.JobId, results,
                     () => client.InvokeRemoveDryRunCompleted(request.JobId, results),
-                    nameof(client.InvokeRemoveDryRunCompleted), request.JobId, connection);
+                    nameof(client.InvokeRemoveDryRunCompleted),
+                    summary => client.InvokeRemoveDryRunFaulted(request.JobId, summary, null),
+                    nameof(client.InvokeRemoveDryRunFaulted),
+                    "Remove");
             },
             (client, message, stackTrace) =>
                 client.InvokeRemoveDryRunFaulted(request.JobId, message, stackTrace),
@@ -85,7 +93,8 @@ public partial class Tasks
     /// <summary>
     /// An import has no dry run, so this is a different question answered a different way: whether
     /// each address it would create is free, since an import onto an occupied address fails.
-    /// Whether an id names a real resource is only answerable by importing it, so it is not asked.
+    /// Whether the configuration declares the address, and whether its type can be imported at
+    /// all, are the engine's to answer and only the import itself asks them.
     /// </summary>
     public Task ImportPreCheck(StateMoveRequestBase request, HubConnection connection) =>
         RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.ImportPreCheck, request.Metadata,
@@ -104,15 +113,13 @@ public partial class Tasks
                 var occupied = present.ToHashSet();
                 var results = new List<StateAddressResult>();
 
-                taskContext.LogInformation("Would import");
-
                 foreach (var instruction in request.Instructions)
                 {
                     var free = !occupied.Contains(instruction.Address);
 
                     taskContext.LogInformation(free
                         ? $"  {Ansi.Emphasis(instruction.Address)} from {Ansi.Emphasis(instruction.Target ?? "")}"
-                        : $"  {Ansi.Emphasis(instruction.Address)} is already in state and cannot be imported onto");
+                        : $"  {Ansi.Emphasis(instruction.Address)} is already in state, so there is nothing to import onto");
 
                     results.Add(new StateAddressResult
                     {
@@ -122,9 +129,20 @@ public partial class Tasks
                     });
                 }
 
-                await InvokeWithRetryAsync(
+                // Only the engine knows whether an address is declared or its type can be imported,
+                // and import has no dry run, so those are answered by the import itself.
+                taskContext.LogBreak();
+                taskContext.LogNarration(
+                    "This checks the addresses are free. The import can still fail if the "
+                    + "configuration does not declare one, or its resource type cannot be imported.");
+
+                await ReportAddressOutcomes(
+                    taskContext, connection, request.JobId, results,
                     () => client.InvokeImportPreCheckCompleted(request.JobId, results),
-                    nameof(client.InvokeImportPreCheckCompleted), request.JobId, connection);
+                    nameof(client.InvokeImportPreCheckCompleted),
+                    summary => client.InvokeImportPreCheckFaulted(request.JobId, summary, null),
+                    nameof(client.InvokeImportPreCheckFaulted),
+                    "Import");
             },
             (client, message, stackTrace) =>
                 client.InvokeImportPreCheckFaulted(request.JobId, message, stackTrace),
@@ -145,9 +163,15 @@ public partial class Tasks
                     request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
                     dryRun: false, killToken);
 
-                await InvokeWithRetryAsync(
-                    () => client.InvokeMoveCompleted(request.JobId, Results(outcomes, request)),
-                    nameof(client.InvokeMoveCompleted), request.JobId, connection);
+                var results = Results(outcomes, request);
+
+                await ReportAddressOutcomes(
+                    taskContext, connection, request.JobId, results,
+                    () => client.InvokeMoveCompleted(request.JobId, results),
+                    nameof(client.InvokeMoveCompleted),
+                    summary => client.InvokeMoveFaulted(request.JobId, summary, null),
+                    nameof(client.InvokeMoveFaulted),
+                    "Move");
             },
             (client, message, stackTrace) =>
                 client.InvokeMoveFaulted(request.JobId, message, stackTrace),
@@ -168,13 +192,19 @@ public partial class Tasks
                     request.Instructions.Select(i => (i.Address, i.Target)).ToList(),
                     killToken);
 
-                await InvokeWithRetryAsync(
-                    () => client.InvokeMoveCompleted(request.JobId, Results(outcomes, request)),
-                    nameof(client.InvokeMoveCompleted), request.JobId, connection);
+                var results = Results(outcomes, request);
+
+                await ReportAddressOutcomes(
+                    taskContext, connection, request.JobId, results,
+                    () => client.InvokeImportCompleted(request.JobId, results),
+                    nameof(client.InvokeImportCompleted),
+                    summary => client.InvokeImportFaulted(request.JobId, summary, null),
+                    nameof(client.InvokeImportFaulted),
+                    "Import");
             },
             (client, message, stackTrace) =>
-                client.InvokeMoveFaulted(request.JobId, message, stackTrace),
-            client => client.InvokeMoveCancelled(request.JobId));
+                client.InvokeImportFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeImportCancelled(request.JobId));
 
     /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
     public Task Remove(StateMoveRequestBase request, HubConnection connection) =>
@@ -191,15 +221,55 @@ public partial class Tasks
                     request.Instructions.Select(i => i.Address).ToList(),
                     dryRun: false, killToken);
 
-                await InvokeWithRetryAsync(
-                    () => client.InvokeMoveCompleted(request.JobId, Results(outcomes, request)),
-                    nameof(client.InvokeMoveCompleted), request.JobId, connection);
+                var results = Results(outcomes, request);
+
+                await ReportAddressOutcomes(
+                    taskContext, connection, request.JobId, results,
+                    () => client.InvokeRemoveCompleted(request.JobId, results),
+                    nameof(client.InvokeRemoveCompleted),
+                    summary => client.InvokeRemoveFaulted(request.JobId, summary, null),
+                    nameof(client.InvokeRemoveFaulted),
+                    "Remove");
             },
             (client, message, stackTrace) =>
-                client.InvokeMoveFaulted(request.JobId, message, stackTrace),
-            client => client.InvokeMoveCancelled(request.JobId));
+                client.InvokeRemoveFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeRemoveCancelled(request.JobId));
 
     /// <summary>What each address ended up as, with the target it was given.</summary>
+    /// <summary>
+    /// Reports a step's outcome the way <c>SplitPlanEmptyVerify</c> does: a refusal is the engine
+    /// answering, not an exception, so the runner decides and faults rather than reporting success
+    /// and leaving the server to read a result set it does not inspect.
+    /// </summary>
+    private async Task ReportAddressOutcomes(
+        RunnerTaskContext taskContext,
+        HubConnection connection,
+        Guid jobId,
+        List<StateAddressResult> results,
+        Func<Task> completed,
+        string completedName,
+        Func<string, Task> faulted,
+        string faultedName,
+        string verb)
+    {
+        var refused = results.Where(r => r.Outcome == "Failed").Select(r => r.Address).ToList();
+
+        if (refused.Count == 0)
+        {
+            await InvokeWithRetryAsync(completed, completedName, jobId, connection);
+            return;
+        }
+
+        var summary = refused.Count == results.Count
+            ? $"{verb} failed for every address: {string.Join(", ", refused)}. Nothing was changed."
+            : $"{verb} failed for {string.Join(", ", refused)}. "
+              + $"{results.Count - refused.Count} of {results.Count} addresses were managed.";
+
+        taskContext.LogError(summary);
+
+        await InvokeWithRetryAsync(() => faulted(summary), faultedName, jobId, connection);
+    }
+
     private static List<StateAddressResult> Results(
         List<(string Address, bool Succeeded)> outcomes, StateMoveRequestBase request)
     {

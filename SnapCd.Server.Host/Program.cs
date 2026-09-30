@@ -32,12 +32,15 @@ using SnapCd.Server.Host.Installations;
 using SnapCd.Server.Host.Telemetry;
 using SnapCd.Server.Core.Services.Admin;
 using SnapCd.Server.Core.Services.Edition;
+using SnapCd.Contracts.Logging;
 using SnapCd.Server.Core.Startup;
 using SnapCd.Server.Host.Database;
 using SnapCd.Server.Host.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddSnapCdFileLogging(builder.Configuration);
 
 builder.Configuration.Sources.Clear();
 builder.Configuration

@@ -8,14 +8,18 @@
  *@
 
 @using MudBlazor
+@using SnapCd.Server.Core.UI.Dashboard.Theme
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-3">
-            While paused, no triggered or dependency-driven work is dispatched to this module.
-            Requests raised meanwhile are queued, not lost, and apply and destroy are unavailable
-            until it is resumed.
-        </MudText>
+        @* A confirmation, not a lesson: the user has already chosen to pause. The consequences
+           are spelled out on the banner that shows for as long as the module stays paused. *@
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.body2">Hold this module still?</MudText>
+            <MudTooltip Text="No triggered or dependency-driven work is dispatched while paused. Requests raised meanwhile are queued, not lost, and apply and destroy are unavailable until it is resumed.">
+                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+            </MudTooltip>
+        </MudStack>
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"

@@ -54,7 +54,7 @@
     {
         <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.body2">
-                Manual jobs run against a module that is held still. Pause the module to make them available.
+                State migrations run against a module that is held still. Pause the module to make them available.
             </MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                        Disabled="@(!_canPause || _busy)" OnClick="Pause">pause</MudButton>
@@ -76,29 +76,37 @@
         {
             @if (_transfer is { } transfer)
             {
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.body2">
-                        @(transfer.ModuleId == Module.Id
-                            ? $"Transfer with {OtherModuleName}."
-                            : $"{OtherModuleName} has asked to transfer with this module.")
-                    </MudText>
+                @* An unanswered request is a question, not a status line: it gets its own surface
+                   and blocks the rest of the panel until it is answered. *@
+                @if (NeedsMyAnswer)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                        <MudText Typo="Typo.body2" Class="mb-3">
+                            Module <strong>@OtherModuleName</strong> has asked to transfer resources
+                            between it and this module. You must agree or refuse before anything else
+                            on this module is available. Agreeing starts the transfer immediately.
+                        </MudText>
 
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0">
-                        @transfer.ConsentStatus
-                    </MudChip>
-
-                    @if (NeedsMyAnswer)
-                    {
-                        @* Agreeing starts this module's own side, so it waits like any launcher.
-                           Refusing only closes the transfer and stays available. *@
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                   OnClick="@(() => Answer(true))">agree</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy)"
-                                   OnClick="@(() => Answer(false))">refuse</MudButton>
-                    }
-                </MudStack>
+                        <MudStack Row Spacing="2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
+                                       OnClick="@(() => Answer(true))">agree</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(!_canPause || _busy)"
+                                       OnClick="@(() => Answer(false))">refuse</MudButton>
+                        </MudStack>
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.body2">
+                            @(transfer.ModuleId == Module.Id
+                                ? $"Transfer with {OtherModuleName}."
+                                : $"{OtherModuleName} has asked to transfer with this module.")
+                        </MudText>
+                    </MudStack>
+                }
             }
 
             @if (RunningStateMigration is { } running)
@@ -107,38 +115,49 @@
                     <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small"/>
                     <MudText Typo="Typo.body2">
                         <strong>@FormatJobType(running.JobType) #@running.JobNumber is running.</strong>
-                        One manual job at a time, so the rest wait for it.
+                        One at a time, so the rest wait for it.
                     </MudText>
                 </MudStack>
             }
 
-            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4">
-                <MudTabPanel Text="Demonolith jobs" Style="text-transform: none">
-                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)" OnClick="StartSplit">split</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || _transfer is not null || RunningStateMigration is not null)"
-                                   OnClick="StartTransfer">transfer</MudButton>
-                    </MudStack>
-                </MudTabPanel>
+            @if (!EngineSupportsStateMigrations)
+            {
+                <MudText Typo="Typo.body2">
+                    State migrations move addresses within a module's state, which needs the
+                    <strong>terraform state</strong> commands. This module runs on
+                    <strong>@EngineName</strong>, so they are not available here.
+                </MudText>
+            }
+            else
+            {
+                <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4">
+                    <MudTabPanel Text="Demonolith jobs" Style="text-transform: none">
+                        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)" OnClick="StartSplit">split</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || _transfer is not null || RunningStateMigration is not null)"
+                                       OnClick="StartTransfer">transfer</MudButton>
+                        </MudStack>
+                    </MudTabPanel>
 
-                <MudTabPanel Text="@($"{EngineName} jobs")" Style="text-transform: none">
-                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                   OnClick="StartMove">move</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                   OnClick="StartImport">import</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                   OnClick="StartRemove">remove</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   Disabled="@(!_canPause || _busy || RunningStateMigration is not null)" OnClick="StartStateList">check state</MudButton>
-                    </MudStack>
-                </MudTabPanel>
-            </MudTabs>
+                    <MudTabPanel Text="@($"{EngineName} jobs")" Style="text-transform: none">
+                        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)"
+                                       OnClick="StartMove">move</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)"
+                                       OnClick="StartImport">import</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)"
+                                       OnClick="StartRemove">remove</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)" OnClick="StartStateList">check state</MudButton>
+                        </MudStack>
+                    </MudTabPanel>
+                </MudTabs>
+            }
         }
     </MudPaper>
 }
@@ -146,7 +165,7 @@
 @if (_jobs.Count == 0)
 {
     <MudPaper Elevation="1" Class="pa-4">
-        <MudText Typo="Typo.body2">No manual jobs have run on this module.</MudText>
+        <MudText Typo="Typo.body2">No state migrations have run on this module.</MudText>
     </MudPaper>
 }
 else
@@ -211,6 +230,13 @@ else
                                 </MudChip>
                             </MudTooltip>
                         }
+                        @* A transfer has two sides; from one there was no way to reach the other. *@
+                        @if (job.JobType == StateMigrationTypes.TransferMigrate && _otherModuleHref is { } href)
+                        {
+                            <MudLink Href="@href" Typo="Typo.body2" Color="Color.Secondary">
+                                @OtherModuleName
+                            </MudLink>
+                        }
                         @if (job.Status == ExecutionStatus.PartiallyCompleted)
                         {
                             <MudTooltip Text="Some addresses were done and some were not. The ones that failed are listed below and can be run again.">
@@ -243,8 +269,20 @@ else
 
                     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" KeepPanelsAlive="true">
                         <MudTabPanel Text="Logs" Style="text-transform: none">
-                            <ListLogs ModuleJobId="@job.Id" @key="job.Id"
-                                      @ref="_listLogsRefs[job.Id]"/>
+                            @* A job that has not dispatched a step has nothing to show, which is
+                               indistinguishable from a job whose logs failed to load. *@
+                            @if (job.WaitingForConsent == true)
+                            {
+                                <MudText Typo="Typo.body2">
+                                    Waiting for the other module to answer. Nothing has been
+                                    dispatched to a runner yet, so there is nothing to show.
+                                </MudText>
+                            }
+                            else
+                            {
+                                <ListLogs ModuleJobId="@job.Id" @key="job.Id"
+                                          @ref="_listLogsRefs[job.Id]"/>
+                            }
                         </MudTabPanel>
                         @if (_addresses.TryGetValue(job.Id, out var addresses) && addresses.Count > 0)
                         {
@@ -367,19 +405,22 @@ else
 
     private IApprovalSource? _approvalSource;
 
-    /// A manual job of this module's own, still going. Its own panel below shows what it is doing.
+    /// A state migration of this module's own, still going. Its own panel below shows what it is doing.
     private StateMigrationJob? RunningStateMigration =>
         _jobs.FirstOrDefault(j => j.Status == ExecutionStatus.Running);
 
-    /// Inside a paused module, any remaining block is work still draining: the pause itself is not one.
+    /// Inside a paused module, any remaining block is work still draining: the pause itself is not
+    /// one, and neither is an engine that has no state migrations, which never drains.
     private bool IsDraining =>
-        ModuleSaga is { Paused: true } && _blockedReason is not null && RunningStateMigration is null;
+        ModuleSaga is { Paused: true } && _blockedReason is not null && RunningStateMigration is null
+        && EngineSupportsStateMigrations;
 
     private bool _canPause;
     private bool _busy;
     private List<Module> _transferCandidates = [];
     private Transfer? _transfer;
     private string? _otherModuleName;
+    private string? _otherModuleHref;
 
     private string OtherModuleName => _otherModuleName ?? "the other module";
 
@@ -397,6 +438,7 @@ else
         if (_transfer is not { } transfer)
         {
             _otherModuleName = null;
+            _otherModuleHref = null;
             return;
         }
 
@@ -405,10 +447,15 @@ else
             : transfer.ModuleId;
 
         await using var db = await TransferDbContextFactory.CreateDbContextAsync();
-        _otherModuleName = await db.Modules.AsNoTracking()
+        var other = await db.Modules.AsNoTracking()
             .Where(m => m.Id == otherId && m.OrganizationId == OrganizationId)
-            .Select(m => m.Name)
+            .Select(m => new { m.Name, Namespace = m.Namespace.Name, Stack = m.Namespace.Stack.Name })
             .FirstOrDefaultAsync();
+
+        _otherModuleName = other?.Name;
+        _otherModuleHref = other is null
+            ? null
+            : $"/Module/{other.Stack}/{other.Namespace}/{other.Name}?action=StateMigrations";
     }
 
     /// <summary>Answers a transfer this Module has been asked to agree to.</summary>
@@ -458,13 +505,22 @@ else
     /// The engine the state commands in the second tab run against, resolved the way a job
     /// resolves it: the Module's engine, else its Namespace's default, else OpenTofu.
     /// </summary>
-    private string EngineName =>
-        (Module.Engine ?? _namespaceDefaultEngine ?? StateManagementEngine.OpenTofu).ToString();
+    private StateManagementEngine ResolvedEngine =>
+        Module.Engine ?? _namespaceDefaultEngine ?? StateManagementEngine.OpenTofu;
+
+    private string EngineName => ResolvedEngine.ToString();
+
+    /// <summary>State migrations drive `terraform state` operations, so not every engine has them.</summary>
+    private bool EngineSupportsStateMigrations => ResolvedEngine.SupportsStateMigrations();
 
     /// <summary>Asks this Module's state about specific addresses. Writes nothing.</summary>
     private async Task StartStateList()
     {
-        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var options = new DialogOptions
+        {
+            CloseButton = true, CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small, FullWidth = true
+        };
         var dialog = await DialogService.ShowAsync<StateListDialog>("Check state", options);
 
         var result = await dialog.Result;
@@ -503,7 +559,7 @@ else
             StateMigrationUpdatedNotificationService.Subscribe(Module.Id, HandleJobUpdated);
             _subscribedModuleId = Module.Id;
 
-            Logger.LogDebug("Manual jobs panel is listening for Module {ModuleId}", Module.Id);
+            Logger.LogDebug("State migrations panel is listening for Module {ModuleId}", Module.Id);
         }
 
         using var moduleRepo = ModuleRepoFactory.Create(PrincipalProvider);
@@ -651,9 +707,17 @@ else
         try
         {
             using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
-            await service.StartSplitMigrate(Module.Id, OrganizationId, choice.RootDirectory, choice.Force, rederiveBackend: choice.RederiveBackend);
 
-            Snackbar.Add("Split started.", Severity.Success);
+            // A proof runs at an explicit ref and writes nothing, so it is its own job kind.
+            if (choice.ProveOnly)
+                await service.StartSplitProve(
+                    Module.Id, OrganizationId, choice.RootDirectory, choice.SourceRevision!);
+            else
+                await service.StartSplitMigrate(
+                    Module.Id, OrganizationId, choice.RootDirectory, choice.Force,
+                    rederiveBackend: choice.RederiveBackend);
+
+            Snackbar.Add(choice.ProveOnly ? "Split proof started." : "Split started.", Severity.Success);
             await Reload();
         }
         catch (Exception e)
@@ -686,7 +750,7 @@ else
 
     private async Task HandleJobUpdated(Guid jobId, Guid moduleId)
     {
-        Logger.LogDebug("Manual jobs panel heard that job {JobId} changed", jobId);
+        Logger.LogDebug("State migrations panel heard that job {JobId} changed", jobId);
 
         if (moduleId != Module.Id) return;
 

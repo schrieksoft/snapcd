@@ -46,4 +46,43 @@ public class RunnerHubContractTests
             "These server endpoints name no method on RunnerHub, so a runner calling them fails at "
             + "run time:\n  " + string.Join("\n  ", unreachable));
     }
+
+    /// <summary>
+    /// The other direction. A hub method with no client wrapper is a reply the runner has no way to
+    /// send, and nothing fails: the step runs, the reply goes nowhere, and the saga waits until the
+    /// heartbeat closes the job. Import and Remove reached main reporting their write step on the
+    /// Move endpoint for exactly this reason.
+    /// </summary>
+    [Fact]
+    public void Every_Hub_Method_Has_A_Client_Wrapper()
+    {
+        // Not step replies: SignalR's own connection callbacks, and the two the runner sends
+        // through its own paths rather than a generated wrapper.
+        var notCalledByWrapper = new HashSet<string>
+        {
+            "OnConnectedAsync", "OnDisconnectedAsync", "AddLogs", "Pong"
+        };
+
+        var hubMethods = typeof(RunnerHub)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(m => m.Name)
+            .Where(name => !notCalledByWrapper.Contains(name))
+            .ToHashSet();
+
+        var endpointsUsedByClient = typeof(RunnerHubClient)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(m => m.Name)
+            .Where(n => n.StartsWith("Invoke", StringComparison.Ordinal))
+            .Select(n => n["Invoke".Length..])
+            .ToHashSet();
+
+        var unsendable = hubMethods
+            .Where(m => !endpointsUsedByClient.Contains(m))
+            .OrderBy(x => x)
+            .ToList();
+
+        Assert.True(unsendable.Count == 0,
+            "These RunnerHub methods have no matching RunnerHubClient wrapper, so no runner can "
+            + "ever call them:\n  " + string.Join("\n  ", unsendable));
+    }
 }
