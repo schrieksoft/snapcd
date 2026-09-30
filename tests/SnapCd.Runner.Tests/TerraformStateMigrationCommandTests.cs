@@ -15,7 +15,7 @@ namespace SnapCd.Runner.Tests;
 /// The state commands, one address at a time. Addresses come from a module's own state rather than
 /// being typed, but they still pass through a shell, so each is one quoted argument.
 /// </summary>
-public class StateEditCommandTests
+public class TerraformStateMigrationCommandTests
 {
     [Fact]
     public void Mv_Names_Both_Ends()

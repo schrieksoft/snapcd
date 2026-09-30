@@ -17,9 +17,9 @@ namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 /// Counts the approvals a state edit has against the threshold its Module asks for, which is the
 /// same threshold a split and a transfer answer to.
 /// </summary>
-public class StateEditNeedsApprovalActivity<TSaga, TMessage>(SnapCdDbContext dbContext)
+public class TerraformStateMigrationNeedsApprovalActivity<TSaga, TMessage>(SnapCdDbContext dbContext)
     : StateMigrationNeedsApprovalActivity<TSaga, TMessage>(dbContext)
-    where TSaga : StateEditSagaBase, new()
+    where TSaga : TerraformStateMigrationSagaBase, new()
     where TMessage : class
 {
     protected override Task<int> ResolveThreshold(

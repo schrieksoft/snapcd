@@ -16,8 +16,8 @@ using SnapCd.Server.Core.Entities.Sagas;
 namespace SnapCd.Server.Core.Database.SagaClassMaps;
 
 /// <summary>The three state edits keep their own tables, as their own sagas.</summary>
-public abstract class StateEditSagaClassMap<TSaga> : SagaClassMap<TSaga>
-    where TSaga : StateEditSagaBase
+public abstract class TerraformStateMigrationSagaClassMap<TSaga> : SagaClassMap<TSaga>
+    where TSaga : TerraformStateMigrationSagaBase
 {
     protected abstract string TableName { get; }
 
@@ -42,17 +42,17 @@ public abstract class StateEditSagaClassMap<TSaga> : SagaClassMap<TSaga>
     }
 }
 
-public class MoveSagaClassMap : StateEditSagaClassMap<MoveSaga>
+public class MoveSagaClassMap : TerraformStateMigrationSagaClassMap<MoveSaga>
 {
     protected override string TableName => "MoveSagas";
 }
 
-public class ImportSagaClassMap : StateEditSagaClassMap<ImportSaga>
+public class ImportSagaClassMap : TerraformStateMigrationSagaClassMap<ImportSaga>
 {
     protected override string TableName => "ImportSagas";
 }
 
-public class RemoveSagaClassMap : StateEditSagaClassMap<RemoveSaga>
+public class RemoveSagaClassMap : TerraformStateMigrationSagaClassMap<RemoveSaga>
 {
     protected override string TableName => "RemoveSagas";
 }

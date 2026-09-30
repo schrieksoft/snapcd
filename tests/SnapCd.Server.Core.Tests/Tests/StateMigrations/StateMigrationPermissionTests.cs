@@ -37,11 +37,29 @@ public class StateMigrationPermissionTests : IAsyncLifetime
 
     public StateMigrationPermissionTests(Fixture fixture) => _fixture = fixture;
 
-    public Task InitializeAsync()
+    private const string ConnectedInstance = "permission-tests";
+
+    public async Task InitializeAsync()
     {
         _moduleId = _fixture.Modules["0000"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
-        return Task.CompletedTask;
+
+        // A state migration is refused unless the Module's runner is connected.
+        await using var db = _fixture.CreateDbContext();
+        var runnerId = db.Modules.AsNoTracking().First(m => m.Id == _moduleId).RunnerId;
+        if (!db.RunnerConnections.Any(rc => rc.RunnerId == runnerId && rc.InstanceName == ConnectedInstance))
+        {
+            db.RunnerConnections.Add(new RunnerConnection
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _organizationId,
+                RunnerId = runnerId,
+                InstanceName = ConnectedInstance,
+                SignalRConnectionId = $"{ConnectedInstance}-connection",
+                ServerInstanceId = Guid.NewGuid()
+            });
+            await db.SaveChangesAsync();
+        }
     }
 
     public async Task DisposeAsync()
@@ -53,6 +71,8 @@ public class StateMigrationPermissionTests : IAsyncLifetime
         saga.PausedAt = null;
         saga.PauseReason = null;
         db.StateMigrationJobs.RemoveRange(db.StateMigrationJobs.Where(j => j.ModuleId == _moduleId));
+        db.RunnerConnections.RemoveRange(
+            db.RunnerConnections.Where(rc => rc.InstanceName == ConnectedInstance));
         await db.SaveChangesAsync();
     }
 

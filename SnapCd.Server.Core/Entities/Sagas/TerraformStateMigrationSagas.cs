@@ -16,7 +16,7 @@ namespace SnapCd.Server.Core.Entities.Sagas;
 /// that follows says which of them are where they were meant to be, and it is the list that
 /// anything watching acts on.
 /// </summary>
-public abstract class StateEditSagaBase : StateMigrationSagaBase
+public abstract class TerraformStateMigrationSagaBase : StateMigrationSagaBase
 {
     /// <summary>The addresses and their targets, as JSON.</summary>
     public string InstructionsJson { get; set; } = null!;
@@ -29,10 +29,10 @@ public abstract class StateEditSagaBase : StateMigrationSagaBase
 }
 
 /// <summary>Moving addresses to where they should be, after a dry run says what would move.</summary>
-public class MoveSaga : StateEditSagaBase;
+public class MoveSaga : TerraformStateMigrationSagaBase;
 
 /// <summary>Importing addresses from ids they already have, after checking the addresses are free.</summary>
-public class ImportSaga : StateEditSagaBase;
+public class ImportSaga : TerraformStateMigrationSagaBase;
 
 /// <summary>Taking addresses out of state, after a dry run says what would go.</summary>
-public class RemoveSaga : StateEditSagaBase;
+public class RemoveSaga : TerraformStateMigrationSagaBase;

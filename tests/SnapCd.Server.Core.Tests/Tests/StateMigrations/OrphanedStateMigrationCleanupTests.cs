@@ -38,15 +38,33 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
 
     public OrphanedStateMigrationCleanupTests(Fixture fixture) => _fixture = fixture;
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
         _moduleId = _fixture.Modules["0000"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
         var services = new ServiceCollection();
         services.AddDbContextFactory<SnapCdDbContext>(o => o.UseSqlServer(_fixture.ConnectionString));
         _dbContextFactory = services.BuildServiceProvider().GetRequiredService<IDbContextFactory<SnapCdDbContext>>();
-        return Task.CompletedTask;
+
+        // A state migration is refused unless the Module's runner is connected.
+        await using var db = _fixture.CreateDbContext();
+        var runnerId = db.Modules.AsNoTracking().First(m => m.Id == _moduleId).RunnerId;
+        if (!db.RunnerConnections.Any(rc => rc.RunnerId == runnerId && rc.InstanceName == ConnectedInstance))
+        {
+            db.RunnerConnections.Add(new RunnerConnection
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _organizationId,
+                RunnerId = runnerId,
+                InstanceName = ConnectedInstance,
+                SignalRConnectionId = $"{ConnectedInstance}-connection",
+                ServerInstanceId = Guid.NewGuid()
+            });
+            await db.SaveChangesAsync();
+        }
     }
+
+    private const string ConnectedInstance = "orphan-sweep-tests";
 
     public async Task DisposeAsync()
     {
@@ -55,6 +73,8 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
         db.StateMigrationJobs.RemoveRange(db.StateMigrationJobs.Where(j => _seeded.Contains(j.Id)));
         var saga = await db.Set<ModuleSaga>().FirstAsync(s => s.CorrelationId == _moduleId);
         saga.Paused = false;
+        db.RunnerConnections.RemoveRange(
+            db.RunnerConnections.Where(rc => rc.InstanceName == ConnectedInstance));
         await db.SaveChangesAsync();
     }
 

@@ -417,7 +417,7 @@ public static class MassTransit
     private static void AddStateMachineActivities(IServiceCollection services)
     {
         services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
-        services.AddScoped(typeof(StateEditNeedsApprovalActivity<,>));
+        services.AddScoped(typeof(TerraformStateMigrationNeedsApprovalActivity<,>));
         services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
         services.AddScoped(typeof(RunnerConnectedActivity<,>));
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
@@ -430,7 +430,7 @@ public static class MassTransit
         // as an ordinary job does, rather than publishing them.
         services.AddScoped(typeof(SendToRunnerActivity<,,>));
         services.AddScoped(typeof(SendStateMigrationStepToRunnerActivity<,,>));
-        services.AddScoped(typeof(SendStateEditStepToRunnerActivity<,,>));
+        services.AddScoped(typeof(SendTerraformStateMigrationStepToRunnerActivity<,,>));
         services.AddScoped(typeof(SendStateListFilteredStepToRunnerActivity<,>));
         services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
     }

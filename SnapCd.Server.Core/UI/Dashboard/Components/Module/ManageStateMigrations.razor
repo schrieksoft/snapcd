@@ -578,19 +578,19 @@ else
         }
     }
 
-    private Task StartMove() => StartStateEdit<MoveDialog>(
+    private Task StartMove() => StartTerraformStateMigration<MoveDialog>(
         "Move", (service, choice) => service.StartMove(Module.Id, OrganizationId, choice.Instructions));
 
-    private Task StartImport() => StartStateEdit<ImportDialog>(
+    private Task StartImport() => StartTerraformStateMigration<ImportDialog>(
         "Import", (service, choice) => service.StartImport(Module.Id, OrganizationId, choice.Instructions));
 
-    private Task StartRemove() => StartStateEdit<RemoveDialog>(
+    private Task StartRemove() => StartTerraformStateMigration<RemoveDialog>(
         "Remove", (service, choice) => service.StartRemove(Module.Id, OrganizationId, choice.Instructions));
 
     /// <summary>Opens one edit's dialog and runs what it returns. The dialog names the edit.</summary>
-    private async Task StartStateEdit<TDialog>(
+    private async Task StartTerraformStateMigration<TDialog>(
         string verb,
-        Func<StateMigrationService, StateEditDialogBase.Choice, Task<StateMigrationJob>> start)
+        Func<StateMigrationService, TerraformStateMigrationDialogBase.Choice, Task<StateMigrationJob>> start)
         where TDialog : ComponentBase
     {
         var options = new DialogOptions
@@ -605,7 +605,7 @@ else
 
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
-        if (result.Data is not StateEditDialogBase.Choice choice) return;
+        if (result.Data is not TerraformStateMigrationDialogBase.Choice choice) return;
 
         _busy = true;
         try

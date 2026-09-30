@@ -22,7 +22,7 @@ namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 /// it.
 /// </summary>
 public class MoveStateMachine(ILogger<MoveStateMachine> logger)
-    : StateEditStateMachine<
+    : TerraformStateMigrationStateMachine<
         MoveSaga, MoveJobRequested, MoveApproved,
         MoveSelectRunnerInstanceRequested, MoveGetModuleRequested, MoveInitRequested,
         MoveSelectRunnerInstanceCompleted, MoveSelectRunnerInstanceCancelled, MoveSelectRunnerInstanceFaulted,
@@ -70,7 +70,7 @@ public class MoveStateMachine(ILogger<MoveStateMachine> logger)
 /// check before approval is that the addresses are free.
 /// </summary>
 public class ImportStateMachine(ILogger<ImportStateMachine> logger)
-    : StateEditStateMachine<
+    : TerraformStateMigrationStateMachine<
         ImportSaga, ImportJobRequested, ImportApproved,
         ImportSelectRunnerInstanceRequested, ImportGetModuleRequested, ImportInitRequested,
         ImportSelectRunnerInstanceCompleted, ImportSelectRunnerInstanceCancelled, ImportSelectRunnerInstanceFaulted,
@@ -93,7 +93,7 @@ public class ImportStateMachine(ILogger<ImportStateMachine> logger)
 /// before anyone approves it.
 /// </summary>
 public class RemoveStateMachine(ILogger<RemoveStateMachine> logger)
-    : StateEditStateMachine<
+    : TerraformStateMigrationStateMachine<
         RemoveSaga, RemoveJobRequested, RemoveApproved,
         RemoveSelectRunnerInstanceRequested, RemoveGetModuleRequested, RemoveInitRequested,
         RemoveSelectRunnerInstanceCompleted, RemoveSelectRunnerInstanceCancelled, RemoveSelectRunnerInstanceFaulted,

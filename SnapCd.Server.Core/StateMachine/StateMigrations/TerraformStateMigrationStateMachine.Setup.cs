@@ -25,7 +25,7 @@ using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
-public abstract partial class StateEditStateMachine<
+public abstract partial class TerraformStateMigrationStateMachine<
     TSaga, TJobRequested, TApproved,
     TSelectRunnerInstanceRequested, TGetModuleRequested, TInitRequested,
     TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
@@ -113,7 +113,7 @@ public abstract partial class StateEditStateMachine<
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
                 .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Succeeded))
-                .Activity(x => x.OfType<SendStateEditStepToRunnerActivity<TSaga, TCompleted, TNextRequest>>())
+                .Activity(x => x.OfType<SendTerraformStateMigrationStepToRunnerActivity<TSaga, TCompleted, TNextRequest>>())
                 .ThenAsync(context => RecordDispatched(context, nextTask))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
@@ -186,7 +186,7 @@ public abstract partial class StateEditStateMachine<
         if (request is StateMigrationStepRequestBase stateMigrationStep)
             stateMigrationStep.ModuleId = saga.ModuleId;
 
-        if (request is StateEditRequestBase edit)
+        if (request is TerraformStateMigrationRequestBase edit)
             edit.Instructions =
                 JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
 

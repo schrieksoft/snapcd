@@ -21,7 +21,7 @@ using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
-public abstract partial class StateEditStateMachine<
+public abstract partial class TerraformStateMigrationStateMachine<
     TSaga, TJobRequested, TApproved,
     TSelectRunnerInstanceRequested, TGetModuleRequested, TInitRequested,
     TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
@@ -54,7 +54,7 @@ public abstract partial class StateEditStateMachine<
         During(EditPending,
             When(ApprovedEvent)
                 .Activity(x => x.OfType<
-                    SendStateEditStepToRunnerActivity<TSaga, TApproved, TEditRequested>>())
+                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TApproved, TEditRequested>>())
                 .ThenAsync(context => RecordDispatched(context, EditName)));
 
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
@@ -96,7 +96,7 @@ public abstract partial class StateEditStateMachine<
         where TMessage : class
     {
         return binder
-            .Activity(x => x.OfType<StateEditNeedsApprovalActivity<TSaga, TMessage>>())
+            .Activity(x => x.OfType<TerraformStateMigrationNeedsApprovalActivity<TSaga, TMessage>>())
             .IfElse(
                 x => x.Saga.IsApproved,
                 approved => approved

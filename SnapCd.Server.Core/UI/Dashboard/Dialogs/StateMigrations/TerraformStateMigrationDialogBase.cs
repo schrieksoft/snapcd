@@ -8,22 +8,10 @@
 
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 
-using SnapCd.Server.Core.Events.Jobs.Base;
-using SnapCd.Server.Core.Events.Steps.StateMigrations;
+namespace SnapCd.Server.Core.UI.Dashboard.Dialogs.StateMigrations;
 
-namespace SnapCd.Server.Core.Events.Jobs.Module;
-
-/// <summary>
-/// Starts a job that edits a Module's state and then checks what is there. Each address is run on
-/// its own, so a batch can end partly done.
-/// </summary>
-public abstract class StateEditJobRequestedBase : ModuleJobEventBase
+/// <summary>What one state edit's dialog returns: the addresses to act on.</summary>
+public abstract class TerraformStateMigrationDialogBase
 {
-    public List<AddressInstruction> Instructions { get; set; } = [];
+    public record Choice(List<AddressInstruction> Instructions);
 }
-
-public class MoveJobRequested : StateEditJobRequestedBase;
-
-public class ImportJobRequested : StateEditJobRequestedBase;
-
-public class RemoveJobRequested : StateEditJobRequestedBase;

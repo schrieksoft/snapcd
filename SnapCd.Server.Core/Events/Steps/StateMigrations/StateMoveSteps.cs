@@ -24,36 +24,36 @@ public class AddressInstruction
 /// A batch of addresses to act on. Each address runs on its own, so a reply says which of them
 /// worked rather than whether the batch did.
 /// </summary>
-public abstract class StateEditRequestBase : StepRequestBase
+public abstract class TerraformStateMigrationRequestBase : StepRequestBase
 {
     public List<AddressInstruction> Instructions { get; set; } = [];
 }
 
 /// <summary>What the batch managed, address by address.</summary>
-public abstract class StateEditResponseBase : StepResponseBase
+public abstract class TerraformStateMigrationResponseBase : StepResponseBase
 {
     public List<AddressResult> Results { get; set; } = [];
 }
 
-public class MoveRequested : StateEditRequestBase;
+public class MoveRequested : TerraformStateMigrationRequestBase;
 
-public class MoveCompleted : StateEditResponseBase;
+public class MoveCompleted : TerraformStateMigrationResponseBase;
 
 public class MoveCancelled : StepResponseBase;
 
 public class MoveFaulted : StepFaultedBase;
 
-public class ImportRequested : StateEditRequestBase;
+public class ImportRequested : TerraformStateMigrationRequestBase;
 
-public class ImportCompleted : StateEditResponseBase;
+public class ImportCompleted : TerraformStateMigrationResponseBase;
 
 public class ImportCancelled : StepResponseBase;
 
 public class ImportFaulted : StepFaultedBase;
 
-public class RemoveRequested : StateEditRequestBase;
+public class RemoveRequested : TerraformStateMigrationRequestBase;
 
-public class RemoveCompleted : StateEditResponseBase;
+public class RemoveCompleted : TerraformStateMigrationResponseBase;
 
 public class RemoveCancelled : StepResponseBase;
 
@@ -63,25 +63,25 @@ public class RemoveFaulted : StepFaultedBase;
 /// What an edit would do, asked before anyone is asked to approve it. A move and a remove ask the
 /// engine for a dry run; an import has none, so its check is that the addresses are free.
 /// </summary>
-public class MoveDryRunRequested : StateEditRequestBase;
+public class MoveDryRunRequested : TerraformStateMigrationRequestBase;
 
-public class MoveDryRunCompleted : StateEditResponseBase;
+public class MoveDryRunCompleted : TerraformStateMigrationResponseBase;
 
 public class MoveDryRunCancelled : StepResponseBase;
 
 public class MoveDryRunFaulted : StepFaultedBase;
 
-public class RemoveDryRunRequested : StateEditRequestBase;
+public class RemoveDryRunRequested : TerraformStateMigrationRequestBase;
 
-public class RemoveDryRunCompleted : StateEditResponseBase;
+public class RemoveDryRunCompleted : TerraformStateMigrationResponseBase;
 
 public class RemoveDryRunCancelled : StepResponseBase;
 
 public class RemoveDryRunFaulted : StepFaultedBase;
 
-public class ImportPreCheckRequested : StateEditRequestBase;
+public class ImportPreCheckRequested : TerraformStateMigrationRequestBase;
 
-public class ImportPreCheckCompleted : StateEditResponseBase;
+public class ImportPreCheckCompleted : TerraformStateMigrationResponseBase;
 
 public class ImportPreCheckCancelled : StepResponseBase;
 

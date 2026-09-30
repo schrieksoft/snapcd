@@ -38,7 +38,7 @@ namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 /// A move, an import and a remove each close this over their own messages and their own saga, so a
 /// reply can only ever reach the job that asked for it.
 /// </summary>
-public abstract partial class StateEditStateMachine<
+public abstract partial class TerraformStateMigrationStateMachine<
     TSaga, TJobRequested, TApproved,
     TSelectRunnerInstanceRequested, TGetModuleRequested, TInitRequested,
     TSelectRunnerInstanceCompleted, TSelectRunnerInstanceCancelled, TSelectRunnerInstanceFaulted,
@@ -47,8 +47,8 @@ public abstract partial class StateEditStateMachine<
     TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
     TEditRequested, TEditCompleted, TEditCancelled, TEditFaulted>
     : MassTransitStateMachine<TSaga>
-    where TSaga : StateEditSagaBase, new()
-    where TJobRequested : StateEditJobRequestedBase
+    where TSaga : TerraformStateMigrationSagaBase, new()
+    where TJobRequested : TerraformStateMigrationJobRequestedBase
     where TApproved : StateMigrationResumeEventBase, new()
     where TSelectRunnerInstanceRequested : StateMigrationStepRequestBase, new()
     where TGetModuleRequested : StateMigrationGetModuleRequestedBase, new()
@@ -62,12 +62,12 @@ public abstract partial class StateEditStateMachine<
     where TInitCompleted : StateMigrationStepResponseBase
     where TInitCancelled : StateMigrationStepResponseBase
     where TInitFaulted : StateMigrationStepFaultedBase
-    where TPreCheckRequested : StateEditRequestBase, new()
-    where TPreCheckCompleted : StateEditResponseBase
+    where TPreCheckRequested : TerraformStateMigrationRequestBase, new()
+    where TPreCheckCompleted : TerraformStateMigrationResponseBase
     where TPreCheckCancelled : StepResponseBase
     where TPreCheckFaulted : StepFaultedBase
-    where TEditRequested : StateEditRequestBase, new()
-    where TEditCompleted : StateEditResponseBase
+    where TEditRequested : TerraformStateMigrationRequestBase, new()
+    where TEditCompleted : TerraformStateMigrationResponseBase
     where TEditCancelled : StepResponseBase
     where TEditFaulted : StepFaultedBase
 {
@@ -120,7 +120,7 @@ public abstract partial class StateEditStateMachine<
     public State Completed { get; } = null!;
     public State Failed { get; } = null!;
 
-    protected StateEditStateMachine(ILogger logger)
+    protected TerraformStateMigrationStateMachine(ILogger logger)
     {
         _logger = logger;
 
@@ -193,7 +193,7 @@ public abstract partial class StateEditStateMachine<
                 .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Succeeded))
                 .ThenAsync(RecordEdit)
                 .Activity(x => x.OfType<
-                    SendStateEditStepToRunnerActivity<TSaga, TEditCompleted, StateListFilteredRequested>>())
+                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TEditCompleted, StateListFilteredRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "StateListFiltered"))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled

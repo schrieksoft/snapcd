@@ -20,13 +20,13 @@ namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 /// <summary>
 /// A state edit's steps, with the edit's own payload carried onto the requests that take it.
 /// </summary>
-public class SendStateEditStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
+public class SendTerraformStateMigrationStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
     ILogger<SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage>> logger)
     : SendStateMigrationStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
         dbContext, maintenanceMode, logger)
-    where TSaga : StateEditSagaBase, new()
+    where TSaga : TerraformStateMigrationSagaBase, new()
     where TMessage : class
     where TOutgoingMessage : StepRequestBase, new()
 {
@@ -34,7 +34,7 @@ public class SendStateEditStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage
     {
         var request = base.CreateMessage(saga);
 
-        if (request is StateEditRequestBase edit)
+        if (request is TerraformStateMigrationRequestBase edit)
             edit.Instructions =
                 JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
 

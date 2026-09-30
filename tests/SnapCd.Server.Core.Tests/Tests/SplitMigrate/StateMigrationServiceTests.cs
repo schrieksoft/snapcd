@@ -38,18 +38,38 @@ public class StateMigrationServiceTests : IAsyncLifetime
 
     public StateMigrationServiceTests(Fixture fixture) => _fixture = fixture;
 
-    public Task InitializeAsync()
+    private const string ConnectedInstance = "state-migration-service-tests";
+
+    public async Task InitializeAsync()
     {
         _dbContext = _fixture.CreateDbContext();
         _moduleId = _fixture.Modules["0000"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
-        return Task.CompletedTask;
+
+        // A state migration is refused unless the Module's runner is connected.
+        var runnerId = _dbContext.Modules.AsNoTracking().First(m => m.Id == _moduleId).RunnerId;
+        if (!_dbContext.RunnerConnections.Any(rc => rc.RunnerId == runnerId && rc.InstanceName == ConnectedInstance))
+        {
+            _dbContext.RunnerConnections.Add(new RunnerConnection
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _organizationId,
+                RunnerId = runnerId,
+                InstanceName = ConnectedInstance,
+                SignalRConnectionId = $"{ConnectedInstance}-connection",
+                ServerInstanceId = Guid.NewGuid()
+            });
+            await _dbContext.SaveChangesAsync();
+        }
     }
 
     public async Task DisposeAsync()
     {
         await ResetPause();
         await RemoveStateMigrations();
+        _dbContext.RunnerConnections.RemoveRange(
+            _dbContext.RunnerConnections.Where(rc => rc.InstanceName == ConnectedInstance));
+        await _dbContext.SaveChangesAsync();
         await _dbContext.DisposeAsync();
     }
 
