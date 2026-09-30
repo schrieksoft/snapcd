@@ -103,8 +103,8 @@ public abstract partial class TerraformStateMigrationStateMachine<
     public Event<TMigrateStateCompleted> MigrateStateCompleted { get; } = null!;
     public Event<TMigrateStateCancelled> MigrateStateCancelled { get; } = null!;
     public Event<TMigrateStateFaulted> MigrateStateFaulted { get; } = null!;
-    public Event<StateListFilteredCompleted> ListCompleted { get; } = null!;
-    public Event<StateListFilteredFaulted> ListFaulted { get; } = null!;
+    public Event<LookupAddressesCompleted> ListCompleted { get; } = null!;
+    public Event<LookupAddressesFaulted> ListFaulted { get; } = null!;
 
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
     public Request<TSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
@@ -193,8 +193,8 @@ public abstract partial class TerraformStateMigrationStateMachine<
                 .ThenAsync(context => RecordCompleted(context, MigrateStateName, StateMigrationStepStatus.Succeeded))
                 .ThenAsync(RecordMigrateState)
                 .Activity(x => x.OfType<
-                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TMigrateStateCompleted, StateListFilteredRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "StateListFiltered"))
+                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TMigrateStateCompleted, LookupAddressesRequested>>())
+                .ThenAsync(context => RecordDispatched(context, "LookupAddresses"))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
                     {
@@ -221,7 +221,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
 
         During(ListPending,
             When(ListCompleted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Succeeded))
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Succeeded))
                 .ThenAsync(ReportAddresses)
                 .IfElse(
                     context => context.Saga.FailedCount == 0,
@@ -234,12 +234,12 @@ public abstract partial class TerraformStateMigrationStateMachine<
 
             // The state migration already happened, so a failed list leaves the job done but unobserved.
             When(ListFaulted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted))
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Faulted))
                 .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize()
         );
@@ -286,7 +286,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     /// worked" and "the address is there" stay separate facts.
     /// </summary>
     private static async Task ReportAddresses(
-        BehaviorContext<TSaga, StateListFilteredCompleted> context)
+        BehaviorContext<TSaga, LookupAddressesCompleted> context)
     {
         var results = context.Message.Results;
         if (results.Count == 0) return;

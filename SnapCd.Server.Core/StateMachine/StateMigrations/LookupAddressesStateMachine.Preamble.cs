@@ -27,7 +27,7 @@ using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
-public partial class StateListFilteredStateMachine
+public partial class LookupAddressesStateMachine
 {
     /// <summary>
     /// Everything a job does before it does its own work: pick the runner, fetch the code,
@@ -36,23 +36,23 @@ public partial class StateListFilteredStateMachine
     /// </summary>
     private void Configure_Preamble()
     {
-        CreateStep<StateListFilteredSelectRunnerInstanceCompleted, StateListFilteredSelectRunnerInstanceFaulted, StateListFilteredGetModuleRequested>(
-            StateListFilteredSelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
-            "SelectRunnerInstance", "GetModule", StateListFilteredGetModulePending,
+        CreateStep<LookupAddressesSelectRunnerInstanceCompleted, LookupAddressesSelectRunnerInstanceFaulted, LookupAddressesGetModuleRequested>(
+            LookupAddressesSelectRunnerInstancePending, SelectRunnerInstanceCompleted, SelectRunnerInstanceFaulted,
+            "SelectRunnerInstance", "GetModule", LookupAddressesGetModulePending,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
-        CreateStep<StateListFilteredGetModuleCompleted, StateListFilteredGetModuleFaulted, StateListFilteredInitRequested>(
-            StateListFilteredGetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", "Init", StateListFilteredInitPending,
+        CreateStep<LookupAddressesGetModuleCompleted, LookupAddressesGetModuleFaulted, LookupAddressesInitRequested>(
+            LookupAddressesGetModulePending, GetModuleCompleted, GetModuleFaulted, "GetModule", "Init", LookupAddressesInitPending,
             context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
-        CreateStep<StateListFilteredInitCompleted, StateListFilteredInitFaulted, StateListFilteredRequested>(
-            StateListFilteredInitPending, InitCompleted, InitFaulted, "Init", "StateListFiltered", ListPending);
+        CreateStep<LookupAddressesInitCompleted, LookupAddressesInitFaulted, LookupAddressesRequested>(
+            LookupAddressesInitPending, InitCompleted, InitFaulted, "Init", "LookupAddresses", ListPending);
 
-        During(StateListFilteredSelectRunnerInstancePending, StateListFilteredGetModulePending, StateListFilteredInitPending, ListPending,
+        During(LookupAddressesSelectRunnerInstancePending, LookupAddressesGetModulePending, LookupAddressesInitPending, ListPending,
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(
                     "State list on Module {ModuleId} was cancelled", context.Saga.ModuleId))
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<StateListFilteredSaga, CancelStateMigrationJobRequested>>())
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<LookupAddressesSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
                 .Finalize());
     }
@@ -64,7 +64,7 @@ public partial class StateListFilteredStateMachine
         string task,
         string nextTask,
         State nextState,
-        Action<BehaviorContext<StateListFilteredSaga, TCompleted>>? onCompleted = null)
+        Action<BehaviorContext<LookupAddressesSaga, TCompleted>>? onCompleted = null)
         where TCompleted : StateMigrationStepResponseBase
         where TFaulted : StateMigrationStepFaultedBase
         where TNextRequest : StepRequestBase, new()
@@ -73,7 +73,7 @@ public partial class StateListFilteredStateMachine
             When(completedEvent)
                 .Then(context => onCompleted?.Invoke(context))
                 .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Succeeded))
-                .Activity(x => x.OfType<SendStateListFilteredStepToRunnerActivity<TCompleted, TNextRequest>>())
+                .Activity(x => x.OfType<SendLookupAddressesStepToRunnerActivity<TCompleted, TNextRequest>>())
                 .ThenAsync(context => RecordDispatched(context, nextTask))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
@@ -98,7 +98,7 @@ public partial class StateListFilteredStateMachine
 
 
     private static async Task RecordDispatched<TMessage>(
-        BehaviorContext<StateListFilteredSaga, TMessage> context, string task)
+        BehaviorContext<LookupAddressesSaga, TMessage> context, string task)
         where TMessage : class =>
         await PipeExtensions.GetPayload<IServiceProvider>(context)
             .GetRequiredService<StateMigrationStepService>()
@@ -107,7 +107,7 @@ public partial class StateListFilteredStateMachine
                 null, context.Saga.RunnerInstanceName);
 
     private static async Task RecordCompleted<TMessage>(
-        BehaviorContext<StateListFilteredSaga, TMessage> context,
+        BehaviorContext<LookupAddressesSaga, TMessage> context,
         string task,
         StateMigrationStepStatus status,
         string? errorHeader = null)
@@ -123,7 +123,7 @@ public partial class StateListFilteredStateMachine
     }
 
     /// <summary>The fields every step request carries, written once so a step cannot go astray.</summary>
-    private static TRequest Request<TRequest>(StateListFilteredSaga saga)
+    private static TRequest Request<TRequest>(LookupAddressesSaga saga)
         where TRequest : StepRequestBase, new()
     {
         var request = new TRequest
@@ -138,7 +138,7 @@ public partial class StateListFilteredStateMachine
         if (request is StateMigrationStepRequestBase stateMigrationStep)
             stateMigrationStep.ModuleId = saga.ModuleId;
 
-        if (request is StateListFilteredRequested list)
+        if (request is LookupAddressesRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.AddressesJson) ?? [];
 
         return request;

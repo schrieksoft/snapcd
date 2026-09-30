@@ -156,11 +156,11 @@ public class FakeRunner(
 
             // The manual families run the same checkout and init, each answering on its own
             // endpoint, so each is replied to by name.
-            case RunnerEndpoints.StateListFilteredGetModule:
-                await hub.StateListFilteredGetModuleCompleted(jobId);
+            case RunnerEndpoints.LookupAddressesGetModule:
+                await hub.LookupAddressesGetModuleCompleted(jobId);
                 break;
-            case RunnerEndpoints.StateListFilteredInit:
-                await hub.StateListFilteredInitCompleted(jobId);
+            case RunnerEndpoints.LookupAddressesInit:
+                await hub.LookupAddressesInitCompleted(jobId);
                 break;
             case RunnerEndpoints.MoveGetModule:
                 await hub.MoveGetModuleCompleted(jobId);
@@ -323,10 +323,10 @@ public class FakeRunner(
                 await hub.SplitMigrateVerifyCompleted(jobId, ModulesProven, ModulesProven);
                 break;
 
-            case RunnerEndpoints.StateListFiltered:
+            case RunnerEndpoints.LookupAddresses:
                 // Reports every address asked about as present, which is the outcome a list has
                 // when the state holds what the caller named.
-                await hub.StateListFilteredCompleted(jobId,
+                await hub.LookupAddressesCompleted(jobId,
                     (Read<List<string>>(payload, "Addresses") ?? [])
                     .Select(a => new StateAddressResult { Address = a, Outcome = "Present" })
                     .ToList());
@@ -343,13 +343,13 @@ public class FakeRunner(
             case RunnerEndpoints.ImportPreCheck:
                 await hub.ImportPreCheckCompleted(jobId, Succeeded(payload));
                 break;
-            case RunnerEndpoints.StateMove:
+            case RunnerEndpoints.Move:
                 await hub.MoveCompleted(jobId, Succeeded(payload));
                 break;
-            case RunnerEndpoints.StateImport:
+            case RunnerEndpoints.Import:
                 await hub.ImportCompleted(jobId, Succeeded(payload));
                 break;
-            case RunnerEndpoints.StateRemove:
+            case RunnerEndpoints.Remove:
                 await hub.RemoveCompleted(jobId, Succeeded(payload));
                 break;
 

@@ -24,9 +24,9 @@ public abstract class StateMigrationGetModuleRequestedBase : StateMigrationStepR
     public string? SourceRevisionOverride { get; set; }
 }
 
-public class StateListFilteredSelectRunnerInstanceRequested : StateMigrationStepRequestBase;
-public class StateListFilteredGetModuleRequested : StateMigrationGetModuleRequestedBase;
-public class StateListFilteredInitRequested : StateMigrationStepRequestBase;
+public class LookupAddressesSelectRunnerInstanceRequested : StateMigrationStepRequestBase;
+public class LookupAddressesGetModuleRequested : StateMigrationGetModuleRequestedBase;
+public class LookupAddressesInitRequested : StateMigrationStepRequestBase;
 
 public class MoveSelectRunnerInstanceRequested : StateMigrationStepRequestBase;
 public class MoveGetModuleRequested : StateMigrationGetModuleRequestedBase;
@@ -52,15 +52,15 @@ public abstract class StateMigrationGetModuleCompletedBase : StateMigrationStepR
     public string? DefinitiveRevision { get; set; }
 }
 
-public class StateListFilteredSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
-public class StateListFilteredSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
-public class StateListFilteredSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
-public class StateListFilteredGetModuleCompleted : StateMigrationGetModuleCompletedBase;
-public class StateListFilteredGetModuleCancelled : StateMigrationStepResponseBase;
-public class StateListFilteredGetModuleFaulted : StateMigrationStepFaultedBase;
-public class StateListFilteredInitCompleted : StateMigrationStepResponseBase;
-public class StateListFilteredInitCancelled : StateMigrationStepResponseBase;
-public class StateListFilteredInitFaulted : StateMigrationStepFaultedBase;
+public class LookupAddressesSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
+public class LookupAddressesSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;
+public class LookupAddressesSelectRunnerInstanceFaulted : StateMigrationStepFaultedBase;
+public class LookupAddressesGetModuleCompleted : StateMigrationGetModuleCompletedBase;
+public class LookupAddressesGetModuleCancelled : StateMigrationStepResponseBase;
+public class LookupAddressesGetModuleFaulted : StateMigrationStepFaultedBase;
+public class LookupAddressesInitCompleted : StateMigrationStepResponseBase;
+public class LookupAddressesInitCancelled : StateMigrationStepResponseBase;
+public class LookupAddressesInitFaulted : StateMigrationStepFaultedBase;
 
 public class MoveSelectRunnerInstanceCompleted : StateMigrationSelectRunnerInstanceCompletedBase;
 public class MoveSelectRunnerInstanceCancelled : StateMigrationStepResponseBase;

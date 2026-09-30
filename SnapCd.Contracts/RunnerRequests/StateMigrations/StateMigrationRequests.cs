@@ -13,7 +13,7 @@ namespace SnapCd.Contracts.RunnerRequests.StateMigrations;
 /// Asks which of the given addresses are in this Module's state. The filter is the whole request:
 /// a Module's full state is never listed to the logs or returned, only the verdict on these.
 /// </summary>
-public class StateListFilteredRequestBase : EngineJobRequestBase
+public class LookupAddressesRequestBase : EngineJobRequestBase
 {
     public List<string> Addresses { get; set; } = [];
 }

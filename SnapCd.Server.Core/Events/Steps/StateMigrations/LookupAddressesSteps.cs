@@ -13,20 +13,20 @@ using SnapCd.Server.Core.Events.Steps.Base;
 namespace SnapCd.Server.Core.Events.Steps.StateMigrations;
 
 /// <summary>Asks the runner which of these addresses are in the Module's state.</summary>
-public class StateListFilteredRequested : StepRequestBase
+public class LookupAddressesRequested : StepRequestBase
 {
     public List<string> Addresses { get; set; } = [];
 }
 
 /// <summary>What the runner found, one entry per address asked about and no others.</summary>
-public class StateListFilteredCompleted : StepResponseBase
+public class LookupAddressesCompleted : StepResponseBase
 {
     public List<AddressResult> Results { get; set; } = [];
 }
 
-public class StateListFilteredCancelled : StepResponseBase;
+public class LookupAddressesCancelled : StepResponseBase;
 
-public class StateListFilteredFaulted : StepFaultedBase;
+public class LookupAddressesFaulted : StepFaultedBase;
 
 /// <summary>One address and what became of it.</summary>
 public class AddressResult

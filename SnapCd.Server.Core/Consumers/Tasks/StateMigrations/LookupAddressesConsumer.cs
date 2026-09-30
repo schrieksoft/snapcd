@@ -22,14 +22,14 @@ namespace SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 /// Sends the filter to the runner. The addresses are the whole request: what else is in the
 /// Module's state is not asked for and is not reported.
 /// </summary>
-public class StateListFilteredConsumer : IConsumer<StateListFilteredRequested>
+public class LookupAddressesConsumer : IConsumer<LookupAddressesRequested>
 {
-    private readonly ILogger<StateListFilteredConsumer> _logger;
+    private readonly ILogger<LookupAddressesConsumer> _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public StateListFilteredConsumer(
-        ILogger<StateListFilteredConsumer> logger,
+    public LookupAddressesConsumer(
+        ILogger<LookupAddressesConsumer> logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -38,7 +38,7 @@ public class StateListFilteredConsumer : IConsumer<StateListFilteredRequested>
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<StateListFilteredRequested> context)
+    public async Task Consume(ConsumeContext<LookupAddressesRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -54,8 +54,8 @@ public class StateListFilteredConsumer : IConsumer<StateListFilteredRequested>
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.StateListFiltered,
-                new StateListFilteredRequestBase
+                RunnerEndpoints.LookupAddresses,
+                new LookupAddressesRequestBase
                 {
                     JobId = jobId,
                     OrganizationId = msg.OrganizationId,
@@ -65,14 +65,14 @@ public class StateListFilteredConsumer : IConsumer<StateListFilteredRequested>
                 });
 
             _logger.LogDebug(
-                "Dispatched StateListFiltered to runner {RunnerName} for job {JobId}",
+                "Dispatched LookupAddresses to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error dispatching StateListFiltered for job {JobId}", jobId);
+            _logger.LogError(ex, "Error dispatching LookupAddresses for job {JobId}", jobId);
 
-            await context.Publish(new StateListFilteredFaulted
+            await context.Publish(new LookupAddressesFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = msg.OrganizationId,

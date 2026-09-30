@@ -42,7 +42,7 @@ public class MoveConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.StateMove,
+                RunnerEndpoints.Move,
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -55,12 +55,12 @@ public class MoveConsumer(
                 });
 
             logger.LogDebug(
-                "Sent StateMove to runner {RunnerName} for job {JobId}",
+                "Sent Move to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error dispatching StateMove for job {JobId}", jobId);
+            logger.LogError(ex, "Error dispatching Move for job {JobId}", jobId);
 
             await context.Publish(new MoveFaulted
             {
@@ -97,7 +97,7 @@ public class ImportConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.StateImport,
+                RunnerEndpoints.Import,
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -110,12 +110,12 @@ public class ImportConsumer(
                 });
 
             logger.LogDebug(
-                "Sent StateImport to runner {RunnerName} for job {JobId}",
+                "Sent Import to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error dispatching StateImport for job {JobId}", jobId);
+            logger.LogError(ex, "Error dispatching Import for job {JobId}", jobId);
 
             await context.Publish(new ImportFaulted
             {
@@ -152,7 +152,7 @@ public class RemoveConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.StateRemove,
+                RunnerEndpoints.Remove,
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -165,12 +165,12 @@ public class RemoveConsumer(
                 });
 
             logger.LogDebug(
-                "Sent StateRemove to runner {RunnerName} for job {JobId}",
+                "Sent Remove to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error dispatching StateRemove for job {JobId}", jobId);
+            logger.LogError(ex, "Error dispatching Remove for job {JobId}", jobId);
 
             await context.Publish(new RemoveFaulted
             {

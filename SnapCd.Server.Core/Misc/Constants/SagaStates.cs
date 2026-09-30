@@ -43,8 +43,8 @@ public static class SagaStates
     public const string SplitInitPending = nameof(SplitInitPending);
     public const string SplitPlanPending = nameof(SplitPlanPending);
     public const string SplitValidatePending = nameof(SplitValidatePending);
-    public const string StateListFilteredGetModulePending = nameof(StateListFilteredGetModulePending);
-    public const string StateListFilteredInitPending = nameof(StateListFilteredInitPending);
+    public const string LookupAddressesGetModulePending = nameof(LookupAddressesGetModulePending);
+    public const string LookupAddressesInitPending = nameof(LookupAddressesInitPending);
     public const string TransferGetModulePending = nameof(TransferGetModulePending);
     public const string TransferInitPending = nameof(TransferInitPending);
     public const string TransferPlanPending = nameof(TransferPlanPending);

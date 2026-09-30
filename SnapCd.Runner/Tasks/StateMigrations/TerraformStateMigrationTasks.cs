@@ -107,7 +107,7 @@ public partial class Tasks
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
-                var (present, _) = await engine.StateListFiltered(
+                var (present, _) = await engine.LookupAddresses(
                     request.Instructions.Select(i => i.Address).ToList(), killToken);
 
                 var occupied = present.ToHashSet();
@@ -150,7 +150,7 @@ public partial class Tasks
 
     /// <summary>Moves each address to where it should be. One command per address.</summary>
     public Task Move(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateMove, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.Move, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -179,7 +179,7 @@ public partial class Tasks
 
     /// <summary>Imports each address from the id it already has. One command per address.</summary>
     public Task Import(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateImport, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.Import, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -208,7 +208,7 @@ public partial class Tasks
 
     /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
     public Task Remove(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.StateRemove, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.Remove, request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {

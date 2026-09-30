@@ -277,24 +277,24 @@ public class RunnerHubConnection : IAsyncDisposable
         );
 
         // The manual families run the same checkout and init, each answering on its own endpoint.
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.StateListFilteredGetModule, (request) =>
+        _connection.On<GetModuleRequestBase>(RunnerEndpoints.LookupAddressesGetModule, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.GetModule(
                     request, _connection,
-                    client.InvokeStateListFilteredGetModuleCompleted,
-                    client.InvokeStateListFilteredGetModuleCancelled,
-                    client.InvokeStateListFilteredGetModuleFaulted); });
+                    client.InvokeLookupAddressesGetModuleCompleted,
+                    client.InvokeLookupAddressesGetModuleCancelled,
+                    client.InvokeLookupAddressesGetModuleFaulted); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.StateListFilteredInit, (request) =>
+        _connection.On<InitRequestBase>(RunnerEndpoints.LookupAddressesInit, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.Init(
                     request, _connection,
-                    client.InvokeStateListFilteredInitCompleted,
-                    client.InvokeStateListFilteredInitCancelled,
-                    client.InvokeStateListFilteredInitFaulted); });
+                    client.InvokeLookupAddressesInitCompleted,
+                    client.InvokeLookupAddressesInitCancelled,
+                    client.InvokeLookupAddressesInitFaulted); });
                 return Task.CompletedTask;
             }
         );
@@ -454,21 +454,21 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.StateMove, (request) =>
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.Move, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.Move(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.StateImport, (request) =>
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.Import, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.Import(request, _connection); });
                 return Task.CompletedTask;
             }
         );
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.StateRemove, (request) =>
+        _connection.On<StateMoveRequestBase>(RunnerEndpoints.Remove, (request) =>
             {
                 Task.Run(async () => { await _tasks.Value.Remove(request, _connection); });
                 return Task.CompletedTask;
@@ -496,9 +496,9 @@ public class RunnerHubConnection : IAsyncDisposable
             }
         );
 
-        _connection.On<StateListFilteredRequestBase>(RunnerEndpoints.StateListFiltered, (request) =>
+        _connection.On<LookupAddressesRequestBase>(RunnerEndpoints.LookupAddresses, (request) =>
             {
-                Task.Run(async () => { await _tasks.Value.StateListFiltered(request, _connection); });
+                Task.Run(async () => { await _tasks.Value.LookupAddresses(request, _connection); });
                 return Task.CompletedTask;
             }
         );

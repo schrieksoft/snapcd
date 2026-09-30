@@ -47,7 +47,7 @@ public static class StateMigrationRun
 
         var job = options.Job switch
         {
-            JobKind.List => await stateMigrations.StartStateListFiltered(
+            JobKind.List => await stateMigrations.StartLookupAddresses(
                 options.ModuleId, options.OrganizationId, options.Addresses),
             JobKind.Move => await stateMigrations.StartMove(
                 options.ModuleId, options.OrganizationId, Targeted(options)),

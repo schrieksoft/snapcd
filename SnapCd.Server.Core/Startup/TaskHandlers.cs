@@ -38,8 +38,8 @@ public static class TaskHandlers
         services.AddScoped<SplitRefactorDiffHandler>();
         services.AddScoped<SplitMigrateMapHandler>();
         services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.Transfers.TransferStepHandler>();
-        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.StateListFilteredGetModuleHandler>();
-        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.StateListFilteredInitHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.LookupAddressesGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.LookupAddressesInitHandler>();
         services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.MoveGetModuleHandler>();
         services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.MoveInitHandler>();
         services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.ImportGetModuleHandler>();

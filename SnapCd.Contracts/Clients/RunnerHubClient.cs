@@ -229,20 +229,20 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ImportPreCheckFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeStateListFilteredCompleted(Guid jobId, List<StateAddressResult> results)
+    public async Task InvokeLookupAddressesCompleted(Guid jobId, List<StateAddressResult> results)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredCompleted, jobId, results);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesCompleted, jobId, results);
     }
 
-    public async Task InvokeStateListFilteredCancelled(Guid jobId)
+    public async Task InvokeLookupAddressesCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesCancelled, jobId);
     }
 
-    public async Task InvokeStateListFilteredFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeLookupAddressesFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(
-            ServerEndpoints.StateListFilteredFaulted, jobId, errorMessage, stackTrace);
+            ServerEndpoints.LookupAddressesFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeTransferOutputsCompleted(
@@ -478,34 +478,34 @@ public class RunnerHubClient
     // One wrapper per family per outcome, so a task is handed the exact endpoint to answer on
     // and a wrong one cannot compile.
 
-    public async Task InvokeStateListFilteredGetModuleCompleted(Guid jobId)
+    public async Task InvokeLookupAddressesGetModuleCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredGetModuleCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesGetModuleCompleted, jobId);
     }
 
-    public async Task InvokeStateListFilteredGetModuleCancelled(Guid jobId)
+    public async Task InvokeLookupAddressesGetModuleCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredGetModuleCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesGetModuleCancelled, jobId);
     }
 
-    public async Task InvokeStateListFilteredGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeLookupAddressesGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredGetModuleFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesGetModuleFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeStateListFilteredInitCompleted(Guid jobId)
+    public async Task InvokeLookupAddressesInitCompleted(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredInitCompleted, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesInitCompleted, jobId);
     }
 
-    public async Task InvokeStateListFilteredInitCancelled(Guid jobId)
+    public async Task InvokeLookupAddressesInitCancelled(Guid jobId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredInitCancelled, jobId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesInitCancelled, jobId);
     }
 
-    public async Task InvokeStateListFilteredInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    public async Task InvokeLookupAddressesInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.StateListFilteredInitFaulted, jobId, errorMessage, stackTrace);
+        await _hubConnection.InvokeAsync(ServerEndpoints.LookupAddressesInitFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeMoveGetModuleCompleted(Guid jobId)

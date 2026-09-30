@@ -68,38 +68,38 @@ public abstract class StateMigrationInitConsumer<TRequested, TFaulted>(
 // One concrete set per family: the reply a dispatch failure raises has to reach the saga
 // that asked for the step, so each family names its own.
 
-public class StateListFilteredSelectRunnerInstanceConsumer(
-    ILogger<StateListFilteredSelectRunnerInstanceConsumer> logger,
+public class LookupAddressesSelectRunnerInstanceConsumer(
+    ILogger<LookupAddressesSelectRunnerInstanceConsumer> logger,
     RunnerSelectionService runnerSelection,
     RunnerJobAuthorizationService authorizationService)
     : StateMigrationSelectRunnerInstanceConsumer<
-        StateListFilteredSelectRunnerInstanceRequested,
-        StateListFilteredSelectRunnerInstanceCompleted,
-        StateListFilteredSelectRunnerInstanceFaulted>(logger, runnerSelection, authorizationService)
+        LookupAddressesSelectRunnerInstanceRequested,
+        LookupAddressesSelectRunnerInstanceCompleted,
+        LookupAddressesSelectRunnerInstanceFaulted>(logger, runnerSelection, authorizationService)
 {
     protected override void SetInstanceName(
-        StateListFilteredSelectRunnerInstanceCompleted completed, string instanceName)
+        LookupAddressesSelectRunnerInstanceCompleted completed, string instanceName)
         => completed.RunnerInstanceName = instanceName;
 }
 
-public class StateListFilteredGetModuleConsumer(
-    ILogger<StateListFilteredGetModuleConsumer> logger,
+public class LookupAddressesGetModuleConsumer(
+    ILogger<LookupAddressesGetModuleConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection)
-    : StateMigrationGetModuleConsumer<StateListFilteredGetModuleRequested, StateListFilteredGetModuleFaulted>(logger, hubContext, runnerSelection)
+    : StateMigrationGetModuleConsumer<LookupAddressesGetModuleRequested, LookupAddressesGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.StateListFilteredGetModule;
+    protected override string Endpoint => RunnerEndpoints.LookupAddressesGetModule;
 }
 
-public class StateListFilteredInitConsumer(
-    ILogger<StateListFilteredInitConsumer> logger,
+public class LookupAddressesInitConsumer(
+    ILogger<LookupAddressesInitConsumer> logger,
     IHubContext<RunnerHub> hubContext,
     RunnerSelectionService runnerSelection,
     ParamResolverFactory paramResolverFactory)
-    : StateMigrationInitConsumer<StateListFilteredInitRequested, StateListFilteredInitFaulted>(
+    : StateMigrationInitConsumer<LookupAddressesInitRequested, LookupAddressesInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
-    protected override string Endpoint => RunnerEndpoints.StateListFilteredInit;
+    protected override string Endpoint => RunnerEndpoints.LookupAddressesInit;
 }
 
 public class MoveSelectRunnerInstanceConsumer(

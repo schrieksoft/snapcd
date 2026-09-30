@@ -20,8 +20,8 @@ public partial class Tasks
     /// Reports which of the addresses asked about are in this Module's state. The state itself is
     /// never logged or returned: only the verdict on the addresses in the filter.
     /// </summary>
-    public Task StateListFiltered(StateListFilteredRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, nameof(StateListFiltered), request.Metadata,
+    public Task LookupAddresses(LookupAddressesRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, nameof(LookupAddresses), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -31,7 +31,7 @@ public partial class Tasks
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
-                var (present, absent) = await engine.StateListFiltered(
+                var (present, absent) = await engine.LookupAddresses(
                     request.Addresses, killToken);
 
                 if (present.Count > 0)
@@ -56,10 +56,10 @@ public partial class Tasks
                     .ToList();
 
                 await InvokeWithRetryAsync(
-                    () => client.InvokeStateListFilteredCompleted(request.JobId, results),
-                    nameof(client.InvokeStateListFilteredCompleted), request.JobId, connection);
+                    () => client.InvokeLookupAddressesCompleted(request.JobId, results),
+                    nameof(client.InvokeLookupAddressesCompleted), request.JobId, connection);
             },
             (client, message, stackTrace) =>
-                client.InvokeStateListFilteredFaulted(request.JobId, message, stackTrace),
-            client => client.InvokeStateListFilteredCancelled(request.JobId));
+                client.InvokeLookupAddressesFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeLookupAddressesCancelled(request.JobId));
 }

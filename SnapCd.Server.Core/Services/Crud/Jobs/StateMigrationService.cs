@@ -299,7 +299,7 @@ public class StateMigrationService : IDisposable
     /// Asks which of these addresses are in a Module's state. Writes nothing, so it needs only what
     /// any manual job needs: the Module free to run.
     /// </summary>
-    public async Task<StateMigrationJob> StartStateListFiltered(
+    public async Task<StateMigrationJob> StartLookupAddresses(
         Guid moduleId, Guid organizationId, IReadOnlyCollection<string> addresses)
     {
         if (_resolvedConfigurationService is null || _bus is null)
@@ -325,7 +325,7 @@ public class StateMigrationService : IDisposable
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = StateMigrationTypes.StateListFiltered,
+            JobType = StateMigrationTypes.LookupAddresses,
             Status = ExecutionStatus.Running
         };
 
@@ -335,7 +335,7 @@ public class StateMigrationService : IDisposable
 
         try
         {
-            await _bus.Publish(new StateListFilteredJobRequested
+            await _bus.Publish(new LookupAddressesJobRequested
             {
                 CorrelationId = job.Id,
                 Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
@@ -386,7 +386,7 @@ public class StateMigrationService : IDisposable
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = StateMigrationTypes.StateMove,
+            JobType = StateMigrationTypes.Move,
             Status = ExecutionStatus.Running
         };
 
@@ -443,7 +443,7 @@ public class StateMigrationService : IDisposable
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = StateMigrationTypes.StateImport,
+            JobType = StateMigrationTypes.Import,
             Status = ExecutionStatus.Running
         };
 
@@ -497,7 +497,7 @@ public class StateMigrationService : IDisposable
             ModuleId = moduleId,
             OrganizationId = organizationId,
             TimestampStart = DateTimeOffset.UtcNow,
-            JobType = StateMigrationTypes.StateRemove,
+            JobType = StateMigrationTypes.Remove,
             Status = ExecutionStatus.Running
         };
 

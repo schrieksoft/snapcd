@@ -39,7 +39,7 @@ public class SendTerraformStateMigrationStepToRunnerActivity<TSaga, TMessage, TO
                 JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
 
         // The list afterwards asks only about the addresses the edit managed.
-        if (request is StateListFilteredRequested list)
+        if (request is LookupAddressesRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.SucceededJson ?? "[]") ?? [];
 
         return request;

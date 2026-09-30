@@ -35,35 +35,35 @@ namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 ///
 /// It writes nothing, so there is no plan, no approval and no way for it to fail destructively.
 /// </summary>
-public partial class StateListFilteredStateMachine : MassTransitStateMachine<StateListFilteredSaga>
+public partial class LookupAddressesStateMachine : MassTransitStateMachine<LookupAddressesSaga>
 {
-    private readonly ILogger<StateListFilteredStateMachine> _logger;
+    private readonly ILogger<LookupAddressesStateMachine> _logger;
 
-    public Event<StateListFilteredJobRequested> JobRequested { get; } = null!;
+    public Event<LookupAddressesJobRequested> JobRequested { get; } = null!;
     public Event<CancelStateMigrationJobRequested> CancelRequested { get; } = null!;
 
-    public Event<StateListFilteredSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
-    public Event<StateListFilteredSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
-    public Event<StateListFilteredGetModuleCompleted> GetModuleCompleted { get; } = null!;
-    public Event<StateListFilteredGetModuleFaulted> GetModuleFaulted { get; } = null!;
-    public Event<StateListFilteredInitCompleted> InitCompleted { get; } = null!;
-    public Event<StateListFilteredInitFaulted> InitFaulted { get; } = null!;
-    public Event<StateListFilteredCompleted> ListCompleted { get; } = null!;
-    public Event<StateListFilteredFaulted> ListFaulted { get; } = null!;
+    public Event<LookupAddressesSelectRunnerInstanceCompleted> SelectRunnerInstanceCompleted { get; } = null!;
+    public Event<LookupAddressesSelectRunnerInstanceFaulted> SelectRunnerInstanceFaulted { get; } = null!;
+    public Event<LookupAddressesGetModuleCompleted> GetModuleCompleted { get; } = null!;
+    public Event<LookupAddressesGetModuleFaulted> GetModuleFaulted { get; } = null!;
+    public Event<LookupAddressesInitCompleted> InitCompleted { get; } = null!;
+    public Event<LookupAddressesInitFaulted> InitFaulted { get; } = null!;
+    public Event<LookupAddressesCompleted> ListCompleted { get; } = null!;
+    public Event<LookupAddressesFaulted> ListFaulted { get; } = null!;
 
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<StateListFilteredSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
-    public Schedule<StateListFilteredSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
+    public Request<LookupAddressesSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Schedule<LookupAddressesSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
-    public State StateListFilteredSelectRunnerInstancePending { get; } = null!;
-    public State StateListFilteredGetModulePending { get; } = null!;
-    public State StateListFilteredInitPending { get; } = null!;
+    public State LookupAddressesSelectRunnerInstancePending { get; } = null!;
+    public State LookupAddressesGetModulePending { get; } = null!;
+    public State LookupAddressesInitPending { get; } = null!;
     public State ListPending { get; } = null!;
 
     public State Completed { get; } = null!;
     public State Failed { get; } = null!;
 
-    public StateListFilteredStateMachine(ILogger<StateListFilteredStateMachine> logger)
+    public LookupAddressesStateMachine(ILogger<LookupAddressesStateMachine> logger)
     {
         _logger = logger;
 
@@ -112,26 +112,26 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
                         "Checking {Count} addresses against Module {ModuleId}",
                         context.Message.Addresses.Count, context.Saga.ModuleId);
                 })
-                .Publish(context => Request<StateListFilteredSelectRunnerInstanceRequested>(context.Saga))
+                .Publish(context => Request<LookupAddressesSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
-                .TransitionTo(StateListFilteredSelectRunnerInstancePending)
+                .TransitionTo(LookupAddressesSelectRunnerInstancePending)
         );
 
         Configure_Preamble();
 
         During(ListPending,
             When(ListCompleted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Succeeded))
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Succeeded))
                 .ThenAsync(ReportAddresses)
                 .ThenJobCompleted().TransitionTo(Completed).Finalize(),
 
             When(ListFaulted)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted))
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
@@ -142,7 +142,7 @@ public partial class StateListFilteredStateMachine : MassTransitStateMachine<Sta
     /// job knowing a transfer exists.
     /// </summary>
     private static async Task ReportAddresses(
-        BehaviorContext<StateListFilteredSaga, StateListFilteredCompleted> context)
+        BehaviorContext<LookupAddressesSaga, LookupAddressesCompleted> context)
     {
         var results = context.Message.Results;
         if (results.Count == 0) return;

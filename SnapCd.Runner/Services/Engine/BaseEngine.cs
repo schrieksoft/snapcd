@@ -78,7 +78,7 @@ public abstract class BaseEngine
     /// Which of the given addresses are in this Module's state. `state list` prints the whole
     /// state, so the comparison happens here and only its verdict leaves the runner.
     /// </summary>
-    public virtual async Task<(List<string> Present, List<string> Absent)> StateListFiltered(
+    public virtual async Task<(List<string> Present, List<string> Absent)> LookupAddresses(
         IReadOnlyCollection<string> addresses,
         CancellationToken killCancellationToken = default)
     {

@@ -35,8 +35,8 @@ public static class RunnerEndpoints
     public const string SplitInit = "SplitInit";
     public const string TransferGetModule = "TransferGetModule";
     public const string TransferInit = "TransferInit";
-    public const string StateListFilteredGetModule = "StateListFilteredGetModule";
-    public const string StateListFilteredInit = "StateListFilteredInit";
+    public const string LookupAddressesGetModule = "LookupAddressesGetModule";
+    public const string LookupAddressesInit = "LookupAddressesInit";
     public const string MoveGetModule = "MoveGetModule";
     public const string MoveInit = "MoveInit";
     public const string ImportGetModule = "ImportGetModule";
@@ -53,8 +53,8 @@ public static class RunnerEndpoints
     public const string TransferMigrateRun = "TransferMigrateRun";
     public const string TransferMigrateVerify = "TransferMigrateVerify";
     public const string TransferOutputs = "TransferOutputs";
-    public const string StateListFiltered = "StateListFiltered";
-    public const string StateMove = "StateMove";
+    public const string LookupAddresses = "LookupAddresses";
+    public const string Move = "Move";
 
     /// <summary>
     /// What the edit would do, asked before anyone is asked to approve it. A move and a remove ask
@@ -65,8 +65,8 @@ public static class RunnerEndpoints
     public const string RemoveDryRun = "RemoveDryRun";
 
     public const string ImportPreCheck = "ImportPreCheck";
-    public const string StateImport = "StateImport";
-    public const string StateRemove = "StateRemove";
+    public const string Import = "Import";
+    public const string Remove = "Remove";
 
     public const string SplitMigrateMap = "SplitMigrateMap";
     public const string SplitMigrateProve = "SplitMigrateProve";

@@ -26,14 +26,14 @@ public static class StateMigrationTypes
     public const string TransferMigrate = "TransferMigrate";
 
     /// <summary>Asks which of a given set of addresses are in a Module's state. Writes nothing.</summary>
-    public const string StateListFiltered = "StateListFiltered";
+    public const string LookupAddresses = "LookupAddresses";
 
     /// <summary>Moves addresses within a Module's state.</summary>
-    public const string StateMove = "StateMove";
+    public const string Move = "Move";
 
     /// <summary>Brings existing infrastructure under management.</summary>
-    public const string StateImport = "StateImport";
+    public const string Import = "Import";
 
     /// <summary>Drops addresses from state, leaving the infrastructure.</summary>
-    public const string StateRemove = "StateRemove";
+    public const string Remove = "Remove";
 }

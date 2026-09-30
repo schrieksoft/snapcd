@@ -265,9 +265,9 @@ public static class MassTransit
         typeof(TransferMigrateRunConsumer),
         typeof(TransferMigrateVerifyConsumer),
         typeof(TransferOutputsConsumer),
-        typeof(StateListFilteredConsumer),
-        typeof(StateListFilteredGetModuleConsumer),
-        typeof(StateListFilteredInitConsumer),
+        typeof(LookupAddressesConsumer),
+        typeof(LookupAddressesGetModuleConsumer),
+        typeof(LookupAddressesInitConsumer),
         typeof(MoveGetModuleConsumer),
         typeof(MoveInitConsumer),
         typeof(ImportGetModuleConsumer),
@@ -305,7 +305,7 @@ public static class MassTransit
         typeof(TransferSelectRunnerInstanceConsumer),
         // Selecting an instance is server-side work, so it is published to whichever server is
         // free rather than addressed to the one owning a connection that does not exist yet.
-        typeof(StateListFilteredSelectRunnerInstanceConsumer),
+        typeof(LookupAddressesSelectRunnerInstanceConsumer),
         typeof(MoveSelectRunnerInstanceConsumer),
         typeof(ImportSelectRunnerInstanceConsumer),
         typeof(RemoveSelectRunnerInstanceConsumer),
@@ -431,7 +431,7 @@ public static class MassTransit
         services.AddScoped(typeof(SendToRunnerActivity<,,>));
         services.AddScoped(typeof(SendStateMigrationStepToRunnerActivity<,,>));
         services.AddScoped(typeof(SendTerraformStateMigrationStepToRunnerActivity<,,>));
-        services.AddScoped(typeof(SendStateListFilteredStepToRunnerActivity<,>));
+        services.AddScoped(typeof(SendLookupAddressesStepToRunnerActivity<,>));
         services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
     }
 
@@ -454,7 +454,7 @@ public static class MassTransit
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
         AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
-        AddSagaStateMachine<StateListFilteredStateMachine, StateListFilteredSaga>(x);
+        AddSagaStateMachine<LookupAddressesStateMachine, LookupAddressesSaga>(x);
         AddSagaStateMachine<MoveStateMachine, MoveSaga>(x);
         AddSagaStateMachine<ImportStateMachine, ImportSaga>(x);
         AddSagaStateMachine<RemoveStateMachine, RemoveSaga>(x);

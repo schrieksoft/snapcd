@@ -18,20 +18,20 @@ using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 namespace SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 
 /// <summary>A state list's steps, with the addresses it was asked about carried onto the list.</summary>
-public class SendStateListFilteredStepToRunnerActivity<TMessage, TOutgoingMessage>(
+public class SendLookupAddressesStepToRunnerActivity<TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
-    ILogger<SendToRunnerActivity<StateListFilteredSaga, TMessage, TOutgoingMessage>> logger)
-    : SendStateMigrationStepToRunnerActivity<StateListFilteredSaga, TMessage, TOutgoingMessage>(
+    ILogger<SendToRunnerActivity<LookupAddressesSaga, TMessage, TOutgoingMessage>> logger)
+    : SendStateMigrationStepToRunnerActivity<LookupAddressesSaga, TMessage, TOutgoingMessage>(
         dbContext, maintenanceMode, logger)
     where TMessage : class
     where TOutgoingMessage : StepRequestBase, new()
 {
-    protected override TOutgoingMessage CreateMessage(StateListFilteredSaga saga)
+    protected override TOutgoingMessage CreateMessage(LookupAddressesSaga saga)
     {
         var request = base.CreateMessage(saga);
 
-        if (request is StateListFilteredRequested list)
+        if (request is LookupAddressesRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.AddressesJson) ?? [];
 
         return request;

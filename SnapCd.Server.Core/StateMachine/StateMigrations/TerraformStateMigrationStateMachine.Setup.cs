@@ -191,7 +191,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                 JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
 
         // The list asks only about the addresses the state migration managed.
-        if (request is StateListFilteredRequested list)
+        if (request is LookupAddressesRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.SucceededJson ?? "[]") ?? [];
 
         return request;

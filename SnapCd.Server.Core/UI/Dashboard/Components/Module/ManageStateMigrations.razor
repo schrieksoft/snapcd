@@ -531,7 +531,7 @@ else
         try
         {
             using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
-            await service.StartStateListFiltered(Module.Id, OrganizationId, addresses);
+            await service.StartLookupAddresses(Module.Id, OrganizationId, addresses);
 
             Snackbar.Add($"Checking {addresses.Count} addresses against this module's state.", Severity.Success);
             await Reload();

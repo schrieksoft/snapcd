@@ -36,9 +36,9 @@ public static class ServerEndpoints
     public const string TransferOutputsCompleted = "TransferOutputsCompleted";
     public const string TransferOutputsCancelled = "TransferOutputsCancelled";
     public const string TransferOutputsFaulted = "TransferOutputsFaulted";
-    public const string StateListFilteredCompleted = "StateListFilteredCompleted";
-    public const string StateListFilteredCancelled = "StateListFilteredCancelled";
-    public const string StateListFilteredFaulted = "StateListFilteredFaulted";
+    public const string LookupAddressesCompleted = "LookupAddressesCompleted";
+    public const string LookupAddressesCancelled = "LookupAddressesCancelled";
+    public const string LookupAddressesFaulted = "LookupAddressesFaulted";
     public const string MoveCompleted = "MoveCompleted";
     public const string MoveCancelled = "MoveCancelled";
     public const string MoveFaulted = "MoveFaulted";
@@ -134,12 +134,12 @@ public static class ServerEndpoints
     public const string TransferPlanCancelled = "TransferPlanCancelled";
     public const string TransferPlanFaulted = "TransferPlanFaulted";
 
-    public const string StateListFilteredGetModuleCompleted = "StateListFilteredGetModuleCompleted";
-    public const string StateListFilteredGetModuleCancelled = "StateListFilteredGetModuleCancelled";
-    public const string StateListFilteredGetModuleFaulted = "StateListFilteredGetModuleFaulted";
-    public const string StateListFilteredInitCompleted = "StateListFilteredInitCompleted";
-    public const string StateListFilteredInitCancelled = "StateListFilteredInitCancelled";
-    public const string StateListFilteredInitFaulted = "StateListFilteredInitFaulted";
+    public const string LookupAddressesGetModuleCompleted = "LookupAddressesGetModuleCompleted";
+    public const string LookupAddressesGetModuleCancelled = "LookupAddressesGetModuleCancelled";
+    public const string LookupAddressesGetModuleFaulted = "LookupAddressesGetModuleFaulted";
+    public const string LookupAddressesInitCompleted = "LookupAddressesInitCompleted";
+    public const string LookupAddressesInitCancelled = "LookupAddressesInitCancelled";
+    public const string LookupAddressesInitFaulted = "LookupAddressesInitFaulted";
 
     public const string MoveGetModuleCompleted = "MoveGetModuleCompleted";
     public const string MoveGetModuleCancelled = "MoveGetModuleCancelled";

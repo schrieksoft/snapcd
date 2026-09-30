@@ -58,8 +58,6 @@ public class StateMigrationJobStep : AuditBase, IEntity
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
 
-    public string? Log { get; set; }
-
     [JsonIgnore] public StateMigrationJob Job { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 

@@ -47,7 +47,7 @@ public interface IEngine
     /// Which of the given addresses are in this Module's state. The state itself is never returned
     /// or logged - only the verdict on the addresses asked about.
     /// </summary>
-    Task<(List<string> Present, List<string> Absent)> StateListFiltered(
+    Task<(List<string> Present, List<string> Absent)> LookupAddresses(
         IReadOnlyCollection<string> addresses,
         CancellationToken killCancellationToken = default);
     string GetSnapCdDir();

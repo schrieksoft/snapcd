@@ -7,15 +7,17 @@
 // for terms covering either use.
 
 
-using SnapCd.Server.Core.Events.Jobs.Base;
+using System.ComponentModel.DataAnnotations;
+using SnapCd.Server.Core.Entities.Sagas.Base;
 
-namespace SnapCd.Server.Core.Events.Jobs.Module;
+namespace SnapCd.Server.Core.Entities.Sagas;
 
 /// <summary>
-/// Starts a job that asks which of these addresses are in a Module's state. It writes nothing, so
-/// there is no approval gate: the answer is an observation.
+/// Asks which addresses are in a Module's state. It runs the same preamble as any other job
+/// because listing state needs a checkout and an initialised backend, then reports and ends.
 /// </summary>
-public class StateListFilteredJobRequested : ModuleJobEventBase
+public class LookupAddressesSaga : StateMigrationSagaBase
 {
-    public List<string> Addresses { get; set; } = [];
+    /// <summary>The addresses to ask about, as JSON. Nothing is reported about any other.</summary>
+    [MaxLength(4000)] public string AddressesJson { get; set; } = null!;
 }

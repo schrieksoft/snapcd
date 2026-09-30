@@ -56,14 +56,14 @@ public abstract class StateMigrationStepHandler<TCompleted, TCancelled, TFaulted
 
 // One handler per family per step: twelve names, each publishing exactly one family's reply.
 
-public class StateListFilteredGetModuleHandler(ILogger<StateListFilteredGetModuleHandler> logger, IBus bus)
-    : StateMigrationStepHandler<StateListFilteredGetModuleCompleted, StateListFilteredGetModuleCancelled, StateListFilteredGetModuleFaulted>(logger, bus)
+public class LookupAddressesGetModuleHandler(ILogger<LookupAddressesGetModuleHandler> logger, IBus bus)
+    : StateMigrationStepHandler<LookupAddressesGetModuleCompleted, LookupAddressesGetModuleCancelled, LookupAddressesGetModuleFaulted>(logger, bus)
 {
     protected override string Step => "GetModule";
 }
 
-public class StateListFilteredInitHandler(ILogger<StateListFilteredInitHandler> logger, IBus bus)
-    : StateMigrationStepHandler<StateListFilteredInitCompleted, StateListFilteredInitCancelled, StateListFilteredInitFaulted>(logger, bus)
+public class LookupAddressesInitHandler(ILogger<LookupAddressesInitHandler> logger, IBus bus)
+    : StateMigrationStepHandler<LookupAddressesInitCompleted, LookupAddressesInitCancelled, LookupAddressesInitFaulted>(logger, bus)
 {
     protected override string Step => "Init";
 }

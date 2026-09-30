@@ -16,7 +16,7 @@ namespace SnapCd.Runner.Tests;
 /// A filtered list reports only the addresses it was asked about. A Module's full state is not
 /// Snap CD's to hold, log or display, so it never leaves the runner.
 /// </summary>
-public class StateListFilteredTests
+public class LookupAddressesTests
 {
     [Fact]
     public void It_Splits_The_Filter_Into_Present_And_Absent()

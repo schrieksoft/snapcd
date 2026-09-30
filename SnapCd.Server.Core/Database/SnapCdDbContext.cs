@@ -290,7 +290,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             yield return new ApplyJobSagaClassMap();
             yield return new SplitMigrateSagaClassMap();
             yield return new TransferMigrateSagaClassMap();
-            yield return new StateListFilteredSagaClassMap();
+            yield return new LookupAddressesSagaClassMap();
             yield return new MoveSagaClassMap();
             yield return new ImportSagaClassMap();
             yield return new RemoveSagaClassMap();

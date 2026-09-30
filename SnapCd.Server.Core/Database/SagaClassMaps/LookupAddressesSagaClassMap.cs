@@ -15,11 +15,11 @@ using SnapCd.Server.Core.Entities.Sagas;
 
 namespace SnapCd.Server.Core.Database.SagaClassMaps;
 
-public class StateListFilteredSagaClassMap : SagaClassMap<StateListFilteredSaga>
+public class LookupAddressesSagaClassMap : SagaClassMap<LookupAddressesSaga>
 {
-    protected override void Configure(EntityTypeBuilder<StateListFilteredSaga> entity, ModelBuilder modelBuilder)
+    protected override void Configure(EntityTypeBuilder<LookupAddressesSaga> entity, ModelBuilder modelBuilder)
     {
-        entity.ToTable("StateListFilteredSagas", t => t.UseSqlOutputClause(false));
+        entity.ToTable("LookupAddressesSagas", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.CorrelationId, e.OrganizationId });
 
