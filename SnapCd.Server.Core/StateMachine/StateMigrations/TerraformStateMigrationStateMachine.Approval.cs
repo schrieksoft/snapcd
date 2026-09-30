@@ -28,7 +28,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
     TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
-    TEditRequested, TEditCompleted, TEditCancelled, TEditFaulted>
+    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted>
 {
     public Event<ApprovalReevaluationRequestedEvent> ApprovalModifiedEvent { get; } = null!;
 
@@ -40,22 +40,22 @@ public abstract partial class TerraformStateMigrationStateMachine<
 
     /// <summary>
     /// The gate on the one irreversible step. Everything before it reads: the checkout, the
-    /// backend, the pre-check saying what the edit would do. The edit itself writes, and a state
-    /// edit cannot be undone by running it again, so it answers to the same threshold a split and a
-    /// transfer do. Listing afterwards is a read and needs no answer of its own.
+    /// backend, the pre-check saying what the state migration would do. The migration itself writes,
+    /// and it cannot be undone by running it again, so it answers to the same threshold a split and
+    /// a transfer do. Listing afterwards is a read and needs no answer of its own.
     /// </summary>
     private void Configure_Approval()
     {
         Event(() => ApprovalModifiedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
         Event(() => ApprovedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
 
-        // The edit is asked for by a second consume, once this one has committed the transition.
+        // The state migration is asked for by a second consume, once this one has committed the transition.
         // Dispatching from the approving chain lets the reply arrive in the state it is leaving.
-        During(EditPending,
+        During(MigrateStatePending,
             When(ApprovedEvent)
                 .Activity(x => x.OfType<
-                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TApproved, TEditRequested>>())
-                .ThenAsync(context => RecordDispatched(context, EditName)));
+                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TApproved, TMigrateStateRequested>>())
+                .ThenAsync(context => RecordDispatched(context, MigrateStateName)));
 
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); });
@@ -88,7 +88,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     }
 
     /// <summary>
-    /// Approved edits; declined ends the job; neither yet leaves it waiting. The same binder runs
+    /// Approved state migrations; declined ends the job; neither yet leaves it waiting. The same binder runs
     /// on entry and on every later change, so an already-satisfied threshold never waits.
     /// </summary>
     private EventActivityBinder<TSaga, TMessage> DealWithApprovalStatus<TMessage>(
@@ -122,7 +122,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                         ModuleJobId = context.Saga.CorrelationId,
                         OrganizationId = context.Saga.OrganizationId
                     })
-                    .TransitionTo(EditPending),
+                    .TransitionTo(MigrateStatePending),
                 notApproved => notApproved
                     .IfElse(
                         x => x.Saga.IsDeclined,

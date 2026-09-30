@@ -6,11 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
-using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.Crud.StateMigrations;
@@ -37,7 +35,7 @@ public class MoveStateMachine(ILogger<MoveStateMachine> logger)
 
     protected override string PreCheckName => "MoveDryRun";
 
-    protected override string EditName => "Move";
+    protected override string MigrateStateName => "Move";
 
     /// <summary>
     /// A move has two ends and both are checked: the old address should be gone and the new one
@@ -63,50 +61,4 @@ public class MoveStateMachine(ILogger<MoveStateMachine> logger)
                     Address = r.Target!, Target = r.Address, Outcome = r.Outcome
                 })
                 .ToList());
-}
-
-/// <summary>
-/// Brings resources that already exist under management. There is no dry run for an import, so the
-/// check before approval is that the addresses are free.
-/// </summary>
-public class ImportStateMachine(ILogger<ImportStateMachine> logger)
-    : TerraformStateMigrationStateMachine<
-        ImportSaga, ImportJobRequested, ImportApproved,
-        ImportSelectRunnerInstanceRequested, ImportGetModuleRequested, ImportInitRequested,
-        ImportSelectRunnerInstanceCompleted, ImportSelectRunnerInstanceCancelled, ImportSelectRunnerInstanceFaulted,
-        ImportGetModuleCompleted, ImportGetModuleCancelled, ImportGetModuleFaulted,
-        ImportInitCompleted, ImportInitCancelled, ImportInitFaulted,
-        ImportPreCheckRequested, ImportPreCheckCompleted, ImportPreCheckCancelled, ImportPreCheckFaulted,
-        ImportRequested, ImportCompleted, ImportCancelled, ImportFaulted>(logger)
-{
-    protected override string Verb => "Import";
-
-    protected override AddressOperation RowOperation => AddressOperation.Import;
-
-    protected override string PreCheckName => "ImportPreCheck";
-
-    protected override string EditName => "Import";
-}
-
-/// <summary>
-/// Takes addresses out of state, leaving the infrastructure alone. A dry run says what would go
-/// before anyone approves it.
-/// </summary>
-public class RemoveStateMachine(ILogger<RemoveStateMachine> logger)
-    : TerraformStateMigrationStateMachine<
-        RemoveSaga, RemoveJobRequested, RemoveApproved,
-        RemoveSelectRunnerInstanceRequested, RemoveGetModuleRequested, RemoveInitRequested,
-        RemoveSelectRunnerInstanceCompleted, RemoveSelectRunnerInstanceCancelled, RemoveSelectRunnerInstanceFaulted,
-        RemoveGetModuleCompleted, RemoveGetModuleCancelled, RemoveGetModuleFaulted,
-        RemoveInitCompleted, RemoveInitCancelled, RemoveInitFaulted,
-        RemoveDryRunRequested, RemoveDryRunCompleted, RemoveDryRunCancelled, RemoveDryRunFaulted,
-        RemoveRequested, RemoveCompleted, RemoveCancelled, RemoveFaulted>(logger)
-{
-    protected override string Verb => "Remove";
-
-    protected override AddressOperation RowOperation => AddressOperation.Remove;
-
-    protected override string PreCheckName => "RemoveDryRun";
-
-    protected override string EditName => "Remove";
 }

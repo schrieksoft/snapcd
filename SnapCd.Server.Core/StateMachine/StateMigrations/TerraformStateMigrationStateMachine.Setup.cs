@@ -32,11 +32,11 @@ public abstract partial class TerraformStateMigrationStateMachine<
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
     TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
-    TEditRequested, TEditCompleted, TEditCancelled, TEditFaulted>
+    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted>
 {
     /// <summary>
     /// Everything a job does before it does its own work: pick the runner, fetch the code,
-    /// initialise the backend, then say what the edit would do. The pre-check is what the approval
+    /// initialise the backend, then say what the state migration would do. The pre-check is what the approval
     /// gate gives an approver something to answer against.
     /// </summary>
     private void Configure_Setup()
@@ -56,7 +56,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
             InitPending, InitCompleted, InitCancelled, InitFaulted,
             "Init", PreCheckName, PreCheckPending);
 
-        // The edit is the one irreversible step, so the pre-check hands to the approval gate rather
+        // The state migration is the one irreversible step, so the pre-check hands to the approval gate rather
         // than dispatching it: the gate sends it once the threshold is answered.
         During(PreCheckPending,
             DealWithApprovalStatus(
@@ -84,7 +84,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize());
 
-        // Cancel is ignored once the edit is running: its addresses are already being written.
+        // Cancel is ignored once the state migration is running: its addresses are already being written.
         During(SelectRunnerInstancePending, GetModulePending, InitPending, PreCheckPending,
             When(CancelRequested)
                 .Then(context => _logger.LogInformation(
@@ -186,11 +186,11 @@ public abstract partial class TerraformStateMigrationStateMachine<
         if (request is StateMigrationStepRequestBase stateMigrationStep)
             stateMigrationStep.ModuleId = saga.ModuleId;
 
-        if (request is TerraformStateMigrationRequestBase edit)
-            edit.Instructions =
+        if (request is TerraformStateMigrationRequestBase migration)
+            migration.Instructions =
                 JsonSerializer.Deserialize<List<AddressInstruction>>(saga.InstructionsJson) ?? [];
 
-        // The list asks only about the addresses the edit managed.
+        // The list asks only about the addresses the state migration managed.
         if (request is StateListFilteredRequested list)
             list.Addresses = JsonSerializer.Deserialize<List<string>>(saga.SucceededJson ?? "[]") ?? [];
 

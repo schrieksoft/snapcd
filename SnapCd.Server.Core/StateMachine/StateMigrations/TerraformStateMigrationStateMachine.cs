@@ -29,9 +29,9 @@ using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
 /// <summary>
-/// Edits addresses in a Module's state, then asks the state what is there.
+/// Migrates addresses in a Module's state, then asks the state what is there.
 ///
-/// The edit exiting cleanly is not proof the address arrived, so the list that follows is what the
+/// The state migration exiting cleanly is not proof the address arrived, so the list that follows is what the
 /// ledger and the UI read. A batch that manages some and not others ends partially completed:
 /// unfinished work with a remedy, not a failure.
 ///
@@ -45,7 +45,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     TGetModuleCompleted, TGetModuleCancelled, TGetModuleFaulted,
     TInitCompleted, TInitCancelled, TInitFaulted,
     TPreCheckRequested, TPreCheckCompleted, TPreCheckCancelled, TPreCheckFaulted,
-    TEditRequested, TEditCompleted, TEditCancelled, TEditFaulted>
+    TMigrateStateRequested, TMigrateStateCompleted, TMigrateStateCancelled, TMigrateStateFaulted>
     : MassTransitStateMachine<TSaga>
     where TSaga : TerraformStateMigrationSagaBase, new()
     where TJobRequested : TerraformStateMigrationJobRequestedBase
@@ -66,10 +66,10 @@ public abstract partial class TerraformStateMigrationStateMachine<
     where TPreCheckCompleted : TerraformStateMigrationResponseBase
     where TPreCheckCancelled : StepResponseBase
     where TPreCheckFaulted : StepFaultedBase
-    where TEditRequested : TerraformStateMigrationRequestBase, new()
-    where TEditCompleted : TerraformStateMigrationResponseBase
-    where TEditCancelled : StepResponseBase
-    where TEditFaulted : StepFaultedBase
+    where TMigrateStateRequested : TerraformStateMigrationRequestBase, new()
+    where TMigrateStateCompleted : TerraformStateMigrationResponseBase
+    where TMigrateStateCancelled : StepResponseBase
+    where TMigrateStateFaulted : StepFaultedBase
 {
     private readonly ILogger _logger;
 
@@ -82,8 +82,8 @@ public abstract partial class TerraformStateMigrationStateMachine<
     /// <summary>What this family's pre-check is called in the steps an operator reads.</summary>
     protected abstract string PreCheckName { get; }
 
-    /// <summary>What this family's edit is called in the steps an operator reads.</summary>
-    protected abstract string EditName { get; }
+    /// <summary>What this family's migration is called in the steps an operator reads.</summary>
+    protected abstract string MigrateStateName { get; }
 
     public Event<TJobRequested> JobRequested { get; } = null!;
     public Event<CancelStateMigrationJobRequested> CancelRequested { get; } = null!;
@@ -100,9 +100,9 @@ public abstract partial class TerraformStateMigrationStateMachine<
     public Event<TPreCheckCompleted> PreCheckCompleted { get; } = null!;
     public Event<TPreCheckCancelled> PreCheckCancelled { get; } = null!;
     public Event<TPreCheckFaulted> PreCheckFaulted { get; } = null!;
-    public Event<TEditCompleted> EditCompleted { get; } = null!;
-    public Event<TEditCancelled> EditCancelled { get; } = null!;
-    public Event<TEditFaulted> EditFaulted { get; } = null!;
+    public Event<TMigrateStateCompleted> MigrateStateCompleted { get; } = null!;
+    public Event<TMigrateStateCancelled> MigrateStateCancelled { get; } = null!;
+    public Event<TMigrateStateFaulted> MigrateStateFaulted { get; } = null!;
     public Event<StateListFilteredCompleted> ListCompleted { get; } = null!;
     public Event<StateListFilteredFaulted> ListFaulted { get; } = null!;
 
@@ -114,7 +114,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     public State GetModulePending { get; } = null!;
     public State InitPending { get; } = null!;
     public State PreCheckPending { get; } = null!;
-    public State EditPending { get; } = null!;
+    public State MigrateStatePending { get; } = null!;
     public State ListPending { get; } = null!;
 
     public State Completed { get; } = null!;
@@ -141,9 +141,9 @@ public abstract partial class TerraformStateMigrationStateMachine<
         Event(() => PreCheckCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PreCheckCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => PreCheckFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => EditCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => EditCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
-        Event(() => EditFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateStateCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateStateCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
+        Event(() => MigrateStateFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ListCompleted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ListFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
@@ -187,13 +187,13 @@ public abstract partial class TerraformStateMigrationStateMachine<
         Configure_Approval();
         Configure_Setup();
 
-        // The edit reports what it managed; the list that follows reports what is actually there.
-        During(EditPending,
-            When(EditCompleted)
-                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Succeeded))
-                .ThenAsync(RecordEdit)
+        // The state migration reports what it managed; the list that follows reports what is actually there.
+        During(MigrateStatePending,
+            When(MigrateStateCompleted)
+                .ThenAsync(context => RecordCompleted(context, MigrateStateName, StateMigrationStepStatus.Succeeded))
+                .ThenAsync(RecordMigrateState)
                 .Activity(x => x.OfType<
-                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TEditCompleted, StateListFilteredRequested>>())
+                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, TMigrateStateCompleted, StateListFilteredRequested>>())
                 .ThenAsync(context => RecordDispatched(context, "StateListFiltered"))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
@@ -203,18 +203,18 @@ public abstract partial class TerraformStateMigrationStateMachine<
                     })
                 .TransitionTo(ListPending),
 
-            When(EditCancelled)
-                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Cancelled))
-                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, TEditCancelled>>())
+            When(MigrateStateCancelled)
+                .ThenAsync(context => RecordCompleted(context, MigrateStateName, StateMigrationStepStatus.Cancelled))
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, TMigrateStateCancelled>>())
                 .TransitionTo(Failed).Finalize(),
 
-            When(EditFaulted)
-                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Faulted))
+            When(MigrateStateFaulted)
+                .ThenAsync(context => RecordCompleted(context, MigrateStateName, StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, EditName, StateMigrationStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, MigrateStateName, StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
@@ -232,7 +232,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                             Verb, context.Saga.ModuleId, context.Saga.FailedCount))
                         .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize()),
 
-            // The edit already happened, so a failed list leaves the job done but unobserved.
+            // The state migration already happened, so a failed list leaves the job done but unobserved.
             When(ListFaulted)
                 .ThenAsync(context => RecordCompleted(context, "StateListFiltered", StateMigrationStepStatus.Faulted))
                 .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize(),
@@ -252,16 +252,16 @@ public abstract partial class TerraformStateMigrationStateMachine<
     protected virtual List<string> AddressesToVerify(List<AddressResult> managed) =>
         managed.Select(r => r.Address).ToList();
 
-    /// <summary>Anything filed beyond the addresses the edit was asked for.</summary>
+    /// <summary>Anything filed beyond the addresses the state migration was asked for.</summary>
     protected virtual Task RecordExtraRows(
         TSaga saga, List<AddressResult> results, StateMigrationAddressService addresses) =>
         Task.CompletedTask;
 
     /// <summary>
-    /// What the edit itself managed, recorded so the list has something to check and the ledger has
+    /// What the state migration itself managed, recorded so the list has something to check and the ledger has
     /// something to show.
     /// </summary>
-    private async Task RecordEdit(BehaviorContext<TSaga, TEditCompleted> context)
+    private async Task RecordMigrateState(BehaviorContext<TSaga, TMigrateStateCompleted> context)
     {
         var results = context.Message.Results;
         var managed = results.Where(r => r.Outcome == AddressOutcome.Succeeded).ToList();
@@ -282,7 +282,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     }
 
     /// <summary>
-    /// What the state says is there now, recorded beside what the edit claimed. "The command
+    /// What the state says is there now, recorded beside what the state migration claimed. "The command
     /// worked" and "the address is there" stay separate facts.
     /// </summary>
     private static async Task ReportAddresses(
