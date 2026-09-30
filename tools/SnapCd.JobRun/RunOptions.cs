@@ -21,7 +21,10 @@ public enum JobKind
     Transfer,
 
     /// <summary>Not a job kind: forces the state-transition race. See RaceRun.</summary>
-    Race
+    Race,
+
+    /// <summary>Not a job kind: cancels a move mid-write. See CancelRun.</summary>
+    Cancel
 }
 
 /// <summary>
@@ -205,8 +208,9 @@ public class RunOptions
                                             "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True"
                   --database      <name>    default: a fresh name per run
                   --job           <kind>    apply (default), list, move, import, remove,
-                                            split, transfer, or race to force the
-                                            state-transition race
+                                            split, transfer, race to force the
+                                            state-transition race, or cancel to
+                                            kill a move mid-write
                   --counterparty  <guid>    the transfer's other Module
                   --needs         <a,b>     the outputs the consuming side waits for
                   --addresses     <a,b,c>   the addresses the job names

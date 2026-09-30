@@ -251,9 +251,11 @@ public static class JobExtensionMethods
                         {
                             if (context.Saga.ServerInstanceId.HasValue)
                             {
+                                // The consumer's queue is named after the message type, which is
+                                // per family; the property name is the same for all of them.
                                 var endpointUri = MassTransitHelpers.GetConsumerEndpoint(
                                     context.Saga.ServerInstanceId.Value,
-                                    nameof(CancelKillRequested));
+                                    typeof(TCancelKillRequested).Name);
                                 return new Uri(endpointUri);
                             }
 

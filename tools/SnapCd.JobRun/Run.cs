@@ -157,6 +157,9 @@ public static class Run
             return status == ExecutionStatus.Completed ? 0 : 1;
         }
 
+        if (options.Job == JobKind.Cancel)
+            return await CancelRun.Execute(services, scope, principal, dbFactory, options);
+
         if (options.Job == JobKind.Race)
             return await RaceRun.Execute(scope, principal, dbFactory, options);
 

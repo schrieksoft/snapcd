@@ -75,7 +75,7 @@ public static class StateMigrationFinalization
                 {
                     if (context.Saga.ServerInstanceId.HasValue)
                         return new Uri(MassTransitHelpers.GetConsumerEndpoint(
-                            context.Saga.ServerInstanceId.Value, "CancelKillRequested"));
+                            context.Saga.ServerInstanceId.Value, typeof(TCancelKillRequested).Name));
 
                     // MassTransit's address-provider lambda allows null to mean "use default address",
                     // even though the declared return type is non-nullable Uri.

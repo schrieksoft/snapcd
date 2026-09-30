@@ -43,6 +43,18 @@ public class FakeRunner(
     private Guid _liveJobId;
     private string _liveTask = "";
 
+    /// <summary>
+    /// Which endpoint, if any, should hold rather than answer, standing in for a command still
+    /// running. A real kill releases it, which is the only way to test a cancel mid-step: a step
+    /// that answers at once is always over before the cancel arrives.
+    /// </summary>
+    public string? HoldAt { get; set; }
+
+    private readonly CancellationTokenSource _killed = new();
+
+    /// <summary>Set once the server asked this runner to kill what it is running.</summary>
+    public bool WasKilled { get; private set; }
+
     private readonly List<string> _dispatched = [];
 
     public IReadOnlyList<string> Dispatched
@@ -121,6 +133,21 @@ public class FakeRunner(
             _reporting.Release();
         }
 
+        // Stands in for a command that is still running: the step answers only once the kill
+        // arrives, so a cancel sent meanwhile lands while the step is genuinely in flight.
+        if (endpoint == HoldAt)
+        {
+            trace($"  -> holding at {endpoint} until killed");
+            try
+            {
+                await Task.Delay(Timeout.Infinite, _killed.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                trace($"  -> {endpoint} released by the kill");
+            }
+        }
+
         // The same retry the real runner uses, so a reply that beats the saga's transition is
         // answered here exactly as it would be in production.
         await HubInvocationRetry.InvokeAsync(
@@ -132,11 +159,36 @@ public class FakeRunner(
             });
     }
 
+    /// <summary>Acknowledges the kill on the endpoint the asking family listens on.</summary>
+    private static async Task ReportKilled(RunnerHub hub, string endpoint, Guid jobId)
+    {
+        switch (endpoint)
+        {
+            case RunnerEndpoints.MoveCancelKill: await hub.MoveCancelKillCompleted(jobId); break;
+            case RunnerEndpoints.ImportCancelKill: await hub.ImportCancelKillCompleted(jobId); break;
+            case RunnerEndpoints.RemoveCancelKill: await hub.RemoveCancelKillCompleted(jobId); break;
+            case RunnerEndpoints.ApplyCancelKill: await hub.ApplyCancelKillCompleted(jobId); break;
+            case RunnerEndpoints.DestroyCancelKill: await hub.DestroyCancelKillCompleted(jobId); break;
+            case RunnerEndpoints.SplitCancelKill: await hub.SplitCancelKillCompleted(jobId); break;
+        }
+    }
+
     /// <summary>The canned answer for one dispatched endpoint.</summary>
     private async Task Reply(RunnerHub hub, string endpoint, object payload, Guid jobId)
     {
         switch (endpoint)
         {
+            case RunnerEndpoints.MoveCancelKill:
+            case RunnerEndpoints.ImportCancelKill:
+            case RunnerEndpoints.RemoveCancelKill:
+            case RunnerEndpoints.ApplyCancelKill:
+            case RunnerEndpoints.DestroyCancelKill:
+            case RunnerEndpoints.SplitCancelKill:
+                WasKilled = true;
+                await _killed.CancelAsync();
+                await ReportKilled(hub, endpoint, jobId);
+                break;
+
             case RunnerEndpoints.ApplyGetDefinitiveRevision:
                 await hub.ApplyGetDefinitiveRevisionCompleted(jobId, "0000000000000000000000000000000000000000");
                 break;
