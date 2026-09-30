@@ -109,8 +109,6 @@ public abstract partial class TerraformStateMigrationStateMachine<
                     })
                     .Unschedule(ApprovalTimeoutScheduled)
                     .Activity(x => x.OfType<NotWaitingForApprovalStateMigrationActivity<TSaga, TMessage>>())
-                    // Scheduled before the approval is published, not after: anything between the
-                    // publish and the end of the chain is time for the answer to arrive early.
                     .Schedule(HeartbeatScheduled,
                         context => new HeartbeatScheduled
                         {

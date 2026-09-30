@@ -45,7 +45,7 @@ public class FailStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActiv
 
             var failedStep = StepMapper.DetermineStepFromEventType(typeof(TMessage));
 
-            await _repository.FinalizeWithServerError(
+            await _repository.ExecuteFinalizeWithServerError(
                 context.Saga.CorrelationId,
                 context.Saga.OrganizationId,
                 DateTimeOffset.UtcNow,
@@ -55,7 +55,7 @@ public class FailStateMigrationJobActivity<TSaga, TMessage> : IStateMachineActiv
         }
         else
         {
-            await _repository.Finalize(
+            await _repository.ExecuteFinalize(
                 context.Saga.CorrelationId,
                 context.Saga.OrganizationId,
                 ExecutionStatus.Failed,

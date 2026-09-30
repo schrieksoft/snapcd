@@ -24,7 +24,7 @@ public class WaitingForConsentActivity<TSaga, TMessage>(StateMigrationJobReposit
 {
     public async Task Execute(BehaviorContext<TSaga, TMessage> context, IBehavior<TSaga, TMessage> next)
     {
-        await jobs.WaitingForConsent(context.Saga.CorrelationId, context.Saga.OrganizationId, true);
+        await jobs.ExecuteWaitingForConsent(context.Saga.CorrelationId, context.Saga.OrganizationId, true);
 
         await next.Execute(context).ConfigureAwait(false);
     }
@@ -47,7 +47,7 @@ public class NotWaitingForConsentActivity<TSaga, TMessage>(StateMigrationJobRepo
 {
     public async Task Execute(BehaviorContext<TSaga, TMessage> context, IBehavior<TSaga, TMessage> next)
     {
-        await jobs.WaitingForConsent(context.Saga.CorrelationId, context.Saga.OrganizationId, false);
+        await jobs.ExecuteWaitingForConsent(context.Saga.CorrelationId, context.Saga.OrganizationId, false);
 
         await next.Execute(context).ConfigureAwait(false);
     }

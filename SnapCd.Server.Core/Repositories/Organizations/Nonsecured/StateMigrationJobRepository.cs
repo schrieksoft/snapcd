@@ -25,7 +25,12 @@ public class StateMigrationJobRepositoryFactory(IDbContextFactory<SnapCdDbContex
 }
 
 /// <summary>
-/// Writes to StateMigrationJobs. Deliberately not ModuleJobRepository: that one carries deployment
+/// Writes to StateMigrationJobs. Each write has an Execute form that saves without owning a
+/// transaction, for callers already inside one, and an outer form that supplies its own - the split
+/// GenericRepository makes, which this cannot inherit for want of a DTO and CRUD events it has no
+/// use for.
+///
+/// Deliberately not ModuleJobRepository: that one carries deployment
 /// vocabulary a manual job has no use for — ActualStateHeadline, IsCurrent, DefinitiveRevision —
 /// and sharing it would let a deployment-motivated change silently alter how manual jobs close.
 /// </summary>
@@ -36,6 +41,32 @@ public class StateMigrationJobRepository : IDisposable
     public StateMigrationJobRepository(SnapCdDbContext dbContext)
     {
         _dbContext = dbContext;
+    }
+
+    /// <summary>
+    /// Wraps a write in its own transaction, unless one is already open. A saga consume runs inside
+    /// the transaction MassTransit's saga repository opens on this same context, so the Execute form
+    /// is what an activity calls; a caller outside a consume gets the transaction from here.
+    /// </summary>
+    private async Task InTransaction(Func<Task> write)
+    {
+        if (_dbContext.Database.CurrentTransaction is not null)
+        {
+            await write();
+            return;
+        }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            await write();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<StateMigrationJob> Get(Guid id, Guid organizationId)
@@ -73,7 +104,14 @@ public class StateMigrationJobRepository : IDisposable
     /// Closes the job. Only the saga may call this: the filtered unique index keys on Running, so
     /// a job left open blocks every future manual job on the module.
     /// </summary>
-    public async Task Finalize(
+    public Task Finalize(
+        Guid id,
+        Guid organizationId,
+        ExecutionStatus status,
+        DateTimeOffset endTime) =>
+        InTransaction(() => ExecuteFinalize(id, organizationId, status, endTime));
+
+    public async Task ExecuteFinalize(
         Guid id,
         Guid organizationId,
         ExecutionStatus status,
@@ -88,7 +126,17 @@ public class StateMigrationJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task FinalizeWithServerError(
+    public Task FinalizeWithServerError(
+        Guid id,
+        Guid organizationId,
+        DateTimeOffset endTime,
+        ServerSideStep? failedStep,
+        string? errorHeader,
+        string? errorMessage) =>
+        InTransaction(() => ExecuteFinalizeWithServerError(
+            id, organizationId, endTime, failedStep, errorHeader, errorMessage));
+
+    public async Task ExecuteFinalizeWithServerError(
         Guid id,
         Guid organizationId,
         DateTimeOffset endTime,
@@ -108,7 +156,10 @@ public class StateMigrationJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task WaitingForApproval(Guid id, Guid organizationId, bool waitingForApproval)
+    public Task WaitingForApproval(Guid id, Guid organizationId, bool waitingForApproval) =>
+        InTransaction(() => ExecuteWaitingForApproval(id, organizationId, waitingForApproval));
+
+    public async Task ExecuteWaitingForApproval(Guid id, Guid organizationId, bool waitingForApproval)
     {
         var job = await Get(id, organizationId);
         job.WaitingForApproval = waitingForApproval;
@@ -116,7 +167,10 @@ public class StateMigrationJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task WaitingForRunner(Guid id, Guid organizationId, bool waitingForRunner)
+    public Task WaitingForRunner(Guid id, Guid organizationId, bool waitingForRunner) =>
+        InTransaction(() => ExecuteWaitingForRunner(id, organizationId, waitingForRunner));
+
+    public async Task ExecuteWaitingForRunner(Guid id, Guid organizationId, bool waitingForRunner)
     {
         var job = await Get(id, organizationId);
 
@@ -127,7 +181,10 @@ public class StateMigrationJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task WaitingForConsent(Guid id, Guid organizationId, bool waitingForConsent)
+    public Task WaitingForConsent(Guid id, Guid organizationId, bool waitingForConsent) =>
+        InTransaction(() => ExecuteWaitingForConsent(id, organizationId, waitingForConsent));
+
+    public async Task ExecuteWaitingForConsent(Guid id, Guid organizationId, bool waitingForConsent)
     {
         var job = await Get(id, organizationId);
 

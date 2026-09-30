@@ -30,7 +30,7 @@ public class CancelStateMigrationJobActivity<TSaga, TMessage> : IStateMachineAct
         BehaviorContext<TSaga, TMessage> context,
         IBehavior<TSaga, TMessage> next)
     {
-        await _repository.Finalize(
+        await _repository.ExecuteFinalize(
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
             ExecutionStatus.Cancelled,

@@ -27,7 +27,7 @@ public class WaitingForRunnerActivity<TSaga, TMessage> : IStateMachineActivity<T
 
     public async Task Execute(BehaviorContext<TSaga, TMessage> context, IBehavior<TSaga, TMessage> next)
     {
-        await _jobs.WaitingForRunner(context.Saga.CorrelationId, context.Saga.OrganizationId, true);
+        await _jobs.ExecuteWaitingForRunner(context.Saga.CorrelationId, context.Saga.OrganizationId, true);
 
         await next.Execute(context).ConfigureAwait(false);
     }

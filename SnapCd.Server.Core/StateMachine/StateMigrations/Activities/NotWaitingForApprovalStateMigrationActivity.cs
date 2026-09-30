@@ -31,7 +31,7 @@ public class NotWaitingForApprovalStateMigrationActivity<TSaga, TMessage> : ISta
         BehaviorContext<TSaga, TMessage> context,
         IBehavior<TSaga, TMessage> next)
     {
-        await _repository.WaitingForApproval(context.Saga.CorrelationId, context.Saga.OrganizationId, false);
+        await _repository.ExecuteWaitingForApproval(context.Saga.CorrelationId, context.Saga.OrganizationId, false);
 
         await next.Execute(context).ConfigureAwait(false);
     }
