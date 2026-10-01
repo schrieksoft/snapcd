@@ -7279,6 +7279,69 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.TransferArtefact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReceiverOutputsCiphertext")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceFragmentCiphertext")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceFragmentMetaCiphertext")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TransferId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("TransferId", "OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("TransferArtefacts", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.TransferLock", b =>
                 {
                     b.Property<Guid>("OrganizationId")
@@ -8656,6 +8719,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeclined")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSource")
                         .HasColumnType("bit");
 
                     b.Property<Guid?>("KillCancellationRequestId")
@@ -11974,6 +12040,25 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.TransferArtefact", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("TransferArtefacts")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Transfer", "Transfer")
+                        .WithMany("Artefacts")
+                        .HasForeignKey("TransferId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Transfer");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.TransferLock", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Transfer", "Transfer")
@@ -13170,6 +13255,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("StateMigrationJobs");
 
+                    b.Navigation("TransferArtefacts");
+
                     b.Navigation("VariableSets");
 
                     b.Navigation("Variables");
@@ -13275,6 +13362,11 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("StateFiles");
 
                     b.Navigation("StateStoreRoleAssignments");
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Transfer", b =>
+                {
+                    b.Navigation("Artefacts");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.User", b =>

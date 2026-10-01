@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -32,7 +33,7 @@ public class TransferGetModuleConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferGetModule;
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferGetModule);
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferGetModuleRequested> context, Guid jobId)
     {
@@ -62,7 +63,7 @@ public class TransferInitConsumer
         _paramResolverFactory = paramResolverFactory;
     }
 
-    protected override string Endpoint => RunnerEndpoints.TransferInit;
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferInit);
 
     protected override async Task<object> BuildPayload(ConsumeContext<TransferInitRequested> context, Guid jobId)
     {
@@ -86,7 +87,7 @@ public class TransferValidateConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferValidate;
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferValidate);
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferValidateRequested> context, Guid jobId)
     {
@@ -94,40 +95,5 @@ public class TransferValidateConsumer
         var ordinary = StepRequestBuilders.Validate(jobId, msg.OrganizationId, msg.Declared);
 
         return Task.FromResult<object>(ordinary);
-    }
-}
-
-/// <summary>
-/// Plans the Module as it stands. A transfer only proceeds from a plan with nothing to change, so
-/// this is what establishes that the Module is settled before its state is touched.
-/// </summary>
-public class TransferPlanConsumer
-    : TransferStepConsumer<TransferPlanRequested, TransferPlanFaulted>
-{
-    private readonly ParamResolverFactory _paramResolverFactory;
-
-    public TransferPlanConsumer(
-        ILogger<TransferPlanConsumer> logger,
-        IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection,
-        ParamResolverFactory paramResolverFactory)
-        : base(logger, hubContext, runnerSelection)
-    {
-        _paramResolverFactory = paramResolverFactory;
-    }
-
-    protected override string Endpoint => RunnerEndpoints.TransferPlan;
-
-    protected override async Task<object> BuildPayload(ConsumeContext<TransferPlanRequested> context, Guid jobId)
-    {
-        var msg = context.Message;
-
-        var resolvedParameters = await StepRequestBuilders.ResolvePlanParameters(
-            _paramResolverFactory, jobId, msg.OrganizationId, msg.Declared, _logger);
-
-        var ordinary = StepRequestBuilders.Plan(
-            jobId, msg.OrganizationId, msg.Declared, resolvedParameters, isDestroyJob: false);
-
-        return ordinary;
     }
 }

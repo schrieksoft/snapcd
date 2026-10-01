@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -31,13 +32,46 @@ public class TransferMigrateMapConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferMigrateMap;
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferMigrateMap);
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferMigrateMapRequested> context, Guid jobId)
     {
         var msg = context.Message;
 
         return Task.FromResult<object>(new TransferMigrateMapRequestBase
+        {
+            JobId = jobId,
+            OrganizationId = msg.OrganizationId,
+            ModuleId = msg.ModuleId,
+            Metadata = StepRequestBuilders.MetadataFor(msg.Declared),
+            Engine = msg.Declared.Engine,
+            RootDirectory = msg.RootDirectory,
+            SourceFragment = msg.SourceFragment,
+            SourceFragmentMeta = msg.SourceFragmentMeta
+        });
+    }
+}
+
+/// <summary>
+/// Reads the committed map to learn which part this root plays, before the map step that cannot be
+/// attempted without knowing it.
+/// </summary>
+public class TransferAnalyseMapConsumer
+    : TransferStepConsumer<TransferAnalyseMapRequested, AnalyseMapFaulted>
+{
+    public TransferAnalyseMapConsumer(
+        ILogger<TransferAnalyseMapConsumer> logger,
+        IHubContext<RunnerHub> hubContext,
+        RunnerSelectionService runnerSelection)
+        : base(logger, hubContext, runnerSelection) { }
+
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferAnalyseMap);
+
+    protected override Task<object> BuildPayload(ConsumeContext<TransferAnalyseMapRequested> context, Guid jobId)
+    {
+        var msg = context.Message;
+
+        return Task.FromResult<object>(new TransferAnalyseMapRequestBase
         {
             JobId = jobId,
             OrganizationId = msg.OrganizationId,
@@ -62,7 +96,7 @@ public class TransferMigrateProveConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferMigrateProve;
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferMigrateProve);
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferMigrateProveRequested> context, Guid jobId)
     {
@@ -75,7 +109,8 @@ public class TransferMigrateProveConsumer
             ModuleId = msg.ModuleId,
             Metadata = StepRequestBuilders.MetadataFor(msg.Declared),
             Engine = msg.Declared.Engine,
-            RootDirectory = msg.RootDirectory
+            RootDirectory = msg.RootDirectory,
+            ReceiverOutputs = msg.ReceiverOutputs
         });
     }
 }
@@ -93,7 +128,7 @@ public class TransferMigrateRunConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferMigrateRun;
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferMigrateRun);
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferMigrateRunRequested> context, Guid jobId)
     {
@@ -121,7 +156,7 @@ public class TransferMigrateVerifyConsumer
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => RunnerEndpoints.TransferMigrateVerify;
+    protected override string Endpoint => nameof(ITransferEndpoints.TransferMigrateVerify);
 
     protected override Task<object> BuildPayload(ConsumeContext<TransferMigrateVerifyRequested> context, Guid jobId)
     {
@@ -139,33 +174,3 @@ public class TransferMigrateVerifyConsumer
     }
 }
 
-/// <summary>
-/// Reads this Module's outputs after the write, so the other side of the transfer can plan against
-/// values that exist.
-/// </summary>
-public class TransferOutputsConsumer
-    : TransferStepConsumer<TransferOutputsRequested, TransferOutputsFaulted>
-{
-    public TransferOutputsConsumer(
-        ILogger<TransferOutputsConsumer> logger,
-        IHubContext<RunnerHub> hubContext,
-        RunnerSelectionService runnerSelection)
-        : base(logger, hubContext, runnerSelection) { }
-
-    protected override string Endpoint => RunnerEndpoints.TransferOutputs;
-
-    protected override Task<object> BuildPayload(ConsumeContext<TransferOutputsRequested> context, Guid jobId)
-    {
-        var msg = context.Message;
-
-        return Task.FromResult<object>(new TransferOutputsRequestBase
-        {
-            JobId = jobId,
-            OrganizationId = msg.OrganizationId,
-            ModuleId = msg.ModuleId,
-            Metadata = StepRequestBuilders.MetadataFor(msg.Declared),
-            Engine = msg.Declared.Engine,
-            RootDirectory = msg.RootDirectory
-        });
-    }
-}

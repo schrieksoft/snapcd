@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Contracts;
@@ -34,7 +35,7 @@ public static class CancelRun
         RunOptions options)
     {
         var runner = services.GetRequiredService<FakeRunner>();
-        runner.HoldAt = RunnerEndpoints.Move;
+        runner.HoldAt = nameof(IMoveEndpoints.Move);
 
         using (var sagas = scope.ServiceProvider
                    .GetRequiredService<ModuleSagaSecuredRepositoryFactory>().Create(principal))
@@ -64,7 +65,7 @@ public static class CancelRun
         await stateMigrations.Decide(job.Id, options.ModuleId, options.OrganizationId, declined: false);
         Console.WriteLine("Approved, so the write is dispatched");
 
-        if (!await WaitFor(dbFactory, job.Id, _ => runner.Dispatched.Contains(RunnerEndpoints.Move),
+        if (!await WaitFor(dbFactory, job.Id, _ => runner.Dispatched.Contains(nameof(IMoveEndpoints.Move)),
                 TimeSpan.FromSeconds(60)))
         {
             Console.WriteLine("Result      Unknown (the write was never dispatched)");

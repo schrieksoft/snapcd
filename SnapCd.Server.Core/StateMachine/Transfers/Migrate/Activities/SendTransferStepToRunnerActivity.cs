@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
@@ -23,12 +24,41 @@ namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 public class SendTransferStepToRunnerActivity<TMessage, TOutgoingMessage>(
     SnapCdDbContext dbContext,
     IMaintenanceModeService maintenanceMode,
+    TransferArtefactService artefacts,
     ILogger<SendToRunnerActivity<TransferMigrateSaga, TMessage, TOutgoingMessage>> logger)
     : SendStateMigrationStepToRunnerActivity<TransferMigrateSaga, TMessage, TOutgoingMessage>(
         dbContext, maintenanceMode, logger)
     where TMessage : class
     where TOutgoingMessage : StepRequestBase, new()
 {
+    /// <summary>
+    /// The files demonolith reads from the root's own working directory. The two halves run on
+    /// their own runners and never share a disk, so what one produced travels with the other's
+    /// request; it is read here rather than held on the saga, so raw state stays in the store.
+    /// </summary>
+    protected override async Task Enrich(TOutgoingMessage message, TransferMigrateSaga saga)
+    {
+        if (saga.TransferId is not { } transferId) return;
+
+        switch (message)
+        {
+            case TransferMigrateMapRequested map when !saga.IsSource:
+            {
+                var (fragment, meta) = await artefacts.ReadSourceFragment(
+                    transferId, saga.OrganizationId);
+
+                map.SourceFragment = fragment;
+                map.SourceFragmentMeta = meta;
+                break;
+            }
+
+            case TransferMigrateProveRequested prove:
+                prove.ReceiverOutputs = await artefacts.ReadReceiverOutputs(
+                    transferId, saga.OrganizationId);
+                break;
+        }
+    }
+
     protected override TOutgoingMessage CreateMessage(TransferMigrateSaga saga)
     {
         var request = base.CreateMessage(saga);

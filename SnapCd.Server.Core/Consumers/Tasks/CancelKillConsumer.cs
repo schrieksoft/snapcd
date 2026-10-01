@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -98,7 +99,7 @@ public class ApplyCancelKillConsumer : CancelKillConsumer<ApplyCancelKillRequest
         RunnerConnectionRepositoryFactory connectionRepositoryFactory)
         : base(logger, hubContext, connectionRepositoryFactory) { }
 
-    protected override string Endpoint => RunnerEndpoints.ApplyCancelKill;
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyCancelKill);
 }
 
 public class DestroyCancelKillConsumer : CancelKillConsumer<DestroyCancelKillRequested>
@@ -109,7 +110,7 @@ public class DestroyCancelKillConsumer : CancelKillConsumer<DestroyCancelKillReq
         RunnerConnectionRepositoryFactory connectionRepositoryFactory)
         : base(logger, hubContext, connectionRepositoryFactory) { }
 
-    protected override string Endpoint => RunnerEndpoints.DestroyCancelKill;
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyCancelKill);
 }
 
 public class SplitCancelKillConsumer : CancelKillConsumer<SplitCancelKillRequested>
@@ -120,7 +121,7 @@ public class SplitCancelKillConsumer : CancelKillConsumer<SplitCancelKillRequest
         RunnerConnectionRepositoryFactory connectionRepositoryFactory)
         : base(logger, hubContext, connectionRepositoryFactory) { }
 
-    protected override string Endpoint => RunnerEndpoints.SplitCancelKill;
+    protected override string Endpoint => nameof(ISplitEndpoints.SplitCancelKill);
 }
 
 public class MoveCancelKillConsumer : CancelKillConsumer<MoveCancelKillRequested>
@@ -131,7 +132,7 @@ public class MoveCancelKillConsumer : CancelKillConsumer<MoveCancelKillRequested
         RunnerConnectionRepositoryFactory connectionRepositoryFactory)
         : base(logger, hubContext, connectionRepositoryFactory) { }
 
-    protected override string Endpoint => RunnerEndpoints.MoveCancelKill;
+    protected override string Endpoint => nameof(IMoveEndpoints.MoveCancelKill);
 }
 
 public class ImportCancelKillConsumer : CancelKillConsumer<ImportCancelKillRequested>
@@ -142,7 +143,7 @@ public class ImportCancelKillConsumer : CancelKillConsumer<ImportCancelKillReque
         RunnerConnectionRepositoryFactory connectionRepositoryFactory)
         : base(logger, hubContext, connectionRepositoryFactory) { }
 
-    protected override string Endpoint => RunnerEndpoints.ImportCancelKill;
+    protected override string Endpoint => nameof(IImportEndpoints.ImportCancelKill);
 }
 
 public class RemoveCancelKillConsumer : CancelKillConsumer<RemoveCancelKillRequested>
@@ -153,5 +154,5 @@ public class RemoveCancelKillConsumer : CancelKillConsumer<RemoveCancelKillReque
         RunnerConnectionRepositoryFactory connectionRepositoryFactory)
         : base(logger, hubContext, connectionRepositoryFactory) { }
 
-    protected override string Endpoint => RunnerEndpoints.RemoveCancelKill;
+    protected override string Endpoint => nameof(IRemoveEndpoints.RemoveCancelKill);
 }

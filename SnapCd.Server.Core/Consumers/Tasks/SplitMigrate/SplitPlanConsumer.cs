@@ -5,6 +5,7 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -55,7 +56,7 @@ public class SplitPlanConsumer : IConsumer<SplitPlanRequested>
                 throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.SplitPlan,
+                nameof(ISplitEndpoints.SplitPlan),
                 StepRequestBuilders.Plan(jobId, orgId, msg.Declared, resolvedParameters, isDestroyJob: false));
 
             _logger.LogDebug("Dispatched SplitPlan request to runner {RunnerName} for job {JobId}",

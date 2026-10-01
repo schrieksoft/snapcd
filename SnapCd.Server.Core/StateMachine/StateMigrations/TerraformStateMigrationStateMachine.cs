@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Events.Runners;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Events.Steps.StateMigrations;
@@ -121,6 +122,17 @@ public abstract partial class TerraformStateMigrationStateMachine<
     public State MigrateStatePending { get; } = null!;
     public State ListPending { get; } = null!;
 
+    /// <summary>
+    /// Entered when a step cannot be handed to a runner because none is connected: the request was
+    /// never sent, so it is sent again once one reconnects. A runner that disappears while holding
+    /// a step is a different thing, and the heartbeat ends the job for it.
+    /// </summary>
+    public State GetModuleWaitingForRunner { get; } = null!;
+    public State InitWaitingForRunner { get; } = null!;
+    public State PreCheckWaitingForRunner { get; } = null!;
+    public State MigrateStateWaitingForRunner { get; } = null!;
+    public State ListWaitingForRunner { get; } = null!;
+
     public State Completed { get; } = null!;
     public State Failed { get; } = null!;
 
@@ -199,14 +211,27 @@ public abstract partial class TerraformStateMigrationStateMachine<
                 .ThenAsync(RecordMigrateState)
                 .Activity(x => x.OfType<
                     SendTerraformStateMigrationStepToRunnerActivity<TSaga, TMigrateStateCompleted, LookupAddressesRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "LookupAddresses"))
-                .Schedule(HeartbeatScheduled,
-                    context => new HeartbeatScheduled
-                    {
-                        CorrelationId = context.Saga.CorrelationId,
-                        OrganizationId = context.Saga.OrganizationId
-                    })
-                .TransitionTo(ListPending),
+                .IfElse(
+                    context => context.Saga.PreviousStateBeforeWaiting != null,
+                    noRunner => noRunner
+                        .Activity(x => x.OfType<WaitingForRunnerActivity<TSaga, TMigrateStateCompleted>>())
+                        .Then(context =>
+                        {
+                            context.Saga.WaitingSince = DateTime.UtcNow;
+                            _logger.LogInformation(
+                                "{Verb} on Module {ModuleId} wrote its addresses and is waiting for a runner to list them",
+                                Verb, context.Saga.ModuleId);
+                        })
+                        .TransitionTo(ListWaitingForRunner),
+                    sent => sent
+                        .ThenAsync(context => RecordDispatched(context, "LookupAddresses"))
+                        .Schedule(HeartbeatScheduled,
+                            context => new HeartbeatScheduled
+                            {
+                                CorrelationId = context.Saga.CorrelationId,
+                                OrganizationId = context.Saga.OrganizationId
+                            })
+                        .TransitionTo(ListPending)),
 
             When(MigrateStateCancelled)
                 .ThenAsync(context => RecordCompleted(context, MigrateStateName, StateMigrationStepStatus.Cancelled))
@@ -223,6 +248,39 @@ public abstract partial class TerraformStateMigrationStateMachine<
                     "The runner stopped responding."))
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
+
+        // The migration has already happened by the time this waits, so the job is not failed for
+        // want of a runner to confirm it with.
+        During(ListWaitingForRunner,
+            When(ListWaitingForRunner.Enter)
+                .Activity(x => x.OfType<CheckRunnerConnectionActivity<TSaga, TMigrateStateCompleted>>()),
+
+            When(RunnerReconnectedEvent)
+                .Activity(x => x.OfType<
+                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, RunnerReconnectedEvent, LookupAddressesRequested>>())
+                .IfElse(
+                    context => context.Saga.PreviousStateBeforeWaiting != null,
+                    stillGone => stillGone,
+                    sent => sent
+                        .Activity(x => x.OfType<NotWaitingForRunnerActivity<TSaga, RunnerReconnectedEvent>>())
+                        .Then(context => context.Saga.WaitingSince = null)
+                        .ThenAsync(context => RecordDispatched(context, "LookupAddresses"))
+                        .Schedule(HeartbeatScheduled,
+                            context => new HeartbeatScheduled
+                            {
+                                CorrelationId = context.Saga.CorrelationId,
+                                OrganizationId = context.Saga.OrganizationId
+                            })
+                        .TransitionTo(ListPending)),
+            When(CancelRequested)
+                .Then(context => _logger.LogInformation(
+                    "{Verb} on Module {ModuleId} was cancelled while waiting to list what it wrote",
+                    Verb, context.Saga.ModuleId))
+                .ThenAsync(context => RecordCompleted(context, "LookupAddresses", StateMigrationStepStatus.Cancelled))
+                .ThenJobPartiallyCompleted().TransitionTo(Completed).Finalize(),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2));
 
         During(ListPending,
             When(ListCompleted)

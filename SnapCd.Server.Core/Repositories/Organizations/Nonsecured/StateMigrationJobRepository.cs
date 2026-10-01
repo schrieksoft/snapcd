@@ -13,6 +13,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Exceptions;
+using SnapCd.Server.Core.Misc.Helpers;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -150,8 +151,8 @@ public class StateMigrationJobRepository : IDisposable
         job.TimestampEnd = endTime;
         job.WaitingForApproval = false;
         job.FailedOnServerSideStep = failedStep;
-        job.ServerSideErrorHeader = errorHeader;
-        job.ServerSideError = errorMessage;
+        job.ServerSideErrorHeader = ErrorText.FitHeader(errorHeader);
+        job.ServerSideError = ErrorText.Body(errorMessage);
 
         await _dbContext.SaveChangesAsync();
     }

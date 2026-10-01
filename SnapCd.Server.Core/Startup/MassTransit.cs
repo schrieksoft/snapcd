@@ -270,12 +270,11 @@ public static class MassTransit
         typeof(TransferGetModuleConsumer),
         typeof(TransferInitConsumer),
         typeof(TransferValidateConsumer),
-        typeof(TransferPlanConsumer),
+        typeof(TransferAnalyseMapConsumer),
         typeof(TransferMigrateMapConsumer),
         typeof(TransferMigrateProveConsumer),
         typeof(TransferMigrateRunConsumer),
         typeof(TransferMigrateVerifyConsumer),
-        typeof(TransferOutputsConsumer),
         typeof(LookupAddressesConsumer),
         typeof(LookupAddressesGetModuleConsumer),
         typeof(LookupAddressesInitConsumer),
@@ -291,7 +290,6 @@ public static class MassTransit
         typeof(MoveConsumer),
         typeof(ImportConsumer),
         typeof(RemoveConsumer),
-        typeof(TransferJobEndedCompetingConsumer),
 
         // cancel
         typeof(ApplyCancelKillConsumer),
@@ -329,6 +327,7 @@ public static class MassTransit
         // Acts on nothing; it gives a warm-up somewhere to land.
         typeof(WarmupCompetingConsumer),
 
+
         // Agent mission Layer-1 (match) consumers
         typeof(ApplyJobFailedCompetingConsumer),
         typeof(ApplyJobCancelledCompetingConsumer),
@@ -348,7 +347,6 @@ public static class MassTransit
         // created for the bound agent, or when the agent's IsSuppliedToAllModules flag flips on
         typeof(AgentSupplyCreatedMissionWakeConsumer),
 
-        typeof(TransferOutputsWakeCompetingConsumer),
         typeof(OutputSetWithOutputsCreatedCompetingConsumer),
         typeof(ModuleModifiedCompetingConsumer),
         typeof(NamespaceModifiedCompetingConsumer),
@@ -364,7 +362,6 @@ public static class MassTransit
         // Handler consumers (offloaded from SignalR handlers)
         typeof(ApplyOutputCompletedInvokedConsumer),
         typeof(DestroyOutputCompletedInvokedConsumer),
-        typeof(TransferOutputsCompletedInvokedConsumer),
         typeof(ApplyVariablesCompletedInvokedConsumer),
         typeof(DestroyVariablesCompletedInvokedConsumer),
         typeof(ReportRunningTaskInvokedConsumer),
@@ -435,7 +432,6 @@ public static class MassTransit
     {
         services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
         services.AddScoped(typeof(TerraformStateMigrationNeedsApprovalActivity<,>));
-        services.AddScoped(typeof(TransferOutputsAvailableActivity<>));
         services.AddScoped(typeof(RunnerConnectedActivity<,>));
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
         services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));

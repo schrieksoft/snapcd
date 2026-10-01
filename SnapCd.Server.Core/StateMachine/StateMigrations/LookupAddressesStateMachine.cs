@@ -60,6 +60,14 @@ public partial class LookupAddressesStateMachine : MassTransitStateMachine<Looku
     public State LookupAddressesInitPending { get; } = null!;
     public State ListPending { get; } = null!;
 
+    /// <summary>
+    /// Entered when a step cannot be handed to a runner because none is connected: the request was
+    /// never sent, so it is sent again once one reconnects.
+    /// </summary>
+    public State LookupAddressesGetModuleWaitingForRunner { get; } = null!;
+    public State LookupAddressesInitWaitingForRunner { get; } = null!;
+    public State ListWaitingForRunner { get; } = null!;
+
     public State Completed { get; } = null!;
     public State Failed { get; } = null!;
 

@@ -44,6 +44,10 @@ public class TransferMigrateSaga : StateMigrationSagaBase
     /// <summary>Whether the counterparty's outputs are all available, re-read on every check.</summary>
     public bool HasOutputs { get; set; }
 
+    /// <summary>Whether this half gives the resources away. The source cuts the fragment; the
+    /// receiver waits for it.</summary>
+    public bool IsSource { get; set; }
+
     /// <summary>Zero when the plan came out clean, 2 when it did not.</summary>
     public int? ProveExitCode { get; set; }
 

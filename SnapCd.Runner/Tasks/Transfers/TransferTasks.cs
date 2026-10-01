@@ -18,6 +18,56 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
+    /// <summary>
+    /// Reads the committed map to learn which part this root plays. No engine runs: a receiver's
+    /// map step fails without the source's fragment, so the role is read before that step rather
+    /// than discovered by attempting it.
+    /// </summary>
+    public async Task TransferAnalyseMap(TransferAnalyseMapRequestBase request, HubConnection connection)
+    {
+        var logger = _loggerFactory.CreateLogger<Tasks>();
+        var taskContext = new RunnerTaskContext(
+            request.JobId,
+            nameof(TransferAnalyseMap),
+            logger,
+            _jobLogStream,
+            request.Metadata);
+
+        var runnerHubClient = new RunnerHubClient(connection);
+
+        try
+        {
+            var role = TransferMap.RoleOf(request.RootDirectory);
+            var needsOutputs = TransferMap.NeedsOutputs(request.RootDirectory);
+
+            taskContext.LogNarration(role.Kind switch
+            {
+                TransferRoleKind.Source => "This module gives the resources away",
+                TransferRoleKind.Receiver => "This module takes the resources in",
+                _ => $"The transfer map could not be read: {role.Problem}"
+            });
+
+            await InvokeWithRetryAsync(
+                () => runnerHubClient.InvokeAnalyseMapCompleted(
+                    request.JobId, request.ModuleId, role.Kind, needsOutputs, role.Problem),
+                nameof(runnerHubClient.InvokeAnalyseMapCompleted),
+                request.JobId,
+                connection);
+
+            taskContext.LogSection("Completed TransferAnalyseMap");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error handling TransferAnalyseMap for job {JobId}", request.JobId);
+            await InvokeWithRetryAsync(
+                () => runnerHubClient.InvokeAnalyseMapFaulted(
+                    request.JobId, request.ModuleId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeAnalyseMapFaulted),
+                request.JobId,
+                connection);
+        }
+    }
+
     /// <summary>Pulls and pins this Module's state. The source also writes the fragment the receiver needs.</summary>
     public async Task TransferMigrateMap(TransferMigrateMapRequestBase request, HubConnection connection)
     {
@@ -48,6 +98,14 @@ public partial class Tasks
         {
             taskContext.LogNarration("Now running demonolith transfer migrate map");
 
+            // A receiver's map reads the fragment from its own working directory, so the source's
+            // has to be on disk before demonolith runs.
+            if (request.SourceFragment is { } fragment && request.SourceFragmentMeta is { } fragmentMeta)
+            {
+                await TransferFiles.WriteFragment(request.RootDirectory, fragment, fragmentMeta);
+                taskContext.LogNarration("Applied the fragment from the other module");
+            }
+
             var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
 
@@ -55,9 +113,14 @@ public partial class Tasks
 
             await engine.RunProcess(command, killCts.Token);
 
+            var role = TransferMap.RoleOf(request.RootDirectory);
+            var (producedFragment, producedMeta) = role.ReceiverBase is { } receiverBase
+                ? await TransferFiles.ReadFragmentFor(request.RootDirectory, receiverBase)
+                : (null, null);
+
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeTransferMigrateMapCompleted(
-                    request.JobId, request.ModuleId, TransferMap.NeedsOutputs(request.RootDirectory)),
+                    request.JobId, request.ModuleId, producedFragment, producedMeta),
                 nameof(runnerHubClient.InvokeTransferMigrateMapCompleted),
                 request.JobId,
                 connection);
@@ -122,6 +185,14 @@ public partial class Tasks
         try
         {
             taskContext.LogNarration("Now running demonolith transfer migrate prove");
+
+            // demonolith threads the producer's values from a file in this root's working
+            // directory, so what the other half produced has to be on disk before the plan runs.
+            if (request.ReceiverOutputs is { } sourceOutputs)
+            {
+                await TransferFiles.WriteOutputs(request.RootDirectory, sourceOutputs);
+                taskContext.LogNarration("Applied the output values from the other module");
+            }
 
             var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 

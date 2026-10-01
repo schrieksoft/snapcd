@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -119,7 +120,7 @@ public class ApplyGetModuleConsumer(
     RunnerSelectionService runnerSelection)
     : GetModuleConsumer<ApplyGetModuleRequested, ApplyGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.ApplyGetModule;
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyGetModule);
 }
 
 public class DestroyGetModuleConsumer(
@@ -128,5 +129,5 @@ public class DestroyGetModuleConsumer(
     RunnerSelectionService runnerSelection)
     : GetModuleConsumer<DestroyGetModuleRequested, DestroyGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.DestroyGetModule;
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyGetModule);
 }

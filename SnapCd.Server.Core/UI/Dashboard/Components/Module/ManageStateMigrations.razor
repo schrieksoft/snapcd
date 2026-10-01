@@ -81,7 +81,18 @@
                 {
                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
                         <MudText Typo="Typo.body2" Class="mb-3">
-                            Module <strong>@OtherModuleName</strong> has asked to transfer resources
+                            Module
+                            @if (_otherModuleHref is { } askingHref)
+                            {
+                                <MudLink Href="@askingHref" Typo="Typo.body2" Color="Color.Secondary">
+                                    <strong>@OtherModuleName</strong>
+                                </MudLink>
+                            }
+                            else
+                            {
+                                <strong>@OtherModuleName</strong>
+                            }
+                            has asked to transfer resources
                             between it and this module. You must agree or refuse before anything else
                             on this module is available. Agreeing starts the transfer immediately.
                         </MudText>
@@ -91,7 +102,7 @@
                                        Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                        OnClick="@(() => Answer(true))">agree</MudButton>
                             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(!_canPause || _busy)"
+                                       Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                        OnClick="@(() => Answer(false))">refuse</MudButton>
                         </MudStack>
                     </MudAlert>
@@ -459,6 +470,7 @@ else
     private string? _otherModuleName;
     private string? _otherModuleHref;
 
+    /// <summary>Qualified, since the same module name can exist in another namespace.</summary>
     private string OtherModuleName => _otherModuleName ?? "the other module";
 
     /// <summary>This Module is the counterparty and has not answered yet.</summary>
@@ -489,7 +501,7 @@ else
             .Select(m => new { m.Name, Namespace = m.Namespace.Name, Stack = m.Namespace.Stack.Name })
             .FirstOrDefaultAsync();
 
-        _otherModuleName = other?.Name;
+        _otherModuleName = other is null ? null : $"{other.Namespace}/{other.Name}";
         _otherModuleHref = other is null
             ? null
             : $"/Module/{other.Stack}/{other.Namespace}/{other.Name}?action=StateMigrations";
@@ -847,8 +859,10 @@ else
 
         using var jobRepo = StateMigrationRepoFactory.Create(PrincipalProvider);
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
+        // Answering a transfer request is what makes the request obsolete, so the consent panel
+        // reads the answer here rather than waiting for a later notification to clear it.
+        await LoadTransfer();
         await LoadAddresses();
-
     }
 
     private async Task SetPaused(bool paused, string? reason)

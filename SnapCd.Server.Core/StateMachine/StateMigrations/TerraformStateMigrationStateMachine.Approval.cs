@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,7 @@ using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Finalization;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.Events.Runners;
 
 namespace SnapCd.Server.Core.StateMachine.StateMigrations;
 
@@ -56,7 +58,47 @@ public abstract partial class TerraformStateMigrationStateMachine<
             When(ApprovedEvent)
                 .Activity(x => x.OfType<
                     SendTerraformStateMigrationStepToRunnerActivity<TSaga, TApproved, TMigrateStateRequested>>())
-                .ThenAsync(context => RecordDispatched(context, MigrateStateName)));
+                .IfElse(
+                    context => context.Saga.PreviousStateBeforeWaiting != null,
+                    noRunner => noRunner
+                        .Activity(x => x.OfType<WaitingForRunnerActivity<TSaga, TApproved>>())
+                        .Then(context =>
+                        {
+                            context.Saga.WaitingSince = DateTime.UtcNow;
+                            _logger.LogInformation(
+                                "{Verb} on Module {ModuleId} is approved and waiting for a runner",
+                                Verb, context.Saga.ModuleId);
+                        })
+                        .TransitionTo(MigrateStateWaitingForRunner),
+                    sent => sent
+                        .ThenAsync(context => RecordDispatched(context, MigrateStateName))));
+
+        // Approved, with nothing to send it to. The migration has not run, so the job waits for a
+        // runner rather than failing: the approval it already has stays good.
+        During(MigrateStateWaitingForRunner,
+            When(MigrateStateWaitingForRunner.Enter)
+                .Activity(x => x.OfType<CheckRunnerConnectionActivity<TSaga, TApproved>>()),
+
+            When(RunnerReconnectedEvent)
+                .Activity(x => x.OfType<
+                    SendTerraformStateMigrationStepToRunnerActivity<TSaga, RunnerReconnectedEvent, TMigrateStateRequested>>())
+                .IfElse(
+                    context => context.Saga.PreviousStateBeforeWaiting != null,
+                    stillGone => stillGone,
+                    sent => sent
+                        .Activity(x => x.OfType<NotWaitingForRunnerActivity<TSaga, RunnerReconnectedEvent>>())
+                        .Then(context => context.Saga.WaitingSince = null)
+                        .ThenAsync(context => RecordDispatched(context, MigrateStateName))
+                        .TransitionTo(MigrateStatePending)),
+            When(CancelRequested)
+                .Then(context => _logger.LogInformation(
+                    "{Verb} on Module {ModuleId} was cancelled while waiting for a runner to write with",
+                    Verb, context.Saga.ModuleId))
+                .Activity(x => x.OfType<CancelStateMigrationJobActivity<TSaga, CancelStateMigrationJobRequested>>())
+                .TransitionTo(Failed).Finalize(),
+            Ignore(HeartbeatScheduled.Received),
+            Ignore(HeartbeatRequested.Completed),
+            Ignore(HeartbeatRequested.Completed2));
 
         Schedule(() => ApprovalTimeoutScheduled, saga => saga.ApprovalTimeoutScheduleTokenId,
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); });

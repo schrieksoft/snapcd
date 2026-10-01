@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Misc.Helpers;
 
 namespace SnapCd.Server.Core.Services.Crud.Transfers;
 
@@ -23,7 +24,7 @@ public enum StageOutcome
     /// <summary>Every participant succeeded.</summary>
     Succeeded,
 
-    /// <summary>A participant answered no. Not a fault: the slice ran and refused.</summary>
+    /// <summary>A participant answered no. Not a fault: the step ran and refused.</summary>
     Refused,
 
     /// <summary>A participant's step or its transport failed.</summary>
@@ -78,7 +79,7 @@ public class StateMigrationStepService
         return attempt;
     }
 
-    /// <summary>Records a slice's reply against its latest attempt.</summary>
+    /// <summary>Records a half's reply against its latest attempt.</summary>
     public async Task Completed(
         Guid jobId, Guid organizationId, Guid moduleId, string task,
         StateMigrationStepStatus status, int? exitCode = null,
@@ -91,8 +92,8 @@ public class StateMigrationStepService
 
         step.Status = status;
         step.ExitCode = exitCode;
-        step.ErrorHeader = errorHeader;
-        step.Error = error;
+        step.ErrorHeader = ErrorText.FitHeader(errorHeader);
+        step.Error = ErrorText.Body(error);
         step.EndedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync();
@@ -126,7 +127,7 @@ public class StateMigrationStepService
     }
 
     /// <summary>
-    /// Reuses an earlier green result for a slice whose inputs have not changed, citing the input
+    /// Reuses an earlier green result for a half whose inputs have not changed, citing the input
     /// key that made it reusable. This is what makes a re-run dispatch only what actually moved.
     /// </summary>
     public async Task Reused(
@@ -206,7 +207,7 @@ public class StateMigrationStepService
 
         if (statuses.Any(s => s == StateMigrationStepStatus.Faulted)) return StageOutcome.Faulted;
 
-        // A refusal is the slice answering no, which is a red verdict rather than a fault.
+        // A refusal is the step answering no, which is a red verdict rather than a fault.
         if (statuses.Any(s => s == StateMigrationStepStatus.Refused)) return StageOutcome.Refused;
 
         if (statuses.Any(s => s is StateMigrationStepStatus.Skipped or StateMigrationStepStatus.Stale))

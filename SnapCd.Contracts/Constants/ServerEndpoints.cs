@@ -19,8 +19,11 @@ public static class ServerEndpoints
     public const string SplitRefactorDiffCompleted = "SplitRefactorDiffCompleted";
     public const string SplitRefactorDiffCancelled = "SplitRefactorDiffCancelled";
     public const string SplitRefactorDiffFaulted = "SplitRefactorDiffFaulted";
-    // A transfer runs the same slices against one of two Modules, so its replies are separate
+    // A transfer runs the same steps against one of two Modules, so its replies are separate
     // endpoints carrying the Module they are for.
+    public const string AnalyseMapCompleted = "AnalyseMapCompleted";
+    public const string AnalyseMapCancelled = "AnalyseMapCancelled";
+    public const string AnalyseMapFaulted = "AnalyseMapFaulted";
     public const string TransferMigrateMapCompleted = "TransferMigrateMapCompleted";
     public const string TransferMigrateMapCancelled = "TransferMigrateMapCancelled";
     public const string TransferMigrateMapFaulted = "TransferMigrateMapFaulted";
@@ -33,9 +36,6 @@ public static class ServerEndpoints
     public const string TransferMigrateVerifyCompleted = "TransferMigrateVerifyCompleted";
     public const string TransferMigrateVerifyCancelled = "TransferMigrateVerifyCancelled";
     public const string TransferMigrateVerifyFaulted = "TransferMigrateVerifyFaulted";
-    public const string TransferOutputsCompleted = "TransferOutputsCompleted";
-    public const string TransferOutputsCancelled = "TransferOutputsCancelled";
-    public const string TransferOutputsFaulted = "TransferOutputsFaulted";
     public const string LookupAddressesCompleted = "LookupAddressesCompleted";
     public const string LookupAddressesCancelled = "LookupAddressesCancelled";
     public const string LookupAddressesFaulted = "LookupAddressesFaulted";
@@ -133,9 +133,6 @@ public static class ServerEndpoints
     public const string TransferValidateCompleted = "TransferValidateCompleted";
     public const string TransferValidateCancelled = "TransferValidateCancelled";
     public const string TransferValidateFaulted = "TransferValidateFaulted";
-    public const string TransferPlanCompleted = "TransferPlanCompleted";
-    public const string TransferPlanCancelled = "TransferPlanCancelled";
-    public const string TransferPlanFaulted = "TransferPlanFaulted";
 
     public const string LookupAddressesGetModuleCompleted = "LookupAddressesGetModuleCompleted";
     public const string LookupAddressesGetModuleCancelled = "LookupAddressesGetModuleCancelled";

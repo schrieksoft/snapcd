@@ -8,6 +8,7 @@
 
 
 using YamlDotNet.Serialization;
+using SnapCd.Contracts.RunnerRequests.Transfers;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace SnapCd.Runner.Services.Transfers;
@@ -45,6 +46,55 @@ public static class TransferMap
             .Select(e => e.Output!)
             .Distinct()
             .ToList() ?? [];
+    }
+
+    /// <summary>
+    /// Which part this root plays and who the other party is, read from the map before anything
+    /// runs. A receiver's map step fails outright without the source's fragment, so the role has to
+    /// be known before the step rather than discovered by attempting it.
+    /// </summary>
+    public static TransferRole RoleOf(string? rootDirectory)
+    {
+        var root = string.IsNullOrWhiteSpace(rootDirectory) ? "." : rootDirectory;
+        var path = Path.Combine(root, TransferFiles.MapFile);
+
+        if (!File.Exists(path))
+            return new TransferRole { Kind = TransferRoleKind.Unknown, Problem = "this root has no transfer map" };
+
+        var map = new DeserializerBuilder()
+            .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build()
+            .Deserialize<TransferMapFile>(File.ReadAllText(path));
+
+        if (map?.SourceDir == null)
+            return new TransferRole { Kind = TransferRoleKind.Unknown, Problem = "the map does not name its source root" };
+
+        var receivers = map.Receivers?.Keys.ToList() ?? [];
+
+        // A transfer moves resources between two Modules. The map format still carries several
+        // receivers from an older design, and taking the first would move state nobody asked about.
+        if (receivers.Count != 1)
+            return new TransferRole
+            {
+                Kind = TransferRoleKind.Unknown,
+                Problem = $"a transfer moves resources to one module; this map names {receivers.Count}"
+            };
+
+        var receiverBase = Path.GetFileName(Path.TrimEndingDirectorySeparator(receivers[0]));
+        var baseName = Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)));
+
+        if (baseName == map.SourceDir)
+            return new TransferRole { Kind = TransferRoleKind.Source, ReceiverBase = receiverBase };
+
+        if (baseName == receiverBase)
+            return new TransferRole { Kind = TransferRoleKind.Receiver, ReceiverBase = receiverBase };
+
+        return new TransferRole
+        {
+            Kind = TransferRoleKind.Unknown,
+            Problem = $"the map names '{map.SourceDir}' and '{receiverBase}', but this root is '{baseName}'"
+        };
     }
 
     /// <summary>

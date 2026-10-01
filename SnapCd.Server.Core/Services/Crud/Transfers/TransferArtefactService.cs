@@ -15,9 +15,10 @@ using SnapCd.Server.Core.Entities.Definition;
 namespace SnapCd.Server.Core.Services.Crud.Transfers;
 
 /// <summary>
-/// The files one participant's slice produces for another: state fragments and threaded output
-/// values. They are encrypted at rest with the same service that encrypts state, because a fragment
-/// is raw state, and they are deleted when the job ends however it ends.
+/// What the source produces for the receiver. demonolith runs one root at a time and the two halves
+/// never see each other's working directory, so the files travel through here.
+///
+/// Encrypted at rest with the service that encrypts state, because a fragment is raw state.
 /// </summary>
 public class TransferArtefactService
 {
@@ -32,58 +33,97 @@ public class TransferArtefactService
         _encryption = encryption;
     }
 
-    /// <summary>Stores a slice's file, replacing any earlier one of the same name for this job.</summary>
-    public async Task Store(Guid jobId, Guid organizationId, string name, string content)
+    /// <summary>The fragment and its meta, as the source's map wrote them.</summary>
+    public async Task StoreSourceFragment(
+        Guid transferId, Guid organizationId, string fragment, string meta)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var ciphertext = Convert.ToBase64String(_encryption.Encrypt(Encoding.UTF8.GetBytes(content)));
-
-        var existing = await dbContext.StateMigrationJobArtefacts
-            .FirstOrDefaultAsync(a => a.JobId == jobId && a.Name == name && a.OrganizationId == organizationId);
-
-        if (existing != null)
-        {
-            existing.Ciphertext = ciphertext;
-        }
-        else
-        {
-            dbContext.StateMigrationJobArtefacts.Add(new StateMigrationJobArtefact
-            {
-                Id = Guid.NewGuid(),
-                OrganizationId = organizationId,
-                JobId = jobId,
-                Name = name,
-                Ciphertext = ciphertext
-            });
-        }
+        var row = await Row(dbContext, transferId, organizationId);
+        row.SourceFragmentCiphertext = Encrypt(fragment);
+        row.SourceFragmentMetaCiphertext = Encrypt(meta);
 
         await dbContext.SaveChangesAsync();
     }
 
-    /// <summary>The file's contents, or null when the job never produced it.</summary>
-    public async Task<string?> Read(Guid jobId, Guid organizationId, string name)
+    /// <summary>The output values the counterpart's plan reads.</summary>
+    public async Task StoreReceiverOutputs(Guid transferId, Guid organizationId, string outputs)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var artefact = await dbContext.StateMigrationJobArtefacts.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.JobId == jobId && a.Name == name && a.OrganizationId == organizationId);
+        var row = await Row(dbContext, transferId, organizationId);
+        row.ReceiverOutputsCiphertext = Encrypt(outputs);
 
-        return artefact == null
-            ? null
-            : Encoding.UTF8.GetString(_encryption.Decrypt(Convert.FromBase64String(artefact.Ciphertext)));
+        await dbContext.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Drops every artefact the job produced. Called from each terminal path, so a fragment does not
-    /// outlive the job that needed it.
-    /// </summary>
-    public async Task<int> DeleteForJob(Guid jobId, Guid organizationId)
+    /// <summary>The fragment and its meta, or nulls while the source has not produced them.</summary>
+    public async Task<(string? Fragment, string? Meta)> ReadSourceFragment(
+        Guid transferId, Guid organizationId)
+    {
+        var row = await Find(transferId, organizationId);
+
+        return row is null
+            ? (null, null)
+            : (Decrypt(row.SourceFragmentCiphertext), Decrypt(row.SourceFragmentMetaCiphertext));
+    }
+
+    public async Task<string?> ReadReceiverOutputs(Guid transferId, Guid organizationId) =>
+        Decrypt((await Find(transferId, organizationId))?.ReceiverOutputsCiphertext);
+
+    /// <summary>Whether the source has produced the fragment the receiver waits for.</summary>
+    public async Task<bool> HasSourceFragment(Guid transferId, Guid organizationId)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        return await dbContext.StateMigrationJobArtefacts
-            .Where(a => a.JobId == jobId && a.OrganizationId == organizationId)
+        return await dbContext.TransferArtefacts.AsNoTracking()
+            .AnyAsync(a => a.TransferId == transferId
+                           && a.OrganizationId == organizationId
+                           && a.SourceFragmentCiphertext != null);
+    }
+
+    /// <summary>Drops a closed transfer's files; they are not a durable record.</summary>
+    public async Task<int> DeleteForTransfer(Guid transferId, Guid organizationId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        return await dbContext.TransferArtefacts
+            .Where(a => a.TransferId == transferId && a.OrganizationId == organizationId)
             .ExecuteDeleteAsync();
     }
+
+    private async Task<TransferArtefact?> Find(Guid transferId, Guid organizationId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        return await dbContext.TransferArtefacts.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.TransferId == transferId && a.OrganizationId == organizationId);
+    }
+
+    private static async Task<TransferArtefact> Row(
+        SnapCdDbContext dbContext, Guid transferId, Guid organizationId)
+    {
+        var existing = await dbContext.TransferArtefacts
+            .FirstOrDefaultAsync(a => a.TransferId == transferId && a.OrganizationId == organizationId);
+
+        if (existing is not null) return existing;
+
+        var row = new TransferArtefact
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            TransferId = transferId
+        };
+
+        dbContext.TransferArtefacts.Add(row);
+        return row;
+    }
+
+    private string Encrypt(string value) =>
+        Convert.ToBase64String(_encryption.Encrypt(Encoding.UTF8.GetBytes(value)));
+
+    private string? Decrypt(string? ciphertext) =>
+        ciphertext is null
+            ? null
+            : Encoding.UTF8.GetString(_encryption.Decrypt(Convert.FromBase64String(ciphertext)));
 }

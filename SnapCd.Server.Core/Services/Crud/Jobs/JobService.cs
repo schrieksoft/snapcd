@@ -27,6 +27,7 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Misc.Helpers;
 
 namespace SnapCd.Server.Core.Services.Crud.Jobs;
 
@@ -405,7 +406,7 @@ public class JobService : IDisposable
                 OrganizationId = organizationId,
                 TimestampStart = timeStamp,
                 TimestampEnd = timeStamp,
-                ServerSideError = errorMessage,
+                ServerSideError = ErrorText.Body(errorMessage),
                 ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.",
                 FailedOnServerSideStep = ServerSideStep.Start,
                 JobType = jobType,
@@ -426,7 +427,7 @@ public class JobService : IDisposable
         if (existingJob != null)
         {
             var timeStamp = DateTimeOffset.UtcNow;
-            existingJob.ServerSideError = errorMessage;
+            existingJob.ServerSideError = ErrorText.Body(errorMessage);
             existingJob.ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.";
             existingJob.FailedOnServerSideStep = failedOnServerSideStep;
             existingJob.IsCurrent = false;

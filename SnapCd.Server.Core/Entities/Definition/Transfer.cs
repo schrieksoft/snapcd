@@ -59,6 +59,9 @@ public class Transfer : AuditBase, IEntity
 
     [MaxLength(500)] public string? CloseReason { get; set; }
 
+    /// <summary>What the source produced for the receiver; gone once the transfer closes.</summary>
+    [JsonIgnore] public ICollection<TransferArtefact> Artefacts { get; set; } = new List<TransferArtefact>();
+
     [JsonIgnore] public Module Module { get; set; } = null!;
     [JsonIgnore] public Module CounterpartyModule { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;

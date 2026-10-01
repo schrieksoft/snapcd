@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts;
@@ -60,7 +61,7 @@ public class SplitMigrateVerifyConsumer : IConsumer<SplitMigrateVerifyRequested>
             }
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.SplitMigrateVerify,
+                nameof(ISplitEndpoints.SplitMigrateVerify),
                 new SplitMigrateVerifyRequestBase
                 {
                     JobId = jobId,

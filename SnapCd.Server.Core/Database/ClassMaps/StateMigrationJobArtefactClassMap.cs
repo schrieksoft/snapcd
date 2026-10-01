@@ -29,7 +29,7 @@ public class StateMigrationJobArtefactClassMap : IEntityTypeConfiguration<StateM
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // One artefact per name per job: a re-run of a slice replaces its predecessor.
+        // One artefact per name per job: a re-run of a half replaces its predecessor.
         entity
             .HasIndex(e => new { e.JobId, e.Name, e.OrganizationId })
             .IsUnique();

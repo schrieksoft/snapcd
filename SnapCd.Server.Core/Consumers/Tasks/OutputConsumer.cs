@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts;
@@ -129,7 +130,7 @@ public class ApplyOutputConsumer(
     RunnerSelectionService runnerSelection)
     : OutputConsumer<ApplyOutputRequested, ApplyOutputFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.ApplyOutput;
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyOutput);
 }
 
 public class DestroyOutputConsumer(
@@ -138,5 +139,5 @@ public class DestroyOutputConsumer(
     RunnerSelectionService runnerSelection)
     : OutputConsumer<DestroyOutputRequested, DestroyOutputFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.DestroyOutput;
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyOutput);
 }

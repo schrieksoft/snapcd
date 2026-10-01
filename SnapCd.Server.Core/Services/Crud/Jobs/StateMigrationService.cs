@@ -22,6 +22,7 @@ using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration;
 using MassTransit;
+using SnapCd.Server.Core.Misc.Helpers;
 
 namespace SnapCd.Server.Core.Services.Crud.Jobs;
 
@@ -697,7 +698,7 @@ public class StateMigrationService : IDisposable
         job.TimestampEnd = DateTimeOffset.UtcNow;
         job.FailedOnServerSideStep = ServerSideStep.Start;
         job.ServerSideErrorHeader = "This job failed due to an error occurring on the Server. The full error can be seen below.";
-        job.ServerSideError = errorMessage;
+        job.ServerSideError = ErrorText.Body(errorMessage);
 
         await dbContext.SaveChangesAsync();
     }
@@ -727,7 +728,7 @@ public class StateMigrationService : IDisposable
             JobType = jobType,
             Status = ExecutionStatus.Failed,
             ServerSideErrorHeader = "This job failed due to an error occurring on the Server. The full error can be seen below.",
-            ServerSideError = errorMessage
+            ServerSideError = ErrorText.Body(errorMessage)
         });
 
         await dbContext.SaveChangesAsync();

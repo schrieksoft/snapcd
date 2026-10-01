@@ -15,7 +15,7 @@ using SnapCd.Server.Core.Entities.Interfaces;
 namespace SnapCd.Server.Core.Entities.Definition;
 
 /// <summary>
-/// A file one participant's slice produced that another participant's slice needs: a state
+/// A file one half of a transfer produced that the other half needs: a state
 /// fragment, or the planned output values a consumer's plan depends on.
 ///
 /// Job-scoped and encrypted with the same service that encrypts state files, because a fragment is
@@ -35,7 +35,7 @@ public class StateMigrationJobArtefact : AuditBase, IEntity
 
     /// <summary>
     /// What it is, as the runner names it: "fragment-app.tfstate", "outputs-network.yaml". Unique
-    /// per job, so a re-run of a slice replaces rather than accumulates.
+    /// per job, so a re-run of a half replaces rather than accumulates.
     /// </summary>
     [MaxLength(255)] public string Name { get; set; } = null!;
 

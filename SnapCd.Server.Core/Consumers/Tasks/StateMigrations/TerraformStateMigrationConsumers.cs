@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -42,7 +43,7 @@ public class MoveConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Move,
+                nameof(IMoveEndpoints.Move),
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -97,7 +98,7 @@ public class ImportConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Import,
+                nameof(IImportEndpoints.Import),
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -152,7 +153,7 @@ public class RemoveConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Remove,
+                nameof(IRemoveEndpoints.Remove),
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -207,7 +208,7 @@ public class MoveDryRunConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.MoveDryRun,
+                nameof(IMoveEndpoints.MoveDryRun),
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -262,7 +263,7 @@ public class RemoveDryRunConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.RemoveDryRun,
+                nameof(IRemoveEndpoints.RemoveDryRun),
                 new StateMoveRequestBase
                 {
                     JobId = jobId,
@@ -317,7 +318,7 @@ public class ImportPreCheckConsumer(
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.ImportPreCheck,
+                nameof(IImportEndpoints.ImportPreCheck),
                 new StateMoveRequestBase
                 {
                     JobId = jobId,

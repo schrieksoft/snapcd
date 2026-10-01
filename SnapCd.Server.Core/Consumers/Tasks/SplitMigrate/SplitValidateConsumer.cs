@@ -5,6 +5,7 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -45,7 +46,7 @@ public class SplitValidateConsumer : IConsumer<SplitValidateRequested>
                 throw new InvalidOperationException($"No available runners in pool {msg.RunnerId}");
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.SplitValidate,
+                nameof(ISplitEndpoints.SplitValidate),
                 StepRequestBuilders.Validate(jobId, orgId, msg.Declared));
 
             _logger.LogDebug("Dispatched SplitValidate request to runner {RunnerName} for job {JobId}",

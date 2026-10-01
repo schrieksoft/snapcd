@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 
+using SnapCd.Contracts.Endpoints;
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.Constants;
@@ -29,7 +30,7 @@ public partial class Tasks
     /// the move that follows it.
     /// </summary>
     public Task MoveDryRun(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.MoveDryRun, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, nameof(IMoveEndpoints.MoveDryRun), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -61,7 +62,7 @@ public partial class Tasks
     /// would remove and removes nothing.
     /// </summary>
     public Task RemoveDryRun(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.RemoveDryRun, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, nameof(IRemoveEndpoints.RemoveDryRun), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -95,7 +96,7 @@ public partial class Tasks
     /// all, are the engine's to answer and only the import itself asks them.
     /// </summary>
     public Task ImportPreCheck(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.ImportPreCheck, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, nameof(IImportEndpoints.ImportPreCheck), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -147,7 +148,7 @@ public partial class Tasks
 
     /// <summary>Moves each address to where it should be. One command per address.</summary>
     public Task Move(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.Move, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, nameof(IMoveEndpoints.Move), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -175,7 +176,7 @@ public partial class Tasks
 
     /// <summary>Imports each address from the id it already has. One command per address.</summary>
     public Task Import(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.Import, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, nameof(IImportEndpoints.Import), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {
@@ -203,7 +204,7 @@ public partial class Tasks
 
     /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
     public Task Remove(StateMoveRequestBase request, HubConnection connection) =>
-        RunTransferStep(request.JobId, Guid.Empty, RunnerEndpoints.Remove, request.Metadata,
+        RunTransferStep(request.JobId, Guid.Empty, nameof(IRemoveEndpoints.Remove), request.Metadata,
             request.ReportActiveJobFrequencySeconds, connection,
             async (taskContext, client, killToken) =>
             {

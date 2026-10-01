@@ -7,10 +7,11 @@
 // for terms covering either use.
 
 using SnapCd.Contracts.Dto.OutputSets;
+using SnapCd.Contracts.RunnerRequests.Transfers;
 
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
 
-// The demonolith slices. Each anchors on the one root it is run against, with only that root's
+// The demonolith steps. Each anchors on the one root it is run against, with only that root's
 // checkout and credentials; the files they exchange travel through the server as job artefacts
 // rather than between runners directly.
 
@@ -20,17 +21,45 @@ namespace SnapCd.Server.Core.Events.Steps.Transfer;
 /// </summary>
 public class TransferMigrateMapRequested : TransferStepRequestBase
 {
+    /// <summary>The source's fragment, for a receiver; null on the source, which produces it.</summary>
+    public string? SourceFragment { get; set; }
+
+    public string? SourceFragmentMeta { get; set; }
 }
 
-/// <summary>The map slice's reply: this root's state is pinned and ready to prove against.</summary>
+/// <summary>The map step's reply: this root's state is pinned and ready to prove against.</summary>
 public class TransferMigrateMapCompleted : TransferStepResponseBase
 {
+    /// <summary>The fragment a source cut for the receiver; null when this half is the receiver.</summary>
+    public string? SourceFragment { get; set; }
+
+    public string? SourceFragmentMeta { get; set; }
+}
+
+public class TransferAnalyseMapRequested : TransferStepRequestBase;
+
+/// <summary>
+/// What the committed map says about this root, read before anything runs. A receiver's map step
+/// fails outright without the source's fragment, so the role has to be known before that step
+/// rather than discovered by attempting it.
+/// </summary>
+public class AnalyseMapCompleted : TransferStepResponseBase
+{
+    public TransferRoleKind Role { get; set; }
+
     /// <summary>
-    /// Output names this root's plan consumes from the other Module, read from the map. Empty
-    /// unless the transfer moves something this root still refers to.
+    /// Output names this root's plan consumes from the other Module. Empty unless the transfer
+    /// moves something this root still refers to.
     /// </summary>
     public List<string> NeedsOutputs { get; set; } = [];
+
+    /// <summary>Why the map could not be read, when it could not.</summary>
+    public string? Problem { get; set; }
 }
+
+public class AnalyseMapCancelled : TransferStepCancelledBase;
+
+public class AnalyseMapFaulted : TransferStepFaultedBase;
 
 public class TransferMigrateMapCancelled : TransferStepCancelledBase;
 
@@ -42,11 +71,12 @@ public class TransferMigrateMapFaulted : TransferStepFaultedBase;
 /// </summary>
 public class TransferMigrateProveRequested : TransferStepRequestBase
 {
-
+    /// <summary>The output values this root's plan reads from the other Module.</summary>
+    public string? ReceiverOutputs { get; set; }
 }
 
 /// <summary>
-/// The proof for one participant. Exit 2 is a refusal, not a fault: the slice ran and answered no.
+/// The proof for one participant. Exit 2 is a refusal, not a fault: the step ran and answered no.
 /// </summary>
 public class TransferMigrateProveCompleted : TransferStepResponseBase
 {
@@ -95,20 +125,6 @@ public class TransferMigrateVerifyCancelled : TransferStepCancelledBase;
 
 public class TransferMigrateVerifyFaulted : TransferStepFaultedBase;
 
-/// <summary>
-/// Reads this Module's outputs after its state has been written, so the other side of the transfer
-/// can plan against values that now exist.
-/// </summary>
-public class TransferOutputsRequested : TransferStepRequestBase
-{
-}
 
-/// <summary>The outputs this Module's state now produces, stored against it.</summary>
-public class TransferOutputsCompleted : TransferStepResponseBase
-{
-    public OutputSetCreateDto? OutputSet { get; set; }
-}
 
-public class TransferOutputsCancelled : TransferStepCancelledBase;
 
-public class TransferOutputsFaulted : TransferStepFaultedBase;

@@ -112,6 +112,7 @@ public enum ModuleJobSagaState
 
     /// <summary>A transfer's own waits, which a reply can arrive during.</summary>
     WaitingForConsent,
+    WaitingForFragment,
     WaitingForOutputs
 }
 

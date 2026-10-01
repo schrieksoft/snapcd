@@ -92,6 +92,7 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
 
         // Create the message
         var message = CreateMessage(saga);
+        await Enrich(message, saga);
 
         // Construct endpoint URI for the specific server instance and message type
         var endpointUri = MassTransitHelpers.GetConsumerEndpoint(connection.ServerInstanceId, typeof(TOutgoingMessage).Name);
@@ -150,6 +151,12 @@ public class SendToRunnerActivity<TSaga, TMessage, TOutgoingMessage> :
     /// Builds the step request. Virtual so a job kind carrying parameters of its own can put them
     /// on the requests that use them.
     /// </summary>
+    /// <summary>
+    /// A last fill from somewhere the saga does not hold, for a request that carries a file rather
+    /// than only the fields the saga has. Does nothing unless a subclass needs it.
+    /// </summary>
+    protected virtual Task Enrich(TOutgoingMessage message, TSaga saga) => Task.CompletedTask;
+
     protected virtual TOutgoingMessage CreateMessage(TSaga saga)
     {
         var declared = JsonSerializer.Deserialize<ResolvedModule>(saga.DeclaredJson);

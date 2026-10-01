@@ -9,7 +9,7 @@
 
 namespace SnapCd.Server.Core.Events.Steps.Transfer;
 
-// The four steps a participant runs before any transfer slice: the same work a deployment does,
+// The four steps a participant runs before its half of the transfer: the same work a deployment does,
 // but addressed to one participant and pinned to that participant's runner.
 
 /// <summary>Pins the runner instance this participant's steps will all go to.</summary>
@@ -57,18 +57,3 @@ public class TransferValidateCompleted : TransferStepResponseBase;
 public class TransferValidateCancelled : TransferStepCancelledBase;
 
 public class TransferValidateFaulted : TransferStepFaultedBase;
-
-public class TransferPlanRequested : TransferStepRequestBase;
-
-/// <summary>
-/// A plan for one participant. A transfer proves against a clean plan, so anything but zero
-/// changes is a red step for that participant.
-/// </summary>
-public class TransferPlanCompleted : TransferStepResponseBase
-{
-    public int TotalChangedCount { get; set; }
-}
-
-public class TransferPlanCancelled : TransferStepCancelledBase;
-
-public class TransferPlanFaulted : TransferStepFaultedBase;

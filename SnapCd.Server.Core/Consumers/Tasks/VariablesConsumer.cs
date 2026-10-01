@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -114,7 +115,7 @@ public class ApplyVariablesConsumer(
     RunnerSelectionService runnerSelection)
     : VariablesConsumer<ApplyVariablesRequested, ApplyVariablesFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.ApplyVariables;
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyVariables);
 }
 
 public class DestroyVariablesConsumer(
@@ -123,5 +124,5 @@ public class DestroyVariablesConsumer(
     RunnerSelectionService runnerSelection)
     : VariablesConsumer<DestroyVariablesRequested, DestroyVariablesFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.DestroyVariables;
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyVariables);
 }

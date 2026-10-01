@@ -23,6 +23,7 @@ using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 
 using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
+using SnapCd.Server.Core.Misc.Helpers;
 
 namespace SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 
@@ -39,6 +40,7 @@ public partial class TransferMigrateStateMachine
         Event<TCancelled> cancelledEvent,
         Event<TFaulted> faultedEvent,
         string task,
+        string nextTask,
         State nextState,
         State nextWaitingState,
         Action<BehaviorContext<TransferMigrateSaga, TCompleted>>? onCompleted = null)
@@ -48,33 +50,11 @@ public partial class TransferMigrateStateMachine
         where TNextRequest : TransferStepRequestBase, new()
     {
         During(duringState,
-            When(completedEvent)
-                .Then(context => onCompleted?.Invoke(context))
-                .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Succeeded))
-                .Activity(x => x.OfType<RunnerConnectedActivity<TransferMigrateSaga, TCompleted>>())
-                .IfElse(
-                    context => context.Saga.PreviousStateBeforeWaiting != null,
-                    // The runner is away: park rather than dispatch into nothing.
-                    parked => parked
-                        .Activity(x => x.OfType<WaitingForRunnerActivity<TransferMigrateSaga, TCompleted>>())
-                        .Then(context =>
-                        {
-                            context.Saga.WaitingSince = DateTime.UtcNow;
-                            _logger.LogInformation(
-                                "Transfer: Module {ModuleId} waits for its runner before {Task}",
-                                context.Saga.ModuleId, TaskOf<TNextRequest>());
-                        })
-                        .TransitionTo(nextWaitingState),
-                    ahead => ahead
-                        .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TCompleted, TNextRequest>>())
-                        .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
-                        .Schedule(HeartbeatScheduled,
-                            context => new HeartbeatScheduled
-                            {
-                                CorrelationId = context.Saga.CorrelationId,
-                                OrganizationId = context.Saga.OrganizationId
-                            })
-                        .TransitionTo(nextState)),
+            SendOrWaitForRunner<TCompleted, TNextRequest>(
+                When(completedEvent)
+                    .Then(context => onCompleted?.Invoke(context))
+                    .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Succeeded)),
+                nextTask, nextState, nextWaitingState),
             When(cancelledEvent)
                 .ThenAsync(context => RecordCompleted(context, task, StateMigrationStepStatus.Cancelled))
                 .Then(context => _logger.LogInformation(
@@ -108,12 +88,88 @@ public partial class TransferMigrateStateMachine
                 }).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
-        // Waiting: the runner was gone when the step was sent, so it is re-sent on reconnect
-        // rather than failed.
-        During(nextWaitingState,
+        WaitForRunner<TCompleted, TNextRequest>(nextWaitingState, nextTask, nextState);
+    }
+
+    /// <summary>
+    /// Hands the next step to a runner, or parks until one connects. A step is only parked when the
+    /// send found no runner to take it, so nothing a runner already holds is sent a second time.
+    /// </summary>
+    private EventActivityBinder<TransferMigrateSaga, TMessage> SendOrWaitForRunner<TMessage, TNextRequest>(
+        EventActivityBinder<TransferMigrateSaga, TMessage> binder,
+        string nextTask,
+        State nextState,
+        State nextWaitingState)
+        where TMessage : class
+        where TNextRequest : TransferStepRequestBase, new() =>
+        binder
+            .Activity(x => x.OfType<RunnerConnectedActivity<TransferMigrateSaga, TMessage>>())
+            .IfElse(
+                context => context.Saga.PreviousStateBeforeWaiting != null,
+                // The runner is away: park rather than dispatch into nothing.
+                parked => parked
+                    .Activity(x => x.OfType<WaitingForRunnerActivity<TransferMigrateSaga, TMessage>>())
+                    .Then(context =>
+                    {
+                        context.Saga.WaitingSince = DateTime.UtcNow;
+                        _logger.LogInformation(
+                            "Transfer: Module {ModuleId} waits for its runner before {Task}",
+                            context.Saga.ModuleId, nextTask);
+                    })
+                    .TransitionTo(nextWaitingState),
+                ahead => ahead
+                    .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TMessage, TNextRequest>>())
+                    .ThenAsync(context => RecordDispatched(context, nextTask))
+                    .Schedule(HeartbeatScheduled,
+                        context => new HeartbeatScheduled
+                        {
+                            CorrelationId = context.Saga.CorrelationId,
+                            OrganizationId = context.Saga.OrganizationId
+                        })
+                    .TransitionTo(nextState));
+
+    /// <summary>
+    /// The same park-or-send, for a step dispatched by its own consume after a gate opened. The
+    /// saga is already in the pending state and its heartbeat is running, so parking steps back out
+    /// of both.
+    /// </summary>
+    private EventActivityBinder<TransferMigrateSaga, TMessage> SendOrWaitAfterGate<TMessage, TNextRequest>(
+        EventActivityBinder<TransferMigrateSaga, TMessage> binder,
+        string nextTask,
+        State nextWaitingState)
+        where TMessage : class
+        where TNextRequest : TransferStepRequestBase, new() =>
+        binder
+            .Activity(x => x.OfType<RunnerConnectedActivity<TransferMigrateSaga, TMessage>>())
+            .IfElse(
+                context => context.Saga.PreviousStateBeforeWaiting != null,
+                parked => parked
+                    .Unschedule(HeartbeatScheduled)
+                    .Activity(x => x.OfType<WaitingForRunnerActivity<TransferMigrateSaga, TMessage>>())
+                    .Then(context =>
+                    {
+                        context.Saga.WaitingSince = DateTime.UtcNow;
+                        _logger.LogInformation(
+                            "Transfer: Module {ModuleId} waits for its runner before {Task}",
+                            context.Saga.ModuleId, nextTask);
+                    })
+                    .TransitionTo(nextWaitingState),
+                ahead => ahead
+                    .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TMessage, TNextRequest>>())
+                    .ThenAsync(context => RecordDispatched(context, nextTask)));
+
+    /// <summary>
+    /// A step's waiting state: the request was never sent, so a reconnecting runner gets it then.
+    /// </summary>
+    private void WaitForRunner<TCompleted, TNextRequest>(
+        State waitingState, string nextTask, State nextState)
+        where TCompleted : class
+        where TNextRequest : TransferStepRequestBase, new()
+    {
+        During(waitingState,
             // A runner that came back while the saga was parking is noticed on entry, rather than
             // the job waiting for a reconnect event that has already fired.
-            When(nextWaitingState.Enter)
+            When(waitingState.Enter)
                 .Activity(x => x.OfType<CheckRunnerConnectionActivity<TransferMigrateSaga, TCompleted>>()),
 
             When(RunnerReconnectedEvent)
@@ -123,11 +179,11 @@ public partial class TransferMigrateStateMachine
                     context.Saga.PreviousStateBeforeWaiting = null;
                     _logger.LogInformation(
                         "Transfer: Module {ModuleId} runner reconnected, re-sending {Task}",
-                        context.Saga.ModuleId, TaskOf<TNextRequest>());
+                        context.Saga.ModuleId, nextTask);
                 })
                 .Activity(x => x.OfType<NotWaitingForRunnerActivity<TransferMigrateSaga, RunnerReconnectedEvent>>())
                 .Activity(x => x.OfType<SendTransferStepToRunnerActivity<RunnerReconnectedEvent, TNextRequest>>())
-                .ThenAsync(context => RecordDispatched(context, TaskOf<TNextRequest>()))
+                .ThenAsync(context => RecordDispatched(context, nextTask))
                 .Schedule(HeartbeatScheduled,
                     context => new HeartbeatScheduled
                     {
@@ -140,13 +196,6 @@ public partial class TransferMigrateStateMachine
             Ignore(HeartbeatRequested.Completed2)
         );
     }
-
-    /// <summary>
-    /// The task a request type names, taken from the type so it cannot drift from the contract the
-    /// runner answers on.
-    /// </summary>
-    private static string TaskOf<TRequest>() where TRequest : TransferStepRequestBase =>
-        typeof(TRequest).Name.Replace("Transfer", "").Replace("Requested", "");
 
     private static async Task RecordDispatched<TMessage>(
         BehaviorContext<TransferMigrateSaga, TMessage> context, string task)
@@ -178,7 +227,8 @@ public partial class TransferMigrateStateMachine
 
         await steps.Completed(
             jobId, context.Saga.OrganizationId, context.Saga.ModuleId, task, status,
-            errorHeader: faulted?.ErrorMessage ?? errorHeader, error: faulted?.StackTrace);
+            errorHeader: errorHeader ?? ErrorText.Header(task, status),
+            error: ErrorText.Detail(faulted?.ErrorMessage, faulted?.StackTrace));
     }
 
     /// <summary>
@@ -225,86 +275,45 @@ public partial class TransferMigrateStateMachine
             TransferSelectRunnerInstanceFaulted, TransferGetModuleRequested>(
             TransferSelectRunnerInstancePending, SelectRunnerInstanceCompleted,
             SelectRunnerInstanceCancelled, SelectRunnerInstanceFaulted,
-            "SelectRunnerInstance", TransferGetModulePending, TransferGetModuleWaitingForRunner,
+            "SelectRunnerInstance", "GetModule", TransferGetModulePending, TransferGetModuleWaitingForRunner,
             context => context.Saga.RunnerInstanceName = context.Message.RunnerInstanceName);
 
-        During(TransferGetModulePending,
-            When(GetModuleCompleted)
-                .Then(context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision)
-                .ThenAsync(context => RecordCompleted(context, "GetModule", StateMigrationStepStatus.Succeeded))
-                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferGetModuleCompleted, TransferInitRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "Init"))
-                .TransitionTo(TransferInitPending),
-
-            When(GetModuleCancelled)
-                .ThenAsync(context => RecordCompleted(context, "GetModule", StateMigrationStepStatus.Cancelled))
-                .ThenJobCancelled().TransitionTo(Failed).Finalize(),
-
-            When(GetModuleFaulted)
-                .ThenAsync(context => RecordCompleted(context, "GetModule", StateMigrationStepStatus.Faulted))
-                .ThenJobFailed().TransitionTo(Failed).Finalize(),
-
-            When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
-            When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
-            When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "GetModule", StateMigrationStepStatus.Faulted,
-                    "The runner stopped responding."))
-                .Then(LostRunner("GetModule")).ThenJobFailed().TransitionTo(Failed).Finalize()
-        );
-
-        During(TransferInitWaitingForRunner,
-            When(RunnerReconnectedEvent)
-                .Then(context => context.Saga.WaitingSince = null)
-                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<RunnerReconnectedEvent, TransferInitRequested>>())
-                .TransitionTo(TransferInitPending),
-            Ignore(HeartbeatScheduled.Received),
-            Ignore(HeartbeatRequested.Completed),
-            Ignore(HeartbeatRequested.Completed2)
-        );
+        CreateStep<TransferGetModuleCompleted, TransferGetModuleCancelled,
+            TransferGetModuleFaulted, TransferInitRequested>(
+            TransferGetModulePending, GetModuleCompleted, GetModuleCancelled, GetModuleFaulted,
+            "GetModule", "Init", TransferInitPending, TransferInitWaitingForRunner,
+            context => context.Saga.DefinitiveRevision = context.Message.DefinitiveRevision);
 
         CreateStep<TransferInitCompleted, TransferInitCancelled, TransferInitFaulted, TransferValidateRequested>(
             TransferInitPending, InitCompleted, InitCancelled, InitFaulted,
-            "Init", TransferValidatePending, TransferValidateWaitingForRunner);
+            "Init", "Validate", TransferValidatePending, TransferValidateWaitingForRunner);
 
-        CreateStep<TransferValidateCompleted, TransferValidateCancelled, TransferValidateFaulted, TransferPlanRequested>(
-            TransferValidatePending, ValidateCompleted, ValidateCancelled, ValidateFaulted,
-            "Validate", TransferPlanPending, TransferPlanWaitingForRunner);
+        // The prove is what gates a transfer: it plans against the moved state, which a plan here
+        // cannot see.
+        During(TransferValidatePending,
+            SendOrWaitForRunner<TransferValidateCompleted, TransferAnalyseMapRequested>(
+                When(ValidateCompleted)
+                    .ThenAsync(context => RecordCompleted(context, "Validate", StateMigrationStepStatus.Succeeded)),
+                "AnalyseMap", AnalyseMapPending, AnalyseMapWaitingForRunner),
 
-        // The plan ends the preamble rather than sending another request.
-        During(TransferPlanPending,
-            // A transfer proves against a clean plan, so a dirty one ends this Module's run here.
-            When(ApplyPlanCompleted, context => context.Message.TotalChangedCount != 0)
-                .ThenAsync(context => RecordCompleted(context, "Plan", StateMigrationStepStatus.Refused))
-                .Then(context => _logger.LogInformation(
-                    "Transfer: Module {ModuleId} plans {Count} changes; a transfer needs a clean plan",
-                    context.Saga.ModuleId, context.Message.TotalChangedCount))
-                .ThenJobFailed().TransitionTo(Failed).Finalize(),
-
-            // Clean: straight on to this Module's own slices, which it runs without being told.
-            // Filtered explicitly, because two handlers for one event both run otherwise.
-            When(ApplyPlanCompleted, context => context.Message.TotalChangedCount == 0)
-                .ThenAsync(context => RecordCompleted(context, "Plan", StateMigrationStepStatus.Succeeded))
-                .Activity(x => x.OfType<SendTransferStepToRunnerActivity<TransferPlanCompleted, TransferMigrateMapRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "TransferMigrateMap"))
-                .TransitionTo(TransferMigrateMapPending),
-            When(ApplyPlanCancelled)
-                .ThenAsync(context => RecordCompleted(context, "Plan", StateMigrationStepStatus.Cancelled))
+            When(ValidateCancelled)
+                .ThenAsync(context => RecordCompleted(context, "Validate", StateMigrationStepStatus.Cancelled))
                 .ThenJobCancelled().TransitionTo(Failed).Finalize(),
 
-            When(ApplyPlanFaulted)
-                .ThenAsync(context => RecordCompleted(context, "Plan", StateMigrationStepStatus.Faulted))
+            When(ValidateFaulted)
+                .ThenAsync(context => RecordCompleted(context, "Validate", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
 
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2).Then(context =>
-            {
-                _logger.LogWarning(
-                    "Transfer: Module {ModuleId} lost its runner at Plan",
-                    context.Saga.ModuleId);
-
-            }).ThenJobFailed().TransitionTo(Failed).Finalize()
+                    _logger.LogWarning(
+                        "Transfer: Module {ModuleId} lost its runner at Validate",
+                        context.Saga.ModuleId))
+                .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
+        WaitForRunner<TransferValidateCompleted, TransferAnalyseMapRequested>(
+            AnalyseMapWaitingForRunner, "AnalyseMap", AnalyseMapPending);
     }
 }

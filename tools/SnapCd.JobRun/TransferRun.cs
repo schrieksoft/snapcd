@@ -45,6 +45,8 @@ public static class TransferRun
         // starts the transfer, so the starting Module is the one that waits.
         var runner = services.GetRequiredService<FakeRunner>();
         runner.ConsumingModuleId = options.ModuleId;
+        // The sample moves resources out of app, so the starting Module is also the source.
+        runner.SourceModuleId = options.ModuleId;
         runner.NeedsOutputs = options.NeedsOutputs;
         runner.PlansClean = true;
 

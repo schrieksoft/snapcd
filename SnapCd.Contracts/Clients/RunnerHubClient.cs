@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
@@ -88,11 +89,30 @@ public class RunnerHubClient
 
 
 
-    public async Task InvokeTransferMigrateMapCompleted(
-        Guid jobId, Guid moduleId, List<string> needsOutputs)
+    public async Task InvokeAnalyseMapCompleted(
+        Guid jobId, Guid moduleId, TransferRoleKind role, List<string> needsOutputs, string? problem)
     {
         await _hubConnection.InvokeAsync(
-            ServerEndpoints.TransferMigrateMapCompleted, jobId, moduleId, needsOutputs);
+            ServerEndpoints.AnalyseMapCompleted, jobId, moduleId, role, needsOutputs, problem);
+    }
+
+    public async Task InvokeAnalyseMapCancelled(Guid jobId, Guid moduleId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.AnalyseMapCancelled, jobId, moduleId);
+    }
+
+    public async Task InvokeAnalyseMapFaulted(Guid jobId, Guid moduleId, string? error, string? stack)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.AnalyseMapFaulted, jobId, moduleId, error, stack);
+    }
+
+    public async Task InvokeTransferMigrateMapCompleted(
+        Guid jobId, Guid moduleId, string? sourceFragment, string? sourceFragmentMeta)
+    {
+        await _hubConnection.InvokeAsync(
+            ServerEndpoints.TransferMigrateMapCompleted, jobId, moduleId,
+            sourceFragment, sourceFragmentMeta);
     }
 
     public async Task InvokeTransferMigrateMapCancelled(Guid jobId, Guid moduleId)
@@ -245,24 +265,8 @@ public class RunnerHubClient
             ServerEndpoints.LookupAddressesFaulted, jobId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeTransferOutputsCompleted(
-        Guid jobId, Guid moduleId, OutputSetCreateDto? outputSet)
-    {
-        await _hubConnection.InvokeAsync(
-            ServerEndpoints.TransferOutputsCompleted, jobId, moduleId, outputSet);
-    }
 
-    public async Task InvokeTransferOutputsCancelled(Guid jobId, Guid moduleId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.TransferOutputsCancelled, jobId, moduleId);
-    }
 
-    public async Task InvokeTransferOutputsFaulted(
-        Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(
-            ServerEndpoints.TransferOutputsFaulted, jobId, moduleId, errorMessage, stackTrace);
-    }
 
     public async Task InvokeTransferMigrateVerifyCompleted(Guid jobId, Guid moduleId)
     {
@@ -936,19 +940,6 @@ public class RunnerHubClient
             ServerEndpoints.TransferValidateFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
 
-    public async Task InvokeTransferPlanCompleted(Guid jobId, Guid moduleId, PlanCompletedData data)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.TransferPlanCompleted, jobId, moduleId, data);
-    }
 
-    public async Task InvokeTransferPlanCancelled(Guid jobId, Guid moduleId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.TransferPlanCancelled, jobId, moduleId);
-    }
 
-    public async Task InvokeTransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(
-            ServerEndpoints.TransferPlanFaulted, jobId, moduleId, errorMessage, stackTrace);
-    }
 }

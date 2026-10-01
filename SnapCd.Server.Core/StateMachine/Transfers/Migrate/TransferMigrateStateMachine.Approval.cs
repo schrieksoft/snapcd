@@ -44,10 +44,11 @@ public partial class TransferMigrateStateMachine
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); });
 
         During(TransferMigrateRunPending,
-            When(ApprovedEvent)
-                .Activity(x => x.OfType<
-                    SendTransferStepToRunnerActivity<TransferApproved, TransferMigrateRunRequested>>())
-                .ThenAsync(context => RecordDispatched(context, "TransferMigrateRun")));
+            SendOrWaitAfterGate<TransferApproved, TransferMigrateRunRequested>(
+                When(ApprovedEvent), "TransferMigrateRun", TransferMigrateRunWaitingForRunner));
+
+        WaitForRunner<TransferApproved, TransferMigrateRunRequested>(
+            TransferMigrateRunWaitingForRunner, "TransferMigrateRun", TransferMigrateRunPending);
 
         During(WaitingForApproval,
             DealWithApprovalStatus(When(ApprovalModifiedEvent)),
@@ -82,10 +83,12 @@ public partial class TransferMigrateStateMachine
         foreach (var running in new[]
                  {
                      TransferSelectRunnerInstancePending, TransferGetModulePending, TransferInitPending, TransferValidatePending,
-                     TransferPlanPending, TransferSelectRunnerInstanceWaitingForRunner, TransferGetModuleWaitingForRunner,
-                     TransferInitWaitingForRunner, TransferValidateWaitingForRunner, TransferPlanWaitingForRunner,
+                     TransferGetModuleWaitingForRunner,
+                     TransferInitWaitingForRunner, TransferValidateWaitingForRunner,
                      TransferMigrateMapPending, TransferMigrateProvePending,
-                     TransferMigrateRunPending, TransferMigrateVerifyPending
+                     TransferMigrateRunPending, TransferMigrateVerifyPending,
+                     TransferMigrateMapWaitingForRunner, TransferMigrateProveWaitingForRunner,
+                     TransferMigrateRunWaitingForRunner, TransferMigrateVerifyWaitingForRunner
                  })
             During(running,
                 When(CancelRequested)

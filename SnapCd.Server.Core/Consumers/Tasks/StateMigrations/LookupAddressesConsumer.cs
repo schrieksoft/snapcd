@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -54,7 +55,7 @@ public class LookupAddressesConsumer : IConsumer<LookupAddressesRequested>
             var ordinary = StepRequestBuilders.Init(jobId, msg.OrganizationId, msg.Declared, []);
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.LookupAddresses,
+                nameof(ILookupAddressesEndpoints.LookupAddresses),
                 new LookupAddressesRequestBase
                 {
                     JobId = jobId,

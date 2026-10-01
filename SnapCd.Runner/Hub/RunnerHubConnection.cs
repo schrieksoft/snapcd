@@ -15,6 +15,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.SplitMigrate;
+using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Constants;
 using SnapCd.Runner.Services;
@@ -28,7 +29,17 @@ namespace SnapCd.Runner.Hub;
 /// SignalR client for bidirectional communication with Snap CD Server.
 /// Handles connection, reconnection, and log sending with buffering.
 /// </summary>
-public class RunnerHubConnection : IAsyncDisposable
+public class RunnerHubConnection :
+    IAsyncDisposable,
+    IApplyEndpoints,
+    IDestroyEndpoints,
+    ISplitEndpoints,
+    ITransferEndpoints,
+    ILookupAddressesEndpoints,
+    IMoveEndpoints,
+    IImportEndpoints,
+    IRemoveEndpoints,
+    IRunnerLifecycleEndpoints
 {
     private readonly ILogger<RunnerHubConnection> _logger;
     private readonly RunnerSettings _runnerSettings;
@@ -39,6 +50,9 @@ public class RunnerHubConnection : IAsyncDisposable
     // Tasks is only dereferenced inside the .On<>() handlers registered in StartAsync, by which
     // time the graph is fully built — so deferring resolution to first access is safe.
     private readonly Lazy<Tasks.Tasks> _tasks;
+
+    /// <summary>Replies go back over the connection the request arrived on.</summary>
+    private RunnerHubClient Client => new(_connection!);
 
     private HubConnection? _connection;
     private bool _isDisposing;
@@ -166,580 +180,442 @@ public class RunnerHubConnection : IAsyncDisposable
         // Register handler for GetDefinitiveRevision
         var client = new RunnerHubClient(_connection!);
 
-        _connection.On<GetDefinitiveRevisionRequest>(RunnerEndpoints.ApplyGetDefinitiveRevision, (request) =>
+        _connection.On<GetDefinitiveRevisionRequest>(nameof(IApplyEndpoints.ApplyGetDefinitiveRevision),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetDefinitiveRevision(
-                    request, _connection,
-                    client.InvokeApplyGetDefinitiveRevisionCompleted,
-                    client.InvokeApplyGetDefinitiveRevisionCancelled,
-                    client.InvokeApplyGetDefinitiveRevisionFaulted); });
+                Task.Run(() => ApplyGetDefinitiveRevision(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<GetDefinitiveRevisionRequest>(RunnerEndpoints.DestroyGetDefinitiveRevision, (request) =>
+        _connection.On<GetDefinitiveRevisionRequest>(nameof(IDestroyEndpoints.DestroyGetDefinitiveRevision),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetDefinitiveRevision(
-                    request, _connection,
-                    client.InvokeDestroyGetDefinitiveRevisionCompleted,
-                    client.InvokeDestroyGetDefinitiveRevisionCancelled,
-                    client.InvokeDestroyGetDefinitiveRevisionFaulted); });
+                Task.Run(() => DestroyGetDefinitiveRevision(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
 
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.ApplyGetModule, (request) =>
+        _connection.On<GetModuleRequestBase>(nameof(IApplyEndpoints.ApplyGetModule),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    client.InvokeApplyGetModuleCompleted,
-                    client.InvokeApplyGetModuleCancelled,
-                    client.InvokeApplyGetModuleFaulted); });
+                Task.Run(() => ApplyGetModule(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.ApplyInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(IApplyEndpoints.ApplyInit),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    client.InvokeApplyInitCompleted,
-                    client.InvokeApplyInitCancelled,
-                    client.InvokeApplyInitFaulted); });
+                Task.Run(() => ApplyInit(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<ValidateRequestBase>(RunnerEndpoints.ApplyValidate, (request) =>
+        _connection.On<ValidateRequestBase>(nameof(IApplyEndpoints.ApplyValidate),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Validate(
-                    request, _connection,
-                    client.InvokeApplyValidateCompleted,
-                    client.InvokeApplyValidateCancelled,
-                    client.InvokeApplyValidateFaulted); });
+                Task.Run(() => ApplyValidate(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<VariablesRequestBase>(RunnerEndpoints.ApplyVariables, (request) =>
+        _connection.On<VariablesRequestBase>(nameof(IApplyEndpoints.ApplyVariables),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Variables(
-                    request, _connection,
-                    client.InvokeApplyVariablesCompleted,
-                    client.InvokeApplyVariablesCancelled,
-                    client.InvokeApplyVariablesFaulted); });
+                Task.Run(() => ApplyVariables(request));
                 return Task.CompletedTask;
-            }
-        );
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.DestroyGetModule, (request) =>
+            });
+        _connection.On<GetModuleRequestBase>(nameof(IDestroyEndpoints.DestroyGetModule),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    client.InvokeDestroyGetModuleCompleted,
-                    client.InvokeDestroyGetModuleCancelled,
-                    client.InvokeDestroyGetModuleFaulted); });
+                Task.Run(() => DestroyGetModule(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.DestroyInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(IDestroyEndpoints.DestroyInit),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    client.InvokeDestroyInitCompleted,
-                    client.InvokeDestroyInitCancelled,
-                    client.InvokeDestroyInitFaulted); });
+                Task.Run(() => DestroyInit(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<ValidateRequestBase>(RunnerEndpoints.DestroyValidate, (request) =>
+        _connection.On<ValidateRequestBase>(nameof(IDestroyEndpoints.DestroyValidate),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Validate(
-                    request, _connection,
-                    client.InvokeDestroyValidateCompleted,
-                    client.InvokeDestroyValidateCancelled,
-                    client.InvokeDestroyValidateFaulted); });
+                Task.Run(() => DestroyValidate(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<VariablesRequestBase>(RunnerEndpoints.DestroyVariables, (request) =>
+        _connection.On<VariablesRequestBase>(nameof(IDestroyEndpoints.DestroyVariables),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Variables(
-                    request, _connection,
-                    client.InvokeDestroyVariablesCompleted,
-                    client.InvokeDestroyVariablesCancelled,
-                    client.InvokeDestroyVariablesFaulted); });
+                Task.Run(() => DestroyVariables(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // The manual families run the same checkout and init, each answering on its own endpoint.
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.LookupAddressesGetModule, (request) =>
+        _connection.On<GetModuleRequestBase>(nameof(ILookupAddressesEndpoints.LookupAddressesGetModule),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    client.InvokeLookupAddressesGetModuleCompleted,
-                    client.InvokeLookupAddressesGetModuleCancelled,
-                    client.InvokeLookupAddressesGetModuleFaulted); });
+                Task.Run(() => LookupAddressesGetModule(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.LookupAddressesInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(ILookupAddressesEndpoints.LookupAddressesInit),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    client.InvokeLookupAddressesInitCompleted,
-                    client.InvokeLookupAddressesInitCancelled,
-                    client.InvokeLookupAddressesInitFaulted); });
+                Task.Run(() => LookupAddressesInit(request));
                 return Task.CompletedTask;
-            }
-        );
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.MoveGetModule, (request) =>
+            });
+        _connection.On<GetModuleRequestBase>(nameof(IMoveEndpoints.MoveGetModule),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    client.InvokeMoveGetModuleCompleted,
-                    client.InvokeMoveGetModuleCancelled,
-                    client.InvokeMoveGetModuleFaulted); });
+                Task.Run(() => MoveGetModule(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.MoveInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(IMoveEndpoints.MoveInit),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    client.InvokeMoveInitCompleted,
-                    client.InvokeMoveInitCancelled,
-                    client.InvokeMoveInitFaulted); });
+                Task.Run(() => MoveInit(request));
                 return Task.CompletedTask;
-            }
-        );
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.ImportGetModule, (request) =>
+            });
+        _connection.On<GetModuleRequestBase>(nameof(IImportEndpoints.ImportGetModule),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    client.InvokeImportGetModuleCompleted,
-                    client.InvokeImportGetModuleCancelled,
-                    client.InvokeImportGetModuleFaulted); });
+                Task.Run(() => ImportGetModule(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.ImportInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(IImportEndpoints.ImportInit),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    client.InvokeImportInitCompleted,
-                    client.InvokeImportInitCancelled,
-                    client.InvokeImportInitFaulted); });
+                Task.Run(() => ImportInit(request));
                 return Task.CompletedTask;
-            }
-        );
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.RemoveGetModule, (request) =>
+            });
+        _connection.On<GetModuleRequestBase>(nameof(IRemoveEndpoints.RemoveGetModule),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    client.InvokeRemoveGetModuleCompleted,
-                    client.InvokeRemoveGetModuleCancelled,
-                    client.InvokeRemoveGetModuleFaulted); });
+                Task.Run(() => RemoveGetModule(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.RemoveInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(IRemoveEndpoints.RemoveInit),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    client.InvokeRemoveInitCompleted,
-                    client.InvokeRemoveInitCancelled,
-                    client.InvokeRemoveInitFaulted); });
+                Task.Run(() => RemoveInit(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for PolicyValidate
-        _connection.On<SplitRefactorValidateRequestBase>(RunnerEndpoints.SplitRefactorValidate, (request) =>
+        _connection.On<SplitRefactorValidateRequestBase>(nameof(ISplitEndpoints.SplitRefactorValidate),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitRefactorValidate(request, _connection); });
+                Task.Run(() => SplitRefactorValidate(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<SplitRefactorDiffRequestBase>(RunnerEndpoints.SplitRefactorDiff, (request) =>
+        _connection.On<SplitRefactorDiffRequestBase>(nameof(ISplitEndpoints.SplitRefactorDiff),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitRefactorDiff(request, _connection); });
+                Task.Run(() => SplitRefactorDiff(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
 
 
 
 
         // A transfer runs two Modules under one job, so its replies name the Module as well.
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.TransferGetModule, (request) =>
+        _connection.On<GetModuleRequestBase>(nameof(ITransferEndpoints.TransferGetModule),
+            request =>
             {
-                var moduleId = request.Metadata.ModuleId;
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    jobId => client.InvokeTransferGetModuleCompleted(jobId, moduleId),
-                    jobId => client.InvokeTransferGetModuleCancelled(jobId, moduleId),
-                    (jobId, error, stack) => client.InvokeTransferGetModuleFaulted(jobId, moduleId, error, stack)); });
+                Task.Run(() => TransferGetModule(request));
                 return Task.CompletedTask;
             });
 
         // A transfer runs two Modules under one job, so its replies name the Module as well.
-        _connection.On<InitRequestBase>(RunnerEndpoints.TransferInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(ITransferEndpoints.TransferInit),
+            request =>
             {
-                var moduleId = request.Metadata.ModuleId;
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    jobId => client.InvokeTransferInitCompleted(jobId, moduleId),
-                    jobId => client.InvokeTransferInitCancelled(jobId, moduleId),
-                    (jobId, error, stack) => client.InvokeTransferInitFaulted(jobId, moduleId, error, stack)); });
+                Task.Run(() => TransferInit(request));
                 return Task.CompletedTask;
             });
 
         // A transfer runs two Modules under one job, so its replies name the Module as well.
-        _connection.On<ValidateRequestBase>(RunnerEndpoints.TransferValidate, (request) =>
+        _connection.On<ValidateRequestBase>(nameof(ITransferEndpoints.TransferValidate),
+            request =>
             {
-                var moduleId = request.Metadata.ModuleId;
-                Task.Run(async () => { await _tasks.Value.Validate(
-                    request, _connection,
-                    jobId => client.InvokeTransferValidateCompleted(jobId, moduleId),
-                    jobId => client.InvokeTransferValidateCancelled(jobId, moduleId),
-                    (jobId, error, stack) => client.InvokeTransferValidateFaulted(jobId, moduleId, error, stack)); });
+                Task.Run(() => TransferValidate(request));
                 return Task.CompletedTask;
             });
 
-        _connection.On<PlanRequestBase>(RunnerEndpoints.TransferPlan, (request) =>
+
+        _connection.On<TransferAnalyseMapRequestBase>(nameof(ITransferEndpoints.TransferAnalyseMap),
+            request =>
             {
-                var moduleId = request.Metadata.ModuleId;
-                Task.Run(async () => { await _tasks.Value.Plan(
-                    request, _connection,
-                    (jobId, data) => client.InvokeTransferPlanCompleted(jobId, moduleId, data),
-                    jobId => client.InvokeTransferPlanCancelled(jobId, moduleId),
-                    (jobId, error, stack, _) => client.InvokeTransferPlanFaulted(jobId, moduleId, error, stack)); });
+                Task.Run(() => TransferAnalyseMap(request));
                 return Task.CompletedTask;
             });
 
-        _connection.On<TransferMigrateMapRequestBase>(RunnerEndpoints.TransferMigrateMap, (request) =>
+        _connection.On<TransferMigrateMapRequestBase>(nameof(ITransferEndpoints.TransferMigrateMap),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.TransferMigrateMap(request, _connection); });
+                Task.Run(() => TransferMigrateMap(request));
                 return Task.CompletedTask;
             });
 
-        _connection.On<TransferMigrateProveRequestBase>(RunnerEndpoints.TransferMigrateProve, (request) =>
+        _connection.On<TransferMigrateProveRequestBase>(nameof(ITransferEndpoints.TransferMigrateProve),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.TransferMigrateProve(request, _connection); });
+                Task.Run(() => TransferMigrateProve(request));
                 return Task.CompletedTask;
             });
 
-        _connection.On<TransferMigrateRunRequestBase>(RunnerEndpoints.TransferMigrateRun, (request) =>
+        _connection.On<TransferMigrateRunRequestBase>(nameof(ITransferEndpoints.TransferMigrateRun),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.TransferMigrateRun(request, _connection); });
+                Task.Run(() => TransferMigrateRun(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<TransferMigrateVerifyRequestBase>(RunnerEndpoints.TransferMigrateVerify, (request) =>
+        _connection.On<TransferMigrateVerifyRequestBase>(nameof(ITransferEndpoints.TransferMigrateVerify),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.TransferMigrateVerify(request, _connection); });
+                Task.Run(() => TransferMigrateVerify(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.Move, (request) =>
+        _connection.On<StateMoveRequestBase>(nameof(IMoveEndpoints.Move),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Move(request, _connection); });
+                Task.Run(() => Move(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.Import, (request) =>
+        _connection.On<StateMoveRequestBase>(nameof(IImportEndpoints.Import),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Import(request, _connection); });
+                Task.Run(() => Import(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.Remove, (request) =>
+        _connection.On<StateMoveRequestBase>(nameof(IRemoveEndpoints.Remove),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Remove(request, _connection); });
+                Task.Run(() => Remove(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.MoveDryRun, (request) =>
+        _connection.On<StateMoveRequestBase>(nameof(IMoveEndpoints.MoveDryRun),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.MoveDryRun(request, _connection); });
+                Task.Run(() => MoveDryRun(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.RemoveDryRun, (request) =>
+        _connection.On<StateMoveRequestBase>(nameof(IRemoveEndpoints.RemoveDryRun),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.RemoveDryRun(request, _connection); });
+                Task.Run(() => RemoveDryRun(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<StateMoveRequestBase>(RunnerEndpoints.ImportPreCheck, (request) =>
+        _connection.On<StateMoveRequestBase>(nameof(IImportEndpoints.ImportPreCheck),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.ImportPreCheck(request, _connection); });
+                Task.Run(() => ImportPreCheck(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<LookupAddressesRequestBase>(RunnerEndpoints.LookupAddresses, (request) =>
+        _connection.On<LookupAddressesRequestBase>(nameof(ILookupAddressesEndpoints.LookupAddresses),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.LookupAddresses(request, _connection); });
+                Task.Run(() => LookupAddresses(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<TransferOutputsRequestBase>(RunnerEndpoints.TransferOutputs, (request) =>
-            {
-                Task.Run(async () => { await _tasks.Value.TransferOutputs(request, _connection); });
-                return Task.CompletedTask;
-            }
-        );
 
-        _connection.On<SplitMigrateMapRequestBase>(RunnerEndpoints.SplitMigrateMap, (request) =>
+        _connection.On<SplitMigrateMapRequestBase>(nameof(ISplitEndpoints.SplitMigrateMap),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitMigrateMap(request, _connection); });
+                Task.Run(() => SplitMigrateMap(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<SplitMigrateProveRequestBase>(RunnerEndpoints.SplitMigrateProve, (request) =>
+        _connection.On<SplitMigrateProveRequestBase>(nameof(ISplitEndpoints.SplitMigrateProve),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitMigrateProve(request, _connection); });
+                Task.Run(() => SplitMigrateProve(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<SplitMigrateRunRequestBase>(RunnerEndpoints.SplitMigrateRun, (request) =>
+        _connection.On<SplitMigrateRunRequestBase>(nameof(ISplitEndpoints.SplitMigrateRun),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitMigrateRun(request, _connection); });
+                Task.Run(() => SplitMigrateRun(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<SplitMigrateVerifyRequestBase>(RunnerEndpoints.SplitMigrateVerify, (request) =>
+        _connection.On<SplitMigrateVerifyRequestBase>(nameof(ISplitEndpoints.SplitMigrateVerify),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitMigrateVerify(request, _connection); });
+                Task.Run(() => SplitMigrateVerify(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<SplitPlanEmptyVerifyRequestBase>(RunnerEndpoints.SplitPlanEmptyVerify, (request) =>
+        _connection.On<SplitPlanEmptyVerifyRequestBase>(nameof(ISplitEndpoints.SplitPlanEmptyVerify),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitPlanEmptyVerify(request, _connection); });
+                Task.Run(() => SplitPlanEmptyVerify(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for PolicyValidate
-        _connection.On<PolicyValidateRequestBase>(RunnerEndpoints.ApplyPolicyValidate, (request) =>
+        _connection.On<PolicyValidateRequestBase>(nameof(IApplyEndpoints.ApplyPolicyValidate),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.PolicyValidate(
-                    request, _connection,
-                    client.InvokeApplyPolicyValidateCompleted,
-                    client.InvokeApplyPolicyValidateCancelled,
-                    client.InvokeApplyPolicyValidateFaulted); });
+                Task.Run(() => ApplyPolicyValidate(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<PolicyValidateRequestBase>(RunnerEndpoints.DestroyPolicyValidate, (request) =>
+        _connection.On<PolicyValidateRequestBase>(nameof(IDestroyEndpoints.DestroyPolicyValidate),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.PolicyValidate(
-                    request, _connection,
-                    client.InvokeDestroyPolicyValidateCompleted,
-                    client.InvokeDestroyPolicyValidateCancelled,
-                    client.InvokeDestroyPolicyValidateFaulted); });
+                Task.Run(() => DestroyPolicyValidate(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for Plan
         // An apply, a destroy, a split and a transfer all plan; each answers on its own endpoint.
-        _connection.On<PlanRequestBase>(RunnerEndpoints.ApplyPlan, (request) =>
+        _connection.On<PlanRequestBase>(nameof(IApplyEndpoints.ApplyPlan),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Plan(
-                    request, _connection,
-                    client.InvokeApplyPlanCompleted,
-                    client.InvokeApplyPlanCancelled,
-                    client.InvokeApplyPlanFaulted); });
+                Task.Run(() => ApplyPlan(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<GetModuleRequestBase>(RunnerEndpoints.SplitGetModule, (request) =>
+        _connection.On<GetModuleRequestBase>(nameof(ISplitEndpoints.SplitGetModule),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.GetModule(
-                    request, _connection,
-                    client.InvokeSplitGetModuleCompleted,
-                    client.InvokeSplitGetModuleCancelled,
-                    client.InvokeSplitGetModuleFaulted); });
+                Task.Run(() => SplitGetModule(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<InitRequestBase>(RunnerEndpoints.SplitInit, (request) =>
+        _connection.On<InitRequestBase>(nameof(ISplitEndpoints.SplitInit),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Init(
-                    request, _connection,
-                    client.InvokeSplitInitCompleted,
-                    client.InvokeSplitInitCancelled,
-                    client.InvokeSplitInitFaulted); });
+                Task.Run(() => SplitInit(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<ValidateRequestBase>(RunnerEndpoints.SplitValidate, (request) =>
+        _connection.On<ValidateRequestBase>(nameof(ISplitEndpoints.SplitValidate),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Validate(
-                    request, _connection,
-                    client.InvokeSplitValidateCompleted,
-                    client.InvokeSplitValidateCancelled,
-                    client.InvokeSplitValidateFaulted); });
+                Task.Run(() => SplitValidate(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<PlanRequestBase>(RunnerEndpoints.SplitPlan, (request) =>
+        _connection.On<PlanRequestBase>(nameof(ISplitEndpoints.SplitPlan),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Plan(
-                    request, _connection,
-                    (jobId, data) => client.InvokeSplitPlanCompleted(jobId, data),
-                    client.InvokeSplitPlanCancelled,
-                    (jobId, error, stack, _) => client.InvokeSplitPlanFaulted(jobId, error, stack)); });
+                Task.Run(() => SplitPlan(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for PlanDestroy
-        _connection.On<PlanDestroyRequestBase>(RunnerEndpoints.DestroyPlan, (request) =>
+        _connection.On<PlanDestroyRequestBase>(nameof(IDestroyEndpoints.DestroyPlan),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.PlanDestroy(request, _connection); });
+                Task.Run(() => DestroyPlan(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for ApplyFromPlan
-        _connection.On<ApplyFromPlanRequestBase>(RunnerEndpoints.ApplyFromPlan, (request) =>
+        _connection.On<ApplyFromPlanRequestBase>(nameof(IApplyEndpoints.ApplyFromPlan),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.ApplyFromPlan(request, _connection); });
+                Task.Run(() => ApplyFromPlan(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for DestroyFromPlan
-        _connection.On<DestroyFromPlanRequestBase>(RunnerEndpoints.DestroyFromPlan, (request) =>
+        _connection.On<DestroyFromPlanRequestBase>(nameof(IDestroyEndpoints.DestroyFromPlan),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.DestroyFromPlan(request, _connection); });
+                Task.Run(() => DestroyFromPlan(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for Output
-        _connection.On<OutputRequestBase>(RunnerEndpoints.ApplyOutput, (request) =>
+        _connection.On<OutputRequestBase>(nameof(IApplyEndpoints.ApplyOutput),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Output(
-                    request, _connection,
-                    client.InvokeApplyOutputCompleted,
-                    client.InvokeApplyOutputCancelled,
-                    client.InvokeApplyOutputFaulted); });
+                Task.Run(() => ApplyOutput(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<OutputRequestBase>(RunnerEndpoints.DestroyOutput, (request) =>
+        _connection.On<OutputRequestBase>(nameof(IDestroyEndpoints.DestroyOutput),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.Output(
-                    request, _connection,
-                    client.InvokeDestroyOutputCompleted,
-                    client.InvokeDestroyOutputCancelled,
-                    client.InvokeDestroyOutputFaulted); });
+                Task.Run(() => DestroyOutput(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Answer liveness pings so the server can tell a live connection from a wedged one.
-        _connection.On<Guid>(RunnerEndpoints.Ping, (pingId) =>
+        _connection.On<Guid>(nameof(IRunnerLifecycleEndpoints.Ping),
+            pingId =>
             {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        if (_connection is not null)
-                            await _connection.InvokeAsync("Pong", pingId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Could not answer liveness ping {PingId}", pingId);
-                    }
-                });
+                Task.Run(() => Ping(pingId));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Register handler for SourceRefresh (stateless operation)
-        _connection.On<SourceRefreshRequest>(RunnerEndpoints.SourceRefresh, (request) =>
+        _connection.On<SourceRefreshRequest>(nameof(IRunnerLifecycleEndpoints.SourceRefresh),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SourceRefresh(request, _connection); });
+                Task.Run(() => SourceRefresh(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<CancelKillRequest>(RunnerEndpoints.ApplyCancelKill, (request) =>
+        _connection.On<CancelKillRequest>(nameof(IApplyEndpoints.ApplyCancelKill),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.ApplyCancelKill(request, _connection); });
+                Task.Run(() => ApplyCancelKill(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<CancelKillRequest>(RunnerEndpoints.DestroyCancelKill, (request) =>
+        _connection.On<CancelKillRequest>(nameof(IDestroyEndpoints.DestroyCancelKill),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.DestroyCancelKill(request, _connection); });
+                Task.Run(() => DestroyCancelKill(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<CancelKillRequest>(RunnerEndpoints.SplitCancelKill, (request) =>
+        _connection.On<CancelKillRequest>(nameof(ISplitEndpoints.SplitCancelKill),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.SplitCancelKill(request, _connection); });
+                Task.Run(() => SplitCancelKill(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<CancelKillRequest>(RunnerEndpoints.MoveCancelKill, (request) =>
+        _connection.On<CancelKillRequest>(nameof(IMoveEndpoints.MoveCancelKill),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.MoveCancelKill(request, _connection); });
+                Task.Run(() => MoveCancelKill(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<CancelKillRequest>(RunnerEndpoints.ImportCancelKill, (request) =>
+        _connection.On<CancelKillRequest>(nameof(IImportEndpoints.ImportCancelKill),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.ImportCancelKill(request, _connection); });
+                Task.Run(() => ImportCancelKill(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
-        _connection.On<CancelKillRequest>(RunnerEndpoints.RemoveCancelKill, (request) =>
+        _connection.On<CancelKillRequest>(nameof(IRemoveEndpoints.RemoveCancelKill),
+            request =>
             {
-                Task.Run(async () => { await _tasks.Value.RemoveCancelKill(request, _connection); });
+                Task.Run(() => RemoveCancelKill(request));
                 return Task.CompletedTask;
-            }
-        );
+            });
 
         // Start the connection
         await _connection.StartAsync(cancellationToken);
@@ -926,6 +802,354 @@ public class RunnerHubConnection : IAsyncDisposable
 
         await _connection.InvokeAsync(methodName, args);
     }
+
+    // The transfer steps, as the interface the server dispatches against. A transfer runs two
+    // Modules under one job, so the preamble's replies name the Module as well as the job.
+
+    public Task TransferGetModule(GetModuleRequestBase request)
+    {
+        var client = Client;
+        var moduleId = request.Metadata.ModuleId;
+        return _tasks.Value.GetModule(
+            request, _connection!,
+            jobId => client.InvokeTransferGetModuleCompleted(jobId, moduleId),
+            jobId => client.InvokeTransferGetModuleCancelled(jobId, moduleId),
+            (jobId, error, stack) => client.InvokeTransferGetModuleFaulted(jobId, moduleId, error, stack));
+    }
+
+    public Task TransferInit(InitRequestBase request)
+    {
+        var client = Client;
+        var moduleId = request.Metadata.ModuleId;
+        return _tasks.Value.Init(
+            request, _connection!,
+            jobId => client.InvokeTransferInitCompleted(jobId, moduleId),
+            jobId => client.InvokeTransferInitCancelled(jobId, moduleId),
+            (jobId, error, stack) => client.InvokeTransferInitFaulted(jobId, moduleId, error, stack));
+    }
+
+    public Task TransferValidate(ValidateRequestBase request)
+    {
+        var client = Client;
+        var moduleId = request.Metadata.ModuleId;
+        return _tasks.Value.Validate(
+            request, _connection!,
+            jobId => client.InvokeTransferValidateCompleted(jobId, moduleId),
+            jobId => client.InvokeTransferValidateCancelled(jobId, moduleId),
+            (jobId, error, stack) => client.InvokeTransferValidateFaulted(jobId, moduleId, error, stack));
+    }
+
+    public Task TransferAnalyseMap(TransferAnalyseMapRequestBase request) =>
+        _tasks.Value.TransferAnalyseMap(request, _connection!);
+
+    public Task TransferMigrateMap(TransferMigrateMapRequestBase request) =>
+        _tasks.Value.TransferMigrateMap(request, _connection!);
+
+    public Task TransferMigrateProve(TransferMigrateProveRequestBase request) =>
+        _tasks.Value.TransferMigrateProve(request, _connection!);
+
+    public Task TransferMigrateRun(TransferMigrateRunRequestBase request) =>
+        _tasks.Value.TransferMigrateRun(request, _connection!);
+
+    public Task TransferMigrateVerify(TransferMigrateVerifyRequestBase request) =>
+        _tasks.Value.TransferMigrateVerify(request, _connection!);
+
+    // Apply
+
+    public Task ApplyCancelKill(CancelKillRequest request) =>
+        _tasks.Value.ApplyCancelKill(request, _connection!);
+
+    public Task ApplyFromPlan(ApplyFromPlanRequestBase request) =>
+        _tasks.Value.ApplyFromPlan(request, _connection!);
+
+    public Task ApplyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
+        _tasks.Value.GetDefinitiveRevision(
+            request, _connection!,
+            Client.InvokeApplyGetDefinitiveRevisionCompleted,
+            Client.InvokeApplyGetDefinitiveRevisionCancelled,
+            Client.InvokeApplyGetDefinitiveRevisionFaulted);
+
+    public Task ApplyGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeApplyGetModuleCompleted,
+            Client.InvokeApplyGetModuleCancelled,
+            Client.InvokeApplyGetModuleFaulted);
+
+    public Task ApplyInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeApplyInitCompleted,
+            Client.InvokeApplyInitCancelled,
+            Client.InvokeApplyInitFaulted);
+
+    public Task ApplyOutput(OutputRequestBase request) =>
+        _tasks.Value.Output(
+            request, _connection!,
+            Client.InvokeApplyOutputCompleted,
+            Client.InvokeApplyOutputCancelled,
+            Client.InvokeApplyOutputFaulted);
+
+    public Task ApplyPlan(PlanRequestBase request) =>
+        _tasks.Value.Plan(
+            request, _connection!,
+            Client.InvokeApplyPlanCompleted,
+            Client.InvokeApplyPlanCancelled,
+            Client.InvokeApplyPlanFaulted);
+
+    public Task ApplyPolicyValidate(PolicyValidateRequestBase request) =>
+        _tasks.Value.PolicyValidate(
+            request, _connection!,
+            Client.InvokeApplyPolicyValidateCompleted,
+            Client.InvokeApplyPolicyValidateCancelled,
+            Client.InvokeApplyPolicyValidateFaulted);
+
+    public Task ApplyValidate(ValidateRequestBase request) =>
+        _tasks.Value.Validate(
+            request, _connection!,
+            Client.InvokeApplyValidateCompleted,
+            Client.InvokeApplyValidateCancelled,
+            Client.InvokeApplyValidateFaulted);
+
+    public Task ApplyVariables(VariablesRequestBase request) =>
+        _tasks.Value.Variables(
+            request, _connection!,
+            Client.InvokeApplyVariablesCompleted,
+            Client.InvokeApplyVariablesCancelled,
+            Client.InvokeApplyVariablesFaulted);
+
+    // Destroy
+
+    public Task DestroyCancelKill(CancelKillRequest request) =>
+        _tasks.Value.DestroyCancelKill(request, _connection!);
+
+    public Task DestroyFromPlan(DestroyFromPlanRequestBase request) =>
+        _tasks.Value.DestroyFromPlan(request, _connection!);
+
+    public Task DestroyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
+        _tasks.Value.GetDefinitiveRevision(
+            request, _connection!,
+            Client.InvokeDestroyGetDefinitiveRevisionCompleted,
+            Client.InvokeDestroyGetDefinitiveRevisionCancelled,
+            Client.InvokeDestroyGetDefinitiveRevisionFaulted);
+
+    public Task DestroyGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeDestroyGetModuleCompleted,
+            Client.InvokeDestroyGetModuleCancelled,
+            Client.InvokeDestroyGetModuleFaulted);
+
+    public Task DestroyInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeDestroyInitCompleted,
+            Client.InvokeDestroyInitCancelled,
+            Client.InvokeDestroyInitFaulted);
+
+    public Task DestroyOutput(OutputRequestBase request) =>
+        _tasks.Value.Output(
+            request, _connection!,
+            Client.InvokeDestroyOutputCompleted,
+            Client.InvokeDestroyOutputCancelled,
+            Client.InvokeDestroyOutputFaulted);
+
+    public Task DestroyPlan(PlanDestroyRequestBase request) =>
+        _tasks.Value.PlanDestroy(request, _connection!);
+
+    public Task DestroyPolicyValidate(PolicyValidateRequestBase request) =>
+        _tasks.Value.PolicyValidate(
+            request, _connection!,
+            Client.InvokeDestroyPolicyValidateCompleted,
+            Client.InvokeDestroyPolicyValidateCancelled,
+            Client.InvokeDestroyPolicyValidateFaulted);
+
+    public Task DestroyValidate(ValidateRequestBase request) =>
+        _tasks.Value.Validate(
+            request, _connection!,
+            Client.InvokeDestroyValidateCompleted,
+            Client.InvokeDestroyValidateCancelled,
+            Client.InvokeDestroyValidateFaulted);
+
+    public Task DestroyVariables(VariablesRequestBase request) =>
+        _tasks.Value.Variables(
+            request, _connection!,
+            Client.InvokeDestroyVariablesCompleted,
+            Client.InvokeDestroyVariablesCancelled,
+            Client.InvokeDestroyVariablesFaulted);
+
+    // Split
+
+    public Task SplitCancelKill(CancelKillRequest request) =>
+        _tasks.Value.SplitCancelKill(request, _connection!);
+
+    public Task SplitGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeSplitGetModuleCompleted,
+            Client.InvokeSplitGetModuleCancelled,
+            Client.InvokeSplitGetModuleFaulted);
+
+    public Task SplitInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeSplitInitCompleted,
+            Client.InvokeSplitInitCancelled,
+            Client.InvokeSplitInitFaulted);
+
+    public Task SplitMigrateMap(SplitMigrateMapRequestBase request) =>
+        _tasks.Value.SplitMigrateMap(request, _connection!);
+
+    public Task SplitMigrateProve(SplitMigrateProveRequestBase request) =>
+        _tasks.Value.SplitMigrateProve(request, _connection!);
+
+    public Task SplitMigrateRun(SplitMigrateRunRequestBase request) =>
+        _tasks.Value.SplitMigrateRun(request, _connection!);
+
+    public Task SplitMigrateVerify(SplitMigrateVerifyRequestBase request) =>
+        _tasks.Value.SplitMigrateVerify(request, _connection!);
+
+    public Task SplitPlan(PlanRequestBase request) =>
+        _tasks.Value.Plan(
+            request, _connection!,
+            (jobId,
+            data) => Client.InvokeSplitPlanCompleted(jobId,
+            data),
+            Client.InvokeSplitPlanCancelled,
+            (jobId,
+            error,
+            stack,
+            _) => Client.InvokeSplitPlanFaulted(jobId,
+            error,
+            stack));
+
+    public Task SplitPlanEmptyVerify(SplitPlanEmptyVerifyRequestBase request) =>
+        _tasks.Value.SplitPlanEmptyVerify(request, _connection!);
+
+    public Task SplitRefactorDiff(SplitRefactorDiffRequestBase request) =>
+        _tasks.Value.SplitRefactorDiff(request, _connection!);
+
+    public Task SplitRefactorValidate(SplitRefactorValidateRequestBase request) =>
+        _tasks.Value.SplitRefactorValidate(request, _connection!);
+
+    public Task SplitValidate(ValidateRequestBase request) =>
+        _tasks.Value.Validate(
+            request, _connection!,
+            Client.InvokeSplitValidateCompleted,
+            Client.InvokeSplitValidateCancelled,
+            Client.InvokeSplitValidateFaulted);
+
+    // LookupAddresses
+
+    public Task LookupAddresses(LookupAddressesRequestBase request) =>
+        _tasks.Value.LookupAddresses(request, _connection!);
+
+    public Task LookupAddressesGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeLookupAddressesGetModuleCompleted,
+            Client.InvokeLookupAddressesGetModuleCancelled,
+            Client.InvokeLookupAddressesGetModuleFaulted);
+
+    public Task LookupAddressesInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeLookupAddressesInitCompleted,
+            Client.InvokeLookupAddressesInitCancelled,
+            Client.InvokeLookupAddressesInitFaulted);
+
+    // Move
+
+    public Task Move(StateMoveRequestBase request) =>
+        _tasks.Value.Move(request, _connection!);
+
+    public Task MoveCancelKill(CancelKillRequest request) =>
+        _tasks.Value.MoveCancelKill(request, _connection!);
+
+    public Task MoveDryRun(StateMoveRequestBase request) =>
+        _tasks.Value.MoveDryRun(request, _connection!);
+
+    public Task MoveGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeMoveGetModuleCompleted,
+            Client.InvokeMoveGetModuleCancelled,
+            Client.InvokeMoveGetModuleFaulted);
+
+    public Task MoveInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeMoveInitCompleted,
+            Client.InvokeMoveInitCancelled,
+            Client.InvokeMoveInitFaulted);
+
+    // Import
+
+    public Task Import(StateMoveRequestBase request) =>
+        _tasks.Value.Import(request, _connection!);
+
+    public Task ImportCancelKill(CancelKillRequest request) =>
+        _tasks.Value.ImportCancelKill(request, _connection!);
+
+    public Task ImportGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeImportGetModuleCompleted,
+            Client.InvokeImportGetModuleCancelled,
+            Client.InvokeImportGetModuleFaulted);
+
+    public Task ImportInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeImportInitCompleted,
+            Client.InvokeImportInitCancelled,
+            Client.InvokeImportInitFaulted);
+
+    public Task ImportPreCheck(StateMoveRequestBase request) =>
+        _tasks.Value.ImportPreCheck(request, _connection!);
+
+    // Remove
+
+    public Task Remove(StateMoveRequestBase request) =>
+        _tasks.Value.Remove(request, _connection!);
+
+    public Task RemoveCancelKill(CancelKillRequest request) =>
+        _tasks.Value.RemoveCancelKill(request, _connection!);
+
+    public Task RemoveDryRun(StateMoveRequestBase request) =>
+        _tasks.Value.RemoveDryRun(request, _connection!);
+
+    public Task RemoveGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeRemoveGetModuleCompleted,
+            Client.InvokeRemoveGetModuleCancelled,
+            Client.InvokeRemoveGetModuleFaulted);
+
+    public Task RemoveInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeRemoveInitCompleted,
+            Client.InvokeRemoveInitCancelled,
+            Client.InvokeRemoveInitFaulted);
+
+    // RunnerLifecycle
+
+    public async Task Ping(Guid pingId)
+    {
+        try
+        {
+            if (_connection is not null)
+                await _connection.InvokeAsync("Pong", pingId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not answer liveness ping {PingId}", pingId);
+        }
+    }
+
+    public Task SourceRefresh(SourceRefreshRequest request) =>
+        _tasks.Value.SourceRefresh(request, _connection!);
 
     public async ValueTask DisposeAsync()
     {

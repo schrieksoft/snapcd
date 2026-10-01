@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -88,7 +89,7 @@ public class LookupAddressesGetModuleConsumer(
     RunnerSelectionService runnerSelection)
     : StateMigrationGetModuleConsumer<LookupAddressesGetModuleRequested, LookupAddressesGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.LookupAddressesGetModule;
+    protected override string Endpoint => nameof(ILookupAddressesEndpoints.LookupAddressesGetModule);
 }
 
 public class LookupAddressesInitConsumer(
@@ -99,7 +100,7 @@ public class LookupAddressesInitConsumer(
     : StateMigrationInitConsumer<LookupAddressesInitRequested, LookupAddressesInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
-    protected override string Endpoint => RunnerEndpoints.LookupAddressesInit;
+    protected override string Endpoint => nameof(ILookupAddressesEndpoints.LookupAddressesInit);
 }
 
 public class MoveSelectRunnerInstanceConsumer(
@@ -122,7 +123,7 @@ public class MoveGetModuleConsumer(
     RunnerSelectionService runnerSelection)
     : StateMigrationGetModuleConsumer<MoveGetModuleRequested, MoveGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.MoveGetModule;
+    protected override string Endpoint => nameof(IMoveEndpoints.MoveGetModule);
 }
 
 public class MoveInitConsumer(
@@ -133,7 +134,7 @@ public class MoveInitConsumer(
     : StateMigrationInitConsumer<MoveInitRequested, MoveInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
-    protected override string Endpoint => RunnerEndpoints.MoveInit;
+    protected override string Endpoint => nameof(IMoveEndpoints.MoveInit);
 }
 
 public class ImportSelectRunnerInstanceConsumer(
@@ -156,7 +157,7 @@ public class ImportGetModuleConsumer(
     RunnerSelectionService runnerSelection)
     : StateMigrationGetModuleConsumer<ImportGetModuleRequested, ImportGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.ImportGetModule;
+    protected override string Endpoint => nameof(IImportEndpoints.ImportGetModule);
 }
 
 public class ImportInitConsumer(
@@ -167,7 +168,7 @@ public class ImportInitConsumer(
     : StateMigrationInitConsumer<ImportInitRequested, ImportInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
-    protected override string Endpoint => RunnerEndpoints.ImportInit;
+    protected override string Endpoint => nameof(IImportEndpoints.ImportInit);
 }
 
 public class RemoveSelectRunnerInstanceConsumer(
@@ -190,7 +191,7 @@ public class RemoveGetModuleConsumer(
     RunnerSelectionService runnerSelection)
     : StateMigrationGetModuleConsumer<RemoveGetModuleRequested, RemoveGetModuleFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.RemoveGetModule;
+    protected override string Endpoint => nameof(IRemoveEndpoints.RemoveGetModule);
 }
 
 public class RemoveInitConsumer(
@@ -201,5 +202,5 @@ public class RemoveInitConsumer(
     : StateMigrationInitConsumer<RemoveInitRequested, RemoveInitFaulted>(
         logger, hubContext, runnerSelection, paramResolverFactory)
 {
-    protected override string Endpoint => RunnerEndpoints.RemoveInit;
+    protected override string Endpoint => nameof(IRemoveEndpoints.RemoveInit);
 }

@@ -35,7 +35,30 @@ public class TransferApproved : StateMigrationResumeEventBase;
 /// The values a transfer's Module was waiting on exist, so it can prove. Separate from the approval
 /// because it resumes a different step: one event per thing that was being waited for.
 /// </summary>
-public class TransferOutputsArrived : StateMigrationResumeEventBase;
+
+/// <summary>
+/// The source has cut its fragment and the server has it. Correlated by the transfer rather than by
+/// a job, because the side that produces it does not know the waiting side's job.
+/// </summary>
+/// <summary>
+/// The receiver's planned output values are stored, so the half whose plan reads them may prove.
+/// Carries who produced them, because the consumer is whichever half did not.
+/// </summary>
+public class TransferOutputsAvailable
+{
+    public Guid TransferId { get; set; }
+
+    public Guid OrganizationId { get; set; }
+
+    public Guid ProducedByModuleId { get; set; }
+}
+
+public class TransferFragmentAvailable
+{
+    public Guid TransferId { get; set; }
+
+    public Guid OrganizationId { get; set; }
+}
 
 /// <summary>
 /// A state edit's threshold is answered. One gate, so the fact is the approval itself rather than

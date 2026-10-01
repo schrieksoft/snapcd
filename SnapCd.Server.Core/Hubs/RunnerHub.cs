@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using MassTransit;
+using SnapCd.Contracts.RunnerRequests.Transfers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -550,15 +551,6 @@ public class RunnerHub : Hub
         await _splitPlanHandler.Complete(jobId, organizationId, data.TotalChangedCount);
     }
 
-    public async Task TransferPlanCompleted(Guid jobId, Guid moduleId, PlanCompletedData data)
-    {
-        var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, moduleId);
-
-        await _transferStepHandler.Complete<TransferPlanCompleted>(
-            jobId, moduleId, organizationId, c => c.TotalChangedCount = data.TotalChangedCount);
-    }
 
 
     public async Task ApplyPlanCancelled(Guid jobId)
@@ -594,23 +586,7 @@ public class RunnerHub : Hub
         await _splitPlanHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
-    public async Task TransferPlanCancelled(Guid jobId, Guid moduleId)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-            Context, jobId, moduleId);
 
-        await _transferStepHandler.Cancel<TransferPlanCancelled>(jobId, moduleId, organizationId);
-    }
-
-    public async Task TransferPlanFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        var organizationId = await _authorizationService
-            .ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-                Context, jobId, moduleId);
-
-        await _transferStepHandler.Fault<TransferPlanFaulted>(
-            jobId, moduleId, organizationId, errorMessage, stackTrace);
-    }
 
 
 
@@ -709,13 +685,49 @@ public class RunnerHub : Hub
 
 
 
-    public async Task TransferMigrateMapCompleted(Guid jobId, Guid moduleId, List<string> needsOutputs)
+    public async Task AnalyseMapCompleted(
+        Guid jobId, Guid moduleId, TransferRoleKind role, List<string> needsOutputs, string? problem)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, moduleId);
+
+        await _transferStepHandler.Complete<AnalyseMapCompleted>(
+            jobId, moduleId, organizationId, c =>
+            {
+                c.Role = role;
+                c.NeedsOutputs = needsOutputs;
+                c.Problem = problem;
+            });
+    }
+
+    public async Task AnalyseMapCancelled(Guid jobId, Guid moduleId)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, moduleId);
+
+        await _transferStepHandler.Cancel<AnalyseMapCancelled>(jobId, moduleId, organizationId);
+    }
+
+    public async Task AnalyseMapFaulted(Guid jobId, Guid moduleId, string? error, string? stack)
+    {
+        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
+            Context, jobId, moduleId);
+
+        await _transferStepHandler.Fault<AnalyseMapFaulted>(jobId, moduleId, organizationId, error, stack);
+    }
+
+    public async Task TransferMigrateMapCompleted(
+        Guid jobId, Guid moduleId, string? sourceFragment, string? sourceFragmentMeta)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
             Context, jobId, moduleId);
 
         await _transferStepHandler.Complete<TransferMigrateMapCompleted>(
-            jobId, moduleId, organizationId, c => c.NeedsOutputs = needsOutputs);
+            jobId, moduleId, organizationId, c =>
+            {
+                c.SourceFragment = sourceFragment;
+                c.SourceFragmentMeta = sourceFragmentMeta;
+            });
     }
 
     public async Task TransferMigrateMapCancelled(Guid jobId, Guid moduleId)
@@ -1049,38 +1061,8 @@ public class RunnerHub : Hub
         });
     }
 
-    public async Task TransferOutputsCompleted(Guid jobId, Guid moduleId, OutputSetCreateDto? outputSet)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-            Context, jobId, moduleId);
 
-        // Storing opens its own transaction, so it happens in a consumer rather than in the
-        // saga, whose context is already in one.
-        await _bus.Publish(new TransferOutputsCompletedInvoked
-        {
-            JobId = jobId,
-            ModuleId = moduleId,
-            OrganizationId = organizationId,
-            OutputSet = outputSet
-        });
-    }
 
-    public async Task TransferOutputsCancelled(Guid jobId, Guid moduleId)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-            Context, jobId, moduleId);
-
-        await _transferStepHandler.Cancel<TransferOutputsCancelled>(jobId, moduleId, organizationId);
-    }
-
-    public async Task TransferOutputsFaulted(Guid jobId, Guid moduleId, string? errorMessage, string? stackTrace)
-    {
-        var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
-            Context, jobId, moduleId);
-
-        await _transferStepHandler.Fault<TransferOutputsFaulted>(
-            jobId, moduleId, organizationId, errorMessage, stackTrace);
-    }
 
     public async Task TransferMigrateRunCancelled(Guid jobId, Guid moduleId)
     {

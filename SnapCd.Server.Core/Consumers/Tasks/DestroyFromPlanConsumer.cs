@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts;
@@ -66,7 +67,7 @@ public class DestroyFromPlanConsumer : IConsumer<DestroyFromPlanRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.DestroyFromPlan,
+                nameof(IDestroyEndpoints.DestroyFromPlan),
                 new DestroyFromPlanRequestBase
                 {
                     JobId = jobId,

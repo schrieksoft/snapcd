@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -115,7 +116,7 @@ public class ApplyGetDefinitiveRevisionConsumer(
     RunnerSelectionService runnerSelection)
     : GetDefinitiveRevisionConsumer<ApplyGetDefinitiveRevisionRequested, ApplyGetDefinitiveRevisionFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.ApplyGetDefinitiveRevision;
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyGetDefinitiveRevision);
 }
 
 public class DestroyGetDefinitiveRevisionConsumer(
@@ -124,5 +125,5 @@ public class DestroyGetDefinitiveRevisionConsumer(
     RunnerSelectionService runnerSelection)
     : GetDefinitiveRevisionConsumer<DestroyGetDefinitiveRevisionRequested, DestroyGetDefinitiveRevisionFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.DestroyGetDefinitiveRevision;
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyGetDefinitiveRevision);
 }

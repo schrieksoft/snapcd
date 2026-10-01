@@ -177,6 +177,11 @@ public class TransferService(
     /// Closes a transfer once both sides have finished, releasing both Modules. A further attempt
     /// is a new transfer rather than a re-run of this one.
     /// </summary>
+    /// <remarks>
+    /// Not called: a trigger on StateMigrationJobs closes a transfer as its jobs end, so the claim
+    /// and the release are both made by the statement that caused them. Kept for the sweep that
+    /// reconciles a transfer left open by something the trigger did not see.
+    /// </remarks>
     public async Task CloseIfBothSidesEnded(Guid transferId, Guid organizationId)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();

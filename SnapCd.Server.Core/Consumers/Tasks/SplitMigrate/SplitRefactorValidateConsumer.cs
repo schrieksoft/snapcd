@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -59,7 +60,7 @@ public class SplitRefactorValidateConsumer : IConsumer<SplitRefactorValidateRequ
             }
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.SplitRefactorValidate,
+                nameof(ISplitEndpoints.SplitRefactorValidate),
                 new SplitRefactorValidateRequestBase
                 {
                     JobId = jobId,

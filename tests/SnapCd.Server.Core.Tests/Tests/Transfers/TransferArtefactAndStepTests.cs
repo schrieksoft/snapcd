@@ -31,6 +31,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
     private Guid _moduleId;
     private Guid _organizationId;
     private readonly List<Guid> _seededJobs = [];
+    private readonly List<Guid> _seededTransfers = [];
 
     public TransferArtefactAndStepTests(Fixture fixture) => _fixture = fixture;
 
@@ -44,240 +45,133 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await using var db = _fixture.CreateDbContext();
-        await db.StateMigrationJobArtefacts.Where(a => _seededJobs.Contains(a.JobId)).ExecuteDeleteAsync();
+        await db.TransferArtefacts.Where(a => _seededTransfers.Contains(a.TransferId)).ExecuteDeleteAsync();
+        await db.Transfers.Where(t => _seededTransfers.Contains(t.Id)).ExecuteDeleteAsync();
         await db.StateMigrationJobSteps.Where(s => _seededJobs.Contains(s.JobId)).ExecuteDeleteAsync();
         await db.StateMigrationJobs.Where(j => _seededJobs.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
-    public async Task An_Artefact_Round_Trips()
+    public async Task The_Fragment_Round_Trips()
     {
-        var jobId = await SeedJob();
+        var transferId = await SeedTransfer();
         var service = ArtefactService();
 
-        await service.Store(jobId, _organizationId, "fragment-app.tfstate", "{\"serial\":7}");
+        await service.StoreSourceFragment(transferId, _organizationId, "{\"serial\":7}", "map_hash: abc");
 
-        Assert.Equal("{\"serial\":7}", await service.Read(jobId, _organizationId, "fragment-app.tfstate"));
+        var (fragment, meta) = await service.ReadSourceFragment(transferId, _organizationId);
+
+        Assert.Equal("{\"serial\":7}", fragment);
+        Assert.Equal("map_hash: abc", meta);
+    }
+
+    [Fact]
+    public async Task The_Outputs_Round_Trip()
+    {
+        var transferId = await SeedTransfer();
+        var service = ArtefactService();
+
+        await service.StoreReceiverOutputs(transferId, _organizationId, "outputs:\n  dns: zone");
+
+        Assert.Equal("outputs:\n  dns: zone", await service.ReadReceiverOutputs(transferId, _organizationId));
     }
 
     /// <summary>A fragment carries whatever state carries, so it never sits in the table in clear.</summary>
     [Fact]
     public async Task An_Artefact_Is_Encrypted_At_Rest()
     {
-        var jobId = await SeedJob();
-        await ArtefactService().Store(jobId, _organizationId, "fragment-app.tfstate", "super-secret-password");
+        var transferId = await SeedTransfer();
+        await ArtefactService()
+            .StoreSourceFragment(transferId, _organizationId, "super-secret-password", "meta");
 
         await using var db = _fixture.CreateDbContext();
-        var row = await db.StateMigrationJobArtefacts.AsNoTracking().SingleAsync(a => a.JobId == jobId);
+        var row = await db.TransferArtefacts.AsNoTracking().SingleAsync(a => a.TransferId == transferId);
 
-        Assert.DoesNotContain("super-secret-password", row.Ciphertext);
+        Assert.DoesNotContain("super-secret-password", row.SourceFragmentCiphertext);
     }
 
+    /// <summary>A half that runs again overwrites what it produced before.</summary>
     [Fact]
-    public async Task Storing_The_Same_Name_Twice_Replaces_It()
+    public async Task Storing_Twice_Replaces_Rather_Than_Accumulates()
     {
-        var jobId = await SeedJob();
+        var transferId = await SeedTransfer();
         var service = ArtefactService();
 
-        await service.Store(jobId, _organizationId, "outputs-app.yaml", "first");
-        await service.Store(jobId, _organizationId, "outputs-app.yaml", "second");
+        await service.StoreSourceFragment(transferId, _organizationId, "first", "m1");
+        await service.StoreSourceFragment(transferId, _organizationId, "second", "m2");
 
-        Assert.Equal("second", await service.Read(jobId, _organizationId, "outputs-app.yaml"));
+        var (fragment, _) = await service.ReadSourceFragment(transferId, _organizationId);
 
-        await using var db = _fixture.CreateDbContext();
-        Assert.Equal(1, await db.StateMigrationJobArtefacts.CountAsync(a => a.JobId == jobId));
+        Assert.Equal("second", fragment);
+        Assert.Equal(1, await CountRows(transferId));
     }
 
     [Fact]
-    public async Task Reading_An_Artefact_The_Job_Never_Produced_Is_Null()
+    public async Task Reading_What_The_Source_Never_Produced_Is_Null()
     {
-        var jobId = await SeedJob();
-        Assert.Null(await ArtefactService().Read(jobId, _organizationId, "fragment-missing.tfstate"));
+        var transferId = await SeedTransfer();
+        var (fragment, meta) = await ArtefactService().ReadSourceFragment(transferId, _organizationId);
+
+        Assert.Null(fragment);
+        Assert.Null(meta);
+        Assert.Null(await ArtefactService().ReadReceiverOutputs(transferId, _organizationId));
     }
 
-    /// <summary>Nothing a transfer carries outlives the job that carried it.</summary>
+    /// <summary>The gate the receiver waits on.</summary>
     [Fact]
-    public async Task Finalizing_Deletes_Every_Artefact()
+    public async Task HasSourceFragment_Is_False_Until_The_Source_Writes_One()
     {
-        var jobId = await SeedJob();
+        var transferId = await SeedTransfer();
         var service = ArtefactService();
 
-        await service.Store(jobId, _organizationId, "fragment-app.tfstate", "a");
-        await service.Store(jobId, _organizationId, "outputs-app.yaml", "b");
+        Assert.False(await service.HasSourceFragment(transferId, _organizationId));
 
-        Assert.Equal(2, await service.DeleteForJob(jobId, _organizationId));
-        Assert.Null(await service.Read(jobId, _organizationId, "fragment-app.tfstate"));
+        await service.StoreReceiverOutputs(transferId, _organizationId, "outputs only");
+        Assert.False(await service.HasSourceFragment(transferId, _organizationId));
+
+        await service.StoreSourceFragment(transferId, _organizationId, "state", "meta");
+        Assert.True(await service.HasSourceFragment(transferId, _organizationId));
     }
 
+    /// <summary>Nothing a transfer carries outlives the transfer.</summary>
     [Fact]
-    public async Task A_Retry_Writes_A_New_Attempt_Rather_Than_Overwriting()
+    public async Task Closing_Deletes_What_Was_Carried()
     {
-        var jobId = await SeedJob();
-        var steps = StepService();
+        var transferId = await SeedTransfer();
+        var service = ArtefactService();
 
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Refused, exitCode: 2);
+        await service.StoreSourceFragment(transferId, _organizationId, "a", "m");
+        await service.StoreReceiverOutputs(transferId, _organizationId, "b");
 
-        var attempt = await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, exitCode: 0);
+        Assert.Equal(1, await service.DeleteForTransfer(transferId, _organizationId));
 
-        Assert.Equal(2, attempt);
+        var (fragment, _) = await service.ReadSourceFragment(transferId, _organizationId);
+        Assert.Null(fragment);
+    }
+
+    private async Task<int> CountRows(Guid transferId)
+    {
+        await using var db = _fixture.CreateDbContext();
+        return await db.TransferArtefacts.CountAsync(a => a.TransferId == transferId);
+    }
+
+    private async Task<Guid> SeedTransfer()
+    {
+        var transferId = Guid.NewGuid();
+        _seededTransfers.Add(transferId);
 
         await using var db = _fixture.CreateDbContext();
-        var all = await db.StateMigrationJobSteps.AsNoTracking()
-            .Where(s => s.JobId == jobId).OrderBy(s => s.Attempt).ToListAsync();
-
-        Assert.Equal(2, all.Count);
-        Assert.Equal(StateMigrationStepStatus.Refused, all[0].Status);
-        Assert.Equal(StateMigrationStepStatus.Succeeded, all[1].Status);
+        db.Transfers.Add(new Transfer
+        {
+            Id = transferId,
+            OrganizationId = _organizationId,
+            ModuleId = _moduleId,
+            CounterpartyModuleId = _moduleId,
+            ConsentStatus = ConsentStatus.Granted
+        });
+        await db.SaveChangesAsync();
+        return transferId;
     }
-
-    /// <summary>The verdict reads the latest attempt, so an earlier refusal does not outvote a retry.</summary>
-    [Fact]
-    public async Task Latest_Returns_One_Row_Per_Module_And_Task()
-    {
-        var jobId = await SeedJob();
-        var steps = StepService();
-
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Refused, exitCode: 2);
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, exitCode: 0);
-
-        var latest = await steps.Latest(jobId, _organizationId);
-
-        var step = Assert.Single(latest);
-        Assert.Equal(StateMigrationStepStatus.Succeeded, step.Status);
-        Assert.Equal(2, step.Attempt);
-    }
-
-    [Fact]
-    public async Task A_Reused_Step_Cites_The_Key_That_Made_It_Reusable()
-    {
-        var jobId = await SeedJob();
-        var steps = StepService();
-
-        await steps.Reused(jobId, _organizationId, _moduleId, "TransferMigrateProve", "key-abc");
-
-        var step = Assert.Single(await steps.Latest(jobId, _organizationId));
-        Assert.Equal(StateMigrationStepStatus.Succeeded, step.Status);
-        Assert.Equal("key-abc", step.InputKey);
-    }
-
-    [Fact]
-    public async Task A_Skipped_Step_Is_Recorded_Rather_Than_Omitted()
-    {
-        var jobId = await SeedJob();
-        var steps = StepService();
-
-        await steps.Skipped(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-
-        var step = Assert.Single(await steps.Latest(jobId, _organizationId));
-        Assert.Equal(StateMigrationStepStatus.Skipped, step.Status);
-    }
-
-    /// <summary>A producer retried after this succeeded means the result no longer counts.</summary>
-    [Fact]
-    public async Task Marking_Stale_Demotes_An_Earlier_Green_Result()
-    {
-        var jobId = await SeedJob();
-        var steps = StepService();
-
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, exitCode: 0);
-
-        await steps.MarkStale(jobId, _organizationId, _moduleId);
-
-        var step = Assert.Single(await steps.Latest(jobId, _organizationId));
-        Assert.Equal(StateMigrationStepStatus.Stale, step.Status);
-    }
-
-    /// <summary>
-    /// The fan-in: a stage is only finished when every participant has answered, so a saga cannot
-    /// advance on one side's completion while the other is still running.
-    /// </summary>
-    [Fact]
-    public async Task A_Stage_Waits_Until_Every_Participant_Has_Answered()
-    {
-        var jobId = await SeedJob();
-        var other = _fixture.Modules["0001"].Id;
-        var steps = StepService();
-
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
-
-        Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
-
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
-        Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
-
-        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
-        Assert.Equal(StageOutcome.Succeeded, await Stage(steps, jobId, other));
-    }
-
-    /// <summary>A participant that never got a step is not a pass.</summary>
-    [Fact]
-    public async Task A_Stage_With_A_Missing_Participant_Is_Waiting()
-    {
-        var jobId = await SeedJob();
-        var other = _fixture.Modules["0001"].Id;
-        var steps = StepService();
-
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
-
-        Assert.Equal(StageOutcome.Waiting, await Stage(steps, jobId, other));
-    }
-
-    /// <summary>A refusal is the slice answering no: a red verdict, not a fault.</summary>
-    [Fact]
-    public async Task A_Refusal_Is_Reported_Separately_From_A_Fault()
-    {
-        var jobId = await SeedJob();
-        var other = _fixture.Modules["0001"].Id;
-        var steps = StepService();
-
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
-        await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", StateMigrationStepStatus.Refused, 2);
-
-        Assert.Equal(StageOutcome.Refused, await Stage(steps, jobId, other));
-    }
-
-    /// <summary>A fault outranks a refusal: the transport broke, so the verdict is not trustworthy.</summary>
-    [Fact]
-    public async Task A_Fault_Outranks_A_Refusal()
-    {
-        var jobId = await SeedJob();
-        var other = _fixture.Modules["0001"].Id;
-        var steps = StepService();
-
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Refused, 2);
-        await steps.Dispatched(jobId, _organizationId, other, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, other, "TransferMigrateProve", StateMigrationStepStatus.Faulted);
-
-        Assert.Equal(StageOutcome.Faulted, await Stage(steps, jobId, other));
-    }
-
-    /// <summary>A reused green counts: that is the point of keying a proof to its inputs.</summary>
-    [Fact]
-    public async Task A_Reused_Result_Counts_Towards_The_Stage()
-    {
-        var jobId = await SeedJob();
-        var other = _fixture.Modules["0001"].Id;
-        var steps = StepService();
-
-        await steps.Dispatched(jobId, _organizationId, _moduleId, "TransferMigrateProve");
-        await steps.Completed(jobId, _organizationId, _moduleId, "TransferMigrateProve", StateMigrationStepStatus.Succeeded, 0);
-        await steps.Reused(jobId, _organizationId, other, "TransferMigrateProve", "key-abc");
-
-        Assert.Equal(StageOutcome.Succeeded, await Stage(steps, jobId, other));
-    }
-
-    private Task<StageOutcome> Stage(StateMigrationStepService steps, Guid jobId, Guid other) =>
-        steps.Stage(jobId, _organizationId, "TransferMigrateProve", [_moduleId, other]);
 
     private async Task<Guid> SeedJob()
     {

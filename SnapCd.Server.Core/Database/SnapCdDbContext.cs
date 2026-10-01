@@ -146,6 +146,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Transfer> Transfers { get; set; }
     public DbSet<TransferLock> TransferLocks { get; set; }
     public DbSet<StateMigrationJobArtefact> StateMigrationJobArtefacts { get; set; }
+
+    public DbSet<TransferArtefact> TransferArtefacts { get; set; }
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
     public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
     public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
@@ -429,6 +431,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new StateMigrationJobStepClassMap());
         modelBuilder.ApplyConfiguration(new StateMigrationJobAddressClassMap());
         modelBuilder.ApplyConfiguration(new TransferClassMap());
+        modelBuilder.ApplyConfiguration(new TransferArtefactClassMap());
         modelBuilder.ApplyConfiguration(new TransferLockClassMap());
         modelBuilder.ApplyConfiguration(new StateMigrationJobArtefactClassMap());
         modelBuilder.ApplyConfiguration(new UserFavoriteClassMap());

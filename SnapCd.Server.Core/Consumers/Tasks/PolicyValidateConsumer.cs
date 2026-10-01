@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -115,7 +116,7 @@ public class ApplyPolicyValidateConsumer(
     RunnerSelectionService runnerSelection)
     : PolicyValidateConsumer<ApplyPolicyValidateRequested, ApplyPolicyValidateFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.ApplyPolicyValidate;
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyPolicyValidate);
 }
 
 public class DestroyPolicyValidateConsumer(
@@ -124,5 +125,5 @@ public class DestroyPolicyValidateConsumer(
     RunnerSelectionService runnerSelection)
     : PolicyValidateConsumer<DestroyPolicyValidateRequested, DestroyPolicyValidateFaulted>(logger, hubContext, runnerSelection)
 {
-    protected override string Endpoint => RunnerEndpoints.DestroyPolicyValidate;
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyPolicyValidate);
 }

@@ -54,10 +54,10 @@ public enum StateMigrationStepStatus
     /// <summary>Exit 0.</summary>
     Succeeded,
 
-    /// <summary>The slice ran and answered no (exit 2). Not a fault.</summary>
+    /// <summary>The step ran and answered no (exit 2). Not a fault.</summary>
     Refused,
 
-    /// <summary>The slice or its transport failed.</summary>
+    /// <summary>The step or its transport failed.</summary>
     Faulted,
 
     /// <summary>The job was cancelled while this step was running.</summary>

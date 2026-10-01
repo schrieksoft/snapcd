@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Constants;
@@ -62,7 +63,7 @@ public class SourceRefreshDispatcher
 
         // Dispatch to runner via SignalR (stateless - no tracking needed)
         await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-            RunnerEndpoints.SourceRefresh,
+            nameof(IRunnerLifecycleEndpoints.SourceRefresh),
             new SourceRefreshRequest
             {
                 OrganizationId = organizationId,
