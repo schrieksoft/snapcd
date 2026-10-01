@@ -56,22 +56,22 @@ public class TransferMigrateMapConsumer
 /// Reads the committed map to learn which part this root plays, before the map step that cannot be
 /// attempted without knowing it.
 /// </summary>
-public class TransferAnalyseMapConsumer
-    : TransferStepConsumer<TransferAnalyseMapRequested, AnalyseMapFaulted>
+public class AnalyseTransferRefactorMapConsumer
+    : TransferStepConsumer<AnalyseTransferRefactorMapRequested, AnalyseTransferRefactorMapFaulted>
 {
-    public TransferAnalyseMapConsumer(
-        ILogger<TransferAnalyseMapConsumer> logger,
+    public AnalyseTransferRefactorMapConsumer(
+        ILogger<AnalyseTransferRefactorMapConsumer> logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
         : base(logger, hubContext, runnerSelection) { }
 
-    protected override string Endpoint => nameof(ITransferEndpoints.TransferAnalyseMap);
+    protected override string Endpoint => nameof(ITransferEndpoints.AnalyseTransferRefactorMap);
 
-    protected override Task<object> BuildPayload(ConsumeContext<TransferAnalyseMapRequested> context, Guid jobId)
+    protected override Task<object> BuildPayload(ConsumeContext<AnalyseTransferRefactorMapRequested> context, Guid jobId)
     {
         var msg = context.Message;
 
-        return Task.FromResult<object>(new TransferAnalyseMapRequestBase
+        return Task.FromResult<object>(new AnalyseTransferRefactorMapRequestBase
         {
             JobId = jobId,
             OrganizationId = msg.OrganizationId,

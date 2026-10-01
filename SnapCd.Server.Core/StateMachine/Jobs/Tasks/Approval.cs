@@ -130,6 +130,15 @@ public partial class JobStateMachine<
         );
 
         During(WaitingForApproval,
+            // The threshold may already be answered by the time this job parks, and nothing
+            // re-raises the answer. Entry prompts itself so the one arm below does the reading.
+            When(WaitingForApproval.Enter)
+                .Publish(context => new ApprovalReevaluationRequestedEvent
+                {
+                    ModuleJobId = context.Saga.CorrelationId,
+                    ModuleId = context.Saga.ModuleId
+                }),
+
             DealWithApprovalStatus(When(ApprovalModifiedEvent), false),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),

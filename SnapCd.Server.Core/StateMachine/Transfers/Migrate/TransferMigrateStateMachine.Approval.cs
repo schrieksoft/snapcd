@@ -51,7 +51,20 @@ public partial class TransferMigrateStateMachine
             TransferMigrateRunWaitingForRunner, "TransferMigrateRun", TransferMigrateRunPending);
 
         During(WaitingForApproval,
+            // The threshold may already be answered by the time this half parks, and nothing
+            // re-raises the answer. Entry prompts itself so the one arm below does the reading.
+            When(WaitingForApproval.Enter)
+                .Publish(context => new ApprovalReevaluationRequestedEvent
+                {
+                    ModuleJobId = context.Saga.CorrelationId,
+                    ModuleId = context.Saga.ModuleId
+                }),
+
             DealWithApprovalStatus(When(ApprovalModifiedEvent)),
+
+            // Dispatching the run publishes this to itself, so a delivery that overtakes the
+            // transition out of this state is early rather than wrong.
+            Ignore(ApprovedEvent),
 
             When(ApprovalTimeoutScheduled.Received)
                 .Then(context => _logger.LogInformation(

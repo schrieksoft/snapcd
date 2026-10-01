@@ -685,13 +685,13 @@ public class RunnerHub : Hub
 
 
 
-    public async Task AnalyseMapCompleted(
+    public async Task AnalyseTransferRefactorMapCompleted(
         Guid jobId, Guid moduleId, TransferRoleKind role, List<string> needsOutputs, string? problem)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
             Context, jobId, moduleId);
 
-        await _transferStepHandler.Complete<AnalyseMapCompleted>(
+        await _transferStepHandler.Complete<AnalyseTransferRefactorMapCompleted>(
             jobId, moduleId, organizationId, c =>
             {
                 c.Role = role;
@@ -700,20 +700,20 @@ public class RunnerHub : Hub
             });
     }
 
-    public async Task AnalyseMapCancelled(Guid jobId, Guid moduleId)
+    public async Task AnalyseTransferRefactorMapCancelled(Guid jobId, Guid moduleId)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
             Context, jobId, moduleId);
 
-        await _transferStepHandler.Cancel<AnalyseMapCancelled>(jobId, moduleId, organizationId);
+        await _transferStepHandler.Cancel<AnalyseTransferRefactorMapCancelled>(jobId, moduleId, organizationId);
     }
 
-    public async Task AnalyseMapFaulted(Guid jobId, Guid moduleId, string? error, string? stack)
+    public async Task AnalyseTransferRefactorMapFaulted(Guid jobId, Guid moduleId, string? error, string? stack)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
             Context, jobId, moduleId);
 
-        await _transferStepHandler.Fault<AnalyseMapFaulted>(jobId, moduleId, organizationId, error, stack);
+        await _transferStepHandler.Fault<AnalyseTransferRefactorMapFaulted>(jobId, moduleId, organizationId, error, stack);
     }
 
     public async Task TransferMigrateMapCompleted(

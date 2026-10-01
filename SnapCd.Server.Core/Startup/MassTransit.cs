@@ -270,7 +270,7 @@ public static class MassTransit
         typeof(TransferGetModuleConsumer),
         typeof(TransferInitConsumer),
         typeof(TransferValidateConsumer),
-        typeof(TransferAnalyseMapConsumer),
+        typeof(AnalyseTransferRefactorMapConsumer),
         typeof(TransferMigrateMapConsumer),
         typeof(TransferMigrateProveConsumer),
         typeof(TransferMigrateRunConsumer),
@@ -446,6 +446,8 @@ public static class MassTransit
         services.AddScoped(typeof(SendTerraformStateMigrationStepToRunnerActivity<,,>));
         services.AddScoped(typeof(SendLookupAddressesStepToRunnerActivity<,>));
         services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
+        services.AddScoped<CheckArtefactPresentActivity>();
+        services.AddScoped<CheckConsentDecidedActivity>();
     }
 
     /// <summary>

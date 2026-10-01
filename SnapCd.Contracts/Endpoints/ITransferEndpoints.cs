@@ -25,7 +25,7 @@ public interface ITransferEndpoints
 
     Task TransferValidate(ValidateRequestBase request);
 
-    Task TransferAnalyseMap(TransferAnalyseMapRequestBase request);
+    Task AnalyseTransferRefactorMap(AnalyseTransferRefactorMapRequestBase request);
 
     Task TransferMigrateMap(TransferMigrateMapRequestBase request);
 

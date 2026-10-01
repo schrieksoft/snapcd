@@ -29,6 +29,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private Guid _moduleId;
+    private Guid _counterpartyModuleId;
     private Guid _organizationId;
     private readonly List<Guid> _seededJobs = [];
     private readonly List<Guid> _seededTransfers = [];
@@ -38,6 +39,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
     public Task InitializeAsync()
     {
         _moduleId = _fixture.Modules["0000"].Id;
+        _counterpartyModuleId = _fixture.Modules["0001"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
         return Task.CompletedTask;
     }
@@ -166,8 +168,12 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
             Id = transferId,
             OrganizationId = _organizationId,
             ModuleId = _moduleId,
-            CounterpartyModuleId = _moduleId,
-            ConsentStatus = ConsentStatus.Granted
+            CounterpartyModuleId = _counterpartyModuleId,
+            ConsentStatus = ConsentStatus.Granted,
+            // Closed on creation: the locks are what a transfer claims, and these tests only need
+            // the row to hang artefacts from.
+            ClosedAt = DateTimeOffset.UtcNow,
+            CloseReason = "seeded for a test"
         });
         await db.SaveChangesAsync();
         return transferId;

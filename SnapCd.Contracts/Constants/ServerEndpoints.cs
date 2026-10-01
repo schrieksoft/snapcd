@@ -21,9 +21,9 @@ public static class ServerEndpoints
     public const string SplitRefactorDiffFaulted = "SplitRefactorDiffFaulted";
     // A transfer runs the same steps against one of two Modules, so its replies are separate
     // endpoints carrying the Module they are for.
-    public const string AnalyseMapCompleted = "AnalyseMapCompleted";
-    public const string AnalyseMapCancelled = "AnalyseMapCancelled";
-    public const string AnalyseMapFaulted = "AnalyseMapFaulted";
+    public const string AnalyseTransferRefactorMapCompleted = "AnalyseTransferRefactorMapCompleted";
+    public const string AnalyseTransferRefactorMapCancelled = "AnalyseTransferRefactorMapCancelled";
+    public const string AnalyseTransferRefactorMapFaulted = "AnalyseTransferRefactorMapFaulted";
     public const string TransferMigrateMapCompleted = "TransferMigrateMapCompleted";
     public const string TransferMigrateMapCancelled = "TransferMigrateMapCancelled";
     public const string TransferMigrateMapFaulted = "TransferMigrateMapFaulted";

@@ -320,11 +320,11 @@ public class FakeRunner(
             case nameof(ITransferEndpoints.TransferValidate):
                 await hub.TransferValidateCompleted(jobId, Read<Guid>(payload, "ModuleId"));
                 break;
-            case nameof(ITransferEndpoints.TransferAnalyseMap):
+            case nameof(ITransferEndpoints.AnalyseTransferRefactorMap):
             {
                 var moduleId = Read<Guid>(payload, "ModuleId");
 
-                await hub.AnalyseMapCompleted(
+                await hub.AnalyseTransferRefactorMapCompleted(
                     jobId, moduleId,
                     moduleId == SourceModuleId ? TransferRoleKind.Source : TransferRoleKind.Receiver,
                     moduleId == ConsumingModuleId ? NeedsOutputs.ToList() : [],

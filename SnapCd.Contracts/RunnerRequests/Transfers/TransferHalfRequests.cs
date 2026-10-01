@@ -21,7 +21,7 @@ public abstract class TransferHalfRequestBase : EngineJobRequestBase
 
 /// <summary>Pulls and pins this Module's state, ready to prove against.</summary>
 /// <summary>Reads the committed map to learn which part this root plays. Runs no engine.</summary>
-public class TransferAnalyseMapRequestBase : TransferHalfRequestBase
+public class AnalyseTransferRefactorMapRequestBase : TransferHalfRequestBase
 {
 }
 

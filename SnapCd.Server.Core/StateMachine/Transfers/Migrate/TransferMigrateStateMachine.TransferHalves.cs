@@ -42,11 +42,34 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private void Configure_TransferHalves()
     {
+        // A prompt that arrives once this half has moved on is stale, not an error: the state that
+        // waits for the fragment has already asked the store and been released by the answer.
+        foreach (var state in new[]
+                 {
+                     TransferSelectRunnerInstancePending, TransferGetModulePending,
+                     TransferInitPending, TransferValidatePending, AnalyseTransferRefactorMapPending,
+                     TransferMigrateMapPending, TransferMigrateProvePending,
+                     TransferMigrateRunPending, TransferMigrateVerifyPending,
+                     TransferGetModuleWaitingForRunner, TransferInitWaitingForRunner,
+                     TransferValidateWaitingForRunner, AnalyseTransferRefactorMapWaitingForRunner,
+                     TransferMigrateMapWaitingForRunner, TransferMigrateProveWaitingForRunner,
+                     TransferMigrateRunWaitingForRunner, TransferMigrateVerifyWaitingForRunner,
+                     WaitingForApproval, WaitingForConsent, Completed, Failed
+                 })
+            During(state,
+                Ignore(FragmentAvailableEvent),
+                Ignore(OutputsAvailableEvent));
+
+        // The half that waits for the fragment is not the one that waits for the outputs, so each
+        // ignores the gate it never enters.
+        During(WaitingForFragment, Ignore(OutputsAvailableEvent));
+        During(WaitingForOutputs, Ignore(FragmentAvailableEvent));
+
         // What the map says decides which half moves first. The source cuts the fragment at its own
         // map step; the receiver's map cannot run until that fragment is in its working directory.
-        During(AnalyseMapPending,
-            When(AnalyseMapCompleted)
-                .ThenAsync(context => RecordCompleted(context, "AnalyseMap", StateMigrationStepStatus.Succeeded))
+        During(AnalyseTransferRefactorMapPending,
+            When(AnalyseTransferRefactorMapCompleted)
+                .ThenAsync(context => RecordCompleted(context, "AnalyseTransferRefactorMap", StateMigrationStepStatus.Succeeded))
                 .Then(context =>
                 {
                     context.Saga.IsSource = context.Message.Role == TransferRoleKind.Source;
@@ -56,7 +79,7 @@ public partial class TransferMigrateStateMachine
                     context => context.Message.Role == TransferRoleKind.Unknown,
                     unreadable => unreadable
                         .ThenAsync(context => RecordCompleted(
-                            context, "AnalyseMap", StateMigrationStepStatus.Faulted,
+                            context, "AnalyseTransferRefactorMap", StateMigrationStepStatus.Faulted,
                             context.Message.Problem))
                         .Then(context => _logger.LogInformation(
                             "Transfer: Module {ModuleId} could not read the transfer map: {Problem}",
@@ -64,7 +87,7 @@ public partial class TransferMigrateStateMachine
                         .ThenJobFailed().TransitionTo(Failed).Finalize(),
                     known => known.IfElse(
                         context => context.Message.Role == TransferRoleKind.Source,
-                        source => SendOrWaitForRunner<AnalyseMapCompleted, TransferMigrateMapRequested>(
+                        source => SendOrWaitForRunner<AnalyseTransferRefactorMapCompleted, TransferMigrateMapRequested>(
                             source, "TransferMigrateMap",
                             TransferMigrateMapPending, TransferMigrateMapWaitingForRunner),
                         receiver => receiver
@@ -77,36 +100,37 @@ public partial class TransferMigrateStateMachine
                             })
                             .TransitionTo(WaitingForFragment))),
 
-            When(AnalyseMapCancelled)
-                .ThenAsync(context => RecordCompleted(context, "AnalyseMap", StateMigrationStepStatus.Cancelled))
+            When(AnalyseTransferRefactorMapCancelled)
+                .ThenAsync(context => RecordCompleted(context, "AnalyseTransferRefactorMap", StateMigrationStepStatus.Cancelled))
                 .ThenJobCancelled().TransitionTo(Failed).Finalize(),
-            When(AnalyseMapFaulted)
-                .ThenAsync(context => RecordCompleted(context, "AnalyseMap", StateMigrationStepStatus.Faulted))
+            When(AnalyseTransferRefactorMapFaulted)
+                .ThenAsync(context => RecordCompleted(context, "AnalyseTransferRefactorMap", StateMigrationStepStatus.Faulted))
                 .ThenJobFailed().TransitionTo(Failed).Finalize(),
             When(HeartbeatScheduled.Received).ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed).ThenHeartbeatCompleted(HeartbeatScheduled),
             When(HeartbeatRequested.Completed2)
-                .ThenAsync(context => RecordCompleted(context, "AnalyseMap", StateMigrationStepStatus.Faulted,
+                .ThenAsync(context => RecordCompleted(context, "AnalyseTransferRefactorMap", StateMigrationStepStatus.Faulted,
                     "The runner stopped responding."))
-                .Then(LostRunner("AnalyseMap")).ThenJobFailed().TransitionTo(Failed).Finalize()
+                .Then(LostRunner("AnalyseTransferRefactorMap")).ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
-        WaitForRunner<AnalyseMapCompleted, TransferMigrateMapRequested>(
+        WaitForRunner<AnalyseTransferRefactorMapCompleted, TransferMigrateMapRequested>(
             TransferMigrateMapWaitingForRunner, "TransferMigrateMap", TransferMigrateMapPending);
 
         // The fragment has landed, so the receiver's map can run. The request carries the files
         // because the receiver's runner has never seen the source's working directory.
         During(WaitingForFragment,
-            SendOrWaitForRunner<TransferFragmentAvailable, TransferMigrateMapRequested>(
-                When(FragmentAvailableEvent)
-                    .Then(context =>
-                    {
-                        context.Saga.WaitingSince = null;
-                        _logger.LogInformation(
-                            "Transfer: Module {ModuleId} has the fragment and may go ahead",
-                            context.Saga.ModuleId);
-                    }),
-                "TransferMigrateMap", TransferMigrateMapPending, TransferMigrateMapWaitingForRunner),
+            // What is waited for is the fragment being in the store. The message is a prompt to
+            // look again, never the proof, because it can arrive before this half has parked or
+            // after it has moved on.
+            When(WaitingForFragment.Enter)
+                .Then(context => context.Saga.WaitingSince = DateTime.UtcNow)
+                .Activity(x => x.OfType<CheckArtefactPresentActivity>()),
+
+            When(FragmentAvailableEvent)
+                .IfAsync(
+                    context => FragmentIsStored(context),
+                    present => ReleaseWithFragment<TransferFragmentAvailable>(present)),
 
             // Nothing is on a runner while it waits, so there is nothing to kill or wait out.
             When(CancelRequested)
@@ -124,16 +148,24 @@ public partial class TransferMigrateStateMachine
         // The values this half's plan reads are stored, so it can prove. The request carries them
         // because demonolith threads them from a file in this root's own working directory.
         During(WaitingForOutputs,
-            SendOrWaitForRunner<TransferOutputsAvailable, TransferMigrateProveRequested>(
-                When(OutputsAvailableEvent)
-                    .Then(context =>
-                    {
-                        context.Saga.WaitingSince = null;
-                        _logger.LogInformation(
-                            "Transfer: Module {ModuleId} has the values it reads and may prove",
-                            context.Saga.ModuleId);
-                    }),
-                "TransferMigrateProve", TransferMigrateProvePending, TransferMigrateProveWaitingForRunner),
+            // As with the fragment: the store is what is waited for, and the message only says it
+            // is worth looking again.
+            When(WaitingForOutputs.Enter)
+                .Then(context => context.Saga.WaitingSince = DateTime.UtcNow)
+                .Activity(x => x.OfType<CheckArtefactPresentActivity>()),
+
+            When(OutputsAvailableEvent)
+                .IfAsync(
+                    context => OutputsAreStored(context),
+                    present => SendOrWaitForRunner<TransferOutputsAvailable, TransferMigrateProveRequested>(
+                        present.Then(context =>
+                        {
+                            context.Saga.WaitingSince = null;
+                            _logger.LogInformation(
+                                "Transfer: Module {ModuleId} has the values it reads and may prove",
+                                context.Saga.ModuleId);
+                        }),
+                        "TransferMigrateProve", TransferMigrateProvePending, TransferMigrateProveWaitingForRunner)),
 
             // Nothing is on a runner while it waits, so there is nothing to kill or wait out.
             When(CancelRequested)
@@ -274,6 +306,41 @@ public partial class TransferMigrateStateMachine
     /// </summary>
     private static TransferMigrateRunRequested RunRequest(TransferMigrateSaga saga) =>
         Request<TransferMigrateRunRequested>(saga);
+
+    /// <summary>
+    /// Whether the fragment is in the store. Asked of the store each time rather than kept on the
+    /// saga, so a prompt that arrives early or twice cannot be answered from a stale copy.
+    /// </summary>
+    private static async Task<bool> FragmentIsStored<TMessage>(
+        BehaviorContext<TransferMigrateSaga, TMessage> context)
+        where TMessage : class =>
+        context.Saga.TransferId is { } transferId
+        && await PipeExtensions.GetPayload<IServiceProvider>(context)
+            .GetRequiredService<TransferArtefactService>()
+            .HasSourceFragment(transferId, context.Saga.OrganizationId);
+
+    /// <summary>Whether the values this half reads are in the store.</summary>
+    private static async Task<bool> OutputsAreStored<TMessage>(
+        BehaviorContext<TransferMigrateSaga, TMessage> context)
+        where TMessage : class =>
+        context.Saga.TransferId is { } transferId
+        && await PipeExtensions.GetPayload<IServiceProvider>(context)
+            .GetRequiredService<TransferArtefactService>()
+            .HasReceiverOutputs(transferId, context.Saga.OrganizationId);
+
+    /// <summary>The fragment is there, so this half's map can run with it.</summary>
+    private EventActivityBinder<TransferMigrateSaga, TMessage> ReleaseWithFragment<TMessage>(
+        EventActivityBinder<TransferMigrateSaga, TMessage> binder)
+        where TMessage : class =>
+        SendOrWaitForRunner<TMessage, TransferMigrateMapRequested>(
+            binder.Then(context =>
+            {
+                context.Saga.WaitingSince = null;
+                _logger.LogInformation(
+                    "Transfer: Module {ModuleId} has the fragment and may go ahead",
+                    context.Saga.ModuleId);
+            }),
+            "TransferMigrateMap", TransferMigrateMapPending, TransferMigrateMapWaitingForRunner);
 
     /// <summary>
     /// Keeps the fragment the source just cut, and tells the waiting receiver it is there. The two

@@ -36,14 +36,14 @@ public class TransferMigrateMapCompleted : TransferStepResponseBase
     public string? SourceFragmentMeta { get; set; }
 }
 
-public class TransferAnalyseMapRequested : TransferStepRequestBase;
+public class AnalyseTransferRefactorMapRequested : TransferStepRequestBase;
 
 /// <summary>
 /// What the committed map says about this root, read before anything runs. A receiver's map step
 /// fails outright without the source's fragment, so the role has to be known before that step
 /// rather than discovered by attempting it.
 /// </summary>
-public class AnalyseMapCompleted : TransferStepResponseBase
+public class AnalyseTransferRefactorMapCompleted : TransferStepResponseBase
 {
     public TransferRoleKind Role { get; set; }
 
@@ -57,9 +57,9 @@ public class AnalyseMapCompleted : TransferStepResponseBase
     public string? Problem { get; set; }
 }
 
-public class AnalyseMapCancelled : TransferStepCancelledBase;
+public class AnalyseTransferRefactorMapCancelled : TransferStepCancelledBase;
 
-public class AnalyseMapFaulted : TransferStepFaultedBase;
+public class AnalyseTransferRefactorMapFaulted : TransferStepFaultedBase;
 
 public class TransferMigrateMapCancelled : TransferStepCancelledBase;
 

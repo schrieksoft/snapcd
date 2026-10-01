@@ -60,9 +60,9 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     /// <summary>The receiver's outputs have landed, so a half whose plan reads them may prove.</summary>
     public Event<TransferOutputsAvailable> OutputsAvailableEvent { get; } = null!;
 
-    public Event<AnalyseMapCompleted> AnalyseMapCompleted { get; } = null!;
-    public Event<AnalyseMapCancelled> AnalyseMapCancelled { get; } = null!;
-    public Event<AnalyseMapFaulted> AnalyseMapFaulted { get; } = null!;
+    public Event<AnalyseTransferRefactorMapCompleted> AnalyseTransferRefactorMapCompleted { get; } = null!;
+    public Event<AnalyseTransferRefactorMapCancelled> AnalyseTransferRefactorMapCancelled { get; } = null!;
+    public Event<AnalyseTransferRefactorMapFaulted> AnalyseTransferRefactorMapFaulted { get; } = null!;
     public Event<TransferMigrateMapCompleted> TransferMigrateMapCompleted { get; } = null!;
     public Event<TransferMigrateMapCancelled> TransferMigrateMapCancelled { get; } = null!;
     public Event<TransferMigrateMapFaulted> TransferMigrateMapFaulted { get; } = null!;
@@ -90,7 +90,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     public State TransferInitWaitingForRunner { get; } = null!;
     public State TransferValidateWaitingForRunner { get; } = null!;
 
-    public State AnalyseMapPending { get; } = null!;
+    public State AnalyseTransferRefactorMapPending { get; } = null!;
     public State TransferMigrateMapPending { get; } = null!;
     public State TransferMigrateProvePending { get; } = null!;
     public State TransferMigrateRunPending { get; } = null!;
@@ -101,7 +101,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
     /// never sent, so it is sent again once one reconnects. A runner that disappears while holding
     /// a step is a different thing, and the heartbeat ends the job for it.
     /// </summary>
-    public State AnalyseMapWaitingForRunner { get; } = null!;
+    public State AnalyseTransferRefactorMapWaitingForRunner { get; } = null!;
     public State TransferMigrateMapWaitingForRunner { get; } = null!;
     public State TransferMigrateProveWaitingForRunner { get; } = null!;
     public State TransferMigrateRunWaitingForRunner { get; } = null!;

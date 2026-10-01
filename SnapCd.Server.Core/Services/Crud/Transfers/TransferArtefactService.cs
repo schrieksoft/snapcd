@@ -82,6 +82,17 @@ public class TransferArtefactService
                            && a.SourceFragmentCiphertext != null);
     }
 
+    /// <summary>Whether the half that produces the values has stored them.</summary>
+    public async Task<bool> HasReceiverOutputs(Guid transferId, Guid organizationId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        return await dbContext.TransferArtefacts.AsNoTracking()
+            .AnyAsync(a => a.TransferId == transferId
+                           && a.OrganizationId == organizationId
+                           && a.ReceiverOutputsCiphertext != null);
+    }
+
     /// <summary>Drops a closed transfer's files; they are not a durable record.</summary>
     public async Task<int> DeleteForTransfer(Guid transferId, Guid organizationId)
     {

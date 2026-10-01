@@ -291,10 +291,10 @@ public partial class TransferMigrateStateMachine
         // The prove is what gates a transfer: it plans against the moved state, which a plan here
         // cannot see.
         During(TransferValidatePending,
-            SendOrWaitForRunner<TransferValidateCompleted, TransferAnalyseMapRequested>(
+            SendOrWaitForRunner<TransferValidateCompleted, AnalyseTransferRefactorMapRequested>(
                 When(ValidateCompleted)
                     .ThenAsync(context => RecordCompleted(context, "Validate", StateMigrationStepStatus.Succeeded)),
-                "AnalyseMap", AnalyseMapPending, AnalyseMapWaitingForRunner),
+                "AnalyseTransferRefactorMap", AnalyseTransferRefactorMapPending, AnalyseTransferRefactorMapWaitingForRunner),
 
             When(ValidateCancelled)
                 .ThenAsync(context => RecordCompleted(context, "Validate", StateMigrationStepStatus.Cancelled))
@@ -313,7 +313,7 @@ public partial class TransferMigrateStateMachine
                 .ThenJobFailed().TransitionTo(Failed).Finalize()
         );
 
-        WaitForRunner<TransferValidateCompleted, TransferAnalyseMapRequested>(
-            AnalyseMapWaitingForRunner, "AnalyseMap", AnalyseMapPending);
+        WaitForRunner<TransferValidateCompleted, AnalyseTransferRefactorMapRequested>(
+            AnalyseTransferRefactorMapWaitingForRunner, "AnalyseTransferRefactorMap", AnalyseTransferRefactorMapPending);
     }
 }

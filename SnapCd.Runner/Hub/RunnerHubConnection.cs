@@ -348,10 +348,10 @@ public class RunnerHubConnection :
             });
 
 
-        _connection.On<TransferAnalyseMapRequestBase>(nameof(ITransferEndpoints.TransferAnalyseMap),
+        _connection.On<AnalyseTransferRefactorMapRequestBase>(nameof(ITransferEndpoints.AnalyseTransferRefactorMap),
             request =>
             {
-                Task.Run(() => TransferAnalyseMap(request));
+                Task.Run(() => AnalyseTransferRefactorMap(request));
                 return Task.CompletedTask;
             });
 
@@ -839,8 +839,8 @@ public class RunnerHubConnection :
             (jobId, error, stack) => client.InvokeTransferValidateFaulted(jobId, moduleId, error, stack));
     }
 
-    public Task TransferAnalyseMap(TransferAnalyseMapRequestBase request) =>
-        _tasks.Value.TransferAnalyseMap(request, _connection!);
+    public Task AnalyseTransferRefactorMap(AnalyseTransferRefactorMapRequestBase request) =>
+        _tasks.Value.AnalyseTransferRefactorMap(request, _connection!);
 
     public Task TransferMigrateMap(TransferMigrateMapRequestBase request) =>
         _tasks.Value.TransferMigrateMap(request, _connection!);

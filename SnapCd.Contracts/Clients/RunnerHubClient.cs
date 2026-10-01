@@ -89,22 +89,22 @@ public class RunnerHubClient
 
 
 
-    public async Task InvokeAnalyseMapCompleted(
+    public async Task InvokeAnalyseTransferRefactorMapCompleted(
         Guid jobId, Guid moduleId, TransferRoleKind role, List<string> needsOutputs, string? problem)
     {
         await _hubConnection.InvokeAsync(
-            ServerEndpoints.AnalyseMapCompleted, jobId, moduleId, role, needsOutputs, problem);
+            ServerEndpoints.AnalyseTransferRefactorMapCompleted, jobId, moduleId, role, needsOutputs, problem);
     }
 
-    public async Task InvokeAnalyseMapCancelled(Guid jobId, Guid moduleId)
+    public async Task InvokeAnalyseTransferRefactorMapCancelled(Guid jobId, Guid moduleId)
     {
-        await _hubConnection.InvokeAsync(ServerEndpoints.AnalyseMapCancelled, jobId, moduleId);
+        await _hubConnection.InvokeAsync(ServerEndpoints.AnalyseTransferRefactorMapCancelled, jobId, moduleId);
     }
 
-    public async Task InvokeAnalyseMapFaulted(Guid jobId, Guid moduleId, string? error, string? stack)
+    public async Task InvokeAnalyseTransferRefactorMapFaulted(Guid jobId, Guid moduleId, string? error, string? stack)
     {
         await _hubConnection.InvokeAsync(
-            ServerEndpoints.AnalyseMapFaulted, jobId, moduleId, error, stack);
+            ServerEndpoints.AnalyseTransferRefactorMapFaulted, jobId, moduleId, error, stack);
     }
 
     public async Task InvokeTransferMigrateMapCompleted(

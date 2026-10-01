@@ -40,7 +40,14 @@ public partial class Tasks
 
                 await engine.RunProcess(command, killToken);
 
-                var receipt = TransferReceipt.Read(request.RootDirectory, TransferReceipt.RunReceiptFile);
+                // The receipt sits in the checkout beside the code, which is where the engine runs
+                // demonolith; request.RootDirectory is relative to that, not to the runner's own
+                // working directory.
+                var receipt = TransferReceipt.Read(
+                    string.IsNullOrWhiteSpace(request.RootDirectory)
+                        ? engine.GetInitDir()
+                        : Path.Combine(engine.GetInitDir(), request.RootDirectory),
+                    TransferReceipt.RunReceiptFile);
 
                 await InvokeWithRetryAsync(
                     () => client.InvokeTransferMigrateRunCompleted(
@@ -63,7 +70,11 @@ public partial class Tasks
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
 
-                var command = DemonolithCommand.Build("transfer migrate verify", request.RootDirectory, request.Engine);
+                // Snap CD initialises the root itself, with the backend passed as flags rather than
+                // written into the code, so there is no backend block for demonolith to reconfigure
+                // from: it reuses what the Init step already configured.
+                var command = DemonolithCommand.Build(
+                    "transfer migrate verify", request.RootDirectory, request.Engine, "--reuse-backend");
 
                 await engine.RunProcess(command, killToken);
 

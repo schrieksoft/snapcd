@@ -8,6 +8,7 @@
 
 
 using MassTransit;
+using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -59,6 +60,11 @@ public partial class TransferMigrateStateMachine
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance")));
 
         During(WaitingForConsent,
+            // The answer may already be recorded by the time this half parks for it, and nothing
+            // publishes it a second time. What is waited for is the answer, not the message.
+            When(WaitingForConsent.Enter)
+                .Activity(x => x.OfType<CheckConsentDecidedActivity>()),
+
             When(ConsentDecidedEvent, context => context.Message.Granted)
                 .ThenAsync(context => RecordCompleted(
                     context, "WaitForCounterpartyConsent", StateMigrationStepStatus.Succeeded))
