@@ -26,14 +26,14 @@
                              Color="Color.Secondary"/>
             </MudTooltip>
 
+            <MudTooltip Text="Rewrites each carved root's backend from the monolith's current one. Use it when the roots were carved against a different backend than this module migrates to.">
+                <MudCheckBox @bind-Value="_rederiveBackend"
+                             Label="Re-derive the carved roots' backends"
+                             Color="Color.Secondary"/>
+            </MudTooltip>
+
             @if (!_proveOnly)
             {
-                <MudTooltip Text="Rewrites each carved root's backend from the monolith's current one. Use it when the roots were carved against a different backend than this module migrates to.">
-                    <MudCheckBox @bind-Value="_rederiveBackend"
-                                 Label="Re-derive the carved roots' backends"
-                                 Color="Color.Secondary"/>
-                </MudTooltip>
-
                 <MudTooltip Text="A destination holding state that does not match this migration will be overwritten and its existing state lost. Without this, such a destination is refused.">
                     <MudCheckBox @bind-Value="_force"
                                  Label="Replace state at destinations that do not match"
@@ -41,19 +41,16 @@
                 </MudTooltip>
             }
 
-            @* A proof runs against a ref rather than the module's configured revision, so that one
-               field is required rather than opt-in. *@
-            @if (_proveOnly)
-            {
-                <MudTooltip Text="Branch, tag or commit carrying the refactor. The module's configured revision is not changed.">
-                    <MudTextField @bind-Value="_sourceRevision"
-                                  Label="Ref"
-                                  Variant="Variant.Outlined"
-                                  Immediate="true"
-                                  FullWidth="true"
-                                  Class="mt-2"/>
-                </MudTooltip>
-            }
+            @* A proof has no configured revision to fall back on, so its ref is required; a split
+               runs the module's own revision unless one is given. *@
+            <MudTooltip Text="Branch, tag or commit carrying the refactor. Leave it empty to run the module's configured revision, which is not changed either way.">
+                <MudTextField @bind-Value="_sourceRevision"
+                              Label="@(_proveOnly ? "Ref" : "Ref (optional)")"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              FullWidth="true"
+                              Class="mt-2"/>
+            </MudTooltip>
 
             <MudDivider Class="my-2"/>
 

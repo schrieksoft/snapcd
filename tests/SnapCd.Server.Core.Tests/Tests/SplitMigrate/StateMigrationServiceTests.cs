@@ -259,17 +259,16 @@ public class StateMigrationServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_State_Migration_Refuses_A_Ref()
+    public async Task A_State_Migration_Refuses_An_Unusable_Ref()
     {
         await SetPaused(true);
 
         using var service = CreateService();
-        var ex = await Assert.ThrowsAsync<StateMigrationNotAllowedException>(
-            () => service.StartSplitMigrate(_moduleId, _organizationId, null, false, "feature/split"));
+        await Assert.ThrowsAsync<StateMigrationNotAllowedException>(
+            () => service.StartSplitMigrate(_moduleId, _organizationId, null, false, "-b"));
 
-        Assert.Contains("configured branch", ex.Message);
         await using var db = _fixture.CreateDbContext();
-        Assert.Equal(0, await db.StateMigrationJobs.CountAsync(j => j.ModuleId == _moduleId && j.Status == ExecutionStatus.Running));
+        Assert.Equal(0, await db.StateMigrationJobs.CountAsync(j => j.ModuleId == _moduleId));
     }
 
     [Fact]

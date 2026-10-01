@@ -532,9 +532,8 @@ public class StateMigrationService : IDisposable
         string? sourceRevision = null,
         bool rederiveBackend = false)
     {
-        // A state migration only ever runs the configured branch; a ref belongs to a prove job.
-        if (sourceRevision is not null)
-            throw new StateMigrationNotAllowedException("A state migration runs the module's configured branch. Only a prove job can be given a ref.");
+        if (sourceRevision is not null && !SourceRevisionOverride.IsValidRef(sourceRevision))
+            throw new StateMigrationNotAllowedException($"'{sourceRevision}' is not a usable git ref.");
 
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
@@ -544,7 +543,8 @@ public class StateMigrationService : IDisposable
 
         try
         {
-            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
+            var declared = await _resolvedConfigurationService.GetDeclared(
+                moduleId, organizationId, sourceRevision);
 
             await _bus.Publish(new SplitMigrateRequested
             {

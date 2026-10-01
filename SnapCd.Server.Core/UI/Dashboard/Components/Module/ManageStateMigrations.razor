@@ -750,6 +750,9 @@ else
             else
                 await service.StartSplitMigrate(
                     Module.Id, OrganizationId, choice.RootDirectory, choice.Force,
+                    sourceRevision: string.IsNullOrWhiteSpace(choice.SourceRevision)
+                        ? null
+                        : choice.SourceRevision,
                     rederiveBackend: choice.RederiveBackend);
 
             Snackbar.Add(choice.ProveOnly ? "Split proof started." : "Split started.", Severity.Success);
