@@ -284,42 +284,35 @@ else
                                           @ref="_listLogsRefs[job.Id]"/>
                             }
                         </MudTabPanel>
-                        @if (_addresses.TryGetValue(job.Id, out var addresses) && addresses.Count > 0)
+                        @if (_addresses.TryGetValue(job.Id, out var addresses)
+                             && addresses.Any(a => a.Operation == AddressOperation.List))
                         {
                             <MudTabPanel Text="Addresses" Style="text-transform: none">
-                                @* The migration's own result, then what the state holds afterwards.
-                                   Flat, the two read as contradicting verdicts on one address. *@
-                                @foreach (var group in addresses
-                                              .GroupBy(a => a.Operation == AddressOperation.List)
-                                              .OrderBy(g => g.Key))
-                                {
-                                    <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">
-                                        @(group.Key ? "In state afterwards" : "What the migration did")
-                                    </MudText>
-
-                                    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-                                        <thead>
+                                @* Where the addresses ended up. What the migration reported of its
+                                   own work is the job's status and its log; repeating it here gave
+                                   every address two rows that read as competing verdicts. *@
+                                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                                    <thead>
+                                    <tr>
+                                        <th>Address</th>
+                                        <th>In state afterwards</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var address in addresses.Where(a => a.Operation == AddressOperation.List))
+                                    {
                                         <tr>
-                                            <th>Address</th>
-                                            <th>Outcome</th>
+                                            <td><code>@address.Address</code></td>
+                                            <td>
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                         Color="@OutcomeColor(address, addresses, job.JobType)" Class="ma-0">
+                                                    @address.Outcome
+                                                </MudChip>
+                                            </td>
                                         </tr>
-                                        </thead>
-                                        <tbody>
-                                        @foreach (var address in group)
-                                        {
-                                            <tr>
-                                                <td><code>@address.Address</code></td>
-                                                <td>
-                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                                                             Color="@OutcomeColor(address.Outcome, address.Operation, job.JobType)" Class="ma-0">
-                                                        @address.Outcome
-                                                    </MudChip>
-                                                </td>
-                                            </tr>
-                                        }
-                                        </tbody>
-                                    </MudSimpleTable>
-                                }
+                                    }
+                                    </tbody>
+                                </MudSimpleTable>
                             </MudTabPanel>
                         }
                         <MudTabPanel Text="Approvals" Style="text-transform: none">
@@ -372,28 +365,42 @@ else
     /// it gone, and so does the end a move came from, so the same outcome is a success in one job
     /// and a failure in another.
     /// </summary>
-    private static Color OutcomeColor(AddressOutcome outcome, AddressOperation operation, string jobType) =>
-        outcome switch
+    private static Color OutcomeColor(
+        StateMigrationJobAddress address,
+        IReadOnlyCollection<StateMigrationJobAddress> all,
+        string jobType) =>
+        address.Outcome switch
         {
             AddressOutcome.Succeeded => Color.Success,
             AddressOutcome.Failed => Color.Error,
-            AddressOutcome.Absent => WantsItGone(operation, jobType) ? Color.Success : Color.Error,
-            AddressOutcome.Present => WantsItGone(operation, jobType) ? Color.Error : Color.Success,
+            AddressOutcome.Absent => WantsItGone(address, all, jobType) ? Color.Success : Color.Error,
+            AddressOutcome.Present => WantsItGone(address, all, jobType) ? Color.Error : Color.Success,
             _ => Color.Error
         };
 
     /// <summary>
-    /// The confirming list records every row as List, so what the job was for is the only thing
-    /// that says whether an address should still be there. A move leaves one end of each pair
-    /// behind, so it is not answerable per row and stays on the side that reports presence.
+    /// Whether an address should still be in state once the job is done. The confirming list files
+    /// every row as List, so a move - which verifies both ends, wanting one gone and one present -
+    /// is only answerable by looking at what the migration recorded for that same address.
     /// </summary>
-    private static bool WantsItGone(AddressOperation operation, string jobType) =>
-        operation switch
-        {
-            AddressOperation.Remove or AddressOperation.MoveFrom or AddressOperation.TransferOut => true,
-            AddressOperation.List => jobType == StateMigrationTypes.Remove,
-            _ => false
-        };
+    private static bool WantsItGone(
+        StateMigrationJobAddress address,
+        IReadOnlyCollection<StateMigrationJobAddress> all,
+        string jobType)
+    {
+        if (address.Operation != AddressOperation.List)
+            return Leaves(address.Operation);
+
+        var migrated = all.FirstOrDefault(a =>
+            a.Operation != AddressOperation.List && a.Address == address.Address);
+
+        return migrated is not null
+            ? Leaves(migrated.Operation)
+            : jobType == StateMigrationTypes.Remove;
+    }
+
+    private static bool Leaves(AddressOperation operation) =>
+        operation is AddressOperation.Remove or AddressOperation.MoveFrom or AddressOperation.TransferOut;
 
     /// <summary>The Namespace's default engine, which a Module without its own falls back to.</summary>
     private async Task LoadNamespaceDefaultEngine()
