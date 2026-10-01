@@ -50,6 +50,9 @@ public partial class TransferMigrateStateMachine
         WaitForRunner<TransferApproved, TransferMigrateRunRequested>(
             TransferMigrateRunWaitingForRunner, "TransferMigrateRun", TransferMigrateRunPending);
 
+        // An approval cast after this job stopped waiting is news about a job already running.
+        DuringAny(Ignore(ApprovalModifiedEvent));
+
         During(WaitingForApproval,
             // The threshold may already be answered by the time this half parks, and nothing
             // re-raises the answer. Entry prompts itself so the one arm below does the reading.

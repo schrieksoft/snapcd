@@ -129,6 +129,9 @@ public partial class JobStateMachine<
             config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); }
         );
 
+        // An approval cast after this job stopped waiting is news about a job already running.
+        DuringAny(Ignore(ApprovalModifiedEvent));
+
         During(WaitingForApproval,
             // The threshold may already be answered by the time this job parks, and nothing
             // re-raises the answer. Entry prompts itself so the one arm below does the reading.
