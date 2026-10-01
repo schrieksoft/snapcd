@@ -134,20 +134,31 @@
 
         @if (_moduleSaga is { Paused: true })
         {
+            @* Pausing belongs with the state migrations that need it; resuming does not, since a
+               paused module is unavailable on every tab. *@
             <MudAlert Severity="Severity.Info" Class="mb-4">
-                @if (IsDraining)
-                {
-                    @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
-                }
-                else
-                {
-                    @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
-                    @:and apply and destroy are unavailable until it is resumed.
-                }
-                @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
-                {
-                    @: — @_moduleSaga.PauseReason
-                }
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        @if (IsDraining)
+                        {
+                            @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
+                        }
+                        else
+                        {
+                            @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
+                            @:and apply and destroy are unavailable until it is resumed.
+                        }
+                        @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
+                        {
+                            @: — @_moduleSaga.PauseReason
+                        }
+                    </div>
+                    @if (_canPause)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@_resuming" OnClick="Resume">resume</MudButton>
+                    }
+                </MudStack>
             </MudAlert>
         }
 
@@ -351,6 +362,10 @@
     [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    private bool _canPause;
+    private bool _resuming;
     [Inject] private ModuleJobSecuredRepositoryFactory JobRepoFactory { get; set; } = null!;
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
 
@@ -534,6 +549,30 @@
     }
 
 
+    /// <summary>
+    /// Resuming is offered wherever the paused notice is, since a paused module is unavailable on
+    /// every tab, not only the one that pauses it.
+    /// </summary>
+    private async Task Resume()
+    {
+        _resuming = true;
+        try
+        {
+            using var sagaRepo = SagaRepoFactory.Create(
+                new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+            await sagaRepo.SetPaused(_module.Id, OrganizationId, false, null);
+            Snackbar.Add("Module resumed.", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _resuming = false;
+        }
+    }
+
     private async Task ReloadModuleSaga(bool invokeAsync)
     {
         using var moduleSagaRepo = SagaRepoFactory.Create(
@@ -541,6 +580,12 @@
             new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])
         );
         _moduleSaga = await moduleSagaRepo.Get(_module.Id, OrganizationId);
+
+        using (var moduleRepo = ModuleRepoFactory.Create(
+                   new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])))
+        {
+            _canPause = moduleRepo.CanPause(_module.Id, OrganizationId);
+        }
 
         // Load revision and state data from ModuleJob
         using var jobRepo = JobRepoFactory.Create(

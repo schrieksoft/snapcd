@@ -38,6 +38,7 @@
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     @if (ModuleSaga is { Paused: true })
     {
+        @* Resuming is on the page's own paused notice, which is visible from every tab. *@
         <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.body2">
                 <strong>@(IsDraining ? "Pausing" : "Paused")</strong>
@@ -46,8 +47,6 @@
                     @: — @ModuleSaga.PauseReason
                 }
             </MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                       Disabled="@(!_canPause || _busy)" OnClick="Resume">resume</MudButton>
         </MudStack>
     }
     else
@@ -623,8 +622,6 @@ else
         if (result is null || result.Canceled) return;
         await SetPaused(true, result.Data as string);
     }
-
-    private async Task Resume() => await SetPaused(false, null);
 
     /// <summary>
     /// Starts this Module's half of a transfer. The other Module is started the same way on its own
