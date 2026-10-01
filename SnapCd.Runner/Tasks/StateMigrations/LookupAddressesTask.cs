@@ -27,7 +27,6 @@ public partial class Tasks
             {
                 taskContext.LogNarration(
                     $"Checking {request.Addresses.Count} addresses against this module's state");
-                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 

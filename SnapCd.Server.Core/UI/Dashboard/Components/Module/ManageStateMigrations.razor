@@ -153,7 +153,7 @@
                                        Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)"
                                        OnClick="StartRemove">remove</MudButton>
                             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)" OnClick="StartStateList">check state</MudButton>
+                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)" OnClick="StartLookupAddresses">lookup addresses</MudButton>
                         </MudStack>
                     </MudTabPanel>
                 </MudTabs>
@@ -287,30 +287,39 @@ else
                         @if (_addresses.TryGetValue(job.Id, out var addresses) && addresses.Count > 0)
                         {
                             <MudTabPanel Text="Addresses" Style="text-transform: none">
-                                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-                                    <thead>
-                                    <tr>
-                                        <th>Address</th>
-                                        <th>Target</th>
-                                        <th>Outcome</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    @foreach (var address in addresses)
-                                    {
+                                @* The migration's own result, then what the state holds afterwards.
+                                   Flat, the two read as contradicting verdicts on one address. *@
+                                @foreach (var group in addresses
+                                              .GroupBy(a => a.Operation == AddressOperation.List)
+                                              .OrderBy(g => g.Key))
+                                {
+                                    <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">
+                                        @(group.Key ? "In state afterwards" : "What the migration did")
+                                    </MudText>
+
+                                    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                                        <thead>
                                         <tr>
-                                            <td><code>@address.Address</code></td>
-                                            <td>@(address.Target is null ? "" : new MarkupString($"<code>{address.Target}</code>"))</td>
-                                            <td>
-                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                                                         Color="@OutcomeColor(address.Outcome)" Class="ma-0">
-                                                    @address.Outcome
-                                                </MudChip>
-                                            </td>
+                                            <th>Address</th>
+                                            <th>Outcome</th>
                                         </tr>
-                                    }
-                                    </tbody>
-                                </MudSimpleTable>
+                                        </thead>
+                                        <tbody>
+                                        @foreach (var address in group)
+                                        {
+                                            <tr>
+                                                <td><code>@address.Address</code></td>
+                                                <td>
+                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                             Color="@OutcomeColor(address.Outcome, address.Operation, job.JobType)" Class="ma-0">
+                                                        @address.Outcome
+                                                    </MudChip>
+                                                </td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </MudSimpleTable>
+                                }
                             </MudTabPanel>
                         }
                         <MudTabPanel Text="Approvals" Style="text-transform: none">
@@ -358,11 +367,33 @@ else
     /// Green for what worked or is there, red for what did not. A "Present" is the same good news
     /// as a "Succeeded", so they read the same.
     /// </summary>
-    private static Color OutcomeColor(AddressOutcome outcome) => outcome switch
-    {
-        AddressOutcome.Succeeded or AddressOutcome.Present => Color.Success,
-        _ => Color.Error
-    };
+    /// <summary>
+    /// Whether an address being in state is good news depends on what was asked for. A remove wants
+    /// it gone, and so does the end a move came from, so the same outcome is a success in one job
+    /// and a failure in another.
+    /// </summary>
+    private static Color OutcomeColor(AddressOutcome outcome, AddressOperation operation, string jobType) =>
+        outcome switch
+        {
+            AddressOutcome.Succeeded => Color.Success,
+            AddressOutcome.Failed => Color.Error,
+            AddressOutcome.Absent => WantsItGone(operation, jobType) ? Color.Success : Color.Error,
+            AddressOutcome.Present => WantsItGone(operation, jobType) ? Color.Error : Color.Success,
+            _ => Color.Error
+        };
+
+    /// <summary>
+    /// The confirming list records every row as List, so what the job was for is the only thing
+    /// that says whether an address should still be there. A move leaves one end of each pair
+    /// behind, so it is not answerable per row and stays on the side that reports presence.
+    /// </summary>
+    private static bool WantsItGone(AddressOperation operation, string jobType) =>
+        operation switch
+        {
+            AddressOperation.Remove or AddressOperation.MoveFrom or AddressOperation.TransferOut => true,
+            AddressOperation.List => jobType == StateMigrationTypes.Remove,
+            _ => false
+        };
 
     /// <summary>The Namespace's default engine, which a Module without its own falls back to.</summary>
     private async Task LoadNamespaceDefaultEngine()
@@ -514,14 +545,14 @@ else
     private bool EngineSupportsStateMigrations => ResolvedEngine.SupportsStateMigrations();
 
     /// <summary>Asks this Module's state about specific addresses. Writes nothing.</summary>
-    private async Task StartStateList()
+    private async Task StartLookupAddresses()
     {
         var options = new DialogOptions
         {
             CloseButton = true, CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Small, FullWidth = true
+            MaxWidth = MaxWidth.Medium, FullWidth = true
         };
-        var dialog = await DialogService.ShowAsync<StateListDialog>("Check state", options);
+        var dialog = await DialogService.ShowAsync<LookupAddressesDialog>("Lookup addresses", options);
 
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;

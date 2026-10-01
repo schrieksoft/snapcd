@@ -35,7 +35,6 @@ public partial class Tasks
             {
                 taskContext.LogNarration(
                     $"Checking what a move over {request.Instructions.Count} addresses would do");
-                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
@@ -68,7 +67,6 @@ public partial class Tasks
             {
                 taskContext.LogNarration(
                     $"Checking what removing {request.Instructions.Count} addresses would take out");
-                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
@@ -103,7 +101,6 @@ public partial class Tasks
             {
                 taskContext.LogNarration(
                     $"Checking whether {request.Instructions.Count} addresses are free to import onto");
-                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
@@ -155,7 +152,6 @@ public partial class Tasks
             async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration($"Moving {request.Instructions.Count} addresses");
-                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
@@ -184,7 +180,6 @@ public partial class Tasks
             async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration($"Importing {request.Instructions.Count} addresses");
-                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
@@ -213,7 +208,6 @@ public partial class Tasks
             async (taskContext, client, killToken) =>
             {
                 taskContext.LogNarration($"Removing {request.Instructions.Count} addresses from state");
-                taskContext.LogBreak();
 
                 var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
 
