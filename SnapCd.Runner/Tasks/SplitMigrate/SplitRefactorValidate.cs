@@ -17,8 +17,9 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     /// <summary>
-    /// Asks the engine whether each written module directory is valid. Credential-free — it inits
-    /// without a backend and validates — so it fails before any state is pulled.
+    /// Asks the engine whether each written module directory is valid. Credential-free: it inits
+    /// with the backend disabled and the directory's remembered backend forgotten, so it reaches
+    /// no state store.
     /// </summary>
     public async Task SplitRefactorValidate(SplitRefactorValidateRequestBase request, HubConnection connection)
     {
@@ -55,7 +56,12 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var command = DemonolithCommand.Build("split refactor validate", request.RootDirectory, request.Engine);
+            // The checkout can carry a .terraform from an earlier job, and -backend=false keeps
+            // whatever backend a directory was last initialized against, so validate would reach
+            // for that backend without credentials.
+            var command = DemonolithCommand.Build(
+                "split refactor validate", request.RootDirectory, request.Engine,
+                "--reset-backend-cache");
 
             await engine.RunProcess(command, killCts.Token);
 
