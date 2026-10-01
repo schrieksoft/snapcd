@@ -348,12 +348,11 @@ public class FakeRunner(
             {
                 var moduleId = Read<Guid>(payload, "ModuleId");
 
-                // The half the other one reads from writes an outputs file; the consumer writes none.
+                // The half the other one reads from writes the outputs file; the consumer writes none.
                 var outputs = moduleId == ConsumingModuleId
-                    ? new Dictionary<string, string>()
-                    : NeedsOutputs.ToDictionary(
-                        name => $"outputs-{name}.yaml",
-                        name => $"outputs:\n  {name}: fake-value\n");
+                    ? null
+                    : "outputs:\n" + string.Concat(
+                        NeedsOutputs.Select(name => $"  {name}: fake-value\n"));
 
                 await hub.TransferMigrateProveCompleted(jobId, moduleId, 0, outputs, "clean");
                 break;
