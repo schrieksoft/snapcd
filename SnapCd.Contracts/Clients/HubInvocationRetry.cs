@@ -44,13 +44,17 @@ public static class HubInvocationRetry
     /// exponential backoff capped at <see cref="MaxDelay"/>. <paramref name="onAttemptFailed"/>
     /// is given the exception and the delay about to be waited, and returns the delay to actually
     /// wait, so a caller can handle a case such as token expiry on its own terms.
+    /// <paramref name="isTransportDown"/> is asked whether the connection itself is down, which
+    /// makes any failure worth repeating: the call cannot have been seen by the server. The caller
+    /// answers from the connection's own state rather than from what the exception says.
     /// </summary>
     public static async Task InvokeAsync(
         Func<Task> invocation,
         int maxRetries = DefaultMaxRetries,
         TimeSpan? initialDelay = null,
         Func<Exception, int, TimeSpan, Task<TimeSpan>>? onAttemptFailed = null,
-        Action<int>? onSucceededAfterRetry = null)
+        Action<int>? onSucceededAfterRetry = null,
+        Func<bool>? isTransportDown = null)
     {
         var attempt = 0;
         var delay = initialDelay ?? DefaultInitialDelay;
@@ -66,7 +70,7 @@ public static class HubInvocationRetry
 
                 return;
             }
-            catch (Exception ex) when (IsRetryable(ex))
+            catch (Exception ex) when (IsRetryable(ex) || isTransportDown?.Invoke() == true)
             {
                 lastException = ex;
                 attempt++;

@@ -41,6 +41,56 @@ public class HubInvocationRetryTests
         Assert.False(HubInvocationRetry.IsRetryable(new HubException(message)));
     }
 
+    /// <summary>
+    /// A call made while the socket is down cannot have reached the server, so its reply is worth
+    /// repeating whatever the client threw. The SignalR client raises an InvalidOperationException
+    /// there, which carries no code and must not be recognised by its wording.
+    /// </summary>
+    [Fact]
+    public async Task A_failure_while_the_transport_is_down_is_retried()
+    {
+        var attempts = 0;
+        var down = true;
+
+        await HubInvocationRetry.InvokeAsync(
+            () =>
+            {
+                attempts++;
+                if (!down) return Task.CompletedTask;
+
+                throw new InvalidOperationException(
+                    "The 'InvokeCoreAsync' method cannot be called if the connection is not active");
+            },
+            initialDelay: TimeSpan.Zero,
+            // Stands in for WithAutomaticReconnect: the caller waits here, and by the time it
+            // returns the socket is back.
+            onAttemptFailed: (_, _, _) =>
+            {
+                down = false;
+                return Task.FromResult(TimeSpan.Zero);
+            },
+            isTransportDown: () => down);
+
+        Assert.Equal(2, attempts);
+    }
+
+    [Fact]
+    public async Task The_same_failure_with_the_transport_up_is_not_retried()
+    {
+        var attempts = 0;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => HubInvocationRetry.InvokeAsync(
+            () =>
+            {
+                attempts++;
+                throw new InvalidOperationException("Sequence contains no elements");
+            },
+            initialDelay: TimeSpan.Zero,
+            isTransportDown: () => false));
+
+        Assert.Equal(1, attempts);
+    }
+
     /// <summary>A call that never reached the server carries no code, so it is matched by type.</summary>
     [Fact]
     public void A_transport_failure_is_retryable()

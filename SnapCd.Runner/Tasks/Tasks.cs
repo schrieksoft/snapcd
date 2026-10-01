@@ -84,6 +84,21 @@ public partial class Tasks
         _policyEvaluationSettings = policyEvaluationSettings.Value;
     }
 
+    /// <summary>How long to give WithAutomaticReconnect before giving up on a reply.</summary>
+    private static readonly TimeSpan ReconnectWait = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Waits for the socket to come back, so a reply is not thrown away in the second it takes to
+    /// reconnect. Returns either way; the caller's own attempt limit decides when to stop.
+    /// </summary>
+    private static async Task WaitForConnection(HubConnection connection, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+
+        while (connection.State != HubConnectionState.Connected && DateTime.UtcNow < deadline)
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+    }
+
     /// <summary>
     /// Invoke hub method with automatic retry on transient failures.
     /// </summary>
@@ -106,7 +121,7 @@ public partial class Tasks
                 invocation,
                 maxRetries,
                 initialDelay,
-                onAttemptFailed: (ex, attempt, delay) =>
+                onAttemptFailed: async (ex, attempt, delay) =>
                 {
                     if (HubInvocationRetry.IsTokenExpired(ex))
                     {
@@ -115,7 +130,17 @@ public partial class Tasks
                             operationName, target);
 
                         // The connection reconnects on its own via WithAutomaticReconnect.
-                        return Task.FromResult(TimeSpan.FromSeconds(2));
+                        return TimeSpan.FromSeconds(2);
+                    }
+
+                    if (connection.State != HubConnectionState.Connected)
+                    {
+                        logger.LogWarning(
+                            "{Operation} for {Target} found the connection {State}; waiting for it",
+                            operationName, target, connection.State);
+
+                        await WaitForConnection(connection, ReconnectWait);
+                        return TimeSpan.Zero;
                     }
 
                     logger.LogWarning(
@@ -123,11 +148,14 @@ public partial class Tasks
                         "Retrying in {Delay} seconds",
                         operationName, target, attempt, maxRetries, ex.Message, delay.TotalSeconds);
 
-                    return Task.FromResult(delay);
+                    return delay;
                 },
                 onSucceededAfterRetry: attempt => logger.LogInformation(
                     "{Operation} for {Target} succeeded on attempt {Attempt}",
-                    operationName, target, attempt));
+                    operationName, target, attempt),
+                // A call made while the socket was down cannot have reached the server, whatever
+                // the client threw, so the reply is worth repeating rather than discarding.
+                isTransportDown: () => connection.State != HubConnectionState.Connected);
         }
         catch (Exception ex) when (HubInvocationRetry.IsRetryable(ex))
         {
