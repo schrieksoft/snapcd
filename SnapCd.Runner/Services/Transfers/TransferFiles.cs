@@ -20,8 +20,13 @@ public static class TransferFiles
     /// <summary>The transfer map, which every step loads to know what is moving.</summary>
     public const string MapFile = "demonolith-transfer-map.yaml";
 
-    /// <summary>Where demonolith keeps the pulled state, the fragments and the output values.</summary>
+    /// <summary>Where demonolith keeps the pulled state, the fragment and the output values.</summary>
     public const string WorkDirectory = ".demono-transfer";
+
+    /// <summary>A transfer has one receiver, so none of its files is named for whose it is.</summary>
+    public const string FragmentStateFile = "fragment.tfstate";
+    public const string FragmentMetaFile = "fragment.yaml";
+    public const string OutputsFile = "outputs.yaml";
 
     /// <summary>
     /// Writes the map into the root before a step runs. The map is the transfer's identity, so it
@@ -34,73 +39,48 @@ public static class TransferFiles
         await File.WriteAllTextAsync(Path.Combine(root, MapFile), map);
     }
 
-    /// <summary>The root's own directory name, which is the token demonolith names artefacts by.</summary>
-    private static string BaseName(string? rootDirectory) =>
-        Path.GetFileName(Path.TrimEndingDirectorySeparator(Root(rootDirectory)));
 
     /// <summary>
-    /// The output files this Module's prove produced, by filename. The server stores them and hands
-    /// them to whichever Module consumes them.
+    /// The output values this Module's prove produced, which the other half's plan reads. A
+    /// transfer threads one producer's values, so there is one file.
     /// </summary>
-    public static async Task<Dictionary<string, string>> ReadOutputs(string? rootDirectory)
+    public static async Task<string?> ReadOutputs(string? rootDirectory)
     {
-        var work = WorkDir(rootDirectory);
-        var outputs = new Dictionary<string, string>();
+        var path = Path.Combine(WorkDir(rootDirectory), OutputsFile);
 
-        if (!Directory.Exists(work)) return outputs;
-
-        foreach (var path in Directory.EnumerateFiles(work, "outputs-*.yaml"))
-            outputs[Path.GetFileName(path)] = await File.ReadAllTextAsync(path);
-
-        return outputs;
+        return File.Exists(path) ? await File.ReadAllTextAsync(path) : null;
     }
 
-    /// <summary>
-    /// The fragment a source's map cut for its receiver, named for the receiver rather than for
-    /// this root, so the name comes from the map rather than from the directory.
-    /// </summary>
-    public static async Task<(string? Fragment, string? Meta)> ReadFragmentFor(
-        string? rootDirectory, string receiverBase)
+    /// <summary>The fragment a source's map cut, and the meta that pins it.</summary>
+    public static async Task<(string? Fragment, string? Meta)> ReadFragment(string? rootDirectory)
     {
         var work = WorkDir(rootDirectory);
         if (!Directory.Exists(work)) return (null, null);
 
-        var state = Path.Combine(work, $"fragment-{receiverBase}.tfstate");
-        var meta = Path.Combine(work, $"fragment-{receiverBase}.yaml");
+        var state = Path.Combine(work, FragmentStateFile);
+        var meta = Path.Combine(work, FragmentMetaFile);
 
         if (!File.Exists(state) || !File.Exists(meta)) return (null, null);
 
         return (await File.ReadAllTextAsync(state), await File.ReadAllTextAsync(meta));
     }
 
-    /// <summary>
-    /// Puts the source's fragment where a receiver's map will look for it. Named for this root,
-    /// which is the receiver demonolith addressed the fragment to.
-    /// </summary>
+    /// <summary>Puts the source's fragment where the receiver's map will look for it.</summary>
     public static async Task WriteFragment(string? rootDirectory, string fragment, string meta)
     {
         var work = WorkDir(rootDirectory);
         Directory.CreateDirectory(work);
 
-        var baseName = BaseName(rootDirectory);
-        await File.WriteAllTextAsync(Path.Combine(work, $"fragment-{baseName}.tfstate"), fragment);
-        await File.WriteAllTextAsync(Path.Combine(work, $"fragment-{baseName}.yaml"), meta);
+        await File.WriteAllTextAsync(Path.Combine(work, FragmentStateFile), fragment);
+        await File.WriteAllTextAsync(Path.Combine(work, FragmentMetaFile), meta);
     }
 
-    /// <summary>
-    /// The producer's output files, for a consumer's prove. demonolith looks them up by producer
-    /// name, so each keeps the name it was written under rather than being merged.
-    /// </summary>
-    public static async Task WriteOutputs(string? rootDirectory, string outputsJson)
+    /// <summary>The other half's output values, for this root's prove to thread.</summary>
+    public static async Task WriteOutputs(string? rootDirectory, string outputs)
     {
-        var files = JsonSerializer.Deserialize<Dictionary<string, string>>(outputsJson);
-        if (files is null || files.Count == 0) return;
-
         var work = WorkDir(rootDirectory);
         Directory.CreateDirectory(work);
-
-        foreach (var (name, content) in files)
-            await File.WriteAllTextAsync(Path.Combine(work, Path.GetFileName(name)), content);
+        await File.WriteAllTextAsync(Path.Combine(work, OutputsFile), outputs);
     }
 
     private static string Root(string? rootDirectory) =>

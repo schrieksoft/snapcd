@@ -29,9 +29,6 @@ public class TransferRole
 {
     public TransferRoleKind Kind { get; set; }
 
-    /// <summary>The receiving root's directory name, which is what demonolith names a fragment by.</summary>
-    public string? ReceiverBase { get; set; }
-
     /// <summary>Why the role could not be determined, for the step that reports the failure.</summary>
     public string? Problem { get; set; }
 }

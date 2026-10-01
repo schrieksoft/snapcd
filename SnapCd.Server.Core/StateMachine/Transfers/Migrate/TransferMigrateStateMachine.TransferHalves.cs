@@ -371,15 +371,13 @@ public partial class TransferMigrateStateMachine
     private static async Task StoreOutputs(
         BehaviorContext<TransferMigrateSaga, TransferMigrateProveCompleted> context)
     {
-        if (context.Message.Outputs.Count == 0
+        if (context.Message.Outputs is not { } outputs
             || context.Saga.TransferId is not { } transferId) return;
 
         var services = PipeExtensions.GetPayload<IServiceProvider>(context);
 
         await services.GetRequiredService<TransferArtefactService>()
-            .StoreReceiverOutputs(
-                transferId, context.Saga.OrganizationId,
-                JsonSerializer.Serialize(context.Message.Outputs));
+            .StoreReceiverOutputs(transferId, context.Saga.OrganizationId, outputs);
 
         await context.Publish(new TransferOutputsAvailable
         {

@@ -126,7 +126,7 @@ public class RunnerHubClient
     }
 
     public async Task InvokeTransferMigrateProveCompleted(
-        Guid jobId, Guid moduleId, int exitCode, Dictionary<string, string> outputs, string? verdict)
+        Guid jobId, Guid moduleId, int exitCode, string? outputs, string? verdict)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateProveCompleted,
             jobId, moduleId, exitCode, outputs, verdict);

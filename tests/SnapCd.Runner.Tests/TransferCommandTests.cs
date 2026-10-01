@@ -8,6 +8,7 @@
 
 
 using SnapCd.Runner.Services.SplitMigrate;
+using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Services.Transfers;
 using Xunit;
 
@@ -74,9 +75,35 @@ public class TransferCommandTests
         }
     }
 
-    /// <summary>The outputs a plan wrote are read back by the filename demonolith gave them.</summary>
+    /// <summary>
+    /// A map from another version parses into the current shape without complaint, keeping what
+    /// matches and leaving the rest empty, so the version is what decides.
+    /// </summary>
     [Fact]
-    public async Task Output_Values_Are_Read_Back_By_Filename()
+    public void A_Map_Of_Another_Version_Is_Refused()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(
+                Path.Combine(root, "demonolith-transfer-map.yaml"),
+                "version: 1\nsource_dir: app\nreceivers:\n  ../networking: {}\n");
+
+            var role = TransferMap.RoleOf(root);
+
+            Assert.Equal(TransferRoleKind.Unknown, role.Kind);
+            Assert.Contains("version 1", role.Problem);
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
+    }
+
+    /// <summary>A transfer threads one producer's values, so there is one outputs file.</summary>
+    [Fact]
+    public async Task Output_Values_Are_Read_Back()
     {
         var root = Path.Combine(Path.GetTempPath(), $"transfer-{Guid.NewGuid():N}");
         try
@@ -84,13 +111,9 @@ public class TransferCommandTests
             var work = Path.Combine(root, ".demono-transfer");
             Directory.CreateDirectory(work);
             await File.WriteAllTextAsync(
-                Path.Combine(work, "outputs-app.yaml"), "db_endpoint: db.example.com");
+                Path.Combine(work, "outputs.yaml"), "db_endpoint: db.example.com");
 
-            var outputs = await TransferFiles.ReadOutputs(root);
-
-            var only = Assert.Single(outputs);
-            Assert.Equal("outputs-app.yaml", only.Key);
-            Assert.Equal("db_endpoint: db.example.com", only.Value);
+            Assert.Equal("db_endpoint: db.example.com", await TransferFiles.ReadOutputs(root));
         }
         finally
         {

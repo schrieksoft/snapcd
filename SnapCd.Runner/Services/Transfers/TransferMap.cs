@@ -19,6 +19,12 @@ namespace SnapCd.Runner.Services.Transfers;
 /// </summary>
 public static class TransferMap
 {
+    /// <summary>The map format this runner reads. demonolith refuses any other.</summary>
+    private const int MapVersion = 2;
+
+    /// <summary>How a map's edges name the source root.</summary>
+    private const string SourceModule = "source";
+
     /// <summary>
     /// The output names this root's plan consumes from the other side of the transfer. Empty when
     /// it consumes nothing, which is the usual case and what lets both roots run at once.
@@ -67,28 +73,27 @@ public static class TransferMap
             .Build()
             .Deserialize<TransferMapFile>(File.ReadAllText(path));
 
-        if (map?.SourceDir == null)
-            return new TransferRole { Kind = TransferRoleKind.Unknown, Problem = "the map does not name its source root" };
-
-        var receivers = map.Receivers?.Keys.ToList() ?? [];
-
-        // A transfer moves resources between two Modules. The map format still carries several
-        // receivers from an older design, and taking the first would move state nobody asked about.
-        if (receivers.Count != 1)
+        // An older map parses into this shape without complaint, keeping what matches and leaving
+        // the rest empty, so the version is checked rather than the fields it would have filled.
+        if (map is null || map.Version != MapVersion)
             return new TransferRole
             {
                 Kind = TransferRoleKind.Unknown,
-                Problem = $"a transfer moves resources to one module; this map names {receivers.Count}"
+                Problem = $"the transfer map is version {map?.Version ?? 0} and this runner reads "
+                          + $"version {MapVersion}; re-run the refactor at the source to regenerate it"
             };
 
-        var receiverBase = Path.GetFileName(Path.TrimEndingDirectorySeparator(receivers[0]));
+        if (map.SourceDir == null || map.ReceiverDir == null)
+            return new TransferRole { Kind = TransferRoleKind.Unknown, Problem = "the map does not name both of its roots" };
+
+        var receiverBase = Path.GetFileName(Path.TrimEndingDirectorySeparator(map.ReceiverDir));
         var baseName = Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)));
 
         if (baseName == map.SourceDir)
-            return new TransferRole { Kind = TransferRoleKind.Source, ReceiverBase = receiverBase };
+            return new TransferRole { Kind = TransferRoleKind.Source };
 
         if (baseName == receiverBase)
-            return new TransferRole { Kind = TransferRoleKind.Receiver, ReceiverBase = receiverBase };
+            return new TransferRole { Kind = TransferRoleKind.Receiver };
 
         return new TransferRole
         {
@@ -105,24 +110,26 @@ public static class TransferMap
     {
         var baseName = Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)));
 
-        if (baseName == map.SourceDir) return map.Remainder;
+        if (baseName == map.SourceDir) return SourceModule;
 
-        return map.Receivers?.Keys.FirstOrDefault(key =>
-            Path.GetFileName(Path.TrimEndingDirectorySeparator(key)) == baseName);
+        return map.ReceiverDir is { } dir
+               && Path.GetFileName(Path.TrimEndingDirectorySeparator(dir)) == baseName
+            ? dir
+            : null;
     }
 
     private class TransferMapFile
     {
+        /// <summary>The format this map was written in. A map of another version is refused.</summary>
+        public int Version { get; set; }
+
         public List<CrossEdge>? CrossEdges { get; set; }
 
         /// <summary>The source root's directory name.</summary>
         public string? SourceDir { get; set; }
 
-        /// <summary>What the edges call the source: the part of it that stays behind.</summary>
-        public string? Remainder { get; set; }
-
-        /// <summary>Keyed by each receiving root's path as the map spells it.</summary>
-        public Dictionary<string, object>? Receivers { get; set; }
+        /// <summary>The receiving root's path, as the source names it and as the edges refer to it.</summary>
+        public string? ReceiverDir { get; set; }
     }
 
     /// <summary>One value another Module produces and this one consumes.</summary>

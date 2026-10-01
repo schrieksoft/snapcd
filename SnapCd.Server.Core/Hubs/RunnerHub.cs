@@ -748,7 +748,7 @@ public class RunnerHub : Hub
     }
 
     public async Task TransferMigrateProveCompleted(
-        Guid jobId, Guid moduleId, int exitCode, Dictionary<string, string> outputs, string? verdict)
+        Guid jobId, Guid moduleId, int exitCode, string? outputs, string? verdict)
     {
         var organizationId = await _authorizationService.ValidateRunnerCanAccessJob<TransferMigrateSaga>(
             Context, jobId, moduleId);

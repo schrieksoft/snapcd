@@ -134,10 +134,7 @@ public partial class Tasks
 
             await engine.RunProcess(command, killCts.Token);
 
-            var role = TransferMap.RoleOf(root);
-            var (producedFragment, producedMeta) = role.ReceiverBase is { } receiverBase
-                ? await TransferFiles.ReadFragmentFor(root, receiverBase)
-                : (null, null);
+            var (producedFragment, producedMeta) = await TransferFiles.ReadFragment(root);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeTransferMigrateMapCompleted(

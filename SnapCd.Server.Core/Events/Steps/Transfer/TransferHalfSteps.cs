@@ -83,8 +83,8 @@ public class TransferMigrateProveCompleted : TransferStepResponseBase
     /// <summary>0 when the root planned clean, 2 when it did not.</summary>
     public int ExitCode { get; set; }
 
-    /// <summary>The outputs this root's plan produced, by filename.</summary>
-    public Dictionary<string, string> Outputs { get; set; } = new();
+    /// <summary>The output values this root's plan produced, as demonolith wrote them.</summary>
+    public string? Outputs { get; set; }
 
     /// <summary>Why it refused, when it did.</summary>
     public string? Verdict { get; set; }
