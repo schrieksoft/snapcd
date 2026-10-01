@@ -14,6 +14,7 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
@@ -110,29 +111,23 @@ public static class Run
                     await jobs.Destroy(options.ModuleId, options.OrganizationId, id);
             }
 
-            // A throwaway send first, to test whether it is only ever the first message on a fresh
-            // transport schema that goes undelivered. The id is not a real job, so the gate finds
-            // no Module and does nothing with it.
-            if (options.WarmUpSend)
+            // Throwaway sends first, to test whether it is only ever a cold transport that drops
+            // a message. WarmupRequested has its own consumer and its own endpoint, so warming
+            // touches no queue a real message uses.
+            if (options.WarmUpSends > 0)
             {
-                var warmUp = await services.GetRequiredService<IBus>()
-                    .GetSendEndpoint(new Uri("queue:module"));
-                await warmUp.Send(new GatekeepingJobRequested
-                {
-                    ModuleId = Guid.Empty,
-                    OrganizationId = options.OrganizationId,
-                    DesiredStateHeadline = DesiredStateHeadline.Applied,
-                    SetNewDesiredState = false,
-                    JobId = Guid.Empty
-                }, sendContext =>
-                {
-                    // Correlates to no saga, so if it is delivered it is discarded and if it is
-                    // not it must expire: without a TTL the transport keeps the row for ever.
-                    sendContext.TimeToLive = TimeSpan.FromSeconds(30);
-                });
+                var bus = services.GetRequiredService<IBus>();
 
-                Console.WriteLine("Warm-up message sent");
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                for (var i = 1; i <= options.WarmUpSends; i++)
+                {
+                    await bus.Publish(new WarmupRequested { Sequence = i },
+                        sendContext => sendContext.TimeToLive = TimeSpan.FromSeconds(30));
+
+                    Console.WriteLine($"Warm-up {i}/{options.WarmUpSends} sent");
+                    if (i < options.WarmUpSends) await Task.Delay(options.WarmUpInterval);
+                }
+
+                await Task.Delay(options.WarmUpInterval);
             }
 
             await Request(jobId);

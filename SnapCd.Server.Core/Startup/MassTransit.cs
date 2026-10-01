@@ -83,6 +83,9 @@ public static class MassTransit
         services.AddScoped<MissionMatcher>();
         services.AddScoped<AgentSupplyResolver>();
 
+        if (serviceBusSettings.BusType == BusType.SqlServer)
+            services.AddHostedService<TransportWarmupHostedService>();
+
         if (serviceBusSettings.BusType == BusType.AzureServiceBus)
             services.AddHostedService(sp => new DeadLetterSinkHostedService(
                 serviceBusSettings.TransportOptions.AzureServiceBus.ConnectionString,
@@ -322,6 +325,9 @@ public static class MassTransit
         typeof(RemoveSelectRunnerInstanceConsumer),
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(HeartbeatConsumer),
+
+        // Acts on nothing; it gives a warm-up somewhere to land.
+        typeof(WarmupCompetingConsumer),
 
         // Agent mission Layer-1 (match) consumers
         typeof(ApplyJobFailedCompetingConsumer),

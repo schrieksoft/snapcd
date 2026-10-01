@@ -108,8 +108,11 @@ public class RunOptions
     /// <summary>How many times to ask again when no job row appears.</summary>
     public int RetryRequests { get; init; }
 
-    /// <summary>Sends a throwaway message before the real one.</summary>
-    public bool WarmUpSend { get; init; }
+    /// <summary>How many throwaway messages to send before the real one.</summary>
+    public int WarmUpSends { get; init; }
+
+    /// <summary>How long to leave between them, and before the real message.</summary>
+    public TimeSpan WarmUpInterval { get; init; } = TimeSpan.FromSeconds(2);
 
     /// <summary>
     /// For --job race: leave the job unapproved, so the state that refuses the event never
@@ -261,7 +264,9 @@ public class RunOptions
             Timeout = ParseTimeout(Get("timeout")),
             SettleSeconds = int.TryParse(Get("settle"), out var st) ? st : 0,
             RetryRequests = int.TryParse(Get("retry-requests"), out var rr) ? rr : 0,
-            WarmUpSend = args.Contains("--warm-up"),
+            WarmUpSends = int.TryParse(Get("warm-up"), out var wu) ? wu : (args.Contains("--warm-up") ? 1 : 0),
+            WarmUpInterval = TimeSpan.FromSeconds(
+                double.TryParse(Get("warm-up-interval"), out var wi) ? wi : 2),
             RaceWithoutApproval = args.Contains("--race-without-approval"),
         };
     }
