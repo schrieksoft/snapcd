@@ -105,7 +105,11 @@ public partial class TransferMigrateStateMachine
                     context.Saga.ModuleId))
                 .Activity(x => x.OfType<CancelStateMigrationJobActivity<TransferMigrateSaga, CancelStateMigrationJobRequested>>())
                 .TransitionTo(Failed)
-                .Finalize()
+                .Finalize(),
+
+            // Going ahead publishes this to itself, so a delivery that overtakes the transition
+            // out of this state is early rather than wrong.
+            Ignore(ConsentedEvent)
         );
     }
 }
