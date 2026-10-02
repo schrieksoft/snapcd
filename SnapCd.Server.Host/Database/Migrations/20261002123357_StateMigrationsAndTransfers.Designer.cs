@@ -20,7 +20,7 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20261002104208_StateMigrationsAndTransfers")]
+    [Migration("20261002123357_StateMigrationsAndTransfers")]
     partial class StateMigrationsAndTransfers
     {
         /// <inheritdoc />
@@ -6731,6 +6731,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique()
                         .HasFilter("[Status] = 'Running'");
 
+                    b.HasIndex("TransferId", "OrganizationId");
+
                     b.HasIndex("ModuleId", "TimestampStart", "OrganizationId");
 
                     b.ToTable("StateMigrationJobs", (string)null);
@@ -11905,9 +11907,16 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Transfer", "Transfer")
+                        .WithMany()
+                        .HasForeignKey("TransferId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("Module");
 
                     b.Navigation("Organization");
+
+                    b.Navigation("Transfer");
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJobAddress", b =>

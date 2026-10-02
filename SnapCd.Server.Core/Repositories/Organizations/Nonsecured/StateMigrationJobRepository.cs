@@ -86,6 +86,7 @@ public class StateMigrationJobRepository : IDisposable
     {
         return await _dbContext.StateMigrationJobs
             .AsNoTracking()
+            .Include(j => j.Transfer)
             .Where(j => j.ModuleId == moduleId && j.OrganizationId == organizationId)
             .OrderByDescending(j => j.TimestampStart)
             .Take(take)

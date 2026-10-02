@@ -62,7 +62,7 @@
         }
         else
         {
-            @if (_transfer is { } transfer)
+            @if (_transfer is not null)
             {
                 @* An unanswered request is a question, not a status line: it gets its own surface
                    and blocks the rest of the panel until it is answered. *@
@@ -96,27 +96,6 @@
                         </MudStack>
                     </MudAlert>
                 }
-                else
-                {
-                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
-                        <MudText Typo="Typo.body2">
-                            @(transfer.ModuleId == Module.Id
-                                ? $"Transfer with {OtherModuleName}."
-                                : $"{OtherModuleName} has asked to transfer with this module.")
-                        </MudText>
-                    </MudStack>
-                }
-            }
-
-            @if (RunningStateMigration is { } running)
-            {
-                <MudStack Row Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudProgressCircular Color="Color.Secondary" Indeterminate="true" Size="Size.Small"/>
-                    <MudText Typo="Typo.body2">
-                        <strong>@FormatJobType(running.JobType) #@running.JobNumber is running.</strong>
-                        One at a time, so the rest wait for it.
-                    </MudText>
-                </MudStack>
             }
 
             @if (!EngineSupportsStateMigrations)
@@ -160,7 +139,7 @@
                                         <div style="width: 16rem">
                                             <MudRadio T="StateMigrationKind" Value="@choice.Kind"
                                                       Color="Color.Secondary" Size="Size.Small"
-                                                      Disabled="@IsJobDisabled(choice.Kind)">@choice.Label</MudRadio>
+                                                      Disabled="@IsJobDisabled()">@choice.Label</MudRadio>
                                         </div>
                                         <MudText Typo="Typo.body2" Class="snapcd-mono">@choice.Command</MudText>
                                     </MudStack>
@@ -180,7 +159,7 @@
 
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                            Class="mt-3"
-                           Disabled="@IsJobDisabled(_chosenJob)"
+                           Disabled="@IsJobDisabled()"
                            OnClick="RunChosenJob">Run</MudButton>
             }
         }
@@ -261,6 +240,12 @@ else
                             <MudLink Href="@href" Typo="Typo.body2" Color="Color.Secondary">
                                 @OtherModuleName
                             </MudLink>
+                        }
+                        @if (job.Status == ExecutionStatus.Failed && WasRefused(job))
+                        {
+                            <MudTooltip Text="The other module refused the transfer, so this side wrote nothing.">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ma-0">Counterparty refused</MudChip>
+                            </MudTooltip>
                         }
                         @if (job.Status == ExecutionStatus.PartiallyCompleted)
                         {
@@ -552,9 +537,12 @@ else
     ];
 
     /// <summary>A transfer also needs there not to be one already; the rest share one condition.</summary>
-    private bool IsJobDisabled(StateMigrationKind kind) =>
-        NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null
-        || (kind == StateMigrationKind.Transfer && _transfer is not null);
+    /// <summary>
+    /// What the server refuses, which is the same for every job kind. An open transfer is not among
+    /// them: a second one is refused by TransferLocks' primary key, and the rest are unaffected.
+    /// </summary>
+    private bool IsJobDisabled() =>
+        NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null;
 
     private Task RunChosenJob() => _chosenJob switch
     {
@@ -584,6 +572,14 @@ else
         && _transfer.CounterpartyModuleId == Module.Id;
 
     /// <summary>The open transfer this Module is in, and who is on the other side of it.</summary>
+    /// <summary>
+    /// The asking side of a transfer the other module refused. Only that side is told: for the one
+    /// that refused, its own answer is not news.
+    /// </summary>
+    private bool WasRefused(StateMigrationJob job) =>
+        job.Transfer is { ConsentStatus: ConsentStatus.Refused } transfer
+        && transfer.ModuleId == Module.Id;
+
     private async Task LoadTransfer()
     {
         using var transfers = TransferServiceFactory.Create(PrincipalProvider);
@@ -956,6 +952,9 @@ else
         _jobs = await jobRepo.ListByModule(Module.Id, OrganizationId);
         await LoadAddresses();
 
+        // The job ending is what closes its transfer, in the same statement, so the open transfer
+        // this panel holds is stale from the moment the job list is not.
+        await LoadTransfer();
 
         using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
         _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);

@@ -288,54 +288,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StateMigrationJobs",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ProveRef = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    JobNumber = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TimestampStart = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    TimestampEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    JobType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    WaitingForApproval = table.Column<bool>(type: "bit", nullable: true),
-                    WaitingForRunner = table.Column<bool>(type: "bit", nullable: true),
-                    WaitingForConsent = table.Column<bool>(type: "bit", nullable: true),
-                    FailedOnServerSideStep = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    ServerSideErrorHeader = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    ServerSideError = table.Column<string>(type: "nvarchar(max)", maxLength: 16000, nullable: true),
-                    Logs = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ModifiedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    ModifiedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ModifiedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_StateMigrationJobs", x => new { x.Id, x.OrganizationId });
-                    table.ForeignKey(
-                        name: "FK_StateMigrationJobs_Modules_ModuleId_OrganizationId",
-                        columns: x => new { x.ModuleId, x.OrganizationId },
-                        principalTable: "Modules",
-                        principalColumns: new[] { "Id", "OrganizationId" },
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_StateMigrationJobs_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "TransferMigrateSagas",
                 columns: table => new
                 {
@@ -431,6 +383,114 @@ namespace SnapCd.Server.Host.Database.Migrations
                         principalTable: "Organizations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StateMigrationJobs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ProveRef = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    JobNumber = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TimestampStart = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    TimestampEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    JobType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    WaitingForApproval = table.Column<bool>(type: "bit", nullable: true),
+                    WaitingForRunner = table.Column<bool>(type: "bit", nullable: true),
+                    WaitingForConsent = table.Column<bool>(type: "bit", nullable: true),
+                    FailedOnServerSideStep = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    ServerSideErrorHeader = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    ServerSideError = table.Column<string>(type: "nvarchar(max)", maxLength: 16000, nullable: true),
+                    Logs = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ModifiedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ModifiedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ModifiedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StateMigrationJobs", x => new { x.Id, x.OrganizationId });
+                    table.ForeignKey(
+                        name: "FK_StateMigrationJobs_Modules_ModuleId_OrganizationId",
+                        columns: x => new { x.ModuleId, x.OrganizationId },
+                        principalTable: "Modules",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StateMigrationJobs_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StateMigrationJobs_Transfers_TransferId_OrganizationId",
+                        columns: x => new { x.TransferId, x.OrganizationId },
+                        principalTable: "Transfers",
+                        principalColumns: new[] { "Id", "OrganizationId" });
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TransferArtefacts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SourceFragmentCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SourceFragmentMetaCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReceiverOutputsCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ModifiedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ModifiedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ModifiedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TransferArtefacts", x => new { x.Id, x.OrganizationId });
+                    table.ForeignKey(
+                        name: "FK_TransferArtefacts_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TransferArtefacts_Transfers_TransferId_OrganizationId",
+                        columns: x => new { x.TransferId, x.OrganizationId },
+                        principalTable: "Transfers",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TransferLocks",
+                columns: table => new
+                {
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TransferLocks", x => new { x.OrganizationId, x.ModuleId });
+                    table.ForeignKey(
+                        name: "FK_TransferLocks_Transfers_TransferId_OrganizationId",
+                        columns: x => new { x.TransferId, x.OrganizationId },
+                        principalTable: "Transfers",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -632,61 +692,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "TransferArtefacts",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SourceFragmentCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SourceFragmentMetaCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ReceiverOutputsCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ModifiedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    ModifiedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ModifiedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TransferArtefacts", x => new { x.Id, x.OrganizationId });
-                    table.ForeignKey(
-                        name: "FK_TransferArtefacts_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_TransferArtefacts_Transfers_TransferId_OrganizationId",
-                        columns: x => new { x.TransferId, x.OrganizationId },
-                        principalTable: "Transfers",
-                        principalColumns: new[] { "Id", "OrganizationId" },
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "TransferLocks",
-                columns: table => new
-                {
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TransferLocks", x => new { x.OrganizationId, x.ModuleId });
-                    table.ForeignKey(
-                        name: "FK_TransferLocks_Transfers_TransferId_OrganizationId",
-                        columns: x => new { x.TransferId, x.OrganizationId },
-                        principalTable: "Transfers",
-                        principalColumns: new[] { "Id", "OrganizationId" },
-                        onDelete: ReferentialAction.Cascade);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_ImportSagas_CorrelationId",
                 table: "ImportSagas",
@@ -872,6 +877,11 @@ namespace SnapCd.Server.Host.Database.Migrations
                 name: "IX_StateMigrationJobs_OrganizationId",
                 table: "StateMigrationJobs",
                 column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StateMigrationJobs_TransferId_OrganizationId",
+                table: "StateMigrationJobs",
+                columns: new[] { "TransferId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_StateMigrationJobSteps_Id",

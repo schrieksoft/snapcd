@@ -30,6 +30,15 @@ public class StateMigrationJobClassMap : IEntityTypeConfiguration<StateMigration
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
 
+        // The job's own side of the transfer it belongs to; no cascade, since a transfer closing
+        // must not take the record of what ran under it.
+        entity
+            .HasOne(e => e.Transfer)
+            .WithMany()
+            .HasForeignKey(e => new { e.TransferId, e.OrganizationId })
+            .HasPrincipalKey(t => new { t.Id, t.OrganizationId })
+            .OnDelete(DeleteBehavior.NoAction);
+
         entity
             .HasOne(e => e.Organization)
             .WithMany(x => x.StateMigrationJobs)

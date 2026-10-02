@@ -30,6 +30,8 @@ public class StateMigrationJob : AuditBase, IEntity, IModuleChild
     /// <summary>The transfer this job is one side of, when it is one.</summary>
     public Guid? TransferId { get; set; }
 
+    [JsonIgnore] public Transfer? Transfer { get; set; }
+
     /// <summary>
     /// The ref this job ran against, for a job that takes one. Kept on the job rather than only on
     /// its saga, which is finalized and gone once the job ends.

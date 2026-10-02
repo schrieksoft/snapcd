@@ -29,7 +29,7 @@ namespace SnapCd.Server.Host.Database.Migrations
     public partial class StateMigrationTriggers : Migration
     {
         private const string SqlResource =
-            "SnapCd.Server.Host.Database.Migrations.Sql.20261002104300_StateMigrationTriggers.sql";
+            "SnapCd.Server.Host.Database.Migrations.Sql.20261002123400_StateMigrationTriggers.sql";
 
         private static readonly string[] Triggers =
         [
