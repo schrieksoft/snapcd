@@ -38,8 +38,10 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
 
     public Task InitializeAsync()
     {
-        _moduleId = _fixture.Modules["0000"].Id;
-        _counterpartyModuleId = _fixture.Modules["0001"].Id;
+        // Modules no other test class touches: these tests seed Running jobs, and at most one
+        // Running job per Module is allowed, so a shared Module collides with whatever else used it.
+        _moduleId = _fixture.Modules["0110"].Id;
+        _counterpartyModuleId = _fixture.Modules["0111"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
         return Task.CompletedTask;
     }
@@ -47,10 +49,13 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await using var db = _fixture.CreateDbContext();
-        await db.TransferArtefacts.Where(a => _seededTransfers.Contains(a.TransferId)).ExecuteDeleteAsync();
-        await db.Transfers.Where(t => _seededTransfers.Contains(t.Id)).ExecuteDeleteAsync();
+
+        // Jobs before transfers: a job's TransferId is a foreign key, so a transfer cannot go while
+        // a job still points at it.
         await db.StateMigrationJobSteps.Where(s => _seededJobs.Contains(s.JobId)).ExecuteDeleteAsync();
         await db.StateMigrationJobs.Where(j => _seededJobs.Contains(j.Id)).ExecuteDeleteAsync();
+        await db.TransferArtefacts.Where(a => _seededTransfers.Contains(a.TransferId)).ExecuteDeleteAsync();
+        await db.Transfers.Where(t => _seededTransfers.Contains(t.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
@@ -227,7 +232,7 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         await ArtefactService().StoreSourceFragment(transferId, _organizationId, "state", "meta");
 
         // A third Module: at most one Running job per Module, so it cannot share one with a half.
-        var unrelated = await SeedTransferJob(null, _fixture.Modules["0010"].Id, ExecutionStatus.Running);
+        var unrelated = await SeedTransferJob(null, _fixture.Modules["0100"].Id, ExecutionStatus.Running);
         await SetStatus(unrelated, ExecutionStatus.Completed);
 
         Assert.Equal(1, await CountRows(transferId));
