@@ -40,11 +40,9 @@
             </NoItemsTemplate>
         </MudAutocomplete>
 
-        <MudTooltip Text="The branch or tag carrying this module's half of the code move. The other module names its own when it agrees.">
-            <MudTextField @bind-Value="_moduleRef"
-                          Label="This module's ref"
-                          Variant="Variant.Outlined"/>
-        </MudTooltip>
+        <MudTextField @bind-Value="_moduleRef"
+                      Label="This module's ref"
+                      Variant="Variant.Outlined"/>
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"

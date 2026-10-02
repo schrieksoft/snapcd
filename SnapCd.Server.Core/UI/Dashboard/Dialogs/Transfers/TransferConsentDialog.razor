@@ -23,12 +23,10 @@
     <DialogContent>
         @if (Granted)
         {
-            <MudTooltip Text="The branch or tag carrying this module's half of the code move.">
-                <MudTextField @bind-Value="_moduleRef"
-                              Label="This module's ref"
-                              Variant="Variant.Outlined"
-                              Class="mb-2"/>
-            </MudTooltip>
+            <MudTextField @bind-Value="_moduleRef"
+                          Label="This module's ref"
+                          Variant="Variant.Outlined"
+                          Class="mb-2"/>
         }
     </DialogContent>
     <DialogActions>
