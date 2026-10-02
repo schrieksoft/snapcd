@@ -1,0 +1,88 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using SnapCd.Server.Core.Entities.Definition.Base;
+using SnapCd.Server.Core.Entities.Interfaces;
+using SnapCd.Server.Core.Enums;
+
+namespace SnapCd.Server.Core.Entities.Definition;
+
+/// <summary>
+/// An operator-initiated job that runs against a paused Module. Kept separate from ModuleJob
+/// because IsCurrent there drives dependency resolution and the gatekeeper's dequeue check, and
+/// manual work is neither a deployment nor a reason for dependents to wait.
+/// </summary>
+public class StateMigrationJob : AuditBase, IEntity, IModuleChild
+{
+    public Guid Id { get; set; }
+    public Guid OrganizationId { get; set; }
+
+    public Guid ModuleId { get; set; }
+
+    /// <summary>The transfer this job is one side of, when it is one.</summary>
+    public Guid? TransferId { get; set; }
+
+    [JsonIgnore] public Transfer? Transfer { get; set; }
+
+    /// <summary>
+    /// The ref this job ran against, for a job that takes one. Kept on the job rather than only on
+    /// its saga, which is finalized and gone once the job ends.
+    /// </summary>
+    [MaxLength(255)] public string? ProveRef { get; set; }
+
+    public int JobNumber { get; set; }
+
+    public DateTimeOffset TimestampStart { get; set; }
+    public DateTimeOffset? TimestampEnd { get; set; }
+
+    public ExecutionStatus Status { get; set; }
+
+    [MaxLength(100)] public string JobType { get; set; } = null!;
+
+    public bool? WaitingForApproval { get; set; }
+
+    /// <summary>
+    /// Set while the job is parked because the runner it is pinned to is away. Without it the job
+    /// reads as Running, which is indistinguishable from working.
+    /// </summary>
+    public bool? WaitingForRunner { get; set; }
+
+    /// <summary>
+    /// Set while a transfer's starting side waits for the other module to agree. The wait has no
+    /// timeout, so a job that does not say it is waiting looks like one that has hung.
+    /// </summary>
+    public bool? WaitingForConsent { get; set; }
+
+    public ServerSideStep? FailedOnServerSideStep { get; set; }
+
+    [MaxLength(255)] public string? ServerSideErrorHeader { get; set; }
+
+    [MaxLength(16000)] public string? ServerSideError { get; set; }
+
+    public string? Logs { get; set; }
+
+    public List<StateMigrationJobApproval> StateMigrationJobApprovals { get; set; } = null!;
+
+    public List<StateMigrationJobStep> Steps { get; set; } = null!;
+
+    /// <summary>Every address this job touched, and what became of each.</summary>
+    public List<StateMigrationJobAddress> Addresses { get; set; } = null!;
+
+    public List<StateMigrationJobArtefact> Artefacts { get; set; } = null!;
+
+    [JsonIgnore] public Module Module { get; set; } = null!;
+    [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
+
+    public Guid ParentId()
+    {
+        return ModuleId;
+    }
+}

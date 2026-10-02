@@ -6,12 +6,24 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.StateMachine.StateMigrations;
+using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
+using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
+using SnapCd.Server.Core.StateMachine.Transfers.Migrate.Activities;
 using System.Reflection;
 using MassTransit;
 using MassTransit.SqlTransport;
 using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
+using SnapCd.Server.Core.Consumers.Tasks.SplitMigrate;
+using SnapCd.Server.Core.Consumers.Tasks.Transfers;
+using SnapCd.Server.Core.StateMachine.SplitMigrate;
+using SnapCd.Server.Core.StateMachine.Transfers;
+using SnapCd.Server.Core.StateMachine.Transfers.Migrate;
 using SnapCd.Server.Core.Consumers.Tasks;
 using SnapCd.Server.Core.Consumers.Tasks.Handlers;
 using SnapCd.Server.Core.Database;
@@ -71,15 +83,28 @@ public static class MassTransit
         services.AddScoped<MissionMatcher>();
         services.AddScoped<AgentSupplyResolver>();
 
+        if (serviceBusSettings.BusType == BusType.SqlServer)
+            services.AddHostedService<TransportWarmupHostedService>();
+
         if (serviceBusSettings.BusType == BusType.AzureServiceBus)
             services.AddHostedService(sp => new DeadLetterSinkHostedService(
                 serviceBusSettings.TransportOptions.AzureServiceBus.ConnectionString,
                 sp.GetRequiredService<ILogger<DeadLetterSinkHostedService>>()));
 
+        AddStateMachineActivities(services);
+
         services.AddMassTransit(x =>
         {
             AddSagaStateMachines(x);
             x.AddServerConsumers(instanceId, additionalCompetingConsumerTypes, fanoutTypes);
+
+            // Endpoints configured by ConfigureEndpoints get no retry of their own, and a saga
+            // commits its transition at the end of the consume that dispatched a step - so a reply
+            // that arrives first is rejected, and without this the first rejection is final and the
+            // message dead-letters. The retry re-runs the consumer in process against a saga that
+            // has since settled.
+            x.AddConfigureEndpointsCallback((_, _, endpoint) =>
+                endpoint.UseMessageRetry(r => r.Interval(5, 1000)));
 
             switch (serviceBusSettings.BusType)
             {
@@ -167,6 +192,10 @@ public static class MassTransit
                             cfg.ReceiveEndpoint(queueName, e =>
                             {
                                 e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
+                                // Off here as on Azure, so the two transports accept the same code:
+                                // these endpoints are addressed by name, and a publish that only
+                                // works on one of them is a mistake that ships.
+                                e.ConfigureConsumeTopology = false;
                                 e.ConfigureConsumer(context, consumerType);
                             });
                         }
@@ -178,6 +207,7 @@ public static class MassTransit
                             cfg.ReceiveEndpoint(queueName, e =>
                             {
                                 e.AutoDeleteOnIdle = TimeSpan.FromMinutes(5);
+                                e.ConfigureConsumeTopology = false;
                                 e.ConfigureConsumer(context, consumerType);
                             });
                         }
@@ -206,21 +236,68 @@ public static class MassTransit
     // Runner consumers - need instance-specific endpoints for targeted sends
     private static readonly Type[] RunnerConsumerTypes =
     [
-        typeof(GetDefinitiveRevisionConsumer),
-        typeof(GetModuleConsumer),
-        typeof(InitConsumer),
-        typeof(ValidateConsumer),
-        typeof(PolicyValidateConsumer),
-        typeof(VariablesConsumer),
+        typeof(ApplyGetDefinitiveRevisionConsumer),
+        typeof(DestroyGetDefinitiveRevisionConsumer),
+        typeof(ApplyGetModuleConsumer),
+        typeof(DestroyGetModuleConsumer),
+        typeof(ApplyInitConsumer),
+        typeof(DestroyInitConsumer),
+        typeof(ApplyValidateConsumer),
+        typeof(DestroyValidateConsumer),
+        typeof(ApplyPolicyValidateConsumer),
+        typeof(DestroyPolicyValidateConsumer),
+        typeof(ApplyVariablesConsumer),
+        typeof(DestroyVariablesConsumer),
         typeof(PlanConsumer),
+        typeof(SplitGetModuleConsumer),
+        typeof(SplitInitConsumer),
+        typeof(SplitValidateConsumer),
+        typeof(SplitPlanConsumer),
+        typeof(SplitPlanEmptyVerifyConsumer),
+        typeof(SplitRefactorValidateConsumer),
+        typeof(SplitRefactorDiffConsumer),
+        typeof(SplitMigrateMapConsumer),
+        typeof(SplitMigrateProveConsumer),
+        typeof(SplitMigrateRunConsumer),
+        typeof(SplitMigrateVerifyConsumer),
         typeof(PlanDestroyConsumer),
         typeof(ApplyFromPlanConsumer),
         typeof(DestroyFromPlanConsumer),
-        typeof(OutputConsumer),
+        typeof(ApplyOutputConsumer),
+        typeof(DestroyOutputConsumer),
+
+        // transfers: each Module is dispatched to its own pinned runner
+        typeof(TransferGetModuleConsumer),
+        typeof(TransferInitConsumer),
+        typeof(TransferValidateConsumer),
+        typeof(AnalyseTransferRefactorMapConsumer),
+        typeof(TransferMigrateMapConsumer),
+        typeof(TransferMigrateProveConsumer),
+        typeof(TransferMigrateRunConsumer),
+        typeof(TransferMigrateVerifyConsumer),
+        typeof(LookupAddressesConsumer),
+        typeof(LookupAddressesGetModuleConsumer),
+        typeof(LookupAddressesInitConsumer),
+        typeof(MoveGetModuleConsumer),
+        typeof(MoveInitConsumer),
+        typeof(ImportGetModuleConsumer),
+        typeof(ImportInitConsumer),
+        typeof(RemoveGetModuleConsumer),
+        typeof(RemoveInitConsumer),
+        typeof(MoveDryRunConsumer),
+        typeof(RemoveDryRunConsumer),
+        typeof(ImportPreCheckConsumer),
+        typeof(MoveConsumer),
+        typeof(ImportConsumer),
+        typeof(RemoveConsumer),
 
         // cancel
-        typeof(CancelKillConsumer),
-        typeof(CancelGracefulConsumer)
+        typeof(ApplyCancelKillConsumer),
+        typeof(DestroyCancelKillConsumer),
+        typeof(SplitCancelKillConsumer),
+        typeof(MoveCancelKillConsumer),
+        typeof(ImportCancelKillConsumer),
+        typeof(RemoveCancelKillConsumer)
     ];
 
     // Agent mission (Layer 2) dispatch consumers - instance-specific endpoints for targeted sends, like runners
@@ -237,8 +314,19 @@ public static class MassTransit
     [
         // System consumers
         typeof(SelectRunnerInstanceConsumer),
+        typeof(TransferSelectRunnerInstanceConsumer),
+        // Selecting an instance is server-side work, so it is published to whichever server is
+        // free rather than addressed to the one owning a connection that does not exist yet.
+        typeof(LookupAddressesSelectRunnerInstanceConsumer),
+        typeof(MoveSelectRunnerInstanceConsumer),
+        typeof(ImportSelectRunnerInstanceConsumer),
+        typeof(RemoveSelectRunnerInstanceConsumer),
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(HeartbeatConsumer),
+
+        // Acts on nothing; it gives a warm-up somewhere to land.
+        typeof(WarmupCompetingConsumer),
+
 
         // Agent mission Layer-1 (match) consumers
         typeof(ApplyJobFailedCompetingConsumer),
@@ -272,8 +360,10 @@ public static class MassTransit
         typeof(ModuleStateChangedToDestroyedCompetingConsumer),
 
         // Handler consumers (offloaded from SignalR handlers)
-        typeof(OutputCompletedInvokedConsumer),
-        typeof(VariablesCompletedInvokedConsumer),
+        typeof(ApplyOutputCompletedInvokedConsumer),
+        typeof(DestroyOutputCompletedInvokedConsumer),
+        typeof(ApplyVariablesCompletedInvokedConsumer),
+        typeof(DestroyVariablesCompletedInvokedConsumer),
         typeof(ReportRunningTaskInvokedConsumer),
 
         // Admin notification consumers
@@ -286,6 +376,7 @@ public static class MassTransit
     [
         typeof(JobCreatedFanoutConsumer),
         typeof(JobUpdatedFanoutConsumer),
+        typeof(StateMigrationUpdatedFanoutConsumer),
         typeof(LogReceivedFanoutConsumer),
         typeof(RunnerAvailabilityModifiedFanoutConsumer),
         typeof(AgentAvailabilityModifiedFanoutConsumer),
@@ -310,6 +401,7 @@ public static class MassTransit
     {
         AddSagaReceiveEndpoint<ApplyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
         AddSagaReceiveEndpoint<DestroyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
+        AddSagaReceiveEndpoint<SplitMigrateSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
 
         AddSagaReceiveEndpoint<ModuleSaga, TMqFactory>(serviceBusSettings, context, cfg, serviceBusSettings.SagaConcurrencyLimit, s =>
         {
@@ -332,10 +424,55 @@ public static class MassTransit
         }, endpointNameFormatter);
     }
 
+    /// <summary>
+    /// Activities a state machine reaches through <c>OfType</c>, which resolves them from the
+    /// container. An unregistered one is skipped silently, so the gate it implements never runs.
+    /// </summary>
+    private static void AddStateMachineActivities(IServiceCollection services)
+    {
+        services.AddScoped(typeof(TransferMigrateNeedsApprovalActivity<>));
+        services.AddScoped(typeof(TerraformStateMigrationNeedsApprovalActivity<,>));
+        services.AddScoped(typeof(RunnerConnectedActivity<,>));
+        services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
+        services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));
+        services.AddScoped(typeof(WaitingForRunnerActivity<,>));
+        services.AddScoped(typeof(WaitingForConsentActivity<,>));
+        services.AddScoped(typeof(NotWaitingForConsentActivity<,>));
+
+        // The manual families send their steps to the instance owning the runner's connection,
+        // as an ordinary job does, rather than publishing them.
+        services.AddScoped(typeof(SendToRunnerActivity<,,>));
+        services.AddScoped(typeof(SendStateMigrationStepToRunnerActivity<,,>));
+        services.AddScoped(typeof(SendTerraformStateMigrationStepToRunnerActivity<,,>));
+        services.AddScoped(typeof(SendLookupAddressesStepToRunnerActivity<,>));
+        services.AddScoped(typeof(SendTransferStepToRunnerActivity<,>));
+        services.AddScoped<CheckArtefactPresentActivity>();
+        services.AddScoped<CheckConsentDecidedActivity>();
+    }
+
+    /// <summary>
+    /// The sagas, consumers and activities the server runs, without choosing a transport. The app
+    /// pairs this with a real broker; a test pairs it with the in-memory one, so both exercise the
+    /// same registrations and a service missing from one is missing from the other.
+    /// </summary>
+    public static void AddSnapCdMessagingComponents(
+        this IBusRegistrationConfigurator configurator, IServiceCollection services, string instanceId)
+    {
+        AddStateMachineActivities(services);
+        AddSagaStateMachines(configurator);
+        configurator.AddServerConsumers(instanceId, [], ServerFanoutConsumerTypes);
+    }
+
     private static void AddSagaStateMachines(IBusRegistrationConfigurator x)
     {
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
+        AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
+        AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
+        AddSagaStateMachine<LookupAddressesStateMachine, LookupAddressesSaga>(x);
+        AddSagaStateMachine<MoveStateMachine, MoveSaga>(x);
+        AddSagaStateMachine<ImportStateMachine, ImportSaga>(x);
+        AddSagaStateMachine<RemoveStateMachine, RemoveSaga>(x);
 
         // module sagas
         AddSagaStateMachine<
@@ -345,12 +482,44 @@ public static class MassTransit
                 ApplyModuleFailed,
                 ApplyModuleCompleted,
                 ApplyModuleCancelled,
-                PlanRequested,
-                PlanCompleted,
-                PlanCancelled,
+                ApplyGetDefinitiveRevisionRequested,
+                ApplyGetDefinitiveRevisionCompleted,
+                ApplyGetDefinitiveRevisionCancelled,
+                ApplyGetDefinitiveRevisionFaulted,
+                ApplyPolicyValidateRequested,
+                ApplyPolicyValidateCompleted,
+                ApplyPolicyValidateCancelled,
+                ApplyPolicyValidateFaulted,
+                ApplyOutputRequested,
+                ApplyOutputCompleted,
+                ApplyOutputCancelled,
+                ApplyOutputFaulted,
+                ApplyGetModuleRequested,
+                ApplyGetModuleCompleted,
+                ApplyGetModuleCancelled,
+                ApplyGetModuleFaulted,
+                ApplyInitRequested,
+                ApplyInitCompleted,
+                ApplyInitCancelled,
+                ApplyInitFaulted,
+                ApplyValidateRequested,
+                ApplyValidateCompleted,
+                ApplyValidateCancelled,
+                ApplyValidateFaulted,
+                ApplyVariablesRequested,
+                ApplyVariablesCompleted,
+                ApplyVariablesCancelled,
+                ApplyVariablesFaulted,
+                ApplyPlanRequested,
+                ApplyPlanCompleted,
+                ApplyPlanCancelled,
+                ApplyPlanFaulted,
                 ApplyFromPlanRequested,
                 ApplyFromPlanCompleted,
-                ApplyFromPlanCancelled
+                ApplyFromPlanCancelled,
+                ApplyCancelKillRequested,
+                DummyApplyCancelKillCompleted,
+                ApplyCancelKillCompleted
             >,
             ApplyJobSaga>(x);
 
@@ -361,12 +530,44 @@ public static class MassTransit
                 DestroyModuleFailed,
                 DestroyModuleCompleted,
                 DestroyModuleCancelled,
-                PlanDestroyRequested,
-                PlanDestroyCompleted,
-                PlanDestroyCancelled,
+                DestroyGetDefinitiveRevisionRequested,
+                DestroyGetDefinitiveRevisionCompleted,
+                DestroyGetDefinitiveRevisionCancelled,
+                DestroyGetDefinitiveRevisionFaulted,
+                DestroyPolicyValidateRequested,
+                DestroyPolicyValidateCompleted,
+                DestroyPolicyValidateCancelled,
+                DestroyPolicyValidateFaulted,
+                DestroyOutputRequested,
+                DestroyOutputCompleted,
+                DestroyOutputCancelled,
+                DestroyOutputFaulted,
+                DestroyGetModuleRequested,
+                DestroyGetModuleCompleted,
+                DestroyGetModuleCancelled,
+                DestroyGetModuleFaulted,
+                DestroyInitRequested,
+                DestroyInitCompleted,
+                DestroyInitCancelled,
+                DestroyInitFaulted,
+                DestroyValidateRequested,
+                DestroyValidateCompleted,
+                DestroyValidateCancelled,
+                DestroyValidateFaulted,
+                DestroyVariablesRequested,
+                DestroyVariablesCompleted,
+                DestroyVariablesCancelled,
+                DestroyVariablesFaulted,
+                DestroyPlanRequested,
+                DestroyPlanCompleted,
+                DestroyPlanCancelled,
+                DestroyPlanFaulted,
                 DestroyFromPlanRequested,
                 DestroyFromPlanCompleted,
-                DestroyFromPlanCancelled
+                DestroyFromPlanCancelled,
+                DestroyCancelKillRequested,
+                DummyDestroyCancelKillCompleted,
+                DestroyCancelKillCompleted
             >, DestroyJobSaga>(x);
     }
 

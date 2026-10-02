@@ -7,15 +7,13 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR;
+using SnapCd.Contracts.Constants;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
-using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Misc.Constants;
-using SnapCd.Server.Core.Misc.Exceptions;
-using SnapCd.Server.Core.Misc.Helpers;
-using SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
-using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Services;
 
@@ -25,20 +23,17 @@ namespace SnapCd.Server.Core.Services;
 /// </summary>
 public class RunnerJobAuthorizationService
 {
-    private readonly JobSagaRepositoryFactory _jobSagaRepositoryFactory;
     private readonly RunnerConnectionRepositoryFactory _connectionRepositoryFactory;
     private readonly ServicePrincipalRepositoryFactory _servicePrincipalRepositoryFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ILogger<RunnerJobAuthorizationService> _logger;
 
     public RunnerJobAuthorizationService(
-        JobSagaRepositoryFactory jobSagaRepositoryFactory,
         RunnerConnectionRepositoryFactory connectionRepositoryFactory,
         ServicePrincipalRepositoryFactory servicePrincipalRepositoryFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         ILogger<RunnerJobAuthorizationService> logger)
     {
-        _jobSagaRepositoryFactory = jobSagaRepositoryFactory;
         _connectionRepositoryFactory = connectionRepositoryFactory;
         _servicePrincipalRepositoryFactory = servicePrincipalRepositoryFactory;
         _dbContextFactory = dbContextFactory;
@@ -93,119 +88,6 @@ public class RunnerJobAuthorizationService
         return organizationId;
     }
 
-    public async Task ValidateRunnerCanAccessJob(
-        HubCallerContext hubCallerContext,
-        Guid jobId,
-        TaskEndpoint taskEndpoint)
-    {
-        var expectedState = StateHelper.Lookup(taskEndpoint);
-
-        var organizationId = GetValidatedOrganizationId(hubCallerContext);
-
-        // 1. Get runner connection info from database
-        using var connectionRepository = _connectionRepositoryFactory.Create();
-        var connection = await connectionRepository.GetBySignalRConnectionIdAsync(hubCallerContext.ConnectionId, organizationId);
-        if (connection == null)
-        {
-            _logger.LogWarning(
-                "Authorization failed: No connection found for connection {ConnectionId}",
-                hubCallerContext.ConnectionId);
-            throw new HubException("Unauthorized: Runner connection not found");
-        }
-
-        // 2. Load saga metadata using JobSagaRepository (checks both ApplyJobSaga and DestroyJobSaga)
-        using var jobSagaRepository = _jobSagaRepositoryFactory.Create();
-        JobSagaMetaData sagaMetaData;
-        try
-        {
-            sagaMetaData = await jobSagaRepository.GetSagaMetaData(jobId, connection.OrganizationId);
-        }
-        catch (EntityNotFoundException e)
-        {
-            _logger.LogWarning(
-                "Authorization failed: Job {JobId} not found (Connection: {ConnectionId})",
-                jobId, hubCallerContext.ConnectionId);
-            throw new HubException(e.Message);
-        }
-
-        // 3. Validate saga state matches expected state
-        var currentState = Enum.Parse<ModuleJobSagaState>(sagaMetaData.CurrentState);
-        var cancellingStates = StateHelper.GetCancellingStates();
-
-        var isStateValid = currentState == expectedState;
-
-        // If in cancellation state, also check if PreviousStateBeforeCancelling matches expected state
-        if (!isStateValid && cancellingStates.Contains(currentState))
-        {
-            var previousState = !string.IsNullOrEmpty(sagaMetaData.PreviousStateBeforeCancelling)
-                ? Enum.Parse<ModuleJobSagaState>(sagaMetaData.PreviousStateBeforeCancelling)
-                : (ModuleJobSagaState?)null;
-
-            if (previousState == expectedState)
-            {
-                isStateValid = true;
-                _logger.LogDebug(
-                    "Authorization: Job {JobId} is in cancellation state {CurrentState}, but PreviousStateBeforeCancelling " +
-                    "matches expected {ExpectedState} - allowing completion message",
-                    jobId, currentState, expectedState);
-            }
-        }
-
-        if (!isStateValid)
-        {
-            _logger.LogWarning(
-                "Authorization failed: Job {JobId} is in state {CurrentState}, expected {ExpectedState} " +
-                "(Runner: {RunnerId}/{RunnerName}, Connection: {ConnectionId})",
-                jobId, sagaMetaData.CurrentState, expectedState,
-                connection.RunnerId, connection.InstanceName, hubCallerContext.ConnectionId);
-            throw new HubException(
-                $"Unauthorized: Job is in state '{sagaMetaData.CurrentState}', expected '{expectedState}'");
-        }
-
-        // 4. Validate RunnerId matches
-        if (sagaMetaData.RunnerId != connection.RunnerId)
-        {
-            _logger.LogWarning(
-                "Authorization failed: Job {JobId} requires Runner {RequiredRunnerId}, " +
-                "but the selected runner is {SelectedRunnerId} " +
-                "(Runner: {RunnerName}, Connection: {ConnectionId})",
-                jobId, sagaMetaData.RunnerId, connection.RunnerId,
-                connection.InstanceName, hubCallerContext.ConnectionId);
-            throw new HubException(
-                "Unauthorized: This runner's pool is not authorized for this job");
-        }
-
-        // 5. If specific runner is required, validate runner name matches
-        if (!string.IsNullOrEmpty(sagaMetaData.RunnerInstanceName) &&
-            sagaMetaData.RunnerInstanceName != connection.InstanceName)
-        {
-            _logger.LogWarning(
-                "Authorization failed: Job {JobId} requires specific runner {RequiredRunner}, " +
-                "but caller is {ActualRunner} (Pool: {RunnerId}, Connection: {ConnectionId})",
-                jobId, sagaMetaData.RunnerInstanceName, connection.InstanceName,
-                connection.RunnerId, hubCallerContext.ConnectionId);
-            throw new HubException(
-                "Unauthorized: This job requires a specific runner");
-        }
-
-        // 6. Validate organization matches (defense in depth)
-        if (sagaMetaData.OrganizationId != connection.OrganizationId)
-        {
-            _logger.LogWarning(
-                "Authorization failed: Job {JobId} belongs to organization {JobOrgId}, " +
-                "but runner is in organization {RunnerOrgId} " +
-                "(Runner: {RunnerId}/{RunnerName}, Connection: {ConnectionId})",
-                jobId, sagaMetaData.OrganizationId, connection.OrganizationId,
-                connection.RunnerId, connection.InstanceName, hubCallerContext.ConnectionId);
-            throw new HubException(
-                "Unauthorized: Organization mismatch");
-        }
-
-        _logger.LogDebug(
-            "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for job {JobId} in state {State}",
-            connection.RunnerId, connection.InstanceName, jobId, expectedState);
-    }
-
     public async Task ValidateRunnerAssignedToModule(
         Guid runnerId,
         Guid moduleId,
@@ -243,5 +125,80 @@ public class RunnerJobAuthorizationService
             runnerId, moduleId, organizationId);
         throw new InvalidOperationException(
             $"Module {moduleId} is not allowed to run jobs on Runner {runnerId}. You must first assign the Runner to this Module (or to its parent Namespace or Stack), or you must set the IsSuppliedToAllModules flag to 'true' on the Runner itself.");
+    }
+
+    /// <summary>
+    /// Authorizes a runner callback for one job family: that the connection is known, the job
+    /// exists, and the caller is the runner instance the job was pinned to. Whether the saga is in
+    /// a state that accepts the reply is the saga's own decision, raised as an unhandled event and
+    /// retried by the endpoint, so it is not answered here.
+    ///
+    /// The endpoint the reply arrived on says which family it belongs to, so the saga is read from
+    /// that family's own table rather than searched for across all of them. A transfer runs two
+    /// Modules under one job, so the Module is named as well.
+    /// </summary>
+    public async Task<Guid> ValidateRunnerCanAccessJob<TSaga>(
+        HubCallerContext hubCallerContext,
+        Guid jobId,
+        Guid? moduleId = null)
+        where TSaga : JobSagaBase
+    {
+        var family = typeof(TSaga).Name;
+        var organizationId = GetValidatedOrganizationId(hubCallerContext);
+
+        using var connectionRepository = _connectionRepositoryFactory.Create();
+        var connection = await connectionRepository.GetBySignalRConnectionIdAsync(
+            hubCallerContext.ConnectionId, organizationId);
+
+        if (connection == null)
+        {
+            _logger.LogWarning(
+                "Authorization failed: No connection found for connection {ConnectionId}",
+                hubCallerContext.ConnectionId);
+            throw new HubException("Unauthorized: Runner connection not found");
+        }
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var query = dbContext.Set<TSaga>().AsNoTracking()
+            .Where(x => x.CorrelationId == jobId && x.OrganizationId == connection.OrganizationId);
+
+        if (moduleId.HasValue)
+            query = query.Where(x => x.ModuleId == moduleId.Value);
+
+        var saga = await query
+            .Select(x => new { x.RunnerId, x.RunnerInstanceName, x.OrganizationId })
+            .FirstOrDefaultAsync();
+
+        if (saga == null)
+        {
+            _logger.LogWarning(
+                "Authorization failed: {Family} job {JobId} not found (Module: {ModuleId}, Connection: {ConnectionId})",
+                family, jobId, moduleId, hubCallerContext.ConnectionId);
+            throw new HubException($"Could not find a Job with correlation id {jobId}.");
+        }
+
+        if (saga.RunnerId != connection.RunnerId)
+        {
+            _logger.LogWarning(
+                "Authorization failed: {Family} job {JobId} requires Runner {RequiredRunnerId}, but the caller is {SelectedRunnerId}",
+                family, jobId, saga.RunnerId, connection.RunnerId);
+            throw new HubException("Unauthorized: This runner's pool is not authorized for this job");
+        }
+
+        if (!string.IsNullOrEmpty(saga.RunnerInstanceName) &&
+            saga.RunnerInstanceName != connection.InstanceName)
+        {
+            _logger.LogWarning(
+                "Authorization failed: {Family} job {JobId} requires specific runner {RequiredRunner}, but caller is {ActualRunner}",
+                family, jobId, saga.RunnerInstanceName, connection.InstanceName);
+            throw new HubException("Unauthorized: This job requires a specific runner");
+        }
+
+        _logger.LogDebug(
+            "Authorization succeeded: Runner {RunnerId}/{RunnerName} authorized for {Family} job {JobId}",
+            connection.RunnerId, connection.InstanceName, family, jobId);
+
+        return saga.OrganizationId;
     }
 }

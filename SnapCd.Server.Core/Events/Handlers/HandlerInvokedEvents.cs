@@ -15,21 +15,37 @@ namespace SnapCd.Server.Core.Events.Handlers;
 /// Published when OutputHandler.Complete is invoked from SignalR.
 /// Processed by OutputCompletedInvokedConsumer to handle database work.
 /// </summary>
-public class OutputCompletedInvoked
+public abstract class OutputCompletedInvokedBase
 {
-    public required Guid JobId { get; set; }
+    public Guid JobId { get; set; }
     public OutputSetCreateDto? OutputSet { get; set; }
 }
+
+/// <summary>
+/// One per job kind: the consumer that handles it publishes the reply the asking saga waits for,
+/// and each kind waits for its own.
+/// </summary>
+public class ApplyOutputCompletedInvoked : OutputCompletedInvokedBase;
+
+public class DestroyOutputCompletedInvoked : OutputCompletedInvokedBase;
 
 /// <summary>
 /// Published when VariableHandler.Complete is invoked from SignalR.
 /// Processed by VariablesCompletedInvokedConsumer to handle database work.
 /// </summary>
-public class VariablesCompletedInvoked
+public abstract class VariablesCompletedInvokedBase
 {
-    public required Guid JobId { get; set; }
+    public Guid JobId { get; set; }
     public VariableSetCreateDto? VariableSet { get; set; }
 }
+
+/// <summary>
+/// One per job kind, because the consumer that handles it publishes the reply the asking saga is
+/// waiting for, and each kind waits for its own.
+/// </summary>
+public class ApplyVariablesCompletedInvoked : VariablesCompletedInvokedBase;
+
+public class DestroyVariablesCompletedInvoked : VariablesCompletedInvokedBase;
 
 /// <summary>
 /// Published when ReportRunningTaskHandler.Report is invoked from SignalR.

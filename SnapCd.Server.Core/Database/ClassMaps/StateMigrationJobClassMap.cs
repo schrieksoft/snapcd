@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SnapCd.Server.Core.Entities.Definition;
+
+namespace SnapCd.Server.Core.Database.ClassMaps;
+
+public class StateMigrationJobClassMap : IEntityTypeConfiguration<StateMigrationJob>
+{
+    public void Configure(EntityTypeBuilder<StateMigrationJob> entity)
+    {
+        entity.ToTable("StateMigrationJobs", t => t.UseSqlOutputClause(false));
+
+        entity.HasKey(e => new { e.Id, e.OrganizationId });
+
+        entity.HasIndex(e => e.Id).IsUnique();
+
+        entity
+            .HasOne(e => e.Module)
+            .WithMany()
+            .HasForeignKey(e => new { e.ModuleId, e.OrganizationId })
+            .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // The job's own side of the transfer it belongs to; no cascade, since a transfer closing
+        // must not take the record of what ran under it.
+        entity
+            .HasOne(e => e.Transfer)
+            .WithMany()
+            .HasForeignKey(e => new { e.TransferId, e.OrganizationId })
+            .HasPrincipalKey(t => new { t.Id, t.OrganizationId })
+            .OnDelete(DeleteBehavior.NoAction);
+
+        entity
+            .HasOne(e => e.Organization)
+            .WithMany(x => x.StateMigrationJobs)
+            .HasForeignKey(e => e.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        entity
+            .Property(p => p.JobNumber)
+            .UseIdentityColumn();
+
+        entity
+            .HasIndex(m => m.ModuleId);
+
+        entity
+            .HasIndex(m => new { m.ModuleId, m.TimestampStart, m.OrganizationId });
+
+        // At most one unfinished manual job per module. There is no gatekeeping saga serialising
+        // these requests, so two concurrent launches would both pass an application-level check;
+        // the second insert hits this index and throws instead. SQL-Server filtered index.
+        entity
+            .HasIndex(e => new { e.ModuleId, e.OrganizationId })
+            .IsUnique()
+            .HasFilter("[Status] = 'Running'");
+
+        entity
+            .Property(d => d.Status)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        entity
+            .Property(d => d.FailedOnServerSideStep)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+    }
+}

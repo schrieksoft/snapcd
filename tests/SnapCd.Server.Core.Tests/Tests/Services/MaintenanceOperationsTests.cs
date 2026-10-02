@@ -34,12 +34,44 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleFailed,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleCompleted,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleCancelled,
-    SnapCd.Server.Core.Events.Steps.PlanRequested,
-    SnapCd.Server.Core.Events.Steps.PlanCompleted,
-    SnapCd.Server.Core.Events.Steps.PlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyInitRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyInitCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyInitCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyInitFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 
@@ -297,25 +329,23 @@ public class MaintenanceOperationsTests : IAsyncLifetime
         => Assert.Equal(needsRecovery, MaintenanceOperationsService.ClosingNeedsRecovery(phase));
 
     [Fact]
-    public async Task CancelAll_Cancels_Pending_And_Skips_Approval_Waits()
+    public async Task CancelAll_Cancels_Pending_And_Approval_Waits()
     {
         var pending = await SeedSaga("PlanPending", "ops-cancel");
         var approval = await SeedSaga("WaitingForApproval", "ops-cancel");
 
-        var result = await CreateService().CancelAllJobsAsync(CancellationType.ImmediateGraceful);
+        var result = await CreateService().CancelAllJobsAsync(CancellationType.AfterCurrent);
 
         Assert.True(await _harness.Published.Any<CancelModuleRequested>(x => x.Context.Message.CorrelationId == pending));
-        Assert.False(_harness.Published
-            .Select<CancelModuleRequested>(x => ((IPublishedMessage<CancelModuleRequested>)x).Context.Message.CorrelationId == approval)
-            .Any());
-        Assert.Contains(result.Skipped, s => s.Contains(approval.ToString()));
+        Assert.True(await _harness.Published.Any<CancelModuleRequested>(x => x.Context.Message.CorrelationId == approval));
+        Assert.DoesNotContain(result.Skipped, s => s.Contains(approval.ToString()));
 
         var deadline = DateTime.UtcNow.AddSeconds(10);
         while (DateTime.UtcNow < deadline)
         {
             await using var db = _fixture.CreateDbContext();
             var saga = await db.ApplyJobSagas.AsNoTracking().SingleAsync(s => s.CorrelationId == pending);
-            if (saga.CurrentState == "CancellingImmediateGraceful") return;
+            if (saga.CurrentState == "CancellingAfterCurrent") return;
             await Task.Delay(100);
         }
 

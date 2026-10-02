@@ -39,11 +39,11 @@ public class ProcessRegistryTests
 
         // Act
         registry.Register(requestId, cts1, CancellationType.ImmediateKill);
-        registry.Register(requestId, cts2, CancellationType.ImmediateGraceful);
+        registry.Register(requestId, cts2, CancellationType.AfterCurrent);
 
         // Assert
         Assert.True(registry.IsActive(requestId, CancellationType.ImmediateKill));
-        Assert.True(registry.IsActive(requestId, CancellationType.ImmediateGraceful));
+        Assert.True(registry.IsActive(requestId, CancellationType.AfterCurrent));
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class ProcessRegistryTests
         var cts2 = new CancellationTokenSource();
 
         registry.Register(requestId, cts1, CancellationType.ImmediateKill);
-        registry.Register(requestId, cts2, CancellationType.ImmediateGraceful);
+        registry.Register(requestId, cts2, CancellationType.AfterCurrent);
 
         // Act
         var result = registry.TryCancel(requestId, CancellationType.ImmediateKill);
@@ -98,7 +98,7 @@ public class ProcessRegistryTests
         Assert.True(cts1.Token.IsCancellationRequested);
         Assert.False(cts2.Token.IsCancellationRequested);
         Assert.False(registry.IsActive(requestId, CancellationType.ImmediateKill));
-        Assert.True(registry.IsActive(requestId, CancellationType.ImmediateGraceful));
+        Assert.True(registry.IsActive(requestId, CancellationType.AfterCurrent));
     }
 
     [Fact]
@@ -234,12 +234,12 @@ public class ProcessRegistryTests
         // Act
         registry.Register(request1, cts1, CancellationType.ImmediateKill);
         registry.Register(request2, cts2, CancellationType.ImmediateKill);
-        registry.Register(request3, cts3, CancellationType.ImmediateGraceful);
+        registry.Register(request3, cts3, CancellationType.AfterCurrent);
 
         // Assert
         Assert.True(registry.IsActive(request1, CancellationType.ImmediateKill));
         Assert.True(registry.IsActive(request2, CancellationType.ImmediateKill));
-        Assert.True(registry.IsActive(request3, CancellationType.ImmediateGraceful));
+        Assert.True(registry.IsActive(request3, CancellationType.AfterCurrent));
 
         // Cancel one
         registry.TryCancel(request2, CancellationType.ImmediateKill);
@@ -247,6 +247,6 @@ public class ProcessRegistryTests
         // Assert others are still active
         Assert.True(registry.IsActive(request1, CancellationType.ImmediateKill));
         Assert.False(registry.IsActive(request2, CancellationType.ImmediateKill));
-        Assert.True(registry.IsActive(request3, CancellationType.ImmediateGraceful));
+        Assert.True(registry.IsActive(request3, CancellationType.AfterCurrent));
     }
 }

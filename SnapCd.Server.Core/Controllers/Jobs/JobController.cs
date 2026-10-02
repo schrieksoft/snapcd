@@ -212,11 +212,11 @@ public class JobController : ControllerBase
     [EndpointSummary("Cancel a running Job")]
     [PermissionSource(Repository = typeof(ModuleJobSecuredRepository), Verb = PermissionVerb.RunJob)]
     [HttpPost("{id}/cancel")]
-    [ExposeAsMcpTool(Instructions = "CancellationType: AfterCurrent (let current step finish), ImmediateGraceful (signal runner to stop), ImmediateKill (force terminate).")]
+    [ExposeAsMcpTool(Instructions = "CancellationType: AfterCurrent (let current step finish), ImmediateKill (force terminate).")]
     public async Task<IActionResult> Cancel(
         Guid organizationId,
         Guid id,
-        [FromQuery] CancellationType cancellationType = CancellationType.ImmediateGraceful)
+        [FromQuery] CancellationType cancellationType = CancellationType.AfterCurrent)
     {
         try
         {

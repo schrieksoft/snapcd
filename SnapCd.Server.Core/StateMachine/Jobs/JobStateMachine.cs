@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
+using SnapCd.Server.Core.Events.Jobs.Module;
 
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
@@ -39,24 +40,88 @@ public partial class JobStateMachine<
     TResponseFailed,
     TResponseCompleted,
     TResponseCancelled,
+    TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+    TGetModuleCompleted,
+    TGetModuleCancelled,
+    TGetModuleFaulted,
+    TInitRequested,
+    TInitCompleted,
+    TInitCancelled,
+    TInitFaulted,
+    TValidateRequested,
+    TValidateCompleted,
+    TValidateCancelled,
+    TValidateFaulted,
+    TVariablesRequested,
+    TVariablesCompleted,
+    TVariablesCancelled,
+    TVariablesFaulted,
     TPlanRequested,
     TPlanCompleted,
     TPlanCancelled,
+    TPlanFaulted,
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
-    TApplyFromPlanCancelled>
+    TApplyFromPlanCancelled,
+    TCancelKillRequested,
+    TDummyCancelKillCompleted,
+    TCancelKillCompleted>
     : MassTransitStateMachine<TSaga>
     where TSaga : JobSagaBase
     where TRequest : ModuleJobEventBase
     where TResponseFailed : ModuleJobEventCompletedBase, new()
     where TResponseCompleted : ModuleJobEventCompletedBase, new()
     where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    where TGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase, new()
+    where TGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase
+    where TGetDefinitiveRevisionCancelled : StepResponseBase
+    where TGetDefinitiveRevisionFaulted : StepFaultedBase
+    where TPolicyValidateRequested : PolicyValidateRequestedBase, new()
+    where TPolicyValidateCompleted : PolicyValidateCompletedBase
+    where TPolicyValidateCancelled : StepResponseBase
+    where TPolicyValidateFaulted : StepFaultedBase
+    where TOutputRequested : OutputRequestedBase, new()
+    where TOutputCompleted : StepResponseBase
+    where TOutputCancelled : StepResponseBase
+    where TOutputFaulted : StepFaultedBase
+    where TGetModuleRequested : GetModuleRequestedBase, new()
+    where TGetModuleCompleted : StepResponseBase
+    where TGetModuleCancelled : StepResponseBase
+    where TGetModuleFaulted : StepFaultedBase
+    where TInitRequested : InitRequestedBase, new()
+    where TInitCompleted : StepResponseBase
+    where TInitCancelled : StepResponseBase
+    where TInitFaulted : StepFaultedBase
+    where TValidateRequested : ValidateRequestedBase, new()
+    where TValidateCompleted : StepResponseBase
+    where TValidateCancelled : StepResponseBase
+    where TValidateFaulted : StepFaultedBase
+    where TVariablesRequested : VariablesRequestedBase, new()
+    where TVariablesCompleted : StepResponseBase
+    where TVariablesCancelled : StepResponseBase
+    where TVariablesFaulted : StepFaultedBase
     where TPlanRequested : StepRequestBase, new()
     where TPlanCompleted : PlanCompletedBase
     where TPlanCancelled : StepResponseBase
+    where TPlanFaulted : StepFaultedBase, new()
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TCancelKillRequested : CancelKillRequestedBase, new()
+    where TDummyCancelKillCompleted : class
+    where TCancelKillCompleted : StepResponseBase
 {
     private readonly ILogger<JobStateMachine<
         TSaga,
@@ -64,12 +129,44 @@ public partial class JobStateMachine<
         TResponseFailed,
         TResponseCompleted,
         TResponseCancelled,
+        TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+        TGetModuleCompleted,
+        TGetModuleCancelled,
+        TGetModuleFaulted,
+        TInitRequested,
+        TInitCompleted,
+        TInitCancelled,
+        TInitFaulted,
+        TValidateRequested,
+        TValidateCompleted,
+        TValidateCancelled,
+        TValidateFaulted,
+        TVariablesRequested,
+        TVariablesCompleted,
+        TVariablesCancelled,
+        TVariablesFaulted,
         TPlanRequested,
         TPlanCompleted,
         TPlanCancelled,
+        TPlanFaulted,
         TApplyFromPlanRequested,
         TApplyFromPlanCompleted,
-        TApplyFromPlanCancelled
+        TApplyFromPlanCancelled,
+        TCancelKillRequested,
+        TDummyCancelKillCompleted,
+        TCancelKillCompleted
     >> _logger;
 
     public Event<TRequest> ModuleRequest { get; } = null!;
@@ -88,13 +185,45 @@ public partial class JobStateMachine<
             TRequest,
             TResponseFailed,
             TResponseCompleted,
-            TResponseCancelled,
+        TResponseCancelled,
+            TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+            TGetModuleCompleted,
+            TGetModuleCancelled,
+            TGetModuleFaulted,
+            TInitRequested,
+            TInitCompleted,
+            TInitCancelled,
+            TInitFaulted,
+            TValidateRequested,
+            TValidateCompleted,
+            TValidateCancelled,
+            TValidateFaulted,
+            TVariablesRequested,
+            TVariablesCompleted,
+            TVariablesCancelled,
+            TVariablesFaulted,
             TPlanRequested,
             TPlanCompleted,
             TPlanCancelled,
+            TPlanFaulted,
             TApplyFromPlanRequested,
             TApplyFromPlanCompleted,
-            TApplyFromPlanCancelled
+            TApplyFromPlanCancelled,
+            TCancelKillRequested,
+            TDummyCancelKillCompleted,
+            TCancelKillCompleted
         >> logger
     )
     {
@@ -156,11 +285,15 @@ public partial class JobStateMachine<
         Configure_Approval();
 
         // Terminal states - ignore runner reconnection events
+        // A cancel that arrives after the job ended has nothing to do, but must not fault: an
+        // unhandled event is retried and then dead-lettered, which looks like a broken cancel.
         During(Completed,
+            Ignore(CancelModuleRequested),
             Ignore(RunnerReconnectedEvent)
         );
 
         During(Failed,
+            Ignore(CancelModuleRequested),
             Ignore(RunnerReconnectedEvent)
         );
 

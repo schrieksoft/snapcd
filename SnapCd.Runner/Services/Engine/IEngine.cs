@@ -15,6 +15,41 @@ namespace SnapCd.Runner.Services;
 public interface IEngine
 {
     string GetInitDir();
+
+    /// <summary>Runs a command in the module directory with the job's environment loaded.</summary>
+    Task<string> RunProcess(
+        string script,
+        CancellationToken killCancellationToken,
+        bool logOutput = true);
+
+    /// <summary>
+    /// Moves, imports or removes addresses one at a time, reporting each on its own. A batch never
+    /// abandons the rest on one failure: which of them worked is what the caller needs.
+    /// </summary>
+    /// <summary>Moves each address to its target. A dry run prints what it would move and moves nothing.</summary>
+    Task<List<(string Address, bool Succeeded)>> Move(
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        bool dryRun = false,
+        CancellationToken killCancellationToken = default);
+
+    /// <summary>Imports each address from the id it already has. There is no dry run for this.</summary>
+    Task<List<(string Address, bool Succeeded)>> Import(
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        CancellationToken killCancellationToken = default);
+
+    /// <summary>Takes each address out of state, leaving the infrastructure alone.</summary>
+    Task<List<(string Address, bool Succeeded)>> Remove(
+        IReadOnlyCollection<string> addresses,
+        bool dryRun = false,
+        CancellationToken killCancellationToken = default);
+
+    /// <summary>
+    /// Which of the given addresses are in this Module's state. The state itself is never returned
+    /// or logged - only the verdict on the addresses asked about.
+    /// </summary>
+    Task<(List<string> Present, List<string> Absent)> LookupAddresses(
+        IReadOnlyCollection<string> addresses,
+        CancellationToken killCancellationToken = default);
     string GetSnapCdDir();
 
     Task<string> Init(
@@ -22,14 +57,12 @@ public interface IEngine
         string? beforeHook,
         string? afterHook,
         EngineBackendConfiguration backendConfig,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     Task Validate(
         string? beforeHook = null,
         string? afterHook = null,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     /// <summary>
     /// Exports the current binary plan as JSON for policy evaluation and returns the file path.
@@ -37,8 +70,7 @@ public interface IEngine
     /// </summary>
     Task<string> ExportPlanJson(
         bool isDestroyJob,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     /// <summary>
     /// Registers CrossGuard policy-pack directories to enforce inside subsequent plan previews.
@@ -50,37 +82,31 @@ public interface IEngine
         Dictionary<string, string> parameters,
         string? planBeforeHook,
         string? planAfterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     Task<string> PlanDestroy(
         Dictionary<string, string> parameters,
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     Task<string> ApplyFromPlan(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     Task<string> DestroyFromPlan(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     Task<string> Output(
         string? beforeHook,
         string? afterHook,
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     Task<int> Statistics(
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     /// <summary>
     /// How many destroyable resources the state holds. Answerable without input variables, which a
@@ -88,8 +114,7 @@ public interface IEngine
     /// covers both an empty state and one that was never written.
     /// </summary>
     Task<int> CountResourcesInState(
-        CancellationToken killCancellationToken = default,
-        CancellationToken gracefulCancellationToken = default);
+        CancellationToken killCancellationToken = default);
 
     Task<int> ReadStatisticsFromFile();
 
@@ -99,3 +124,4 @@ public interface IEngine
     Task<OutputSetCreateDto?> ParseJsonToModuleOutputSet(
         string json, Dictionary<string, bool>? outputSources = null);
 }
+

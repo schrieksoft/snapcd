@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.StateMachine.Jobs.Activites.Finalization;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using SnapCd.Server.Core.Events.Jobs.Module;
 namespace SnapCd.Server.Core.StateMachine.Jobs;
 
 public partial class JobStateMachine<
@@ -24,28 +25,92 @@ public partial class JobStateMachine<
     TResponseFailed,
     TResponseCompleted,
     TResponseCancelled,
+    TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+    TGetModuleCompleted,
+    TGetModuleCancelled,
+    TGetModuleFaulted,
+    TInitRequested,
+    TInitCompleted,
+    TInitCancelled,
+    TInitFaulted,
+    TValidateRequested,
+    TValidateCompleted,
+    TValidateCancelled,
+    TValidateFaulted,
+    TVariablesRequested,
+    TVariablesCompleted,
+    TVariablesCancelled,
+    TVariablesFaulted,
     TPlanRequested,
     TPlanCompleted,
     TPlanCancelled,
+    TPlanFaulted,
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
-    TApplyFromPlanCancelled>
+    TApplyFromPlanCancelled,
+    TCancelKillRequested,
+    TDummyCancelKillCompleted,
+    TCancelKillCompleted>
     where TSaga : JobSagaBase
     where TRequest : ModuleJobEventBase
     where TResponseFailed : ModuleJobEventCompletedBase, new()
     where TResponseCompleted : ModuleJobEventCompletedBase, new()
     where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    where TGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase, new()
+    where TGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase
+    where TGetDefinitiveRevisionCancelled : StepResponseBase
+    where TGetDefinitiveRevisionFaulted : StepFaultedBase
+    where TPolicyValidateRequested : PolicyValidateRequestedBase, new()
+    where TPolicyValidateCompleted : PolicyValidateCompletedBase
+    where TPolicyValidateCancelled : StepResponseBase
+    where TPolicyValidateFaulted : StepFaultedBase
+    where TOutputRequested : OutputRequestedBase, new()
+    where TOutputCompleted : StepResponseBase
+    where TOutputCancelled : StepResponseBase
+    where TOutputFaulted : StepFaultedBase
+    where TGetModuleRequested : GetModuleRequestedBase, new()
+    where TGetModuleCompleted : StepResponseBase
+    where TGetModuleCancelled : StepResponseBase
+    where TGetModuleFaulted : StepFaultedBase
+    where TInitRequested : InitRequestedBase, new()
+    where TInitCompleted : StepResponseBase
+    where TInitCancelled : StepResponseBase
+    where TInitFaulted : StepFaultedBase
+    where TValidateRequested : ValidateRequestedBase, new()
+    where TValidateCompleted : StepResponseBase
+    where TValidateCancelled : StepResponseBase
+    where TValidateFaulted : StepFaultedBase
+    where TVariablesRequested : VariablesRequestedBase, new()
+    where TVariablesCompleted : StepResponseBase
+    where TVariablesCancelled : StepResponseBase
+    where TVariablesFaulted : StepFaultedBase
     where TPlanRequested : StepRequestBase, new()
     where TPlanCompleted : PlanCompletedBase
     where TPlanCancelled : StepResponseBase
+    where TPlanFaulted : StepFaultedBase, new()
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TCancelKillRequested : CancelKillRequestedBase, new()
+    where TDummyCancelKillCompleted : class
+    where TCancelKillCompleted : StepResponseBase
 {
-    public Event<OutputRequested> OutputRequested { get; } = null!;
-    public Event<OutputCompleted> OutputCompleted { get; } = null!;
-    public Event<OutputCancelled> OutputCancelled { get; } = null!;
-    public Event<OutputFaulted> OutputFaulted { get; } = null!;
+    public Event<TOutputRequested> OutputRequested { get; } = null!;
+    public Event<TOutputCompleted> OutputCompleted { get; } = null!;
+    public Event<TOutputCancelled> OutputCancelled { get; } = null!;
+    public Event<TOutputFaulted> OutputFaulted { get; } = null!;
     public State OutputWaitingForRunner { get; } = null!;
 
     public State OutputPending { get; } = null!;
@@ -73,7 +138,7 @@ public partial class JobStateMachine<
                         context.Saga.CorrelationId);
                 })
                 // Retry sending OutputRequested
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, RunnerReconnectedEvent, OutputRequested>>())
+                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, RunnerReconnectedEvent, TOutputRequested>>())
                 .IfElse(
                     context => context.Saga.PreviousStateBeforeWaiting != null,
                     // Still disconnected (race condition) - stay in waiting
@@ -98,9 +163,8 @@ public partial class JobStateMachine<
                         .TransitionTo(OutputPending)
                 ),
             When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             Ignore(HeartbeatScheduled.Received),
             Ignore(HeartbeatRequested.Completed),
             Ignore(HeartbeatRequested.Completed2)
@@ -115,7 +179,7 @@ public partial class JobStateMachine<
                     OrganizationId = context.Saga.OrganizationId,
                     ModuleJobId = context.Saga.CorrelationId
                 })
-                .Activity(x => x.OfType<CompleteModuleJobActivity<TSaga, OutputCompleted>>())
+                .Activity(x => x.OfType<CompleteModuleJobActivity<TSaga, TOutputCompleted>>())
                 .TransitionTo(Completed)
                 .Finalize(),
             When(HeartbeatScheduled.Received)
@@ -125,13 +189,12 @@ public partial class JobStateMachine<
             When(HeartbeatRequested.Completed2)
                 .ThenJobTimedOut<TSaga, TResponseFailed>(Failed),
             When(CancelModuleRequested)
-                .IfCancelKill<TSaga, TResponseCancelled>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
-                .IfCancelGraceful<TSaga, TResponseCancelled>(_logger, CancelGracefulRequested, CancellingImmediateGraceful, Cancelled)
-                .IfCancelAfterCurrent(_logger, CancellingAfterCurrent),
+                .IfCancelKill<TSaga, TResponseCancelled, CancelModuleRequested, TCancelKillRequested, TDummyCancelKillCompleted>(_logger, CancelKillRequested, CancellingImmediateKill, Cancelled)
+                .IfCancelAfterCurrent<TSaga, CancelModuleRequested>(_logger, CancellingAfterCurrent),
             When(OutputCancelled)
-                .ThenCancelled<TSaga, TResponseCancelled, OutputCancelled>(Cancelled),
+                .ThenCancelled<TSaga, TResponseCancelled, TOutputCancelled>(Cancelled),
             When(OutputFaulted)
-                .ThenFaulted<TSaga, TResponseFailed, OutputFaulted>(Failed, _logger),
+                .ThenFaulted<TSaga, TResponseFailed, TOutputFaulted>(Failed, _logger),
             Ignore(RunnerReconnectedEvent)
         );
     }

@@ -220,3 +220,5 @@ SnapCd.Runner/EmbeddedTools/
 tools/snapcd-inspect/snapcd-inspect
 
 graphify-out
+# demonolith's working directory, which a runner creates beside the code it is given.
+.demono-transfer/

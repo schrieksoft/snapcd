@@ -1015,7 +1015,7 @@ paths:
       - name: cancellationType
         in: query
         schema:
-          default: ImmediateGraceful
+          default: AfterCurrent
           $ref: '#/components/schemas/CancellationType'
       responses:
         '200':
@@ -5594,6 +5594,143 @@ paths:
         - Namespace.Reader
         - Module.Owner
         - Module.Reader
+  /api/{organizationId}/Module/{moduleId}/pause:
+    post:
+      tags:
+      - Module
+      summary: Pause a Module, holding it out of the automated lifecycle
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ModulePauseRequestDto'
+          text/json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ModulePauseRequestDto'
+          application/*+json:
+            schema:
+              oneOf:
+              - type: 'null'
+              - $ref: '#/components/schemas/ModulePauseRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+      x-snapcd-permissions:
+        verb: Pause
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
+  /api/{organizationId}/Module/{moduleId}/unpause:
+    post:
+      tags:
+      - Module
+      summary: Unpause a Module, returning it to the automated lifecycle
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.StackContributor`
+        - `Stack.Contributor`
+        - `Stack.Owner`
+        - `Namespace.Contributor`
+        - `Namespace.Owner`
+        - `Module.Contributor`
+        - `Module.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: moduleId
+        in: path
+        description: Module ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModulePauseDto'
+      x-snapcd-permissions:
+        verb: Pause
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.StackContributor
+        - Stack.Contributor
+        - Stack.Owner
+        - Namespace.Contributor
+        - Namespace.Owner
+        - Module.Contributor
+        - Module.Owner
   /api/{organizationId}/Module/{moduleId}/source:
     get:
       tags:
@@ -27717,7 +27854,6 @@ components:
     CancellationType:
       enum:
       - AfterCurrent
-      - ImmediateGraceful
       - ImmediateKill
     ColorTargetType:
       enum:
@@ -28370,6 +28506,16 @@ components:
           description: The number of Users (or Service Principals) that need to approve before an 'Destroy' plan is executed.
             Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor
             on Namespace then a threshold of 0 is used.
+          format: int32
+        stateMigrationApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a state migration (a split
+            or transfer job) pushes state. Setting this will override any default value set on the Module's parent Namespace.
+            If set neither on Module nor on Namespace then a threshold of 1 is used, since the push is irreversible.
           format: int32
         approvalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
@@ -29346,6 +29492,45 @@ components:
           type: boolean
           description: Indicates whether or not the Mission is disabled.
       description: DTO for updating an existing ModuleMission (PUT operations).
+    ModulePauseDto:
+      type: object
+      properties:
+        moduleId:
+          type: string
+          description: Unique ID of the Module.
+          format: uuid
+        paused:
+          type: boolean
+          description: True while the Module is held out of the automated lifecycle.
+        pausedBy:
+          type:
+          - 'null'
+          - string
+          description: ID of the principal that paused the Module, when paused.
+          format: uuid
+        pausedAt:
+          type:
+          - 'null'
+          - string
+          description: When the Module was paused, when paused.
+          format: date-time
+        pauseReason:
+          type:
+          - 'null'
+          - string
+          description: Operator-supplied explanation for the pause, when one was given.
+      description: |-
+        Whether a Module is held out of the automated lifecycle, and by whom. A paused Module dispatches
+        no triggered or dependency-driven work; requests raised while it is paused are queued rather than lost.
+    ModulePauseRequestDto:
+      type: object
+      properties:
+        reason:
+          type:
+          - 'null'
+          - string
+          description: Operator-supplied explanation for the pause. Recorded against the Module and shown while it is paused.
+      description: Request to pause a Module, optionally recording why.
     ModulePulumiArrayFlagCreateDto:
       required:
       - value
@@ -29834,6 +30019,16 @@ components:
           description: The number of Users (or Service Principals) that need to approve before an 'Destroy' plan is executed.
             Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor
             on Namespace then a threshold of 0 is used.
+          format: int32
+        stateMigrationApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a state migration (a split
+            or transfer job) pushes state. Setting this will override any default value set on the Module's parent Namespace.
+            If set neither on Module nor on Namespace then a threshold of 1 is used, since the push is irreversible.
           format: int32
         approvalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
@@ -30535,6 +30730,16 @@ components:
             Setting this will override any default value set on the Module's parent Namespace. If set neither on Module nor
             on Namespace then a threshold of 0 is used.
           format: int32
+        stateMigrationApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a state migration (a split
+            or transfer job) pushes state. Setting this will override any default value set on the Module's parent Namespace.
+            If set neither on Module nor on Namespace then a threshold of 1 is used, since the push is irreversible.
+          format: int32
         approvalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -30725,6 +30930,17 @@ components:
           description: The number of Users (or Service Principals) that need to approve before an 'Destroy' plan is executed.
             All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If set neither
             on Module nor on Namespace then a threshold of 0 is used.
+          format: int32
+        defaultStateMigrationApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a state migration (a split
+            or transfer job) pushes state. All modules in this Namespace will use this value, unless explicitly overriden
+            on the Module itself. If set neither on Module nor on Namespace then a threshold of 1 is used, since the push
+            is irreversible.
           format: int32
         defaultApprovalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
@@ -31784,6 +32000,17 @@ components:
             All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If set neither
             on Module nor on Namespace then a threshold of 0 is used.
           format: int32
+        defaultStateMigrationApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a state migration (a split
+            or transfer job) pushes state. All modules in this Namespace will use this value, unless explicitly overriden
+            on the Module itself. If set neither on Module nor on Namespace then a threshold of 1 is used, since the push
+            is irreversible.
+          format: int32
         defaultApprovalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
           type:
@@ -32331,6 +32558,17 @@ components:
           description: The number of Users (or Service Principals) that need to approve before an 'Destroy' plan is executed.
             All modules in this Namespace will use this value, unless explicitly overriden on the Module itself. If set neither
             on Module nor on Namespace then a threshold of 0 is used.
+          format: int32
+        defaultStateMigrationApprovalThreshold:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          description: The number of Users (or Service Principals) that need to approve before a state migration (a split
+            or transfer job) pushes state. All modules in this Namespace will use this value, unless explicitly overriden
+            on the Module itself. If set neither on Module nor on Namespace then a threshold of 1 is used, since the push
+            is irreversible.
           format: int32
         defaultApprovalTimeoutMinutes:
           pattern: ^-?(?:0|[1-9]\d*)$
@@ -33810,8 +34048,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 446
+  documented: 448
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1175
+  documented: 1189
   missing: 0

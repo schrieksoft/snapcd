@@ -7,8 +7,11 @@
 // for terms covering either use.
 
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
+using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services;
 
 namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 
@@ -21,13 +24,19 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
 {
     private readonly ILogger<ReportRunningTaskInvokedConsumer> _logger;
     private readonly RunnerConnectionJobRepositoryFactory _runnerConnectionJobRepositoryFactory;
+    private readonly RunnerConnectionStateMigrationService _runnerConnectionStateMigrationService;
+    private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
     public ReportRunningTaskInvokedConsumer(
         ILogger<ReportRunningTaskInvokedConsumer> logger,
-        RunnerConnectionJobRepositoryFactory runnerConnectionJobRepositoryFactory)
+        RunnerConnectionJobRepositoryFactory runnerConnectionJobRepositoryFactory,
+        RunnerConnectionStateMigrationService runnerConnectionStateMigrationService,
+        IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
         _logger = logger;
         _runnerConnectionJobRepositoryFactory = runnerConnectionJobRepositoryFactory;
+        _runnerConnectionStateMigrationService = runnerConnectionStateMigrationService;
+        _dbContextFactory = dbContextFactory;
     }
 
     public async Task Consume(ConsumeContext<ReportRunningTaskInvoked> context)
@@ -36,13 +45,29 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
 
         try
         {
-            using var repository = _runnerConnectionJobRepositoryFactory.Create();
-            await repository.CreateOrUpdate(
-                message.OrganizationId,
-                message.JobId,
-                message.TaskName,
-                message.RunnerId,
-                message.RunnerInstanceName);
+            await using var db = await _dbContextFactory.CreateDbContextAsync();
+            var isStateMigration = await db.StateMigrationJobs
+                .AnyAsync(j => j.Id == message.JobId && j.OrganizationId == message.OrganizationId);
+
+            if (isStateMigration)
+            {
+                await _runnerConnectionStateMigrationService.CreateOrUpdate(
+                    message.OrganizationId,
+                    message.JobId,
+                    message.TaskName,
+                    message.RunnerId,
+                    message.RunnerInstanceName);
+            }
+            else
+            {
+                using var repository = _runnerConnectionJobRepositoryFactory.Create();
+                await repository.CreateOrUpdate(
+                    message.OrganizationId,
+                    message.JobId,
+                    message.TaskName,
+                    message.RunnerId,
+                    message.RunnerInstanceName);
+            }
 
             _logger.LogDebug(
                 "Recorded running task {TaskName} for job {JobId} on runner {RunnerId}",

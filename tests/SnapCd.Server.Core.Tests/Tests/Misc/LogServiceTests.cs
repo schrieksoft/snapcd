@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Serilog.Events;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto;
@@ -36,7 +37,7 @@ public class LogServiceTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _dbContext = _fixture.CreateDbContext();
-        _logService = new LogService(new FixtureDbContextFactory(_fixture));
+        _logService = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
         // Create test ModuleJobs
         _testJob1 = new ModuleJob
@@ -384,7 +385,7 @@ public class LogServiceTests : IAsyncLifetime
             var messageIndex = i;
             var task = Task.Run(async () =>
             {
-                var service = new LogService(new FixtureDbContextFactory(_fixture));
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -419,7 +420,7 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                var service = new LogService(new FixtureDbContextFactory(_fixture));
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -460,7 +461,7 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                var service = new LogService(new FixtureDbContextFactory(_fixture));
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -477,7 +478,7 @@ public class LogServiceTests : IAsyncLifetime
             var index = i;
             var task = Task.Run(async () =>
             {
-                var service = new LogService(new FixtureDbContextFactory(_fixture));
+                var service = new LogService(new FixtureDbContextFactory(_fixture), NullLogger<LogService>.Instance);
 
                 var logEntry = new List<LogEntryDto>
                 {
@@ -569,6 +570,76 @@ public class LogServiceTests : IAsyncLifetime
     #endregion
 
     #region Helper Methods
+
+    // A manual job's logs are the only channel a runner-side failure reaches the
+    // operator on: the job row records no runner error.
+    [Fact]
+    public async Task AddLogEntries_StateMigration_AppendsAndReadsBack()
+    {
+        var stateMigration = new StateMigrationJob
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _fixture.Organizations["0"].Id,
+            ModuleId = _fixture.Modules["0001"].Id,
+            TimestampStart = DateTimeOffset.UtcNow,
+            Status = ExecutionStatus.Running,
+            JobType = "SplitProve"
+        };
+        _dbContext.StateMigrationJobs.Add(stateMigration);
+        await _dbContext.SaveChangesAsync();
+
+        await _logService.AddLogEntries(new List<LogEntryDto>
+        {
+            CreateLogEntry(stateMigration.Id, "could not find the revision", "SplitProve")
+        });
+
+        var entries = await _logService.GetLogEntries(stateMigration.Id);
+        Assert.Single(entries);
+        Assert.Equal("could not find the revision", entries[0].Message);
+
+        await using var verify = _fixture.CreateDbContext();
+        var stored = await verify.StateMigrationJobs
+            .Where(j => j.Id == stateMigration.Id)
+            .Select(j => j.Logs)
+            .FirstAsync();
+        Assert.False(string.IsNullOrEmpty(stored));
+    }
+
+    // An id in neither table is an anomaly; it must not take the other entries
+    // in the same batch down with it.
+    [Fact]
+    public async Task AddLogEntries_UnknownJob_SkipsWithoutAffectingOthers()
+    {
+        await _logService.AddLogEntries(new List<LogEntryDto>
+        {
+            CreateLogEntry(Guid.NewGuid(), "orphan", "Apply"),
+            CreateLogEntry(_testJob1.Id, "kept", "Apply")
+        });
+
+        var entries = await _logService.GetLogEntries(_testJob1.Id);
+        Assert.Contains(entries, e => e.Message == "kept");
+    }
+
+    // Blank lines separate one block of a tool's output from the next, so they are
+    // stored and returned like any other line.
+    [Fact]
+    public async Task AddLogEntries_BlankLines_ArePreserved()
+    {
+        await _logService.AddLogEntries(new List<LogEntryDto>
+        {
+            CreateLogEntry(_testJob2.Id, "Map under comparison:", "SplitRefactorDiff"),
+            CreateLogEntry(_testJob2.Id, "", "SplitRefactorDiff"),
+            CreateLogEntry(_testJob2.Id, "  app  roots/app", "SplitRefactorDiff")
+        });
+
+        var entries = await _logService.GetLogEntries(_testJob2.Id);
+        Assert.Equal(3, entries.Count);
+        Assert.Equal("", entries[1].Message);
+
+        var byTask = await _logService.GetLogStrings(_testJob2.Id);
+        Assert.Contains("Map under comparison:" + Environment.NewLine + Environment.NewLine + "  app  roots/app",
+            byTask["SplitRefactorDiff"]);
+    }
 
     private static LogEntryDto CreateLogEntry(
         Guid correlationId,

@@ -30,12 +30,44 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleFailed,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleCompleted,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleCancelled,
-    SnapCd.Server.Core.Events.Steps.PlanRequested,
-    SnapCd.Server.Core.Events.Steps.PlanCompleted,
-    SnapCd.Server.Core.Events.Steps.PlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyInitRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyInitCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyInitCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyInitFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;
 
 namespace SnapCd.Server.Core.Tests.Tests.Services;
 
@@ -87,7 +119,13 @@ public class StuckJobDetectionTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _provider.DisposeAsync();
+
+        await using var db = _fixture.CreateDbContext();
+        await db.Set<SplitMigrateSaga>().Where(s => _seededStateMigrations.Contains(s.CorrelationId)).ExecuteDeleteAsync();
+        await db.StateMigrationJobs.Where(j => _seededStateMigrations.Contains(j.Id)).ExecuteDeleteAsync();
     }
+
+    private readonly List<Guid> _seededStateMigrations = [];
 
     private StuckJobDetectionService CreateService()
         => new(
@@ -136,6 +174,76 @@ public class StuckJobDetectionTests : IAsyncLifetime
             RunnerInstanceName = "stuck-harness",
             DeclaredJson = JsonSerializer.Serialize(declared),
             WaitingSince = waitingSince
+        });
+        await db.SaveChangesAsync();
+        return jobId;
+    }
+
+    /// <summary>
+    /// The case the waits above cannot see: a manual job whose saga never parked and never
+    /// dispatched a step, so it has neither a WaitingSince nor a heartbeat watching it.
+    /// </summary>
+    [Fact]
+    public async Task Detects_A_Manual_Job_Whose_Saga_Never_Progressed()
+    {
+        // One Running manual job per module, enforced by a filtered unique index.
+        var deaf = await SeedStateMigration("SelectRunnerInstancePending", startedMinutesAgo: 90, waitingSince: null, moduleId: _fixture.Modules["0000"].Id);
+        var fresh = await SeedStateMigration("SelectRunnerInstancePending", startedMinutesAgo: 5, waitingSince: null, moduleId: _fixture.Modules["0001"].Id);
+        var parked = await SeedStateMigration("GetModuleWaitingForRunner", startedMinutesAgo: 90, waitingSince: DateTime.UtcNow.AddMinutes(-2), moduleId: _fixture.Modules["0002"].Id);
+
+        var stuck = await CreateService().FindStuckJobsAsync();
+        var ids = stuck.Select(s => s.JobId).ToHashSet();
+
+        Assert.Contains(deaf, ids);
+        Assert.DoesNotContain(fresh, ids);
+        // Parked recently: the runner-wait threshold governs it, and it has not been reached.
+        Assert.DoesNotContain(parked, ids);
+
+        var reported = stuck.Single(s => s.JobId == deaf);
+        Assert.Equal("SelectRunnerInstancePending", reported.State);
+        Assert.Equal(StateMigrationTypes.SplitProve, reported.JobType);
+        Assert.True(reported.Stalled > TimeSpan.FromMinutes(60));
+    }
+
+    [Fact]
+    public async Task Ignores_A_Finished_Manual_Job()
+    {
+        var done = await SeedStateMigration("Completed", startedMinutesAgo: 120, waitingSince: null, status: ExecutionStatus.Completed);
+
+        var stuck = await CreateService().FindStuckJobsAsync();
+
+        Assert.DoesNotContain(done, stuck.Select(s => s.JobId));
+    }
+
+    private async Task<Guid> SeedStateMigration(string state, int startedMinutesAgo, DateTime? waitingSince, ExecutionStatus status = ExecutionStatus.Running, Guid? moduleId = null)
+    {
+        var jobId = Guid.NewGuid();
+        var onModule = moduleId ?? _module.Id;
+        _seededStateMigrations.Add(jobId);
+
+        await using var db = _fixture.CreateDbContext();
+        db.StateMigrationJobs.Add(new StateMigrationJob
+        {
+            Id = jobId,
+            OrganizationId = _module.OrganizationId,
+            ModuleId = onModule,
+            TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-startedMinutesAgo),
+            TimestampEnd = status == ExecutionStatus.Running ? null : DateTimeOffset.UtcNow,
+            JobType = StateMigrationTypes.SplitProve,
+            Status = status
+        });
+        db.Set<SplitMigrateSaga>().Add(new SplitMigrateSaga
+        {
+            CorrelationId = jobId,
+            CurrentState = state,
+            ModuleId = onModule,
+            OrganizationId = _module.OrganizationId,
+            RunnerId = _runner.Id,
+            RunnerName = _runner.Name,
+            RunnerInstanceName = "stuck-harness",
+            DeclaredJson = "{}",
+            WaitingSince = waitingSince,
+            RowVersion = []
         });
         await db.SaveChangesAsync();
         return jobId;

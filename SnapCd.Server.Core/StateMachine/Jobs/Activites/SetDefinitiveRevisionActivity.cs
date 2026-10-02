@@ -18,7 +18,7 @@ namespace SnapCd.Server.Core.StateMachine.Jobs.Activites;
 public class SetDefinitiveRevisionActivity<TSaga, TMessage> :
     IStateMachineActivity<TSaga, TMessage>
     where TSaga : JobSagaBase
-    where TMessage : GetDefinitiveRevisionCompleted
+    where TMessage : GetDefinitiveRevisionCompletedBase
 {
     private readonly ModuleJobRepository _repository;
     private readonly SnapCdDbContext _dbContext;

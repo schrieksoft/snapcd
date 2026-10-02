@@ -146,7 +146,8 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
 
         // Publish approval threshold event if changed
         if (updated.ApplyApprovalThreshold != existingModule.ApplyApprovalThreshold ||
-            updated.DestroyApprovalThreshold != existingModule.DestroyApprovalThreshold)
+            updated.DestroyApprovalThreshold != existingModule.DestroyApprovalThreshold ||
+            updated.StateMigrationApprovalThreshold != existingModule.StateMigrationApprovalThreshold)
             await EnqueueOrPublish(() => Bus.Publish(new ModuleApprovalThresholdModifiedEvent
             {
                 ModuleId = updated.Id

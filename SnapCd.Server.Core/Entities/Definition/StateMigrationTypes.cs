@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+namespace SnapCd.Server.Core.Entities.Definition;
+
+/// <summary>
+/// Values for <see cref="StateMigrationJob.JobType"/>. The value names the saga table holding the
+/// job's state, so with the job's Id it is a complete pointer to that state.
+/// </summary>
+public static class StateMigrationTypes
+{
+    public const string SplitMigrate = nameof(Sagas.SplitMigrateSaga);
+
+    /// <summary>The pre-merge half of a split: the same saga, stopping after the proof. State lives in SplitMigrateSagas too.</summary>
+    public const string SplitProve = "SplitProve";
+
+    /// <summary>The pre-merge half of a transfer: proves both participants, holds nothing, writes nothing.</summary>
+    public const string TransferProve = "TransferProve";
+
+    /// <summary>The post-merge half of a transfer: the one that pushes state, under holds and consent.</summary>
+    public const string TransferMigrate = "TransferMigrate";
+
+    /// <summary>Asks which of a given set of addresses are in a Module's state. Writes nothing.</summary>
+    public const string LookupAddresses = "LookupAddresses";
+
+    /// <summary>Moves addresses within a Module's state.</summary>
+    public const string Move = "Move";
+
+    /// <summary>Brings existing infrastructure under management.</summary>
+    public const string Import = "Import";
+
+    /// <summary>Drops addresses from state, leaving the infrastructure.</summary>
+    public const string Remove = "Remove";
+}

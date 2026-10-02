@@ -21,6 +21,45 @@ namespace SnapCd.Server.Core.StateMachine.Jobs.Utils;
 
 public static class JobExtensionMethods
 {
+    /// <summary>
+    /// The cancel request this saga is waiting on should have timed out by now. A margin over the
+    /// request's own timeout keeps a merely-late timeout from being treated as a lost one.
+    /// </summary>
+    public static bool CancelTimeoutIsOverdue<TSaga, TCancelRequest>(BehaviorContext<TSaga, TCancelRequest> context)
+        where TSaga : JobSagaBase
+        where TCancelRequest : class, ICancelRequest
+        => context.Saga.WaitingSince is { } since && DateTime.UtcNow - since > CancelRequestTimeout + TimeSpan.FromSeconds(15);
+
+    /// <summary>The window a cancel request is given before its timeout is considered lost.</summary>
+    public static readonly TimeSpan CancelRequestTimeout = TimeSpan.FromSeconds(90);
+
+    /// <summary>
+    /// A cancel clicked again after its timeout should already have fired. The timeout was lost, so
+    /// nothing else will end this job: close it here rather than leaving the saga cancelling forever.
+    /// Re-issuing instead would restart the clock, and repeated clicks would push the deadline out.
+    /// </summary>
+    public static EventActivityBinder<TSaga, TCancelRequest> ThenCancelForced<TSaga, TResponseCancelled, TCancelRequest>(this
+        EventActivityBinder<TSaga, TCancelRequest> binder, ILogger logger, State cancelled)
+        where TSaga : JobSagaBase
+        where TResponseCancelled : ModuleJobEventCompletedBase, new()
+        where TCancelRequest : class, ICancelRequest
+    {
+        return binder
+            .Then(context => logger.LogWarning(
+                "Cancel re-requested for job {JobId} after its timeout was due; forcing it closed",
+                context.Saga.CorrelationId))
+            .Publish(context => new TResponseCancelled
+            {
+                ModuleId = context.Saga.ModuleId,
+                OrganizationId = context.Saga.OrganizationId,
+                ModuleJobId = context.Saga.CorrelationId,
+                CancellationReason = CancellationReason.UserRequested
+            })
+            .Activity(x => x.OfType<CancelModuleJobActivity<TSaga, TCancelRequest>>())
+            .TransitionTo(cancelled)
+            .Finalize();
+    }
+
     public static EventActivityBinder<TSaga, RequestTimeoutExpired<TRequestMessage>> ThenCancelTimeout<TSaga, TResponseCancelled, TRequestMessage>(this
         EventActivityBinder<TSaga, RequestTimeoutExpired<TRequestMessage>> binder, ILogger logger, State cancelled)
         where TSaga : JobSagaBase
@@ -112,7 +151,8 @@ public static class JobExtensionMethods
                             CorrelationId = context.Saga.CorrelationId,
                             OrganizationId = context.Saga.OrganizationId,
                             RunnerInstanceName = context.Saga.RunnerInstanceName,
-                            RunnerId = context.Saga.RunnerId
+                            RunnerId = context.Saga.RunnerId,
+                            IsStateMigration = context.Saga is StateMigrationSagaBase
                         }));
     }
 
@@ -182,15 +222,19 @@ public static class JobExtensionMethods
     }
 
 
-    public static EventActivityBinder<TSaga, CancelModuleRequested> IfCancelKill<TSaga, TResponseCancelled>(
-        this EventActivityBinder<TSaga, CancelModuleRequested> binder,
+    public static EventActivityBinder<TSaga, TCancelRequest> IfCancelKill<TSaga, TResponseCancelled, TCancelRequest,
+        TCancelKillRequested, TDummyCancelKillCompleted>(
+        this EventActivityBinder<TSaga, TCancelRequest> binder,
         ILogger logger,
-        Request<TSaga, CancelKillRequested, DummyCancelKillCompleted> killCancelRequested,
+        Request<TSaga, TCancelKillRequested, TDummyCancelKillCompleted> killCancelRequested,
         State? transitionTo,
         State? cancelledState
     )
         where TSaga : JobSagaBase
         where TResponseCancelled : ModuleJobEventCompletedBase, new()
+        where TCancelRequest : class, ICancelRequest
+        where TCancelKillRequested : CancelKillRequestedBase, new()
+        where TDummyCancelKillCompleted : class
     {
         return binder
             .If(x => x.Message.CancellationType == CancellationType.ImmediateKill,
@@ -207,9 +251,11 @@ public static class JobExtensionMethods
                         {
                             if (context.Saga.ServerInstanceId.HasValue)
                             {
+                                // The consumer's queue is named after the message type, which is
+                                // per family; the property name is the same for all of them.
                                 var endpointUri = MassTransitHelpers.GetConsumerEndpoint(
                                     context.Saga.ServerInstanceId.Value,
-                                    nameof(CancelKillRequested));
+                                    typeof(TCancelKillRequested).Name);
                                 return new Uri(endpointUri);
                             }
 
@@ -219,7 +265,7 @@ public static class JobExtensionMethods
                             return null;
 #pragma warning restore CS8603
                         },
-                        context => new CancelKillRequested
+                        context => new TCancelKillRequested
                         {
                             OrganizationId = context.Saga.OrganizationId,
                             CorrelationId = context.Saga.CorrelationId,
@@ -230,60 +276,13 @@ public static class JobExtensionMethods
     }
 
 
-    public static EventActivityBinder<TSaga, CancelModuleRequested> IfCancelGraceful<TSaga, TResponseCancelled>(
-        this EventActivityBinder<TSaga, CancelModuleRequested> binder,
-        ILogger logger,
-        Request<TSaga, CancelGracefulRequested, DummyCancelGracefulCompleted> gracefulCancelRequested,
-        State? transitionTo,
-        State? cancelledState
-    )
-        where TSaga : JobSagaBase
-        where TResponseCancelled : ModuleJobEventCompletedBase, new()
-    {
-        return binder
-            .If(x => x.Message.CancellationType == CancellationType.ImmediateGraceful,
-                x => x
-                    .Then(_ => { logger.LogDebug("Publishing GracefulCancelRequested and transitioning to Cancelling"); })
-                    .Then(context =>
-                    {
-                        context.Saga.PreviousStateBeforeCancelling = context.Saga.CurrentState;
-                        context.Saga.WaitingSince = DateTime.UtcNow;
-                    })
-                    .TransitionTo(transitionTo)
-                    .Request(gracefulCancelRequested,
-                        context =>
-                        {
-                            if (context.Saga.ServerInstanceId.HasValue)
-                            {
-                                var endpointUri = MassTransitHelpers.GetConsumerEndpoint(
-                                    context.Saga.ServerInstanceId.Value,
-                                    nameof(CancelGracefulRequested));
-                                return new Uri(endpointUri);
-                            }
-
-                            // MassTransit's address-provider lambda allows null to mean "use default address",
-                            // even though the declared return type is non-nullable Uri.
-#pragma warning disable CS8603
-                            return null;
-#pragma warning restore CS8603
-                        },
-                        context => new CancelGracefulRequested
-                        {
-                            OrganizationId = context.Saga.OrganizationId,
-                            CorrelationId = context.Saga.CorrelationId,
-                            RunnerInstanceName = context.Saga.RunnerInstanceName,
-                            RunnerId = context.Saga.RunnerId
-                        })
-            );
-    }
-
-
-    public static EventActivityBinder<TSaga, CancelModuleRequested> IfCancelAfterCurrent<TSaga>(
-        this EventActivityBinder<TSaga, CancelModuleRequested> binder,
+    public static EventActivityBinder<TSaga, TCancelRequest> IfCancelAfterCurrent<TSaga, TCancelRequest>(
+        this EventActivityBinder<TSaga, TCancelRequest> binder,
         ILogger logger,
         State? transitionTo
     )
         where TSaga : JobSagaBase
+        where TCancelRequest : class, ICancelRequest
     {
         return binder
             .If(x => x.Message.CancellationType == CancellationType.AfterCurrent,

@@ -10,18 +10,23 @@ using MassTransit;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Events.Steps;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
 /// <summary>
 /// Handles completion, cancellation, and fault notifications from runners when they finish policy validation.
 /// </summary>
-public class PolicyValidateHandler
+public abstract class PolicyValidateHandler<TCompleted, TCancelled, TFaulted>
+    where TCompleted : PolicyValidateCompletedBase, new()
+    where TCancelled : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<PolicyValidateHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IBus _bus;
 
-    public PolicyValidateHandler(
-        ILogger<PolicyValidateHandler> logger,
+    protected PolicyValidateHandler(
+        ILogger logger,
         IBus bus)
     {
         _logger = logger;
@@ -34,7 +39,7 @@ public class PolicyValidateHandler
         {
             _logger.LogInformation("Runner completed PolicyValidate for job {JobId} with outcome {Outcome}", jobId, outcome);
 
-            await _bus.Publish(new PolicyValidateCompleted
+            await _bus.Publish(new TCompleted
             {
                 CorrelationId = jobId,
                 Outcome = outcome
@@ -55,7 +60,7 @@ public class PolicyValidateHandler
         {
             _logger.LogInformation("Runner cancelled PolicyValidate for job {JobId}", jobId);
 
-            await _bus.Publish(new PolicyValidateCancelled
+            await _bus.Publish(new TCancelled
             {
                 CorrelationId = jobId
             });
@@ -73,7 +78,7 @@ public class PolicyValidateHandler
         {
             _logger.LogWarning("Runner faulted PolicyValidate for job {JobId}: {Error}", jobId, errorMessage);
 
-            await _bus.Publish(new PolicyValidateFaulted
+            await _bus.Publish(new TFaulted
             {
                 CorrelationId = jobId,
                 ErrorMessage = errorMessage,
@@ -87,3 +92,9 @@ public class PolicyValidateHandler
         }
     }
 }
+
+public class ApplyPolicyValidateHandler(ILogger<ApplyPolicyValidateHandler> logger, IBus bus)
+    : PolicyValidateHandler<ApplyPolicyValidateCompleted, ApplyPolicyValidateCancelled, ApplyPolicyValidateFaulted>(logger, bus);
+
+public class DestroyPolicyValidateHandler(ILogger<DestroyPolicyValidateHandler> logger, IBus bus)
+    : PolicyValidateHandler<DestroyPolicyValidateCompleted, DestroyPolicyValidateCancelled, DestroyPolicyValidateFaulted>(logger, bus);

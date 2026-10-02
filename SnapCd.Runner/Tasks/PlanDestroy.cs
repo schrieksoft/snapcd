@@ -23,11 +23,9 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(PlanDestroy),
@@ -50,7 +48,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now planning destroy");
+            taskContext.LogNarration("Now planning destroy");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(
@@ -71,7 +69,7 @@ public partial class Tasks
             // Reported before the plan runs: a destroy plan needs input variables from upstream
             // outputs, so it can fail on a module that does hold resources. Without this the count
             // is only ever visible when the plan succeeds.
-            var resourcesInState = await engine.CountResourcesInState(killCts.Token, gracefulCts.Token);
+            var resourcesInState = await engine.CountResourcesInState(killCts.Token);
 
             if (resourcesInState == 0)
             {
@@ -79,12 +77,12 @@ public partial class Tasks
                     "State holds no resources — this module is already destroyed. Reporting an empty destroy plan.");
 
                 await InvokeWithRetryAsync(
-                    () => runnerHubClient.InvokePlanDestroyCompleted(request.JobId, new PlanCompletedData()),
-                    nameof(runnerHubClient.InvokePlanDestroyCompleted),
+                    () => runnerHubClient.InvokeDestroyPlanCompleted(request.JobId, new PlanCompletedData()),
+                    nameof(runnerHubClient.InvokeDestroyPlanCompleted),
                     request.JobId,
                     connection);
 
-                taskContext.LogInformation("Completed PlanDestroy");
+                taskContext.LogSection("Completed PlanDestroy");
                 return;
             }
 
@@ -103,7 +101,7 @@ public partial class Tasks
                     packDirs.Add(await PulumiPackMaterializer.MaterializeAsync(policy, packScratchDir, _policyEvaluationSettings, killCts.Token));
                 engine.SetPolicyPacks(packDirs);
             }
-            planOutput = await engine.PlanDestroy(request.ResolvedParameters, request.PlanDestroyBeforeHook, request.PlanDestroyAfterHook, killCts.Token, gracefulCts.Token);
+            planOutput = await engine.PlanDestroy(request.ResolvedParameters, request.PlanDestroyBeforeHook, request.PlanDestroyAfterHook, killCts.Token);
 
             var planDestroy = engine.ParseDestroyPlan();
 
@@ -158,19 +156,19 @@ public partial class Tasks
             };
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanDestroyCompleted(request.JobId, planData),
-                nameof(runnerHubClient.InvokePlanDestroyCompleted),
+                () => runnerHubClient.InvokeDestroyPlanCompleted(request.JobId, planData),
+                nameof(runnerHubClient.InvokeDestroyPlanCompleted),
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed PlanDestroy");
+            taskContext.LogSection("Completed PlanDestroy");
         }
         catch (OperationCanceledException)
         {
             taskContext.LogWarning("Destroy plan process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanDestroyCancelled(request.JobId),
-                nameof(runnerHubClient.InvokePlanDestroyCancelled),
+                () => runnerHubClient.InvokeDestroyPlanCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeDestroyPlanCancelled),
                 request.JobId,
                 connection);
         }
@@ -179,13 +177,13 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling PlanDestroy for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanDestroyFaulted(
+                () => runnerHubClient.InvokeDestroyPlanFaulted(
                     request.JobId,
                     ex.Message,
                     ex.StackTrace,
                     ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)
                 ),
-                nameof(runnerHubClient.InvokePlanDestroyFaulted),
+                nameof(runnerHubClient.InvokeDestroyPlanFaulted),
                 request.JobId,
                 connection);
         }
@@ -200,7 +198,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

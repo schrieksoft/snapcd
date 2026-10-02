@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -44,7 +45,7 @@ public class RunnerLivenessProbe
 
         try
         {
-            await _hubContext.Clients.Client(signalRConnectionId).SendAsync(RunnerEndpoints.Ping, pingId);
+            await _hubContext.Clients.Client(signalRConnectionId).SendAsync(nameof(IRunnerLifecycleEndpoints.Ping), pingId);
 
             var completed = await Task.WhenAny(tcs.Task, Task.Delay(timeout ?? DefaultTimeout));
             if (completed == tcs.Task)

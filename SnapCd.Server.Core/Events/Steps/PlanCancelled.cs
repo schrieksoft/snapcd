@@ -10,4 +10,6 @@ using SnapCd.Server.Core.Events.Steps.Base;
 
 namespace SnapCd.Server.Core.Events.Steps;
 
-public class PlanCancelled : StepResponseBase;
+public abstract class PlanCancelledBase : StepResponseBase;
+
+public class ApplyPlanCancelled : PlanCancelledBase;

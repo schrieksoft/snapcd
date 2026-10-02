@@ -100,9 +100,9 @@ public static class Repositories
         services.AddScoped<ModuleHookRepository>();
         services.AddScoped<NamespaceHookRepository>();
         services.AddScoped<ModuleJobRepository>();
+        services.AddScoped<StateMigrationJobRepository>();
+        services.AddScoped<StateMigrationJobRepositoryFactory>();
         services.AddScoped<ModuleJobApprovalRepository>();
-        services.AddScoped<ApplyJobSagaRepository>();
-        services.AddScoped<DestroyJobSagaRepository>();
         services.AddScoped<OutputSetRepository>();
         services.AddScoped<OutputRepository>();
         services.AddScoped<LiteralOutputRepository>();

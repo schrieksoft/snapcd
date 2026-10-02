@@ -27,13 +27,14 @@ public class CancelKillHandler
         _bus = bus;
     }
 
-    public async Task Complete(Guid jobId)
+    public async Task Complete<TCompleted>(Guid jobId)
+        where TCompleted : CancelKillCompletedBase, new()
     {
         try
         {
             _logger.LogInformation("Runner completed kill cancellation for job {JobId}", jobId);
 
-            await _bus.Publish(new CancelKillCompleted
+            await _bus.Publish(new TCompleted
             {
                 CorrelationId = jobId
             });

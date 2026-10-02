@@ -36,9 +36,22 @@ public class SignalRLogSink : IBatchedLogEventSink
 
         foreach (var logEvent in events)
         {
-            var message = logEvent.Properties.TryGetValue(nameof(LogEntryDto.Message), out var messageValue)
-                ? LogMessageHelper.TrimQuotes(Regex.Unescape(messageValue.ToString()))
-                : string.Empty;
+            // Per entry, not per batch: one unparseable line must cost that line, not every
+            // other line shipped alongside it. Regex.Unescape throws on a lone trailing
+            // backslash, which any tool's output can contain.
+            string message;
+            try
+            {
+                message = logEvent.Properties.TryGetValue(nameof(LogEntryDto.Message), out var messageValue)
+                    ? LogMessageHelper.TrimQuotes(Regex.Unescape(messageValue.ToString()))
+                    : string.Empty;
+            }
+            catch (Exception)
+            {
+                message = logEvent.Properties.TryGetValue(nameof(LogEntryDto.Message), out var raw)
+                    ? LogMessageHelper.TrimQuotes(raw.ToString())
+                    : string.Empty;
+            }
 
             // No ModuleId filter: this sink is a private detail of HubJobLogStream, which is
             // the only writer. Every event we see is a job log by construction.

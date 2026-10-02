@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+
+using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Contracts.Clients;
+using SnapCd.Contracts.RunnerRequests.StateMigrations;
+using SnapCd.Runner.Services;
+
+namespace SnapCd.Runner.Tasks;
+
+public partial class Tasks
+{
+    /// <summary>
+    /// Reports which of the addresses asked about are in this Module's state. The state itself is
+    /// never logged or returned: only the verdict on the addresses in the filter.
+    /// </summary>
+    public Task LookupAddresses(LookupAddressesRequestBase request, HubConnection connection) =>
+        RunTransferStep(request.JobId, Guid.Empty, nameof(LookupAddresses), request.Metadata,
+            request.ReportActiveJobFrequencySeconds, connection,
+            async (taskContext, client, killToken) =>
+            {
+                taskContext.LogNarration(
+                    $"Checking {request.Addresses.Count} addresses against this module's state");
+
+                var engine = _engineFactory.Create(taskContext, request.Engine, request.Metadata);
+
+                var (present, absent) = await engine.LookupAddresses(
+                    request.Addresses, killToken);
+
+                if (present.Count > 0)
+                {
+                    taskContext.LogInformation("Found");
+                    foreach (var address in present)
+                        taskContext.LogInformation($"  {Ansi.Emphasis(address)}");
+                }
+
+                if (absent.Count > 0)
+                {
+                    if (present.Count > 0) taskContext.LogBreak();
+
+                    taskContext.LogInformation("Not found");
+                    foreach (var address in absent)
+                        taskContext.LogInformation($"  {Ansi.Emphasis(address)}");
+                }
+
+                var results = present
+                    .Select(a => new StateAddressResult { Address = a, Outcome = "Present" })
+                    .Concat(absent.Select(a => new StateAddressResult { Address = a, Outcome = "Absent" }))
+                    .ToList();
+
+                await InvokeWithRetryAsync(
+                    () => client.InvokeLookupAddressesCompleted(request.JobId, results),
+                    nameof(client.InvokeLookupAddressesCompleted), request.JobId, connection);
+            },
+            (client, message, stackTrace) =>
+                client.InvokeLookupAddressesFaulted(request.JobId, message, stackTrace),
+            client => client.InvokeLookupAddressesCancelled(request.JobId));
+}

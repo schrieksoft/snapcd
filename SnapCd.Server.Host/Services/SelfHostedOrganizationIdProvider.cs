@@ -43,6 +43,12 @@ public class SelfHostedOrganizationIdProvider
                 return afterWait;
 
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+            // Asked before migrations have run, so the database may not exist. Querying it anyway
+            // logs the failure as an error twice before this method can swallow it.
+            if (!await dbContext.Database.CanConnectAsync())
+                return null;
+
             var orgId = await dbContext.Organizations
                 .Where(o => o.DeletedDateTime == null)
                 .Select(o => (Guid?)o.Id)

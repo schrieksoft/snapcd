@@ -35,6 +35,7 @@ using SnapCd.Server.Core.Repositories.System.Secured;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.Crud.RoleAssignment;
 using SnapCd.Server.Core.Services.Crud.Secrets;
 using SnapCd.Server.Core.Services.DependencyGraph;
@@ -59,10 +60,8 @@ public static class Factories
         services.AddScoped<RunnerSecuredRepositoryFactory>();
         services.AddScoped<ModuleSagaRepositoryFactory>();
         services.AddScoped<ModuleSagaSecuredRepositoryFactory>();
-        services.AddScoped<ApplyJobSagaRepositoryFactory>();
-        services.AddScoped<DestroyJobSagaRepositoryFactory>();
         services.AddScoped<ServicePrincipalRepositoryFactory>();
-        services.AddScoped<JobSagaRepositoryFactory>();
+        services.AddScoped<StateMigrationJobSecuredRepositoryFactory>();
         services.AddScoped<OrganizationSecuredRepositoryFactory>();
         services.AddScoped<UserRepositoryFactory>();
         services.AddScoped<UserSecuredRepositoryFactory>();
@@ -228,8 +227,6 @@ public static class Factories
         services.AddScoped<LiteralOutputSecuredRepositoryFactory>();
         services.AddScoped<SecretOutputRepositoryFactory>();
         services.AddScoped<SecretOutputSecuredRepositoryFactory>();
-        services.AddScoped<ApplyJobSagaRepositoryFactory>();
-        services.AddScoped<DestroyJobSagaRepositoryFactory>();
         services.AddScoped<OrganizationServiceFactory>();
         services.AddScoped<DependencyGraphServiceFactory>();
         services.AddScoped<DestroyModuleGraphServiceFactory>();
@@ -239,6 +236,9 @@ public static class Factories
         services.AddScoped<ResolvedConfigurationServiceFactory>();
         services.AddScoped<JobServiceFactory>();
         services.AddScoped<SecuredJobServiceFactory>();
+        services.AddScoped<StateMigrationServiceFactory>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferServiceFactory>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.StateMigrations.StateMigrationAddressService>();
         services.AddScoped<SourceChangedServiceFactory>();
         services.AddScoped<AccessTokenServiceFactory>();
         services.AddScoped<UserManagerFactory>();

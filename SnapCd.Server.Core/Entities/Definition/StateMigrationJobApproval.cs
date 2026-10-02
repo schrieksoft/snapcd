@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using SnapCd.Contracts;
+using SnapCd.Server.Core.Entities.Definition.Base;
+using SnapCd.Server.Core.Entities.Interfaces;
+
+namespace SnapCd.Server.Core.Entities.Definition;
+
+/// <summary>
+/// An approve or decline decision on a StateMigrationJob. Parallel to ModuleJobApproval rather than
+/// a generalisation of it, so the two job kinds keep their own foreign keys and cascade behaviour.
+/// </summary>
+public class StateMigrationJobApproval : AuditBase, IEntity, IJobApproval
+{
+    public Guid Id { get; set; }
+    public Guid OrganizationId { get; set; }
+    public Guid StateMigrationJobId { get; set; }
+
+    public Guid PrincipalId { get; set; }
+
+    public PrincipalDiscriminator PrincipalDiscriminator { get; set; }
+
+    /// <summary>
+    /// AgentId of the Agent that decided this approval (acting via its underlying ServicePrincipal),
+    /// or <c>null</c> if the decision was made by a User or a non-agent ServicePrincipal.
+    /// </summary>
+    public Guid? AgentId { get; set; }
+
+    /// <summary>Rationale for the decision. Required on decline, optional on approve.</summary>
+    [MaxLength(2000)] public string? Reason { get; set; }
+
+    public DateTime DecisionDateTime { get; set; }
+
+    public bool Declined { get; set; }
+
+    [JsonIgnore] public StateMigrationJob StateMigrationJob { get; set; } = null!;
+    [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
+
+    public Guid ParentId()
+    {
+        return StateMigrationJobId;
+    }
+}

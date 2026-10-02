@@ -20,28 +20,92 @@ public partial class JobStateMachine<
     TResponseFailed,
     TResponseCompleted,
     TResponseCancelled,
+    TGetDefinitiveRevisionRequested,
+    TGetDefinitiveRevisionCompleted,
+    TGetDefinitiveRevisionCancelled,
+    TGetDefinitiveRevisionFaulted,
+    TPolicyValidateRequested,
+    TPolicyValidateCompleted,
+    TPolicyValidateCancelled,
+    TPolicyValidateFaulted,
+    TOutputRequested,
+    TOutputCompleted,
+    TOutputCancelled,
+    TOutputFaulted,
+    TGetModuleRequested,
+    TGetModuleCompleted,
+    TGetModuleCancelled,
+    TGetModuleFaulted,
+    TInitRequested,
+    TInitCompleted,
+    TInitCancelled,
+    TInitFaulted,
+    TValidateRequested,
+    TValidateCompleted,
+    TValidateCancelled,
+    TValidateFaulted,
+    TVariablesRequested,
+    TVariablesCompleted,
+    TVariablesCancelled,
+    TVariablesFaulted,
     TPlanRequested,
     TPlanCompleted,
     TPlanCancelled,
+    TPlanFaulted,
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
-    TApplyFromPlanCancelled>
+    TApplyFromPlanCancelled,
+    TCancelKillRequested,
+    TDummyCancelKillCompleted,
+    TCancelKillCompleted>
     where TSaga : JobSagaBase
     where TRequest : ModuleJobEventBase
     where TResponseFailed : ModuleJobEventCompletedBase, new()
     where TResponseCompleted : ModuleJobEventCompletedBase, new()
     where TResponseCancelled : ModuleJobEventCompletedBase, new()
+    where TGetDefinitiveRevisionRequested : GetDefinitiveRevisionRequestedBase, new()
+    where TGetDefinitiveRevisionCompleted : GetDefinitiveRevisionCompletedBase
+    where TGetDefinitiveRevisionCancelled : StepResponseBase
+    where TGetDefinitiveRevisionFaulted : StepFaultedBase
+    where TPolicyValidateRequested : PolicyValidateRequestedBase, new()
+    where TPolicyValidateCompleted : PolicyValidateCompletedBase
+    where TPolicyValidateCancelled : StepResponseBase
+    where TPolicyValidateFaulted : StepFaultedBase
+    where TOutputRequested : OutputRequestedBase, new()
+    where TOutputCompleted : StepResponseBase
+    where TOutputCancelled : StepResponseBase
+    where TOutputFaulted : StepFaultedBase
+    where TGetModuleRequested : GetModuleRequestedBase, new()
+    where TGetModuleCompleted : StepResponseBase
+    where TGetModuleCancelled : StepResponseBase
+    where TGetModuleFaulted : StepFaultedBase
+    where TInitRequested : InitRequestedBase, new()
+    where TInitCompleted : StepResponseBase
+    where TInitCancelled : StepResponseBase
+    where TInitFaulted : StepFaultedBase
+    where TValidateRequested : ValidateRequestedBase, new()
+    where TValidateCompleted : StepResponseBase
+    where TValidateCancelled : StepResponseBase
+    where TValidateFaulted : StepFaultedBase
+    where TVariablesRequested : VariablesRequestedBase, new()
+    where TVariablesCompleted : StepResponseBase
+    where TVariablesCancelled : StepResponseBase
+    where TVariablesFaulted : StepFaultedBase
     where TPlanRequested : StepRequestBase, new()
     where TPlanCompleted : PlanCompletedBase
     where TPlanCancelled : StepResponseBase
+    where TPlanFaulted : StepFaultedBase, new()
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TCancelKillRequested : CancelKillRequestedBase, new()
+    where TDummyCancelKillCompleted : class
+    where TCancelKillCompleted : StepResponseBase
 {
     // Variables events
-    public Event<VariablesCompleted> VariablesCompleted { get; } = null!;
-    public Event<VariablesCancelled> VariablesCancelled { get; } = null!;
-    public Event<VariablesFaulted> VariablesFaulted { get; } = null!;
+    public Event<TVariablesCompleted> VariablesCompleted { get; } = null!;
+    public Event<TVariablesCancelled> VariablesCancelled { get; } = null!;
+    public Event<TVariablesFaulted> VariablesFaulted { get; } = null!;
 
     // Variables states
     public State VariablesPending { get; } = null!;
@@ -54,7 +118,7 @@ public partial class JobStateMachine<
         Event(() => VariablesCancelled, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => VariablesFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
 
-        CreateStep<VariablesCompleted, VariablesCancelled, VariablesFaulted, TPlanRequested>(
+        CreateStep<TVariablesCompleted, TVariablesCancelled, TVariablesFaulted, TPlanRequested>(
             VariablesWaitingForRunner,
             VariablesPending,
             VariablesCompleted,

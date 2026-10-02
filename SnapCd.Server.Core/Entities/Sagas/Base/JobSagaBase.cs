@@ -21,8 +21,6 @@ public class JobSagaBase : SagaStateMachineInstance
 
     public Guid? RequestId { get; set; }
 
-    public Guid? GracefulCancellationRequestId { get; set; }
-
     public Guid? KillCancellationRequestId { get; set; }
 
     public Guid? HeartbeatRequestId { get; set; }

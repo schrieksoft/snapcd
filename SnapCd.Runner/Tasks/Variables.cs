@@ -9,6 +9,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
+using SnapCd.Contracts.Dto.VariableSets;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 
@@ -16,16 +17,23 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task Variables(VariablesRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Resolves the input variables. The callbacks say which endpoints to answer on, so one
+    /// resolution serves every job kind and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task Variables(
+        VariablesRequestBase request,
+        HubConnection connection,
+        Func<Guid, VariableSetCreateDto?, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(Variables),
@@ -46,7 +54,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now discovering variables");
+            taskContext.LogNarration("Now discovering variables");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -65,19 +73,19 @@ public partial class Tasks
                 extraFileNames);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeVariablesCompleted(request.JobId, variableSetDto),
-                nameof(runnerHubClient.InvokeVariablesCompleted),
+                () => completed(request.JobId, variableSetDto),
+                "VariablesCompleted",
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed Variables");
+            taskContext.LogSection("Completed Variables");
         }
         catch (OperationCanceledException)
         {
             taskContext.LogWarning("Variables process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeVariablesCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeVariablesCancelled),
+                () => cancelled(request.JobId),
+                "VariablesCancelled",
                 request.JobId,
                 connection);
         }
@@ -86,12 +94,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling Variables for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeVariablesFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace
-                ),
-                nameof(runnerHubClient.InvokeVariablesFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "VariablesFaulted",
                 request.JobId,
                 connection);
         }
@@ -106,7 +110,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

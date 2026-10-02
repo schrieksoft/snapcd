@@ -14,7 +14,7 @@ using SnapCd.Server.Core.Entities.Interfaces;
 
 namespace SnapCd.Server.Core.Entities.Definition;
 
-public class ModuleJobApproval : AuditBase, IEntity
+public class ModuleJobApproval : AuditBase, IEntity, IJobApproval
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }

@@ -8,6 +8,7 @@
 
 
 using SnapCd.Server.Core.Hubs.Handlers;
+using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -15,21 +16,47 @@ public static class TaskHandlers
 {
     public static IServiceCollection AddSnapCdTaskHandlers(this IServiceCollection services)
     {
-        services.AddScoped<GetDefinitiveRevisionHandler>();
-        services.AddScoped<GetModuleHandler>();
-        services.AddScoped<InitHandler>();
-        services.AddScoped<ValidateHandler>();
-        services.AddScoped<PolicyValidateHandler>();
-        services.AddScoped<VariableHandler>();
+        services.AddScoped<ApplyGetDefinitiveRevisionHandler>();
+        services.AddScoped<DestroyGetDefinitiveRevisionHandler>();
+        services.AddScoped<ApplyGetModuleHandler>();
+        services.AddScoped<DestroyGetModuleHandler>();
+        services.AddScoped<ApplyInitHandler>();
+        services.AddScoped<DestroyInitHandler>();
+        services.AddScoped<ApplyValidateHandler>();
+        services.AddScoped<DestroyValidateHandler>();
+        services.AddScoped<ApplyPolicyValidateHandler>();
+        services.AddScoped<DestroyPolicyValidateHandler>();
+        services.AddScoped<ApplyVariablesHandler>();
+        services.AddScoped<DestroyVariablesHandler>();
         services.AddScoped<PlanHandler>();
+        services.AddScoped<SplitGetModuleHandler>();
+        services.AddScoped<SplitInitHandler>();
+        services.AddScoped<SplitValidateHandler>();
+        services.AddScoped<SplitPlanHandler>();
+        services.AddScoped<SplitPlanEmptyVerifyHandler>();
+        services.AddScoped<SplitRefactorValidateHandler>();
+        services.AddScoped<SplitRefactorDiffHandler>();
+        services.AddScoped<SplitMigrateMapHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.Transfers.TransferStepHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.LookupAddressesGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.LookupAddressesInitHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.MoveGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.MoveInitHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.ImportGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.ImportInitHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.RemoveGetModuleHandler>();
+        services.AddScoped<SnapCd.Server.Core.Hubs.Handlers.StateMigrations.RemoveInitHandler>();
+        services.AddScoped<SplitMigrateProveHandler>();
+        services.AddScoped<SplitMigrateRunHandler>();
+        services.AddScoped<SplitMigrateVerifyHandler>();
         services.AddScoped<PlanDestroyHandler>();
         services.AddScoped<ApplyFromPlanHandler>();
         services.AddScoped<DestroyFromPlanHandler>();
-        services.AddScoped<OutputHandler>();
+        services.AddScoped<ApplyOutputHandler>();
+        services.AddScoped<DestroyOutputHandler>();
         services.AddScoped<SourceRefreshHandler>();
         services.AddScoped<ReportRunningTaskHandler>();
         services.AddScoped<CancelKillHandler>();
-        services.AddScoped<CancelGracefulHandler>();
 
         return services;
     }

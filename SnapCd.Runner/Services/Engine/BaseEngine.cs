@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
@@ -21,14 +20,6 @@ using SnapCd.Runner.Utils;
 using File = System.IO.File;
 
 namespace SnapCd.Runner.Services;
-
-public static class NativeMethods
-{
-    [DllImport("libc", SetLastError = true)]
-    public static extern int kill(int pid, int sig);
-
-    public const int Sigint = 2;
-}
 
 /// <summary>
 /// Process failure that preserves captured stdout/stderr — callers that need to classify the
@@ -83,7 +74,151 @@ public abstract class BaseEngine
     public string GetInitDir() => InitDir;
     public string GetSnapCdDir() => SnapCdDir;
 
-    public async Task<string> RunProcess(string script, CancellationToken killCancellationToken, CancellationToken gracefulCancellationToken)
+    /// <summary>
+    /// Which of the given addresses are in this Module's state. `state list` prints the whole
+    /// state, so the comparison happens here and only its verdict leaves the runner.
+    /// </summary>
+    public virtual async Task<(List<string> Present, List<string> Absent)> LookupAddresses(
+        IReadOnlyCollection<string> addresses,
+        CancellationToken killCancellationToken = default)
+    {
+        var inState = await ListState(killCancellationToken);
+
+        return Compare(addresses, inState);
+    }
+
+    /// <summary>The verdict on the addresses asked about, and nothing about any other.</summary>
+    public static (List<string> Present, List<string> Absent) Compare(
+        IReadOnlyCollection<string> addresses, ISet<string> inState)
+    {
+        var present = addresses.Where(inState.Contains).ToList();
+
+        return (present, addresses.Except(present).ToList());
+    }
+
+    /// <summary>
+    /// Moves each address to its target, one command per address, so a batch of five that manages
+    /// three records exactly that. A failure is this address's failure, not the batch's.
+    /// </summary>
+    public virtual async Task<List<(string Address, bool Succeeded)>> Move(
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        bool dryRun = false,
+        CancellationToken killCancellationToken = default)
+    {
+        var results = new List<(string, bool)>();
+
+        foreach (var (address, target) in instructions)
+        {
+            killCancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await RunMove(address, target, dryRun, killCancellationToken);
+                results.Add((address, true));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Context.LogError($"Move failed for {address}: {ex.Message}");
+                results.Add((address, false));
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>Imports each address from the id it already has, one command per address.</summary>
+    public virtual async Task<List<(string Address, bool Succeeded)>> Import(
+        IReadOnlyCollection<(string Address, string? Target)> instructions,
+        CancellationToken killCancellationToken = default)
+    {
+        var results = new List<(string, bool)>();
+
+        foreach (var (address, target) in instructions)
+        {
+            killCancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await RunImport(address, target, killCancellationToken);
+                results.Add((address, true));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Context.LogError($"Import failed for {address}: {ex.Message}");
+                results.Add((address, false));
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>Takes each address out of state, one command per address.</summary>
+    public virtual async Task<List<(string Address, bool Succeeded)>> Remove(
+        IReadOnlyCollection<string> addresses,
+        bool dryRun = false,
+        CancellationToken killCancellationToken = default)
+    {
+        var results = new List<(string, bool)>();
+
+        foreach (var address in addresses)
+        {
+            killCancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await RunRemove(address, dryRun, killCancellationToken);
+                results.Add((address, true));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Context.LogError($"Remove failed for {address}: {ex.Message}");
+                results.Add((address, false));
+            }
+        }
+
+        return results;
+    }
+
+    protected virtual Task RunMove(
+        string address, string? target, bool dryRun,
+        CancellationToken killCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot move state addresses.");
+
+    protected virtual Task RunImport(
+        string address, string? target,
+        CancellationToken killCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot import state addresses.");
+
+    protected virtual Task RunRemove(
+        string address, bool dryRun,
+        CancellationToken killCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot remove state addresses.");
+
+    /// <summary>Every address in this Module's state. Never logged, never sent on.</summary>
+    protected virtual Task<HashSet<string>> ListState(
+        CancellationToken killCancellationToken) =>
+        throw new NotSupportedException($"{GetType().Name} cannot list state addresses.");
+
+    /// <summary>
+    /// Runs a script and returns its output. <paramref name="logOutput"/> is false where the
+    /// output is the Module's own state, which is not Snap CD's to hold or display.
+    /// </summary>
+    public async Task<string> RunProcess(
+        string script,
+        CancellationToken killCancellationToken,
+        bool logOutput = true)
     {
         EnsureEnvVarsLoaded();
 
@@ -114,18 +249,6 @@ public abstract class BaseEngine
         var outputBuilder = new StringBuilder();
         var errorBuilder = new StringBuilder();
 
-        gracefulCancellationToken.Register(() =>
-        {
-            if (!process.HasExited)
-            {
-                var result = NativeMethods.kill(process.Id, NativeMethods.Sigint);
-                if (result == 0)
-                    Context.LogInformation("Sent SIGINT to process for graceful termination.");
-                else
-                    Context.LogError("Failed to send SIGINT. Process might already be terminated or access is denied.");
-            }
-        });
-
         killCancellationToken.Register(() =>
         {
             try
@@ -144,9 +267,11 @@ public abstract class BaseEngine
 
         process.OutputDataReceived += (_, e) =>
         {
-            if (!string.IsNullOrEmpty(e.Data))
+            // Null ends the stream; an empty string is a blank line the tool printed, and blank
+            // lines are what separate one block of its output from the next.
+            if (e.Data != null)
             {
-                Context.LogInformation(e.Data);
+                if (logOutput) Context.LogInformation(e.Data);
                 outputBuilder.AppendLine(e.Data);
             }
         };
@@ -162,8 +287,7 @@ public abstract class BaseEngine
         process.BeginErrorReadLine();
 
         using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
-                   killCancellationToken,
-                   gracefulCancellationToken))
+                   killCancellationToken))
         {
             await process.WaitForExitAsync(linkedCts.Token);
         }
@@ -179,26 +303,40 @@ public abstract class BaseEngine
 
     public async Task<string> CreateScriptAsync(string baseScript, string? beforeHook, string? afterHook, CancellationToken cancellationToken = default)
     {
-        var beforeHookMessage = "Now running before hook";
-        if (string.IsNullOrEmpty(beforeHook))
-            beforeHookMessage = "No before hook defined. Skipping.";
+        var hasBefore = !string.IsNullOrEmpty(beforeHook);
+        var hasAfter = !string.IsNullOrEmpty(afterHook);
 
-        var afterHookMessage = "Now running after hook";
-        if (string.IsNullOrEmpty(afterHook))
-            afterHookMessage = "No after hook defined. Skipping.";
+        // One shell throughout: a hook's exports, cd and sourced files have to reach the main
+        // script. The headings separate the three sections, so they are worth printing only when
+        // there is more than one section to separate. Each opens with a blank line.
+        var script = new StringBuilder();
 
-        var script = @$"
-echo "">>>>>>>> {beforeHookMessage} <<<<<<<<<""
-{beforeHook}
+        if (hasBefore)
+        {
+            script.AppendLine(Heading("Now running before hook"));
+            script.AppendLine(beforeHook);
+        }
 
-echo "">>>>>>>> Now running main script <<<<<<<<<""
-{baseScript}
+        if (hasBefore || hasAfter)
+            script.AppendLine(Heading("Now running main script"));
+        else
+            // No heading to open the section, so the blank line alone separates the command's
+            // output from the narration above it.
+            script.AppendLine("echo \"\"");
 
-echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
-{afterHook}
-";
-        return script;
+        script.AppendLine(baseScript);
+
+        if (hasAfter)
+        {
+            script.AppendLine(Heading("Now running after hook"));
+            script.AppendLine(afterHook);
+        }
+
+        return script.ToString();
     }
+
+    /// <summary>A dimmed section heading in the generated script, preceded by a blank line.</summary>
+    private static string Heading(string text) => $"echo \"\"\necho \"{Ansi.Dim(text)}\"";
 
     public async Task<int> ReadStatisticsFromFile()
     {
@@ -306,7 +444,7 @@ echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
 
         File.WriteAllText($"{SnapCdDir}/snapcd.env", string.Join(Environment.NewLine, exportLines));
 
-        Context.LogInformation("Environment Variables saved to file");
+        Context.LogNarration("Environment Variables saved to file");
     }
 
     protected bool LoadEnvVarsFromFile()
@@ -336,7 +474,8 @@ echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
                 if (value != null) EnvVars[key] = value;
             }
 
-            Context.LogInformation("Environment Variables loaded from file");
+            Context.LogNarration("Environment Variables loaded from file");
+            Context.LogBreak();
             return true;
         }
         catch (Exception ex)

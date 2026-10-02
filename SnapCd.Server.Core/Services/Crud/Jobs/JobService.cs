@@ -27,6 +27,7 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Misc.Helpers;
 
 namespace SnapCd.Server.Core.Services.Crud.Jobs;
 
@@ -138,7 +139,7 @@ public class JobService : IDisposable
         });
     }
 
-    public async Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+    public virtual async Task Apply(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
     {
         if (organizationId == Guid.Empty)
             throw new ArgumentException("OrganizationId cannot be empty", nameof(organizationId));
@@ -148,7 +149,7 @@ public class JobService : IDisposable
         {
             await EnforceLicenceAndQuota(organizationId);
 
-            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
+            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId, sourceRevisionOverride);
 
             // Override runner name if provided
             if (!string.IsNullOrEmpty(runnerInstanceNameOverride)) declared.RunnerInstanceName = runnerInstanceNameOverride;
@@ -165,7 +166,7 @@ public class JobService : IDisposable
         }
     }
 
-    public async Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null)
+    public virtual async Task Destroy(Guid moduleId, Guid organizationId, Guid? optionalCorrelationId = null, string? runnerInstanceNameOverride = null, string? sourceRevisionOverride = null)
     {
         if (organizationId == Guid.Empty)
             throw new ArgumentException("OrganizationId cannot be empty", nameof(organizationId));
@@ -175,7 +176,7 @@ public class JobService : IDisposable
         {
             await EnforceLicenceAndQuota(organizationId);
 
-            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId);
+            var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId, sourceRevisionOverride);
 
             // Override runner name if provided
             if (!string.IsNullOrEmpty(runnerInstanceNameOverride)) declared.RunnerInstanceName = runnerInstanceNameOverride;
@@ -210,7 +211,7 @@ public class JobService : IDisposable
         });
     }
 
-    public async Task<bool> CheckDependenciesAsync(Guid moduleId, Guid organizationId, DesiredStateHeadline desiredState)
+    public virtual async Task<bool> CheckDependenciesAsync(Guid moduleId, Guid organizationId, DesiredStateHeadline desiredState)
     {
         // Get module dependency settings
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -250,7 +251,7 @@ public class JobService : IDisposable
     /// Checks if a runner is available for the specified module by querying the database.
     /// A runner is considered available if it's currently connected (has an active connection).
     /// </summary>
-    public async Task<bool> CheckRunnerAvailabilityAsync(Guid moduleId)
+    public virtual async Task<bool> CheckRunnerAvailabilityAsync(Guid moduleId)
     {
         try
         {
@@ -405,7 +406,7 @@ public class JobService : IDisposable
                 OrganizationId = organizationId,
                 TimestampStart = timeStamp,
                 TimestampEnd = timeStamp,
-                ServerSideError = errorMessage,
+                ServerSideError = ErrorText.Body(errorMessage),
                 ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.",
                 FailedOnServerSideStep = ServerSideStep.Start,
                 JobType = jobType,
@@ -426,7 +427,7 @@ public class JobService : IDisposable
         if (existingJob != null)
         {
             var timeStamp = DateTimeOffset.UtcNow;
-            existingJob.ServerSideError = errorMessage;
+            existingJob.ServerSideError = ErrorText.Body(errorMessage);
             existingJob.ServerSideErrorHeader = "This job failed due to a error occuring on the Server. The full error can be seen below.";
             existingJob.FailedOnServerSideStep = failedOnServerSideStep;
             existingJob.IsCurrent = false;

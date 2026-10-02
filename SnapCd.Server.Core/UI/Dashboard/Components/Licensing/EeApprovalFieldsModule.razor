@@ -21,6 +21,13 @@
 </MudItem>
 
 <MudItem md="12">
+    <MudTextField T="int?" Label="Approval Threshold (State Migration)"
+                  Value="@StateMigrationApprovalThreshold"
+                  ValueChanged="@StateMigrationApprovalThresholdChanged"
+                  Variant="Variant.Outlined"/>
+</MudItem>
+
+<MudItem md="12">
     <MudTextField T="int?" Label="Approval Timeout Minutes"
                   Value="@ApprovalTimeoutMinutes"
                   ValueChanged="@ApprovalTimeoutMinutesChanged"
@@ -33,6 +40,9 @@
 
     [Parameter] public int? DestroyApprovalThreshold { get; set; }
     [Parameter] public EventCallback<int?> DestroyApprovalThresholdChanged { get; set; }
+
+    [Parameter] public int? StateMigrationApprovalThreshold { get; set; }
+    [Parameter] public EventCallback<int?> StateMigrationApprovalThresholdChanged { get; set; }
 
     [Parameter] public int? ApprovalTimeoutMinutes { get; set; }
     [Parameter] public EventCallback<int?> ApprovalTimeoutMinutesChanged { get; set; }

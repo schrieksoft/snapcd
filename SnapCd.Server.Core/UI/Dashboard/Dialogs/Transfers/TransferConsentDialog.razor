@@ -1,0 +1,50 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+            <MudText>@(Granted ? "Agree to the transfer" : "Refuse")</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (Granted)
+        {
+            <MudTextField @bind-Value="_moduleRef"
+                          Label="This module's ref"
+                          Variant="Variant.Outlined"
+                          Class="mb-2"/>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Confirm">@(Granted ? "Agree" : "Refuse")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public bool Granted { get; set; }
+    [Parameter] public string? ModuleRef { get; set; }
+
+    private string? _moduleRef;
+
+    protected override void OnInitialized() => _moduleRef = ModuleRef;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Decision(_moduleRef)));
+
+    /// <summary>What this Module answered, and the ref it runs against.</summary>
+    public record Decision(string? ModuleRef);
+}

@@ -63,6 +63,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<DestroyJobSaga> DestroyJobSagas { get; set; }
     public DbSet<ApplyJobSaga> ApplyJobSagas { get; set; }
+    public DbSet<SplitMigrateSaga> SplitMigrateSagas { get; set; }
     public DbSet<ModuleSaga> ModuleSagas { get; set; }
     public DbSet<SourceRefresherPreselection> SourceRefresherPreselections { get; set; }
     public DbSet<Organization> Organizations { get; set; }
@@ -138,6 +139,15 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<ModuleParamFromSecret> ModuleParamFromSecrets { get; set; }
 
     public DbSet<ModuleJob> ModuleJobs { get; set; }
+    public DbSet<StateMigrationJob> StateMigrationJobs { get; set; }
+    public DbSet<StateMigrationJobApproval> StateMigrationJobApprovals { get; set; }
+    public DbSet<StateMigrationJobStep> StateMigrationJobSteps { get; set; }
+    public DbSet<StateMigrationJobAddress> StateMigrationJobAddresses { get; set; }
+    public DbSet<Transfer> Transfers { get; set; }
+    public DbSet<TransferLock> TransferLocks { get; set; }
+    public DbSet<StateMigrationJobArtefact> StateMigrationJobArtefacts { get; set; }
+
+    public DbSet<TransferArtefact> TransferArtefacts { get; set; }
     public DbSet<ModuleJobApproval> ModuleJobApprovals { get; set; }
     public DbSet<ModuleJobMission> ModuleJobMissions { get; set; }
     public DbSet<ModuleJobMissionRun> ModuleJobMissionRuns { get; set; }
@@ -167,6 +177,8 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Runner> Runners { get; set; }
     public DbSet<RunnerConnection> RunnerConnections { get; set; }
     public DbSet<RunnerConnectionJob> RunnerConnectionJobs { get; set; }
+
+    public DbSet<RunnerConnectionStateMigration> RunnerConnectionStateMigrations { get; set; }
     public DbSet<JobRunnerAssignment> JobRunnerAssignments { get; set; }
     public DbSet<RunnerStackSupply> RunnerStackSupplies { get; set; }
     public DbSet<RunnerNamespaceSupply> RunnerNamespaceSupplies { get; set; }
@@ -278,6 +290,12 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         get
         {
             yield return new ApplyJobSagaClassMap();
+            yield return new SplitMigrateSagaClassMap();
+            yield return new TransferMigrateSagaClassMap();
+            yield return new LookupAddressesSagaClassMap();
+            yield return new MoveSagaClassMap();
+            yield return new ImportSagaClassMap();
+            yield return new RemoveSagaClassMap();
             yield return new DestroyJobSagaClassMap();
             yield return new ModuleSagaClassMap();
             yield return new ModuleModifiedSagaClassMap();
@@ -408,6 +426,14 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new VariableSetClassMap());
         modelBuilder.ApplyConfiguration(new VariableClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobClassMap());
+        modelBuilder.ApplyConfiguration(new StateMigrationJobClassMap());
+        modelBuilder.ApplyConfiguration(new StateMigrationJobApprovalClassMap());
+        modelBuilder.ApplyConfiguration(new StateMigrationJobStepClassMap());
+        modelBuilder.ApplyConfiguration(new StateMigrationJobAddressClassMap());
+        modelBuilder.ApplyConfiguration(new TransferClassMap());
+        modelBuilder.ApplyConfiguration(new TransferArtefactClassMap());
+        modelBuilder.ApplyConfiguration(new TransferLockClassMap());
+        modelBuilder.ApplyConfiguration(new StateMigrationJobArtefactClassMap());
         modelBuilder.ApplyConfiguration(new UserFavoriteClassMap());
         modelBuilder.ApplyConfiguration(new UserColorClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobApprovalClassMap());
@@ -430,6 +456,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new RunnerClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionJobClassMap());
+        modelBuilder.ApplyConfiguration(new RunnerConnectionStateMigrationClassMap());
         modelBuilder.ApplyConfiguration(new JobRunnerAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new SourceRefresherPreselectionClassMap());
         modelBuilder.ApplyConfiguration(new RunnerStackSupplyClassMap());

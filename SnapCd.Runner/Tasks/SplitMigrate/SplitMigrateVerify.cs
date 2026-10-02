@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Contracts;
+using SnapCd.Contracts.Clients;
+using SnapCd.Contracts.RunnerRequests.SplitMigrate;
+using SnapCd.Runner.Services.SplitMigrate;
+
+namespace SnapCd.Runner.Tasks;
+
+public partial class Tasks
+{
+    /// <summary>Re-runs the proof against the real backends, after the push.</summary>
+    public async Task SplitMigrateVerify(SplitMigrateVerifyRequestBase request, HubConnection connection)
+    {
+        var killCts = new CancellationTokenSource();
+        _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
+
+
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
+        var reportingTask = StartPeriodicTaskReporting(
+            request.JobId,
+            nameof(SplitMigrateVerify),
+            connection,
+            TimeSpan.FromSeconds(request.ReportActiveJobFrequencySeconds),
+            reportingCts.Token);
+
+        var logger = _loggerFactory.CreateLogger<Tasks>();
+        var taskContext = new RunnerTaskContext(
+            request.JobId,
+            nameof(SplitMigrateVerify),
+            logger,
+            _jobLogStream,
+            request.Metadata
+        );
+
+        var runnerHubClient = new RunnerHubClient(connection);
+
+        try
+        {
+            taskContext.LogNarration("Now running demonolith split migrate verify");
+
+            var engine = _engineFactory.Create(
+                taskContext,
+                request.Engine,
+                request.Metadata
+            );
+
+            var command = DemonolithCommand.Build(
+                "split migrate verify",
+                request.RootDirectory,
+                request.Engine,
+                DemonolithCommand.VarFileFlags(engine.GetSnapCdDir()).ToArray());
+            if (request.RederiveBackend) command += " --rederive-backend";
+
+            await engine.RunProcess(command, killCts.Token);
+
+            // module_states names each module the proof covered; a receipt marked complete means
+            // every one of them planned clean, since demonolith fails the run otherwise.
+            var receipt = DemonolithReceipt.Read(request.RootDirectory, DemonolithReceipt.VerifyReceiptFile);
+            var modulesProven = receipt?.ModuleStates.Count ?? 0;
+            var modulesPlanningClean = receipt is { Complete: true } ? modulesProven : 0;
+
+
+            await InvokeWithRetryAsync(
+                () => runnerHubClient.InvokeSplitMigrateVerifyCompleted(request.JobId, modulesProven, modulesPlanningClean),
+                nameof(runnerHubClient.InvokeSplitMigrateVerifyCompleted),
+                request.JobId,
+                connection);
+
+            taskContext.LogSection("Completed SplitMigrateVerify");
+        }
+        catch (OperationCanceledException)
+        {
+            taskContext.LogWarning("SplitMigrateVerify was cancelled.");
+            await InvokeWithRetryAsync(
+                () => runnerHubClient.InvokeSplitMigrateVerifyCancelled(request.JobId),
+                nameof(runnerHubClient.InvokeSplitMigrateVerifyCancelled),
+                request.JobId,
+                connection);
+        }
+        catch (Exception ex)
+        {
+            taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
+            logger.LogError(ex, "Error handling SplitMigrateVerify for job {JobId}", request.JobId);
+            await InvokeWithRetryAsync(
+                () => runnerHubClient.InvokeSplitMigrateVerifyFaulted(request.JobId, ex.Message, ex.StackTrace),
+                nameof(runnerHubClient.InvokeSplitMigrateVerifyFaulted),
+                request.JobId,
+                connection);
+        }
+        finally
+        {
+            reportingCts?.Cancel();
+            if (reportingTask != null)
+            {
+                try { await reportingTask; }
+                catch { /* Already logged */ }
+            }
+
+            _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
+        }
+    }
+}

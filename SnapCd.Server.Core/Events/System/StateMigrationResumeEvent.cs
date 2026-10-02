@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+namespace SnapCd.Server.Core.Events.System;
+
+/// <summary>
+/// Asks a manual job that has just left a wait to dispatch the step it was waiting to run. The
+/// answer to the wait and the dispatch are two consumes rather than one, so the saga is already in
+/// the state that expects the reply before the step is asked for. Publishing both from one chain
+/// lets a fast answer arrive while the saga is still in the state it is leaving.
+///
+/// Each job kind names its own, as it names its own steps: a message type is what says which saga
+/// a message is for, and two sagas sharing one means both are subscribed to every copy.
+/// </summary>
+public abstract class StateMigrationResumeEventBase
+{
+    /// <summary>The job that was waiting.</summary>
+    public Guid ModuleJobId { get; set; }
+
+    public Guid OrganizationId { get; set; }
+}
+
+/// <summary>The counterparty agreed, so this side may start.</summary>
+public class TransferConsented : StateMigrationResumeEventBase;
+
+/// <summary>A transfer's approval is answered, so the write it was holding may go ahead.</summary>
+public class TransferApproved : StateMigrationResumeEventBase;
+
+/// <summary>
+/// The values a transfer's Module was waiting on exist, so it can prove. Separate from the approval
+/// because it resumes a different step: one event per thing that was being waited for.
+/// </summary>
+
+/// <summary>
+/// The source has cut its fragment and the server has it. Correlated by the transfer rather than by
+/// a job, because the side that produces it does not know the waiting side's job.
+/// </summary>
+/// <summary>
+/// The receiver's planned output values are stored, so the half whose plan reads them may prove.
+/// Carries who produced them, because the consumer is whichever half did not.
+/// </summary>
+public class TransferOutputsAvailable
+{
+    public Guid TransferId { get; set; }
+
+    public Guid OrganizationId { get; set; }
+
+    public Guid ProducedByModuleId { get; set; }
+}
+
+public class TransferFragmentAvailable
+{
+    public Guid TransferId { get; set; }
+
+    public Guid OrganizationId { get; set; }
+}
+
+/// <summary>
+/// A state edit's threshold is answered. One gate, so the fact is the approval itself rather than
+/// the job carrying on: a job that arrives already approved never waits, and is still approved.
+/// </summary>
+public class MoveApproved : StateMigrationResumeEventBase;
+
+public class ImportApproved : StateMigrationResumeEventBase;
+
+public class RemoveApproved : StateMigrationResumeEventBase;

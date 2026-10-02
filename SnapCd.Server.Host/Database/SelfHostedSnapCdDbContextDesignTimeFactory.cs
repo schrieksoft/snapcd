@@ -17,7 +17,7 @@ public class SelfHostedSnapCdDbContextDesignTimeFactory : IDesignTimeDbContextFa
     public SelfHostedSnapCdDbContext CreateDbContext(string[] args)
     {
         var builder = new DbContextOptionsBuilder<SelfHostedSnapCdDbContext>();
-        builder.UseSqlServer("Server=.;Database=SnapCd_DesignTime;Trusted_Connection=True;TrustServerCertificate=True;",
+        builder.UseSqlServer("Server=localhost,1435;Database=SnapCd_DesignTime;User Id=sa;password=myPassw0rd;TrustServerCertificate=True;",
             m => m.MigrationsHistoryTable("__EFMigrationsHistory"));
         builder.UseOpenIddict();
         builder.UseOpenIddict<ServicePrincipal, Authorization, Scope, Token, Guid>();

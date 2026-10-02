@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts;
@@ -16,20 +17,24 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks;
 
 /// <summary>
 /// Server-side consumer that receives Output requests and dispatches them to runners via SignalR.
 /// Replaces the old runner-side consumer pattern with direct hub invocation.
 /// </summary>
-public class OutputConsumer : IConsumer<OutputRequested>
+public abstract class OutputConsumer<TRequested, TFaulted> : IConsumer<TRequested>
+    where TRequested : OutputRequestedBase
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<OutputConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public OutputConsumer(
-        ILogger<OutputConsumer> logger,
+    protected OutputConsumer(
+        ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -38,7 +43,10 @@ public class OutputConsumer : IConsumer<OutputRequested>
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<OutputRequested> context)
+    /// <summary>The runner endpoint this job kind is dispatched to.</summary>
+    protected abstract string Endpoint { get; }
+
+    public async Task Consume(ConsumeContext<TRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -66,7 +74,7 @@ public class OutputConsumer : IConsumer<OutputRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.Output,
+                Endpoint,
                 new OutputRequestBase
                 {
                     JobId = jobId,
@@ -104,7 +112,7 @@ public class OutputConsumer : IConsumer<OutputRequested>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching Output request for job {JobId}", jobId);
-            await context.Publish(new OutputFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,
@@ -114,4 +122,22 @@ public class OutputConsumer : IConsumer<OutputRequested>
             });
         }
     }
+}
+
+public class ApplyOutputConsumer(
+    ILogger<ApplyOutputConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : OutputConsumer<ApplyOutputRequested, ApplyOutputFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyOutput);
+}
+
+public class DestroyOutputConsumer(
+    ILogger<DestroyOutputConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : OutputConsumer<DestroyOutputRequested, DestroyOutputFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyOutput);
 }

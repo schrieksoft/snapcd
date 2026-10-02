@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Runner.Services;
 using Microsoft.Extensions.Logging;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Logging;
@@ -38,6 +39,34 @@ public class RunnerTaskContext
 
     public void LogInformation(string message, string subContext = "")
         => Emit(LogLevel.Information, message, subContext);
+
+    /// <summary>
+    /// Snap CD's own narration around a task, dimmed so the tool's output is what stands out in
+    /// the job log. The escape codes survive to the dashboard, which renders ANSI as HTML.
+    /// </summary>
+    public void LogNarration(string message, string subContext = "")
+        => Emit(LogLevel.Information, Ansi.Dim(message), subContext);
+
+    /// <summary>
+    /// Narration that closes a section: a blank line, then the dimmed heading. The blank line is a
+    /// log entry of its own, since entries are joined one per line when the job log is read back.
+    /// </summary>
+    public void LogSection(string message, string subContext = "")
+    {
+        Emit(LogLevel.Information, string.Empty, subContext);
+        Emit(LogLevel.Information, Ansi.Dim(message), subContext);
+    }
+
+    /// <summary>A blank line, separating the narration above from the work that follows.</summary>
+    public void LogBreak(string subContext = "")
+        => Emit(LogLevel.Information, string.Empty, subContext);
+
+    /// <summary>
+    /// Machinery being correct: stashes, cleanups, directory bookkeeping. Kept out of the default
+    /// reading of a job log, and there when a checkout has gone wrong.
+    /// </summary>
+    public void LogDebug(string message, string subContext = "")
+        => Emit(LogLevel.Debug, message, subContext);
 
     public void LogWarning(string message, string subContext = "")
         => Emit(LogLevel.Warning, message, subContext);

@@ -15,7 +15,39 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task CancelKill(CancelKillRequest request, HubConnection connection)
+    public Task ApplyCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeApplyCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeApplyCancelKillCompleted));
+
+    public Task DestroyCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeDestroyCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeDestroyCancelKillCompleted));
+
+    public Task SplitCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeSplitCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeSplitCancelKillCompleted));
+
+    public Task MoveCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeMoveCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeMoveCancelKillCompleted));
+
+    public Task ImportCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeImportCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeImportCancelKillCompleted));
+
+    public Task RemoveCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeRemoveCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeRemoveCancelKillCompleted));
+
+    /// <summary>
+    /// Killing the process is the same work for every family; the endpoint the outcome is reported
+    /// on is not, so the caller hands in the reply to make.
+    /// </summary>
+    private async Task CancelKill(
+        CancelKillRequest request,
+        HubConnection connection,
+        Func<RunnerHubClient, Task> reportCompleted,
+        string reportName)
     {
         var logger = _loggerFactory.CreateLogger<Tasks>();
 
@@ -28,11 +60,10 @@ public partial class Tasks
         else
             logger.LogWarning("No running process found for kill cancellation of job {JobId}", request.JobId);
 
-        // Send completion response to server
         var runnerHubClient = new RunnerHubClient(connection);
         await InvokeWithRetryAsync(
-            () => runnerHubClient.InvokeCancelKillCompleted(request.JobId),
-            nameof(runnerHubClient.InvokeCancelKillCompleted),
+            () => reportCompleted(runnerHubClient),
+            reportName,
             request.JobId,
             connection);
     }

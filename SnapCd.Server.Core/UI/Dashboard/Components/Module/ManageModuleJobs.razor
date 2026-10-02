@@ -43,7 +43,7 @@
             @if (ShowRunNow)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                           OnClick="OnRunQueueNow">run now</MudButton>
+                           Disabled="@IsPaused" OnClick="OnRunQueueNow">run now</MudButton>
             }
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                        OnClick="OnClearQueue">clear</MudButton>
@@ -53,8 +53,10 @@
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudStack Row Spacing="2">
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply" Size="Size.Small">apply</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy" Size="Size.Small">destroy</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply" Size="Size.Small"
+                   Disabled="@IsPaused">apply</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy" Size="Size.Small"
+                   Disabled="@IsPaused">destroy</MudButton>
     </MudStack>
 </MudPaper>
 
@@ -142,7 +144,7 @@ else
                             <MudTooltip Text="Cancel Job">
                                 <MudIconButton Icon="@SnapCdIcons.Cancel"
                                                Color="Color.Primary" Size="Size.Small"
-                                               OnClick="() => CancelJob(job.Id)"/>
+                                               OnClick="() => CancelJob(job.Id, job.WaitingForApproval == true)"/>
                             </MudTooltip>
                         }
                     </div>
@@ -197,51 +199,6 @@ else
                 PageChanged="HandlePageChanged"/>
 }
 
-<style>
-    .job-status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        display: inline-block;
-        flex-shrink: 0;
-    }
-
-    /* Running jobs keep the exact same solid dot in the exact same place. The wrapper
-       has the SAME 6px footprint as a plain dot, so the dot's centre lines up perfectly
-       with the dots on every other row. The spinning ring is drawn by ::after, which
-       overflows the footprint (centred on the dot) without affecting layout.
-       `currentColor` picks up the inline `color` set on the wrapper (= dotColor). */
-    .job-status-running {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 6px;
-        height: 6px;
-        flex-shrink: 0;
-    }
-
-    .job-status-running::after {
-        content: "";
-        position: absolute;
-        /* 14px ring centred on the 6px dot: -4px inset on every side keeps it
-           symmetric around the wrapper (and therefore around the dot), with a small
-           gap between the thicker ring and the dot. */
-        top: -4px;
-        left: -4px;
-        right: -4px;
-        bottom: -4px;
-        border-radius: 50%;
-        border: 3px solid rgba(128, 128, 128, 0.25);
-        border-top-color: currentColor;
-        animation: job-status-spin 1.1s linear infinite;
-    }
-
-    @@keyframes job-status-spin {
-        to { transform: rotate(360deg); }
-    }
-
-</style>
 
 @code {
     [Parameter] public required Module Module { get; set; }
@@ -252,6 +209,7 @@ else
     [Parameter] public string? QueuedText { get; set; }
     [Parameter] public string? QueuedReasonText { get; set; }
     [Parameter] public bool IsQueued { get; set; }
+    [Parameter] public bool IsPaused { get; set; }
     [Parameter] public bool ShowRunNow { get; set; }
     [Parameter] public EventCallback OnRunQueueNow { get; set; }
     [Parameter] public EventCallback OnClearQueue { get; set; }
@@ -509,7 +467,7 @@ else
     }
 
 
-    private async Task CancelJob(Guid jobId)
+    private async Task CancelJob(Guid jobId, bool waitingForApproval)
     {
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, CloseOnEscapeKey = true };
         var parameters = new DialogParameters<CancelModuleJobDialog>
@@ -517,7 +475,8 @@ else
             { x => x.JobId, jobId },
             { x => x.ModuleId, Module.Id },
             { x => x.NamespaceId, Module.NamespaceId },
-            { x => x.OrganizationId, OrganizationId }
+            { x => x.OrganizationId, OrganizationId },
+            { x => x.WaitingForApproval, waitingForApproval }
         };
 
         var dialog = await DialogService.ShowAsync<CancelModuleJobDialog>("Cancel", parameters, options);

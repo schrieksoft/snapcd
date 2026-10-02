@@ -65,6 +65,7 @@ public static class MiscService
         services.AddSingleton<RoleCapabilitiesService>();
         services.AddSingleton<JobCreatedNotificationService>();
         services.AddSingleton<JobUpdatedNotificationService>();
+        services.AddSingleton<StateMigrationUpdatedNotificationService>();
         services.AddSingleton<LogReceivedNotificationService>();
         services.AddSingleton<RunnerAvailabilityModifiedNotificationService>();
         services.AddSingleton<AgentAvailabilityModifiedNotificationService>();
@@ -88,6 +89,8 @@ public static class MiscService
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton<IStateEncryptionService, StateEncryptionService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferArtefactService>();
+        services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.StateMigrationStepService>();
 
 
         // Execution Services
@@ -117,6 +120,7 @@ public static class MiscService
         services.AddScoped<IQuotaGatingService, QuotaGatingService>();
         services.AddScoped<QuotaService>();
         services.AddScoped<StuckJobDetectionService>();
+        services.AddScoped<RunnerConnectionStateMigrationService>();
         services.AddScoped<QuiescenceProbeService>();
         services.AddScoped<TransportProbeService>();
         services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsService>();

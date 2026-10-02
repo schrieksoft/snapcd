@@ -144,7 +144,8 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
         // every module in the namespace, which re-evaluates their waiting jobs. Mirrors
         // ModuleRepository.ExecuteUpdate.
         if (updated.DefaultApplyApprovalThreshold != existingNamespace.DefaultApplyApprovalThreshold ||
-            updated.DefaultDestroyApprovalThreshold != existingNamespace.DefaultDestroyApprovalThreshold)
+            updated.DefaultDestroyApprovalThreshold != existingNamespace.DefaultDestroyApprovalThreshold ||
+            updated.DefaultStateMigrationApprovalThreshold != existingNamespace.DefaultStateMigrationApprovalThreshold)
             await EnqueueOrPublish(() => Bus.Publish(new NamespaceApprovalThresholdModifiedEvent
             {
                 NamespaceId = updated.Id

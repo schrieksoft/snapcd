@@ -9,18 +9,23 @@
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
 /// <summary>
 /// Handles completion, cancellation, and fault notifications from runners when they finish validation.
 /// </summary>
-public class ValidateHandler
+public abstract class ValidateHandler<TCompleted, TCancelled, TFaulted>
+    where TCompleted : StepResponseBase, new()
+    where TCancelled : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<ValidateHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IBus _bus;
 
-    public ValidateHandler(
-        ILogger<ValidateHandler> logger,
+    protected ValidateHandler(
+        ILogger logger,
         IBus bus)
     {
         _logger = logger;
@@ -33,7 +38,7 @@ public class ValidateHandler
         {
             _logger.LogInformation("Runner completed Validate for job {JobId}", jobId);
 
-            await _bus.Publish(new ValidateCompleted
+            await _bus.Publish(new TCompleted
             {
                 CorrelationId = jobId
             });
@@ -53,7 +58,7 @@ public class ValidateHandler
         {
             _logger.LogInformation("Runner cancelled Validate for job {JobId}", jobId);
 
-            await _bus.Publish(new ValidateCancelled
+            await _bus.Publish(new TCancelled
             {
                 CorrelationId = jobId
             });
@@ -74,7 +79,7 @@ public class ValidateHandler
             _logger.LogError("Runner faulted Validate for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new ValidateFaulted
+            await _bus.Publish(new TFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,
@@ -90,3 +95,9 @@ public class ValidateHandler
         }
     }
 }
+
+public class ApplyValidateHandler(ILogger<ApplyValidateHandler> logger, IBus bus)
+    : ValidateHandler<ApplyValidateCompleted, ApplyValidateCancelled, ApplyValidateFaulted>(logger, bus);
+
+public class DestroyValidateHandler(ILogger<DestroyValidateHandler> logger, IBus bus)
+    : ValidateHandler<DestroyValidateCompleted, DestroyValidateCancelled, DestroyValidateFaulted>(logger, bus);

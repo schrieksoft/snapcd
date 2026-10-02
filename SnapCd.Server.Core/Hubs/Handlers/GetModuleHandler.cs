@@ -9,18 +9,23 @@
 using MassTransit;
 using SnapCd.Server.Core.Events.Steps;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
 /// <summary>
 /// Handles completion, cancellation, and fault notifications from runners when they finish getting the module.
 /// </summary>
-public class GetModuleHandler
+public abstract class GetModuleHandler<TCompleted, TCancelled, TFaulted>
+    where TCompleted : StepResponseBase, new()
+    where TCancelled : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<GetModuleHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IBus _bus;
 
-    public GetModuleHandler(
-        ILogger<GetModuleHandler> logger,
+    protected GetModuleHandler(
+        ILogger logger,
         IBus bus)
     {
         _logger = logger;
@@ -33,7 +38,7 @@ public class GetModuleHandler
         {
             _logger.LogInformation("Runner completed GetModule for job {JobId}", jobId);
 
-            await _bus.Publish(new GetModuleCompleted
+            await _bus.Publish(new TCompleted
             {
                 CorrelationId = jobId
             });
@@ -53,7 +58,7 @@ public class GetModuleHandler
         {
             _logger.LogInformation("Runner cancelled GetModule for job {JobId}", jobId);
 
-            await _bus.Publish(new GetModuleCancelled
+            await _bus.Publish(new TCancelled
             {
                 CorrelationId = jobId
             });
@@ -74,7 +79,7 @@ public class GetModuleHandler
             _logger.LogError("Runner faulted GetModule for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new GetModuleFaulted
+            await _bus.Publish(new TFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,
@@ -90,3 +95,9 @@ public class GetModuleHandler
         }
     }
 }
+
+public class ApplyGetModuleHandler(ILogger<ApplyGetModuleHandler> logger, IBus bus)
+    : GetModuleHandler<ApplyGetModuleCompleted, ApplyGetModuleCancelled, ApplyGetModuleFaulted>(logger, bus);
+
+public class DestroyGetModuleHandler(ILogger<DestroyGetModuleHandler> logger, IBus bus)
+    : GetModuleHandler<DestroyGetModuleCompleted, DestroyGetModuleCancelled, DestroyGetModuleFaulted>(logger, bus);

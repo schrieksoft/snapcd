@@ -160,7 +160,7 @@ public class TransportReconciliationJob
     // from the UI, or fail the job directly.
     private async Task<int> FlagStrandedCancellations(SnapCdDbContext dbContext)
     {
-        string[] cancellingStates = ["CancellingImmediateKill", "CancellingImmediateGraceful"];
+        string[] cancellingStates = ["CancellingImmediateKill"];
 
         var stranded = (await dbContext.ApplyJobSagas.AsNoTracking()
                 .Where(s => cancellingStates.Contains(s.CurrentState))

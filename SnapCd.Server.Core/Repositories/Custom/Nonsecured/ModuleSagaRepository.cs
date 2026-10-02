@@ -11,26 +11,30 @@ using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
+using MassTransit;
+using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Misc.Exceptions;
 
 namespace SnapCd.Server.Core.Repositories.Custom.Nonsecured;
 
-public class ModuleSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
+public class ModuleSagaRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory, IBus bus)
 {
     public ModuleSagaRepository Create()
     {
         var dbContext = dbFactory.CreateDbContext();
-        return new ModuleSagaRepository(dbContext);
+        return new ModuleSagaRepository(dbContext, bus);
     }
 }
 
 public class ModuleSagaRepository : IDisposable
 {
     private readonly SnapCdDbContext _dbContext;
+    private readonly IBus _bus;
 
-    public ModuleSagaRepository(SnapCdDbContext dbContext)
+    public ModuleSagaRepository(SnapCdDbContext dbContext, IBus bus)
     {
         _dbContext = dbContext;
+        _bus = bus;
     }
 
     public virtual async Task<ModuleSaga> Get(Guid correlationId, Guid organizationId)
@@ -87,6 +91,32 @@ public class ModuleSagaRepository : IDisposable
             null => null,
             _ => DesiredStateHeadline.Applied
         };
+    }
+
+    public virtual async Task<ModuleSaga> SetPaused(
+        Guid correlationId,
+        Guid organizationId,
+        bool paused,
+        Guid principalId,
+        string? reason)
+    {
+        var entity = await Get(correlationId, organizationId);
+
+        entity.Paused = paused;
+        entity.PausedBy = paused ? principalId : null;
+        entity.PausedAt = paused ? DateTime.UtcNow : null;
+        entity.PauseReason = paused ? reason : null;
+
+        await _dbContext.SaveChangesAsync();
+
+        await _bus.Publish(new ModuleSagaModifiedEvent { ModuleId = correlationId, OrganizationId = organizationId });
+
+        // Unpausing re-drives the gatekeeper rather than forcing execution: it re-checks dependencies,
+        // a running job and runner availability, so parked work may stay queued for another reason.
+        if (!paused)
+            await _bus.Publish(new ModuleDependencyCheckRequested { ModuleId = correlationId, OrganizationId = organizationId });
+
+        return entity;
     }
 
     public void Dispose()

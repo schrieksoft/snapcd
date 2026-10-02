@@ -40,6 +40,11 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
 
     public int? DestroyApprovalThreshold { get; set; }
 
+    /// <summary>Approvals required before a state migration (split or transfer) pushes state. Defaults to 1: the push is irreversible.</summary>
+    public int? StateMigrationApprovalThreshold { get; set; }
+
+
+
     public int? ApprovalTimeoutMinutes { get; set; }
     public SourceType SourceType { get; set; } = SourceType.Git;
     public SourceRevisionType SourceRevisionType { get; set; } = SourceRevisionType.Default;
@@ -60,6 +65,7 @@ public class Module : AuditBase, IEntity, ICreationTrackable, INamespaceChild
     public List<VariableSet> VariableSets { get; set; } = new();
     public List<ApplyJobSaga> ApplyModuleSaga { get; set; } = new();
     public List<DestroyJobSaga> DestroyModuleSaga { get; set; } = new();
+    public List<SplitMigrateSaga> SplitMigrateSagas { get; set; } = new();
     public List<ModuleJob> ModuleJobs { get; set; } = new();
 
     public List<ModuleExtraFile> ModuleExtraFiles { get; set; } = new();

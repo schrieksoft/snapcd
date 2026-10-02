@@ -1,0 +1,43 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use.
+ *@
+
+@using MudBlazor
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+
+<MudDialog>
+    <DialogContent>
+        @* A confirmation, not a lesson: the user has already chosen to pause. The consequences
+           are spelled out on the banner that shows for as long as the module stays paused. *@
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.body2">Hold this module still?</MudText>
+            <MudTooltip Text="No triggered or dependency-driven work is dispatched while paused. Requests raised meanwhile are queued, not lost, and apply and destroy are unavailable until it is resumed.">
+                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+            </MudTooltip>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Confirm">
+            Pause
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok((string?)null));
+
+    private void Cancel() => MudDialog.Cancel();
+}

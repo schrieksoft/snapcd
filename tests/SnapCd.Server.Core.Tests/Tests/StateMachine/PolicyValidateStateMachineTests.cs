@@ -32,24 +32,88 @@ using ApplyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleFailed,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleCompleted,
     SnapCd.Server.Core.Events.Jobs.Module.ApplyModuleCancelled,
-    SnapCd.Server.Core.Events.Steps.PlanRequested,
-    SnapCd.Server.Core.Events.Steps.PlanCompleted,
-    SnapCd.Server.Core.Events.Steps.PlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetDefinitiveRevisionFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPolicyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyOutputFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyGetModuleFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyInitRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyInitCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyInitCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyInitFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyVariablesFaulted,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanRequested,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyPlanFaulted,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.ApplyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.ApplyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyApplyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.ApplyCancelKillCompleted>;
 using DestroyMachine = SnapCd.Server.Core.StateMachine.Jobs.JobStateMachine<
     SnapCd.Server.Core.Entities.Sagas.DestroyJobSaga,
     SnapCd.Server.Core.Events.Jobs.Module.DestroyModuleRequested,
     SnapCd.Server.Core.Events.Jobs.Module.DestroyModuleFailed,
     SnapCd.Server.Core.Events.Jobs.Module.DestroyModuleCompleted,
     SnapCd.Server.Core.Events.Jobs.Module.DestroyModuleCancelled,
-    SnapCd.Server.Core.Events.Steps.PlanDestroyRequested,
-    SnapCd.Server.Core.Events.Steps.PlanDestroyCompleted,
-    SnapCd.Server.Core.Events.Steps.PlanDestroyCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyGetDefinitiveRevisionRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyGetDefinitiveRevisionCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyGetDefinitiveRevisionCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyGetDefinitiveRevisionFaulted,
+    SnapCd.Server.Core.Events.Steps.DestroyPolicyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyPolicyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyPolicyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyPolicyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.DestroyOutputRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyOutputCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyOutputCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyOutputFaulted,
+    SnapCd.Server.Core.Events.Steps.DestroyGetModuleRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyGetModuleCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyGetModuleCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyGetModuleFaulted,
+    SnapCd.Server.Core.Events.Steps.DestroyInitRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyInitCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyInitCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyInitFaulted,
+    SnapCd.Server.Core.Events.Steps.DestroyValidateRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyValidateCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyValidateCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyValidateFaulted,
+    SnapCd.Server.Core.Events.Steps.DestroyVariablesRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyVariablesCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyVariablesCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyVariablesFaulted,
+    SnapCd.Server.Core.Events.Steps.DestroyPlanRequested,
+    SnapCd.Server.Core.Events.Steps.DestroyPlanCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyPlanFaulted,
     SnapCd.Server.Core.Events.Steps.DestroyFromPlanRequested,
     SnapCd.Server.Core.Events.Steps.DestroyFromPlanCompleted,
-    SnapCd.Server.Core.Events.Steps.DestroyFromPlanCancelled>;
+    SnapCd.Server.Core.Events.Steps.DestroyFromPlanCancelled,
+    SnapCd.Server.Core.Events.Steps.DestroyCancelKillRequested,
+    SnapCd.Server.Core.Events.Steps.DummyDestroyCancelKillCompleted,
+    SnapCd.Server.Core.Events.Steps.DestroyCancelKillCompleted>;
 
 namespace SnapCd.Server.Core.Tests.Tests.StateMachine;
 
@@ -235,23 +299,23 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PlanCompleted_Without_Policies_Skips_PolicyValidate()
+    public async Task ApplyPlanCompleted_Without_Policies_Skips_PolicyValidate()
     {
         var jobId = await SeedJob(destroy: false, state: "PlanPending");
 
-        await _harness.Bus.Publish(new PlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
+        await _harness.Bus.Publish(new ApplyPlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
 
         var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
-        Assert.False(await _harness.Published.Any<PolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.False(await _harness.Published.Any<ApplyPolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]
-    public async Task PlanCompleted_With_Policies_Dispatches_PolicyValidate()
+    public async Task ApplyPlanCompleted_With_Policies_Dispatches_PolicyValidate()
     {
         var jobId = await SeedJob(destroy: false, state: "PlanPending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
+        await _harness.Bus.Publish(new ApplyPlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
 
         var state = await WaitForSagaState(jobId, false, s => s == "PolicyValidatePending");
         Assert.Equal("PolicyValidatePending", state);
@@ -262,14 +326,14 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: true, state: "PlanPending", policies: [InlinePolicy(PolicyEvaluateOn.ApplyOnly)]);
 
-        await _harness.Bus.Publish(new PlanDestroyCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
+        await _harness.Bus.Publish(new DestroyPlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
 
         // The generic machine's post-approval state is named ApplyFromPlanPending for both
         // instantiations (state properties are shared; the destroy saga dispatches
         // DestroyFromPlanRequested from it).
         var state = await WaitForSagaState(jobId, true, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/destroy path, got {state}");
-        Assert.False(await _harness.Published.Any<PolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.False(await _harness.Published.Any<DestroyPolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]
@@ -277,7 +341,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: false, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
+        await _harness.Bus.Publish(new ApplyPolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
 
         Assert.True(await _harness.Published.Any<ApplyModuleCancelled>(x =>
             x.Context.Message.ModuleJobId == jobId && x.Context.Message.CancellationReason == CancellationReason.PolicyDenied));
@@ -299,7 +363,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: true, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
+        await _harness.Bus.Publish(new DestroyPolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.HardDenied });
 
         Assert.True(await _harness.Published.Any<DestroyModuleCancelled>(x =>
             x.Context.Message.ModuleJobId == jobId && x.Context.Message.CancellationReason == CancellationReason.PolicyDenied));
@@ -320,7 +384,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: false, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.SoftWarned });
+        await _harness.Bus.Publish(new ApplyPolicyValidateCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, Outcome = PolicyOutcome.SoftWarned });
 
         var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
@@ -335,7 +399,7 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     {
         var jobId = await SeedJob(destroy: false, state: "PolicyValidatePending", policies: [InlinePolicy()]);
 
-        await _harness.Bus.Publish(new PolicyValidateFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "conftest not found" });
+        await _harness.Bus.Publish(new ApplyPolicyValidateFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "conftest not found" });
 
         Assert.True(await _harness.Published.Any<ApplyModuleFailed>(x => x.Context.Message.ModuleJobId == jobId));
 
@@ -351,11 +415,11 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Pulumi_PlanFaulted_With_HardDenied_Routes_To_PolicyDenied()
+    public async Task Pulumi_ApplyPlanFaulted_With_HardDenied_Routes_To_PolicyDenied()
     {
         var jobId = await SeedJob(destroy: false, state: "PlanPending");
 
-        await _harness.Bus.Publish(new PlanFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "preview failed", PolicyOutcome = PolicyOutcome.HardDenied });
+        await _harness.Bus.Publish(new ApplyPlanFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "preview failed", PolicyOutcome = PolicyOutcome.HardDenied });
 
         Assert.True(await _harness.Published.Any<ApplyModuleCancelled>(x =>
             x.Context.Message.ModuleJobId == jobId && x.Context.Message.CancellationReason == CancellationReason.PolicyDenied));
@@ -386,19 +450,19 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
         };
         var jobId = await SeedJob(destroy: false, state: "PlanPending", policies: [pulumiPolicy]);
 
-        await _harness.Bus.Publish(new PlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
+        await _harness.Bus.Publish(new ApplyPlanCompleted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, TotalChangedCount = 1 });
 
         var state = await WaitForSagaState(jobId, false, s => s == "ApplyFromPlanPending" || s == "WaitingForApproval");
         Assert.True(state is "ApplyFromPlanPending" or "WaitingForApproval", $"Expected approval/apply path, got {state}");
-        Assert.False(await _harness.Published.Any<PolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.False(await _harness.Published.Any<ApplyPolicyValidateRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]
-    public async Task Pulumi_Destroy_PlanDestroyFaulted_HardDenied_Routes_To_PolicyDenied()
+    public async Task Pulumi_Destroy_DestroyPlanFaulted_HardDenied_Routes_To_PolicyDenied()
     {
         var jobId = await SeedJob(destroy: true, state: "PlanPending");
 
-        await _harness.Bus.Publish(new PlanDestroyFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "preview failed", PolicyOutcome = PolicyOutcome.HardDenied });
+        await _harness.Bus.Publish(new DestroyPlanFaulted { CorrelationId = jobId, OrganizationId = _module.OrganizationId, ErrorMessage = "preview failed", PolicyOutcome = PolicyOutcome.HardDenied });
 
         Assert.True(await _harness.Published.Any<DestroyModuleCancelled>(x =>
             x.Context.Message.ModuleJobId == jobId && x.Context.Message.CancellationReason == CancellationReason.PolicyDenied));
@@ -415,11 +479,11 @@ public class PolicyValidateStateMachineTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Pulumi_PlanCompleted_SoftWarned_Persists_And_Continues()
+    public async Task Pulumi_ApplyPlanCompleted_SoftWarned_Persists_And_Continues()
     {
         var jobId = await SeedJob(destroy: false, state: "PlanPending");
 
-        await _harness.Bus.Publish(new PlanCompleted
+        await _harness.Bus.Publish(new ApplyPlanCompleted
         {
             CorrelationId = jobId, OrganizationId = _module.OrganizationId,
             TotalChangedCount = 3, CreateCount = 1, ModifyCount = 1, DestroyCount = 1,

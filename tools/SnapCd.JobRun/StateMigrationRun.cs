@@ -1,0 +1,211 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.Steps.StateMigrations;
+using SnapCd.Server.Core.Repositories.Custom.Secured;
+using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.PrincipalProvider;
+
+namespace SnapCd.JobRun;
+
+/// <summary>
+/// The manual job kinds, which run against a paused Module rather than through the gatekeeper.
+/// Each one records its own steps, so those are the evidence rather than the job's logs.
+/// </summary>
+public static class StateMigrationRun
+{
+    public static async Task<int> Execute(
+        IServiceProvider services,
+        AsyncServiceScope scope,
+        IPrincipalProvider principal,
+        IDbContextFactory<SnapCdDbContext> dbFactory,
+        RunOptions options,
+        NotificationWatch notifications)
+    {
+        // A manual job refuses an unpaused Module, which is the operator's own first step.
+        using (var sagas = scope.ServiceProvider
+                   .GetRequiredService<ModuleSagaSecuredRepositoryFactory>().Create(principal))
+        {
+            await sagas.SetPaused(options.ModuleId, options.OrganizationId, true, "jobrun");
+        }
+
+        Console.WriteLine("Paused the module");
+
+        var stateMigrations = scope.ServiceProvider
+            .GetRequiredService<StateMigrationServiceFactory>().Create(principal);
+
+        var job = options.Job switch
+        {
+            JobKind.List => await stateMigrations.StartLookupAddresses(
+                options.ModuleId, options.OrganizationId, options.Addresses),
+            JobKind.Move => await stateMigrations.StartMove(
+                options.ModuleId, options.OrganizationId, Targeted(options)),
+            JobKind.Import => await stateMigrations.StartImport(
+                options.ModuleId, options.OrganizationId, Targeted(options)),
+            JobKind.Remove => await stateMigrations.StartRemove(
+                options.ModuleId, options.OrganizationId, Bare(options)),
+            JobKind.Split => await stateMigrations.StartSplitMigrate(
+                options.ModuleId, options.OrganizationId, options.RootDirectory, options.Force),
+            _ => throw new NotSupportedException($"No manual run for {options.Job}.")
+        };
+
+        Console.WriteLine($"Started job {job.Id}");
+
+        var status = await Watch(dbFactory, stateMigrations, job.Id, options);
+        await notifications.SettleAsync();
+        await Report(dbFactory, services, job.Id, status, notifications);
+
+        return status == ExecutionStatus.Completed ? 0 : 1;
+    }
+
+    /// <summary>
+    /// A move and an import name a target per address. The default stands in for one an operator
+    /// would name.
+    /// </summary>
+    private static List<AddressInstruction> Targeted(RunOptions options) =>
+        options.Addresses
+            .Select(address => new AddressInstruction
+            {
+                Address = address,
+                Target = options.Target ?? $"{address}_moved"
+            })
+            .ToList();
+
+    /// <summary>A remove names only the address.</summary>
+    private static List<AddressInstruction> Bare(RunOptions options) =>
+        options.Addresses
+            .Select(address => new AddressInstruction { Address = address })
+            .ToList();
+
+    private static async Task<ExecutionStatus> Watch(
+        IDbContextFactory<SnapCdDbContext> dbFactory,
+        StateMigrationService stateMigrations,
+        Guid jobId,
+        RunOptions options)
+    {
+        var deadline = DateTime.UtcNow + options.Timeout;
+        var approved = false;
+        ExecutionStatus? last = null;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(500);
+
+            await using var db = await dbFactory.CreateDbContextAsync();
+            var job = await db.StateMigrationJobs
+                .Where(j => j.Id == jobId)
+                .Select(j => new { j.Status, j.WaitingForApproval })
+                .FirstOrDefaultAsync();
+
+            if (job is null) continue;
+
+            if (job.Status != last)
+            {
+                Console.WriteLine($"  job is {job.Status}");
+                last = job.Status;
+            }
+
+            if (job.Status != ExecutionStatus.Running)
+                return job.Status;
+
+            if (job.WaitingForApproval == true && !approved)
+            {
+                Console.WriteLine("  approving");
+                await stateMigrations.Decide(jobId, options.ModuleId, options.OrganizationId, declined: false);
+                approved = true;
+            }
+        }
+
+        Console.WriteLine($"  timed out after {options.Timeout.TotalSeconds:0}s");
+        return last ?? ExecutionStatus.Unknown;
+    }
+
+    private static async Task Report(
+        IDbContextFactory<SnapCdDbContext> dbFactory,
+        IServiceProvider services,
+        Guid jobId,
+        ExecutionStatus status,
+        NotificationWatch notifications)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+
+        var job = await db.StateMigrationJobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == jobId);
+
+        Console.WriteLine();
+        Console.WriteLine($"Result      {status}");
+
+        if (job is not null)
+        {
+            if (job.FailedOnServerSideStep is not null)
+                Console.WriteLine($"Failed on   {job.FailedOnServerSideStep}");
+            if (!string.IsNullOrWhiteSpace(job.ServerSideErrorHeader))
+                Console.WriteLine($"Error       {job.ServerSideErrorHeader}");
+        }
+
+        var steps = await db.StateMigrationJobSteps.AsNoTracking()
+            .Where(s => s.JobId == jobId)
+            .OrderBy(s => s.StartedAt)
+            .ToListAsync();
+
+        Console.WriteLine();
+        Console.WriteLine(steps.Count == 0
+            ? "Steps       none recorded for this kind"
+            : $"Steps       {steps.Count}");
+        foreach (var step in steps)
+        {
+            Console.WriteLine($"  {step.Task,-24} {step.Status}");
+            if (!string.IsNullOrWhiteSpace(step.ErrorHeader))
+                Console.WriteLine($"  {"",-24} {step.ErrorHeader}");
+        }
+
+        var addresses = await db.StateMigrationJobAddresses.AsNoTracking()
+            .Where(a => a.JobId == jobId)
+            .OrderBy(a => a.Address)
+            .ToListAsync();
+
+        if (addresses.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"Addresses   {addresses.Count}");
+            foreach (var address in addresses)
+                Console.WriteLine($"  {address.Address,-40} {address.Operation} {address.Outcome}");
+        }
+
+        var runner = services.GetRequiredService<FakeRunner>();
+        Console.WriteLine();
+        Console.WriteLine($"Dispatched  {runner.Dispatched.Count} step(s)");
+        foreach (var dispatched in runner.Dispatched)
+            Console.WriteLine($"  {dispatched}");
+
+        Console.WriteLine();
+        Console.WriteLine($"Page would have refreshed on {notifications.JobUpdates} job change(s) "
+                          + $"and {notifications.LogArrivals} log arrival(s)");
+
+        if (notifications.JobUpdates == 0)
+            Console.WriteLine("  !! nothing told an open page the job had started or ended");
+
+        if (notifications.LogArrivals == 0)
+            Console.WriteLine("  !! no logs reached the page, so a running job shows nothing");
+
+        // Logs live as a JSON array on the job's own row rather than as rows of their own.
+        var logged = string.IsNullOrWhiteSpace(job?.Logs)
+            ? 0
+            : System.Text.Json.JsonDocument.Parse(job.Logs).RootElement.GetArrayLength();
+
+        Console.WriteLine($"Log entries {logged}");
+
+        if (logged == 0)
+            Console.WriteLine("  !! nothing was stored, so the page has nothing to show");
+    }
+}

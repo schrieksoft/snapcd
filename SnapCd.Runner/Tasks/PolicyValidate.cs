@@ -16,16 +16,23 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task PolicyValidate(PolicyValidateRequestBase request, HubConnection connection)
+    /// <summary>
+    /// The callbacks say which endpoints to answer on, so one implementation serves every job kind
+    /// and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task PolicyValidate(
+        PolicyValidateRequestBase request,
+        HubConnection connection,
+        Func<Guid, PolicyOutcome, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(PolicyValidate),
@@ -46,7 +53,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation($"Now validating policies ({request.Policies.Count} in scope)");
+            taskContext.LogNarration($"Now validating policies ({request.Policies.Count} in scope)");
 
             var engine = _engineFactory.Create(
                 taskContext,
@@ -54,14 +61,18 @@ public partial class Tasks
                 request.Metadata
             );
 
-            var planJsonPath = await engine.ExportPlanJson(request.IsDestroyJob, killCts.Token, gracefulCts.Token);
+            var planJsonPath = await engine.ExportPlanJson(request.IsDestroyJob, killCts.Token);
 
             var scratchDir = Path.Combine(engine.GetSnapCdDir(), "policies");
             if (Directory.Exists(scratchDir))
                 Directory.Delete(scratchDir, recursive: true);
             Directory.CreateDirectory(scratchDir);
 
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+            // No external process here, so the blank line that would precede a command's output
+            // is emitted before the evaluator's own messages instead.
+            taskContext.LogBreak();
+
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
             var outcome = await _policyEvaluationService.EvaluateAsync(
                 request.Policies,
                 planJsonPath,
@@ -70,19 +81,19 @@ public partial class Tasks
                 linkedCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePolicyValidateCompleted(request.JobId, outcome),
-                nameof(runnerHubClient.InvokePolicyValidateCompleted),
+                () => completed(request.JobId, outcome),
+                "PolicyValidateCompleted",
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation($"Completed PolicyValidate with outcome {outcome}");
+            taskContext.LogSection($"Completed PolicyValidate with outcome {outcome}");
         }
         catch (OperationCanceledException)
         {
             taskContext.LogWarning("PolicyValidate process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePolicyValidateCancelled(request.JobId),
-                nameof(runnerHubClient.InvokePolicyValidateCancelled),
+                () => cancelled(request.JobId),
+                "PolicyValidateCancelled",
                 request.JobId,
                 connection);
         }
@@ -91,12 +102,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling PolicyValidate for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePolicyValidateFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace
-                ),
-                nameof(runnerHubClient.InvokePolicyValidateFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "PolicyValidateFaulted",
                 request.JobId,
                 connection);
         }
@@ -111,7 +118,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

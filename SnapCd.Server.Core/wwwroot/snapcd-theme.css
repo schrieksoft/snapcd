@@ -129,6 +129,25 @@ h1:focus {
   font-size: 14px !important;
 }
 
+/* Inputs holding a system object: an address, a module path, a runner, an id.
+   MudBlazor sets `font: inherit` on .mud-input > input.mud-input-root, and the
+   shorthand takes the family with it, so these have to outrank that selector. */
+.snapcd-mono input,
+.snapcd-mono textarea,
+.snapcd-mono .mud-input > input.mud-input-root,
+.snapcd-mono .mud-input > textarea.mud-input-root {
+  font-family: var(--snap-font-mono, monospace);
+}
+
+/* A placeholder teaching an indentation-sensitive format has to align like the text
+   that replaces it, and ::placeholder does not inherit the rule above. */
+.snapcd-mono input::placeholder,
+.snapcd-mono textarea::placeholder,
+.snapcd-mono .mud-input > input.mud-input-root::placeholder,
+.snapcd-mono .mud-input > textarea.mud-input-root::placeholder {
+  font-family: var(--snap-font-mono, monospace);
+}
+
 /* Stack/namespace/module lists: expanded panel content shows the page background;
    only the panel header keeps the surface color */
 .stack-list .mud-expand-panel,
@@ -323,4 +342,3 @@ body.dark-mode .scalar-card {
   color: var(--snap-text-3);
   margin-bottom: 8px;
 }
-

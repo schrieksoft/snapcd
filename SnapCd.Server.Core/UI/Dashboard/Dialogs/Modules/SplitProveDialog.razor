@@ -1,0 +1,75 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+            <MudText>Split monolith (prove only)</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.subtitle2">Code settings</MudText>
+            <MudDivider Class="mb-2"/>
+
+            <MudTextField @bind-Value="_sourceRevision"
+                          Label="Ref"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          FullWidth="true"
+                          Class="snapcd-mono mb-2"/>
+
+            <MudTextField @bind-Value="_rootDirectory"
+                          Label="Monolith directory"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          FullWidth="true"
+                          Class="snapcd-mono mb-2"/>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Confirm">
+            Start
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string? ModuleRef { get; set; }
+
+    private string? _rootDirectory = ".";
+    private string? _sourceRevision;
+
+    protected override void OnInitialized() => _sourceRevision = ModuleRef;
+
+    private void Confirm() =>
+        MudDialog.Close(DialogResult.Ok(new SplitProveOptions(
+            NormaliseRoot(_rootDirectory),
+            string.IsNullOrWhiteSpace(_sourceRevision) ? null : _sourceRevision.Trim())));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>"." is the module's own directory, which is what passing nothing means.</summary>
+    private static string? NormaliseRoot(string? value) =>
+        string.IsNullOrWhiteSpace(value) || value.Trim() == "." ? null : value.Trim();
+
+    /// <summary>A proof writes nothing, so it takes neither a force nor a backend option.</summary>
+    public record SplitProveOptions(string? RootDirectory, string? SourceRevision);
+}

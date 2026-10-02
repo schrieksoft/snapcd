@@ -138,6 +138,24 @@ public enum StateManagementEngine
     Pulumi
 }
 
+/// <summary>What an engine can be asked to do, so a new engine declares its own answer here.</summary>
+public static class StateManagementEngineCapabilities
+{
+    /// <summary>
+    /// Whether state migrations - move, import, remove, list, split, transfer - can run on this
+    /// engine. They drive `terraform state` operations, which the Terraform lineage has and Pulumi
+    /// does not; Pulumi's own state commands differ enough that the steps are not equivalent.
+    /// </summary>
+    public static bool SupportsStateMigrations(this StateManagementEngine engine) =>
+        engine switch
+        {
+            StateManagementEngine.OpenTofu => true,
+            StateManagementEngine.Terraform => true,
+            StateManagementEngine.Pulumi => false,
+            _ => false
+        };
+}
+
 public enum PulumiCommandTask
 {
     Init,
@@ -473,7 +491,6 @@ public enum SecretDiscriminator
 public enum CancellationType
 {
     AfterCurrent,
-    ImmediateGraceful,
     ImmediateKill
 }
 

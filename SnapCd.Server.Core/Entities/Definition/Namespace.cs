@@ -73,6 +73,9 @@ public class Namespace : AuditBase, IEntity, ICreationTrackable
 
     public int? DefaultDestroyApprovalThreshold { get; set; }
 
+    /// <summary>Default for Modules in this Namespace that do not set their own state migration threshold.</summary>
+    public int? DefaultStateMigrationApprovalThreshold { get; set; }
+
     public int? DefaultApprovalTimeoutMinutes { get; set; }
 
     public NamespaceTriggerBehaviour? TriggerBehaviourOnModified { get; set; } = NamespaceTriggerBehaviour.DoNotTrigger;

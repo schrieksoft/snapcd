@@ -35,7 +35,7 @@ public class PlanHandler
         {
             _logger.LogInformation("Runner completed Plan for job {JobId}", jobId);
 
-            await _bus.Publish(new PlanCompleted
+            await _bus.Publish(new ApplyPlanCompleted
             {
                 CorrelationId = jobId,
                 PolicyOutcome = data.PolicyOutcome,
@@ -76,7 +76,7 @@ public class PlanHandler
         {
             _logger.LogInformation("Runner cancelled Plan for job {JobId}", jobId);
 
-            await _bus.Publish(new PlanCancelled
+            await _bus.Publish(new ApplyPlanCancelled
             {
                 CorrelationId = jobId
             });
@@ -97,7 +97,7 @@ public class PlanHandler
             _logger.LogError("Runner faulted Plan for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new PlanFaulted
+            await _bus.Publish(new ApplyPlanFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,

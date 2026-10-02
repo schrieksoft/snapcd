@@ -21,11 +21,9 @@ public partial class Tasks
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(DestroyFromPlan),
@@ -46,7 +44,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now destroying from plan");
+            taskContext.LogNarration("Now destroying from plan");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(
@@ -64,7 +62,7 @@ public partial class Tasks
                 request.TerraformArrayFlags
             );
 
-            await engine.DestroyFromPlan(request.DestroyBeforeHook, request.DestroyAfterHook, killCts.Token, gracefulCts.Token);
+            await engine.DestroyFromPlan(request.DestroyBeforeHook, request.DestroyAfterHook, killCts.Token);
 
             // Read statistics from file written by the destroy command
             var actualResourceCount = await engine.ReadStatisticsFromFile();
@@ -128,7 +126,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

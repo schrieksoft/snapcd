@@ -84,6 +84,21 @@ public partial class Tasks
         _policyEvaluationSettings = policyEvaluationSettings.Value;
     }
 
+    /// <summary>How long to give WithAutomaticReconnect before giving up on a reply.</summary>
+    private static readonly TimeSpan ReconnectWait = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Waits for the socket to come back, so a reply is not thrown away in the second it takes to
+    /// reconnect. Returns either way; the caller's own attempt limit decides when to stop.
+    /// </summary>
+    private static async Task WaitForConnection(HubConnection connection, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+
+        while (connection.State != HubConnectionState.Connected && DateTime.UtcNow < deadline)
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+    }
+
     /// <summary>
     /// Invoke hub method with automatic retry on transient failures.
     /// </summary>
@@ -92,108 +107,72 @@ public partial class Tasks
         string operationName,
         Guid jobId,
         HubConnection connection,
-        int maxRetries = 3,
+        int maxRetries = HubInvocationRetry.DefaultMaxRetries,
         TimeSpan? initialDelay = null)
     {
         var logger = _loggerFactory.CreateLogger<Tasks>();
-        var attempt = 0;
-        var delay = initialDelay ?? TimeSpan.FromSeconds(1);
-        Exception? lastException = null;
 
         // Stateless operations (e.g. source refresh) have no job to attribute the call to.
         var target = jobId == Guid.Empty ? "(no job)" : $"job {jobId}";
 
-        while (attempt < maxRetries)
+        try
         {
-            try
-            {
-                await invocation();
-
-                if (attempt > 0)
+            await HubInvocationRetry.InvokeAsync(
+                invocation,
+                maxRetries,
+                initialDelay,
+                onAttemptFailed: async (ex, attempt, delay) =>
                 {
-                    logger.LogInformation(
-                        "{Operation} for {Target} succeeded on attempt {Attempt}",
-                        operationName, target, attempt + 1);
-                }
+                    if (HubInvocationRetry.IsTokenExpired(ex))
+                    {
+                        logger.LogWarning(
+                            "{Operation} for {Target} failed due to expired token. Will retry on reconnection...",
+                            operationName, target);
 
-                return; // Success
-            }
-            catch (HubException ex) when (IsRetryableException(ex))
-            {
-                lastException = ex;
-                attempt++;
+                        // The connection reconnects on its own via WithAutomaticReconnect.
+                        return TimeSpan.FromSeconds(2);
+                    }
 
-                if (attempt >= maxRetries)
-                {
-                    logger.LogError(
-                        ex,
-                        "{Operation} for {Target} failed after {Attempts} attempts",
-                        operationName, target, attempt);
-                    throw;
-                }
+                    if (connection.State != HubConnectionState.Connected)
+                    {
+                        logger.LogWarning(
+                            "{Operation} for {Target} found the connection {State}; waiting for it",
+                            operationName, target, connection.State);
 
-                // Check if this is a token expiration error
-                if (IsTokenExpiredException(ex))
-                {
+                        await WaitForConnection(connection, ReconnectWait);
+                        return TimeSpan.Zero;
+                    }
+
                     logger.LogWarning(
-                        "{Operation} for {Target} failed due to expired token. Will retry on reconnection...",
-                        operationName, target);
+                        "{Operation} for {Target} failed (attempt {Attempt}/{Max}): {Error}. " +
+                        "Retrying in {Delay} seconds",
+                        operationName, target, attempt, maxRetries, ex.Message, delay.TotalSeconds);
 
-                    // Note: Connection will automatically reconnect via WithAutomaticReconnect
-                    // Wait for reconnection before retrying
-                    await Task.Delay(TimeSpan.FromSeconds(2));
-
-                    logger.LogInformation(
-                        "Retrying {Operation} for {Target} after token expiration",
-                        operationName, target);
-
-                    // Don't wait additional time - retry immediately
-                    continue;
-                }
-
-                logger.LogWarning(
-                    "{Operation} for {Target} failed (attempt {Attempt}/{Max}): {Error}. " +
-                    "Retrying in {Delay} seconds",
-                    operationName, target, attempt, maxRetries, ex.Message, delay.TotalSeconds);
-
-                await Task.Delay(delay);
-
-                // Exponential backoff with max of 10 seconds
-                delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 10));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(
-                    ex,
-                    "{Operation} for {Target} failed with non-retryable exception",
-                    operationName, target);
-                throw;
-            }
+                    return delay;
+                },
+                onSucceededAfterRetry: attempt => logger.LogInformation(
+                    "{Operation} for {Target} succeeded on attempt {Attempt}",
+                    operationName, target, attempt),
+                // A call made while the socket was down cannot have reached the server, whatever
+                // the client threw, so the reply is worth repeating rather than discarding.
+                isTransportDown: () => connection.State != HubConnectionState.Connected);
         }
-
-        // Should never reach here, but just in case
-        throw lastException ?? new Exception($"{operationName} failed after {maxRetries} attempts");
-    }
-
-    private static bool IsRetryableException(Exception ex)
-    {
-        // Retry on connection issues, timeouts, token expiration, and transient failures
-        return ex.Message.Contains("TokenExpired", StringComparison.OrdinalIgnoreCase) ||
-               ex.Message.Contains("expired", StringComparison.OrdinalIgnoreCase) ||
-               ex.Message.Contains("connection", StringComparison.OrdinalIgnoreCase) ||
-               ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
-               ex.Message.Contains("unavailable", StringComparison.OrdinalIgnoreCase) ||
-               ex is TaskCanceledException ||
-               ex is TimeoutException;
-    }
-
-    private static bool IsTokenExpiredException(Exception ex)
-    {
-        // Check if the exception is specifically about token expiration
-        return ex.Message.Contains("TokenExpired", StringComparison.OrdinalIgnoreCase) ||
-               (ex.Message.Contains("token", StringComparison.OrdinalIgnoreCase) &&
-                ex.Message.Contains("expired", StringComparison.OrdinalIgnoreCase)) ||
-               ex.Message.Contains("authentication token has expired", StringComparison.OrdinalIgnoreCase);
+        catch (Exception ex) when (HubInvocationRetry.IsRetryable(ex))
+        {
+            logger.LogError(
+                ex,
+                "{Operation} for {Target} failed after {Attempts} attempts",
+                operationName, target, maxRetries);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "{Operation} for {Target} failed with non-retryable exception",
+                operationName, target);
+            throw;
+        }
     }
 
     /// <summary>

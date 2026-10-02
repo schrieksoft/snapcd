@@ -29,6 +29,7 @@
         <PackageReference Include="OpenIddict.Abstractions" Version="7.0.0" />
         <PackageReference Include="OpenIddict.Quartz" Version="7.0.0" />
         <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="5.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
         <PackageReference Include="Azure.Identity" Version="1.16.0" />
         <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
@@ -43,5 +44,9 @@
     <PropertyGroup>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    </ItemGroup>
 
 </Project>

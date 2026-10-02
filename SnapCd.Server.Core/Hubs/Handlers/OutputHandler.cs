@@ -11,19 +11,24 @@ using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Steps;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Hubs.Handlers;
 
 /// <summary>
 /// Handles completion, cancellation, and fault notifications from runners when they finish output.
 /// Database work is offloaded to OutputCompletedInvokedConsumer to avoid blocking SignalR.
 /// </summary>
-public class OutputHandler
+public abstract class OutputHandler<TInvoked, TCancelled, TFaulted>
+    where TInvoked : OutputCompletedInvokedBase, new()
+    where TCancelled : StepResponseBase, new()
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<OutputHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IBus _bus;
 
-    public OutputHandler(
-        ILogger<OutputHandler> logger,
+    protected OutputHandler(
+        ILogger logger,
         IBus bus)
     {
         _logger = logger;
@@ -37,7 +42,7 @@ public class OutputHandler
             _logger.LogInformation("Runner completed Output for job {JobId}", jobId);
 
             // Publish to consumer for database work (idempotency handled there)
-            await _bus.Publish(new OutputCompletedInvoked
+            await _bus.Publish(new TInvoked
             {
                 JobId = jobId,
                 OutputSet = outputSet
@@ -58,7 +63,7 @@ public class OutputHandler
         {
             _logger.LogInformation("Runner cancelled Output for job {JobId}", jobId);
 
-            await _bus.Publish(new OutputCancelled
+            await _bus.Publish(new TCancelled
             {
                 CorrelationId = jobId
             });
@@ -79,7 +84,7 @@ public class OutputHandler
             _logger.LogError("Runner faulted Output for job {JobId}: {ErrorMessage}",
                 jobId, errorMessage);
 
-            await _bus.Publish(new OutputFaulted
+            await _bus.Publish(new TFaulted
             {
                 ErrorMessage = errorMessage,
                 StackTrace = stackTrace,
@@ -95,3 +100,11 @@ public class OutputHandler
         }
     }
 }
+
+public class ApplyOutputHandler(ILogger<ApplyOutputHandler> logger, IBus bus)
+    : OutputHandler<ApplyOutputCompletedInvoked, ApplyOutputCancelled, ApplyOutputFaulted>(logger, bus);
+
+
+public class DestroyOutputHandler(ILogger<DestroyOutputHandler> logger, IBus bus)
+    : OutputHandler<DestroyOutputCompletedInvoked, DestroyOutputCancelled, DestroyOutputFaulted>(logger, bus);
+

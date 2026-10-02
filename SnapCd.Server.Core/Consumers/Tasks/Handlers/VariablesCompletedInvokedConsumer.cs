@@ -13,6 +13,8 @@ using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Services.Crud;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 
 /// <summary>
@@ -20,15 +22,17 @@ namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 /// This consumer processes VariablesCompletedInvoked events to store variable sets
 /// without blocking the SignalR connection.
 /// </summary>
-public class VariablesCompletedInvokedConsumer : IConsumer<VariablesCompletedInvoked>
+public abstract class VariablesCompletedInvokedConsumer<TInvoked, TCompleted> : IConsumer<TInvoked>
+    where TInvoked : VariablesCompletedInvokedBase
+    where TCompleted : StepResponseBase, new()
 {
-    private readonly ILogger<VariablesCompletedInvokedConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly VariableSetService _variableSetService;
     private readonly IBus _bus;
 
-    public VariablesCompletedInvokedConsumer(
-        ILogger<VariablesCompletedInvokedConsumer> logger,
+    protected VariablesCompletedInvokedConsumer(
+        ILogger logger,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         VariableSetService variableSetService, IBus bus)
     {
@@ -38,7 +42,7 @@ public class VariablesCompletedInvokedConsumer : IConsumer<VariablesCompletedInv
         _bus = bus;
     }
 
-    public async Task Consume(ConsumeContext<VariablesCompletedInvoked> context)
+    public async Task Consume(ConsumeContext<TInvoked> context)
     {
         var jobId = context.Message.JobId;
         var variableSet = context.Message.VariableSet;
@@ -68,10 +72,7 @@ public class VariablesCompletedInvokedConsumer : IConsumer<VariablesCompletedInv
                 _logger.LogDebug("No variable set provided for job {JobId}, skipping storage", jobId);
             }
 
-            await _bus.Publish(new VariablesCompleted
-            {
-                CorrelationId = jobId
-            });
+            await _bus.Publish(new TCompleted { CorrelationId = jobId });
 
             _logger.LogDebug("Variables completion processed for job {JobId}", jobId);
         }
@@ -89,3 +90,19 @@ public class VariablesCompletedInvokedConsumer : IConsumer<VariablesCompletedInv
         }
     }
 }
+
+public class ApplyVariablesCompletedInvokedConsumer(
+    ILogger<ApplyVariablesCompletedInvokedConsumer> logger,
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    VariableSetService variableSetService,
+    IBus bus)
+    : VariablesCompletedInvokedConsumer<ApplyVariablesCompletedInvoked, ApplyVariablesCompleted>(
+        logger, dbContextFactory, variableSetService, bus);
+
+public class DestroyVariablesCompletedInvokedConsumer(
+    ILogger<DestroyVariablesCompletedInvokedConsumer> logger,
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    VariableSetService variableSetService,
+    IBus bus)
+    : VariablesCompletedInvokedConsumer<DestroyVariablesCompletedInvoked, DestroyVariablesCompleted>(
+        logger, dbContextFactory, variableSetService, bus);

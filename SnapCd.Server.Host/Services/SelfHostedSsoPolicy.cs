@@ -26,22 +26,36 @@ public class SelfHostedSsoPolicy : ISsoPolicy
             var orgId = await orgIdProvider.GetOrganizationIdAsync();
             if (orgId is null)
             {
-                logger?.LogInformation(
-                    "No organization resolved; external login providers will be disabled.");
+                logger?.LogWarning(
+                    "The external login providers configured under OpenIdConnect:ExternalLoginProviders "
+                    + "are disabled: no organization could be read from the database, so the licence "
+                    + "that enables them could not be checked. On a first start this is expected - "
+                    + "finish setting the server up, enter the licence key, and restart.");
                 return false;
             }
 
             var licenseService = scope.ServiceProvider.GetRequiredService<LicenseService>();
             var licenseInfo = await licenseService.GetLicenseInfoAsync(orgId.Value);
-            return licenseInfo.Includes(Feature.Sso);
+
+            if (!licenseInfo.Includes(Feature.Sso))
+            {
+                logger?.LogWarning(
+                    "The external login providers configured under OpenIdConnect:ExternalLoginProviders "
+                    + "are disabled: the licence on this organization does not include SSO. Enter a "
+                    + "licence that does and restart.");
+                return false;
+            }
+
+            return true;
         }
         catch (Exception ex)
         {
-            // DB not available (e.g. design-time EF tooling) — default to SSO disabled.
-            // Anything else here silently disables every external login provider for the
-            // lifetime of the process, so it must not vanish without a trace.
-            logger?.LogError(ex,
-                "SSO gating check failed; external login providers will be disabled.");
+            // Disabling every configured external login provider for the lifetime of the process is
+            // not something to do quietly, whatever the cause.
+            logger?.LogWarning(ex,
+                "The external login providers configured under OpenIdConnect:ExternalLoginProviders "
+                + "are disabled: the licence that enables them could not be checked. If the database "
+                + "is not reachable yet, restart once it is.");
             return false;
         }
     }

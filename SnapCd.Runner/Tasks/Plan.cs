@@ -18,16 +18,23 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task Plan(PlanRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Plans the change. The callbacks say which endpoints to answer on: an apply, a destroy, a
+    /// split and a transfer all plan, and each waits for its own reply.
+    /// </summary>
+    public async Task Plan(
+        PlanRequestBase request,
+        HubConnection connection,
+        Func<Guid, PlanCompletedData, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, PolicyOutcome?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(Plan),
@@ -50,7 +57,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now planning");
+            taskContext.LogNarration("Now planning");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(
@@ -81,7 +88,7 @@ public partial class Tasks
                     packDirs.Add(await PulumiPackMaterializer.MaterializeAsync(policy, packScratchDir, _policyEvaluationSettings, killCts.Token));
                 engine.SetPolicyPacks(packDirs);
             }
-            planOutput = await engine.Plan(request.ResolvedParameters, request.PlanBeforeHook, request.PlanAfterHook, killCts.Token, gracefulCts.Token);
+            planOutput = await engine.Plan(request.ResolvedParameters, request.PlanBeforeHook, request.PlanAfterHook, killCts.Token);
 
             var plan = engine.ParseApplyPlan();
 
@@ -136,19 +143,19 @@ public partial class Tasks
             };
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanCompleted(request.JobId, planData),
-                nameof(runnerHubClient.InvokePlanCompleted),
+                () => completed(request.JobId, planData),
+                "ApplyPlanCompleted",
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed Plan");
+            taskContext.LogSection("Completed Plan");
         }
         catch (OperationCanceledException)
         {
             taskContext.LogWarning("Plan process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanCancelled(request.JobId),
-                nameof(runnerHubClient.InvokePlanCancelled),
+                () => cancelled(request.JobId),
+                "ApplyPlanCancelled",
                 request.JobId,
                 connection);
         }
@@ -156,13 +163,10 @@ public partial class Tasks
         {
             taskContext.LogError($"Error handling Plan for job {request.JobId}. {ex.Message}");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokePlanFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace,
-                    ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)
-                ),
-                nameof(runnerHubClient.InvokePlanFaulted),
+                () => faulted(
+                    request.JobId, ex.Message, ex.StackTrace,
+                    ClassifyFaultPolicyOutcome(request.Policies.Count, ex, planOutput)),
+                "ApplyPlanFaulted",
                 request.JobId,
                 connection);
         }
@@ -181,7 +185,6 @@ public partial class Tasks
                 }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

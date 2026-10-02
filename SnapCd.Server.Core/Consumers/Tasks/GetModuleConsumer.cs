@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Contracts.Endpoints;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using SnapCd.Contracts.Constants;
@@ -15,20 +16,24 @@ using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks;
 
 /// <summary>
 /// Server-side consumer that receives GetModule requests and dispatches them to runners via SignalR.
 /// Replaces the old runner-side consumer pattern with direct hub invocation.
 /// </summary>
-public class GetModuleConsumer : IConsumer<GetModuleRequested>
+public abstract class GetModuleConsumer<TRequested, TFaulted> : IConsumer<TRequested>
+    where TRequested : GetModuleRequestedBase
+    where TFaulted : StepFaultedBase, new()
 {
-    private readonly ILogger<GetModuleConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IHubContext<RunnerHub> _hubContext;
     private readonly RunnerSelectionService _runnerSelection;
 
-    public GetModuleConsumer(
-        ILogger<GetModuleConsumer> logger,
+    protected GetModuleConsumer(
+        ILogger logger,
         IHubContext<RunnerHub> hubContext,
         RunnerSelectionService runnerSelection)
     {
@@ -37,7 +42,10 @@ public class GetModuleConsumer : IConsumer<GetModuleRequested>
         _runnerSelection = runnerSelection;
     }
 
-    public async Task Consume(ConsumeContext<GetModuleRequested> context)
+    /// <summary>The runner endpoint this job kind is dispatched to.</summary>
+    protected abstract string Endpoint { get; }
+
+    public async Task Consume(ConsumeContext<TRequested> context)
     {
         var msg = context.Message;
         var jobId = msg.CorrelationId;
@@ -65,7 +73,7 @@ public class GetModuleConsumer : IConsumer<GetModuleRequested>
 
             // Invoke method on specific runner via SignalR
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
-                RunnerEndpoints.GetModule,
+                Endpoint,
                 new GetModuleRequestBase
                 {
                     JobId = jobId,
@@ -94,7 +102,7 @@ public class GetModuleConsumer : IConsumer<GetModuleRequested>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error dispatching GetModule request for job {JobId}", jobId);
-            await context.Publish(new GetModuleFaulted
+            await context.Publish(new TFaulted
             {
                 CorrelationId = jobId,
                 OrganizationId = orgId,
@@ -104,4 +112,22 @@ public class GetModuleConsumer : IConsumer<GetModuleRequested>
             });
         }
     }
+}
+
+public class ApplyGetModuleConsumer(
+    ILogger<ApplyGetModuleConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : GetModuleConsumer<ApplyGetModuleRequested, ApplyGetModuleFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => nameof(IApplyEndpoints.ApplyGetModule);
+}
+
+public class DestroyGetModuleConsumer(
+    ILogger<DestroyGetModuleConsumer> logger,
+    IHubContext<RunnerHub> hubContext,
+    RunnerSelectionService runnerSelection)
+    : GetModuleConsumer<DestroyGetModuleRequested, DestroyGetModuleFaulted>(logger, hubContext, runnerSelection)
+{
+    protected override string Endpoint => nameof(IDestroyEndpoints.DestroyGetModule);
 }

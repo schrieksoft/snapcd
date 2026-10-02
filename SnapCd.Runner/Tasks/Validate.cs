@@ -16,16 +16,23 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task Validate(ValidateRequestBase request, HubConnection connection)
+    /// <summary>
+    /// Validates the checkout. The callbacks say which endpoints to answer on, so one validate
+    /// serves every job kind and each still replies where its own saga is listening.
+    /// </summary>
+    public async Task Validate(
+        ValidateRequestBase request,
+        HubConnection connection,
+        Func<Guid, Task> completed,
+        Func<Guid, Task> cancelled,
+        Func<Guid, string?, string?, Task> faulted)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
 
-        var gracefulCts = new CancellationTokenSource();
-        _processRegistry.Register(request.JobId, gracefulCts, CancellationType.ImmediateGraceful);
 
         // Start periodic task reporting
-        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token, gracefulCts.Token);
+        var reportingCts = CancellationTokenSource.CreateLinkedTokenSource(killCts.Token);
         var reportingTask = StartPeriodicTaskReporting(
             request.JobId,
             nameof(Validate),
@@ -46,7 +53,7 @@ public partial class Tasks
 
         try
         {
-            taskContext.LogInformation("Now validating");
+            taskContext.LogNarration("Now validating");
 
             // Validate hooks against pre-approved hooks
             _hookPreapprovalService.ValidateHooks(
@@ -60,22 +67,22 @@ public partial class Tasks
                 request.Metadata
             );
 
-            await engine.Validate(request.ValidateBeforeHook, request.ValidateAfterHook, killCts.Token, gracefulCts.Token);
+            await engine.Validate(request.ValidateBeforeHook, request.ValidateAfterHook, killCts.Token);
 
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeValidateCompleted(request.JobId),
-                nameof(runnerHubClient.InvokeValidateCompleted),
+                () => completed(request.JobId),
+                "ValidateCompleted",
                 request.JobId,
                 connection);
 
-            taskContext.LogInformation("Completed Validate");
+            taskContext.LogSection("Completed Validate");
         }
         catch (OperationCanceledException)
         {
             taskContext.LogWarning("Validate process was cancelled.");
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeValidateCancelled(request.JobId),
-                nameof(runnerHubClient.InvokeValidateCancelled),
+                () => cancelled(request.JobId),
+                "ValidateCancelled",
                 request.JobId,
                 connection);
         }
@@ -84,12 +91,8 @@ public partial class Tasks
             taskContext.LogError($"Unhandled exception occurred. {ex.Message}");
             logger.LogError(ex, "Error handling Validate for job {JobId}", request.JobId);
             await InvokeWithRetryAsync(
-                () => runnerHubClient.InvokeValidateFaulted(
-                    request.JobId,
-                    ex.Message,
-                    ex.StackTrace
-                ),
-                nameof(runnerHubClient.InvokeValidateFaulted),
+                () => faulted(request.JobId, ex.Message, ex.StackTrace),
+                "ValidateFaulted",
                 request.JobId,
                 connection);
         }
@@ -104,7 +107,6 @@ public partial class Tasks
             }
 
             _processRegistry.Remove(request.JobId, CancellationType.ImmediateKill);
-            _processRegistry.Remove(request.JobId, CancellationType.ImmediateGraceful);
         }
     }
 }

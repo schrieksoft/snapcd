@@ -120,7 +120,6 @@ public class GitModuleGetter : ModuleGetter
                 throw new Exception(err);
             }
 
-        Context.LogInformation($"Stashed {workingFilePaths.Count} excluded files in temporary storage.");
 
         return Task.FromResult(tempDir);
     }
@@ -154,7 +153,6 @@ public class GitModuleGetter : ModuleGetter
             }
 
 
-        Context.LogInformation($"Restored {workingFilePaths.Count} excluded files from temporary storage.");
         return Task.CompletedTask;
     }
 
@@ -163,9 +161,10 @@ public class GitModuleGetter : ModuleGetter
         var sha = _git.GetLatestLocalSha(ModuleDirectoryService.GetModuleRootDir());
 
         if (string.IsNullOrEmpty(sha))
-            Context.LogInformation($"No local sha found");
+            Context.LogInformation("No local revision found; the module will be downloaded");
+        else
+            Context.LogInformation($"Local revision: {Ansi.Emphasis(sha)}");
 
-        Context.LogInformation($"Found local sha: {sha}");
         return Task.FromResult(sha);
     }
 
@@ -193,11 +192,17 @@ public class GitModuleGetter : ModuleGetter
         );
 
         if (string.IsNullOrEmpty(sha))
-            Context.LogInformation($"No remote sha found");
-
-        Context.LogInformation($"Found remote sha: {sha}");
+            Context.LogInformation("No remote revision found");
+        else
+            Context.LogInformation($"Remote revision: {Ansi.Emphasis(sha)}");
 
         return Task.FromResult(sha);
+    }
+
+    protected override Task ResetToSource(bool includeEngineArtifacts)
+    {
+        _git.ResetToSource(ModuleDirectoryService.GetModuleRootDir(), includeEngineArtifacts);
+        return Task.CompletedTask;
     }
 
     protected override Task DownloadModule(string resolvedRevision)
@@ -208,11 +213,8 @@ public class GitModuleGetter : ModuleGetter
             SourceUrl,
             resolvedRevision);
 
-        var objectName =
-            $"{SourceUrl}?ref={resolvedRevision}";
-
         Context.LogInformation(
-            $"Shallow cloned {objectName} from source");
+            $"Cloned {Ansi.Emphasis(SourceUrl)} at {Ansi.Emphasis(resolvedRevision)}");
         return Task.CompletedTask;
     }
 }

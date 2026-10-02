@@ -74,6 +74,13 @@
                         @FormatActualState(_actualStateSummary.State)
                     </span>
                 }
+                @if (_moduleSaga is { Paused: true })
+                {
+                    <span class="module-status-badge module-status-badge--default">
+                        <span class="module-status-dot"></span>
+                        @(IsDraining ? "Pausing" : "Paused")
+                    </span>
+                }
                 <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_module.Id"/>
             </div>
             <MudText Typo="Typo.body2" Class="module-page-subtitle">
@@ -125,6 +132,37 @@
             </MudAlert>
         }
 
+        @if (_moduleSaga is { Paused: true })
+        {
+            @* Pausing belongs with the state migrations that need it; resuming does not, since a
+               paused module is unavailable on every tab. *@
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                @* The button leads the sentence it acts on, rather than sitting at the far end of it. *@
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    @if (_canPause)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@_resuming" OnClick="Resume">resume</MudButton>
+                    }
+                    <div>
+                        @if (IsDraining)
+                        {
+                            @:This module is pausing. The job already in flight runs to completion; no further work is dispatched.
+                        }
+                        else
+                        {
+                            @:This module is paused. Triggered and dependency-driven work is queued rather than dispatched,
+                            @:and apply and destroy are unavailable until it is resumed.
+                        }
+                        @if (!string.IsNullOrEmpty(_moduleSaga.PauseReason))
+                        {
+                            @: — @_moduleSaga.PauseReason
+                        }
+                    </div>
+                </MudStack>
+            </MudAlert>
+        }
+
         <TabBar Tabs="_tabs" ActiveKey="@_showing.ToString()" OnTabChanged="HandleTabChanged"/>
 
         @* Everything module-scoped lives inside this keyed container. When the route
@@ -147,6 +185,7 @@
                                   QueuedText="@(_queuedSummary?.Text)"
                                   QueuedReasonText="@GetQueuedReasonDisplayText()"
                                   ShowRunNow="@(_queuedSummary is { State: true } && _moduleSaga.QueuedReason != QueuedReason.WaitingOnRunnerCheckin && _runnerAvailabilitySummary is not { ActiveCount: 0 })"
+                                  IsPaused="@(_moduleSaga is { Paused: true })"
                                   OnRunQueueNow="RunQueueNow"
                                   OnClearQueue="ClearQueue"/>
             }
@@ -172,6 +211,13 @@
             @if (_showing == ShowingType.Variables)
             {
                 <ViewVariables Module="_module" StackName="@StackName"/>
+            }
+
+            @if (_showing == ShowingType.StateMigrations)
+            {
+                <ManageStateMigrations Module="_module"
+                                  ModuleSaga="_moduleSaga"
+                                  PrincipalProvider="_literalPrincipalProvider"/>
             }
         </div>
 
@@ -256,6 +302,53 @@
     }
 </style>
 
+<style>
+    /* Job status dot, for both job panels. Not in snapcd-theme.css: that is served
+       without a cache-busting query, so browsers hold an older copy. */
+    .job-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+    /* Running jobs keep the exact same solid dot in the exact same place. The wrapper
+       has the SAME 6px footprint as a plain dot, so the dot's centre lines up perfectly
+       with the dots on every other row. The spinning ring is drawn by ::after, which
+       overflows the footprint (centred on the dot) without affecting layout.
+       `currentColor` picks up the inline `color` set on the wrapper (= dotColor). */
+    .job-status-running {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 6px;
+        height: 6px;
+        flex-shrink: 0;
+    }
+
+    .job-status-running::after {
+        content: "";
+        position: absolute;
+        /* 14px ring centred on the 6px dot: -4px inset on every side keeps it
+           symmetric around the wrapper (and therefore around the dot), with a small
+           gap between the thicker ring and the dot. */
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        border-radius: 50%;
+        border: 3px solid rgba(128, 128, 128, 0.25);
+        border-top-color: currentColor;
+        animation: job-status-spin 1.1s linear infinite;
+    }
+
+    @@keyframes job-status-spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
 @code {
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     [Parameter] public required string StackName { get; set; }
@@ -270,6 +363,10 @@
     [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
+    [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+
+    private bool _canPause;
+    private bool _resuming;
     [Inject] private ModuleJobSecuredRepositoryFactory JobRepoFactory { get; set; } = null!;
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
 
@@ -290,7 +387,8 @@
         new() { Key = nameof(ShowingType.Jobs), Label = "Jobs" },
         new() { Key = nameof(ShowingType.Variables), Label = "Variables" },
         new() { Key = nameof(ShowingType.Outputs), Label = "Outputs" },
-        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" },
+        new() { Key = nameof(ShowingType.StateMigrations), Label = "State Migrations" }
     ];
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
@@ -306,6 +404,9 @@
     private QueuedSummary? _queuedSummary;
     private JobSummary? _jobSummary;
     private ActualStateSummary? _actualStateSummary;
+
+    /// A paused module is still draining while its in-flight job runs; the gate stops new work only.
+    private bool IsDraining => _moduleSaga is { Paused: true } && GetJobState() == JobState.Running;
     private Timer? _runnerAvailabilityRefreshTimer;
     private bool? _isWaitingOnDependencies = null;
 
@@ -449,6 +550,30 @@
     }
 
 
+    /// <summary>
+    /// Resuming is offered wherever the paused notice is, since a paused module is unavailable on
+    /// every tab, not only the one that pauses it.
+    /// </summary>
+    private async Task Resume()
+    {
+        _resuming = true;
+        try
+        {
+            using var sagaRepo = SagaRepoFactory.Create(
+                new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId]));
+            await sagaRepo.SetPaused(_module.Id, OrganizationId, false, null);
+            Snackbar.Add("Module resumed.", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _resuming = false;
+        }
+    }
+
     private async Task ReloadModuleSaga(bool invokeAsync)
     {
         using var moduleSagaRepo = SagaRepoFactory.Create(
@@ -456,6 +581,12 @@
             new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])
         );
         _moduleSaga = await moduleSagaRepo.Get(_module.Id, OrganizationId);
+
+        using (var moduleRepo = ModuleRepoFactory.Create(
+                   new LiteralPrincipalProvider(_principalId, _principalDiscriminator, [OrganizationId])))
+        {
+            _canPause = moduleRepo.CanPause(_module.Id, OrganizationId);
+        }
 
         // Load revision and state data from ModuleJob
         using var jobRepo = JobRepoFactory.Create(
@@ -706,6 +837,8 @@
             QueuedReason.WaitingOnDependencies => "Waiting on dependencies",
             QueuedReason.WaitingOnRunnerCheckin => "Waiting for active runner",
             QueuedReason.WaitingOnRunningJob => "Waiting on current job",
+            QueuedReason.Maintenance => "Waiting on maintenance mode",
+            QueuedReason.Paused => "Module is paused",
             _ => ""
         };
     }
@@ -1230,7 +1363,8 @@
         Jobs,
         Outputs,
         Variables,
-        Configure
+        Configure,
+        StateMigrations
     }
 
     // Disposes the timer and unsubscribes the notifications tied to the currently
@@ -1279,6 +1413,9 @@
             "outputs" => ShowingType.Outputs,
             "variables" => ShowingType.Variables,
             "configure" => ShowingType.Configure,
+            "statemigrations" => ShowingType.StateMigrations,
+            // The tab was called this before it was renamed; links to it still exist.
+            "manualjobs" => ShowingType.StateMigrations,
             _ => null
         };
     }
@@ -1291,6 +1428,7 @@
             ShowingType.Outputs => "Outputs",
             ShowingType.Variables => "Variables",
             ShowingType.Configure => "Configure",
+            ShowingType.StateMigrations => "StateMigrations",
             _ => null
         };
     }

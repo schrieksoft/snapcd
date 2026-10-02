@@ -16,8 +16,11 @@ using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 using SnapCd.Runner.Settings;
 using SnapCd.Runner.Tasks;
+using SnapCd.Contracts.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddSnapCdFileLogging(builder.Configuration);
 
 builder.Configuration.Sources.Clear();
 builder.Configuration

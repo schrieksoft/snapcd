@@ -37,7 +37,8 @@ public enum QueuedReason
     WaitingOnRunningJob,
     WaitingOnDependencies,
     WaitingOnRunnerCheckin,
-    Maintenance
+    Maintenance,
+    Paused
 }
 
 public enum SecretScope
@@ -80,50 +81,6 @@ public enum JobState
     Unknown
 }
 
-public enum TaskEndpoint
-{
-    Started,
-    SelectRunnerInstanceCompleted,
-    SelectRunnerInstanceCancelled,
-    SelectRunnerInstanceFaulted,
-    GetDefinitiveRevisionCompleted,
-    GetDefinitiveRevisionCancelled,
-    GetDefinitiveRevisionFaulted,
-    GetModuleCompleted,
-    GetModuleCancelled,
-    GetModuleFaulted,
-    InitCompleted,
-    InitCancelled,
-    InitFaulted,
-    ValidateCompleted,
-    ValidateCancelled,
-    ValidateFaulted,
-    VariablesCompleted,
-    VariablesCancelled,
-    VariablesFaulted,
-    PlanCompleted,
-    PlanCancelled,
-    PlanFaulted,
-    PlanDestroyCompleted,
-    PlanDestroyCancelled,
-    PlanDestroyFaulted,
-    ApplyFromPlanCompleted,
-    ApplyFromPlanCancelled,
-    ApplyFromPlanFaulted,
-    DestroyFromPlanCompleted,
-    DestroyFromPlanCancelled,
-    DestroyFromPlanFaulted,
-    OutputCompleted,
-    OutputCancelled,
-    OutputFaulted,
-    ReportRunningTask,
-    CancelKillCompleted,
-    CancelGracefulCompleted,
-    PolicyValidateCompleted,
-    PolicyValidateCancelled,
-    PolicyValidateFaulted
-}
-
 /// <summary>
 /// Represents a saga state that a job can be in.
 /// </summary>
@@ -149,10 +106,14 @@ public enum ModuleJobSagaState
     Cancelled,
 
     CancellingImmediateKill,
-    CancellingImmediateGraceful,
     CancellingAfterCurrent,
     Declined,
-    WaitingForApproval
+    WaitingForApproval,
+
+    /// <summary>A transfer's own waits, which a reply can arrive during.</summary>
+    WaitingForConsent,
+    WaitingForFragment,
+    WaitingForOutputs
 }
 
 public enum ExecutionStatus
@@ -164,7 +125,13 @@ public enum ExecutionStatus
     Failed,
     Orphaned,
     Unknown,
-    PolicyDenied
+    PolicyDenied,
+
+    /// <summary>
+    /// Some of what the job was asked to do worked and some did not. Unfinished work with a
+    /// remedy, rather than a failure: the part that succeeded did succeed.
+    /// </summary>
+    PartiallyCompleted
 }
 
 public enum ActualStateHeadline

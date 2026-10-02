@@ -13,6 +13,8 @@ using SnapCd.Server.Core.Events.Handlers;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Services.Crud;
 
+using SnapCd.Server.Core.Events.Steps.Base;
+
 namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 
 /// <summary>
@@ -20,15 +22,17 @@ namespace SnapCd.Server.Core.Consumers.Tasks.Handlers;
 /// This consumer processes OutputCompletedInvoked events to store output sets
 /// without blocking the SignalR connection.
 /// </summary>
-public class OutputCompletedInvokedConsumer : IConsumer<OutputCompletedInvoked>
+public abstract class OutputCompletedInvokedConsumer<TInvoked, TCompleted> : IConsumer<TInvoked>
+    where TInvoked : OutputCompletedInvokedBase
+    where TCompleted : StepResponseBase, new()
 {
-    private readonly ILogger<OutputCompletedInvokedConsumer> _logger;
+    private readonly ILogger _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly OutputSetService _outputSetService;
     private readonly IBus _bus;
 
-    public OutputCompletedInvokedConsumer(
-        ILogger<OutputCompletedInvokedConsumer> logger,
+    protected OutputCompletedInvokedConsumer(
+        ILogger logger,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         OutputSetService outputSetService, IBus bus)
     {
@@ -38,7 +42,7 @@ public class OutputCompletedInvokedConsumer : IConsumer<OutputCompletedInvoked>
         _bus = bus;
     }
 
-    public async Task Consume(ConsumeContext<OutputCompletedInvoked> context)
+    public async Task Consume(ConsumeContext<TInvoked> context)
     {
         var jobId = context.Message.JobId;
         var outputSet = context.Message.OutputSet;
@@ -63,10 +67,7 @@ public class OutputCompletedInvokedConsumer : IConsumer<OutputCompletedInvoked>
                 _logger.LogDebug("Stored OutputSet for job {JobId}", jobId);
                 
                 // Publish saga event
-                await _bus.Publish(new OutputCompleted
-                {
-                    CorrelationId = jobId
-                });
+                await _bus.Publish(new TCompleted { CorrelationId = jobId });
 
                 _logger.LogDebug("Output completion processed for job {JobId}", jobId);
             }
@@ -89,3 +90,19 @@ public class OutputCompletedInvokedConsumer : IConsumer<OutputCompletedInvoked>
         }
     }
 }
+
+public class ApplyOutputCompletedInvokedConsumer(
+    ILogger<ApplyOutputCompletedInvokedConsumer> logger,
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    OutputSetService outputSetService,
+    IBus bus)
+    : OutputCompletedInvokedConsumer<ApplyOutputCompletedInvoked, ApplyOutputCompleted>(
+        logger, dbContextFactory, outputSetService, bus);
+
+public class DestroyOutputCompletedInvokedConsumer(
+    ILogger<DestroyOutputCompletedInvokedConsumer> logger,
+    IDbContextFactory<SnapCdDbContext> dbContextFactory,
+    OutputSetService outputSetService,
+    IBus bus)
+    : OutputCompletedInvokedConsumer<DestroyOutputCompletedInvoked, DestroyOutputCompleted>(
+        logger, dbContextFactory, outputSetService, bus);
