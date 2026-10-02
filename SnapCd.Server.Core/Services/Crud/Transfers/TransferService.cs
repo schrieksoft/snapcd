@@ -101,10 +101,9 @@ public class TransferService(
             OrganizationId = organizationId
         });
 
-        // The asking side's job starts now, with the wait for the answer as its first step.
+        // Starts now, with the wait for the answer as its first step.
         await stateMigrationService.StartTransferMigrate(
-            moduleId, counterpartyModuleId, organizationId, moduleRef, transfer.Id,
-            awaitConsent: true);
+            moduleId, counterpartyModuleId, organizationId, moduleRef, transfer.Id);
 
         return transfer;
     }

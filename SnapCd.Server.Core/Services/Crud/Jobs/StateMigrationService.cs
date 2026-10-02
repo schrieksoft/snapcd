@@ -231,8 +231,7 @@ public class StateMigrationService : IDisposable
         Guid counterpartyModuleId,
         Guid organizationId,
         string? proveRef,
-        Guid? transferId = null,
-        bool awaitConsent = false)
+        Guid? transferId = null)
     {
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
@@ -275,7 +274,6 @@ public class StateMigrationService : IDisposable
                 Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
                 CounterpartyModuleId = counterpartyModuleId,
                 TransferId = transferId,
-                AwaitConsent = awaitConsent,
                 ProveRef = proveRef
             });
         }

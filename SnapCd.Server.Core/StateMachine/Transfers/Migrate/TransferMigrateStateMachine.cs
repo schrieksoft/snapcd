@@ -10,7 +10,10 @@
 using System.Text.Json;
 using SnapCd.Server.Core.Events.System;
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.StateMachine.StateMigrations.Activities;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
@@ -211,8 +214,8 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                         "Transfer: moving state for Module {ModuleId}",
                         context.Saga.ModuleId);
                 })
-                .IfElse(
-                    context => context.Message.AwaitConsent,
+                .IfElseAsync(
+                    context => IsInitiator(context),
                     waiting => waiting
                         .ThenAsync(context => RecordDispatched(context, "WaitForCounterpartyConsent"))
                         .Activity(x => x.OfType<WaitingForConsentActivity<TransferMigrateSaga, TransferMigrateRequested>>())
@@ -227,5 +230,28 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
         Configure_Preamble();
         Configure_Consent();
         Configure_TransferHalves();
+    }
+
+    /// <summary>
+    /// Whether this half is the side that asked for the transfer. The asking side waits for the
+    /// answer; the answering side's job is created by that answer, so it has nothing to wait for.
+    /// A transfer names the asking Module, so the role is read rather than carried on the request.
+    /// </summary>
+    private static async Task<bool> IsInitiator<TMessage>(
+        BehaviorContext<TransferMigrateSaga, TMessage> context)
+        where TMessage : class
+    {
+        if (context.Saga.TransferId is not { } transferId) return true;
+
+        await using var dbContext = await PipeExtensions.GetPayload<IServiceProvider>(context)
+            .GetRequiredService<IDbContextFactory<SnapCdDbContext>>()
+            .CreateDbContextAsync();
+
+        var initiator = await dbContext.Transfers.AsNoTracking()
+            .Where(t => t.Id == transferId && t.OrganizationId == context.Saga.OrganizationId)
+            .Select(t => (Guid?)t.ModuleId)
+            .FirstOrDefaultAsync();
+
+        return initiator is null || initiator == context.Saga.ModuleId;
     }
 }
