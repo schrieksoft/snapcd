@@ -19,7 +19,8 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// have to travel.
 ///
 /// Encrypted with the service that encrypts state files, because a fragment is raw state and
-/// carries whatever state carries. Deleted when the transfer closes; not a durable record.
+/// carries whatever state carries. Deleted once neither of the transfer's jobs is still running,
+/// which is later than the close; not a durable record.
 /// </summary>
 public class TransferArtefact : AuditBase, IEntity
 {

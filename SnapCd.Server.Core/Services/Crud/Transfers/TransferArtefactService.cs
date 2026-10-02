@@ -93,16 +93,6 @@ public class TransferArtefactService
                            && a.ReceiverOutputsCiphertext != null);
     }
 
-    /// <summary>Drops a closed transfer's files; they are not a durable record.</summary>
-    public async Task<int> DeleteForTransfer(Guid transferId, Guid organizationId)
-    {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-
-        return await dbContext.TransferArtefacts
-            .Where(a => a.TransferId == transferId && a.OrganizationId == organizationId)
-            .ExecuteDeleteAsync();
-    }
-
     private async Task<TransferArtefact?> Find(Guid transferId, Guid organizationId)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();

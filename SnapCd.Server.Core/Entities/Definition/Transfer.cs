@@ -59,7 +59,7 @@ public class Transfer : AuditBase, IEntity
 
     [MaxLength(500)] public string? CloseReason { get; set; }
 
-    /// <summary>What the source produced for the receiver; gone once the transfer closes.</summary>
+    /// <summary>What the source produced for the receiver; gone once neither job is running.</summary>
     [JsonIgnore] public ICollection<TransferArtefact> Artefacts { get; set; } = new List<TransferArtefact>();
 
     [JsonIgnore] public Module Module { get; set; } = null!;

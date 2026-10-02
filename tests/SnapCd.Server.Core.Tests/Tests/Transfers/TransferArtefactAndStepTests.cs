@@ -135,20 +135,132 @@ public class TransferArtefactAndStepTests : IAsyncLifetime
         Assert.True(await service.HasSourceFragment(transferId, _organizationId));
     }
 
-    /// <summary>Nothing a transfer carries outlives the transfer.</summary>
+    // ----- trg_StateMigrationJobs_DeleteTransferArtefacts -----
+    //
+    // The artefacts go when neither of the transfer's jobs is still running. That is later than the
+    // close, which fires on the first job ending, so the negative case below is the one that
+    // matters: the surviving half still needs what the first produced.
+
+    /// <summary>Both halves ended, so nothing is left to read the files.</summary>
     [Fact]
-    public async Task Closing_Deletes_What_Was_Carried()
+    public async Task Both_Halves_Ended_Deletes_The_Artefacts()
     {
         var transferId = await SeedTransfer();
-        var service = ArtefactService();
+        var source = await SeedTransferJob(transferId, _moduleId, ExecutionStatus.Running);
+        var receiver = await SeedTransferJob(transferId, _counterpartyModuleId, ExecutionStatus.Running);
 
-        await service.StoreSourceFragment(transferId, _organizationId, "a", "m");
-        await service.StoreReceiverOutputs(transferId, _organizationId, "b");
+        await ArtefactService().StoreSourceFragment(transferId, _organizationId, "state", "meta");
+        Assert.Equal(1, await CountRows(transferId));
 
-        Assert.Equal(1, await service.DeleteForTransfer(transferId, _organizationId));
+        await SetStatus(source, ExecutionStatus.Completed);
+        Assert.Equal(1, await CountRows(transferId));
 
-        var (fragment, _) = await service.ReadSourceFragment(transferId, _organizationId);
-        Assert.Null(fragment);
+        await SetStatus(receiver, ExecutionStatus.Completed);
+        Assert.Equal(0, await CountRows(transferId));
+    }
+
+    /// <summary>
+    /// The first half ending must not take the files with it: the other half is still running and
+    /// the fragment is what it is waiting for.
+    /// </summary>
+    [Fact]
+    public async Task One_Half_Still_Running_Keeps_The_Artefacts()
+    {
+        var transferId = await SeedTransfer();
+        var source = await SeedTransferJob(transferId, _moduleId, ExecutionStatus.Running);
+        await SeedTransferJob(transferId, _counterpartyModuleId, ExecutionStatus.Running);
+
+        await ArtefactService().StoreSourceFragment(transferId, _organizationId, "state", "meta");
+
+        await SetStatus(source, ExecutionStatus.Completed);
+
+        Assert.Equal(1, await CountRows(transferId));
+    }
+
+    /// <summary>Ended is ended: a failed half counts, and a retry is a new transfer either way.</summary>
+    [Fact]
+    public async Task A_Failed_Half_Still_Counts_As_Ended()
+    {
+        var transferId = await SeedTransfer();
+        var source = await SeedTransferJob(transferId, _moduleId, ExecutionStatus.Running);
+        var receiver = await SeedTransferJob(transferId, _counterpartyModuleId, ExecutionStatus.Running);
+
+        await ArtefactService().StoreSourceFragment(transferId, _organizationId, "state", "meta");
+
+        await SetStatus(source, ExecutionStatus.Completed);
+        await SetStatus(receiver, ExecutionStatus.Failed);
+
+        Assert.Equal(0, await CountRows(transferId));
+    }
+
+    /// <summary>
+    /// A job row can disappear rather than end: deleting a Module cascades to its jobs. Without the
+    /// trigger's DELETE arm those artefacts would never be removed.
+    /// </summary>
+    [Fact]
+    public async Task A_Deleted_Job_Row_Also_Releases_The_Artefacts()
+    {
+        var transferId = await SeedTransfer();
+        var source = await SeedTransferJob(transferId, _moduleId, ExecutionStatus.Completed);
+        var receiver = await SeedTransferJob(transferId, _counterpartyModuleId, ExecutionStatus.Running);
+
+        await ArtefactService().StoreSourceFragment(transferId, _organizationId, "state", "meta");
+        Assert.Equal(1, await CountRows(transferId));
+
+        await using (var db = _fixture.CreateDbContext())
+        {
+            await db.StateMigrationJobs
+                .Where(j => j.Id == receiver && j.OrganizationId == _organizationId)
+                .ExecuteDeleteAsync();
+        }
+
+        Assert.Equal(0, await CountRows(transferId));
+        Assert.NotEqual(Guid.Empty, source);
+    }
+
+    /// <summary>A job on no transfer must not reach another transfer's artefacts.</summary>
+    [Fact]
+    public async Task A_Job_Without_A_Transfer_Deletes_Nothing()
+    {
+        var transferId = await SeedTransfer();
+        await SeedTransferJob(transferId, _moduleId, ExecutionStatus.Running);
+        await ArtefactService().StoreSourceFragment(transferId, _organizationId, "state", "meta");
+
+        // A third Module: at most one Running job per Module, so it cannot share one with a half.
+        var unrelated = await SeedTransferJob(null, _fixture.Modules["0010"].Id, ExecutionStatus.Running);
+        await SetStatus(unrelated, ExecutionStatus.Completed);
+
+        Assert.Equal(1, await CountRows(transferId));
+    }
+
+    private async Task<Guid> SeedTransferJob(Guid? transferId, Guid moduleId, ExecutionStatus status)
+    {
+        var jobId = Guid.NewGuid();
+        _seededJobs.Add(jobId);
+
+        await using var db = _fixture.CreateDbContext();
+        db.StateMigrationJobs.Add(new StateMigrationJob
+        {
+            Id = jobId,
+            ModuleId = moduleId,
+            OrganizationId = _organizationId,
+            TransferId = transferId,
+            TimestampStart = DateTimeOffset.UtcNow,
+            JobType = StateMigrationTypes.TransferMigrate,
+            Status = status
+        });
+        await db.SaveChangesAsync();
+        return jobId;
+    }
+
+    private async Task SetStatus(Guid jobId, ExecutionStatus status)
+    {
+        await using var db = _fixture.CreateDbContext();
+        var job = await db.StateMigrationJobs
+            .FirstAsync(j => j.Id == jobId && j.OrganizationId == _organizationId);
+        job.Status = status;
+        job.TimestampEnd = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
     }
 
     private async Task<int> CountRows(Guid transferId)
