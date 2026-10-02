@@ -102,7 +102,7 @@ public class TransferService(
         });
 
         // Starts now, with the wait for the answer as its first step.
-        await stateMigrationService.StartTransferMigrate(
+        await stateMigrationService.InitiateTransferMigrate(
             moduleId, counterpartyModuleId, organizationId, moduleRef, transfer.Id);
 
         return transfer;
@@ -133,33 +133,31 @@ public class TransferService(
             throw new StateMigrationNotAllowedException(
                 $"This transfer has already been answered: {transfer.ConsentStatus}.");
 
+        var principalId = principalProvider.GetSubject(organizationId);
+        var principalDiscriminator = principalProvider.GetPrincipalDiscriminator();
+
         if (granted)
         {
-            var blocked = await stateMigrationService.GetBlockedReason(moduleId, organizationId);
-            if (blocked is not null)
-                throw new StateMigrationNotAllowedException(blocked);
-        }
-
-        transfer.ConsentStatus = granted ? ConsentStatus.Granted : ConsentStatus.Refused;
-        transfer.ConsentPrincipalId = principalProvider.GetSubject(organizationId);
-        transfer.ConsentPrincipalDiscriminator = principalProvider.GetPrincipalDiscriminator();
-        transfer.ConsentDecidedAt = DateTimeOffset.UtcNow;
-        transfer.CounterpartyRef = moduleRef;
-
-        if (!granted)
-        {
-            transfer.ClosedAt = DateTimeOffset.UtcNow;
-            transfer.ClosedBy = transfer.ConsentPrincipalId;
-            transfer.CloseReason = "refused";
-        }
-
-        await dbContext.SaveChangesAsync();
-
-        // This side has nothing running yet; the initiator's job is already waiting on the answer.
-        if (granted)
-            await stateMigrationService.StartTransferMigrate(
+            // Records the agreement and starts this side in one write, so neither can exist
+            // without the other.
+            await stateMigrationService.ConsentTransferMigrate(
                 transfer.CounterpartyModuleId, transfer.ModuleId, organizationId,
-                transfer.CounterpartyRef, transfer.Id);
+                moduleRef, transfer.Id, principalId, principalDiscriminator);
+        }
+        else
+        {
+            // Refusing starts nothing, so the answer and the close are all there is to write.
+            transfer.ConsentStatus = ConsentStatus.Refused;
+            transfer.ConsentPrincipalId = principalId;
+            transfer.ConsentPrincipalDiscriminator = principalDiscriminator;
+            transfer.ConsentDecidedAt = DateTimeOffset.UtcNow;
+            transfer.CounterpartyRef = moduleRef;
+            transfer.ClosedAt = DateTimeOffset.UtcNow;
+            transfer.ClosedBy = principalId;
+            transfer.CloseReason = "refused";
+
+            await dbContext.SaveChangesAsync();
+        }
 
         // Releases the initiator, either to go ahead or to end.
         await bus.Publish(new ConsentDecided

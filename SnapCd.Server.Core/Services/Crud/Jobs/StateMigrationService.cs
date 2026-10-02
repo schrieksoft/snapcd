@@ -222,20 +222,73 @@ public class StateMigrationService : IDisposable
     /// ordering interlock is waived, so neither waits for the other; what moved is recorded instead.
     /// </summary>
     /// <summary>
-    /// Starts this Module's half of a transfer. The counterparty is named only so a plan that reads
-    /// a value the other side produces knows whose outputs to wait for; the two are started
-    /// separately and nothing here coordinates them.
+    /// Starts the asking side's half of a transfer, which waits for the counterparty to answer as
+    /// its first step.
     /// </summary>
-    public async Task<StateMigrationJob> StartTransferMigrate(
+    public async Task<StateMigrationJob> InitiateTransferMigrate(
         Guid moduleId,
         Guid counterpartyModuleId,
         Guid organizationId,
         string? proveRef,
-        Guid? transferId = null)
+        Guid transferId)
     {
-        if (_resolvedConfigurationService is null || _bus is null)
-            throw new InvalidOperationException(
-                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var job = await AddTransferMigrateJob(
+            dbContext, moduleId, counterpartyModuleId, organizationId, proveRef, transferId);
+
+        await dbContext.SaveChangesAsync();
+        await DispatchTransferMigrate(job, counterpartyModuleId, proveRef, transferId);
+        return job;
+    }
+
+    /// <summary>
+    /// Records the counterparty's agreement and starts its half, in one write. The answer and the
+    /// job row commit together: written apart, a failure between them leaves the transfer granted
+    /// with nothing running on this side, and the asking side parked on a wait nothing will end.
+    /// </summary>
+    public async Task<StateMigrationJob> ConsentTransferMigrate(
+        Guid moduleId,
+        Guid counterpartyModuleId,
+        Guid organizationId,
+        string? proveRef,
+        Guid transferId,
+        Guid consentPrincipalId,
+        PrincipalDiscriminator consentPrincipalDiscriminator)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var transfer = await dbContext.Transfers
+            .FirstOrDefaultAsync(t => t.Id == transferId && t.OrganizationId == organizationId)
+            ?? throw new StateMigrationNotAllowedException($"No transfer with Id {transferId}.");
+
+        var job = await AddTransferMigrateJob(
+            dbContext, moduleId, counterpartyModuleId, organizationId, proveRef, transferId);
+
+        transfer.ConsentStatus = ConsentStatus.Granted;
+        transfer.ConsentPrincipalId = consentPrincipalId;
+        transfer.ConsentPrincipalDiscriminator = consentPrincipalDiscriminator;
+        transfer.ConsentDecidedAt = DateTimeOffset.UtcNow;
+        transfer.CounterpartyRef = proveRef;
+
+        await dbContext.SaveChangesAsync();
+        await DispatchTransferMigrate(job, counterpartyModuleId, proveRef, transferId);
+        return job;
+    }
+
+    /// <summary>
+    /// The checks both halves make and the row they both add. Saving is the caller's, so the row
+    /// commits with whatever else that caller is writing.
+    /// </summary>
+    private async Task<StateMigrationJob> AddTransferMigrateJob(
+        SnapCdDbContext dbContext,
+        Guid moduleId,
+        Guid counterpartyModuleId,
+        Guid organizationId,
+        string? proveRef,
+        Guid transferId)
+    {
+        RequireJobStartDependencies();
 
         if (!_moduleSecuredRepository.CanConsent(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
@@ -243,8 +296,6 @@ public class StateMigrationService : IDisposable
 
         if (counterpartyModuleId == moduleId)
             throw new StateMigrationNotAllowedException("A Module cannot transfer to itself.");
-
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var blocked = await GetBlockedReason(moduleId, organizationId);
         if (blocked is not null)
@@ -263,15 +314,29 @@ public class StateMigrationService : IDisposable
         };
 
         dbContext.StateMigrationJobs.Add(job);
-        await dbContext.SaveChangesAsync();
+        return job;
+    }
+
+    /// <summary>
+    /// Announces and dispatches a half once its row is committed. A dispatch that throws fails the
+    /// job: the row is already Running and would block every later manual job on this Module.
+    /// </summary>
+    private async Task DispatchTransferMigrate(
+        StateMigrationJob job,
+        Guid counterpartyModuleId,
+        string? proveRef,
+        Guid transferId)
+    {
+        RequireJobStartDependencies();
+
         await AnnounceStarted(job);
 
         try
         {
-            await _bus.Publish(new TransferMigrateRequested
+            await _bus!.Publish(new TransferMigrateRequested
             {
                 CorrelationId = job.Id,
-                Declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId),
+                Declared = await _resolvedConfigurationService!.GetDeclared(job.ModuleId, job.OrganizationId),
                 CounterpartyModuleId = counterpartyModuleId,
                 TransferId = transferId,
                 ProveRef = proveRef
@@ -279,12 +344,16 @@ public class StateMigrationService : IDisposable
         }
         catch (Exception ex)
         {
-            // The row is already Running and would block every later manual job on this Module.
-            await FailJob(job.Id, organizationId, ex.Message);
+            await FailJob(job.Id, job.OrganizationId, ex.Message);
             throw;
         }
+    }
 
-        return job;
+    private void RequireJobStartDependencies()
+    {
+        if (_resolvedConfigurationService is null || _bus is null)
+            throw new InvalidOperationException(
+                $"{nameof(StateMigrationService)} was constructed without the dependencies needed to start a job.");
     }
 
     private static async Task<string> ModuleName(SnapCdDbContext dbContext, Guid moduleId) =>
