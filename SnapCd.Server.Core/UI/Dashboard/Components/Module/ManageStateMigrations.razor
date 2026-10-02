@@ -662,12 +662,10 @@ else
             using var service = TransferServiceFactory.Create(PrincipalProvider);
             await service.Open(
                 Module.Id, choice.CounterpartyModuleId, OrganizationId,
-                choice.ModuleRef, choice.StartImmediately);
+                choice.ModuleRef);
 
             Snackbar.Add(
-                choice.StartImmediately
-                    ? "Moving this module's state; the other module has been asked to agree."
-                    : "The other module has been asked to agree. Both start once it does.",
+                "The other module has been asked to agree. Both start once it does.",
                 Severity.Success);
             await Reload();
         }

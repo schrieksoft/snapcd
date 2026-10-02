@@ -61,8 +61,7 @@ public class TransferService(
         Guid moduleId,
         Guid counterpartyModuleId,
         Guid organizationId,
-        string? moduleRef,
-        bool startImmediately)
+        string? moduleRef)
     {
         if (!moduleSecuredRepository.CanConsent(moduleId, organizationId))
             throw new PrincipalNotAuthorizedException(
@@ -102,10 +101,10 @@ public class TransferService(
             OrganizationId = organizationId
         });
 
-        // The job starts now either way; unless told not to, its first step is the wait.
+        // The asking side's job starts now, with the wait for the answer as its first step.
         await stateMigrationService.StartTransferMigrate(
             moduleId, counterpartyModuleId, organizationId, moduleRef, transfer.Id,
-            awaitConsent: !startImmediately);
+            awaitConsent: true);
 
         return transfer;
     }

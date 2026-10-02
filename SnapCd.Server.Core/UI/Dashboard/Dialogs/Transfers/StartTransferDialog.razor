@@ -40,13 +40,6 @@
             </NoItemsTemplate>
         </MudAutocomplete>
 
-        <MudTooltip Text="Starts this module now rather than waiting for the other to agree. Usually left off, so both move once the agreement is in place.">
-            <MudCheckBox @bind-Value="_startImmediately"
-                         Label="Start this module without waiting"
-                         Color="Color.Secondary"
-                         Class="mb-2"/>
-        </MudTooltip>
-
         <MudTooltip Text="The branch or tag carrying this module's half of the code move. The other module names its own when it agrees.">
             <MudTextField @bind-Value="_moduleRef"
                           Label="This module's ref"
@@ -70,13 +63,12 @@
 
     private Module? _counterparty;
     private string? _moduleRef;
-    private bool _startImmediately;
 
     protected override void OnInitialized() => _moduleRef = ModuleRef;
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Choice(_counterparty!.Id, _moduleRef, _startImmediately)));
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new Choice(_counterparty!.Id, _moduleRef)));
 
     /// <summary>
     /// Filters the candidates already loaded, by name or by the root they own - the root is what
@@ -89,6 +81,6 @@
                         || m.SourceSubdirectory.Contains(searchText, StringComparison.OrdinalIgnoreCase))
             .Cast<Module?>());
 
-    /// <summary>The module on the other side, the ref this one runs against, and whether to wait.</summary>
-    public record Choice(Guid CounterpartyModuleId, string? ModuleRef, bool StartImmediately);
+    /// <summary>The module on the other side, and the ref this one runs against.</summary>
+    public record Choice(Guid CounterpartyModuleId, string? ModuleRef);
 }

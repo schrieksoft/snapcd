@@ -59,7 +59,7 @@ public static class TransferRun
 
         var transfer = await transfers.Open(
             options.ModuleId, counterpartyId, options.OrganizationId,
-            moduleRef: options.ModuleRef, startImmediately: false);
+            moduleRef: options.ModuleRef);
 
         Console.WriteLine($"Opened transfer {transfer.Id}");
         Console.WriteLine("  the starting side is now waiting to be agreed to");
