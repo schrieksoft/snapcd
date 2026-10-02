@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
 // Copyright (c) 2026 Karl Schriek / Schrieksoft.
 // No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
 // embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
@@ -14,7 +14,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class StateMigrationJobs : Migration
+    public partial class StateMigrationsAndTransfers : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -103,6 +103,48 @@ namespace SnapCd.Server.Host.Database.Migrations
                     table.PrimaryKey("PK_ImportSagas", x => new { x.CorrelationId, x.OrganizationId });
                     table.ForeignKey(
                         name: "FK_ImportSagas_Modules_ModuleId_OrganizationId",
+                        columns: x => new { x.ModuleId, x.OrganizationId },
+                        principalTable: "Modules",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "LookupAddressesSagas",
+                columns: table => new
+                {
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CorrelationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AddressesJson = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
+                    CurrentState = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
+                    ResponseAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    KillCancellationRequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    HeartbeatRequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    HeartbeatScheduleTokenId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ApprovalTimeoutScheduleTokenId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ApprovalTimeoutMinutes = table.Column<int>(type: "int", nullable: true),
+                    IsCompleted = table.Column<bool>(type: "bit", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false),
+                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RunnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RunnerName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    RunnerInstanceName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    DeclaredJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsApproved = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeclined = table.Column<bool>(type: "bit", nullable: false),
+                    PreviousStateBeforeWaiting = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    PreviousStateBeforeCancelling = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    WaitingSince = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ServerInstanceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    DefinitiveRevision = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LookupAddressesSagas", x => new { x.CorrelationId, x.OrganizationId });
+                    table.ForeignKey(
+                        name: "FK_LookupAddressesSagas_Modules_ModuleId_OrganizationId",
                         columns: x => new { x.ModuleId, x.OrganizationId },
                         principalTable: "Modules",
                         principalColumns: new[] { "Id", "OrganizationId" },
@@ -246,48 +288,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StateListFilteredSagas",
-                columns: table => new
-                {
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CorrelationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AddressesJson = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    CurrentState = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
-                    ResponseAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    RequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    KillCancellationRequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    HeartbeatRequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    HeartbeatScheduleTokenId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ApprovalTimeoutScheduleTokenId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ApprovalTimeoutMinutes = table.Column<int>(type: "int", nullable: true),
-                    IsCompleted = table.Column<bool>(type: "bit", nullable: false),
-                    Version = table.Column<int>(type: "int", nullable: false),
-                    ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RunnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RunnerName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    RunnerInstanceName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    DeclaredJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsApproved = table.Column<bool>(type: "bit", nullable: false),
-                    IsDeclined = table.Column<bool>(type: "bit", nullable: false),
-                    PreviousStateBeforeWaiting = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    PreviousStateBeforeCancelling = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    WaitingSince = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ServerInstanceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    DefinitiveRevision = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_StateListFilteredSagas", x => new { x.CorrelationId, x.OrganizationId });
-                    table.ForeignKey(
-                        name: "FK_StateListFilteredSagas_Modules_ModuleId_OrganizationId",
-                        columns: x => new { x.ModuleId, x.OrganizationId },
-                        principalTable: "Modules",
-                        principalColumns: new[] { "Id", "OrganizationId" },
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "StateMigrationJobs",
                 columns: table => new
                 {
@@ -347,7 +347,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     ProveRef = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     DefinitiveRevision = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     NeedsOutputsJson = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    HasOutputs = table.Column<bool>(type: "bit", nullable: false),
+                    IsSource = table.Column<bool>(type: "bit", nullable: false),
                     ProveExitCode = table.Column<int>(type: "int", nullable: true),
                     Verdict = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
                     CurrentState = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
@@ -606,7 +606,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     InputKey = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
                     StartedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     EndedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    Log = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
@@ -629,6 +628,42 @@ namespace SnapCd.Server.Host.Database.Migrations
                         name: "FK_StateMigrationJobSteps_StateMigrationJobs_JobId_OrganizationId",
                         columns: x => new { x.JobId, x.OrganizationId },
                         principalTable: "StateMigrationJobs",
+                        principalColumns: new[] { "Id", "OrganizationId" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TransferArtefacts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TransferId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SourceFragmentCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SourceFragmentMetaCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReceiverOutputsCiphertext = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CreatedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ModifiedByPrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ModifiedByAgentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ModifiedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TransferArtefacts", x => new { x.Id, x.OrganizationId });
+                    table.ForeignKey(
+                        name: "FK_TransferArtefacts_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TransferArtefacts_Transfers_TransferId_OrganizationId",
+                        columns: x => new { x.TransferId, x.OrganizationId },
+                        principalTable: "Transfers",
                         principalColumns: new[] { "Id", "OrganizationId" },
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -661,6 +696,17 @@ namespace SnapCd.Server.Host.Database.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ImportSagas_ModuleId_OrganizationId",
                 table: "ImportSagas",
+                columns: new[] { "ModuleId", "OrganizationId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LookupAddressesSagas_CorrelationId",
+                table: "LookupAddressesSagas",
+                column: "CorrelationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LookupAddressesSagas_ModuleId_OrganizationId",
+                table: "LookupAddressesSagas",
                 columns: new[] { "ModuleId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
@@ -721,17 +767,6 @@ namespace SnapCd.Server.Host.Database.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_SplitMigrateSagas_ModuleId_OrganizationId",
                 table: "SplitMigrateSagas",
-                columns: new[] { "ModuleId", "OrganizationId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StateListFilteredSagas_CorrelationId",
-                table: "StateListFilteredSagas",
-                column: "CorrelationId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StateListFilteredSagas_ModuleId_OrganizationId",
-                table: "StateListFilteredSagas",
                 columns: new[] { "ModuleId", "OrganizationId" });
 
             migrationBuilder.CreateIndex(
@@ -871,6 +906,23 @@ namespace SnapCd.Server.Host.Database.Migrations
                 column: "TransferId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TransferArtefacts_Id",
+                table: "TransferArtefacts",
+                column: "Id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransferArtefacts_OrganizationId",
+                table: "TransferArtefacts",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransferArtefacts_TransferId_OrganizationId",
+                table: "TransferArtefacts",
+                columns: new[] { "TransferId", "OrganizationId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TransferLocks_TransferId_OrganizationId",
                 table: "TransferLocks",
                 columns: new[] { "TransferId", "OrganizationId" });
@@ -920,6 +972,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                 name: "ImportSagas");
 
             migrationBuilder.DropTable(
+                name: "LookupAddressesSagas");
+
+            migrationBuilder.DropTable(
                 name: "MoveSagas");
 
             migrationBuilder.DropTable(
@@ -932,9 +987,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                 name: "SplitMigrateSagas");
 
             migrationBuilder.DropTable(
-                name: "StateListFilteredSagas");
-
-            migrationBuilder.DropTable(
                 name: "StateMigrationJobAddresses");
 
             migrationBuilder.DropTable(
@@ -945,6 +997,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "StateMigrationJobSteps");
+
+            migrationBuilder.DropTable(
+                name: "TransferArtefacts");
 
             migrationBuilder.DropTable(
                 name: "TransferLocks");

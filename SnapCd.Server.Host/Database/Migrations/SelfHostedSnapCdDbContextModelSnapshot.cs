@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
 // Copyright (c) 2026 Karl Schriek / Schrieksoft.
 // No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
 // embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated

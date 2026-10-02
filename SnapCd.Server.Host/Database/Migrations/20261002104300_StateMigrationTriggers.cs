@@ -15,17 +15,28 @@ namespace SnapCd.Server.Host.Database.Migrations
 {
     /// <inheritdoc />
     /// <summary>
-    /// Deploys the trigger that closes a transfer once neither of its jobs is still running.
+    /// The three triggers a transfer needs, each in its final form.
     ///
-    /// A transfer claims both its Modules in the statement that creates it. Releasing them went
-    /// through a published event and a consumer, so a Module could stay locked for as long as it
-    /// took anyone to notice a message that never arrived. The claim and the release are now the
-    /// same kind of thing: both happen in the statement that caused them.
+    /// trg_Transfers_TransferLocks claims both Modules when a transfer opens and releases them when
+    /// it closes, so the claim and the release are made by the statement that caused them.
+    ///
+    /// trg_StateMigrationJobs_CloseTransfer closes a transfer as soon as any of its jobs ends.
+    ///
+    /// trg_StateMigrationJobs_DeleteTransferArtefacts deletes what the two halves carried once
+    /// neither is still running, which is later than the close: the surviving half still needs what
+    /// the first produced.
     /// </summary>
-    public partial class TransferClosedByJobsTrigger : Migration
+    public partial class StateMigrationTriggers : Migration
     {
         private const string SqlResource =
-            "SnapCd.Server.Host.Database.Migrations.Sql.20261001103231_TransferClosedByJobsTrigger.sql";
+            "SnapCd.Server.Host.Database.Migrations.Sql.20261002104300_StateMigrationTriggers.sql";
+
+        private static readonly string[] Triggers =
+        [
+            "trg_Transfers_TransferLocks",
+            "trg_StateMigrationJobs_CloseTransfer",
+            "trg_StateMigrationJobs_DeleteTransferArtefacts"
+        ];
 
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -39,7 +50,10 @@ namespace SnapCd.Server.Host.Database.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("DROP TRIGGER IF EXISTS trg_StateMigrationJobs_CloseTransfer;");
+            foreach (var trigger in Triggers)
+            {
+                migrationBuilder.Sql($"DROP TRIGGER IF EXISTS {trigger};");
+            }
         }
     }
 }
