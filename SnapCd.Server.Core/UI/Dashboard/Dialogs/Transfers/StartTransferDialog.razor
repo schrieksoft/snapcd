@@ -8,16 +8,12 @@
 
 @using MudBlazor
 @using SnapCd.Server.Core.Entities.Definition
-@using SnapCd.Server.Core.UI.Dashboard.Theme
 @using SnapCd.Server.Core.Enums
 
 <MudDialog>
     <TitleContent>
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
             <MudText>Transfer resources</MudText>
-            <MudTooltip Text="What moves is decided in the code, by the transfer map the code move writes. Each module moves its own state as its own job, so pause both and start one on each.">
-                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
-            </MudTooltip>
         </MudStack>
     </TitleContent>
     <DialogContent>
@@ -36,7 +32,7 @@
                 <MudText Color="Color.Secondary" Typo="Typo.caption">@module?.SourceSubdirectory</MudText>
             </ItemTemplate>
             <NoItemsTemplate>
-                <MudText>No other module in this namespace.</MudText>
+                <MudText>No other module in this stack.</MudText>
             </NoItemsTemplate>
         </MudAutocomplete>
 

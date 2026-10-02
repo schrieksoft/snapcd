@@ -129,33 +129,59 @@
             }
             else
             {
-                <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4">
-                    <MudTabPanel Text="Demonolith jobs" Style="text-transform: none">
-                        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)" OnClick="StartSplit">split</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || _transfer is not null || RunningStateMigration is not null)"
-                                       OnClick="StartTransfer">transfer</MudButton>
-                        </MudStack>
-                    </MudTabPanel>
+                @* MudRadio pads its own control, which would sit the dot right of the panel edge. *@
+                <style>
+                    /* Gutters="false" drops MudBlazor's 24px header inset, so the headings, the
+                       radios and the bullets share one left edge at the container's own padding. */
+                    .snapcd-job-panels, .snapcd-job-head { max-width: 50%; }
+                    .snapcd-job-panels .mud-expand-panel-text { padding-left: 0; }
+                    .snapcd-job-panels .snapcd-substeps { margin: 0; padding-left: 1.1rem; }
+                    .snapcd-job-panels .snapcd-substeps li { margin-bottom: .25rem; }
+                    .snapcd-job-panels .mud-radio .mud-icon-button { padding: 0; margin-left: 0; }
+                    .snapcd-job-panels .mud-radio > .mud-typography { margin-left: .5rem; }
+                </style>
 
-                    <MudTabPanel Text="@($"{EngineName} jobs")" Style="text-transform: none">
-                        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)"
-                                       OnClick="StartMove">move</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)"
-                                       OnClick="StartImport">import</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)"
-                                       OnClick="StartRemove">remove</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null)" OnClick="StartLookupAddresses">lookup addresses</MudButton>
-                        </MudStack>
-                    </MudTabPanel>
-                </MudTabs>
+                <MudStack Row Spacing="1" AlignItems="AlignItems.Center" Class="mb-1 snapcd-job-head">
+                    <MudText Typo="Typo.subtitle2" Style="width: 16rem">Job</MudText>
+                    <MudText Typo="Typo.subtitle2">Approximate command</MudText>
+                    <MudTooltip Text="Not everything the job runs, but the crux of what it does.">
+                        <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
+                    </MudTooltip>
+                </MudStack>
+
+                <MudRadioGroup T="StateMigrationKind" @bind-Value="_chosenJob">
+                    <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true"
+                                        Class="snapcd-job-panels">
+                        @foreach (var choice in JobChoices)
+                        {
+                            <MudExpansionPanel Dense="true" Gutters="false">
+                                <TitleContent>
+                                    <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+                                        <div style="width: 16rem">
+                                            <MudRadio T="StateMigrationKind" Value="@choice.Kind"
+                                                      Color="Color.Secondary" Size="Size.Small"
+                                                      Disabled="@IsJobDisabled(choice.Kind)">@choice.Label</MudRadio>
+                                        </div>
+                                        <MudText Typo="Typo.body2" Class="snapcd-mono">@choice.Command</MudText>
+                                    </MudStack>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudText Typo="Typo.body2" Component="ul" Class="snapcd-substeps">
+                                        @foreach (var step in choice.Steps)
+                                        {
+                                            <li>@step</li>
+                                        }
+                                    </MudText>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+                </MudRadioGroup>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Class="mt-3"
+                           Disabled="@IsJobDisabled(_chosenJob)"
+                           OnClick="RunChosenJob">Run</MudButton>
             }
         }
     </MudPaper>
@@ -452,6 +478,96 @@ else
         ModuleSaga is { Paused: true } && _blockedReason is not null && RunningStateMigration is null
         && EngineSupportsStateMigrations;
 
+    /// <summary>The manual jobs this page can start, as the radio list names them.</summary>
+    private enum StateMigrationKind
+    {
+        Split,
+        SplitProve,
+        Transfer,
+        Move,
+        Import,
+        Remove,
+        LookupAddresses
+    }
+
+    private StateMigrationKind _chosenJob = StateMigrationKind.Split;
+
+    private sealed record JobChoice(
+        StateMigrationKind Kind, string Label, string Command, IReadOnlyList<string> Steps);
+
+    private IReadOnlyList<JobChoice> JobChoices =>
+    [
+        new(StateMigrationKind.Split, "split", "demonolith split migrate",
+        [
+            "Checks out the ref and confirms the committed module directories still match the source.",
+            "Checks that the engine accepts each of those directories.",
+            "Pulls the monolith's state read-only and splits a local copy per module.",
+            "Plans each new module, then waits for approval before writing any state.",
+            "Writes each module's state, then checks that every one has nothing left to change."
+        ]),
+        // Not offered for now. Its kind, handler and dialog are all still here.
+        // new(StateMigrationKind.SplitProve, "split (prove only)", "demonolith split migrate prove",
+        // [
+        //     "Checks out the ref and confirms the committed module directories still match the source.",
+        //     "Checks that the engine accepts each of those directories.",
+        //     "Pulls the monolith's state read-only and splits a local copy per module.",
+        //     "Plans each new module, so you can see what the split would do.",
+        //     "Stops there. Nothing is written."
+        // ]),
+        new(StateMigrationKind.Transfer, "transfer", "demonolith transfer migrate",
+        [
+            "Asks the module on the other side to agree to the transfer of resources, and waits for its answer.",
+            "Reads the committed map to find out which side this module is on: the one giving the "
+            + "resources up, or the one taking them in.",
+            "Pulls this module's state. The giving side also writes out the resources that are "
+            + "moving, for the other side to pick up.",
+            "Plans both modules as their state will look once the move is done, then waits for "
+            + "approval before writing anything.",
+            "Writes both modules' state, then checks that each has nothing left to change."
+        ]),
+        new(StateMigrationKind.Import, "import", $"{EngineCommand} import",
+        [
+            "Takes an address and the id the resource already has.",
+            "Imports them one at a time, so you can see which worked if some do not.",
+            "Reads the state afterwards to confirm each one landed."
+        ]),
+        new(StateMigrationKind.Move, "move", $"{EngineCommand} state mv",
+        [
+            "Takes each address and the address it should become.",
+            "Moves them one at a time, so you can see which worked if some do not.",
+            "Reads the state afterwards to confirm each one moved."
+        ]),
+        new(StateMigrationKind.Remove, "remove", $"{EngineCommand} state rm",
+        [
+            "Removes each address from this module's state, one at a time.",
+            "Does not touch the resources themselves. They keep running; this module stops managing them.",
+            "Reads the state afterwards to confirm each one is gone."
+        ]),
+        new(StateMigrationKind.LookupAddresses, "lookup addresses", $"{EngineCommand} state list",
+        [
+            "Reads this module's state and looks for the addresses you give it.",
+            "Tells you which are there and which are not.",
+            "Writes nothing. The state itself never leaves the runner."
+        ])
+    ];
+
+    /// <summary>A transfer also needs there not to be one already; the rest share one condition.</summary>
+    private bool IsJobDisabled(StateMigrationKind kind) =>
+        NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null
+        || (kind == StateMigrationKind.Transfer && _transfer is not null);
+
+    private Task RunChosenJob() => _chosenJob switch
+    {
+        StateMigrationKind.Split => StartSplit(),
+        StateMigrationKind.SplitProve => StartSplitProve(),
+        StateMigrationKind.Transfer => StartTransfer(),
+        StateMigrationKind.Move => StartMove(),
+        StateMigrationKind.Import => StartImport(),
+        StateMigrationKind.Remove => StartRemove(),
+        StateMigrationKind.LookupAddresses => StartLookupAddresses(),
+        _ => Task.CompletedTask
+    };
+
     private bool _canPause;
     private bool _busy;
     private List<Module> _transferCandidates = [];
@@ -547,6 +663,15 @@ else
         Module.Engine ?? _namespaceDefaultEngine ?? StateManagementEngine.OpenTofu;
 
     private string EngineName => ResolvedEngine.ToString();
+
+    /// <summary>The binary the runner invokes, which is not the enum's name: OpenTofu is `tofu`.</summary>
+    private string EngineCommand => ResolvedEngine switch
+    {
+        StateManagementEngine.OpenTofu => "tofu",
+        StateManagementEngine.Terraform => "terraform",
+        StateManagementEngine.Pulumi => "pulumi",
+        _ => ResolvedEngine.ToString().ToLowerInvariant()
+    };
 
     /// <summary>State migrations drive `terraform state` operations, so not every engine has them.</summary>
     private bool EngineSupportsStateMigrations => ResolvedEngine.SupportsStateMigrations();
@@ -720,9 +845,11 @@ else
     {
         await using var db = await TransferDbContextFactory.CreateDbContextAsync();
 
+        // Any Module in the same Stack, not just the same Namespace: a transfer moves resources
+        // between two roots of one deployment, and those need not share a Namespace.
         _transferCandidates = await db.Modules.AsNoTracking()
             .Where(m => m.OrganizationId == OrganizationId
-                        && m.NamespaceId == Module.NamespaceId
+                        && m.Namespace.StackId == Module.Namespace.StackId
                         && m.Id != Module.Id)
             .OrderBy(m => m.Name)
             .ToListAsync();
@@ -731,7 +858,11 @@ else
     private async Task StartSplit()
     {
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<SplitMigrateDialog>("SplitMigrate", options);
+        var parameters = new DialogParameters
+        {
+            { nameof(SplitMigrateDialog.ModuleRef), Module.SourceRevision }
+        };
+        var dialog = await DialogService.ShowAsync<SplitMigrateDialog>("SplitMigrate", parameters, options);
         var result = await dialog.Result;
 
         if (result is null || result.Canceled) return;
@@ -742,19 +873,49 @@ else
         {
             using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
 
-            // A proof runs at an explicit ref and writes nothing, so it is its own job kind.
-            if (choice.ProveOnly)
-                await service.StartSplitProve(
-                    Module.Id, OrganizationId, choice.RootDirectory, choice.SourceRevision!);
-            else
-                await service.StartSplitMigrate(
-                    Module.Id, OrganizationId, choice.RootDirectory, choice.Force,
-                    sourceRevision: string.IsNullOrWhiteSpace(choice.SourceRevision)
-                        ? null
-                        : choice.SourceRevision,
-                    rederiveBackend: choice.RederiveBackend);
+            await service.StartSplitMigrate(
+                Module.Id, OrganizationId, choice.RootDirectory, choice.Force,
+                sourceRevision: string.IsNullOrWhiteSpace(choice.SourceRevision)
+                    ? null
+                    : choice.SourceRevision,
+                rederiveBackend: choice.RederiveBackend);
 
-            Snackbar.Add(choice.ProveOnly ? "Split proof started." : "Split started.", Severity.Success);
+            Snackbar.Add("Split started.", Severity.Success);
+            await Reload();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>A proof runs at an explicit ref and writes nothing, so it is its own job kind.</summary>
+    private async Task StartSplitProve()
+    {
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var parameters = new DialogParameters
+        {
+            { nameof(SplitProveDialog.ModuleRef), Module.SourceRevision }
+        };
+        var dialog = await DialogService.ShowAsync<SplitProveDialog>("SplitProve", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled) return;
+        if (result.Data is not SplitProveDialog.SplitProveOptions choice) return;
+
+        _busy = true;
+        try
+        {
+            using var service = StateMigrationServiceFactory.Create(PrincipalProvider);
+
+            await service.StartSplitProve(
+                Module.Id, OrganizationId, choice.RootDirectory, choice.SourceRevision);
+
+            Snackbar.Add("Split proof started.", Severity.Success);
             await Reload();
         }
         catch (Exception e)

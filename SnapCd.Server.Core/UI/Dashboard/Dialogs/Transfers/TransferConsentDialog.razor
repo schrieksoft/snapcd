@@ -7,17 +7,11 @@
    for terms covering either use. *@
 
 @using MudBlazor
-@using SnapCd.Server.Core.UI.Dashboard.Theme
 
 <MudDialog>
     <TitleContent>
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
             <MudText>@(Granted ? "Agree to the transfer" : "Refuse")</MudText>
-            <MudTooltip Text="@(Granted
-                                  ? "Agreeing starts both modules' jobs against the refs each named. This module must already be paused."
-                                  : "Refusing ends the transfer and releases both modules. The other module can start another.")">
-                <MudIcon Icon="@SnapCdIcons.HelpOutline" Size="Size.Small" Color="Color.Default"/>
-            </MudTooltip>
         </MudStack>
     </TitleContent>
     <DialogContent>

@@ -6,28 +6,18 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
+
 @using MudBlazor
 
 <MudDialog>
     <TitleContent>
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
-            <MudText>Split monolith</MudText>
+            <MudText>Split monolith (prove only)</MudText>
         </MudStack>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="1">
-            <MudText Typo="Typo.subtitle2">State settings</MudText>
-            <MudDivider Class="mb-2"/>
-
-            <MudCheckBox @bind-Value="_rederiveBackend"
-                         Label="Re-derive backends"
-                         Color="Color.Secondary"/>
-
-            <MudCheckBox @bind-Value="_force"
-                         Label="Overwrite existing states"
-                         Color="Color.Secondary"/>
-
-            <MudText Typo="Typo.subtitle2" Class="mt-4">Code settings</MudText>
+            <MudText Typo="Typo.subtitle2">Code settings</MudText>
             <MudDivider Class="mb-2"/>
 
             <MudTextField @bind-Value="_sourceRevision"
@@ -52,7 +42,6 @@
                    OnClick="Confirm">
             Start
         </MudButton>
-
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    OnClick="Cancel">
             Cancel
@@ -67,15 +56,13 @@
 
     private string? _rootDirectory = ".";
     private string? _sourceRevision;
-    private bool _force;
-    private bool _rederiveBackend;
 
     protected override void OnInitialized() => _sourceRevision = ModuleRef;
 
     private void Confirm() =>
-        MudDialog.Close(DialogResult.Ok(new SplitMigrateOptions(
+        MudDialog.Close(DialogResult.Ok(new SplitProveOptions(
             NormaliseRoot(_rootDirectory),
-            _force, _rederiveBackend, _sourceRevision?.Trim())));
+            string.IsNullOrWhiteSpace(_sourceRevision) ? null : _sourceRevision.Trim())));
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -83,6 +70,6 @@
     private static string? NormaliseRoot(string? value) =>
         string.IsNullOrWhiteSpace(value) || value.Trim() == "." ? null : value.Trim();
 
-    public record SplitMigrateOptions(
-        string? RootDirectory, bool Force, bool RederiveBackend, string? SourceRevision);
+    /// <summary>A proof writes nothing, so it takes neither a force nor a backend option.</summary>
+    public record SplitProveOptions(string? RootDirectory, string? SourceRevision);
 }

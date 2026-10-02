@@ -634,17 +634,17 @@ public class StateMigrationService : IDisposable
     }
 
     /// <summary>
-    /// Starts a SplitProve job: the split's chain up to and including the proof, at an explicit
-    /// ref, with nothing written. Paused like every manual job: the proof plans the module's real
-    /// state, so an apply running alongside it would share the runner's working directory.
+    /// Starts a SplitProve job: the split's chain up to and including the proof, with nothing
+    /// written. Paused like every manual job: the proof plans the module's real state, so an apply
+    /// running alongside it would share the runner's working directory.
     /// </summary>
     public async Task<StateMigrationJob> StartSplitProve(
         Guid moduleId,
         Guid organizationId,
         string? rootDirectory,
-        string sourceRevision)
+        string? sourceRevision = null)
     {
-        if (!SourceRevisionOverride.IsValidRef(sourceRevision))
+        if (sourceRevision is not null && !SourceRevisionOverride.IsValidRef(sourceRevision))
             throw new StateMigrationNotAllowedException($"'{sourceRevision}' is not a usable git ref.");
 
         if (_resolvedConfigurationService is null || _bus is null)
