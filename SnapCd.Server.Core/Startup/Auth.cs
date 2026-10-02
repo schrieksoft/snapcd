@@ -33,11 +33,21 @@ public static class Auth
         var openIdConnectSettings = configuration.GetSection("OpenIdConnect").Get<OpenIdConnectSettings>() ?? new OpenIdConnectSettings();
         var externalLoginProviderSettings = openIdConnectSettings.ExternalLoginProviders;
 
-        // EE: only register SSO providers if the organization has a valid EE license
-        var ssoEnabled = SsoGatingService.ShouldEnableSsoAsync(services.BuildServiceProvider()).GetAwaiter().GetResult();
-        if (!ssoEnabled)
+        var anyProviderConfigured = externalLoginProviderSettings.Microsoft.Enabled ||
+                                    externalLoginProviderSettings.Okta.Enabled ||
+                                    externalLoginProviderSettings.Auth0.Enabled ||
+                                    externalLoginProviderSettings.Google.Enabled ||
+                                    externalLoginProviderSettings.GitHub.Enabled;
+
+        // The licence lives in the database, which may not exist yet on a first start, so it is
+        // only asked for when there is a configured provider for it to gate.
+        if (anyProviderConfigured)
         {
-            externalLoginProviderSettings = new ExternalLoginProviderSettings();
+            var ssoEnabled = SsoGatingService.ShouldEnableSsoAsync(services.BuildServiceProvider()).GetAwaiter().GetResult();
+            if (!ssoEnabled)
+            {
+                externalLoginProviderSettings = new ExternalLoginProviderSettings();
+            }
         }
 
         var enableAuthorizationFlowOnClient = externalLoginProviderSettings.Microsoft.Enabled ||

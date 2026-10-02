@@ -177,8 +177,6 @@ var app = builder.Build();
 // Repositories are often constructed by hand, so the write gate is static and armed here once.
 var maintenanceModeService = app.Services.GetRequiredService<IMaintenanceModeService>();
 MaintenanceGate.Initialize(maintenanceModeService);
-// The flag cache has no expiry; each boot rewrites it from database truth to heal any staleness.
-try { await maintenanceModeService.SyncCacheAsync(); } catch (Exception ex) { app.Logger.LogWarning(ex, "Maintenance flag cache sync failed at startup"); }
 
 // Eagerly validate options before migrations / data seeding run.
 // ValidateOnStart() registers a hosted service that fires too late — after the inline
@@ -245,6 +243,9 @@ using (var scope = app.Services.CreateScope())
         throw new InvalidOperationException(message);
     }
 }
+
+// The flag cache has no expiry, so each boot rewrites it from the table the migration creates.
+await maintenanceModeService.SyncCacheAsync();
 
 app.UseHangfireDashboard();
 
