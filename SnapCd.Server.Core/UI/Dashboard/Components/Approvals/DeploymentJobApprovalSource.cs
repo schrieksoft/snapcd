@@ -50,6 +50,12 @@ public class DeploymentJobApprovalSource : IApprovalSource
         _principalDiscriminator = principalDiscriminator;
     }
 
+    public Task<bool> CanDecide(Guid jobId, Guid moduleId, Guid organizationId)
+    {
+        using var repo = _approvalRepoFactory.Create(_principalProvider);
+        return Task.FromResult(repo.CanCreate(jobId, organizationId));
+    }
+
     public bool CanRemoveApproval => true;
 
     public string DecisionNoun => "Plan";

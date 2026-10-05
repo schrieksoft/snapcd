@@ -447,6 +447,7 @@ else
     private IApprovalSource GetApprovalSource() =>
         _approvalSource ??= new StateMigrationApprovalSource(
             StateMigrationRepoFactory,
+            ModuleRepoFactory,
             StateMigrationServiceFactory,
             DbContextFactory,
             PrincipalProvider ?? new HttpContextPrincipalProvider(new HttpContextAccessor()));

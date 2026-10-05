@@ -23,20 +23,29 @@ namespace SnapCd.Server.Core.UI.Dashboard.Components.Approvals;
 public class StateMigrationApprovalSource : IApprovalSource
 {
     private readonly StateMigrationJobSecuredRepositoryFactory _jobRepoFactory;
+    private readonly ModuleSecuredRepositoryFactory _moduleRepoFactory;
     private readonly StateMigrationServiceFactory _serviceFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly IPrincipalProvider _principalProvider;
 
     public StateMigrationApprovalSource(
         StateMigrationJobSecuredRepositoryFactory jobRepoFactory,
+        ModuleSecuredRepositoryFactory moduleRepoFactory,
         StateMigrationServiceFactory serviceFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         IPrincipalProvider principalProvider)
     {
         _jobRepoFactory = jobRepoFactory;
+        _moduleRepoFactory = moduleRepoFactory;
         _serviceFactory = serviceFactory;
         _dbContextFactory = dbContextFactory;
         _principalProvider = principalProvider;
+    }
+
+    public Task<bool> CanDecide(Guid jobId, Guid moduleId, Guid organizationId)
+    {
+        using var repo = _moduleRepoFactory.Create(_principalProvider);
+        return Task.FromResult(repo.CanPause(moduleId, organizationId));
     }
 
     /// <summary>A decision on a manual job cannot be withdrawn; the job acts on it immediately.</summary>

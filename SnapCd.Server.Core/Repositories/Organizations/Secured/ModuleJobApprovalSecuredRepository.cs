@@ -272,6 +272,15 @@ public class ModuleJobApprovalSecuredRepository : GenericSecuredRepository<
         if (approval.PrincipalId != principalId)
             return false;
 
+        // A decision can only be withdrawn while the job is still waiting on it.
+        var waiting = Repository.DbContext.ModuleJobs
+            .Where(j => j.Id == approval.ModuleJobId && j.OrganizationId == organizationId)
+            .Select(j => j.WaitingForApproval)
+            .FirstOrDefault();
+
+        if (waiting != true)
+            return false;
+
         return DeleteQuery(organizationId).Any(e => e.Id == id && e.OrganizationId == organizationId);
     }
 

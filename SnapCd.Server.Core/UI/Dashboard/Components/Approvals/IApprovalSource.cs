@@ -28,6 +28,9 @@ public interface IApprovalSource
 
     Task Decline(Guid jobId, Guid moduleId, Guid organizationId);
 
+    /// <summary>Whether the current principal may approve or decline this job.</summary>
+    Task<bool> CanDecide(Guid jobId, Guid moduleId, Guid organizationId);
+
     /// <summary>Withdrawing a decision is offered only where the family supports it.</summary>
     bool CanRemoveApproval { get; }
 

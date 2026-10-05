@@ -9,6 +9,7 @@
 @using Microsoft.EntityFrameworkCore
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Interfaces
+@using SnapCd.Server.Core.Misc.Exceptions
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Approvals
@@ -18,6 +19,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+@inject ILogger<ApprovalPanel> Logger
 
 @if (_approvals == null)
 {
@@ -101,11 +103,17 @@ else
         @if (_isWaitingForApproval)
         {
             <MudStack Row="true" Spacing="2" Class="mt-3">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled)"
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
                            OnClick="Approve" Size="Size.Small">Approve</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled)"
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
                            OnClick="Decline" Size="Size.Small">Decline</MudButton>
             </MudStack>
+            @if (!_canDecide)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mt-3" Dense="true">
+                    You do not have permission to approve or decline this @Source.DecisionNoun.ToLowerInvariant().
+                </MudAlert>
+            }
         }
     </MudPaper>
 }
@@ -129,6 +137,7 @@ else
     private int _approvalCount;
     private int? _approvalThreshold;
     private bool _isWaitingForApproval;
+    private bool _canDecide;
     private bool _busy;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
@@ -156,6 +165,7 @@ else
     {
         _approvalThreshold = await Source.ResolveThreshold(JobId, ModuleId, OrganizationId);
         _isWaitingForApproval = await Source.IsWaitingForApproval(JobId, ModuleId, OrganizationId);
+        _canDecide = await Source.CanDecide(JobId, ModuleId, OrganizationId);
         await ReloadApprovals();
     }
 
@@ -195,9 +205,16 @@ else
 
             Snackbar.Add($"Successfully {(declined ? "declined" : "approved")} {Source.DecisionNoun.ToLowerInvariant()}");
         }
+        catch (PrincipalNotAuthorizedException)
+        {
+            Snackbar.Add(
+                $"You do not have permission to {(declined ? "decline" : "approve")} this {Source.DecisionNoun.ToLowerInvariant()}.",
+                Severity.Warning);
+        }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Logger.LogError(ex, "Recording a decision on job {JobId} failed", JobId);
+            Snackbar.Add($"Could not record the decision: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -223,8 +240,33 @@ else
         if (result is not { Canceled: false })
             return;
 
-        await Source.RemoveApproval(approvalId, OrganizationId);
-        Snackbar.Add($"Successfully deleted \"{approvalId}\"");
+        _busy = true;
+        try
+        {
+            await Source.RemoveApproval(approvalId, OrganizationId);
+            Snackbar.Add($"Successfully deleted \"{approvalId}\"");
+        }
+        catch (PrincipalNotAuthorizedException)
+        {
+            Snackbar.Add(
+                "You do not have permission to withdraw this approval.",
+                Severity.Warning);
+        }
+        catch (ApprovalNoLongerWithdrawableException)
+        {
+            Snackbar.Add(
+                $"This {Source.DecisionNoun.ToLowerInvariant()} is no longer waiting for approval, so the decision can no longer be withdrawn.",
+                Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Withdrawing approval {ApprovalId} failed", approvalId);
+            Snackbar.Add($"Could not withdraw the decision: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
 
         await Reload();
         await OnDecided.InvokeAsync();
