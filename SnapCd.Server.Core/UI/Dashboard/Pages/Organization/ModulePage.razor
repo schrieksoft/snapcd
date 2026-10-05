@@ -369,6 +369,7 @@
     private bool _resuming;
     [Inject] private ModuleJobSecuredRepositoryFactory JobRepoFactory { get; set; } = null!;
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
+    [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
 
     private Module _module = null!;
     private ModuleSaga _moduleSaga = null!;
@@ -383,14 +384,20 @@
     private ShowingType _showing = ShowingType.None;
     private string? _configureSection;
 
-    private readonly List<TabBar.TabBarItem> _tabs =
+    // Configuration is the only tab needing read on the resource itself. Metadata read is enough
+    // to reach this page and use everything else on it.
+    private List<TabBar.TabBarItem> _tabs =>
     [
         new() { Key = nameof(ShowingType.Jobs), Label = "Jobs" },
         new() { Key = nameof(ShowingType.Variables), Label = "Variables" },
         new() { Key = nameof(ShowingType.Outputs), Label = "Outputs" },
-        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" },
-        new() { Key = nameof(ShowingType.StateMigrations), Label = "State Migrations" }
+        new() { Key = nameof(ShowingType.StateMigrations), Label = "State Migrations" },
+        .. _canReadForConfiguration
+            ? new[] { new TabBar.TabBarItem { Key = nameof(ShowingType.Configure), Label = "Configuration" } }
+            : []
     ];
+
+    private bool _canReadForConfiguration;
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private Guid _stackId;
@@ -1156,7 +1163,12 @@
             using var moduleRepo = RepoFactory.Create();
 
             _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
-            _stackId = _module.Namespace.StackId;
+            _canReadForConfiguration = moduleRepo.CanRead(_module.Id, OrganizationId);
+
+            // The Module's own navigation would need read on the Namespace; its metadata is enough.
+            using var namespaceRepo = NamespaceRepoFactory.Create();
+            _stackId = (await namespaceRepo.GetMetadata(_module.NamespaceId, OrganizationId)).StackId;
+
 
             // Reading a Runner is a separate permission from reading the Module it is assigned to.
             _runner = null;
@@ -1227,7 +1239,12 @@
         // }
 
         // Set initial showing based on query parameter
-        _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Jobs;
+        var requested = GetShowingTypeFromAction(Action) ?? ShowingType.Jobs;
+
+        // A direct link to Configuration is refused the same way the tab is hidden.
+        _showing = requested == ShowingType.Configure && !_canReadForConfiguration
+            ? ShowingType.Jobs
+            : requested;
         _configureSection = Section;
 
         RunnerAvailabilityModifiedNotificationService.Subscribe(_module.RunnerId, HandleRunnerAvailabilityModified);
@@ -1288,6 +1305,9 @@
 
     private void SwitchShowing(ShowingType newShowing)
     {
+        if (newShowing == ShowingType.Configure && !_canReadForConfiguration)
+            return;
+
         var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
         _showing = targetShowing;
 
@@ -1301,6 +1321,9 @@
     {
         if (Enum.TryParse<ShowingType>(key, out var parsed))
         {
+            if (parsed == ShowingType.Configure && !_canReadForConfiguration)
+                return;
+
             _showing = parsed;
             if (parsed != ShowingType.Configure)
                 _configureSection = null;
@@ -1352,6 +1375,7 @@
         }
 
         _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
+        _canReadForConfiguration = moduleRepo.CanRead(_module.Id, OrganizationId);
         StateHasChanged();
     }
 
@@ -1801,33 +1825,6 @@
         }
 
         return uninvolvedModuleIds.Any() ? uninvolvedModuleIds : null;
-    }
-
-    private string GetCurrentModuleDisplayName()
-    {
-        // Try to use the display name from the node state first
-        if (_currentModuleNodeState?.DisplayName != null)
-        {
-            return _currentModuleNodeState.DisplayName;
-        }
-
-        // Fallback to constructing it manually, with null checks
-        try
-        {
-            if (_module?.Namespace?.Stack?.Name != null &&
-                _module?.Namespace?.Name != null &&
-                _module?.Name != null)
-            {
-                return $"{_module.Namespace.Stack.Name}/{_module.Namespace.Name}/{_module.Name}";
-            }
-        }
-        catch
-        {
-            // If anything fails, fall back to a safe default
-        }
-
-        // Final fallback
-        return _module?.Name ?? "Unknown Module";
     }
 
     private bool CanExecuteApply()

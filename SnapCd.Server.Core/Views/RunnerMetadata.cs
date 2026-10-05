@@ -16,4 +16,6 @@ public class RunnerMetadata
     public Guid OrganizationId { get; set; }
 
     public string Name { get; set; } = null!;
+
+    public bool IsDisabled { get; set; }
 }

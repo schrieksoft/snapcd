@@ -253,6 +253,40 @@ public class MetadataReadTests : IAsyncLifetime
             () => StackRepo(user.Id).GetMetadata(_fixture.Stacks["01"].Id, _organizationId));
     }
 
+    // Metadata read must never imply full read. Without this, a metadata map that accidentally
+    // carried the read roles would satisfy every other test in this file.
+    [Theory]
+    [InlineData("Stack00.MetadataReader")]
+    [InlineData("Namespace000.MetadataReader")]
+    [InlineData("Module0000.MetadataReader")]
+    [InlineData("Org.StackMetadataReader")]
+    public void A_Metadata_Role_Does_Not_Grant_Read_On_Any_Scope(string userKey)
+    {
+        var user = _fixture.ScopeReaderUsers[userKey];
+        var pp = _fixture.CreatePrincipalProvider(user.Id, PrincipalDiscriminator.User, _organizationId);
+
+        using var stackRepo = new StackSecuredRepository(
+            new StackRepository(_dbContext, pp, _fixture.CreateMockBus(), Options.Create(new StackRepositorySettings())), pp);
+        using var namespaceRepo = new NamespaceSecuredRepository(
+            new NamespaceRepository(_dbContext, pp, _fixture.CreateMockBus(), Options.Create(new NamespaceRepositorySettings())), pp);
+        using var moduleRepo = new ModuleSecuredRepository(
+            new ModuleRepository(_dbContext, pp, _fixture.CreateMockBus(), Options.Create(new ModuleRepositorySettings())), pp);
+
+        Assert.False(stackRepo.CanRead(_fixture.Stacks["00"].Id, _organizationId));
+        Assert.False(namespaceRepo.CanRead(_fixture.Namespaces["000"].Id, _organizationId));
+        Assert.False(moduleRepo.CanRead(_fixture.Modules["0000"].Id, _organizationId));
+    }
+
+    // Read implies metadata read, so the ordinary Reader must satisfy both.
+    [Fact]
+    public void A_Read_Role_Grants_Both_Read_And_Metadata_Read()
+    {
+        var user = _fixture.ScopeReaderUsers["Stack00.Reader"];
+
+        Assert.True(StackRepo(user.Id).CanRead(_fixture.Stacks["00"].Id, _organizationId));
+        Assert.True(StackRepo(user.Id).CanReadMetadata(_fixture.Stacks["00"].Id, _organizationId));
+    }
+
     private StackSecuredRepository StackRepo(Guid principalId)
     {
         var pp = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, _organizationId);

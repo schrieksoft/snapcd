@@ -183,7 +183,7 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCrea
 
     public virtual PermissionMap ReadPermissionMap => new();
     public virtual PermissionMap ReadMetadataPermissionMap => new();
-    public virtual PermissionMap ReverseInheritedReadPermissionMap => new();
+    public virtual PermissionMap ReverseInheritedReadMetadataPermissionMap => new();
     public virtual PermissionMap UpdatePermissionMap => new();
     public virtual PermissionMap CreatePermissionMap => new();
     public virtual PermissionMap DeletePermissionMap => new();

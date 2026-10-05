@@ -12,6 +12,7 @@
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
+@using SnapCd.Server.Core.Views
 
 <MudExpansionPanels MultiExpansion="false">
     <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
@@ -23,9 +24,9 @@
             </div>
         </TitleContent>
         <ChildContent>
-            @if (IsSection(Section.Edit))
+            @if (IsSection(Section.Edit) && _full != null)
             {
-                <EditNamespace Namespace="Namespace"
+                <EditNamespace Namespace="_full"
                                PrincipalProvider="PrincipalProvider"
                                OnSaved="HandleNamespaceSaved"
                                OnCancel="@(() => CollapseSection())"/>
@@ -215,7 +216,7 @@
 </MudExpansionPanels>
 
 @code {
-    [Parameter] public required Namespace Namespace { get; set; }
+    [Parameter] public required NamespaceMetadata Namespace { get; set; }
     [Parameter] public required string StackName { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [Parameter] public string? InitialSection { get; set; }
@@ -225,6 +226,16 @@
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
+
+    // Configuration needs the whole Namespace, which is a read. Metadata read reaches the page but
+    // not this section, so the tab is hidden without read and this load would refuse anyway.
+    private Entities.Definition.Namespace? _full;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        using var repo = NamespaceRepoFactory.Create(PrincipalProvider);
+        _full = await repo.Get(Namespace.Id, Namespace.OrganizationId);
+    }
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputRepoFactory { get; set; } = null!;

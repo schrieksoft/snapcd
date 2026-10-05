@@ -249,11 +249,12 @@ public static class PermissionDocExtractor
             if (names.Count > 0) roles[dimensionName] = names;
         }
 
-        // Reverse inheritance applies to reads only: any role on a contained resource
-        // grants read, so only the dimensions matter, not the role lists.
+        // Reverse inheritance applies to metadata reads only: any role on a contained resource
+        // lets the principal discover its ancestors, so only the dimensions matter, not the role
+        // lists. It confers no read on the ancestor itself.
         var reverseDimensions = new List<string>();
-        if (verb == PermissionVerb.Read
-            && repoType.GetProperty("ReverseInheritedReadPermissionMap")?.GetValue(instance) is PermissionMap reverse)
+        if (verb == PermissionVerb.ReadMetadata
+            && repoType.GetProperty("ReverseInheritedReadMetadataPermissionMap")?.GetValue(instance) is PermissionMap reverse)
             foreach (var (dimensionName, select) in Dimensions)
                 if (select(reverse).Any())
                     reverseDimensions.Add(dimensionName);

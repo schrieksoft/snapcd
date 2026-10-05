@@ -92,6 +92,7 @@ public static class ModuleMapper
             Id = view.Id,
             Name = view.Name,
             NamespaceId = view.NamespaceId,
+            RunnerId = view.RunnerId,
         };
     }
 

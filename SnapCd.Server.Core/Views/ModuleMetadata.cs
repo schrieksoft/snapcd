@@ -18,4 +18,6 @@ public class ModuleMetadata
     public string Name { get; set; } = null!;
 
     public Guid NamespaceId { get; set; }
+
+    public Guid RunnerId { get; set; }
 }

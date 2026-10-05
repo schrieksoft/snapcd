@@ -169,7 +169,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
             ReadMetadataPermissionMap.StackRoles,
             ReadMetadataPermissionMap.NamespaceRoles,
             ReadMetadataPermissionMap.ModuleRoles
-        ).Select(x => new ModuleMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, NamespaceId = x.NamespaceId });
+        ).Select(x => new ModuleMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, NamespaceId = x.NamespaceId, RunnerId = x.RunnerId });
     }
 
     public override IQueryable<Module> ReadQuery(Guid organizationId)

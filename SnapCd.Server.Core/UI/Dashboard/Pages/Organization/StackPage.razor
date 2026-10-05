@@ -427,7 +427,7 @@
     [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
-    private Stack? _stack;
+    private StackMetadata? _stack;
     private StackMetadata? _truncatedStack;
 
     // Name of the stack currently loaded into _stack. Blazor reuses this component
@@ -438,12 +438,18 @@
     private ShowingType _showing = ShowingType.None;
     private string? _configureSection;
 
-    private readonly List<TabBar.TabBarItem> _tabs =
+    // Configuration is the only tab needing read on the resource itself. Metadata read is enough
+    // to reach this page and use everything else on it.
+    private List<TabBar.TabBarItem> _tabs =>
     [
         new() { Key = nameof(ShowingType.Namespaces), Label = "Namespaces" },
         new() { Key = nameof(ShowingType.DependencyGraph), Label = "Dependencies" },
-        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+        .. _canReadForConfiguration
+            ? new[] { new TabBar.TabBarItem { Key = nameof(ShowingType.Configure), Label = "Configuration" } }
+            : []
     ];
+
+    private bool _canReadForConfiguration;
 
     // private PersistingComponentStateSubscription _persistenceSubscription;
     private bool _showCreate;
@@ -514,7 +520,8 @@
         using var repo = RepoFactory.Create();
         try
         {
-            _stack = await repo.GetByName(StackName, OrganizationId);
+            _stack = await repo.GetMetadataByName(StackName, OrganizationId);
+            _canReadForConfiguration = repo.CanRead(_stack.Id, OrganizationId);
         }
         catch (EntityNotFoundException)
         {
@@ -523,12 +530,7 @@
             return;
         }
 
-        _truncatedStack = new StackMetadata
-        {
-            Id = _stack.Id,
-            OrganizationId = OrganizationId,
-            Name = _stack.Name
-        };
+        _truncatedStack = _stack;
 
         _loadedStackName = StackName;
 
@@ -552,7 +554,12 @@
         // }
 
         // Set initial showing based on query parameter
-        _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Namespaces;
+        var requested = GetShowingTypeFromAction(Action) ?? ShowingType.Namespaces;
+
+        // A direct link to Configuration is refused the same way the tab is hidden.
+        _showing = requested == ShowingType.Configure && !_canReadForConfiguration
+            ? ShowingType.Namespaces
+            : requested;
         _configureSection = Section;
     }
 
@@ -563,6 +570,9 @@
 
     private void SwitchShowing(ShowingType newShowing)
     {
+        if (newShowing == ShowingType.Configure && !_canReadForConfiguration)
+            return;
+
         var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
         _showing = targetShowing;
 
@@ -576,6 +586,9 @@
     {
         if (Enum.TryParse<ShowingType>(key, out var parsed))
         {
+            if (parsed == ShowingType.Configure && !_canReadForConfiguration)
+                return;
+
             _showing = parsed;
             if (parsed != ShowingType.Configure)
                 _configureSection = null;
@@ -615,7 +628,8 @@
             return;
         }
 
-        _stack = await repo.GetByName(StackName, OrganizationId);
+        _stack = await repo.GetMetadataByName(StackName, OrganizationId);
+        _canReadForConfiguration = repo.CanRead(_stack.Id, OrganizationId);
     }
 
     private async Task HandleCreated()

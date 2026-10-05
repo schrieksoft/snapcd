@@ -60,7 +60,12 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
     };
 
-    public override PermissionMap ReverseInheritedReadPermissionMap => new()
+    /// <summary>
+    /// Any role on a contained Module lets the principal discover this Namespace's name and id, so
+    /// they can navigate to the Module they do have access to. The Namespace's own defaults stay
+    /// behind read.
+    /// </summary>
+    public override PermissionMap ReverseInheritedReadMetadataPermissionMap => new()
     {
         ModuleRoles = [.. Enum.GetValues<ModuleRole>()]
     };
@@ -128,18 +133,12 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
 
     public override IQueryable<Namespace> ReadQuery(Guid organizationId)
     {
-        var baseQuery = RoleQueryDispatch(
+        return RoleQueryDispatch(
             organizationId,
             ReadPermissionMap.OrganizationRoles,
             ReadPermissionMap.StackRoles,
             ReadPermissionMap.NamespaceRoles
         );
-
-        var reverseInheritanceQuery = ReverseInheritanceQuery(organizationId);
-
-        if (reverseInheritanceQuery == null)
-            return baseQuery;
-        return baseQuery.Concat(reverseInheritanceQuery);
     }
 
 
@@ -392,7 +391,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     }
 
     // Any role on a contained Module suffices, so these queries do not filter on
-    // role names (see ReverseInheritedReadPermissionMap).
+    // role names (see ReverseInheritedReadMetadataPermissionMap).
     private IQueryable<Namespace>? ReverseInheritanceQuery(Guid organizationId)
     {
         var principalId = PrincipalProvider.GetSubject(organizationId);
@@ -412,9 +411,12 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         Guid principalId)
         where TModuleRoleAssignment : class, IModuleRoleAssignment
     {
+        var roles = ReverseInheritedReadMetadataPermissionMap.ModuleRoles;
+
         return from assignment in Repository.DbContext.Set<TModuleRoleAssignment>()
             where assignment.PrincipalId == principalId
                   && assignment.OrganizationId == organizationId
+                  && roles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces
@@ -427,6 +429,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         Guid principalId)
         where TGroupMember : class, IGroupMember
     {
+        var moduleRoles = ReverseInheritedReadMetadataPermissionMap.ModuleRoles;
+
         return from groupMember in Repository.DbContext.Set<TGroupMember>()
                 .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
             join rgm in Repository.DbContext.RecursiveGroupMembers
@@ -435,6 +439,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             join assignment in Repository.DbContext.GroupModuleRoleAssignments
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
+            where moduleRoles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces

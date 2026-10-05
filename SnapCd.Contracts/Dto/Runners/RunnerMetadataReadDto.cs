@@ -17,4 +17,7 @@ public class RunnerMetadataReadDto : IDto
 
     /// <summary>Name of the Runner.</summary>
     public string Name { get; set; } = null!;
+
+    /// <summary>Whether the Runner is disabled and will not pick up new work.</summary>
+    public bool IsDisabled { get; set; }
 }

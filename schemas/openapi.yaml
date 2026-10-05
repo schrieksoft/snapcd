@@ -1494,6 +1494,11 @@ paths:
         ---
 
         Any of:
+        - `Organization.AgentContributor`
+        - `Organization.AgentReader`
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
         - `Agent.Contributor`
         - `Agent.Owner`
         - `Agent.Reader`
@@ -1527,6 +1532,11 @@ paths:
       x-snapcd-permissions:
         verb: ReadMetadata
         anyOf:
+        - Organization.AgentContributor
+        - Organization.AgentReader
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
         - Agent.Contributor
         - Agent.Owner
         - Agent.Reader
@@ -1541,6 +1551,11 @@ paths:
         ---
 
         Any of:
+        - `Organization.AgentContributor`
+        - `Organization.AgentReader`
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
         - `Agent.Contributor`
         - `Agent.Owner`
         - `Agent.Reader`
@@ -1573,6 +1588,11 @@ paths:
       x-snapcd-permissions:
         verb: ReadMetadata
         anyOf:
+        - Organization.AgentContributor
+        - Organization.AgentReader
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
         - Agent.Contributor
         - Agent.Owner
         - Agent.Reader
@@ -3671,6 +3691,11 @@ paths:
         ---
 
         Any of:
+        - `Organization.Contributor`
+        - `Organization.IntegrationContributor`
+        - `Organization.IntegrationReader`
+        - `Organization.Owner`
+        - `Organization.Reader`
         - `Integration.Contributor`
         - `Integration.Owner`
         - `Integration.Reader`
@@ -3704,6 +3729,11 @@ paths:
       x-snapcd-permissions:
         verb: ReadMetadata
         anyOf:
+        - Organization.Contributor
+        - Organization.IntegrationContributor
+        - Organization.IntegrationReader
+        - Organization.Owner
+        - Organization.Reader
         - Integration.Contributor
         - Integration.Owner
         - Integration.Reader
@@ -3718,6 +3748,11 @@ paths:
         ---
 
         Any of:
+        - `Organization.Contributor`
+        - `Organization.IntegrationContributor`
+        - `Organization.IntegrationReader`
+        - `Organization.Owner`
+        - `Organization.Reader`
         - `Integration.Contributor`
         - `Integration.Owner`
         - `Integration.Reader`
@@ -3750,6 +3785,11 @@ paths:
       x-snapcd-permissions:
         verb: ReadMetadata
         anyOf:
+        - Organization.Contributor
+        - Organization.IntegrationContributor
+        - Organization.IntegrationReader
+        - Organization.Owner
+        - Organization.Reader
         - Integration.Contributor
         - Integration.Owner
         - Integration.Reader
@@ -14714,7 +14754,6 @@ paths:
         - `Namespace.Contributor`
         - `Namespace.Owner`
         - `Namespace.Reader`
-        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -14752,8 +14791,6 @@ paths:
         - Namespace.Contributor
         - Namespace.Owner
         - Namespace.Reader
-        reverseInheritedAnyOf:
-        - Module.*
   /api/{organizationId}/Namespace/Metadata/{stackId}/{name}:
     get:
       tags:
@@ -14779,6 +14816,7 @@ paths:
         - `Namespace.MetadataReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
+        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -14829,6 +14867,8 @@ paths:
         - Namespace.MetadataReader
         - Namespace.Owner
         - Namespace.Reader
+        reverseInheritedAnyOf:
+        - Module.*
   /api/{organizationId}/Namespace/Metadata:
     get:
       tags:
@@ -14854,6 +14894,7 @@ paths:
         - `Namespace.MetadataReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
+        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -14898,6 +14939,8 @@ paths:
         - Namespace.MetadataReader
         - Namespace.Owner
         - Namespace.Reader
+        reverseInheritedAnyOf:
+        - Module.*
   /api/{organizationId}/Namespace/Metadata/ByName/{stackName}/{name}:
     get:
       tags:
@@ -14923,6 +14966,7 @@ paths:
         - `Namespace.MetadataReader`
         - `Namespace.Owner`
         - `Namespace.Reader`
+        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -14971,6 +15015,8 @@ paths:
         - Namespace.MetadataReader
         - Namespace.Owner
         - Namespace.Reader
+        reverseInheritedAnyOf:
+        - Module.*
   /api/{organizationId}/Namespace:
     post:
       tags:
@@ -15052,7 +15098,6 @@ paths:
         - `Namespace.Contributor`
         - `Namespace.Owner`
         - `Namespace.Reader`
-        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -15094,8 +15139,6 @@ paths:
         - Namespace.Contributor
         - Namespace.Owner
         - Namespace.Reader
-        reverseInheritedAnyOf:
-        - Module.*
   /api/{organizationId}/Namespace/{id}:
     get:
       tags:
@@ -15118,7 +15161,6 @@ paths:
         - `Namespace.Contributor`
         - `Namespace.Owner`
         - `Namespace.Reader`
-        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -15161,8 +15203,6 @@ paths:
         - Namespace.Contributor
         - Namespace.Owner
         - Namespace.Reader
-        reverseInheritedAnyOf:
-        - Module.*
     put:
       tags:
       - Namespace
@@ -22595,6 +22635,11 @@ paths:
         ---
 
         Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.RunnerContributor`
+        - `Organization.RunnerReader`
         - `Runner.Contributor`
         - `Runner.Owner`
         - `Runner.Reader`
@@ -22628,6 +22673,11 @@ paths:
       x-snapcd-permissions:
         verb: ReadMetadata
         anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.RunnerContributor
+        - Organization.RunnerReader
         - Runner.Contributor
         - Runner.Owner
         - Runner.Reader
@@ -22642,6 +22692,11 @@ paths:
         ---
 
         Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.RunnerContributor`
+        - `Organization.RunnerReader`
         - `Runner.Contributor`
         - `Runner.Owner`
         - `Runner.Reader`
@@ -22674,6 +22729,11 @@ paths:
       x-snapcd-permissions:
         verb: ReadMetadata
         anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.RunnerContributor
+        - Organization.RunnerReader
         - Runner.Contributor
         - Runner.Owner
         - Runner.Reader
@@ -24673,8 +24733,6 @@ paths:
         - `Stack.Contributor`
         - `Stack.Owner`
         - `Stack.Reader`
-        - *any* role on a contained Namespace (`Namespace.*`)
-        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -24712,9 +24770,6 @@ paths:
         - Stack.Contributor
         - Stack.Owner
         - Stack.Reader
-        reverseInheritedAnyOf:
-        - Namespace.*
-        - Module.*
   /api/{organizationId}/Stack/Metadata:
     get:
       tags:
@@ -24736,6 +24791,8 @@ paths:
         - `Stack.MetadataReader`
         - `Stack.Owner`
         - `Stack.Reader`
+        - *any* role on a contained Namespace (`Namespace.*`)
+        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -24776,6 +24833,9 @@ paths:
         - Stack.MetadataReader
         - Stack.Owner
         - Stack.Reader
+        reverseInheritedAnyOf:
+        - Namespace.*
+        - Module.*
   /api/{organizationId}/Stack/Metadata/ByName/{name}:
     get:
       tags:
@@ -24797,6 +24857,8 @@ paths:
         - `Stack.MetadataReader`
         - `Stack.Owner`
         - `Stack.Reader`
+        - *any* role on a contained Namespace (`Namespace.*`)
+        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -24836,6 +24898,9 @@ paths:
         - Stack.MetadataReader
         - Stack.Owner
         - Stack.Reader
+        reverseInheritedAnyOf:
+        - Namespace.*
+        - Module.*
   /api/{organizationId}/Stack:
     post:
       tags:
@@ -24910,8 +24975,6 @@ paths:
         - `Stack.Contributor`
         - `Stack.Owner`
         - `Stack.Reader`
-        - *any* role on a contained Namespace (`Namespace.*`)
-        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -24950,9 +25013,6 @@ paths:
         - Stack.Contributor
         - Stack.Owner
         - Stack.Reader
-        reverseInheritedAnyOf:
-        - Namespace.*
-        - Module.*
   /api/{organizationId}/Stack/{id}:
     get:
       tags:
@@ -24972,8 +25032,6 @@ paths:
         - `Stack.Contributor`
         - `Stack.Owner`
         - `Stack.Reader`
-        - *any* role on a contained Namespace (`Namespace.*`)
-        - *any* role on a contained Module (`Module.*`)
       parameters:
       - name: organizationId
         in: path
@@ -25013,9 +25071,6 @@ paths:
         - Stack.Contributor
         - Stack.Owner
         - Stack.Reader
-        reverseInheritedAnyOf:
-        - Namespace.*
-        - Module.*
     put:
       tags:
       - Stack
@@ -30246,6 +30301,10 @@ components:
           type: string
           description: ID of the Namespace this Module belongs to.
           format: uuid
+        runnerId:
+          type: string
+          description: ID of the Runner assigned to this Module, or empty when none is assigned.
+          format: uuid
       description: Name and id of a Module, for callers who may discover it without reading it.
     ModuleMissionCreateDto:
       type: object
@@ -33866,6 +33925,9 @@ components:
         name:
           type: string
           description: Name of the Runner.
+        isDisabled:
+          type: boolean
+          description: Whether the Runner is disabled and will not pick up new work.
       description: Name and id of a Runner, for callers who may discover it without reading it.
     RunnerModuleSupplyCreateDto:
       type: object
@@ -34987,5 +35049,5 @@ x-snapcd-permission-coverage:
   documented: 462
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1208
+  documented: 1210
   missing: 0

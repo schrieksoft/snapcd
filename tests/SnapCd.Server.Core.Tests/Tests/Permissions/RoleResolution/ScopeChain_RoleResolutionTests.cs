@@ -75,10 +75,15 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
     [Fact]
     public async Task Stack_ReverseInheritance_NamespaceRoleGrantsStackRead()
     {
-        // NamespaceRole.Reader on Namespace000 should grant read on Stack00 (parent).
+        // NamespaceRole.Reader on Namespace000 lets the principal discover Stack00 (parent), so
+        // they can navigate to the Namespace. It does not grant read on the Stack itself.
         var principal = _fixture.ScopeReaderUsers["Namespace000.Reader"];
-        var visible = await ListStacks(principal.Id);
-        Assert.Contains(visible, s => s.Id == _fixture.Stacks["00"].Id);
+
+        var discoverable = await ListStackMetadata(principal.Id);
+        Assert.Contains(discoverable, s => s.Id == _fixture.Stacks["00"].Id);
+
+        var readable = await ListStacks(principal.Id);
+        Assert.DoesNotContain(readable, s => s.Id == _fixture.Stacks["00"].Id);
     }
 
     [Fact]
@@ -93,18 +98,23 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
     [Fact]
     public async Task Stack_ReverseInheritance_ModuleRoleGrantsStackRead()
     {
-        // ModuleRole.Reader on Module0000 should grant read on Stack00 (grandparent).
+        // ModuleRole.Reader on Module0000 lets the principal discover Stack00 (grandparent), so
+        // they can navigate to the Module. It does not grant read on the Stack itself.
         var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
-        var visible = await ListStacks(principal.Id);
-        Assert.Contains(visible, s => s.Id == _fixture.Stacks["00"].Id);
+
+        var discoverable = await ListStackMetadata(principal.Id);
+        Assert.Contains(discoverable, s => s.Id == _fixture.Stacks["00"].Id);
+
+        var readable = await ListStacks(principal.Id);
+        Assert.DoesNotContain(readable, s => s.Id == _fixture.Stacks["00"].Id);
     }
 
     [Fact]
     public async Task Stack_ReverseInheritance_ModuleRoleDoesNotLeakAcrossStacks()
     {
-        // ModuleRole.Reader on Module0000 (in Stack00) should NOT see Stack01.
+        // ModuleRole.Reader on Module0000 (in Stack00) must not discover Stack01.
         var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
-        var visible = await ListStacks(principal.Id);
+        var visible = await ListStackMetadata(principal.Id);
         Assert.DoesNotContain(visible, s => s.Id == _fixture.Stacks["01"].Id);
     }
 
@@ -113,18 +123,23 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
     [Fact]
     public async Task Namespace_ReverseInheritance_ModuleRoleGrantsNamespaceRead()
     {
-        // ModuleRole.Reader on Module0000 should grant read on Namespace000 (parent).
+        // ModuleRole.Reader on Module0000 lets the principal discover Namespace000 (parent), so
+        // they can navigate to the Module. It does not grant read on the Namespace itself.
         var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
-        var visible = await ListNamespaces(principal.Id);
-        Assert.Contains(visible, n => n.Id == _fixture.Namespaces["000"].Id);
+
+        var discoverable = await ListNamespaceMetadata(principal.Id);
+        Assert.Contains(discoverable, n => n.Id == _fixture.Namespaces["000"].Id);
+
+        var readable = await ListNamespaces(principal.Id);
+        Assert.DoesNotContain(readable, n => n.Id == _fixture.Namespaces["000"].Id);
     }
 
     [Fact]
     public async Task Namespace_ReverseInheritance_ModuleRoleDoesNotLeakAcrossNamespaces()
     {
-        // ModuleRole.Reader on Module0000 (in Namespace000) should NOT see Namespace001.
+        // ModuleRole.Reader on Module0000 (in Namespace000) must not discover Namespace001.
         var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
-        var visible = await ListNamespaces(principal.Id);
+        var visible = await ListNamespaceMetadata(principal.Id);
         Assert.DoesNotContain(visible, n => n.Id == _fixture.Namespaces["001"].Id);
     }
 
@@ -186,6 +201,28 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
         var principal = _fixture.ScopeReaderUsers["Module0000.Reader"];
         var visible = await ListModuleHooks(principal.Id);
         Assert.NotEmpty(visible);
+    }
+
+    private async Task<List<Views.StackMetadata>> ListStackMetadata(Guid principalId)
+    {
+        var orgId = _fixture.Organizations["0"].Id;
+        var pp = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, orgId);
+        var repo = new StackSecuredRepository(
+            new StackRepository(_dbContext, pp, _fixture.CreateMockBus(),
+                Options.Create(new StackRepositorySettings())),
+            pp);
+        return await repo.ListMetadata(orgId);
+    }
+
+    private async Task<List<Views.NamespaceMetadata>> ListNamespaceMetadata(Guid principalId)
+    {
+        var orgId = _fixture.Organizations["0"].Id;
+        var pp = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, orgId);
+        var repo = new NamespaceSecuredRepository(
+            new NamespaceRepository(_dbContext, pp, _fixture.CreateMockBus(),
+                Options.Create(new NamespaceRepositorySettings())),
+            pp);
+        return await repo.ListMetadata(orgId);
     }
 
     private async Task<List<Entities.Definition.Stack>> ListStacks(Guid principalId)

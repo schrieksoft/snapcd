@@ -128,7 +128,7 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
     public IQueryable<RunnerMetadata> ReadMetadataQuery(Guid organizationId)
         => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(RunnerRoleQuery(organizationId, ReadMetadataPermissionMap.RunnerRoles))
-            .Select(x => new RunnerMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
+            .Select(x => new RunnerMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, IsDisabled = x.IsDisabled });
 
 
     public override PermissionMap UpdatePermissionMap => new()

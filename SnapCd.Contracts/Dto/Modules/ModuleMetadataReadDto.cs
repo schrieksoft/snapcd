@@ -20,4 +20,7 @@ public class ModuleMetadataReadDto : IDto
 
     /// <summary>ID of the Namespace this Module belongs to.</summary>
     public Guid NamespaceId { get; set; }
+
+    /// <summary>ID of the Runner assigned to this Module, or empty when none is assigned.</summary>
+    public Guid RunnerId { get; set; }
 }
