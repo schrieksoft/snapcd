@@ -374,6 +374,7 @@
     private ModuleSaga _moduleSaga = null!;
     private List<RunnerConnection> _activeRunners = new();
     private Runner? _runner;
+    private bool _runnerUnreadable;
     private string? _actualDefinitiveRevision;
     private string? _actualDefinitiveClosureHash;
     private ActualStateHeadline? _actualStateHeadline;
@@ -648,15 +649,22 @@
             _activeRunners = await connectionRepository.GetActiveConnectionsByRunnerId(_runner.Id, OrganizationId);
         }
 
-        var count = _activeRunners.Count;
-        var state = count > 0;
-        _runnerAvailabilitySummary = new RunnerAvailabilitySummary
+        if (_runnerUnreadable)
         {
-            Text = GetRunnerAvailabilityStateText(count),
-            ActiveCount = count,
-            State = state,
-            Icon = GetRunnerAvailabilityStateIcon(state)
-        };
+            _runnerAvailabilitySummary = null;
+        }
+        else
+        {
+            var count = _activeRunners.Count;
+            var state = count > 0;
+            _runnerAvailabilitySummary = new RunnerAvailabilitySummary
+            {
+                Text = GetRunnerAvailabilityStateText(count),
+                ActiveCount = count,
+                State = state,
+                Icon = GetRunnerAvailabilityStateIcon(state)
+            };
+        }
 
         if (invokeAsync)
             // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.
@@ -1150,11 +1158,20 @@
             _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
             _stackId = _module.Namespace.StackId;
 
-            // Load Runner to check if it's active
+            // Reading a Runner is a separate permission from reading the Module it is assigned to.
+            _runner = null;
+            _runnerUnreadable = false;
             if (_module.RunnerId != Guid.Empty)
             {
                 using var runnerRepo = RunnerRepoFactory.Create();
-                _runner = await runnerRepo.Get(_module.RunnerId, OrganizationId);
+                try
+                {
+                    _runner = await runnerRepo.Get(_module.RunnerId, OrganizationId);
+                }
+                catch (PrincipalNotAuthorizedException)
+                {
+                    _runnerUnreadable = true;
+                }
             }
 
             await ReloadRunnerAvailability(false);

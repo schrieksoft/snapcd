@@ -122,7 +122,7 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         _pendingEvents.Clear();
     }
 
-    private async Task PublishAdditionalMessages(List<object> messages)
+    protected async Task PublishAdditionalMessages(List<object> messages)
     {
         foreach (var message in messages)
             await EnqueueOrPublish(() => Bus.Publish(message,
@@ -533,7 +533,7 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
         };
     }
 
-    private TEntity CloneEntity(TEntity entity)
+    protected TEntity CloneEntity(TEntity entity)
     {
         // Create a shallow copy by cloning the entry's original values
         var clone = (TEntity)Activator.CreateInstance(typeof(TEntity))!;
