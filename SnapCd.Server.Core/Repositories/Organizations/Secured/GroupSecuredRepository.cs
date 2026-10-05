@@ -83,7 +83,8 @@ public class GroupSecuredRepository : GenericOrganizationChildSecuredRepository<
             throw new EntityNotFoundException($"Unable to find Group with name \"{name}\"");
         
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to DependsOnModule {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(DependsOnModule)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
 

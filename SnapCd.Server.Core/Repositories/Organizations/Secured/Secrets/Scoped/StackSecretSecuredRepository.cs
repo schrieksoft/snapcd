@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts.Dto.Secrets.Scoped;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
@@ -58,7 +59,8 @@ public class StackSecretSecuredRepository : GenericStackChildSecuredRepository<
         var secret = await Repository.GetByName(name, include);
 
         if (!CanRead(secret.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to StackSecret {secret.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(StackSecret)} with ID {secret.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return secret;
     }
@@ -69,7 +71,8 @@ public class StackSecretSecuredRepository : GenericStackChildSecuredRepository<
 
         foreach (var secret in secrets)
             if (!CanRead(secret.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to StackSecret {secret.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(StackSecret)} with ID {secret.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return secrets;
     }

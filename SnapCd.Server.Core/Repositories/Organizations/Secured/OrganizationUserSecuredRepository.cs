@@ -117,7 +117,8 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
             throw new EntityNotFoundException($"Unable to find OrganizationUser with UserId \"{userId}\"");
         
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to OrganizationUser with UserId {userId}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(OrganizationUser)} with ID {userId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
         

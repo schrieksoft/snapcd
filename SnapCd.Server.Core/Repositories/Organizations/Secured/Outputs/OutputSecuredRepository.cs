@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Outputs;
 using SnapCd.Server.Core.Database;
@@ -391,7 +392,8 @@ public class OutputSecuredRepository : GenericSecuredRepository<
 
         foreach (var output in outputs)
             if (!CanRead(output.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to Output {output.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(Output)} with ID {output.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return outputs;
     }
@@ -402,7 +404,8 @@ public class OutputSecuredRepository : GenericSecuredRepository<
 
         foreach (var output in outputs)
             if (!CanRead(output.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to Output {output.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(Output)} with ID {output.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return outputs;
     }

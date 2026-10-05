@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts.Dto.ModulePulumiInlinePolicies;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -57,7 +58,8 @@ public class ModulePulumiInlinePolicySecuredRepository : GenericModuleChildSecur
         var entity = await Repository.Get(moduleId, name, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to ModulePulumiInlinePolicy {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(ModulePulumiInlinePolicy)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }

@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts.Dto.NamespaceInputs.Base;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Base;
@@ -57,7 +58,8 @@ public class NamespaceInputSecuredRepository : GenericNamespaceChildSecuredRepos
         var entity = await Repository.Get(namespaceId, name, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to {nameof(NamespaceInput)} {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(NamespaceInput)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }

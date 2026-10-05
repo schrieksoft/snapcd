@@ -83,7 +83,8 @@ public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecured
             throw new EntityNotFoundException($"Unable to find ServicePrincipal with ClientId \"{clientId}\"");
         
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to ServicePrincipal {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(ServicePrincipal)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
         
