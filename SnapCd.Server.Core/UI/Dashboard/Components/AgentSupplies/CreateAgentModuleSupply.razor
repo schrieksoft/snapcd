@@ -10,12 +10,13 @@
 @using SnapCd.Server.Core.Entities.Definition.AgentSupplies
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies
+@using SnapCd.Server.Core.Views
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
             <MudItem xs="12" md="6">
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Agent?"
+                    <MudAutocomplete T="AgentMetadata?"
                                      Label="Agent"
                                      @bind-Value="_selectedAgent"
                                      Disabled="@(AgentId.HasValue)"
@@ -29,7 +30,7 @@
                 </MudItem>
 
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Module?"
+                    <MudAutocomplete T="ModuleMetadata?"
                                      Label="Module"
                                      @bind-Value="_selectedModule"
                                      Disabled="@(ModuleId.HasValue)"
@@ -75,8 +76,8 @@
     [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private Module? _selectedModule;
-    private Agent? _selectedAgent;
+    private ModuleMetadata? _selectedModule;
+    private AgentMetadata? _selectedAgent;
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,33 +89,39 @@
         if (ModuleId.HasValue)
         {
             using var moduleRepo = ModuleRepoFactory.Create();
-            _selectedModule = await moduleRepo.Get(ModuleId.Value, OrganizationId);
+            _selectedModule = await moduleRepo.GetMetadata(ModuleId.Value, OrganizationId);
         }
 
         if (AgentId.HasValue)
         {
             using var storeRepo = AgentRepoFactory.Create();
-            _selectedAgent = await storeRepo.Get(AgentId.Value, OrganizationId);
+            _selectedAgent = await storeRepo.GetMetadata(AgentId.Value, OrganizationId);
         }
     }
 
 
-    private async Task<IEnumerable<Module>> SearchModules(string value, CancellationToken token)
+    private async Task<IEnumerable<ModuleMetadata>> SearchModules(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return new List<Module>();
+            return new List<ModuleMetadata>();
 
         using var repo = ModuleRepoFactory.Create();
-        return await repo.List<Module>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
-    private async Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
+    private async Task<IEnumerable<AgentMetadata>> SearchAgents(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return new List<Agent>();
+            return new List<AgentMetadata>();
 
         using var repo = AgentRepoFactory.Create();
-        return await repo.List<Agent>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
     private async Task SaveSupply()

@@ -57,9 +57,7 @@ public class
 
     public async Task<List<NamespaceMetadataReadDto>> ListMetadata(Guid organizationId)
     {
-        var views = await SecuredRepository.ReadMetadataQuery(organizationId)
-            .Distinct()
-            .ToListAsync();
+        var views = await SecuredRepository.ListMetadata(organizationId);
         return views.Select(NamespaceMapper.ToMetadataDto).ToList();
     }
 

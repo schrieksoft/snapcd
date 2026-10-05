@@ -112,6 +112,51 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
     };
 
 
+
+
+    public async Task<ModuleMetadata> GetMetadata(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Module)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(m => m.Id == id && m.OrganizationId == organizationId);
+    }
+
+    public async Task<int> CountMetadata(
+        Guid organizationId,
+        Func<IQueryable<ModuleMetadata>, IQueryable<ModuleMetadata>>? queryModifier = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        return await query.CountAsync();
+    }
+    public async Task<List<ModuleMetadata>> ListMetadata(
+        Guid organizationId,
+        Func<IQueryable<ModuleMetadata>, IQueryable<ModuleMetadata>>? queryModifier = null,
+        Func<IQueryable<ModuleMetadata>, IOrderedQueryable<ModuleMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        if (orderBy != null)
+            query = orderBy(query);
+
+        if (pageNumber.HasValue && pageSize.HasValue)
+            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
+
+        if (pageSize.HasValue)
+            query = query.Take(pageSize.Value);
+
+        return await query.ToListAsync();
+    }
     public override bool CanReadMetadata(Guid id, Guid organizationId)
     {
         return ReadMetadataQuery(organizationId).Any(m => m.Id == id && m.OrganizationId == organizationId);

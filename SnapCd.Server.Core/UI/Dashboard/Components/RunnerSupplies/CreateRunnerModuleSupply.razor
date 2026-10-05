@@ -10,13 +10,14 @@
 @using SnapCd.Server.Core.Entities.Definition.RunnerSupplies
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies
+@using SnapCd.Server.Core.Views
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
             <!-- Module Selection -->
             <MudItem xs="12" md="6">
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Module?"
+                    <MudAutocomplete T="ModuleMetadata?"
                                      Label="Module"
                                      @bind-Value="_selectedModule"
                                      Disabled="@(ModuleId.HasValue)"
@@ -31,7 +32,7 @@
 
                 <!-- Runner Selection -->
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Runner?"
+                    <MudAutocomplete T="RunnerMetadata?"
                                      Label="Runner"
                                      @bind-Value="_selectedRunner"
                                      Disabled="@(RunnerId.HasValue)"
@@ -78,8 +79,8 @@
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private Module? _selectedModule;
-    private Runner? _selectedRunner;
+    private ModuleMetadata? _selectedModule;
+    private RunnerMetadata? _selectedRunner;
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,33 +92,39 @@
         if (ModuleId.HasValue)
         {
             using var moduleRepo = ModuleRepoFactory.Create();
-            _selectedModule = await moduleRepo.Get(ModuleId.Value, OrganizationId);
+            _selectedModule = await moduleRepo.GetMetadata(ModuleId.Value, OrganizationId);
         }
 
         if (RunnerId.HasValue)
         {
             using var storeRepo = RunnerRepoFactory.Create();
-            _selectedRunner = await storeRepo.Get(RunnerId.Value, OrganizationId);
+            _selectedRunner = await storeRepo.GetMetadata(RunnerId.Value, OrganizationId);
         }
     }
 
 
-    private async Task<IEnumerable<Module>> SearchModules(string value, CancellationToken token)
+    private async Task<IEnumerable<ModuleMetadata>> SearchModules(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return new List<Module>();
+            return new List<ModuleMetadata>();
 
         using var repo = ModuleRepoFactory.Create();
-        return await repo.List<Module>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
-    private async Task<IEnumerable<Runner>> SearchRunners(string value, CancellationToken token)
+    private async Task<IEnumerable<RunnerMetadata>> SearchRunners(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return new List<Runner>();
+            return new List<RunnerMetadata>();
 
         using var repo = RunnerRepoFactory.Create();
-        return await repo.List<Runner>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
     private async Task SaveSupply()

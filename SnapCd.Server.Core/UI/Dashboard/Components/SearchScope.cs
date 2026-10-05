@@ -6,11 +6,12 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-namespace SnapCd.Server.Core.Views;
+namespace SnapCd.Server.Core.UI.Dashboard.Components;
 
-public class TruncatedModule
+/// <summary>Which name a browse-list search matches against. One level at a time.</summary>
+public enum SearchScope
 {
-    public required Guid Id { get; set; }
-
-    public required string Name { get; set; }
+    Stack,
+    Namespace,
+    Module
 }

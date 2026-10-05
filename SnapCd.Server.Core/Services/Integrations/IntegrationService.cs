@@ -77,7 +77,7 @@ public sealed class IntegrationService(
     public async Task<List<IntegrationMetadataReadDto>> ListMetadata(Guid organizationId)
     {
         using var secured = securedFactory.Create();
-        var views = await secured.ReadMetadataQuery(organizationId).Distinct().ToListAsync();
+        var views = await secured.ListMetadata(organizationId);
         return views.Select(IntegrationMapper.ToMetadataDto).ToList();
     }
 

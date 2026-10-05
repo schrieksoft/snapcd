@@ -92,6 +92,15 @@
                 @if (_showStackSearch)
                 {
                     <div class="search-input-container">
+                        <MudSelect @bind-Value="_searchScope"
+                                   Label="Search in"
+                                   Variant="Variant.Outlined"
+                                   Dense="true"
+                                   Class="search-scope-select">
+                                      <MudSelectItem Value="@SearchScope.Stack">Stacks</MudSelectItem>
+                                      <MudSelectItem Value="@SearchScope.Namespace">Namespaces</MudSelectItem>
+                                      <MudSelectItem Value="@SearchScope.Module">Modules</MudSelectItem>
+                        </MudSelect>
                         <MudTextField @bind-Value="_searchInput"
                                       Label="Search across stacks, namespaces, and modules"
                                       HelperText="Press Enter to search (minimum 2 characters)"
@@ -131,6 +140,7 @@
 
         <ListStacks @ref="_listStacksComponent"
                     SearchTerms="@_searchTerms"
+                                 SearchScope="@_searchScope"
                     ShowCheckboxes="@_showSelectionMode"
                     SelectAll="@_selectAllStacks"
                     OnSelectionChanged="@HandleStackSelectionChanged"/>
@@ -146,6 +156,7 @@
     private bool _showStackSearch;
     private string _searchInput = string.Empty;
     private List<string> _searchTerms = new();
+    private SearchScope _searchScope = SearchScope.Stack;
     private bool _selectAllStacks;
     private HashSet<Guid> _selectedStacks = new();
     private bool _showSelectionMode;

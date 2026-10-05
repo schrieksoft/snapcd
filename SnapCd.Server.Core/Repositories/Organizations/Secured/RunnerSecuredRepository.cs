@@ -66,23 +66,67 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
         RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader]
     };
     /// <summary>
-    /// No organization-level role grants metadata on these yet; full read covers that case and is
-    /// concatenated separately. Phase B adds the supply branch.
+    /// Mirrors read. There is no metadata-only organization role for these yet; phase B adds the
+    /// supply branch, which is what will make metadata read wider than read.
     /// </summary>
     public override PermissionMap ReadMetadataPermissionMap => new()
     {
-        OrganizationRoles = [],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.RunnerContributor, OrganizationRole.RunnerReader],
         RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader]
     };
 
 
+
+
+    public async Task<RunnerMetadata> GetMetadata(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Runner)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(r => r.Id == id && r.OrganizationId == organizationId);
+    }
+
+    public async Task<int> CountMetadata(
+        Guid organizationId,
+        Func<IQueryable<RunnerMetadata>, IQueryable<RunnerMetadata>>? queryModifier = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        return await query.CountAsync();
+    }
+    public async Task<List<RunnerMetadata>> ListMetadata(
+        Guid organizationId,
+        Func<IQueryable<RunnerMetadata>, IQueryable<RunnerMetadata>>? queryModifier = null,
+        Func<IQueryable<RunnerMetadata>, IOrderedQueryable<RunnerMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        if (orderBy != null)
+            query = orderBy(query);
+
+        if (pageNumber.HasValue && pageSize.HasValue)
+            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
+
+        if (pageSize.HasValue)
+            query = query.Take(pageSize.Value);
+
+        return await query.ToListAsync();
+    }
     public override bool CanReadMetadata(Guid id, Guid organizationId)
     {
         return ReadMetadataQuery(organizationId).Any(r => r.Id == id && r.OrganizationId == organizationId);
     }
     public IQueryable<RunnerMetadata> ReadMetadataQuery(Guid organizationId)
-        => ReadQuery(organizationId)
-            .Concat(ReadMetadataOrganizationRoleQuery(organizationId))
+        => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(RunnerRoleQuery(organizationId, ReadMetadataPermissionMap.RunnerRoles))
             .Select(x => new RunnerMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
 

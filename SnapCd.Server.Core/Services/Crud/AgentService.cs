@@ -58,9 +58,7 @@ public class AgentService : GenericCrudService<
 
     public async Task<List<AgentMetadataReadDto>> ListMetadata(Guid organizationId)
     {
-        var views = await SecuredRepository.ReadMetadataQuery(organizationId)
-            .Distinct()
-            .ToListAsync();
+        var views = await SecuredRepository.ListMetadata(organizationId);
         return views.Select(AgentMapper.ToMetadataDto).ToList();
     }
 

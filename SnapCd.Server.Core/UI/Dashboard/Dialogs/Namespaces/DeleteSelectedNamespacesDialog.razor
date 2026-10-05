@@ -181,7 +181,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 
-    [Parameter] public required List<TruncatedNamespace> Namespaces { get; set; }
+    [Parameter] public required List<NamespaceMetadata> Namespaces { get; set; }
     [Parameter] public required string StackName { get; set; }
 
     private bool _isDeleting;
@@ -193,7 +193,7 @@
 
     private class NamespaceStatus
     {
-        public TruncatedNamespace Namespace { get; set; } = null!;
+        public NamespaceMetadata Namespace { get; set; } = null!;
         public bool CanDelete { get; set; }
         public string Reason { get; set; } = string.Empty;
         public int DeletionOrder { get; set; }

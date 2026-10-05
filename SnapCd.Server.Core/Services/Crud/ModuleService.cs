@@ -199,9 +199,7 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
 
     public async Task<List<ModuleMetadataReadDto>> ListMetadata(Guid organizationId)
     {
-        var views = await SecuredRepository.ReadMetadataQuery(organizationId)
-            .Distinct()
-            .ToListAsync();
+        var views = await SecuredRepository.ListMetadata(organizationId);
         return views.Select(ModuleMapper.ToMetadataDto).ToList();
     }
 

@@ -10,12 +10,13 @@
 @using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies
+@using SnapCd.Server.Core.Views
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
             <MudItem xs="12" md="6">
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Integration?"
+                    <MudAutocomplete T="IntegrationMetadata?"
                                      Label="Integration"
                                      @bind-Value="_selectedIntegration"
                                      Disabled="@(IntegrationId.HasValue)"
@@ -29,7 +30,7 @@
                 </MudItem>
 
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Stack?"
+                    <MudAutocomplete T="StackMetadata?"
                                      Label="Stack"
                                      @bind-Value="_selectedStack"
                                      Disabled="@(StackId.HasValue)"
@@ -75,8 +76,8 @@
     [Inject] private IntegrationSecuredRepositoryFactory IntegrationRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private Stack? _selectedStack;
-    private Integration? _selectedIntegration;
+    private StackMetadata? _selectedStack;
+    private IntegrationMetadata? _selectedIntegration;
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,32 +89,38 @@
         if (StackId.HasValue)
         {
             using var stackRepo = StackRepoFactory.Create();
-            _selectedStack = await stackRepo.Get(StackId.Value, OrganizationId);
+            _selectedStack = await stackRepo.GetMetadata(StackId.Value, OrganizationId);
         }
 
         if (IntegrationId.HasValue)
         {
             using var repo = IntegrationRepoFactory.Create();
-            _selectedIntegration = await repo.Get(IntegrationId.Value, OrganizationId);
+            _selectedIntegration = await repo.GetMetadata(IntegrationId.Value, OrganizationId);
         }
     }
 
-    private async Task<IEnumerable<Stack>> SearchStacks(string value, CancellationToken token)
+    private async Task<IEnumerable<StackMetadata>> SearchStacks(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return new List<Stack>();
+            return new List<StackMetadata>();
 
         using var repo = StackRepoFactory.Create();
-        return await repo.List<Stack>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
-    private async Task<IEnumerable<Integration>> SearchIntegrations(string value, CancellationToken token)
+    private async Task<IEnumerable<IntegrationMetadata>> SearchIntegrations(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return new List<Integration>();
+            return new List<IntegrationMetadata>();
 
         using var repo = IntegrationRepoFactory.Create();
-        return await repo.List<Integration>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
     private async Task SaveSupply()

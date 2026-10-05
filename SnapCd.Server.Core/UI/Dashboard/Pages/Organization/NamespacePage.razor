@@ -179,6 +179,7 @@
                                  StackName="@StackName"
                                  NamespaceName="@NamespaceName"
                                  SearchTerms="@_searchTerms"
+                                 SearchScope="@_searchScope"
                                  ShowCheckboxes="@_showSelectionMode"
                                  SelectAll="@_selectAllModules"
                                  OnSelectionChanged="@HandleModuleSelectionChanged"/>
@@ -489,7 +490,7 @@
     [Inject] private NamespaceSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
     private Namespace _namespace = null!;
-    private TruncatedNamespace? _truncatedNamespace;
+    private NamespaceMetadata? _truncatedNamespace;
     private string _parentQuery = "";
     private ShowingType _showing = ShowingType.None;
 
@@ -517,6 +518,7 @@
     private bool _showModuleSearch;
     private string _searchInput = string.Empty;
     private List<string> _searchTerms = new();
+    private SearchScope _searchScope = SearchScope.Module;
     private bool _selectAllModules;
     private HashSet<Guid> _selectedModules = new();
     private bool _showSelectionMode;
@@ -600,11 +602,12 @@
             return;
         }
 
-        _truncatedNamespace = new TruncatedNamespace
+        _truncatedNamespace = new NamespaceMetadata
         {
             Id = _namespace.Id,
+            OrganizationId = OrganizationId,
             Name = _namespace.Name,
-            Modules = new List<TruncatedModule>()
+            StackId = _namespace.StackId
         };
 
         _loadedNamespaceKey = NamespaceKey;
@@ -615,7 +618,7 @@
         //     ApplicationState.PersistAsJson(cacheKey, new CachedNamespaceData
         //     {
         //         Namespace = _namespace,
-        //         TruncatedNamespace = _truncatedNamespace!,
+        //         NamespaceMetadata = _truncatedNamespace!,
         //         ShowingState = _showing
         //     });
         //     return Task.CompletedTask;
@@ -624,7 +627,7 @@
         // if (ApplicationState.TryTakeFromJson<CachedNamespaceData>(cacheKey, out var cachedData))
         // {
         //     _namespace = cachedData.Namespace;
-        //     _truncatedNamespace = cachedData.TruncatedNamespace;
+        //     _truncatedNamespace = cachedData.NamespaceMetadata;
         //     _showing = cachedData.ShowingState;
         // }
 
@@ -1156,7 +1159,7 @@
     private class CachedNamespaceData
     {
         public Namespace Namespace { get; set; } = null!;
-        public TruncatedNamespace TruncatedNamespace { get; set; } = null!;
+        public NamespaceMetadata NamespaceMetadata { get; set; } = null!;
         public ShowingType ShowingState { get; set; }
     }
 

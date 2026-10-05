@@ -207,6 +207,52 @@ public class MetadataReadTests : IAsyncLifetime
         Assert.DoesNotContain(_fixture.Stacks["01"].Id, ids);
     }
 
+    // The picker path: search by name, scoped to what the principal may discover.
+    [Fact]
+    public async Task ListMetadata_Filters_By_Search_Term()
+    {
+        var user = _fixture.ScopeReaderUsers["Org.StackMetadataReader"];
+        var all = await StackRepo(user.Id).ListMetadata(_organizationId);
+        var filtered = await StackRepo(user.Id).ListMetadata(_organizationId,
+            q => q.Where(x => x.Name == _fixture.Stacks["00"].Name));
+
+        Assert.Contains(_fixture.Stacks["00"].Id, filtered.Select(x => x.Id));
+        Assert.True(filtered.Count < all.Count);
+    }
+
+    [Fact]
+    public async Task ListMetadata_Respects_Paging()
+    {
+        var user = _fixture.ScopeReaderUsers["Org.StackMetadataReader"];
+        var firstPage = await StackRepo(user.Id).ListMetadata(_organizationId,
+            orderBy: q => q.OrderBy(x => x.Name), pageNumber: 1, pageSize: 1);
+        var secondPage = await StackRepo(user.Id).ListMetadata(_organizationId,
+            orderBy: q => q.OrderBy(x => x.Name), pageNumber: 2, pageSize: 1);
+
+        Assert.Single(firstPage);
+        Assert.Single(secondPage);
+        Assert.NotEqual(firstPage[0].Id, secondPage[0].Id);
+    }
+
+    [Fact]
+    public async Task ListMetadata_Excludes_A_Stack_The_Principal_Cannot_Discover()
+    {
+        var user = _fixture.ScopeReaderUsers["Stack00.MetadataReader"];
+        var ids = (await StackRepo(user.Id).ListMetadata(_organizationId)).Select(x => x.Id).ToList();
+
+        Assert.Contains(_fixture.Stacks["00"].Id, ids);
+        Assert.DoesNotContain(_fixture.Stacks["01"].Id, ids);
+    }
+
+    [Fact]
+    public async Task GetMetadata_By_Id_Refuses_A_Stack_The_Principal_Cannot_Discover()
+    {
+        var user = _fixture.ScopeReaderUsers["Stack00.MetadataReader"];
+
+        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(
+            () => StackRepo(user.Id).GetMetadata(_fixture.Stacks["01"].Id, _organizationId));
+    }
+
     private StackSecuredRepository StackRepo(Guid principalId)
     {
         var pp = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, _organizationId);

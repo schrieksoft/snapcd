@@ -178,7 +178,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 
-    [Parameter] public required List<TruncatedModule> Modules { get; set; }
+    [Parameter] public required List<ModuleMetadata> Modules { get; set; }
     [Parameter] public required string NamespaceName { get; set; }
 
     private bool _isDeleting;
@@ -190,7 +190,7 @@
 
     private class ModuleStatus
     {
-        public TruncatedModule Module { get; set; } = null!;
+        public ModuleMetadata Module { get; set; } = null!;
         public bool CanDelete { get; set; }
         public string Reason { get; set; } = string.Empty;
         public int DeletionOrder { get; set; }

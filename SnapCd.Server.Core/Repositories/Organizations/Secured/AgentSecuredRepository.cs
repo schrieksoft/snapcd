@@ -65,23 +65,67 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
         AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
     };
     /// <summary>
-    /// No organization-level role grants metadata on these yet; full read covers that case and is
-    /// concatenated separately. Phase B adds the supply branch.
+    /// Mirrors read. There is no metadata-only organization role for these yet; phase B adds the
+    /// supply branch, which is what will make metadata read wider than read.
     /// </summary>
     public override PermissionMap ReadMetadataPermissionMap => new()
     {
-        OrganizationRoles = [],
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.AgentContributor, OrganizationRole.AgentReader],
         AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
     };
 
 
+
+
+    public async Task<AgentMetadata> GetMetadata(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Agent)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(a => a.Id == id && a.OrganizationId == organizationId);
+    }
+
+    public async Task<int> CountMetadata(
+        Guid organizationId,
+        Func<IQueryable<AgentMetadata>, IQueryable<AgentMetadata>>? queryModifier = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        return await query.CountAsync();
+    }
+    public async Task<List<AgentMetadata>> ListMetadata(
+        Guid organizationId,
+        Func<IQueryable<AgentMetadata>, IQueryable<AgentMetadata>>? queryModifier = null,
+        Func<IQueryable<AgentMetadata>, IOrderedQueryable<AgentMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        if (orderBy != null)
+            query = orderBy(query);
+
+        if (pageNumber.HasValue && pageSize.HasValue)
+            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
+
+        if (pageSize.HasValue)
+            query = query.Take(pageSize.Value);
+
+        return await query.ToListAsync();
+    }
     public override bool CanReadMetadata(Guid id, Guid organizationId)
     {
         return ReadMetadataQuery(organizationId).Any(a => a.Id == id && a.OrganizationId == organizationId);
     }
     public IQueryable<AgentMetadata> ReadMetadataQuery(Guid organizationId)
-        => ReadQuery(organizationId)
-            .Concat(ReadMetadataOrganizationRoleQuery(organizationId))
+        => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(AgentRoleQuery(organizationId, ReadMetadataPermissionMap.AgentRoles))
             .Select(x => new AgentMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
 

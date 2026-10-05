@@ -70,7 +70,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 
-    [Parameter] public required List<TruncatedStack> Stacks { get; set; }
+    [Parameter] public required List<StackMetadata> Stacks { get; set; }
 
     private bool _isDeleting;
     private int _currentIndex;
