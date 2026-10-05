@@ -19,8 +19,6 @@ public class IntegrationReadDto : IDto
 {
     /// <summary>Unique ID of the integration.</summary>
     public Guid Id { get; set; }
-    /// <summary>ID of the Organization the Integration belongs to.</summary>
-    public Guid OrganizationId { get; set; }
     /// <summary>Name of the integration.</summary>
     public string Name { get; set; } = null!;
     /// <summary>Integration type (e.g. Slack).</summary>

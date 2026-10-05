@@ -9,6 +9,7 @@
 using SnapCd.Contracts.Dto.Stacks;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
@@ -54,4 +55,19 @@ public class StackService : GenericCrudService<
     {
         return await GetByCriteria(repo => repo.GetByName(name, organizationId));
     }
+
+    public async Task<List<StackMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ReadMetadataQuery(organizationId)
+            .Distinct()
+            .ToListAsync();
+        return views.Select(StackMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<StackMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return StackMapper.ToMetadataDto(view);
+    }
+
 }

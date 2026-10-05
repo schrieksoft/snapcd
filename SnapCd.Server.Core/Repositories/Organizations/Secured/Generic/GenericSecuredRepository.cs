@@ -182,6 +182,7 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCrea
     }
 
     public virtual PermissionMap ReadPermissionMap => new();
+    public virtual PermissionMap ReadMetadataPermissionMap => new();
     public virtual PermissionMap ReverseInheritedReadPermissionMap => new();
     public virtual PermissionMap UpdatePermissionMap => new();
     public virtual PermissionMap CreatePermissionMap => new();
@@ -194,6 +195,8 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCrea
     public abstract IQueryable<TEntity> DeleteQuery(Guid organizationId);
 
     public abstract bool CanRead(Guid id, Guid organizationId);
+
+    public virtual bool CanReadMetadata(Guid id, Guid organizationId) => false;
 
     public abstract bool CanCreate(Guid parentId, Guid organizationId);
 

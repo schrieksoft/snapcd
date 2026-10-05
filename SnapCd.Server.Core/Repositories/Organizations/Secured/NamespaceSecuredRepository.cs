@@ -13,10 +13,12 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Namespaces;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
@@ -61,6 +63,13 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     public override PermissionMap ReverseInheritedReadPermissionMap => new()
     {
         ModuleRoles = [.. Enum.GetValues<ModuleRole>()]
+    };
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader, OrganizationRole.StackMetadataReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader, StackRole.MetadataReader],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader, NamespaceRole.MetadataReader]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
@@ -131,6 +140,28 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         if (reverseInheritanceQuery == null)
             return baseQuery;
         return baseQuery.Concat(reverseInheritanceQuery);
+    }
+
+
+    public override bool CanReadMetadata(Guid id, Guid organizationId)
+    {
+        return ReadMetadataQuery(organizationId).Any(n => n.Id == id && n.OrganizationId == organizationId);
+    }
+    public IQueryable<NamespaceMetadata> ReadMetadataQuery(Guid organizationId)
+    {
+        var baseQuery = RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles
+        );
+
+        var reverseInheritanceQuery = ReverseInheritanceQuery(organizationId);
+
+        if (reverseInheritanceQuery != null)
+            baseQuery = baseQuery.Concat(reverseInheritanceQuery);
+
+        return baseQuery.Select(x => new NamespaceMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, StackId = x.StackId });
     }
 
     public override IQueryable<Namespace> UpdateQuery(Guid organizationId)
@@ -467,7 +498,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         var @namespace = await Repository.Get(stackId, name, organizationId);
 
         if (!CanRead(@namespace.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to namespace {@namespace.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Namespace)} with ID {@namespace.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return @namespace;
     }
@@ -477,9 +509,32 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         var @namespace = await Repository.Get(stackName, name, organizationId);
 
         if (!CanRead(@namespace.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to namespace {@namespace.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Namespace)} with ID {@namespace.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return @namespace;
+    }
+
+    public async Task<NamespaceMetadata> GetMetadata(Guid stackId, string name, Guid organizationId)
+    {
+        var entity = await Repository.Get(stackId, name, organizationId);
+
+        if (!CanReadMetadata(entity.Id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Namespace)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
+    }
+
+    public async Task<NamespaceMetadata> GetMetadata(string stackName, string name, Guid organizationId)
+    {
+        var entity = await Repository.Get(stackName, name, organizationId);
+
+        if (!CanReadMetadata(entity.Id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Namespace)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
     }
 
     #endregion

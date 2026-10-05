@@ -16,8 +16,10 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
@@ -51,6 +53,41 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.IntegrationContributor, OrganizationRole.IntegrationReader],
         IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader]
     };
+    /// <summary>
+    /// No organization-level role grants metadata on these yet; full read covers that case and is
+    /// concatenated separately. Phase B adds the supply branch.
+    /// </summary>
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [],
+        IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader]
+    };
+
+
+    public override bool CanReadMetadata(Guid id, Guid organizationId)
+    {
+        return ReadMetadataQuery(organizationId).Any(i => i.Id == id && i.OrganizationId == organizationId);
+    }
+    public IQueryable<IntegrationMetadata> ReadMetadataQuery(Guid organizationId)
+        => ReadQuery(organizationId)
+            .Concat(ReadMetadataOrganizationRoleQuery(organizationId))
+            .Concat(IntegrationRoleQuery(organizationId, ReadMetadataPermissionMap.IntegrationRoles))
+            .Select(x => new IntegrationMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, IntegrationType = x.IntegrationType });
+
+    public async Task<IntegrationMetadata> GetMetadataByName(string name, Guid organizationId)
+    {
+        var id = await ReadMetadataQuery(organizationId)
+            .Where(x => x.Name == name)
+            .Select(x => (Guid?)x.Id)
+            .FirstOrDefaultAsync();
+
+        if (id is null || !CanReadMetadata(id.Value, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Integration)} with organization ID {organizationId} and name {name} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id.Value);
+    }
+
 
     public override PermissionMap UpdatePermissionMap => new()
     {

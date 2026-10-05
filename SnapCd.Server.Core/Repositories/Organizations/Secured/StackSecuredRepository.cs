@@ -13,6 +13,7 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Stacks;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
@@ -62,6 +63,12 @@ public class StackSecuredRepository : GenericSecuredRepository<
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader],
         StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader]
+    };
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader, OrganizationRole.StackMetadataReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader, StackRole.MetadataReader]
     };
 
     public override PermissionMap ReverseInheritedReadPermissionMap => new()
@@ -134,6 +141,21 @@ public class StackSecuredRepository : GenericSecuredRepository<
             ReadPermissionMap.OrganizationRoles,
             ReadPermissionMap.StackRoles,
             true);
+    }
+
+
+    public override bool CanReadMetadata(Guid id, Guid organizationId)
+    {
+        return ReadMetadataQuery(organizationId).Any(s => s.Id == id && s.OrganizationId == organizationId);
+    }
+    public IQueryable<StackMetadata> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            true)
+            .Select(x => new StackMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
     }
 
     public override IQueryable<Stack> UpdateQuery(Guid organizationId)
@@ -457,6 +479,17 @@ public class StackSecuredRepository : GenericSecuredRepository<
                 $"{nameof(Stack)} with organization ID {organizationId} and name {name} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
+    }
+
+    public async Task<StackMetadata> GetMetadataByName(string name, Guid organizationId)
+    {
+        var entity = await Repository.GetByName(name, organizationId);
+
+        if (!CanReadMetadata(entity.Id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Stack)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
     }
 
     #endregion

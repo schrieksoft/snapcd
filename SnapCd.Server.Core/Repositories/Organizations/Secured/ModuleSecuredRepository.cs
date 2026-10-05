@@ -13,9 +13,11 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Modules;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
@@ -99,6 +101,30 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
             CreatePermissionMap.NamespaceRoles,
             CreatePermissionMap.ModuleRoles
         );
+    }
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader, OrganizationRole.StackMetadataReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader, StackRole.MetadataReader],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader, NamespaceRole.MetadataReader],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Reader, ModuleRole.MetadataReader]
+    };
+
+
+    public override bool CanReadMetadata(Guid id, Guid organizationId)
+    {
+        return ReadMetadataQuery(organizationId).Any(m => m.Id == id && m.OrganizationId == organizationId);
+    }
+    public IQueryable<ModuleMetadata> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
+            ReadMetadataPermissionMap.ModuleRoles
+        ).Select(x => new ModuleMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, NamespaceId = x.NamespaceId });
     }
 
     public override IQueryable<Module> ReadQuery(Guid organizationId)
@@ -387,7 +413,8 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         var module = await Repository.Get(namespaceId, name, organizationId);
 
         if (!CanRead(module.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to module {module.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Module)} with ID {module.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return module;
     }
@@ -397,9 +424,32 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         var module = await Repository.Get(stackName, namespaceName, moduleName, organizationId);
 
         if (!CanRead(module.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to module {module.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Module)} with ID {module.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return module;
+    }
+
+    public async Task<ModuleMetadata> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var entity = await Repository.Get(namespaceId, name, organizationId);
+
+        if (!CanReadMetadata(entity.Id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Module)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
+    }
+
+    public async Task<ModuleMetadata> GetMetadata(string stackName, string namespaceName, string moduleName, Guid organizationId)
+    {
+        var entity = await Repository.Get(stackName, namespaceName, moduleName, organizationId);
+
+        if (!CanReadMetadata(entity.Id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Module)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
     }
 
     # endregion

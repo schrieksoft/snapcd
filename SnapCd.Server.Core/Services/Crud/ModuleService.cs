@@ -196,4 +196,25 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
         };
     }
 
+
+    public async Task<List<ModuleMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ReadMetadataQuery(organizationId)
+            .Distinct()
+            .ToListAsync();
+        return views.Select(ModuleMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<ModuleMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return ModuleMapper.ToMetadataDto(view);
+    }
+
+    public async Task<ModuleMetadataReadDto> GetMetadata(string stackName, string namespaceName, string moduleName, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(stackName, namespaceName, moduleName, organizationId);
+        return ModuleMapper.ToMetadataDto(view);
+    }
+
 }

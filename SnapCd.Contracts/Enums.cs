@@ -326,6 +326,7 @@ public enum OrganizationRole
     SubscriptionManager,
     StackContributor,
     StackReader,
+    StackMetadataReader,
     RunnerCreator,
     RunnerContributor,
     RunnerReader,
@@ -348,6 +349,7 @@ public enum StackRole
     Owner,
     Contributor,
     Reader,
+    MetadataReader,
     NamespaceCreator,
     IdentityAccessManager,
     JobManager
@@ -358,6 +360,7 @@ public enum NamespaceRole
     Owner,
     Contributor,
     Reader,
+    MetadataReader,
     ModuleCreator,
     IdentityAccessManager,
     JobManager
@@ -368,6 +371,7 @@ public enum ModuleRole
     Owner,
     Contributor,
     Reader,
+    MetadataReader,
     IdentityAccessManager,
     JobManager
 }

@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Server.Core.Misc.Attributes;
+using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using System.ComponentModel.DataAnnotations;
 using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -43,6 +44,29 @@ public class IntegrationController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<IntegrationReadDto>>> List(Guid organizationId)
         => await _service.List(organizationId);
+
+    [HttpGet("Metadata")]
+    [PermissionSource(Repository = typeof(IntegrationSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<List<IntegrationMetadataReadDto>>> ListMetadata(Guid organizationId)
+        => await _service.ListMetadata(organizationId);
+
+    [HttpGet("Metadata/ByName/{name}")]
+    [PermissionSource(Repository = typeof(IntegrationSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<IntegrationMetadataReadDto>> GetMetadataByName(Guid organizationId, string name)
+    {
+        try
+        {
+            return await _service.GetMetadataByName(name, organizationId);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(Misc.Constants.CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+    }
 
     [HttpGet("ByName/{name}")]
     public async Task<ActionResult<IntegrationReadDto>> GetByName(Guid organizationId, string name)

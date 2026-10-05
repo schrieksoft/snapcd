@@ -1483,6 +1483,99 @@ paths:
         - Agent.Contributor
         - Agent.Owner
         - Agent.Reader
+  /api/{organizationId}/Agent/Metadata:
+    get:
+      tags:
+      - Agent
+      summary: List all Agents
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Agent.Contributor`
+        - `Agent.Owner`
+        - `Agent.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgentMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgentMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgentMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Agent.Contributor
+        - Agent.Owner
+        - Agent.Reader
+  /api/{organizationId}/Agent/Metadata/ByName/{name}:
+    get:
+      tags:
+      - Agent
+      summary: Get a single Agent
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Agent.Contributor`
+        - `Agent.Owner`
+        - `Agent.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/AgentMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/AgentMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Agent.Contributor
+        - Agent.Owner
+        - Agent.Reader
   /api/{organizationId}/AgentModuleSupply:
     post:
       tags:
@@ -3567,6 +3660,99 @@ paths:
         - Organization.IntegrationContributor
         - Organization.IntegrationCreator
         - Organization.Owner
+  /api/{organizationId}/Integration/Metadata:
+    get:
+      tags:
+      - Integration
+      summary: List all Integrations
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Integration.Contributor`
+        - `Integration.Owner`
+        - `Integration.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Integration.Contributor
+        - Integration.Owner
+        - Integration.Reader
+  /api/{organizationId}/Integration/Metadata/ByName/{name}:
+    get:
+      tags:
+      - Integration
+      summary: Get a single Integration
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Integration.Contributor`
+        - `Integration.Owner`
+        - `Integration.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/IntegrationMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Integration.Contributor
+        - Integration.Owner
+        - Integration.Reader
   /api/{organizationId}/Integration/ByName/{name}:
     get:
       tags:
@@ -6015,6 +6201,246 @@ paths:
         - Namespace.Contributor
         - Namespace.Owner
         - Namespace.Reader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/Module/Metadata/{namespaceId}/{name}:
+    get:
+      tags:
+      - Module
+      summary: Get a single Module
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.MetadataReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.MetadataReader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: namespaceId
+        in: path
+        description: Namespace ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.MetadataReader
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.MetadataReader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/Module/Metadata:
+    get:
+      tags:
+      - Module
+      summary: List all Modules
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.MetadataReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.MetadataReader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.MetadataReader
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.MetadataReader
+        - Module.Owner
+        - Module.Reader
+  /api/{organizationId}/Module/Metadata/ByName/{stackName}/{namespaceName}/{moduleName}:
+    get:
+      tags:
+      - Module
+      summary: Get a single Module
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.MetadataReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+        - `Module.MetadataReader`
+        - `Module.Owner`
+        - `Module.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stackName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: namespaceName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: moduleName
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ModuleMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ModuleMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.MetadataReader
+        - Namespace.Owner
+        - Namespace.Reader
+        - Module.MetadataReader
         - Module.Owner
         - Module.Reader
   /api/{organizationId}/Module:
@@ -14328,6 +14754,223 @@ paths:
         - Namespace.Reader
         reverseInheritedAnyOf:
         - Module.*
+  /api/{organizationId}/Namespace/Metadata/{stackId}/{name}:
+    get:
+      tags:
+      - Namespace
+      summary: Get a single Namespace
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.MetadataReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stackId
+        in: path
+        description: Stack ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.MetadataReader
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/Namespace/Metadata:
+    get:
+      tags:
+      - Namespace
+      summary: List all Namespaces
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.MetadataReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.MetadataReader
+        - Namespace.Owner
+        - Namespace.Reader
+  /api/{organizationId}/Namespace/Metadata/ByName/{stackName}/{name}:
+    get:
+      tags:
+      - Namespace
+      summary: Get a single Namespace
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+        - `Namespace.Contributor`
+        - `Namespace.MetadataReader`
+        - `Namespace.Owner`
+        - `Namespace.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: stackName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NamespaceMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
+        - Namespace.Contributor
+        - Namespace.MetadataReader
+        - Namespace.Owner
+        - Namespace.Reader
   /api/{organizationId}/Namespace:
     post:
       tags:
@@ -21941,6 +22584,99 @@ paths:
         - Runner.Contributor
         - Runner.Owner
         - Runner.Reader
+  /api/{organizationId}/Runner/Metadata:
+    get:
+      tags:
+      - Runner
+      summary: List all Runners
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Runner.Contributor`
+        - `Runner.Owner`
+        - `Runner.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RunnerMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RunnerMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RunnerMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Runner.Contributor
+        - Runner.Owner
+        - Runner.Reader
+  /api/{organizationId}/Runner/Metadata/ByName/{name}:
+    get:
+      tags:
+      - Runner
+      summary: Get a single Runner
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Runner.Contributor`
+        - `Runner.Owner`
+        - `Runner.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/RunnerMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunnerMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/RunnerMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Runner.Contributor
+        - Runner.Owner
+        - Runner.Reader
   /api/{organizationId}/Runner:
     post:
       tags:
@@ -23979,6 +24715,127 @@ paths:
         reverseInheritedAnyOf:
         - Namespace.*
         - Module.*
+  /api/{organizationId}/Stack/Metadata:
+    get:
+      tags:
+      - Stack
+      summary: List all Stacks
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StackMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StackMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StackMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
+  /api/{organizationId}/Stack/Metadata/ByName/{name}:
+    get:
+      tags:
+      - Stack
+      summary: Get a single Stack
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.Contributor`
+        - `Organization.Owner`
+        - `Organization.Reader`
+        - `Organization.StackContributor`
+        - `Organization.StackMetadataReader`
+        - `Organization.StackReader`
+        - `Stack.Contributor`
+        - `Stack.MetadataReader`
+        - `Stack.Owner`
+        - `Stack.Reader`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/StackMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StackMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/StackMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.Contributor
+        - Organization.Owner
+        - Organization.Reader
+        - Organization.StackContributor
+        - Organization.StackMetadataReader
+        - Organization.StackReader
+        - Stack.Contributor
+        - Stack.MetadataReader
+        - Stack.Owner
+        - Stack.Reader
   /api/{organizationId}/Stack:
     post:
       tags:
@@ -27607,6 +28464,17 @@ components:
           type: boolean
           description: Supplies this Agent to every Module in the organization, without requiring per-scope supplies.
       description: DTO for creating a new Agent (POST operations).
+    AgentMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Agent.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Agent.
+      description: Name and id of a Agent, for callers who may discover it without reading it.
     AgentModuleSupplyCreateDto:
       type: object
       properties:
@@ -28074,6 +28942,20 @@ components:
       description: |-
         Create payload. JsonElement IntegrationCreateDto.Connection is a type-specific JSON object the server's codec (selected by
         IntegrationType IntegrationCreateDto.IntegrationType) parses into the typed connection — no polymorphic model binding.
+    IntegrationMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Integration.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Integration.
+        integrationType:
+          description: What kind of Integration this is, which the name does not tell you.
+          $ref: '#/components/schemas/IntegrationType'
+      description: Name and id of a Integration, for callers who may discover it without reading it.
     IntegrationModuleSupplyCreateDto:
       type: object
       properties:
@@ -28168,10 +29050,6 @@ components:
         id:
           type: string
           description: Unique ID of the integration.
-          format: uuid
-        organizationId:
-          type: string
-          description: ID of the Organization the Integration belongs to.
           format: uuid
         name:
           type: string
@@ -29354,6 +30232,21 @@ components:
         the job ran against), WaitingForApproval, ActualStateHeadline, server-side error fields, and output
         deltas (OutputsCreate/Modify/Destroy/Recreate/Unchanged lists). Does NOT contain the resource-action
         plan body or the apply output — those are in module_job_logs filtered by TaskName.
+    ModuleMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Module.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Module.
+        namespaceId:
+          type: string
+          description: ID of the Namespace this Module belongs to.
+          format: uuid
+      description: Name and id of a Module, for callers who may discover it without reading it.
     ModuleMissionCreateDto:
       type: object
       properties:
@@ -30133,6 +31026,7 @@ components:
       - Owner
       - Contributor
       - Reader
+      - MetadataReader
       - IdentityAccessManager
       - JobManager
     ModuleRoleAssignmentReadDto:
@@ -31459,6 +32353,23 @@ components:
           type: boolean
           description: Whether the subscription is disabled.
       description: DTO for updating an existing NamespaceIntegrationEvent (PUT operations).
+    NamespaceMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Namespace.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Namespace.
+        stackId:
+          type:
+          - 'null'
+          - string
+          description: ID of the Stack this Namespace belongs to.
+          format: uuid
+      description: Name and id of a Namespace, for callers who may discover it without reading it.
     NamespaceMissionCreateDto:
       type: object
       properties:
@@ -32070,6 +32981,7 @@ components:
       - Owner
       - Contributor
       - Reader
+      - MetadataReader
       - ModuleCreator
       - IdentityAccessManager
       - JobManager
@@ -32786,6 +33698,7 @@ components:
       - SubscriptionManager
       - StackContributor
       - StackReader
+      - StackMetadataReader
       - RunnerCreator
       - RunnerContributor
       - RunnerReader
@@ -32943,6 +33856,17 @@ components:
           type: boolean
           description: Setting this to 'true' allows this Runner to be selected for deployment by any Module in the system.
       description: DTO for creating a new Runner (POST operations).
+    RunnerMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Runner.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Runner.
+      description: Name and id of a Runner, for callers who may discover it without reading it.
     RunnerModuleSupplyCreateDto:
       type: object
       properties:
@@ -33456,6 +34380,17 @@ components:
           type: boolean
           description: Whether the subscription is disabled.
       description: DTO for updating an existing StackIntegrationEvent (PUT operations).
+    StackMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Stack.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Stack.
+      description: Name and id of a Stack, for callers who may discover it without reading it.
     StackMissionCreateDto:
       type: object
       properties:
@@ -33568,6 +34503,7 @@ components:
       - Owner
       - Contributor
       - Reader
+      - MetadataReader
       - NamespaceCreator
       - IdentityAccessManager
       - JobManager
@@ -34048,8 +34984,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 448
+  documented: 462
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1189
+  documented: 1208
   missing: 0

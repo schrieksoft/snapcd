@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Agents;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -37,6 +38,15 @@ public static class AgentMapper
             IsDisabled = entity.IsDisabled,
             AllowMultipleInstances = entity.AllowMultipleInstances,
             IsSuppliedToAllModules = entity.IsSuppliedToAllModules
+        };
+    }
+
+    public static AgentMetadataReadDto ToMetadataDto(AgentMetadata view)
+    {
+        return new AgentMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
         };
     }
 

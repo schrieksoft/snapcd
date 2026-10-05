@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Namespaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
@@ -53,4 +54,25 @@ public class
     {
         return await GetByCriteria(repo => repo.Get(stackId, name, organizationId));
     }
+
+    public async Task<List<NamespaceMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ReadMetadataQuery(organizationId)
+            .Distinct()
+            .ToListAsync();
+        return views.Select(NamespaceMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<NamespaceMetadataReadDto> GetMetadata(Guid stackId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(stackId, name, organizationId);
+        return NamespaceMapper.ToMetadataDto(view);
+    }
+
+    public async Task<NamespaceMetadataReadDto> GetMetadata(string stackName, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(stackName, name, organizationId);
+        return NamespaceMapper.ToMetadataDto(view);
+    }
+
 }

@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Exceptions;
@@ -63,6 +64,27 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.AgentContributor, OrganizationRole.AgentReader],
         AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
     };
+    /// <summary>
+    /// No organization-level role grants metadata on these yet; full read covers that case and is
+    /// concatenated separately. Phase B adds the supply branch.
+    /// </summary>
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [],
+        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
+    };
+
+
+    public override bool CanReadMetadata(Guid id, Guid organizationId)
+    {
+        return ReadMetadataQuery(organizationId).Any(a => a.Id == id && a.OrganizationId == organizationId);
+    }
+    public IQueryable<AgentMetadata> ReadMetadataQuery(Guid organizationId)
+        => ReadQuery(organizationId)
+            .Concat(ReadMetadataOrganizationRoleQuery(organizationId))
+            .Concat(AgentRoleQuery(organizationId, ReadMetadataPermissionMap.AgentRoles))
+            .Select(x => new AgentMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
+
 
     public override PermissionMap UpdatePermissionMap => new()
     {
@@ -146,6 +168,17 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
                 $"{nameof(Agent)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
+    }
+
+    public async Task<AgentMetadata> GetMetadataByName(string name, Guid organizationId)
+    {
+        var entity = await Repository.GetByName(name, organizationId);
+
+        if (!CanReadMetadata(entity.Id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Agent)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
     }
 
     /// <summary>

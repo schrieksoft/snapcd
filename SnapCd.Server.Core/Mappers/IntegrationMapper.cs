@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Integrations;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -18,11 +19,20 @@ public static class IntegrationMapper
         return new IntegrationReadDto
         {
             Id = entity.Id,
-            OrganizationId = entity.OrganizationId,
             Name = entity.Name,
             IntegrationType = entity.IntegrationType,
             Enabled = entity.Enabled,
             IsSuppliedToAllModules = entity.IsSuppliedToAllModules
+        };
+    }
+
+    public static IntegrationMetadataReadDto ToMetadataDto(IntegrationMetadata view)
+    {
+        return new IntegrationMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            IntegrationType = view.IntegrationType,
         };
     }
 }

@@ -26,7 +26,13 @@ public enum PermissionVerb
     /// Authorising a transfer to prove and push into a Module. The same set that may pause it:
     /// anyone who can stop work on a Module can authorise work on it.
     /// </summary>
-    Consent
+    Consent,
+
+    /// <summary>
+    /// Discovering a resource's name and id without reading it. Its own verb because the
+    /// role set is wider than Read, and anything that grants Read grants this too.
+    /// </summary>
+    ReadMetadata
 }
 
 /// <summary>

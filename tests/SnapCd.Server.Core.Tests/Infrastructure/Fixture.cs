@@ -949,6 +949,76 @@ public class Fixture : IAsyncLifetime
         // ModuleReader on Module0000 + Module0001 (siblings under Namespace000)
         SeedModuleReader(dbContext, org.Id, Modules["0000"].Id, "Module0000.Reader");
         SeedModuleReader(dbContext, org.Id, Modules["0001"].Id, "Module0001.Reader");
+
+        // MetadataReader at each scope level, for the metadata-read tests. Stack00 and its
+        // sibling Stack01 so a grant on one can be shown not to reach the other.
+        SeedStackMetadataReader(dbContext, org.Id, Stacks["00"].Id, "Stack00.MetadataReader");
+        SeedNamespaceMetadataReader(dbContext, org.Id, Namespaces["000"].Id, "Namespace000.MetadataReader");
+        SeedModuleMetadataReader(dbContext, org.Id, Modules["0000"].Id, "Module0000.MetadataReader");
+        SeedOrganizationStackMetadataReader(dbContext, org.Id, "Org.StackMetadataReader");
+    }
+
+    private void SeedStackMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserStackRoleAssignments.Add(new UserStackRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            StackId = stackId,
+            UserId = user.Id,
+            RoleName = StackRole.MetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedNamespaceMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid namespaceId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserNamespaceRoleAssignments.Add(new UserNamespaceRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            NamespaceId = namespaceId,
+            UserId = user.Id,
+            RoleName = NamespaceRole.MetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedModuleMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid moduleId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserModuleRoleAssignments.Add(new UserModuleRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            ModuleId = moduleId,
+            UserId = user.Id,
+            RoleName = ModuleRole.MetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedOrganizationStackMetadataReader(SnapCdDbContext dbContext, Guid orgId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserOrganizationRoleAssignments.Add(new UserOrganizationRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            UserId = user.Id,
+            RoleName = OrganizationRole.StackMetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
     }
 
     private void SeedStackReader(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)

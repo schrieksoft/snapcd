@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Runners;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -37,6 +38,15 @@ public static class RunnerMapper
             IsDisabled = entity.IsDisabled,
             AllowMultipleInstances = entity.AllowMultipleInstances,
             IsSuppliedToAllModules = entity.IsSuppliedToAllModules
+        };
+    }
+
+    public static RunnerMetadataReadDto ToMetadataDto(RunnerMetadata view)
+    {
+        return new RunnerMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
         };
     }
 
