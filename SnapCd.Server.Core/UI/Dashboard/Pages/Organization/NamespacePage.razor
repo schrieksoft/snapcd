@@ -303,21 +303,22 @@
                     <MudDivider Class="my-4"/>
 
                     <MudStack Row>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="ExecuteApply"
-                                   Disabled="@_isApplying">
-                            @if (_isApplying)
-                            {
-                                @:Applying...
-                            }
-                            else
-                            {
-                                var involvedCount = _modulesToApply.Count + (_applyExternalModules ? _externalModulesToApply.Count : 0);
-                                @:Apply All (@involvedCount modules)
-                            }
-                        </MudButton>
+                        <MudTooltip Text="@(_runnableApplyCount > 0 ? null : "You do not have permission to run jobs on any of these modules.")" Disabled="@(_runnableApplyCount > 0)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="ExecuteApply"
+                                       Disabled="@(_isApplying || _runnableApplyCount == 0)">
+                                @if (_isApplying)
+                                {
+                                    @:Applying...
+                                }
+                                else
+                                {
+                                    @:Apply All (@_runnableApplyCount modules)
+                                }
+                            </MudButton>
+                        </MudTooltip>
 
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    OnClick="CancelApply"
@@ -435,21 +436,22 @@
                     }
 
                     <MudStack Row>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="ExecuteDestroy"
-                                   Disabled="@_isDestroying">
-                            @if (_isDestroying)
-                            {
-                                @:Destroying...
-                            }
-                            else
-                            {
-                                var involvedCount = _modulesToDestroy.Count + (_destroyDependentModules ? _dependentModulesToDestroy.Count : 0);
-                                @:Destroy All (@involvedCount modules)
-                            }
-                        </MudButton>
+                        <MudTooltip Text="@(_runnableDestroyCount > 0 ? null : "You do not have permission to run jobs on any of these modules.")" Disabled="@(_runnableDestroyCount > 0)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="ExecuteDestroy"
+                                       Disabled="@(_isDestroying || _runnableDestroyCount == 0)">
+                                @if (_isDestroying)
+                                {
+                                    @:Destroying...
+                                }
+                                else
+                                {
+                                    @:Destroy All (@_runnableDestroyCount modules)
+                                }
+                            </MudButton>
+                        </MudTooltip>
 
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    OnClick="CancelDestroy"
@@ -547,6 +549,14 @@
     private List<DependencyGraphNodeStateDto> _externalDependentModulesForApply = new(); // ModuleB - always uninvolved in apply
     private List<DependencyGraphNodeStateDto> _externalPrerequisiteModulesForDestroy = new(); // ModuleA - always uninvolved in destroy
     private Dictionary<Guid, bool> _modulePermissions = new();
+
+    private int _runnableApplyCount => _modulesToApply
+        .Concat(_applyExternalModules ? _externalModulesToApply : [])
+        .Count(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false));
+
+    private int _runnableDestroyCount => _modulesToDestroy
+        .Concat(_destroyDependentModules ? _dependentModulesToDestroy : [])
+        .Count(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false));
 
     protected override async Task OnInitializedAsync()
     {
