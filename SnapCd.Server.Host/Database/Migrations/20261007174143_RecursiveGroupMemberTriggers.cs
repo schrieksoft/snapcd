@@ -25,6 +25,9 @@ namespace SnapCd.Server.Host.Database.Migrations
         private const string SqlResource =
             "SnapCd.Server.Host.Database.Migrations.Sql.20261007174143_RecursiveGroupMemberTriggers.sql";
 
+        private const string DownSqlResource =
+            "SnapCd.Server.Host.Database.Migrations.Sql.20261007174143_RecursiveGroupMemberTriggers.Down.sql";
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -37,9 +40,10 @@ namespace SnapCd.Server.Host.Database.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("DROP TRIGGER IF EXISTS dbo.trg_GroupMembers_RecursiveRebuild;");
-            migrationBuilder.Sql("DROP TRIGGER IF EXISTS dbo.trg_Groups_RecursiveRebuild;");
-            migrationBuilder.Sql("DROP PROCEDURE IF EXISTS dbo.usp_RebuildRecursiveGroupMembers;");
+            foreach (var batch in MigrationSql.ReadBatches(DownSqlResource))
+            {
+                migrationBuilder.Sql(batch);
+            }
         }
     }
 }
