@@ -86,7 +86,9 @@
             @if (IsAllowedToNavigate())
             {
                 @* TODO: <UsageLimitExceededBanner/> — component not yet implemented *@
-                @Body
+                <ExpectedErrorBoundary>
+                    @Body
+                </ExpectedErrorBoundary>
             }
             else
             {

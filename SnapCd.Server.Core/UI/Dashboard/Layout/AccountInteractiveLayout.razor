@@ -81,7 +81,9 @@
 
     <MudMainContent Class="pa-4">
         <div style="margin-left: 18px;">
-            @Body
+            <ExpectedErrorBoundary>
+                @Body
+            </ExpectedErrorBoundary>
         </div>
     </MudMainContent>
 </MudLayout>
