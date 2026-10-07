@@ -150,11 +150,13 @@ else
         <MudStack Row="true" Spacing="1" Class="mt-2">
             @if (_readiness.NextPhase is { } next)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                           Disabled="@(!_readiness.CanAdvance && _readiness.Phase != MaintenancePhase.ReadyForMaintenance)"
-                           OnClick="@(() => Advance(next))">
-                    Advance to @next
-                </MudButton>
+                <MudTooltip Text="@AdvanceDisabledReason" Disabled="@(AdvanceDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                               Disabled="@(!_readiness.CanAdvance && _readiness.Phase != MaintenancePhase.ReadyForMaintenance)"
+                               OnClick="@(() => Advance(next))">
+                        Advance to @next
+                    </MudButton>
+                </MudTooltip>
             }
             @if (!MaintenanceOperationsService.ClosingNeedsRecovery(_readiness.Phase))
             {
@@ -388,6 +390,11 @@ else
 }
 
 @code {
+    private string? AdvanceDisabledReason =>
+        _readiness is null || _readiness.CanAdvance || _readiness.Phase == MaintenancePhase.ReadyForMaintenance
+            ? null
+            : "The current phase is not ready to advance.";
+
     private static readonly MaintenancePhase[] AllPhases =
         [MaintenancePhase.Draining, MaintenancePhase.ReadyForMaintenance, MaintenancePhase.Reconciling, MaintenancePhase.Resuming];
 

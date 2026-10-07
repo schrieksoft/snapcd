@@ -143,24 +143,26 @@
         }
         else
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
+            <MudTooltip Text="@DestroyDisabledReason" Disabled="@(DestroyDisabledReason is null)">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
                        
-                       OnClick="DestroyModule"
-                       Disabled="@(_isDestroying || Module == null || !_dependencyCheckCompleted || (_destroyWithDependencies && !_dependencyGraphLoaded))">
-                @if (_isDestroying)
-                {
-                    @:Destroying...
-                }
-                else if (_destroyWithDependencies && _destroyGraph != null)
-                {
-                    @:Destroy All (@_destroyGraph.TotalModuleCount modules)
-                }
-                else
-                {
-                    @:Destroy Module
-                }
-            </MudButton>
+                           OnClick="DestroyModule"
+                           Disabled="@(_isDestroying || Module == null || !_dependencyCheckCompleted || (_destroyWithDependencies && !_dependencyGraphLoaded))">
+                    @if (_isDestroying)
+                    {
+                        @:Destroying...
+                    }
+                    else if (_destroyWithDependencies && _destroyGraph != null)
+                    {
+                        @:Destroy All (@_destroyGraph.TotalModuleCount modules)
+                    }
+                    else
+                    {
+                        @:Destroy Module
+                    }
+                </MudButton>
+            </MudTooltip>
         }
 
         <MudTooltip Text="The destroy is already under way and cannot be called off here." Disabled="@(!_isDestroying)">
@@ -176,6 +178,13 @@
 </MudDialog>
 
 @code {
+    private string? DestroyDisabledReason =>
+        Module == null ? "No module selected."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
+        : _destroyWithDependencies && !_dependencyGraphLoaded ? "Still loading the dependency graph."
+        : _isDestroying ? "A destroy is already in progress."
+        : null;
+
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private DestroyModuleGraphServiceFactory DestroyGraphServiceFactory { get; set; } = null!;
     [Inject] private DependencyGraphServiceFactory DependencyGraphServiceFactory { get; set; } = null!;

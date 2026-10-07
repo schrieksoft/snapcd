@@ -107,20 +107,22 @@
                       Disabled="@_isDestroying"/>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                            Size="Size.Small"
+        <MudTooltip Text="@DestroyDisabledReason" Disabled="@(DestroyDisabledReason is null)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                    
-                   OnClick="ConfirmDestruction"
-                   Disabled="@(_confirmationText != "DESTROY" || _isDestroying)">
-            @if (_isDestroying)
-            {
-                @:Destroying...
-            }
-            else
-            {
-                @:Confirm
-            }
-        </MudButton>
+                       OnClick="ConfirmDestruction"
+                       Disabled="@(_confirmationText != "DESTROY" || _isDestroying)">
+                @if (_isDestroying)
+                {
+                    @:Destroying...
+                }
+                else
+                {
+                    @:Confirm
+                }
+            </MudButton>
+        </MudTooltip>
 
         <MudTooltip Text="The destroy is already under way and cannot be called off here." Disabled="@(!_isDestroying)">
             <MudButton Variant="Variant.Filled" Color="Color.Secondary"
@@ -135,6 +137,11 @@
 </MudDialog>
 
 @code {
+    private string? DestroyDisabledReason =>
+        _confirmationText != "DESTROY" ? "Type DESTROY to confirm."
+        : _isDestroying ? "A destroy is already in progress."
+        : null;
+
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 

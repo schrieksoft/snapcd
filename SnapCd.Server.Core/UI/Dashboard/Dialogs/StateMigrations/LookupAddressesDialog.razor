@@ -70,15 +70,19 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                   Disabled="@(!HasSomething)"
-                   OnClick="Confirm">Look up</MudButton>
+        <MudTooltip Text="@SubmitDisabledReason" Disabled="@(SubmitDisabledReason is null)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       Disabled="@(!HasSomething)"
+                       OnClick="Confirm">Look up</MudButton>
+        </MudTooltip>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    OnClick="Cancel">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
+    private string? SubmitDisabledReason => HasSomething ? null : "Enter at least one address to look up.";
+
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private readonly List<Row> _rows = [new Row()];

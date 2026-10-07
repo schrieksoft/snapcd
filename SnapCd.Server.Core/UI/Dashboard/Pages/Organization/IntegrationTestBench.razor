@@ -107,14 +107,16 @@ else
                                       Label="Milestone message" Variant="Variant.Outlined" Class="mb-3" />
                     }
 
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               Size="Size.Small"
-                               Disabled="_debugModuleExists is not true || _triggering"
-                               OnClick="TriggerEvent">
-                        <MudIcon Icon="@SnapCdIcons.PlayArrow" Class="mr-2" />
-                        Trigger
-                    </MudButton>
+                    <MudTooltip Text="@TriggerDisabledReason" Disabled="@(TriggerDisabledReason is null)">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Disabled="_debugModuleExists is not true || _triggering"
+                                   OnClick="TriggerEvent">
+                            <MudIcon Icon="@SnapCdIcons.PlayArrow" Class="mr-2" />
+                            Trigger
+                        </MudButton>
+                    </MudTooltip>
 
                     @if (_lastTriggeredJobId is not null)
                     {
@@ -140,14 +142,16 @@ else
                         publishing an event. Shows which integration events would fire.
                     </MudText>
 
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               Size="Size.Small"
-                               Disabled="_debugModuleExists is not true || _dryRunning"
-                               OnClick="DryRun">
-                        <MudIcon Icon="@SnapCdIcons.Search" Class="mr-2" />
-                        Dry run
-                    </MudButton>
+                    <MudTooltip Text="@TriggerDisabledReason" Disabled="@(TriggerDisabledReason is null)">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Disabled="_debugModuleExists is not true || _dryRunning"
+                                   OnClick="DryRun">
+                            <MudIcon Icon="@SnapCdIcons.Search" Class="mr-2" />
+                            Dry run
+                        </MudButton>
+                    </MudTooltip>
 
                     @if (_dryRunResults is not null)
                     {
@@ -220,6 +224,8 @@ else
 }
 
 @code {
+    private string? TriggerDisabledReason => _debugModuleExists is true ? null : "A debug module must exist before this can run.";
+
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
     private static readonly Guid DebugModuleId = new("99999999-9999-9999-9999-999999999999");
     private static readonly Guid DebugIntegrationId = new("99999999-9999-9999-9999-999999999920");
