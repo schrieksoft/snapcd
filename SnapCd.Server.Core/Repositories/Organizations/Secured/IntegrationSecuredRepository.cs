@@ -54,13 +54,12 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
         IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader]
     };
     /// <summary>
-    /// Mirrors read. There is no metadata-only organization role for these yet; phase B adds the
-    /// supply branch, which is what will make metadata read wider than read.
+    /// Wider than read by MetadataReader, which a supply to a readable scope derives.
     /// </summary>
     public override PermissionMap ReadMetadataPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.IntegrationContributor, OrganizationRole.IntegrationReader],
-        IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader]
+        IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader, IntegrationRole.MetadataReader]
     };
 
 
@@ -116,7 +115,25 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
     public IQueryable<IntegrationMetadata> ReadMetadataQuery(Guid organizationId)
         => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(IntegrationRoleQuery(organizationId, ReadMetadataPermissionMap.IntegrationRoles))
+            .Concat(SuppliedScopeMetadataQuery(organizationId))
             .Select(x => new IntegrationMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, IntegrationType = x.IntegrationType });
+
+    /// <summary>Supplying a Integration to a scope is what makes it usable there, so a role on that
+    /// scope carries metadata read on the Integration itself. Derived on write by trigger.</summary>
+    private IQueryable<Integration> SuppliedScopeMetadataQuery(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return from entity in Repository.DbContext.Integrations
+            join derived in Repository.DbContext.DerivedIntegrationRoleAssignments
+                on new { EntityId = entity.Id, entity.OrganizationId }
+                equals new { EntityId = derived.IntegrationId, derived.OrganizationId }
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && derived.PrincipalDiscriminator == PrincipalDiscriminator
+                  && ReadMetadataPermissionMap.IntegrationRoles.Contains(derived.RoleName)
+            select entity;
+    }
 
     public async Task<IntegrationMetadata> GetMetadataByName(string name, Guid organizationId)
     {

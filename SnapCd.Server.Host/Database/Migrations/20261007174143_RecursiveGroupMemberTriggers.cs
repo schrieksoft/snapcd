@@ -6,39 +6,40 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SnapCd.Server.Host.Database.Migrations.Sql;
 
 #nullable disable
 
 namespace SnapCd.Server.Host.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class DerivedOrganizationRoleAssignments : Migration
+    /// <summary>
+    /// The procedure and triggers that keep RecursiveGroupMembers current.
+    ///
+    /// The rebuild is ordered First on GroupMembers, ahead of the derivation triggers that read
+    /// the closure it maintains.
+    /// </summary>
+    public partial class RecursiveGroupMemberTriggers : Migration
     {
+        private const string SqlResource =
+            "SnapCd.Server.Host.Database.Migrations.Sql.20261007174143_RecursiveGroupMemberTriggers.sql";
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "DerivedOrganizationRoleAssignments",
-                columns: table => new
-                {
-                    PrincipalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    PrincipalDiscriminator = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DerivedOrganizationRoleAssignments", x => new { x.PrincipalId, x.OrganizationId, x.RoleName });
-                });
+            foreach (var batch in MigrationSql.ReadBatches(SqlResource))
+            {
+                migrationBuilder.Sql(batch);
+            }
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "DerivedOrganizationRoleAssignments");
+            migrationBuilder.Sql("DROP TRIGGER IF EXISTS dbo.trg_GroupMembers_RecursiveRebuild;");
+            migrationBuilder.Sql("DROP TRIGGER IF EXISTS dbo.trg_Groups_RecursiveRebuild;");
+            migrationBuilder.Sql("DROP PROCEDURE IF EXISTS dbo.usp_RebuildRecursiveGroupMembers;");
         }
     }
 }

@@ -7,28 +7,18 @@
 -- for terms covering either use.
 
 -- ==========================================================================
--- RecursiveGroupMembers: trigger-maintained materialization of the
--- recursive group membership CTE.
+-- RecursiveGroupMembers maintenance: the rebuild procedure and the triggers
+-- that call it.
 --
--- Triggers on GroupMembers and Groups rebuild the affected organization's
--- rows whenever group membership or group definitions change.
+-- The rebuild must run before the derived role assignment triggers on the same
+-- tables, which read the closure it maintains. Only one trigger per statement
+-- may be Last, so the rebuild is ordered First.
 -- ==========================================================================
 
--- Step 1: Drop the legacy view if it exists (we now use the table directly)
-IF EXISTS (SELECT 1 FROM sys.views WHERE name = 'vw_RecursiveGroupMember')
-    DROP VIEW dbo.vw_RecursiveGroupMember;
+SET QUOTED_IDENTIFIER ON;
 GO
 
--- Step 2: Rename RecursiveGroupMembersPhysical to RecursiveGroupMembers if needed
-IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'RecursiveGroupMembersPhysical')
-    AND NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'RecursiveGroupMembers')
-BEGIN
-    EXEC sp_rename 'dbo.RecursiveGroupMembersPhysical', 'RecursiveGroupMembers';
-    EXEC sp_rename 'RecursiveGroupMembers.PK_RecursiveGroupMembersPhysical', 'PK_RecursiveGroupMembers', 'OBJECT';
-END
-GO
-
--- Step 3: Stored procedure to recompute rows for a single organization
+-- Recompute rows for a single organization.
 CREATE OR ALTER PROCEDURE dbo.usp_RebuildRecursiveGroupMembers
     @OrganizationId uniqueidentifier
 AS
@@ -105,7 +95,7 @@ BEGIN
 END
 GO
 
--- Step 4: Triggers to rebuild on GroupMembers / Groups changes
+-- Rebuild on GroupMembers / Groups changes.
 CREATE OR ALTER TRIGGER dbo.trg_GroupMembers_RecursiveRebuild
 ON dbo.GroupMembers
 AFTER INSERT, UPDATE, DELETE
@@ -166,7 +156,7 @@ BEGIN
 END
 GO
 
--- Step 5: Populate from existing data (idempotent — rebuilds all orgs)
+-- Populate from the rows already present.
 DECLARE @OrgId uniqueidentifier;
 DECLARE org_cursor CURSOR LOCAL FAST_FORWARD FOR
     SELECT DISTINCT Id FROM dbo.Organizations;
@@ -180,4 +170,20 @@ BEGIN
 END
 CLOSE org_cursor;
 DEALLOCATE org_cursor;
+GO
+
+EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
+                        @order = 'First', @stmttype = 'INSERT';
+EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
+                        @order = 'First', @stmttype = 'UPDATE';
+EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
+                        @order = 'First', @stmttype = 'DELETE';
+GO
+
+EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
+                        @order = 'First', @stmttype = 'INSERT';
+EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
+                        @order = 'First', @stmttype = 'UPDATE';
+EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
+                        @order = 'First', @stmttype = 'DELETE';
 GO

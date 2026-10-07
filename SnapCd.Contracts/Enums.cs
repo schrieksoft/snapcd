@@ -382,6 +382,7 @@ public enum RunnerRole
     Owner,
     Contributor,
     Reader,
+    MetadataReader,
     IdentityAccessManager
 }
 
@@ -390,6 +391,7 @@ public enum AgentRole
     Owner,
     Contributor,
     Reader,
+    MetadataReader,
     IdentityAccessManager
 }
 
@@ -398,6 +400,7 @@ public enum IntegrationRole
     Owner,
     Contributor,
     Reader,
+    MetadataReader,
     IdentityAccessManager
 }
 

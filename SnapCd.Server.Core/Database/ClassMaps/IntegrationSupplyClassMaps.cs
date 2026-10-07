@@ -16,6 +16,10 @@ public class IntegrationModuleSupplyClassMap : IEntityTypeConfiguration<Integrat
 {
     public void Configure(EntityTypeBuilder<IntegrationModuleSupply> entity)
     {
+        // A trigger derives metadata-read entitlement from this table, and SQL Server
+        // rejects an OUTPUT clause on any table that has one.
+        entity.ToTable(t => t.UseSqlOutputClause(false));
+
         entity.HasKey(e => new { e.Id, e.OrganizationId });
         entity.HasIndex(e => e.Id).IsUnique();
         entity.HasIndex(e => new { e.ModuleId, e.IntegrationId, e.OrganizationId }).IsUnique();
@@ -41,6 +45,10 @@ public class IntegrationNamespaceSupplyClassMap : IEntityTypeConfiguration<Integ
 {
     public void Configure(EntityTypeBuilder<IntegrationNamespaceSupply> entity)
     {
+        // A trigger derives metadata-read entitlement from this table, and SQL Server
+        // rejects an OUTPUT clause on any table that has one.
+        entity.ToTable(t => t.UseSqlOutputClause(false));
+
         entity.HasKey(e => new { e.Id, e.OrganizationId });
         entity.HasIndex(e => e.Id).IsUnique();
         entity.HasIndex(e => new { e.NamespaceId, e.IntegrationId, e.OrganizationId }).IsUnique();
@@ -66,6 +74,10 @@ public class IntegrationStackSupplyClassMap : IEntityTypeConfiguration<Integrati
 {
     public void Configure(EntityTypeBuilder<IntegrationStackSupply> entity)
     {
+        // A trigger derives metadata-read entitlement from this table, and SQL Server
+        // rejects an OUTPUT clause on any table that has one.
+        entity.ToTable(t => t.UseSqlOutputClause(false));
+
         entity.HasKey(e => new { e.Id, e.OrganizationId });
         entity.HasIndex(e => e.Id).IsUnique();
         entity.HasIndex(e => new { e.StackId, e.IntegrationId, e.OrganizationId }).IsUnique();

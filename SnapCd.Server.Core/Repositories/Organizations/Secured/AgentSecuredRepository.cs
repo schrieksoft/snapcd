@@ -65,13 +65,12 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
         AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
     };
     /// <summary>
-    /// Mirrors read. There is no metadata-only organization role for these yet; phase B adds the
-    /// supply branch, which is what will make metadata read wider than read.
+    /// Wider than read by MetadataReader, which a supply to a readable scope derives.
     /// </summary>
     public override PermissionMap ReadMetadataPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.AgentContributor, OrganizationRole.AgentReader],
-        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
+        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader, AgentRole.MetadataReader]
     };
 
 
@@ -127,7 +126,25 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
     public IQueryable<AgentMetadata> ReadMetadataQuery(Guid organizationId)
         => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(AgentRoleQuery(organizationId, ReadMetadataPermissionMap.AgentRoles))
+            .Concat(SuppliedScopeMetadataQuery(organizationId))
             .Select(x => new AgentMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
+
+    /// <summary>Supplying a Agent to a scope is what makes it usable there, so a role on that
+    /// scope carries metadata read on the Agent itself. Derived on write by trigger.</summary>
+    private IQueryable<Agent> SuppliedScopeMetadataQuery(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return from entity in Repository.DbContext.Agents
+            join derived in Repository.DbContext.DerivedAgentRoleAssignments
+                on new { EntityId = entity.Id, entity.OrganizationId }
+                equals new { EntityId = derived.AgentId, derived.OrganizationId }
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && derived.PrincipalDiscriminator == PrincipalDiscriminator
+                  && ReadMetadataPermissionMap.AgentRoles.Contains(derived.RoleName)
+            select entity;
+    }
 
 
     public override PermissionMap UpdatePermissionMap => new()

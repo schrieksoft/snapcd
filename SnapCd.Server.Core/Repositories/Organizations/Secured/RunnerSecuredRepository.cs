@@ -66,13 +66,12 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
         RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader]
     };
     /// <summary>
-    /// Mirrors read. There is no metadata-only organization role for these yet; phase B adds the
-    /// supply branch, which is what will make metadata read wider than read.
+    /// Wider than read by MetadataReader, which a supply to a readable scope derives.
     /// </summary>
     public override PermissionMap ReadMetadataPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.RunnerContributor, OrganizationRole.RunnerReader],
-        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader]
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader, RunnerRole.MetadataReader]
     };
 
 
@@ -128,7 +127,25 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
     public IQueryable<RunnerMetadata> ReadMetadataQuery(Guid organizationId)
         => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(RunnerRoleQuery(organizationId, ReadMetadataPermissionMap.RunnerRoles))
+            .Concat(SuppliedScopeMetadataQuery(organizationId))
             .Select(x => new RunnerMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, IsDisabled = x.IsDisabled });
+
+    /// <summary>Supplying a Runner to a scope is what makes it usable there, so a role on that
+    /// scope carries metadata read on the Runner itself. Derived on write by trigger.</summary>
+    private IQueryable<Runner> SuppliedScopeMetadataQuery(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return from entity in Repository.DbContext.Runners
+            join derived in Repository.DbContext.DerivedRunnerRoleAssignments
+                on new { EntityId = entity.Id, entity.OrganizationId }
+                equals new { EntityId = derived.RunnerId, derived.OrganizationId }
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && derived.PrincipalDiscriminator == PrincipalDiscriminator
+                  && ReadMetadataPermissionMap.RunnerRoles.Contains(derived.RoleName)
+            select entity;
+    }
 
 
     public override PermissionMap UpdatePermissionMap => new()
