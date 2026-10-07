@@ -100,13 +100,15 @@
             }
         </MudButton>
 
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                            Size="Size.Small"
+        <MudTooltip Text="The destroy is already under way and cannot be called off here." Disabled="@(!_isDestroying)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                
-                   OnClick="Cancel"
-                   Disabled="@_isDestroying">
-            Cancel
-        </MudButton>
+                       OnClick="Cancel"
+                       Disabled="@_isDestroying">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 

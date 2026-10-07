@@ -86,13 +86,15 @@
             </MudButton>
         </MudTooltip>
 
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                            Size="Size.Small"
+        <MudTooltip Text="The apply is already under way and cannot be called off here." Disabled="@(!_isApplying)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
                
-                   OnClick="Cancel"
-                   Disabled="@_isApplying">
-            Cancel
-        </MudButton>
+                       OnClick="Cancel"
+                       Disabled="@_isApplying">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 

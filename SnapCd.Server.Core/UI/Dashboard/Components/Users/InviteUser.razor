@@ -43,13 +43,15 @@
                         Send Invitation
                     </MudButton>
                 </MudTooltip>
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           OnClick="HandleCancel"
-                           Disabled="@_isSubmitting">
-                    Cancel
-                </MudButton>
+                <MudTooltip Text="The invitation is already being sent." Disabled="@(!_isSubmitting)">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="HandleCancel"
+                               Disabled="@_isSubmitting">
+                        Cancel
+                    </MudButton>
+                </MudTooltip>
             </MudStack>
         </EditForm>
     }

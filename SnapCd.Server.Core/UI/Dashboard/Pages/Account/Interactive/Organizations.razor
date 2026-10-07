@@ -66,13 +66,15 @@
                             Create
                         </MudButton>
                     </MudTooltip>
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               Size="Size.Small"
-                               OnClick="HandleCreateCanceled"
-                               Disabled="@_isCreating">
-                        Cancel
-                    </MudButton>
+                    <MudTooltip Text="The create is already under way." Disabled="@(!_isCreating)">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="HandleCreateCanceled"
+                                   Disabled="@_isCreating">
+                            Cancel
+                        </MudButton>
+                    </MudTooltip>
                 </MudItem>
             </MudGrid>
         </EditForm>

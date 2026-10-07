@@ -62,13 +62,15 @@
                 @(_isDeleting ? "Deleting..." : "Delete All")
             </MudButton>
         </MudTooltip>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Cancel"
-                   Disabled="@_isDeleting">
-            Cancel
-        </MudButton>
+        <MudTooltip Text="The delete is already under way and cannot be called off here." Disabled="@(!_isDeleting)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Cancel"
+                       Disabled="@_isDeleting">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 

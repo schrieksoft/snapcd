@@ -292,13 +292,15 @@
                             </MudButton>
                         </MudTooltip>
 
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="CancelApply"
-                                   Disabled="@_isApplying">
-                            Cancel
-                        </MudButton>
+                        <MudTooltip Text="The apply is already under way and cannot be called off here." Disabled="@(!_isApplying)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="CancelApply"
+                                       Disabled="@_isApplying">
+                                Cancel
+                            </MudButton>
+                        </MudTooltip>
                     </MudStack>
                 }
 
@@ -397,13 +399,15 @@
                             </MudButton>
                         </MudTooltip>
 
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="CancelDestroy"
-                                   Disabled="@_isDestroying">
-                            Cancel
-                        </MudButton>
+                        <MudTooltip Text="The destroy is already under way and cannot be called off here." Disabled="@(!_isDestroying)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="CancelDestroy"
+                                       Disabled="@_isDestroying">
+                                Cancel
+                            </MudButton>
+                        </MudTooltip>
                     </MudStack>
                 }
             </MudPaper>
