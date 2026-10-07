@@ -139,7 +139,7 @@
                        Color="Color.Secondary"
                        Size="Size.Small"
                        OnClick="Delete"
-                       Disabled="@(!_dependencyCheckCompleted || !_canDeleteAll || _isDeleting)"
+                       Disabled="@(!_dependencyCheckCompleted || !_hasDeletePermissionForAll || !_canDeleteAll || _isDeleting)"
                        StartIcon="@SnapCdIcons.Delete">
                 @if (_isDeleting)
                 {
@@ -171,7 +171,8 @@
 
 @code {
     private string? ActionDisabledReason =>
-        !_dependencyCheckCompleted ? "Still checking dependencies."
+        !_hasDeletePermissionForAll ? "You do not have permission to delete all of these modules."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
         : !_canDeleteAll ? "Some of these modules have external dependencies."
         : _isDeleting ? "A delete is already in progress."
         : null;
@@ -192,6 +193,7 @@
     private bool _isDeleting;
     private bool _dependencyCheckCompleted;
     private bool _canDeleteAll;
+    private bool _hasDeletePermissionForAll;
     private int _currentIndex;
     private double _progress => Modules.Count > 0 ? _currentIndex * 100.0 / Modules.Count : 0;
     private List<ModuleStatus> _moduleStatuses = new();
@@ -387,6 +389,14 @@
             CalculateDeletionOrder();
 
             _canDeleteAll = _moduleStatuses.All(m => m.CanDelete);
+
+            using (var permissionRepo = ModuleRepoFactory.Create())
+
+            {
+
+                _hasDeletePermissionForAll = Modules.All(x => permissionRepo.CanDelete(x.Id, OrganizationId));
+
+            }
             _dependencyCheckCompleted = true;
         }
         finally

@@ -96,10 +96,13 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetUserDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@SnapCdIcons.Delete"
-                                               Color="Color.Error"
-                                               Size="Size.Small"
-                                               OnClick="@(async () => await DeleteUserRoleAssignment(assignment))"/>
+                                @if (_deletableUserRoles.Contains(assignment.Id))
+                                {
+                                    <MudIconButton Icon="@SnapCdIcons.Delete"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await DeleteUserRoleAssignment(assignment))"/>
+                                }
                             </div>
                         }
                     </MudExpansionPanel>
@@ -179,10 +182,13 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetServicePrincipalDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@SnapCdIcons.Delete"
-                                               Color="Color.Error"
-                                               Size="Size.Small"
-                                               OnClick="@(async () => await DeleteSpRoleAssignment(assignment))"/>
+                                @if (_deletableSpRoles.Contains(assignment.Id))
+                                {
+                                    <MudIconButton Icon="@SnapCdIcons.Delete"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await DeleteSpRoleAssignment(assignment))"/>
+                                }
                             </div>
                         }
                     </MudExpansionPanel>
@@ -262,10 +268,13 @@
                         {
                             <div class="d-flex justify-space-between align-center py-1">
                                 <MudText>@GetGroupDisplayName(assignment)</MudText>
-                                <MudIconButton Icon="@SnapCdIcons.Delete"
-                                               Color="Color.Error"
-                                               Size="Size.Small"
-                                               OnClick="@(async () => await DeleteGroupRoleAssignment(assignment))"/>
+                                @if (_deletableGroupRoles.Contains(assignment.Id))
+                                {
+                                    <MudIconButton Icon="@SnapCdIcons.Delete"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await DeleteGroupRoleAssignment(assignment))"/>
+                                }
                             </div>
                         }
                     </MudExpansionPanel>
@@ -336,19 +345,26 @@
                 .Include(x => x.OrganizationUser)
                     .ThenInclude(ou => ou.User)
                 .Where(x => x.AgentId == AgentId));
+        _deletableUserRoles = _userRoleAssignments.Where(x => userRepo.CanDelete(x.Id, OrganizationId)).Select(x => x.Id).ToHashSet();
 
         using var spRepo = SpRoleRepoFactory.Create();
         _spRoleAssignments = await spRepo.List(OrganizationId,
             q => q
                 .Include(x => x.ServicePrincipal)
                 .Where(x => x.AgentId == AgentId));
+        _deletableSpRoles = _spRoleAssignments.Where(x => spRepo.CanDelete(x.Id, OrganizationId)).Select(x => x.Id).ToHashSet();
 
         using var groupRepo = GroupRoleRepoFactory.Create();
         _groupRoleAssignments = await groupRepo.List(OrganizationId,
             q => q
                 .Include(x => x.Group)
                 .Where(x => x.AgentId == AgentId));
+        _deletableGroupRoles = _groupRoleAssignments.Where(x => groupRepo.CanDelete(x.Id, OrganizationId)).Select(x => x.Id).ToHashSet();
     }
+
+    private HashSet<Guid> _deletableUserRoles = new();
+    private HashSet<Guid> _deletableSpRoles = new();
+    private HashSet<Guid> _deletableGroupRoles = new();
 
     private void OnTabChanged()
     {

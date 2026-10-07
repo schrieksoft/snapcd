@@ -45,12 +45,12 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudTooltip Text="A delete is already in progress." Disabled="@(!(_isDeleting))">
+        <MudTooltip Text="@ActionDisabledReason" Disabled="@(ActionDisabledReason is null)">
             <MudButton Variant="Variant.Filled"
                        Color="Color.Secondary"
                        Size="Size.Small"
                        OnClick="Delete"
-                       Disabled="@_isDeleting"
+                       Disabled="@(_isDeleting || !_hasDeletePermissionForAll)"
                        StartIcon="@SnapCdIcons.Delete">
                 @(_isDeleting ? "Deleting..." : "Delete All")
             </MudButton>
@@ -75,6 +75,12 @@
     [Parameter] public required List<StackMetadata> Stacks { get; set; }
 
     private bool _isDeleting;
+    private bool _hasDeletePermissionForAll;
+
+    private string? ActionDisabledReason =>
+        !_hasDeletePermissionForAll ? "You do not have permission to delete all of these stacks."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
     private int _currentIndex;
     private double _progress => Stacks.Count > 0 ? _currentIndex * 100.0 / Stacks.Count : 0;
 
@@ -84,6 +90,12 @@
         {
             MudDialog.Cancel();
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _hasDeletePermissionForAll = Stacks.All(x => permissionRepo.CanDelete(x.Id, OrganizationId));
     }
 
     private async Task Delete()

@@ -95,7 +95,7 @@
                        Color="Color.Secondary"
                        Size="Size.Small"
                        OnClick="Delete"
-                       Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
+                       Disabled="@(!_dependencyCheckCompleted || !_hasDeletePermission || !_canDelete || _isDeleting)"
                        StartIcon="@SnapCdIcons.Delete">
                 @if (_isDeleting)
                 {
@@ -128,7 +128,8 @@
 
 @code {
     private string? ActionDisabledReason =>
-        !_dependencyCheckCompleted ? "Still checking dependencies."
+        !_hasDeletePermission ? "You do not have permission to delete this module."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
         : !_canDelete ? "This module has external dependencies."
         : _isDeleting ? "A delete is already in progress."
         : null;
@@ -148,6 +149,7 @@
     private bool _isDeleting;
     private bool _dependencyCheckCompleted;
     private bool _canDelete;
+    private bool _hasDeletePermission;
     private List<string> _externalDependencies = new();
     private List<string> _internalDependencies = new();
 
@@ -238,6 +240,11 @@
             _internalDependencies.Add("Associated module inputs and configurations");
 
             _canDelete = !_externalDependencies.Any();
+
+            using (var permissionRepo = ModuleRepoFactory.Create())
+            {
+                _hasDeletePermission = permissionRepo.CanDelete(Module.Id, OrganizationId);
+            }
             _dependencyCheckCompleted = true;
             StateHasChanged();
         }
