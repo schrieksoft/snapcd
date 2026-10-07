@@ -24,13 +24,20 @@ repos:
         # Union of the triggers of the three underlying checks: controllers, Mcp attributes,
         # DTOs, OpenAPI setup, settings POCOs, the generators themselves, and the committed
         # artifacts.
+        #
+        # The OpenAPI generator boots the real app and renders the live document, so the
+        # document also follows the role enums and the permission map on every secured
+        # repository, which the permission transformer reads to list each endpoint's roles.
         files: |
           (?x)^(
               SnapCd\.Server\.Core/Controllers/.*\.cs
             | SnapCd\.Contracts/Mcp/.*\.cs
             | SnapCd\.Server\.Core/AI/Mcp/Generated/.*\.cs
             | SnapCd\.Contracts/Dto/.*\.cs
-            | SnapCd\.Server\.Core/Startup/(Scalar|Controllers|CurrentOrganizationOperationTransformer)\.cs
+            | SnapCd\.Contracts/Enums\.cs
+            | SnapCd\.Contracts/Enums/.*\.cs
+            | SnapCd\.Server\.Core/Repositories/.*/Secured/.*\.cs
+            | SnapCd\.Server\.Core/Startup/(Scalar|Controllers|CurrentOrganizationOperationTransformer|PermissionDocExtractor|PermissionsOperationTransformer)\.cs
             | SnapCd\.Runner/Settings/.*\.cs
             | SnapCd\.Agent/Configuration/.*\.cs
             | SnapCd\.Server\.Core/Settings/.*\.cs

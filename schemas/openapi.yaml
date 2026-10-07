@@ -1500,6 +1500,7 @@ paths:
         - `Organization.Owner`
         - `Organization.Reader`
         - `Agent.Contributor`
+        - `Agent.MetadataReader`
         - `Agent.Owner`
         - `Agent.Reader`
       parameters:
@@ -1538,6 +1539,7 @@ paths:
         - Organization.Owner
         - Organization.Reader
         - Agent.Contributor
+        - Agent.MetadataReader
         - Agent.Owner
         - Agent.Reader
   /api/{organizationId}/Agent/Metadata/ByName/{name}:
@@ -1557,6 +1559,7 @@ paths:
         - `Organization.Owner`
         - `Organization.Reader`
         - `Agent.Contributor`
+        - `Agent.MetadataReader`
         - `Agent.Owner`
         - `Agent.Reader`
       parameters:
@@ -1594,6 +1597,7 @@ paths:
         - Organization.Owner
         - Organization.Reader
         - Agent.Contributor
+        - Agent.MetadataReader
         - Agent.Owner
         - Agent.Reader
   /api/{organizationId}/AgentModuleSupply:
@@ -3792,6 +3796,7 @@ paths:
         - `Organization.Owner`
         - `Organization.Reader`
         - `Integration.Contributor`
+        - `Integration.MetadataReader`
         - `Integration.Owner`
         - `Integration.Reader`
       parameters:
@@ -3830,6 +3835,7 @@ paths:
         - Organization.Owner
         - Organization.Reader
         - Integration.Contributor
+        - Integration.MetadataReader
         - Integration.Owner
         - Integration.Reader
   /api/{organizationId}/Integration/Metadata/ByName/{name}:
@@ -3849,6 +3855,7 @@ paths:
         - `Organization.Owner`
         - `Organization.Reader`
         - `Integration.Contributor`
+        - `Integration.MetadataReader`
         - `Integration.Owner`
         - `Integration.Reader`
       parameters:
@@ -3886,6 +3893,7 @@ paths:
         - Organization.Owner
         - Organization.Reader
         - Integration.Contributor
+        - Integration.MetadataReader
         - Integration.Owner
         - Integration.Reader
   /api/{organizationId}/Integration/ByName/{name}:
@@ -22831,6 +22839,7 @@ paths:
         - `Organization.RunnerContributor`
         - `Organization.RunnerReader`
         - `Runner.Contributor`
+        - `Runner.MetadataReader`
         - `Runner.Owner`
         - `Runner.Reader`
       parameters:
@@ -22869,6 +22878,7 @@ paths:
         - Organization.RunnerContributor
         - Organization.RunnerReader
         - Runner.Contributor
+        - Runner.MetadataReader
         - Runner.Owner
         - Runner.Reader
   /api/{organizationId}/Runner/Metadata/ByName/{name}:
@@ -22888,6 +22898,7 @@ paths:
         - `Organization.RunnerContributor`
         - `Organization.RunnerReader`
         - `Runner.Contributor`
+        - `Runner.MetadataReader`
         - `Runner.Owner`
         - `Runner.Reader`
       parameters:
@@ -22925,6 +22936,7 @@ paths:
         - Organization.RunnerContributor
         - Organization.RunnerReader
         - Runner.Contributor
+        - Runner.MetadataReader
         - Runner.Owner
         - Runner.Reader
   /api/{organizationId}/Runner:
@@ -28932,6 +28944,7 @@ components:
       - Owner
       - Contributor
       - Reader
+      - MetadataReader
       - IdentityAccessManager
     AgentRoleAssignmentReadDto:
       type: object
@@ -29423,6 +29436,7 @@ components:
       - Owner
       - Contributor
       - Reader
+      - MetadataReader
       - IdentityAccessManager
     IntegrationRoleAssignmentReadDto:
       type: object
@@ -34358,6 +34372,7 @@ components:
       - Owner
       - Contributor
       - Reader
+      - MetadataReader
       - IdentityAccessManager
     RunnerRoleAssignmentReadDto:
       type: object
