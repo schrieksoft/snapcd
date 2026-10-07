@@ -163,6 +163,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using (var permissionRepo = NamespaceRepoFactory.Create())
+        {
+            _hasDeletePermission = permissionRepo.CanDelete(Namespace.Id, OrganizationId);
+        }
+
         // Start dependency check immediately
         await CheckDependencies();
     }
@@ -274,10 +279,6 @@
 
             _canDelete = !_externalDependencies.Any();
 
-            using (var permissionRepo = NamespaceRepoFactory.Create())
-            {
-                _hasDeletePermission = permissionRepo.CanDelete(Namespace.Id, OrganizationId);
-            }
             _dependencyCheckCompleted = true;
             StateHasChanged();
         }

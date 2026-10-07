@@ -13,9 +13,15 @@
     </TitleContent>
     <DialogContent>
         Are you sure you want to remove the supply of Runner "@RunnerName" to Module "@ModuleName" on?
+        @if (!_canDelete)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                You do not have permission to delete this.
+            </MudAlert>
+        }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete" Size="Size.Small">Delete</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete" Size="Size.Small" Disabled="@(!_canDelete)">Delete</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -32,6 +38,14 @@
     [Parameter] public required Guid RunnerModuleSupplyId { get; set; }
     [Parameter] public required string RunnerName { get; set; }
     [Parameter] public required string ModuleName { get; set; }
+
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        using var repo = RepoFactory.Create();
+        _canDelete = repo.CanDelete(RunnerModuleSupplyId, OrganizationId);
+    }
 
     private void Cancel()
     {
