@@ -41,7 +41,7 @@ public class GenericSecuredRepositoryFactory<TEntity, TDto, TRepository, TCreate
     }
 }
 
-public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : IDisposable
+public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : IDisposable, IEntitySecuredRepository<TEntity>
     where TEntity : class, IEntity
     where TRepository : GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : CreatedEvent<TDto>, new()

@@ -27,9 +27,10 @@ public class NamespaceInputFromSecretSecuredRepositoryFactory<TEntity>(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
     IOptions<NamespaceInputFromSecretRepositorySettings> options)
+    : IEntitySecuredRepositoryFactory<TEntity>
     where TEntity : NamespaceInputWithType, INamespaceInputFromSecret
 {
-    public NamespaceInputFromSecretSecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
+    public IEntitySecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
     {
         if (principalProvider == null)
             principalProvider = new HttpContextPrincipalProvider(new HttpContextAccessor());

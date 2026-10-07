@@ -7,7 +7,8 @@
    for terms covering either use. *@
 
 @typeparam TEntity where TEntity : SnapCd.Server.Core.Entities.Definition.Base.ModuleInput, new()
-@typeparam TSecuredRepositoryFactory where TSecuredRepositoryFactory : class
+@typeparam TSecuredRepositoryFactory where TSecuredRepositoryFactory : IEntitySecuredRepositoryFactory<TEntity>
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic
 @using SnapCd.Server.Core.Services.PrincipalProvider
 
 <MudTabPanel Text="@Title" OnClick="@OnTabClick" Style="text-transform: none">
@@ -131,8 +132,8 @@
 
     private async Task ReloadItems()
     {
-        using var repository = ((dynamic)SecuredRepositoryFactory).Create(PrincipalProvider);
-        _canCreate = (bool)repository.CanCreate(ModuleId, OrganizationId);
+        using var repository = SecuredRepositoryFactory.Create(PrincipalProvider);
+        _canCreate = repository.CanCreate(ModuleId, OrganizationId);
         _items = await repository.ListByParentId(ModuleId, OrganizationId);
     }
 

@@ -26,9 +26,10 @@ public class ModuleInputFromLiteralSecuredRepositoryFactory<TEntity>(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
     IOptions<ModuleInputFromLiteralRepositorySettings> options)
+    : IEntitySecuredRepositoryFactory<TEntity>
     where TEntity : ModuleInputWithType, IModuleInputFromLiteral
 {
-    public ModuleInputFromLiteralSecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
+    public IEntitySecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
     {
         if (principalProvider == null)
             principalProvider = new HttpContextPrincipalProvider(new HttpContextAccessor());

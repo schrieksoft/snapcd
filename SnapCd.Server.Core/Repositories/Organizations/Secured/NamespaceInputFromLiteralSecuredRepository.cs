@@ -26,9 +26,10 @@ public class NamespaceInputFromLiteralSecuredRepositoryFactory<TEntity>(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
     IOptions<NamespaceInputFromLiteralRepositorySettings> options)
+    : IEntitySecuredRepositoryFactory<TEntity>
     where TEntity : NamespaceInputWithType, INamespaceInputFromLiteral
 {
-    public NamespaceInputFromLiteralSecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
+    public IEntitySecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
     {
         if (principalProvider == null)
             principalProvider = new HttpContextPrincipalProvider(new HttpContextAccessor());
