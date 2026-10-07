@@ -145,8 +145,19 @@ public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, T
         var entitiesFromGroupRoles = OrganizationRolesFromGroupQuery<TGroupMember, TOrganizationRoleAssignment>(
             organizationId, principalId, organizationRoles);
 
+        // Roles derived from what the principal holds elsewhere. Group membership is already
+        // accounted for when these are derived, so they are not expanded through groups again.
+        var entitiesFromDerivedRoles = from entity in Repository.DbContext.Set<TEntity>()
+            join derived in Repository.DbContext.DerivedOrganizationRoleAssignments
+                on entity.OrganizationId equals derived.OrganizationId
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && organizationRoles.Contains(derived.RoleName)
+            select entity;
+
         return entitiesFromDirectRoles
-            .Concat(entitiesFromGroupRoles);
+            .Concat(entitiesFromGroupRoles)
+            .Concat(entitiesFromDerivedRoles);
     }
 
     private IQueryable<TEntity> OrganizationRolesFromGroupQuery<TGroupMember, TOrganizationRoleAssignment>(

@@ -79,6 +79,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     // Views for group organizationUser
     public DbSet<RecursiveGroupMember> RecursiveGroupMembers { get; set; }
+    public DbSet<DerivedOrganizationRoleAssignment> DerivedOrganizationRoleAssignments { get; set; }
 
 
     public DbSet<NamespaceInput> NamespaceInputs { get; set; }
@@ -478,6 +479,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ServicePrincipalGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new GroupGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new RecursiveGroupMemberClassMap());
+        modelBuilder.ApplyConfiguration(new DerivedOrganizationRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new TokenClassMap());
         modelBuilder.ApplyConfiguration(new AuthorizationClassMap());
 

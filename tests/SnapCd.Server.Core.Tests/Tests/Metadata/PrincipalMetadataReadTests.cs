@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
@@ -100,6 +101,51 @@ public class PrincipalMetadataReadTests : IAsyncLifetime
         Assert.Empty(await UserRepo(_noRoleId).ListMetadata(_organizationId));
         Assert.Empty(await ServicePrincipalRepo(_noRoleId).ListMetadata(_organizationId));
         Assert.Empty(await GroupRepo(_noRoleId).ListMetadata(_organizationId));
+    }
+
+    /// <summary>
+    /// A stack owner holds nothing at organization level, so the only thing that can let them read
+    /// principal metadata is the role derived from the stack role they do hold.
+    /// </summary>
+    [Fact]
+    public async Task AStackOwnerResolvesPrincipalsWithoutAnOrganizationRole()
+    {
+        var stackOwnerId = _fixture.ScopeReaderUsers["Stack00.OwnerForDerivation"].Id;
+
+        Assert.Empty(await _dbContext.UserOrganizationRoleAssignments
+            .Where(ra => ra.UserId == stackOwnerId && ra.OrganizationId == _organizationId)
+            .ToListAsync());
+
+        Assert.NotEmpty(await UserRepo(stackOwnerId).ListMetadata(_organizationId));
+        Assert.NotEmpty(await ServicePrincipalRepo(stackOwnerId).ListMetadata(_organizationId));
+    }
+
+    [Fact]
+    public async Task TheDerivedRoleIsRecordedSeparatelyFromGrantedOnes()
+    {
+        var stackOwnerId = _fixture.ScopeReaderUsers["Stack00.OwnerForDerivation"].Id;
+
+        var derived = await _dbContext.DerivedOrganizationRoleAssignments
+            .Where(d => d.PrincipalId == stackOwnerId && d.OrganizationId == _organizationId)
+            .ToListAsync();
+
+        Assert.Single(derived);
+        Assert.Equal(OrganizationRole.IdentityAccessMetadataReader, derived[0].RoleName);
+    }
+
+    /// <summary>
+    /// Reader is not a role that may grant anything, so it must not pick the derivation up.
+    /// </summary>
+    [Fact]
+    public async Task AReaderResolvesNothing()
+    {
+        var readerId = _fixture.ScopeReaderUsers["Stack00.MetadataReader"].Id;
+
+        Assert.Empty(await _dbContext.DerivedOrganizationRoleAssignments
+            .Where(d => d.PrincipalId == readerId && d.OrganizationId == _organizationId)
+            .ToListAsync());
+
+        Assert.Empty(await UserRepo(readerId).ListMetadata(_organizationId));
     }
 
     private OrganizationUserSecuredRepository UserRepo(Guid principalId)

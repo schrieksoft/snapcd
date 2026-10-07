@@ -965,6 +965,27 @@ public class Fixture : IAsyncLifetime
         SeedModuleMetadataReader(dbContext, org.Id, Modules["0000"].Id, "Module0000.MetadataReader");
         SeedOrganizationStackMetadataReader(dbContext, org.Id, "Org.StackMetadataReader");
         SeedOrganizationIdentityAccessMetadataReader(dbContext, org.Id, "Org.IdentityAccessMetadataReader");
+        SeedStackOwnerForDerivation(dbContext, org.Id, Stacks["00"].Id, "Stack00.OwnerForDerivation");
+    }
+
+    /// <summary>
+    /// Holds Owner on a Stack and nothing at organization level, so the only way they can read
+    /// principal metadata is the derivation.
+    /// </summary>
+    private void SeedStackOwnerForDerivation(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserStackRoleAssignments.Add(new UserStackRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            StackId = stackId,
+            UserId = user.Id,
+            RoleName = StackRole.Owner,
+        });
+        ScopeReaderUsers[key] = user;
     }
 
     private void SeedStackMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
