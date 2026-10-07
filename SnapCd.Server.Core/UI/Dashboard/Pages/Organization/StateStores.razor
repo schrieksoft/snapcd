@@ -49,18 +49,25 @@
     else
     {
         <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       Size="Size.Small"
-                       OnClick="ShowCreate">
-                Create
-            </MudButton>
+            <MudTooltip Text="@(_canCreate ? null : "You do not have permission to create here.")" Disabled="@_canCreate">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           Disabled="@(!_canCreate)"
+                           OnClick="ShowCreate">
+                    Create
+                </MudButton>
+            </MudTooltip>
         </MudPaper>
     }
 
     @if (_stateStores == null)
     {
         <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else if (_stateStores.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mt-2">No state stores yet, or you do not have permission to see any.</MudText>
     }
     else
     {
@@ -136,6 +143,8 @@
 
     [SupplyParameterFromQuery] public string? StateStore { get; set; }
     [SupplyParameterFromQuery] public string? Action { get; set; }
+
+    private bool _canCreate;
 
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
@@ -237,6 +246,7 @@
     {
         using var repo = RepoFactory.Create();
         _stateStores = await repo.List(OrganizationId);
+        _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
     }
 
     private async Task HandleCreated(Guid stateStoreId)

@@ -51,18 +51,25 @@
     else
     {
         <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       Size="Size.Small"
-                       OnClick="ShowCreateSourceRefresherPreselection">
-                Create
-            </MudButton>
+            <MudTooltip Text="@(_canCreate ? null : "You do not have permission to create here.")" Disabled="@_canCreate">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           Disabled="@(!_canCreate)"
+                           OnClick="ShowCreateSourceRefresherPreselection">
+                    Create
+                </MudButton>
+            </MudTooltip>
         </MudPaper>
     }
 
     @if (_sourceRefresherPreselections == null)
     {
         <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    }
+    else if (_sourceRefresherPreselections.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mt-2">No source refresher preselections yet, or you do not have permission to see any.</MudText>
     }
     else
     {
@@ -112,6 +119,8 @@
 
     [SupplyParameterFromQuery] public string? Preselection { get; set; }
     [SupplyParameterFromQuery] public string? Action { get; set; }
+
+    private bool _canCreate;
 
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
@@ -239,6 +248,7 @@
     {
         using var repo = RepoFactory.Create();
         _sourceRefresherPreselections = await repo.List(OrganizationId);
+        _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
     }
 
 

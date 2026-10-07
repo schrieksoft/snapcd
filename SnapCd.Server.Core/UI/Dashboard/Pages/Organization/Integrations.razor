@@ -10,6 +10,7 @@
 @layout OrganizationMainLayout
 
 @inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+@inject SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSecuredRepositoryFactory RepoFactory
 @inject SnapCd.Server.Core.Services.OrganizationContext.IOrganizationContext OrganizationContext
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
@@ -62,7 +63,9 @@
     else
     {
         <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="ShowCreate">Create</MudButton>
+            <MudTooltip Text="@(_canCreate ? null : "You do not have permission to create here.")" Disabled="@_canCreate">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" Disabled="@(!_canCreate)" OnClick="ShowCreate">Create</MudButton>
+            </MudTooltip>
         </MudPaper>
     }
 
@@ -72,7 +75,7 @@
     }
     else if (_integrations.Count == 0)
     {
-        <MudText Typo="Typo.body2" Class="mt-2">No integrations yet.</MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">No integrations yet, or you do not have permission to see any.</MudText>
     }
     else
     {
@@ -189,6 +192,7 @@
 
     private List<IntegrationReadDto>? _integrations;
     private bool _showCreate;
+    private bool _canCreate;
     private readonly CreateModel _create = new();
     private readonly Dictionary<Guid, EditModel> _editModels = new();
     private Guid? _expandedIntegrationId;
@@ -246,6 +250,10 @@
     private async Task LoadAsync()
     {
         _integrations = await Service.List(OrganizationId);
+        using (var repo = RepoFactory.Create())
+        {
+            _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
+        }
         _editModels.Clear();
     }
 

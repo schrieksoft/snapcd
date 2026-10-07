@@ -15,6 +15,10 @@
 {
     <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
 }
+else if (_namespaces.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mt-2">No namespaces yet, or you do not have permission to see any.</MudText>
+}
 else
 {
     <div class="list-heading">Namespaces</div>
