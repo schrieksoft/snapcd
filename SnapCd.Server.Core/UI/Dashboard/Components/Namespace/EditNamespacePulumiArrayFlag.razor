@@ -13,6 +13,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 @inherits ComponentBase
 
+<MudForm ReadOnly="@(!_canSave)">
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
@@ -47,7 +48,7 @@
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
                            Variant="Variant.Filled"
-                           OnClick="CreateItem">
+                           Disabled="@(!_canSave)" OnClick="CreateItem">
                     Create
                 </MudButton>
 
@@ -63,7 +64,7 @@
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
                            Variant="Variant.Filled"
-                           Disabled="@(!HasChanges)"
+                           Disabled="@(!HasChanges || !_canSave)"
                            OnClick="UpdateItem">
                     Save
                 </MudButton>
@@ -79,6 +80,7 @@
         </MudStack>
     </MudItem>
 </MudGrid>
+</MudForm>
 
 @code {
     [Parameter] public bool IsCreateMode { get; set; } = true;
@@ -97,6 +99,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        ResolveCanSave();
         await SetOriginal();
     }
 
@@ -114,6 +117,18 @@
             Value = Context.Value
         };
         return Task.CompletedTask;
+    }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = NamespacePulumiArrayFlagSecuredRepositoryFactory.Create(PrincipalProvider);
+
+        _canSave = IsCreateMode
+            ? repo.CanCreate(Context.ParentId(), OrganizationId)
+            : repo.CanUpdate(Context.Id, OrganizationId);
     }
 
     private async Task DeleteItem()

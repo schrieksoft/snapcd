@@ -16,7 +16,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @implements IDisposable
 
-<MudForm @ref="_form">
+<MudForm @ref="_form" ReadOnly="@(!_canSave)">
     <MudGrid>
             <!-- Read-only IDs -->
             <MudItem md="12">
@@ -304,7 +304,7 @@
 
             <!-- Action Buttons -->
             <MudItem md="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveNamespace" Size="Size.Small">Save</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!_canSave)" OnClick="SaveNamespace" Size="Size.Small">Save</MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel" Size="Size.Small">Cancel</MudButton>
             </MudItem>
     </MudGrid>
@@ -319,6 +319,15 @@
 
 
     // Repository Factories
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = NamespaceSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canSave = repo.CanUpdate(Namespace.Id, OrganizationId);
+    }
+
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition> NamespaceParamFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
@@ -355,6 +364,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        ResolveCanSave();
 
 
     }

@@ -48,7 +48,7 @@ else
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
                    Size="Size.Small"
-                   OnClick="StartCreate"
+                   Disabled="@(!_canCreate)" OnClick="StartCreate"
                    Class="mt-2">
             Add New Dependency
         </MudButton>
@@ -64,6 +64,15 @@ else
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
+
+    private bool _canCreate;
+
+    private void ResolveCanCreate()
+    {
+        using var repo = DependsOnModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canCreate = repo.CanCreate(ModuleId, OrganizationId);
+    }
+
     [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleSecuredRepositoryFactory { get; set; } = null!;
 
@@ -75,6 +84,7 @@ else
 
     protected override Task OnInitializedAsync()
     {
+        ResolveCanCreate();
         return Task.CompletedTask;
     }
 

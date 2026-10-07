@@ -19,6 +19,7 @@
 @using InputType = SnapCd.Contracts.InputType
 @inherits ComponentBase
 
+<MudForm ReadOnly="@(!_canSave)">
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
         @if (Context is NamespaceInput input)
@@ -112,6 +113,7 @@
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
                            Variant="Variant.Filled"
+                           Disabled="@(!_canSave)"
                            OnClick="CreateItem">
                     Create
                 </MudButton>
@@ -128,7 +130,7 @@
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
                            Variant="Variant.Filled"
-                           Disabled="@(!HasChanges)"
+                           Disabled="@(!HasChanges || !_canSave)"
                            OnClick="UpdateItem">
                     Save
                 </MudButton>
@@ -137,6 +139,7 @@
                            Size="Size.Small"
                            Variant="Variant.Filled"
                            StartIcon="@SnapCdIcons.Delete"
+                           Disabled="@(!_canDelete)"
                            OnClick="DeleteItem">
                     Delete
                 </MudButton>
@@ -144,6 +147,7 @@
         </MudStack>
     </MudItem>
 </MudGrid>
+</MudForm>
 
 @code {
     [Parameter] public bool IsCreateMode { get; set; } = true;
@@ -163,6 +167,8 @@
     [Inject] private NamespaceSecretSecuredRepositoryFactory NamespaceSecretRepoFactory { get; set; } = null!;
     [Inject] private StackSecretSecuredRepositoryFactory StackSecretRepoFactory { get; set; } = null!;
 
+    private bool _canSave;
+    private bool _canDelete;
     private TEntity _original = default!;
     private SecretItem? _selectedSecret;
     private List<SecretItem> _allSecrets = new();
@@ -178,6 +184,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        ResolveCanSave();
         _original = Clone(Context);
 
         // Load secrets if this is a FromSecret type
@@ -231,6 +238,15 @@
         {
             fromSecret.SecretId = value?.Id ?? Guid.Empty;
         }
+    }
+
+    private void ResolveCanSave()
+    {
+        using var repository = ((dynamic)RepositoryFactory).Create(PrincipalProvider);
+        _canSave = IsCreateMode
+            ? (bool)repository.CanCreate(NamespaceId, OrganizationId)
+            : (bool)repository.CanUpdate(((IEntity)Context).Id, OrganizationId);
+        _canDelete = !IsCreateMode && (bool)repository.CanDelete(((IEntity)Context).Id, OrganizationId);
     }
 
     private bool HasChanges => !AreEqual(Context, _original);

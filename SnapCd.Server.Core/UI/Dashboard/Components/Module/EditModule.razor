@@ -16,7 +16,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @implements IDisposable
 
-<MudForm @ref="_form">
+<MudForm @ref="_form" ReadOnly="@(!_canUpdate)">
     <MudGrid>
             <!-- Read-only IDs -->
             <MudItem md="12">
@@ -506,7 +506,7 @@
 
             <!-- Action Buttons -->
             <MudItem md="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveModule" Size="Size.Small">Save</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveModule" Size="Size.Small" Disabled="@(!_canUpdate)">Save</MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel" Size="Size.Small">Cancel</MudButton>
             </MudItem>
     </MudGrid>
@@ -522,6 +522,16 @@
 
     // Repository Factories
     [Inject] private ModuleSecuredRepositoryFactory ModuleSecuredRepositoryFactory { get; set; } = null!;
+
+    private bool _canUpdate;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        using var repo = ModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canUpdate = repo.CanUpdate(Module.Id, OrganizationId);
+
+        await base.OnParametersSetAsync();
+    }
     [Inject] private ModuleInputFromDefinitionSecuredRepositoryFactory<ModuleParamFromDefinition> ModuleParamFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromLiteralSecuredRepositoryFactory<ModuleParamFromLiteral> ModuleParamFromLiteralSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleInputFromNamespaceSecuredRepositoryFactory<ModuleParamFromNamespace> ModuleParamFromNamespaceSecuredRepositoryFactory { get; set; } = null!;

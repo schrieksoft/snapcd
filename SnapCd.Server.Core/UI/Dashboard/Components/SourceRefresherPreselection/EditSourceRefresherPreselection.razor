@@ -10,6 +10,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 
+<MudForm ReadOnly="@(!_canSave)">
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
@@ -59,12 +60,24 @@
         </MudGrid>
     </EditForm>
 </MudPaper>
+</MudForm>
 
 @code {
+    protected override void OnInitialized() => ResolveCanSave();
+
     [Parameter] public required SourceRefresherPreselection SourceRefresherPreselection { get; set; }
     [Parameter] public required EventCallback<SourceRefresherPreselection> OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(SourceRefresherPreselection.Id, OrganizationId);
+    }
 
     [Inject] private SourceRefresherPreselectionSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;

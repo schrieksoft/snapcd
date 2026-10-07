@@ -10,6 +10,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 
+<MudForm ReadOnly="@(!_canSave)">
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
@@ -44,12 +45,24 @@
         </MudGrid>
     </EditForm>
 </MudPaper>
+</MudForm>
 
 @code {
+    protected override void OnInitialized() => ResolveCanSave();
+
     [Parameter] public required Group Group { get; set; }
     [Parameter] public required EventCallback<Group> OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(Group.Id, OrganizationId);
+    }
 
     [Inject] private GroupSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;

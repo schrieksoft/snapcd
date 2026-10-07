@@ -61,6 +61,7 @@
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
+                           Disabled="@(!_canCreate)"
                            OnClick="StartCreate"
                            Class="mt-2">
                     Add New
@@ -80,6 +81,7 @@
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
+    private bool _canCreate;
     private bool _isCreating;
     private bool _newItemExpanded;
 
@@ -122,6 +124,7 @@
     private async Task ReloadItems()
     {
         using var repository = ((dynamic)SecuredRepositoryFactory).Create(PrincipalProvider);
+        _canCreate = (bool)repository.CanCreate(ModuleId, OrganizationId);
         _items = await repository.ListByParentId(ModuleId, OrganizationId);
     }
 

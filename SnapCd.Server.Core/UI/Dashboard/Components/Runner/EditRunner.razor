@@ -11,6 +11,7 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 
+<MudForm ReadOnly="@(!_canSave)">
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
@@ -67,12 +68,22 @@
         </MudGrid>
     </EditForm>
 </MudPaper>
+</MudForm>
 
 @code {
     [Parameter] public required Runner Runner { get; set; }
     [Parameter] public required EventCallback<Runner> OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(Runner.Id, OrganizationId);
+    }
 
     [Inject] private RunnerSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
@@ -83,6 +94,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        ResolveCanSave();
         using var spRepo = ServicePrincipalRepoFactory.Create();
         _availableServicePrincipals = await spRepo.List(OrganizationId);
     }

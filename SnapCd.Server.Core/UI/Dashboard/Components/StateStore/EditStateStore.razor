@@ -13,6 +13,7 @@
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
+        <MudForm ReadOnly="@(!_canSave)">
         <MudGrid Class="d-flex flex-column gap-4">
             <MudItem xs="12">
                 <MudTextField Label="State Store Id"
@@ -28,7 +29,7 @@
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit"
+                <MudButton ButtonType="ButtonType.Submit" Disabled="@(!_canSave)"
                            Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small">
@@ -42,14 +43,26 @@
                 </MudButton>
             </MudItem>
         </MudGrid>
+        </MudForm>
     </EditForm>
 </MudPaper>
 
 @code {
+    protected override void OnInitialized() => ResolveCanSave();
+
     [Parameter] public required Entities.Definition.StateStore StateStore { get; set; }
     [Parameter] public required EventCallback<Entities.Definition.StateStore> OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(StateStore.Id, OrganizationId);
+    }
 
     [Inject] private StateStoreSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;

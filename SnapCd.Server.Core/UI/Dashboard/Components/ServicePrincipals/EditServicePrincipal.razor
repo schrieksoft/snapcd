@@ -9,10 +9,11 @@
 @using SnapCd.Contracts.Dto
 @using SnapCd.Contracts.Dto.ServicePrincipals
 @using SnapCd.Server.Core.Misc.Utils
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.Crud
 
 <MudPaper Elevation="1" Class="pa-4 my-4">
-    <MudForm @ref="_form">
+    <MudForm @ref="_form" ReadOnly="@(!_canSave)">
         <MudStack Spacing="3">
             <MudTextField Label="Client Id"
                           @bind-Value="ClientId"
@@ -54,6 +55,7 @@
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
+                           Disabled="@(!_canSave)"
                            OnClick="HandleValidSubmit">
                     Save Changes
                 </MudButton>
@@ -76,16 +78,25 @@
 
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private ServicePrincipalService ServicePrincipalService { get; set; } = null!;
+    [Inject] private ServicePrincipalSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private MudForm? _form;
+    private bool _canSave;
     private string ClientId { get; set; } = string.Empty;
     private string ClientSecret { get; set; } = string.Empty;
 
     protected override void OnParametersSet()
     {
+        ResolveCanSave();
         ClientId = ServicePrincipal.ClientId ?? string.Empty;
         ClientSecret = string.Empty; // if blank then when calling ServicePrincipalService.Update, the current ClientSecret will remain in place.
+    }
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(ServicePrincipal.Id, OrganizationId);
     }
 
     private async Task HandleValidSubmit()
