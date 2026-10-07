@@ -44,16 +44,16 @@
         @if (_showUserCreateForm)
         {
             <MudPaper Elevation="2" Class="pa-3 mb-4">
-                <MudAutocomplete T="OrganizationUserMetadata?"
+                <MudAutocomplete T="UserMetadata?"
                                  @bind-Value="_selectedUser"
                                  SearchFunc="@SearchUsers"
                                  Label="Search User by Email or Username"
-                                 ToStringFunc="@(u => u?.Email ?? string.Empty)"
+                                 ToStringFunc="@(u => u?.UserName ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
                                  Class="mb-3">
                     <ItemTemplate Context="item">
-                        <MudText>@item?.Email</MudText>
+                        <MudText>@item?.UserName</MudText>
                     </ItemTemplate>
                 </MudAutocomplete>
 
@@ -98,7 +98,7 @@
                         @foreach (var assignment in roleAssignments)
                         {
                             <div class="d-flex justify-space-between align-center py-1">
-                                <MudText>@assignment.Principal.Email</MudText>
+                                <MudText>@assignment.Principal.UserName</MudText>
                                 <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
@@ -295,7 +295,7 @@
     {
         public Guid Id { get; set; }
         public NamespaceRole RoleName { get; set; }
-        public OrganizationUserMetadata Principal { get; set; } = null!;
+        public UserMetadata Principal { get; set; } = null!;
     }
 
     private class ServicePrincipalAssignmentRow
@@ -318,7 +318,7 @@
 
     private bool _showUserCreateForm;
     private NamespaceRole _selectedUserRole = NamespaceRole.Reader;
-    private OrganizationUserMetadata? _selectedUser;
+    private UserMetadata? _selectedUser;
 
     private bool _showServicePrincipalCreateForm;
     private NamespaceRole _selectedServicePrincipalRole = NamespaceRole.Reader;
@@ -348,12 +348,11 @@
                 {
                     Id = x.Id,
                     RoleName = x.RoleName,
-                    Principal = new OrganizationUserMetadata
+                    Principal = new UserMetadata
                     {
-                        Id = x.OrganizationUser.Id,
-                        UserId = x.OrganizationUser.UserId,
+                        Id = x.OrganizationUser.UserId,
                         OrganizationId = x.OrganizationUser.OrganizationId,
-                        Email = x.OrganizationUser.User.Email ?? string.Empty
+                        UserName = x.OrganizationUser.User.Email ?? string.Empty
                     }
                 }));
 
@@ -413,14 +412,14 @@
         _selectedUser = null;
     }
 
-    private async Task<IEnumerable<OrganizationUserMetadata>> SearchUsers(string searchText, CancellationToken cancellationToken)
+    private async Task<IEnumerable<UserMetadata>> SearchUsers(string searchText, CancellationToken cancellationToken)
     {
         using var repo = OrganizationUserRepoFactory.Create();
         return await repo.ListMetadata(OrganizationId,
             q => string.IsNullOrWhiteSpace(searchText)
                 ? q
-                : q.Where(u => u.Email.ToLower().Contains(searchText.ToLower())),
-            q => q.OrderBy(u => u.Email),
+                : q.Where(u => u.UserName.ToLower().Contains(searchText.ToLower())),
+            q => q.OrderBy(u => u.UserName),
             pageNumber: 1,
             pageSize: 20);
     }
@@ -435,7 +434,7 @@
             {
                 Id = Guid.NewGuid(),
                 NamespaceId = NamespaceId,
-                UserId = _selectedUser.UserId,
+                UserId = _selectedUser.Id,
                 RoleName = _selectedUserRole,
                 OrganizationId = OrganizationId
             };
@@ -460,7 +459,7 @@
         {
             { x => x.AssignmentId, assignment.Id },
             { x => x.RoleName, assignment.RoleName.ToString() },
-            { x => x.PrincipalName, assignment.Principal.Email },
+            { x => x.PrincipalName, assignment.Principal.UserName },
             { x => x.OrganizationId, OrganizationId }
         };
 

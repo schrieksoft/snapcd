@@ -5,18 +5,17 @@
 // system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
+using SnapCd.Contracts.Interfaces;
+using SnapCd.Contracts.Interfaces;
 
-namespace SnapCd.Server.Core.Views;
+namespace SnapCd.Server.Core.Dtos.OrganizationUsers;
 
-/// <summary>Id and email of a user in an organization, for callers who may pick one without reading it.</summary>
-public class OrganizationUserMetadata
+/// <summary>Id and username of a user in an organization, for callers who may discover them without reading them.</summary>
+public class UserMetadataReadDto : IDto
 {
+    /// <summary>Unique ID of the User.</summary>
     public Guid Id { get; set; }
 
-    public Guid UserId { get; set; }
-
-    public Guid OrganizationId { get; set; }
-
-    /// <summary>The account is created with the username set from the email, so the two are the same value.</summary>
-    public string Email { get; set; } = null!;
+    /// <summary>Username of the User, which is also their email.</summary>
+    public string UserName { get; set; } = null!;
 }

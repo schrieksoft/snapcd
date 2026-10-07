@@ -62,13 +62,19 @@ public class OrganizationUserService : IDisposable
         return SimpleUserMapper.ToDto(organizationUser.User);
     }
 
-    public async Task<List<OrganizationUserMetadataReadDto>> ListMetadata(Guid organizationId)
+    public async Task<List<UserMetadataReadDto>> ListMetadata(Guid organizationId)
     {
         var views = await OrganizationUserSecuredRepository.ListMetadata(organizationId);
         return views.Select(OrganizationUserMapper.ToMetadataDto).ToList();
     }
 
-    public async Task<OrganizationUserMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
+    public async Task<UserMetadataReadDto> GetMetadataByUsername(string username, Guid organizationId)
+    {
+        var view = await OrganizationUserSecuredRepository.GetMetadataByUsername(username, organizationId);
+        return OrganizationUserMapper.ToMetadataDto(view);
+    }
+
+    public async Task<UserMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
     {
         var view = await OrganizationUserSecuredRepository.GetMetadata(id, organizationId);
         return OrganizationUserMapper.ToMetadataDto(view);

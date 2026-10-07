@@ -185,35 +185,46 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
         return await Repository.Deactivate(organizationId, userId);
     }
 
-    public IQueryable<OrganizationUserMetadata> ReadMetadataQuery(Guid organizationId)
+    public IQueryable<UserMetadata> ReadMetadataQuery(Guid organizationId)
     {
         return ReadMetadataOrganizationRoleQuery(organizationId)
-            .Select(x => new OrganizationUserMetadata
+            .Select(x => new UserMetadata
             {
-                Id = x.Id,
-                UserId = x.UserId,
+                Id = x.UserId,
                 OrganizationId = x.OrganizationId,
-                Email = x.User.Email!
+                UserName = x.User.Email!
             });
     }
 
     public override bool CanReadMetadata(Guid id, Guid organizationId)
     {
-        return ReadMetadataQuery(organizationId).Any(x => x.UserId == id && x.OrganizationId == organizationId);
+        return ReadMetadataQuery(organizationId).Any(x => x.Id == id && x.OrganizationId == organizationId);
     }
 
-    public async Task<OrganizationUserMetadata> GetMetadata(Guid id, Guid organizationId)
+    public async Task<UserMetadata> GetMetadata(Guid id, Guid organizationId)
     {
         if (!CanReadMetadata(id, organizationId))
             throw new PrincipalNotAuthorizedException(
                 $"{nameof(OrganizationUser)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
 
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.UserId == id && x.OrganizationId == organizationId);
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId);
+    }
+
+    /// <summary>The username is the email: the invite path sets one from the other.</summary>
+    public async Task<UserMetadata> GetMetadataByUsername(string username, Guid organizationId)
+    {
+        var view = await ReadMetadataQuery(organizationId)
+            .FirstOrDefaultAsync(x => x.UserName == username && x.OrganizationId == organizationId);
+
+        if (view == null)
+            throw new EntityNotFoundException($"Unable to find user with username \"{username}\"");
+
+        return view;
     }
 
     public async Task<int> CountMetadata(
         Guid organizationId,
-        Func<IQueryable<OrganizationUserMetadata>, IQueryable<OrganizationUserMetadata>>? queryModifier = null)
+        Func<IQueryable<UserMetadata>, IQueryable<UserMetadata>>? queryModifier = null)
     {
         var query = ReadMetadataQuery(organizationId).Distinct();
 
@@ -223,10 +234,10 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
         return await query.CountAsync();
     }
 
-    public async Task<List<OrganizationUserMetadata>> ListMetadata(
+    public async Task<List<UserMetadata>> ListMetadata(
         Guid organizationId,
-        Func<IQueryable<OrganizationUserMetadata>, IQueryable<OrganizationUserMetadata>>? queryModifier = null,
-        Func<IQueryable<OrganizationUserMetadata>, IOrderedQueryable<OrganizationUserMetadata>>? orderBy = null,
+        Func<IQueryable<UserMetadata>, IQueryable<UserMetadata>>? queryModifier = null,
+        Func<IQueryable<UserMetadata>, IOrderedQueryable<UserMetadata>>? orderBy = null,
         int? pageNumber = null,
         int? pageSize = null)
     {

@@ -63,6 +63,12 @@ public class GroupService : GenericCrudService<
         return views.Select(GroupMapper.ToMetadataDto).ToList();
     }
 
+    public async Task<GroupMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return GroupMapper.ToMetadataDto(view);
+    }
+
     public async Task<GroupMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
     {
         var view = await SecuredRepository.GetMetadata(id, organizationId);

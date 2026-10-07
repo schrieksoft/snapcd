@@ -120,6 +120,28 @@ public class ServicePrincipalController : GenericCrudController<
         }
     }
 
+    [HttpGet("Metadata/ByClientId/{clientId}")]
+    [PermissionSource(Repository = typeof(ServicePrincipalSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<ServicePrincipalMetadataReadDto>> GetMetadataByClientId(Guid organizationId, string clientId)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadataByClientId(clientId, organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
     [HttpGet("Metadata/{id}")]
     [PermissionSource(Repository = typeof(ServicePrincipalSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
     public async Task<ActionResult<ServicePrincipalMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)

@@ -121,6 +121,17 @@ public class GroupSecuredRepository : GenericOrganizationChildSecuredRepository<
         return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId);
     }
 
+    public async Task<GroupMetadata> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await ReadMetadataQuery(organizationId)
+            .FirstOrDefaultAsync(x => x.Name == name && x.OrganizationId == organizationId);
+
+        if (view == null)
+            throw new EntityNotFoundException($"Unable to find {nameof(Group)} with name \"{name}\"");
+
+        return view;
+    }
+
     public async Task<int> CountMetadata(
         Guid organizationId,
         Func<IQueryable<GroupMetadata>, IQueryable<GroupMetadata>>? queryModifier = null)

@@ -92,6 +92,28 @@ public class GroupController : GenericCrudController<
         }
     }
 
+    [HttpGet("Metadata/ByName/{name}")]
+    [PermissionSource(Repository = typeof(GroupSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<GroupMetadataReadDto>> GetMetadataByName(Guid organizationId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadataByName(name, organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
     [HttpGet("Metadata/{id}")]
     [PermissionSource(Repository = typeof(GroupSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
     public async Task<ActionResult<GroupMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)

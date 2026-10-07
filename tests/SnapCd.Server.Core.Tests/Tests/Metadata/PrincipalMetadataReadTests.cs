@@ -54,7 +54,35 @@ public class PrincipalMetadataReadTests : IAsyncLifetime
         var listed = await UserRepo(_readerId).ListMetadata(_organizationId);
 
         Assert.NotEmpty(listed);
-        Assert.All(listed, u => Assert.False(string.IsNullOrWhiteSpace(u.Email)));
+        Assert.All(listed, u => Assert.False(string.IsNullOrWhiteSpace(u.UserName)));
+    }
+
+    /// <summary>
+    /// A role assignment references the User's id, so that is what the metadata hands back. The
+    /// organization membership row has an id of its own which is the key of nothing.
+    /// </summary>
+    [Fact]
+    public async Task UserMetadataIdIsTheUserIdARoleAssignmentReferences()
+    {
+        var expected = _fixture.ScopeReaderUsers["Stack00.Reader"].Id;
+
+        var listed = await UserRepo(_readerId).ListMetadata(_organizationId);
+        var resolved = listed.Single(u => u.Id == expected);
+
+        Assert.Equal(expected, resolved.Id);
+        Assert.True(await _dbContext.UserStackRoleAssignments
+            .AnyAsync(ra => ra.UserId == resolved.Id && ra.OrganizationId == _organizationId));
+    }
+
+    [Fact]
+    public async Task UserMetadataResolvesByUsername()
+    {
+        var expected = _fixture.ScopeReaderUsers["Stack00.Reader"];
+
+        var resolved = await UserRepo(_readerId).GetMetadataByUsername(expected.Email!, _organizationId);
+
+        Assert.Equal(expected.Id, resolved.Id);
+        Assert.Equal(expected.Email, resolved.UserName);
     }
 
     [Fact]

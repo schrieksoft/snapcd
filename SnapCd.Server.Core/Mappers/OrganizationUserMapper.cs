@@ -66,13 +66,12 @@ public static class OrganizationUserMapper
         entity.InvitationCompletedDateTime = dto.InvitationCompletedDateTime;
     }
 
-    public static OrganizationUserMetadataReadDto ToMetadataDto(OrganizationUserMetadata view)
+    public static UserMetadataReadDto ToMetadataDto(UserMetadata view)
     {
-        return new OrganizationUserMetadataReadDto
+        return new UserMetadataReadDto
         {
             Id = view.Id,
-            UserId = view.UserId,
-            Email = view.Email,
+            UserName = view.UserName,
         };
     }
 }

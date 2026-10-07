@@ -81,7 +81,7 @@ public class OrganizationUserController : ControllerBase
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(OrganizationUserSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<OrganizationUserMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public async Task<ActionResult<List<UserMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {
@@ -101,9 +101,31 @@ public class OrganizationUserController : ControllerBase
         }
     }
 
+    [HttpGet("Metadata/ByUsername/{username}")]
+    [PermissionSource(Repository = typeof(OrganizationUserSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<UserMetadataReadDto>> GetMetadataByUsername(Guid organizationId, string username)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadataByUsername(username, organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
     [HttpGet("Metadata/{id}")]
     [PermissionSource(Repository = typeof(OrganizationUserSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<OrganizationUserMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
+    public async Task<ActionResult<UserMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
     {
         try
         {
