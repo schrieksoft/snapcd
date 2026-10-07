@@ -24,7 +24,9 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Delete" Disabled="@(!_canDelete)">Delete</MudButton>
+        <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Delete" Disabled="@(!_canDelete)">Delete</MudButton>
+        </MudTooltip>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -38,6 +40,8 @@
     [Parameter] public required GroupStackRoleAssignment Assignment { get; set; }
 
     private bool _canDelete;
+
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
 
     protected override void OnInitialized()
     {
