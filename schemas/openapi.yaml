@@ -3098,6 +3098,101 @@ paths:
         anyOf:
         - Organization.IdentityAccessManager
         - Organization.Owner
+  /api/{organizationId}/Group/Metadata:
+    get:
+      tags:
+      - Group
+      summary: List all Groups
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
+        - Organization.Owner
+  /api/{organizationId}/Group/Metadata/{id}:
+    get:
+      tags:
+      - Group
+      summary: Get a single Group
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: Group ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/GroupMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/GroupMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
+        - Organization.Owner
   /api/{organizationId}/Group:
     post:
       tags:
@@ -22568,6 +22663,101 @@ paths:
         anyOf:
         - Organization.IdentityAccessManager
         - Organization.Owner
+  /api/{organizationId}/User/Metadata:
+    get:
+      tags:
+      - OrganizationUser
+      summary: List all OrganizationUsers
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationUserMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationUserMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationUserMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
+        - Organization.Owner
+  /api/{organizationId}/User/Metadata/{id}:
+    get:
+      tags:
+      - OrganizationUser
+      summary: Get a single OrganizationUser
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: OrganizationUser ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/OrganizationUserMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationUserMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationUserMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
+        - Organization.Owner
   /api/{organizationId}/Runner/ByName/{name}:
     get:
       tags:
@@ -24173,6 +24363,101 @@ paths:
         verb: Read
         anyOf:
         - Organization.IdentityAccessManager
+        - Organization.Owner
+  /api/{organizationId}/ServicePrincipal/Metadata:
+    get:
+      tags:
+      - ServicePrincipal
+      summary: List all ServicePrincipals
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalMetadataReadDto'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalMetadataReadDto'
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePrincipalMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
+        - Organization.Owner
+  /api/{organizationId}/ServicePrincipal/Metadata/{id}:
+    get:
+      tags:
+      - ServicePrincipal
+      summary: Get a single ServicePrincipal
+      description: |-
+        ##### Required permissions
+
+        ---
+
+        Any of:
+        - `Organization.IdentityAccessManager`
+        - `Organization.IdentityAccessMetadataReader`
+        - `Organization.Owner`
+      parameters:
+      - name: organizationId
+        in: path
+        description: Organization ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        description: ServicePrincipal ID
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalMetadataReadDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalMetadataReadDto'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ServicePrincipalMetadataReadDto'
+      x-snapcd-permissions:
+        verb: ReadMetadata
+        anyOf:
+        - Organization.IdentityAccessManager
+        - Organization.IdentityAccessMetadataReader
         - Organization.Owner
   /api/{organizationId}/ServicePrincipal:
     post:
@@ -28924,6 +29209,17 @@ components:
           description: Type of Principal to assign to the Group. Must be one of 'User' and 'ServicePrincipal'
           $ref: '#/components/schemas/GroupMemberDiscriminator'
       description: DTO for updating an existing GroupMember (PUT operations).
+    GroupMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Group.
+          format: uuid
+        name:
+          type: string
+          description: Name of the Group.
+      description: Name and id of a Group, for callers who may discover it without reading it.
     GroupReadDto:
       type: object
       properties:
@@ -33752,6 +34048,7 @@ components:
       - Reader
       - StackCreator
       - IdentityAccessManager
+      - IdentityAccessMetadataReader
       - JobManager
       - SourceChangeNotifier
       - SubscriptionManager
@@ -33811,6 +34108,21 @@ components:
           description: Name of the Role that is assigned.
           $ref: '#/components/schemas/OrganizationRole'
       description: DTO for updating an existing OrganizationRoleAssignment (PUT operations).
+    OrganizationUserMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the organization membership.
+          format: uuid
+        userId:
+          type: string
+          description: Unique ID of the User.
+          format: uuid
+        email:
+          type: string
+          description: Email of the User, which is also their username.
+      description: Id and email of a user in an organization, for callers who may discover them without reading them.
     PolicyEvaluateOn:
       enum:
       - ApplyAndDestroy
@@ -34183,6 +34495,22 @@ components:
             type: string
           description: OAuth scopes granted to tokens issued for this Service Principal. Defaults to `snapcd_scope`.
       description: DTO for creating a new ServicePrincipal (POST operations).
+    ServicePrincipalMetadataReadDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID of the Service Principal.
+          format: uuid
+        clientId:
+          type: string
+          description: Client ID of the Service Principal, without the organization prefix it is stored with.
+        displayName:
+          type:
+          - 'null'
+          - string
+          description: Display name of the Service Principal.
+      description: Id and name of a Service Principal, for callers who may discover it without reading it.
     ServicePrincipalReadDto:
       type: object
       properties:
@@ -35046,8 +35374,8 @@ tags:
 - name: NamespaceSecret
 - name: StackSecret
 x-snapcd-permission-coverage:
-  documented: 462
+  documented: 468
   skipped: 21
 x-snapcd-schema-doc-coverage:
-  documented: 1210
+  documented: 1221
   missing: 0

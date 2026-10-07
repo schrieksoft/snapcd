@@ -11,9 +11,13 @@ using Microsoft.AspNetCore.Mvc;
 using SnapCd.Contracts.Constants;
 using SnapCd.Server.Core.Dtos;
 using SnapCd.Server.Core.Filters;
+using SnapCd.Server.Core.Misc.Attributes;
+using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud;
+
+using SnapCd.Server.Core.Dtos.OrganizationUsers;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -60,6 +64,50 @@ public class OrganizationUserController : ControllerBase
         {
             var user = await Service.GetByUsername(username, organizationId);
             return Ok(user);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata")]
+    [PermissionSource(Repository = typeof(OrganizationUserSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<List<OrganizationUserMetadataReadDto>>> ListMetadata(Guid organizationId)
+    {
+        try
+        {
+            return Ok(await Service.ListMetadata(organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{id}")]
+    [PermissionSource(Repository = typeof(OrganizationUserSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<OrganizationUserMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(id, organizationId));
         }
         catch (EntityNotFoundException e)
         {

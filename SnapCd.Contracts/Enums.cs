@@ -321,6 +321,7 @@ public enum OrganizationRole
     Reader,
     StackCreator,
     IdentityAccessManager,
+    IdentityAccessMetadataReader,
     JobManager,
     SourceChangeNotifier,
     SubscriptionManager,

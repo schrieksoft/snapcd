@@ -21,6 +21,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 
+using SnapCd.Server.Core.Views;
+
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
 public class OrganizationUserSecuredRepositoryFactory(
@@ -58,6 +60,15 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+    };
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles =
+        [
+            OrganizationRole.Owner, OrganizationRole.IdentityAccessManager,
+            OrganizationRole.IdentityAccessMetadataReader
+        ]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
@@ -172,5 +183,67 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
                 $"OrganizationUser with organization ID {organizationId} and user ID {userId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to delete it.");
 
         return await Repository.Deactivate(organizationId, userId);
+    }
+
+    public IQueryable<OrganizationUserMetadata> ReadMetadataQuery(Guid organizationId)
+    {
+        return ReadMetadataOrganizationRoleQuery(organizationId)
+            .Select(x => new OrganizationUserMetadata
+            {
+                Id = x.Id,
+                UserId = x.UserId,
+                OrganizationId = x.OrganizationId,
+                Email = x.User.Email!
+            });
+    }
+
+    public override bool CanReadMetadata(Guid id, Guid organizationId)
+    {
+        return ReadMetadataQuery(organizationId).Any(x => x.UserId == id && x.OrganizationId == organizationId);
+    }
+
+    public async Task<OrganizationUserMetadata> GetMetadata(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(OrganizationUser)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.UserId == id && x.OrganizationId == organizationId);
+    }
+
+    public async Task<int> CountMetadata(
+        Guid organizationId,
+        Func<IQueryable<OrganizationUserMetadata>, IQueryable<OrganizationUserMetadata>>? queryModifier = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        return await query.CountAsync();
+    }
+
+    public async Task<List<OrganizationUserMetadata>> ListMetadata(
+        Guid organizationId,
+        Func<IQueryable<OrganizationUserMetadata>, IQueryable<OrganizationUserMetadata>>? queryModifier = null,
+        Func<IQueryable<OrganizationUserMetadata>, IOrderedQueryable<OrganizationUserMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+    {
+        var query = ReadMetadataQuery(organizationId).Distinct();
+
+        if (queryModifier != null)
+            query = queryModifier(query);
+
+        if (orderBy != null)
+            query = orderBy(query);
+
+        if (pageNumber.HasValue && pageSize.HasValue)
+            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
+
+        if (pageSize.HasValue)
+            query = query.Take(pageSize.Value);
+
+        return await query.ToListAsync();
     }
 }

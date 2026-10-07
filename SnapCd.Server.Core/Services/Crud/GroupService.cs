@@ -56,4 +56,16 @@ public class GroupService : GenericCrudService<
             await repo.GetByName(name, organizationId)
             ?? throw new KeyNotFoundException($"Group '{name}' not found in organization {organizationId}."));
     }
+
+    public async Task<List<GroupMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(GroupMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<GroupMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(id, organizationId);
+        return GroupMapper.ToMetadataDto(view);
+    }
 }

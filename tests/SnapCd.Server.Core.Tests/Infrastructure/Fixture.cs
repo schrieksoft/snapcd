@@ -964,6 +964,7 @@ public class Fixture : IAsyncLifetime
         SeedNamespaceMetadataReader(dbContext, org.Id, Namespaces["000"].Id, "Namespace000.MetadataReader");
         SeedModuleMetadataReader(dbContext, org.Id, Modules["0000"].Id, "Module0000.MetadataReader");
         SeedOrganizationStackMetadataReader(dbContext, org.Id, "Org.StackMetadataReader");
+        SeedOrganizationIdentityAccessMetadataReader(dbContext, org.Id, "Org.IdentityAccessMetadataReader");
     }
 
     private void SeedStackMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
@@ -1025,6 +1026,21 @@ public class Fixture : IAsyncLifetime
             OrganizationId = orgId,
             UserId = user.Id,
             RoleName = OrganizationRole.StackMetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedOrganizationIdentityAccessMetadataReader(SnapCdDbContext dbContext, Guid orgId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserOrganizationRoleAssignments.Add(new UserOrganizationRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            UserId = user.Id,
+            RoleName = OrganizationRole.IdentityAccessMetadataReader,
         });
         ScopeReaderUsers[key] = user;
     }

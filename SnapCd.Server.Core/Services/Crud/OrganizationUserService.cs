@@ -13,6 +13,8 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 
+using SnapCd.Server.Core.Dtos.OrganizationUsers;
+
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class OrganizationUserServiceFactory(
@@ -58,5 +60,17 @@ public class OrganizationUserService : IDisposable
             throw new EntityNotFoundException($"User with username '{username}' not found in organization.");
 
         return SimpleUserMapper.ToDto(organizationUser.User);
+    }
+
+    public async Task<List<OrganizationUserMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await OrganizationUserSecuredRepository.ListMetadata(organizationId);
+        return views.Select(OrganizationUserMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<OrganizationUserMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
+    {
+        var view = await OrganizationUserSecuredRepository.GetMetadata(id, organizationId);
+        return OrganizationUserMapper.ToMetadataDto(view);
     }
 }

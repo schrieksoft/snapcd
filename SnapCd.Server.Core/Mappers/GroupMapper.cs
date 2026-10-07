@@ -9,6 +9,8 @@
 using SnapCd.Contracts.Dto.Groups;
 using SnapCd.Server.Core.Entities.Definition;
 
+using SnapCd.Server.Core.Views;
+
 namespace SnapCd.Server.Core.Mappers;
 
 public static class GroupMapper
@@ -38,5 +40,14 @@ public static class GroupMapper
     {
         entity.Name = dto.Name;
         entity.Description = dto.Description;
+    }
+
+    public static GroupMetadataReadDto ToMetadataDto(GroupMetadata view)
+    {
+        return new GroupMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+        };
     }
 }

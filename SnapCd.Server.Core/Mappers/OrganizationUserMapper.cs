@@ -9,6 +9,8 @@
 using SnapCd.Server.Core.Dtos.OrganizationUsers;
 using SnapCd.Server.Core.Entities.Definition;
 
+using SnapCd.Server.Core.Views;
+
 namespace SnapCd.Server.Core.Mappers;
 
 public static class OrganizationUserMapper
@@ -62,5 +64,15 @@ public static class OrganizationUserMapper
         entity.InvitationExpirationDateTime = dto.InvitationExpirationDateTime;
         entity.InvitationCompleted = dto.InvitationCompleted;
         entity.InvitationCompletedDateTime = dto.InvitationCompletedDateTime;
+    }
+
+    public static OrganizationUserMetadataReadDto ToMetadataDto(OrganizationUserMetadata view)
+    {
+        return new OrganizationUserMetadataReadDto
+        {
+            Id = view.Id,
+            UserId = view.UserId,
+            Email = view.Email,
+        };
     }
 }

@@ -9,6 +9,8 @@
 using SnapCd.Contracts.Dto.ServicePrincipals;
 using SnapCd.Server.Core.Entities.Definition;
 
+using SnapCd.Server.Core.Views;
+
 namespace SnapCd.Server.Core.Mappers;
 
 public static class ServicePrincipalMapper
@@ -67,5 +69,15 @@ public static class ServicePrincipalMapper
         entity.ClientSecret = dto.ClientSecret;
         entity.IsDisabled = dto.IsDisabled;
         entity.Permissions = permissions;
+    }
+
+    public static ServicePrincipalMetadataReadDto ToMetadataDto(ServicePrincipalMetadata view)
+    {
+        return new ServicePrincipalMetadataReadDto
+        {
+            Id = view.Id,
+            ClientId = view.ClientId,
+            DisplayName = view.DisplayName,
+        };
     }
 }
