@@ -32,7 +32,13 @@
                 Are you sure you want to delete module "@Module.Name"?
             </MudText>
 
-            @if (!_canDelete)
+            @if (!_hasDeletePermission)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    You do not have permission to delete this module.
+                </MudAlert>
+            }
+            else if (!_canDelete)
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">
                     <strong>Cannot delete this module!</strong> It has external dependencies.

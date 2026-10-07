@@ -100,13 +100,10 @@
                                            OnClick="() => ManageRoles(stateStore)"/>
                         </MudTooltip>
 
-                        @if (_deletableIds.Contains(stateStore.Id))
-                        {
-                            <MudTooltip Text="Delete State Store">
-                                <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
-                                               OnClick="() => Delete(stateStore)"/>
-                            </MudTooltip>
-                        }
+                        <MudTooltip Text="Delete State Store">
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(stateStore)"/>
+                        </MudTooltip>
 
                         @if (IsShowing(stateStore.Id, ShowingType.Edit))
                         {
@@ -148,8 +145,6 @@
     [SupplyParameterFromQuery] public string? Action { get; set; }
 
     private bool _canCreate;
-    private HashSet<Guid> _deletableIds = new();
-
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
     private List<Entities.Definition.StateStore>? _stateStores;
@@ -251,7 +246,6 @@
         using var repo = RepoFactory.Create();
         _stateStores = await repo.List(OrganizationId);
         _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
-        _deletableIds = _stateStores.Where(x => repo.CanDelete(x.Id, OrganizationId)).Select(x => x.Id).ToHashSet();
     }
 
     private async Task HandleCreated(Guid stateStoreId)

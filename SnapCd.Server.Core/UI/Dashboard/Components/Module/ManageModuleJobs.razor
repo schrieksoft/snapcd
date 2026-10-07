@@ -120,7 +120,7 @@ else
                 <TitleContent>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <MudTooltip Text="@job.Status.ToString()">
-                            @if (job.Status == ExecutionStatus.Running && _canRunJob)
+                            @if (job.Status == ExecutionStatus.Running)
                             {
                                 <span class="job-status-running" style="color: @dotColor;">
                                     <span class="job-status-dot" style="background-color: @dotColor;"></span>

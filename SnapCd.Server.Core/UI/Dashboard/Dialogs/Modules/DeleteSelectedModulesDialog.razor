@@ -33,7 +33,13 @@
                 Are you sure you want to delete @Modules.Count module(s) from namespace "@NamespaceName"?
             </MudText>
 
-            @if (!_canDeleteAll)
+            @if (!_hasDeletePermissionForAll)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    You do not have permission to delete all of the selected modules.
+                </MudAlert>
+            }
+            else if (!_canDeleteAll)
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">
                     <strong>Cannot delete all selected modules!</strong> Some modules have external dependencies.

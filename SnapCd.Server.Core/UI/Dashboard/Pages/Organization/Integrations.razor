@@ -124,13 +124,10 @@
                                            OnClick="() => Test(i.Id)"/>
                         </MudTooltip>
 
-                        @if (_deletableIds.Contains(i.Id))
-                        {
-                            <MudTooltip Text="Delete Integration">
-                                <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
-                                               OnClick="() => Delete(i.Id)"/>
-                            </MudTooltip>
-                        }
+                        <MudTooltip Text="Delete Integration">
+                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="() => Delete(i.Id)"/>
+                        </MudTooltip>
 
                         @if (IsShowing(i.Id, ShowingType.Edit))
                         {
@@ -196,7 +193,6 @@
     private List<IntegrationReadDto>? _integrations;
     private bool _showCreate;
     private bool _canCreate;
-    private HashSet<Guid> _deletableIds = new();
     private readonly CreateModel _create = new();
     private readonly Dictionary<Guid, EditModel> _editModels = new();
     private Guid? _expandedIntegrationId;
@@ -257,7 +253,6 @@
         using (var repo = RepoFactory.Create())
         {
             _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
-            _deletableIds = _integrations.Where(x => repo.CanDelete(x.Id, OrganizationId)).Select(x => x.Id).ToHashSet();
         }
         _editModels.Clear();
     }

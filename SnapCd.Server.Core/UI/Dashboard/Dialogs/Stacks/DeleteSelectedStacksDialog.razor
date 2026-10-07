@@ -17,6 +17,13 @@
             Are you sure you want to delete @Stacks.Count stack(s)?
         </MudText>
 
+        @if (!_hasDeletePermissionForAll)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                You do not have permission to delete all of the selected stacks.
+            </MudAlert>
+        }
+
         <MudText Typo="Typo.body2" Color="Color.Error" Class="mb-3">
             <strong>Warning:</strong> This action cannot be reversed! All namespaces and modules within these stacks
             will also be deleted.

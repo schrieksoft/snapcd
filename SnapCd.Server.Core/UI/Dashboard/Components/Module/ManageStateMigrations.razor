@@ -261,7 +261,7 @@ else
                         <span style="font-size: 14px; color: var(--mud-palette-text-secondary); white-space: nowrap;">
                             @job.Status · @elapsedDisplay
                         </span>
-                        @if (job.Status == ExecutionStatus.Running && _canRunJob)
+                        @if (job.Status == ExecutionStatus.Running)
                         {
                             <MudTooltip Text="Cancel Job">
                                 <MudIconButton Icon="@SnapCdIcons.Cancel"

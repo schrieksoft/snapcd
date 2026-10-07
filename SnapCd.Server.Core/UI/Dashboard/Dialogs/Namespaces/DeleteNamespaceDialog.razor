@@ -31,7 +31,13 @@
                 Are you sure you want to delete namespace "@(Namespace.Name)"?
             </MudText>
 
-            @if (!_canDelete)
+            @if (!_hasDeletePermission)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    You do not have permission to delete this namespace.
+                </MudAlert>
+            }
+            else if (!_canDelete)
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">
                     <strong>Cannot delete this namespace!</strong> Modules within this namespace have external
