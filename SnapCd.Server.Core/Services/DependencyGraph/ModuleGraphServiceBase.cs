@@ -133,22 +133,6 @@ public abstract class ModuleGraphServiceBase
         };
     }
 
-    protected static string GetNamespaceDisplayName(string displayName)
-    {
-        // DisplayName format is "StackName/NamespaceName/ModuleName"
-        var parts = displayName.Split('/');
-        if (parts.Length >= 2) return $"{parts[0]}/{parts[1]}"; // Return "StackName/NamespaceName"
-        return "Unknown Namespace";
-    }
-
-    protected static string GetModuleName(string displayName)
-    {
-        // DisplayName format is "StackName/NamespaceName/ModuleName"
-        var parts = displayName.Split('/');
-        if (parts.Length >= 3) return parts[2]; // Return just the module name
-        return displayName; // Fallback to full display name if parsing fails
-    }
-
     /// <summary>
     /// Creates a DependencyGraphNodeStateDto from a ModuleStateInfo
     /// </summary>
@@ -164,7 +148,8 @@ public abstract class ModuleGraphServiceBase
             NamespaceId = moduleInfo.NamespaceId,
             DisplayName = moduleInfo.DisplayName,
             ModuleName = moduleInfo.Name,
-            NamespaceDisplayName = $"{moduleInfo.StackName}/{moduleInfo.NamespaceName}",
+            NamespaceName = moduleInfo.NamespaceName,
+            StackName = moduleInfo.StackName,
             LatestActualState = moduleInfo.LatestActualState,
             DesiredState = moduleInfo.DesiredState,
             QueuedDesiredState = moduleInfo.QueuedDesiredState,

@@ -236,7 +236,7 @@
                             {
                                 <div class="d-flex align-center gap-2">
                                     <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
-                                        @ModulePathLabel(module.DisplayName)
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
                                     </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -260,7 +260,7 @@
                             {
                                 <div class="d-flex align-center gap-2">
                                     <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
-                                        @ModulePathLabel(module.DisplayName)
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
                                     </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -320,7 +320,7 @@
                             {
                                 <div class="d-flex align-center gap-2">
                                     <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
-                                        @ModulePathLabel(module.DisplayName)
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
                                     </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -344,7 +344,7 @@
                             {
                                 <div class="d-flex align-center gap-2">
                                     <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
-                                        @ModulePathLabel(module.DisplayName)
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
                                     </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
@@ -431,12 +431,6 @@
 </CascadingValue>
 
 @code {
-    private static string ModulePathLabel(string displayName)
-    {
-        var parts = displayName.Split('/');
-        return parts.Length >= 3 ? string.Join("/", parts[1..]) : displayName;
-    }
-
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     [Parameter] public required string StackName { get; set; }
     [SupplyParameterFromQuery] public string? Action { get; set; }
