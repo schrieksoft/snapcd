@@ -235,8 +235,9 @@
                             @foreach (var module in _modulesToApply)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @ModulePathLabel(module.DisplayName)
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
@@ -258,8 +259,9 @@
                             @foreach (var module in _alreadyAppliedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @ModulePathLabel(module.DisplayName)
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
@@ -317,8 +319,9 @@
                             @foreach (var module in _alreadyDestroyedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @ModulePathLabel(module.DisplayName)
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
@@ -340,8 +343,9 @@
                             @foreach (var module in _modulesToDestroy)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @ModulePathLabel(module.DisplayName)
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
@@ -427,6 +431,12 @@
 </CascadingValue>
 
 @code {
+    private static string ModulePathLabel(string displayName)
+    {
+        var parts = displayName.Split('/');
+        return parts.Length >= 3 ? string.Join("/", parts[1..]) : displayName;
+    }
+
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     [Parameter] public required string StackName { get; set; }
     [SupplyParameterFromQuery] public string? Action { get; set; }
