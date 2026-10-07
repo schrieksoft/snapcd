@@ -13,8 +13,8 @@
         <MudText>Delete User Stack Role Assignment</MudText>
     </TitleContent>
     <DialogContent>
-        <MudText>Are you sure you want to delete the role assignment "@Assignment.RoleName" for user
-            "@GetUserDisplayName()"?
+        <MudText>Are you sure you want to delete the role assignment "@RoleName" for user
+            "@PrincipalName"?
         </MudText>
         @if (!_canDelete)
         {
@@ -37,7 +37,11 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 
-    [Parameter] public required UserStackRoleAssignment Assignment { get; set; }
+    [Parameter] public required Guid AssignmentId { get; set; }
+
+    [Parameter] public required string RoleName { get; set; }
+
+    [Parameter] public required string PrincipalName { get; set; }
 
     private bool _canDelete;
 
@@ -46,7 +50,7 @@
     protected override void OnInitialized()
     {
         using var repo = RepoFactory.Create();
-        _canDelete = repo.CanDelete(Assignment.Id, OrganizationId);
+        _canDelete = repo.CanDelete(AssignmentId, OrganizationId);
     }
 
     private void Cancel()
@@ -57,16 +61,10 @@
     private async Task Delete()
     {
         using var repo = RepoFactory.Create();
-        await repo.Delete(Assignment.Id, OrganizationId);
+        await repo.Delete(AssignmentId, OrganizationId);
 
-        MudDialog.Close(DialogResult.Ok(Assignment.Id));
+        MudDialog.Close(DialogResult.Ok(AssignmentId));
     }
 
-    private string GetUserDisplayName()
-    {
-        return Assignment.OrganizationUser?.User?.UserName ??
-               Assignment.OrganizationUser?.User?.Email ??
-               $"User {Assignment.UserId}";
-    }
 
 }
