@@ -107,8 +107,10 @@ else
                     <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
                                OnClick="Approve" Size="Size.Small">Approve</MudButton>
                 </MudTooltip>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
-                           OnClick="Decline" Size="Size.Small">Decline</MudButton>
+                <MudTooltip Text="@DecideDisabledReason" Disabled="@(DecideDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
+                               OnClick="Decline" Size="Size.Small">Decline</MudButton>
+                </MudTooltip>
             </MudStack>
             @if (!_canDecide)
             {

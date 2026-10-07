@@ -94,9 +94,11 @@
                                            Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                            OnClick="@(() => Answer(true))">agree</MudButton>
                             </MudTooltip>
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                       OnClick="@(() => Answer(false))">refuse</MudButton>
+                            <MudTooltip Text="@AnswerDisabledReason" Disabled="@(AnswerDisabledReason is null)">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
+                                           OnClick="@(() => Answer(false))">refuse</MudButton>
+                            </MudTooltip>
                         </MudStack>
                     </MudAlert>
                 }
@@ -161,10 +163,12 @@
                     </MudExpansionPanels>
                 </MudRadioGroup>
 
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                           Class="mt-3"
-                           Disabled="@IsJobDisabled()"
-                           OnClick="RunChosenJob">Run</MudButton>
+                <MudTooltip Text="@RunJobDisabledReason" Disabled="@(RunJobDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                               Class="mt-3"
+                               Disabled="@IsJobDisabled()"
+                               OnClick="RunChosenJob">Run</MudButton>
+                </MudTooltip>
             }
         }
     </MudPaper>
@@ -558,6 +562,13 @@ else
     /// What the server refuses, which is the same for every job kind. An open transfer is not among
     /// them: a second one is refused by TransferLocks' primary key, and the rest are unaffected.
     /// </summary>
+    private string? RunJobDisabledReason =>
+        NeedsMyAnswer ? "Answer the pending question first."
+        : !_canPause ? "You do not have permission to run a state migration on this module."
+        : _busy ? "An operation is already in progress."
+        : RunningStateMigration is not null ? "A state migration is already running."
+        : null;
+
     private bool IsJobDisabled() =>
         NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null;
 
