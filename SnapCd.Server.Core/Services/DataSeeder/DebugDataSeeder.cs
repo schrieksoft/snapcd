@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.Missions;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -36,6 +37,13 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid MonorepoTestingModuleId = new("99999999-9999-9999-9999-999999999911");
 
     private static readonly Guid DebugUserId = new("99999999-9999-9999-9999-999999999990");
+    private static readonly Guid DebugStackReaderUserId = new("99999999-9999-9999-9999-999999999996");
+    private static readonly Guid DebugStackMetadataReaderUserId = new("99999999-9999-9999-9999-999999999997");
+    private static readonly Guid DebugInfraOwnerUserId = new("99999999-9999-9999-9999-999999999998");
+    private static readonly Guid DebugInfraOwnerNoMetadataUserId = new("99999999-9999-9999-9999-999999999989");
+
+    // Every preseeded debug user shares this, so switching between them needs no lookup.
+    private const string DebugUserPassword = "Debug#123";
 
     private static readonly Guid DebugSpId = new("99999999-9999-9999-9999-999999999991");
     private static readonly Guid DebugSpTerraformerId = new("99999999-9999-9999-9999-999999999992");
@@ -57,6 +65,8 @@ public class DebugDataSeeder : ProductionDataSeeder
     private readonly DebugDataSeederSettings _debugSettings;
     private readonly Guid _preseededOrganizationId;
     private readonly Guid _preseededAgentId;
+    private readonly Guid _preseededStackId;
+    private readonly Guid _preseededRunnerId;
     private readonly IServiceProvider _serviceProvider;
 
     public DebugDataSeeder(
@@ -70,6 +80,8 @@ public class DebugDataSeeder : ProductionDataSeeder
         _debugSettings = debugOptions.Value;
         _preseededOrganizationId = productionOptions.Value.Preseeded.Organization.Id ?? PreseededSettings.DefaultId;
         _preseededAgentId = productionOptions.Value.Preseeded.Agent.Id ?? PreseededSettings.DefaultAgentId;
+        _preseededStackId = productionOptions.Value.Preseeded.Stack.Id ?? PreseededSettings.DefaultId;
+        _preseededRunnerId = productionOptions.Value.Preseeded.Runner.Id ?? PreseededSettings.DefaultId;
         _serviceProvider = serviceProvider;
     }
 
@@ -85,6 +97,9 @@ public class DebugDataSeeder : ProductionDataSeeder
         await SeedDebugSecrets(asyncServiceScope);
         await SeedDebugIntegration(asyncServiceScope);
         await SeedConfiguredUsers(asyncServiceScope);
+
+        // Last: the grants point at the Runner, Agent, Stack and Integration seeded above.
+        await SeedPermissionTestUsers(asyncServiceScope);
     }
 
     private async Task SeedDebugUser(AsyncServiceScope asyncServiceScope)
@@ -93,7 +108,7 @@ public class DebugDataSeeder : ProductionDataSeeder
         {
             Id = DebugUserId,
             Name = "debug@preseeded.io",
-            Password = "Debug#123",
+            Password = DebugUserPassword,
             OrganizationId = _preseededOrganizationId
         };
         await CreatePreseededUser(asyncServiceScope, debugUser);
@@ -104,6 +119,131 @@ public class DebugDataSeeder : ProductionDataSeeder
 
         await SyncOrganizationRoles(dbUser.Id, _preseededOrganizationId, [OrganizationRole.Owner]);
         await GrantSystemAdminRole(dbUser.Id);
+    }
+
+    /// <summary>
+    /// Users for exercising the permission levels by hand. Each holds exactly one kind of grant, so
+    /// what they can and cannot see is unambiguous. All share <see cref="DebugUserPassword"/> with
+    /// the main debug user.
+    /// </summary>
+    private async Task SeedPermissionTestUsers(AsyncServiceScope asyncServiceScope)
+    {
+        var userManager = asyncServiceScope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var dbContext = asyncServiceScope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
+
+        var users = new (Guid Id, string Name)[]
+        {
+            (DebugStackReaderUserId, "stackreader@preseeded.io"),
+            (DebugStackMetadataReaderUserId, "stackmetadatareader@preseeded.io"),
+            (DebugInfraOwnerUserId, "infraowner@preseeded.io"),
+            (DebugInfraOwnerNoMetadataUserId, "infraowner-no-metadata@preseeded.io")
+        };
+
+        foreach (var (id, name) in users)
+            await CreatePreseededUser(asyncServiceScope, new UserToPreseed
+            {
+                Id = id,
+                Name = name,
+                Password = DebugUserPassword,
+                OrganizationId = _preseededOrganizationId
+            });
+
+        // Reader on the default Stack: reads it and everything under it, and nothing else.
+        var stackReader = await userManager.FindByNameAsync("stackreader@preseeded.io");
+        if (stackReader != null)
+            AddStackRole(dbContext, stackReader.Id, _preseededStackId, StackRole.Reader);
+
+        // MetadataReader on the same Stack: names and ids only, so no Configuration tab.
+        var metadataReader = await userManager.FindByNameAsync("stackmetadatareader@preseeded.io");
+        if (metadataReader != null)
+            AddStackRole(dbContext, metadataReader.Id, _preseededStackId, StackRole.MetadataReader);
+
+        // Owns the infrastructure, plus metadata read on the Stack. This is what the role is for:
+        // they can find the Stack to supply the Runner to without reading its configuration.
+        var infraOwner = await userManager.FindByNameAsync("infraowner@preseeded.io");
+        if (infraOwner != null)
+        {
+            AddRunnerRole(dbContext, infraOwner.Id, _preseededRunnerId, RunnerRole.Owner);
+            AddAgentRole(dbContext, infraOwner.Id, _preseededAgentId, AgentRole.Owner);
+            AddIntegrationRole(dbContext, infraOwner.Id, DebugIntegrationId, IntegrationRole.Owner);
+            AddStackRole(dbContext, infraOwner.Id, _preseededStackId, StackRole.MetadataReader);
+        }
+
+        // The same, without the metadata role, so the two can be compared: this one owns the
+        // Runner and cannot find any Stack to supply it to.
+        var infraOwnerNoMetadata = await userManager.FindByNameAsync("infraowner-no-metadata@preseeded.io");
+        if (infraOwnerNoMetadata != null)
+        {
+            AddRunnerRole(dbContext, infraOwnerNoMetadata.Id, _preseededRunnerId, RunnerRole.Owner);
+            AddAgentRole(dbContext, infraOwnerNoMetadata.Id, _preseededAgentId, AgentRole.Owner);
+            AddIntegrationRole(dbContext, infraOwnerNoMetadata.Id, DebugIntegrationId, IntegrationRole.Owner);
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private void AddStackRole(SnapCdDbContext dbContext, Guid userId, Guid stackId, StackRole role)
+    {
+        if (dbContext.Set<UserStackRoleAssignment>().Any(ra =>
+                ra.UserId == userId && ra.StackId == stackId && ra.RoleName == role))
+            return;
+
+        dbContext.Set<UserStackRoleAssignment>().Add(new UserStackRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            StackId = stackId,
+            OrganizationId = _preseededOrganizationId,
+            RoleName = role
+        });
+    }
+
+    private void AddRunnerRole(SnapCdDbContext dbContext, Guid userId, Guid runnerId, RunnerRole role)
+    {
+        if (dbContext.Set<UserRunnerRoleAssignment>().Any(ra =>
+                ra.UserId == userId && ra.RunnerId == runnerId && ra.RoleName == role))
+            return;
+
+        dbContext.Set<UserRunnerRoleAssignment>().Add(new UserRunnerRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            RunnerId = runnerId,
+            OrganizationId = _preseededOrganizationId,
+            RoleName = role
+        });
+    }
+
+    private void AddAgentRole(SnapCdDbContext dbContext, Guid userId, Guid agentId, AgentRole role)
+    {
+        if (dbContext.Set<UserAgentRoleAssignment>().Any(ra =>
+                ra.UserId == userId && ra.AgentId == agentId && ra.RoleName == role))
+            return;
+
+        dbContext.Set<UserAgentRoleAssignment>().Add(new UserAgentRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            AgentId = agentId,
+            OrganizationId = _preseededOrganizationId,
+            RoleName = role
+        });
+    }
+
+    private void AddIntegrationRole(SnapCdDbContext dbContext, Guid userId, Guid integrationId, IntegrationRole role)
+    {
+        if (dbContext.Set<UserIntegrationRoleAssignment>().Any(ra =>
+                ra.UserId == userId && ra.IntegrationId == integrationId && ra.RoleName == role))
+            return;
+
+        dbContext.Set<UserIntegrationRoleAssignment>().Add(new UserIntegrationRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            IntegrationId = integrationId,
+            OrganizationId = _preseededOrganizationId,
+            RoleName = role
+        });
     }
 
     private async Task SeedDebugServicePrincipals()

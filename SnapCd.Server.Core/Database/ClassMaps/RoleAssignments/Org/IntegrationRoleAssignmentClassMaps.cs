@@ -62,6 +62,15 @@ public class UserIntegrationRoleAssignmentClassMap : IEntityTypeConfiguration<Us
 {
     public void Configure(EntityTypeBuilder<UserIntegrationRoleAssignment> entity)
     {
+        // Without this the FK is inferred onto shadow columns rather than UserId and
+        // OrganizationId, which every other role assignment maps it to.
+        entity
+            .HasOne(x => x.OrganizationUser)
+            .WithMany()
+            .HasForeignKey("UserId", "OrganizationId")
+            .HasPrincipalKey(x => new { x.UserId, x.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
+
         entity.HasIndex(x => new { x.UserId, x.IntegrationId, x.OrganizationId, x.RoleName }).IsUnique();
         entity.HasIndex(x => x.UserId);
     }
