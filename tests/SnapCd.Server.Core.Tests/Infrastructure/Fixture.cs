@@ -11,6 +11,7 @@ using Microsoft.Data.SqlClient;
 using DotNet.Testcontainers.Containers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -114,6 +115,8 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, VariableSet> VariableSets { get; } = new();
     public Dictionary<string, Variable> Inputs { get; } = new();
     public Dictionary<string, Runner> Runners { get; } = new();
+    public Dictionary<string, ServicePrincipal> ServicePrincipals { get; } = new();
+    public Dictionary<string, ServicePrincipal> NonServicePrincipalClients { get; } = new();
     public Dictionary<string, StackSecret> StackSecrets { get; } = new();
     public Dictionary<string, NamespaceSecret> NamespaceSecrets { get; } = new();
     public Dictionary<string, ModuleSecret> ModuleSecrets { get; } = new();
@@ -280,6 +283,11 @@ public class Fixture : IAsyncLifetime
         var runner0ServicePrincipal = CreateServicePrincipal("runner0-sp", Organizations["0"].Id);
         var runner1ServicePrincipal = CreateServicePrincipal("runner1-sp", Organizations["1"].Id);
         dbContext.ServicePrincipals.Add(runner0ServicePrincipal);
+
+        ServicePrincipals["0"] = CreateServicePrincipal("org0-sp", Organizations["0"].Id);
+        NonServicePrincipalClients["0"] = CreateNonServicePrincipalClient("org0-other-client", Organizations["0"].Id);
+        dbContext.ServicePrincipals.Add(ServicePrincipals["0"]);
+        dbContext.ServicePrincipals.Add(NonServicePrincipalClients["0"]);
         dbContext.ServicePrincipals.Add(runner1ServicePrincipal);
 
         // Create Runners for each organization
@@ -1386,7 +1394,31 @@ public class Fixture : IAsyncLifetime
         {
             Id = Guid.NewGuid(),
             DisplayName = name,
+            // The application prefixes the client id with the organization and issues a
+            // confidential client with the client credentials grant; the repository reads only
+            // those back, so a fixture principal has to look the same.
+            ClientId = $"{organizationId}:{name.ToLower().Replace(" ", "-")}",
+            ClientType = OpenIddictConstants.ClientTypes.Confidential,
+            Permissions = $"[\"{OpenIddictConstants.Permissions.GrantTypes.ClientCredentials}\"]",
+            IsDisabled = false,
+            OrganizationId = organizationId
+        };
+    }
+
+    /// <summary>
+    /// The shape the API reference UI's own OAuth client has: no organization prefix, public, and
+    /// an interactive grant. It shares the table with service principals and must not be read as
+    /// one.
+    /// </summary>
+    private ServicePrincipal CreateNonServicePrincipalClient(string name, Guid organizationId)
+    {
+        return new ServicePrincipal
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = name,
             ClientId = name.ToLower().Replace(" ", "-"),
+            ClientType = OpenIddictConstants.ClientTypes.Public,
+            Permissions = $"[\"{OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode}\"]",
             IsDisabled = false,
             OrganizationId = organizationId
         };
