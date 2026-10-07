@@ -124,20 +124,22 @@
     <DialogActions>
         @if (_destroyWithDependencies && _dependencyGraphLoaded && _destroyGraph != null)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
+            <MudTooltip Text="A destroy is already in progress." Disabled="@(!(_isDestroying))">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
                        
-                       OnClick="ExecuteDependencyDestruction"
-                       Disabled="@_isDestroying">
-                @if (_isDestroying)
-                {
-                    @:Destroying Infrastructure...
-                }
-                else
-                {
-                    @:Destroy All (@_destroyGraph.TotalModuleCount modules)
-                }
-            </MudButton>
+                           OnClick="ExecuteDependencyDestruction"
+                           Disabled="@_isDestroying">
+                    @if (_isDestroying)
+                    {
+                        @:Destroying Infrastructure...
+                    }
+                    else
+                    {
+                        @:Destroy All (@_destroyGraph.TotalModuleCount modules)
+                    }
+                </MudButton>
+            </MudTooltip>
         }
         else
         {
@@ -163,7 +165,7 @@
 
         <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                                             Size="Size.Small"
-                   
+               
                    OnClick="Cancel"
                    Disabled="@_isDestroying">
             Cancel

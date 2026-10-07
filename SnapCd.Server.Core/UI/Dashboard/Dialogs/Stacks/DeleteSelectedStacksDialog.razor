@@ -45,14 +45,16 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Delete"
-                   Disabled="@_isDeleting"
-                   StartIcon="@SnapCdIcons.Delete">
-            @(_isDeleting ? "Deleting..." : "Delete All")
-        </MudButton>
+        <MudTooltip Text="A delete is already in progress." Disabled="@(!(_isDeleting))">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Delete"
+                       Disabled="@_isDeleting"
+                       StartIcon="@SnapCdIcons.Delete">
+                @(_isDeleting ? "Deleting..." : "Delete All")
+            </MudButton>
+        </MudTooltip>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
                    Size="Size.Small"

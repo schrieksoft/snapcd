@@ -183,24 +183,26 @@
                     }
 
                     <div class="d-flex gap-2">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="DeleteNamespace"
-                                   Disabled="@(!_canDelete || _isDeleting)">
-                            @if (_isDeleting)
-                            {
-                                @:Deleting...
-                            }
-                            else if (!_canDelete)
-                            {
-                                @:Cannot Delete
-                            }
-                            else
-                            {
-                                @:Delete
-                            }
-                        </MudButton>
+                        <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="DeleteNamespace"
+                                       Disabled="@(!_canDelete || _isDeleting)">
+                                @if (_isDeleting)
+                                {
+                                    @:Deleting...
+                                }
+                                else if (!_canDelete)
+                                {
+                                    @:Cannot Delete
+                                }
+                                else
+                                {
+                                    @:Delete
+                                }
+                            </MudButton>
+                        </MudTooltip>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
                                    Size="Size.Small"
@@ -216,6 +218,11 @@
 </MudExpansionPanels>
 
 @code {
+    private string? DeleteDisabledReason =>
+        !_canDelete ? "You do not have permission to delete this namespace."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
+
     [Parameter] public required NamespaceMetadata Namespace { get; set; }
     [Parameter] public required string StackName { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }

@@ -162,24 +162,26 @@
             var filteredGraph = GetFilteredGraph();
             var uninvolvedCount = GetUninvolvedModuleIds().Count;
             var involvedCount = filteredGraph.NodeStates.Count - uninvolvedCount;
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
-                       OnClick="ExecuteNamespaceApplication"
-                       Disabled="@_isApplying">
-                @if (_isApplying)
-                {
-                    @:Applying Infrastructure...
-                }
-                else
-                {
-                    @:Apply All (@involvedCount modules)
-                }
-            </MudButton>
+            <MudTooltip Text="An apply is already in progress." Disabled="@(!(_isApplying))">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
+                           OnClick="ExecuteNamespaceApplication"
+                           Disabled="@_isApplying">
+                    @if (_isApplying)
+                    {
+                        @:Applying Infrastructure...
+                    }
+                    else
+                    {
+                        @:Apply All (@involvedCount modules)
+                    }
+                </MudButton>
+            </MudTooltip>
         }
 
         <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                                             Size="Size.Small"
-                   
+               
                    OnClick="Cancel"
                    Disabled="@_isApplying">
             Cancel

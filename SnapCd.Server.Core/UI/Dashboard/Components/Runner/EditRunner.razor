@@ -12,6 +12,11 @@
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 
 <MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>

@@ -70,23 +70,25 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                            Size="Size.Small"
-                   OnClick="ConfirmApplication"
-                   Disabled="@_isApplying">
-            @if (_isApplying)
-            {
-                @:Applying...
-            }
-            else
-            {
-                @:Confirm
-            }
-        </MudButton>
+        <MudTooltip Text="An apply is already in progress." Disabled="@(!(_isApplying))">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
+                       OnClick="ConfirmApplication"
+                       Disabled="@_isApplying">
+                @if (_isApplying)
+                {
+                    @:Applying...
+                }
+                else
+                {
+                    @:Confirm
+                }
+            </MudButton>
+        </MudTooltip>
 
         <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                                             Size="Size.Small"
-                   
+               
                    OnClick="Cancel"
                    Disabled="@_isApplying">
             Cancel

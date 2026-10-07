@@ -129,7 +129,11 @@
                 }
                 else
                 {
-                    @if (!_canDelete)
+                    @if (!_hasDeletePermission)
+                    {
+                        <ReadOnlyNotice Message="You do not have permission to delete this module." />
+                    }
+                    else if (!_noBlockingDependencies)
                     {
                         <MudAlert Severity="Severity.Error" Class="mb-3">
                             <strong>Cannot delete this module!</strong> It has external dependencies.
@@ -185,24 +189,26 @@
                     }
 
                     <div class="d-flex gap-2">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="DeleteModule"
-                                   Disabled="@(!_canDelete || _isDeleting)">
-                            @if (_isDeleting)
-                            {
-                                @:Deleting...
-                            }
-                            else if (!_canDelete)
-                            {
-                                @:Cannot Delete
-                            }
-                            else
-                            {
-                                @:Delete
-                            }
-                        </MudButton>
+                        <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="DeleteModule"
+                                       Disabled="@(!_hasDeletePermission || !_noBlockingDependencies || _isDeleting)">
+                                @if (_isDeleting)
+                                {
+                                    @:Deleting...
+                                }
+                                else if (!_hasDeletePermission || !_noBlockingDependencies)
+                                {
+                                    @:Cannot Delete
+                                }
+                                else
+                                {
+                                    @:Delete
+                                }
+                            </MudButton>
+                        </MudTooltip>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Secondary"
                                    Size="Size.Small"
@@ -239,7 +245,13 @@
 
     private Section _activeSection = Section.None;
     private bool _dependencyCheckCompleted;
-    private bool _canDelete;
+    private string? DeleteDisabledReason =>
+        !_hasDeletePermission ? "You do not have permission to delete this module."
+        : !_noBlockingDependencies ? "This module has external dependencies."
+        : null;
+
+    private bool _noBlockingDependencies;
+    private bool _hasDeletePermission;
     private bool _isDeleting;
     private List<string> _externalDependencies = new();
     private List<string> _internalDependencies = new();
@@ -375,7 +387,11 @@
             }
 
             _internalDependencies.Add("Associated module inputs and configurations");
-            _canDelete = !_externalDependencies.Any();
+            _noBlockingDependencies = !_externalDependencies.Any();
+            using (var deletePermissionRepo = ModuleRepoFactory.Create(PrincipalProvider))
+            {
+                _hasDeletePermission = deletePermissionRepo.CanDelete(Module.Id, OrganizationId);
+            }
             _dependencyCheckCompleted = true;
             StateHasChanged();
         }

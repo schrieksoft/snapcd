@@ -12,6 +12,11 @@
 <EditForm Model="Stack" OnValidSubmit="SaveStack">
     <DataAnnotationsValidator/>
 <MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
     <MudGrid>
             <!-- Read-only IDs -->
             <MudItem md="12">

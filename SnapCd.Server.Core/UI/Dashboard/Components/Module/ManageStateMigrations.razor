@@ -44,8 +44,10 @@
             <MudText Typo="Typo.body2">
                 State migrations run against a module that is held still. Pause the module to make them available.
             </MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                       Disabled="@(!_canPause || _busy)" OnClick="Pause">pause</MudButton>
+            <MudTooltip Text="@PauseDisabledReason" Disabled="@(PauseDisabledReason is null)">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Disabled="@(!_canPause || _busy)" OnClick="Pause">pause</MudButton>
+            </MudTooltip>
         </MudStack>
     </MudPaper>
 }
@@ -87,9 +89,11 @@
                         </MudText>
 
                         <MudStack Row Spacing="2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                       OnClick="@(() => Answer(true))">agree</MudButton>
+                            <MudTooltip Text="@AnswerDisabledReason" Disabled="@(AnswerDisabledReason is null)">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
+                                           OnClick="@(() => Answer(true))">agree</MudButton>
+                            </MudTooltip>
                             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                        Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
                                        OnClick="@(() => Answer(false))">refuse</MudButton>
@@ -257,7 +261,7 @@ else
                         <span style="font-size: 14px; color: var(--mud-palette-text-secondary); white-space: nowrap;">
                             @job.Status · @elapsedDisplay
                         </span>
-                        @if (job.Status == ExecutionStatus.Running)
+                        @if (job.Status == ExecutionStatus.Running && _canRunJob)
                         {
                             <MudTooltip Text="Cancel Job">
                                 <MudIconButton Icon="@SnapCdIcons.Cancel"
@@ -349,6 +353,17 @@ else
 }
 
 @code {
+    private string? PauseDisabledReason =>
+        !_canPause ? "You do not have permission to pause this module."
+        : _busy ? "An operation is already in progress."
+        : null;
+
+    private string? AnswerDisabledReason =>
+        !_canPause ? "You do not have permission to answer this."
+        : _busy ? "An operation is already in progress."
+        : RunningStateMigration is not null ? "A state migration is already running."
+        : null;
+
     [Parameter] public required Module Module { get; set; }
     [Parameter] public required ModuleSaga ModuleSaga { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
@@ -356,6 +371,7 @@ else
 
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory { get; set; } = null!;
     [Inject] private StateMigrationServiceFactory StateMigrationServiceFactory { get; set; } = null!;
     [Inject] private TransferServiceFactory TransferServiceFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> TransferDbContextFactory { get; set; } = null!;
@@ -558,6 +574,7 @@ else
     };
 
     private bool _canPause;
+    private bool _canRunJob;
     private bool _busy;
     private List<Module> _transferCandidates = [];
     private Transfer? _transfer;
@@ -724,6 +741,11 @@ else
 
         using var moduleRepo = ModuleRepoFactory.Create(PrincipalProvider);
         _canPause = moduleRepo.CanPause(Module.Id, OrganizationId);
+
+        using (var jobSecuredRepo = JobSecuredRepoFactory.Create(PrincipalProvider))
+        {
+            _canRunJob = jobSecuredRepo.CanRunJob(Module.Id, OrganizationId);
+        }
 
         using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
         _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);

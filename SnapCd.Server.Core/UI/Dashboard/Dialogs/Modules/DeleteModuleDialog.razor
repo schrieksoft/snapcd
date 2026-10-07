@@ -90,29 +90,31 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Delete"
-                   Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
-                   StartIcon="@SnapCdIcons.Delete">
-            @if (_isDeleting)
-            {
-                @:Deleting...
-            }
-            else if (!_dependencyCheckCompleted)
-            {
-                @:Delete
-            }
-            else if (!_canDelete)
-            {
-                @:Cannot Delete
-            }
-            else
-            {
-                @:Delete
-            }
-        </MudButton>
+        <MudTooltip Text="@ActionDisabledReason" Disabled="@(ActionDisabledReason is null)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Delete"
+                       Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
+                       StartIcon="@SnapCdIcons.Delete">
+                @if (_isDeleting)
+                {
+                    @:Deleting...
+                }
+                else if (!_dependencyCheckCompleted)
+                {
+                    @:Delete
+                }
+                else if (!_canDelete)
+                {
+                    @:Cannot Delete
+                }
+                else
+                {
+                    @:Delete
+                }
+            </MudButton>
+        </MudTooltip>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
                    Size="Size.Small"
@@ -125,6 +127,12 @@
 
 
 @code {
+    private string? ActionDisabledReason =>
+        !_dependencyCheckCompleted ? "Still checking dependencies."
+        : !_canDelete ? "This module has external dependencies."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
+
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputRepoFactory { get; set; } = null!;

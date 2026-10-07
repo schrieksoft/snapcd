@@ -93,24 +93,26 @@
         @if (_dependencyGraph != null)
         {
             var modulesToApply = GetModulesToApply();
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
-                       OnClick="ExecuteStackApplication"
-                       Disabled="@_isApplying">
-                @if (_isApplying)
-                {
-                    @:Applying Infrastructure...
-                }
-                else
-                {
-                    @:Apply All (@modulesToApply.Count modules)
-                }
-            </MudButton>
+            <MudTooltip Text="An apply is already in progress." Disabled="@(!(_isApplying))">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
+                           OnClick="ExecuteStackApplication"
+                           Disabled="@_isApplying">
+                    @if (_isApplying)
+                    {
+                        @:Applying Infrastructure...
+                    }
+                    else
+                    {
+                        @:Apply All (@modulesToApply.Count modules)
+                    }
+                </MudButton>
+            </MudTooltip>
         }
 
         <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                                             Size="Size.Small"
-                   
+               
                    OnClick="Cancel"
                    Disabled="@_isApplying">
             Cancel

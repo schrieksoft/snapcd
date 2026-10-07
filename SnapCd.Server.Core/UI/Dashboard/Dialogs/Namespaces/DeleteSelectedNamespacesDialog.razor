@@ -136,29 +136,31 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Delete"
-                   Disabled="@(!_dependencyCheckCompleted || !_canDeleteAll || _isDeleting)"
-                   StartIcon="@SnapCdIcons.Delete">
-            @if (_isDeleting)
-            {
-                @:Deleting...
-            }
-            else if (!_dependencyCheckCompleted)
-            {
-                @:Delete All
-            }
-            else if (!_canDeleteAll)
-            {
-                @:Cannot Delete
-            }
-            else
-            {
-                @:Delete All
-            }
-        </MudButton>
+        <MudTooltip Text="@ActionDisabledReason" Disabled="@(ActionDisabledReason is null)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Delete"
+                       Disabled="@(!_dependencyCheckCompleted || !_canDeleteAll || _isDeleting)"
+                       StartIcon="@SnapCdIcons.Delete">
+                @if (_isDeleting)
+                {
+                    @:Deleting...
+                }
+                else if (!_dependencyCheckCompleted)
+                {
+                    @:Delete All
+                }
+                else if (!_canDeleteAll)
+                {
+                    @:Cannot Delete
+                }
+                else
+                {
+                    @:Delete All
+                }
+            </MudButton>
+        </MudTooltip>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Secondary"
                    Size="Size.Small"
@@ -170,6 +172,12 @@
 </MudDialog>
 
 @code {
+    private string? ActionDisabledReason =>
+        !_dependencyCheckCompleted ? "Still checking dependencies."
+        : !_canDeleteAll ? "Some of these namespaces have external dependencies."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
+
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;

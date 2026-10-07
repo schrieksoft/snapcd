@@ -14,6 +14,11 @@
 
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <MudForm @ref="_form" ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
         <MudStack Spacing="3">
             <MudTextField Label="Client Id"
                           @bind-Value="ClientId"
@@ -52,13 +57,15 @@
             </MudGrid>
 
             <div class="d-flex justify-end gap-2 mt-4">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           Disabled="@(!_canSave)"
-                           OnClick="HandleValidSubmit">
-                    Save Changes
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               Disabled="@(!_canSave)"
+                               OnClick="HandleValidSubmit">
+                        Save Changes
+                    </MudButton>
+                </MudTooltip>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -71,6 +78,8 @@
 </MudPaper>
 
 @code {
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
     [Parameter] public required ServicePrincipalReadDto ServicePrincipal { get; set; }
     [Parameter] public required EventCallback<Guid> OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }

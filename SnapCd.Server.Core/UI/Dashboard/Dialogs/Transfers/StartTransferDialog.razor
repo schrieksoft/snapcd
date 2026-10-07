@@ -41,9 +41,11 @@
                       Variant="Variant.Outlined"/>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                   Disabled="@(_counterparty == null)"
-                   OnClick="Confirm">Start</MudButton>
+        <MudTooltip Text="Select a counterparty first." Disabled="@(!((_counterparty == null)))">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       Disabled="@(_counterparty == null)"
+                       OnClick="Confirm">Start</MudButton>
+        </MudTooltip>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    OnClick="Cancel">Cancel</MudButton>
     </DialogActions>

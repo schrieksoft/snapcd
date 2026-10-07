@@ -14,6 +14,11 @@
 @inherits ComponentBase
 
 <MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
 <MudGrid>
     <MudItem xs="12" md="8" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
@@ -49,12 +54,14 @@
 
             @if (IsCreateMode)
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           Disabled="@(!_canSave)" OnClick="CreateItem">
-                    Create
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Disabled="@(!_canSave)" OnClick="CreateItem">
+                        Create
+                    </MudButton>
+                </MudTooltip>
 
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
@@ -65,21 +72,26 @@
             }
             else
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           Disabled="@(!HasChanges || !_canSave)"
-                           OnClick="UpdateItem">
-                    Save
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Disabled="@(!HasChanges || !_canSave)"
+                               OnClick="UpdateItem">
+                        Save
+                    </MudButton>
+                </MudTooltip>
 
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           StartIcon="@SnapCdIcons.Delete"
-                           OnClick="DeleteItem">
-                    Delete
-                </MudButton>
+                <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               StartIcon="@SnapCdIcons.Delete"
+                               Disabled="@(!_canDelete)"
+                               OnClick="DeleteItem">
+                        Delete
+                    </MudButton>
+                </MudTooltip>
             }
         </MudStack>
     </MudItem>
@@ -87,6 +99,10 @@
 </MudForm>
 
 @code {
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
+
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
     protected override async Task OnInitializedAsync()
     {
         ResolveCanSave();
@@ -129,6 +145,7 @@
 
 
     private bool _canSave;
+    private bool _canDelete;
 
     private void ResolveCanSave()
     {
@@ -137,6 +154,7 @@
         _canSave = IsCreateMode
             ? repo.CanCreate(Context.ParentId(), OrganizationId)
             : repo.CanUpdate(Context.Id, OrganizationId);
+        _canDelete = !IsCreateMode && repo.CanDelete(Context.Id, OrganizationId);
     }
 
     private async Task DeleteItem()

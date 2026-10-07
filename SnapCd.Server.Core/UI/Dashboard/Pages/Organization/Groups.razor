@@ -103,10 +103,13 @@
                                            OnClick="() => ManageMembers(group)"/>
                         </MudTooltip>
 
-                        <MudTooltip Text="Delete group">
-                            <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
-                                           OnClick="() => Delete(group)"/>
-                        </MudTooltip>
+                        @if (_deletableIds.Contains(group.Id))
+                        {
+                            <MudTooltip Text="Delete group">
+                                <MudIconButton Icon="@SnapCdIcons.Delete" Color="Color.Primary" Size="Size.Small"
+                                               OnClick="() => Delete(group)"/>
+                            </MudTooltip>
+                        }
 
                         @if (IsShowing(group.Id, ShowingType.Edit))
                         {
@@ -153,6 +156,7 @@
     [SupplyParameterFromQuery] public string? Action { get; set; }
 
     private bool _canCreate;
+    private HashSet<Guid> _deletableIds = new();
 
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
@@ -286,6 +290,7 @@
         using var repo = RepoFactory.Create();
         _groups = await repo.List(OrganizationId);
         _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
+        _deletableIds = _groups.Where(x => repo.CanDelete(x.Id, OrganizationId)).Select(x => x.Id).ToHashSet();
     }
 
 

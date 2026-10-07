@@ -66,13 +66,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="@CreateUserRoleAssignment"
-                               Size="Size.Small"
-                               Disabled="@(_selectedUser == null)">
-                        Create
-                    </MudButton>
+                    <MudTooltip Text="Select a user first." Disabled="@(!((_selectedUser == null)))">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   OnClick="@CreateUserRoleAssignment"
+                                   Size="Size.Small"
+                                   Disabled="@(_selectedUser == null)">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
                                OnClick="@CancelUserCreate"
@@ -147,13 +149,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="@CreateSpRoleAssignment"
-                               Size="Size.Small"
-                               Disabled="@(_selectedServicePrincipal == null)">
-                        Create
-                    </MudButton>
+                    <MudTooltip Text="Select a service principal first." Disabled="@(!((_selectedServicePrincipal == null)))">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   OnClick="@CreateSpRoleAssignment"
+                                   Size="Size.Small"
+                                   Disabled="@(_selectedServicePrincipal == null)">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
                                OnClick="@CancelSpCreate"
@@ -228,13 +232,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               OnClick="@CreateGroupRoleAssignment"
-                               Size="Size.Small"
-                               Disabled="@(_selectedGroup == null)">
-                        Create
-                    </MudButton>
+                    <MudTooltip Text="Select a group first." Disabled="@(!((_selectedGroup == null)))">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   OnClick="@CreateGroupRoleAssignment"
+                                   Size="Size.Small"
+                                   Disabled="@(_selectedGroup == null)">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
                                OnClick="@CancelGroupCreate"

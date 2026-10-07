@@ -56,20 +56,28 @@
             }
             else
             {
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           Disabled="@(!_canCreate)"
-                           OnClick="StartCreate"
-                           Class="mt-2">
-                    Add New
-                </MudButton>
+                @if (!_canCreate)
+                {
+                    <ReadOnlyNotice Message="You do not have permission to add new entries here." />
+                }
+                <MudTooltip Text="@CreateDisabledReason" Disabled="@(CreateDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               Disabled="@(!_canCreate)"
+                               OnClick="StartCreate"
+                               Class="mt-2">
+                        Add New
+                    </MudButton>
+                </MudTooltip>
             }
         </MudExpansionPanels>
     }
 </MudTabPanel>
 
 @code {
+    private string? CreateDisabledReason => _canCreate ? null : "You do not have permission to create here.";
+
     [Parameter] public required string Title { get; set; } = null!;
     [Parameter] public required Guid NamespaceId { get; set; }
     [Parameter] public required Guid StackId { get; set; }

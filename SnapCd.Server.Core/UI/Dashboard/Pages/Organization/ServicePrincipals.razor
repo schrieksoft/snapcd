@@ -116,10 +116,13 @@
                                            OnClick="() => ManageRoles(servicePrincipal)"/>
                         </MudTooltip>
 
-                        <MudTooltip Text="Delete service principal">
-                            <MudIconButton Icon="@SnapCdIcons.Delete" Color=Color.Primary Size="Size.Small"
-                                           OnClick="() => Delete(servicePrincipal)"/>
-                        </MudTooltip>
+                        @if (_deletableIds.Contains(servicePrincipal.Id))
+                        {
+                            <MudTooltip Text="Delete service principal">
+                                <MudIconButton Icon="@SnapCdIcons.Delete" Color=Color.Primary Size="Size.Small"
+                                               OnClick="() => Delete(servicePrincipal)"/>
+                            </MudTooltip>
+                        }
 
                         @if (IsShowing(servicePrincipal.Id, ShowingType.Edit))
                         {
@@ -159,6 +162,7 @@
     [SupplyParameterFromQuery] public string? Action { get; set; }
 
     private bool _canCreate;
+    private HashSet<Guid> _deletableIds = new();
 
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
@@ -325,6 +329,7 @@
         using (var repo = CreatePermissionRepoFactory.Create())
         {
             _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
+            _deletableIds = _servicePrincipals.Where(x => repo.CanDelete(x.Id, OrganizationId)).Select(x => x.Id).ToHashSet();
         }
     }
 

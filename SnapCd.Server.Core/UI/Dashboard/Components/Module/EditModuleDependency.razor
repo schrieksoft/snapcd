@@ -13,6 +13,11 @@
 @inherits ComponentBase
 
 <MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
@@ -52,13 +57,15 @@
         <MudStack Row="true" Spacing="4" Class="mt-4">
             @if (IsCreateMode)
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           OnClick="CreateItem"
-                           Disabled="@(_selectedModule == null || !_canSave)">
-                    Create
-                </MudButton>
+                <MudTooltip Text="@CreateDisabledReason" Disabled="@(CreateDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               OnClick="CreateItem"
+                               Disabled="@(_selectedModule == null || !_canSave)">
+                        Create
+                    </MudButton>
+                </MudTooltip>
 
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
@@ -69,21 +76,26 @@
             }
             else
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           Disabled="@(!HasChanges || !_canSave)"
-                           OnClick="UpdateItem">
-                    Save
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Disabled="@(!HasChanges || !_canSave)"
+                               OnClick="UpdateItem">
+                        Save
+                    </MudButton>
+                </MudTooltip>
 
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           StartIcon="@SnapCdIcons.Delete"
-                           OnClick="DeleteItem">
-                    Delete
-                </MudButton>
+                <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               StartIcon="@SnapCdIcons.Delete"
+                               Disabled="@(!_canDelete)"
+                               OnClick="DeleteItem">
+                        Delete
+                    </MudButton>
+                </MudTooltip>
             }
         </MudStack>
     </MudItem>
@@ -91,6 +103,15 @@
 </MudForm>
 
 @code {
+    private string? CreateDisabledReason =>
+        !_canSave ? "You do not have permission to create here."
+        : _selectedModule == null ? "Select a module first."
+        : null;
+
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
+
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
     [Parameter] public bool IsCreateMode { get; set; } = true;
     [Parameter] public DependsOnModule Context { get; set; } = default!;
     [Parameter] public EventCallback OnDelete { get; set; }
@@ -131,6 +152,7 @@
 
 
     private bool _canSave;
+    private bool _canDelete;
 
     private void ResolveCanSave()
     {
@@ -139,6 +161,7 @@
         _canSave = IsCreateMode
             ? repo.CanCreate(Context.ParentId(), OrganizationId)
             : repo.CanUpdate(Context.Id, OrganizationId);
+        _canDelete = !IsCreateMode && repo.CanDelete(Context.Id, OrganizationId);
     }
 
     private async Task LoadCurrentModule()

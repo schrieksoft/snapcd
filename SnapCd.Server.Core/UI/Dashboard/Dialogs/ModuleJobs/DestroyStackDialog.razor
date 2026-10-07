@@ -93,24 +93,26 @@
         @if (_dependencyGraph != null)
         {
             var modulesToDestroy = GetModulesToDestroy();
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
-                       OnClick="ExecuteStackDestruction"
-                       Disabled="@_isDestroying">
-                @if (_isDestroying)
-                {
-                    @:Destroying Infrastructure...
-                }
-                else
-                {
-                    @:Destroy All (@modulesToDestroy.Count modules)
-                }
-            </MudButton>
+            <MudTooltip Text="A destroy is already in progress." Disabled="@(!(_isDestroying))">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
+                           OnClick="ExecuteStackDestruction"
+                           Disabled="@_isDestroying">
+                    @if (_isDestroying)
+                    {
+                        @:Destroying Infrastructure...
+                    }
+                    else
+                    {
+                        @:Destroy All (@modulesToDestroy.Count modules)
+                    }
+                </MudButton>
+            </MudTooltip>
         }
 
         <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                                             Size="Size.Small"
-                   
+               
                    OnClick="Cancel"
                    Disabled="@_isDestroying">
             Cancel

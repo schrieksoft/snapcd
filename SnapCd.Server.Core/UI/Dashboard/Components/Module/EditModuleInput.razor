@@ -22,6 +22,11 @@
 @inherits ComponentBase
 
 <MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4"> <!-- Added gap container -->
         <!-- Common ModuleInput fields -->
@@ -188,13 +193,17 @@
 
             @if (IsCreateMode)
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           Disabled="@(!_canSave)"
-                           OnClick="CreateItem">
-                    Create
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                        <MudButton Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Variant="Variant.Filled"
+                                   Disabled="@(!_canSave)"
+                                   OnClick="CreateItem">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
+                </MudTooltip>
 
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
@@ -205,22 +214,28 @@
             }
             else
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           Disabled="@(!HasChanges || !_canSave)"
-                           OnClick="UpdateItem">
-                    Save
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                        <MudButton Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Variant="Variant.Filled"
+                                   Disabled="@(!HasChanges || !_canSave)"
+                                   OnClick="UpdateItem">
+                            Save
+                        </MudButton>
+                    </MudTooltip>
+                </MudTooltip>
 
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           StartIcon="@SnapCdIcons.Delete"
-                           Disabled="@(!_canDelete)"
-                           OnClick="DeleteItem">
-                    Delete
-                </MudButton>
+                <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               StartIcon="@SnapCdIcons.Delete"
+                               Disabled="@(!_canDelete)"
+                               OnClick="DeleteItem">
+                        Delete
+                    </MudButton>
+                </MudTooltip>
             }
         </MudStack>
     </MudItem>
@@ -228,6 +243,8 @@
 </MudForm>
 
 @code {
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
     [Parameter] public bool IsCreateMode { get; set; } = true;
     [Parameter] public TEntity Context { get; set; } = default!;
     [Parameter] public TSecuredRepositoryFactory RepositoryFactory { get; set; } = default!;
@@ -247,6 +264,8 @@
     [Inject] private ModuleSecretSecuredRepositoryFactory ModuleSecretRepoFactory { get; set; } = null!;
     [Inject] private NamespaceSecretSecuredRepositoryFactory NamespaceSecretRepoFactory { get; set; } = null!;
     [Inject] private StackSecretSecuredRepositoryFactory StackSecretRepoFactory { get; set; } = null!;
+
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
 
     private bool _canSave;
     private bool _canDelete;

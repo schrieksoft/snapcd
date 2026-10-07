@@ -14,6 +14,11 @@
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
         <MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
         <MudGrid Class="d-flex flex-column gap-4">
             <MudItem xs="12">
                 <MudTextField Label="State Store Id"
@@ -29,12 +34,14 @@
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit" Disabled="@(!_canSave)"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small">
-                    Save
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton ButtonType="ButtonType.Submit" Disabled="@(!_canSave)"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small">
+                        Save
+                    </MudButton>
+                </MudTooltip>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -48,6 +55,8 @@
 </MudPaper>
 
 @code {
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
     protected override void OnInitialized() => ResolveCanSave();
 
     [Parameter] public required Entities.Definition.StateStore StateStore { get; set; }
