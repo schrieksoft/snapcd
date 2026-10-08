@@ -179,11 +179,3 @@ EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
 EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
                         @order = 'First', @stmttype = 'DELETE';
 GO
-
-EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
-                        @order = 'First', @stmttype = 'INSERT';
-EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
-                        @order = 'First', @stmttype = 'UPDATE';
-EXEC sp_settriggerorder @triggername = 'dbo.trg_GroupMembers_RecursiveRebuild',
-                        @order = 'First', @stmttype = 'DELETE';
-GO
