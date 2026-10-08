@@ -41,6 +41,7 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid DebugStackMetadataReaderUserId = new("99999999-9999-9999-9999-999999999997");
     private static readonly Guid DebugInfraOwnerUserId = new("99999999-9999-9999-9999-999999999998");
     private static readonly Guid DebugInfraOwnerNoMetadataUserId = new("99999999-9999-9999-9999-999999999989");
+    private static readonly Guid DebugNoRolesUserId = new("99999999-9999-9999-9999-999999999988");
 
     // Every preseeded debug user shares this, so switching between them needs no lookup.
     private const string DebugUserPassword = "Debug#123";
@@ -136,7 +137,9 @@ public class DebugDataSeeder : ProductionDataSeeder
             (DebugStackReaderUserId, "stackreader@preseeded.io"),
             (DebugStackMetadataReaderUserId, "stackmetadatareader@preseeded.io"),
             (DebugInfraOwnerUserId, "infraowner@preseeded.io"),
-            (DebugInfraOwnerNoMetadataUserId, "infraowner-no-metadata@preseeded.io")
+            (DebugInfraOwnerNoMetadataUserId, "infraowner-no-metadata@preseeded.io"),
+            // No grant at all: every list should be empty and say why, every control disabled.
+            (DebugNoRolesUserId, "noroles@preseeded.io")
         };
 
         foreach (var (id, name) in users)
