@@ -13,10 +13,17 @@
         <MudText>Force Unlock State File</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         Are you sure you want to force unlock state file "@StateFile.Name"?
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Unlock" Size="Size.Small">Unlock</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Unlock" Size="Size.Small">Unlock</MudButton>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -26,6 +33,15 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
     [Parameter] public required StateFileReadDto StateFile { get; set; }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        _refusal = Service.CanUpdate(StateFile.Id, OrganizationId)
+            ? null
+            : "You do not have permission to unlock this state file.";
+    }
 
     private void Cancel()
     {

@@ -8,17 +8,26 @@
 
 @using SnapCd.Server.Core.Services.Crud.Jobs
 @using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
 @inject SecuredJobServiceFactory SecuredJobServiceFactory
+@inject ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory
 
 <MudDialog>
     <TitleContent>
         <MudText>Clear Queued</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         Are your sure you want clear the existing queued Job?
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Clear" Size="Size.Small">Clear</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Clear" Size="Size.Small">Clear</MudButton>
+        }
         <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -30,6 +39,16 @@
     [Parameter] public Guid OrganizationId { get; set; }
 
     [Parameter] public required Guid ModuleId { get; set; }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var repo = JobSecuredRepoFactory.Create();
+        _refusal = repo.CanRunJob(ModuleId, OrganizationId)
+            ? null
+            : "You do not have permission to clear the queue for this module.";
+    }
     [Parameter] public required Guid NamespaceId { get; set; }
 
     [Parameter] public required IPrincipalProvider PrincipalProvider { get; set; }

@@ -59,27 +59,19 @@
             }
             else
             {
-                @if (!_canCreate)
-                {
-                    <ReadOnlyNotice Message="You do not have permission to add new entries here." />
-                }
-                <MudTooltip Text="@CreateDisabledReason" Disabled="@(CreateDisabledReason is null)">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               Size="Size.Small"
-                               Disabled="@(!_canCreate)"
-                               OnClick="StartCreate"
-                               Class="mt-2">
-                        Add New
-                    </MudButton>
-                </MudTooltip>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           OnClick="StartCreate"
+                           Class="mt-2">
+                    Add New
+                </MudButton>
             }
         </MudExpansionPanels>
     }
 </MudTabPanel>
 
 @code {
-    private string? CreateDisabledReason => _canCreate ? null : "You do not have permission to create here.";
 
     [Parameter] public required string Title { get; set; } = null!;
     [Parameter] public required Guid ModuleId { get; set; }
@@ -90,7 +82,6 @@
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    private bool _canCreate;
     private bool _isCreating;
     private bool _newItemExpanded;
 
@@ -133,7 +124,6 @@
     private async Task ReloadItems()
     {
         using var repository = SecuredRepositoryFactory.Create(PrincipalProvider);
-        _canCreate = repository.CanCreate(ModuleId, OrganizationId);
         _items = await repository.ListByParentId(ModuleId, OrganizationId);
     }
 

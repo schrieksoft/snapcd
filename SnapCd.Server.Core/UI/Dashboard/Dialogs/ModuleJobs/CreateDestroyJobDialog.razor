@@ -19,6 +19,8 @@
 @using SnapCd.Server.Core.Services.Crud.Jobs
 @using SnapCd.Server.Core.Services.DependencyGraph
 
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@inject ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory
 @inject ISnackbar Snackbar
 @inject ILogger<CreateDestroyJobDialog> Logger
 @inject SecuredJobServiceFactory SecuredJobServiceFactory
@@ -31,6 +33,10 @@
         <MudText Typo="Typo.h6">Destroy Module</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         @if (Module == null)
         {
             <div class="text-center">
@@ -144,7 +150,9 @@
         else
         {
             <MudTooltip Text="@DestroyDisabledReason" Disabled="@(DestroyDisabledReason is null)">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                @if (_refusal is null)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                                                     Size="Size.Small"
                        
                            OnClick="DestroyModule"
@@ -162,6 +170,7 @@
                         @:Destroy Module
                     }
                 </MudButton>
+                }
             </MudTooltip>
         }
 
@@ -252,6 +261,16 @@
         //     _dependencyGraphLoaded = cachedData.DependencyGraphLoaded;
         //     _destroyGraph = cachedData.DestroyGraph;
         // }
+    }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = JobSecuredRepoFactory.Create();
+        _refusal = permissionRepo.CanRunJob(ModuleId, OrganizationId)
+            ? null
+            : "You do not have permission to run jobs on this module.";
     }
 
     private async Task CheckDependencies()

@@ -14,10 +14,17 @@
         <MudText>Delete Agent</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         Are you sure you want to delete agent "@Agent.Name" (ID "@Agent.Id")?
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete" Size="Size.Small">Delete</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete" Size="Size.Small">Delete</MudButton>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -28,6 +35,16 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
     [Parameter] public required Agent Agent { get; set; }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _refusal = permissionRepo.CanDelete(Agent.Id, OrganizationId)
+            ? null
+            : "You do not have permission to delete this agent.";
+    }
 
     private void Cancel() => MudDialog.Cancel();
 

@@ -45,25 +45,18 @@ else
             </MudExpansionPanel>
         }
 
-        @if (!_canCreate)
-        {
-            <ReadOnlyNotice Message="You do not have permission to add new entries here." />
-        }
-        <MudTooltip Text="@CreateDisabledReason" Disabled="@(CreateDisabledReason is null)">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       Size="Size.Small"
-                       Disabled="@(!_canCreate)" OnClick="StartCreate"
-                       Class="mt-2">
-                Add New
-            </MudButton>
-        </MudTooltip>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Secondary"
+                   Size="Size.Small"
+                   OnClick="StartCreate"
+                   Class="mt-2">
+            Add New
+        </MudButton>
 
     </MudExpansionPanels>
 }
 
 @code {
-    private string? CreateDisabledReason => _canCreate ? null : "You do not have permission to create here.";
 
     [Parameter] public string Title { get; set; } = null!;
     [Parameter] public Guid NamespaceId { get; set; }
@@ -72,13 +65,6 @@ else
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
 
-    private bool _canCreate;
-
-    private void ResolveCanCreate()
-    {
-        using var repo = NamespacePulumiLocalPolicySecuredRepositoryFactory.Create(PrincipalProvider);
-        _canCreate = repo.CanCreate(NamespaceId, OrganizationId);
-    }
 
     [Inject] private NamespacePulumiLocalPolicySecuredRepositoryFactory NamespacePulumiLocalPolicySecuredRepositoryFactory { get; set; } = null!;
 
@@ -89,7 +75,6 @@ else
 
     protected override Task OnInitializedAsync()
     {
-        ResolveCanCreate();
         return Task.CompletedTask;
     }
 

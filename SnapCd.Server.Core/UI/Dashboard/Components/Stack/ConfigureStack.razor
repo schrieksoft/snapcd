@@ -211,12 +211,21 @@
 
     private async Task DeleteStack()
     {
+        string? refusal;
+        using (var permissionRepo = RepoFactory.Create())
+        {
+            refusal = permissionRepo.CanDelete(Stack.Id, OrganizationId)
+                ? null
+                : "You do not have permission to delete this stack.";
+        }
+
         var parameters = new DialogParameters<ConfirmDialog>
         {
             { x => x.ContentText, $"This permanently deletes stack \"{Stack.Name}\" including all of its namespaces, modules and job history. This cannot be undone. Type the stack name to confirm." },
             { x => x.ButtonText, "Delete" },
             { x => x.RequireConfirmation, true },
-            { x => x.ConfirmationText, Stack.Name }
+            { x => x.ConfirmationText, Stack.Name },
+            { x => x.RefusalReason, refusal }
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };

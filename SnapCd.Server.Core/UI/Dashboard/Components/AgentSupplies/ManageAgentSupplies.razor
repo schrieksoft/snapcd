@@ -38,6 +38,10 @@
                 }"
                 OnCancel="() => _showCreateStackSupply = false"/>
         }
+        @if (!_agentStackSupplies.Any())
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">No stack supplies yet.</MudText>
+        }
         <MudExpansionPanels>
             @foreach (var supply in _agentStackSupplies)
             {
@@ -77,6 +81,10 @@
                 OnCancel="() => _showCreateNamespaceSupply = false"/>
         }
 
+        @if (!_agentNamespaceSupplies.Any())
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">No namespace supplies yet.</MudText>
+        }
         <MudExpansionPanels>
             @foreach (var supply in _agentNamespaceSupplies)
             {
@@ -114,6 +122,10 @@
                     await ReloadSupplies();
                 }"
                 OnCancel="() => _showCreateModuleSupply = false"/>
+        }
+        @if (!_agentModuleSupplies.Any())
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">No module supplies yet.</MudText>
         }
         <MudExpansionPanels>
             @foreach (var supply in _agentModuleSupplies)

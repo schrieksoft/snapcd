@@ -12,6 +12,10 @@
 
 <MudDialog>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         <MudText>Are you sure you want to remove user "@OrganizationUser.User?.Email" from this organization?</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
             This will permanently remove the user's membership and all their role assignments in this organization.
@@ -19,7 +23,10 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small">Cancel</MudButton>
-        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small">Remove</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton OnClick="Submit" Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small">Remove</MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -30,6 +37,16 @@
     [Parameter] public required Guid OrganizationId { get; set; }
 
     [Inject] private OrganizationUserSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _refusal = permissionRepo.CanDelete(OrganizationUser.Id, OrganizationId)
+            ? null
+            : "You do not have permission to remove this user from the organization.";
+    }
 
     private void Cancel() => MudDialog.Cancel();
 

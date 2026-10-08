@@ -12,6 +12,10 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies
 @using SnapCd.Server.Core.Views
 <MudPaper Elevation="1" Class="pa-4 mb-4">
+    @if (_refusal is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+    }
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
             <MudItem xs="12" md="6">
@@ -45,13 +49,16 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           OnClick="SaveSupply"
-                           Class="mr-2">
-                    Create
-                </MudButton>
+                @if (_refusal is null)
+                {
+    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="SaveSupply"
+                               Class="mr-2">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -82,6 +89,18 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialValues();
+    }
+
+    private string? _refusal;
+
+    protected override void OnParametersSet()
+    {
+        if (IntegrationId is null) return;
+
+        using var permissionRepo = SupplyRepoFactory.Create();
+        _refusal = permissionRepo.CanCreate(IntegrationId.Value, OrganizationId)
+            ? null
+            : "You do not have permission to add a supply to this integration.";
     }
 
     private async Task LoadInitialValues()

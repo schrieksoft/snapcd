@@ -1,0 +1,88 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using System.Text.Json
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.Integrations
+@inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudText Typo="Typo.h6" GutterBottom="true">New Integration</MudText>
+    <MudSelect T="IntegrationType" @bind-Value="_model.IntegrationType" Label="Integration Type" Class="mb-2">
+        @foreach (var t in Enum.GetValues<IntegrationType>())
+        {
+            <MudSelectItem T="IntegrationType" Value="t">@t</MudSelectItem>
+        }
+    </MudSelect>
+    <MudTextField @bind-Value="_model.Name" Label="Name" Class="mb-2"/>
+    @if (_model.IntegrationType == IntegrationType.Slack)
+    {
+        <MudTextField @bind-Value="_model.DefaultChannel" Label="Default channel (e.g. #alerts or channel id)" Class="mb-2"/>
+        <MudTextField @bind-Value="_model.BotToken" Label="Bot token (xoxb-…)" InputType="MudBlazor.InputType.Password" Class="mb-2"/>
+    }
+    <MudSwitch T="bool" @bind-Value="_model.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary"/>
+    <MudSwitch T="bool" @bind-Value="_model.Enabled" Label="Enabled" Color="Color.Secondary"/>
+    <MudStack Row Spacing="2" Class="mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Submit">Create</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Cancel">Cancel</MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public EventCallback OnCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private readonly Model _model = new();
+
+    private async Task Submit()
+    {
+        try
+        {
+            await Service.Create(OrganizationId, new IntegrationCreateDto
+            {
+                Name = _model.Name,
+                IntegrationType = _model.IntegrationType,
+                Enabled = _model.Enabled,
+                IsSuppliedToAllModules = _model.IsSuppliedToAllModules,
+                Connection = BuildConnection(_model.IntegrationType, _model.BotToken, _model.DefaultChannel)
+            });
+
+            Snackbar.Add("Integration created.", Severity.Success);
+            await OnCreated.InvokeAsync();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+
+    private Task Cancel() => OnCancel.InvokeAsync();
+
+    /// <summary>Slack is the only type with a connection shape; the rest carry an empty object.</summary>
+    private static JsonElement BuildConnection(IntegrationType type, string botToken, string defaultChannel)
+    {
+        return type switch
+        {
+            IntegrationType.Slack => JsonSerializer.SerializeToElement(new { botToken, defaultChannel }),
+            _ => JsonSerializer.SerializeToElement(new { })
+        };
+    }
+
+    private sealed class Model
+    {
+        public IntegrationType IntegrationType { get; set; } = IntegrationType.Slack;
+        public string Name { get; set; } = "";
+        public string DefaultChannel { get; set; } = "";
+        public string BotToken { get; set; } = "";
+        public bool IsSuppliedToAllModules { get; set; }
+        public bool Enabled { get; set; } = true;
+    }
+}

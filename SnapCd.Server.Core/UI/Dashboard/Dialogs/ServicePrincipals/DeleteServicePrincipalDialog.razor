@@ -13,10 +13,17 @@
         <MudText>Delete Service Principal</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         Are you sure you want to delete service principal "@ServicePrincipal.ClientId" (ID "@ServicePrincipal.Id")?
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete" Size="Size.Small">Delete</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Delete" Size="Size.Small">Delete</MudButton>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -30,6 +37,16 @@
     [Parameter] public Guid OrganizationId { get; set; }
 
     [Parameter] public required ServicePrincipalReadDto ServicePrincipal { get; set; }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = ServiceFactory.Create();
+        _refusal = permissionRepo.CanDelete(ServicePrincipal.Id, OrganizationId)
+            ? null
+            : "You do not have permission to delete this service principal.";
+    }
 
     private void Cancel()
     {

@@ -34,6 +34,15 @@ public abstract class GenericCrudService<TEntity, TCreateDto, TUpdateDto, TDto, 
         SecuredRepository = securedRepository;
     }
 
+    /// <summary>Whether the caller may read this entity. For a dialog that wants to say so before acting.</summary>
+    public bool CanRead(Guid id, Guid organizationId) => SecuredRepository.CanRead(id, organizationId);
+
+    public bool CanUpdate(Guid id, Guid organizationId) => SecuredRepository.CanUpdate(id, organizationId);
+
+    public bool CanDelete(Guid id, Guid organizationId) => SecuredRepository.CanDelete(id, organizationId);
+
+    public bool CanCreate(Guid parentId, Guid organizationId) => SecuredRepository.CanCreate(parentId, organizationId);
+
     // Abstract mapping methods that each service must implement
     protected abstract TEntity MapToEntity(TCreateDto dto, Guid organizationId);
     protected abstract TDto MapToDto(TEntity entity);

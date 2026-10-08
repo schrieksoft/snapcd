@@ -13,11 +13,18 @@
         <MudText>Rename State File</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required"/>
     </DialogContent>
     <DialogActions>
         <MudTooltip Text="Enter a name first." Disabled="@(!(string.IsNullOrWhiteSpace(_name)))">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_name)" Size="Size.Small">Save</MudButton>
+            @if (_refusal is null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_name)" Size="Size.Small">Save</MudButton>
+            }
         </MudTooltip>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
@@ -34,6 +41,15 @@
     protected override void OnParametersSet()
     {
         _name = StateFile.Name;
+    }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        _refusal = Service.CanUpdate(StateFile.Id, OrganizationId)
+            ? null
+            : "You do not have permission to rename this state file.";
     }
 
     private void Cancel()

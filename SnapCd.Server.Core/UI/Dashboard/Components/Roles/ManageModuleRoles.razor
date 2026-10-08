@@ -41,7 +41,11 @@
             </MudButton>
         }
 
-        @if (_showUserCreateForm)
+        @if (_userAssignRefusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_userAssignRefusal</MudAlert>
+        }
+        @if (_showUserCreateForm && _userAssignRefusal is null)
         {
             <MudPaper Elevation="0" Class="pa-3 mb-4">
                 <MudAutocomplete T="UserMetadata?"
@@ -124,7 +128,11 @@
             </MudButton>
         }
 
-        @if (_showServicePrincipalCreateForm)
+        @if (_servicePrincipalAssignRefusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_servicePrincipalAssignRefusal</MudAlert>
+        }
+        @if (_showServicePrincipalCreateForm && _servicePrincipalAssignRefusal is null)
         {
             <MudPaper Elevation="2" Class="pa-3 mb-4">
                 <MudAutocomplete T="ServicePrincipalMetadata?"
@@ -207,7 +215,11 @@
             </MudButton>
         }
 
-        @if (_showGroupCreateForm)
+        @if (_groupAssignRefusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_groupAssignRefusal</MudAlert>
+        }
+        @if (_showGroupCreateForm && _groupAssignRefusal is null)
         {
             <MudPaper Elevation="2" Class="pa-3 mb-4">
                 <MudAutocomplete T="GroupMetadata?"
@@ -316,6 +328,10 @@
     private List<ServicePrincipalAssignmentRow> _servicePrincipalRoleAssignments = new();
     private List<GroupAssignmentRow> _groupRoleAssignments = new();
 
+    private string? _userAssignRefusal;
+    private string? _servicePrincipalAssignRefusal;
+    private string? _groupAssignRefusal;
+
     private bool _showUserCreateForm;
     private ModuleRole _selectedUserRole = ModuleRole.Reader;
     private UserMetadata? _selectedUser;
@@ -401,6 +417,13 @@
     // User methods
     private void ShowUserCreateForm()
     {
+        using (var permissionRepo = UserRoleRepoFactory.Create())
+        {
+            _userAssignRefusal = permissionRepo.CanCreate(ModuleId, OrganizationId)
+                ? null
+                : "You do not have permission to assign a user role here.";
+        }
+
         _showUserCreateForm = true;
         _selectedUserRole = ModuleRole.Reader;
         _selectedUser = null;
@@ -478,6 +501,13 @@
     // Service Principal methods
     private void ShowSpCreateForm()
     {
+        using (var permissionRepo = ServicePrincipalRoleRepoFactory.Create())
+        {
+            _servicePrincipalAssignRefusal = permissionRepo.CanCreate(ModuleId, OrganizationId)
+                ? null
+                : "You do not have permission to assign a service principal role here.";
+        }
+
         _showServicePrincipalCreateForm = true;
         _selectedServicePrincipalRole = ModuleRole.Reader;
         _selectedServicePrincipal = null;
@@ -556,6 +586,13 @@
     // Group methods
     private void ShowGroupCreateForm()
     {
+        using (var permissionRepo = GroupRoleRepoFactory.Create())
+        {
+            _groupAssignRefusal = permissionRepo.CanCreate(ModuleId, OrganizationId)
+                ? null
+                : "You do not have permission to assign a group role here.";
+        }
+
         _showGroupCreateForm = true;
         _selectedGroupRole = ModuleRole.Reader;
         _selectedGroup = null;

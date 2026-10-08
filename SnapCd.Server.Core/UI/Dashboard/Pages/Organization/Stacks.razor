@@ -51,15 +51,12 @@
     else
     {
         <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudTooltip Text="@(_canCreate ? null : "You do not have permission to create here.")" Disabled="@_canCreate">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           Disabled="@(!_canCreate)"
-                           OnClick="ShowCreate">
-                    Create
-                </MudButton>
-            </MudTooltip>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreate">
+                Create
+            </MudButton>
         </MudPaper>
     }
 
@@ -151,7 +148,6 @@
 </CascadingValue>
 
 @code {
-    private bool _canCreate;
 
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
     [SupplyParameterFromQuery] public string? Search { get; set; }
@@ -171,7 +167,6 @@
     {
         using (var repo = CreatePermissionRepoFactory.Create())
         {
-            _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
         }
 
         // Parse search terms from URL query parameter

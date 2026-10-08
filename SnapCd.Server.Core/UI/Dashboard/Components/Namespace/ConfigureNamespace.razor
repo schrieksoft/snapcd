@@ -127,7 +127,7 @@
                 }
                 else
                 {
-                    @if (!_canDelete)
+                    @if (!_noBlockingDependencies)
                     {
                         <MudAlert Severity="Severity.Error" Class="mb-3">
                             <strong>Cannot delete this namespace!</strong> Modules within this namespace have external dependencies.
@@ -188,12 +188,12 @@
                                        Color="Color.Secondary"
                                        Size="Size.Small"
                                        OnClick="DeleteNamespace"
-                                       Disabled="@(!_canDelete || _isDeleting)">
+                                       Disabled="@(!_noBlockingDependencies || _isDeleting)">
                                 @if (_isDeleting)
                                 {
                                     @:Deleting...
                                 }
-                                else if (!_canDelete)
+                                else if (!_noBlockingDependencies)
                                 {
                                     @:Cannot Delete
                                 }
@@ -221,7 +221,7 @@
 
 @code {
     private string? DeleteDisabledReason =>
-        !_canDelete ? "You do not have permission to delete this namespace."
+        !_noBlockingDependencies ? "Modules in this namespace have external dependencies."
         : _isDeleting ? "A delete is already in progress."
         : null;
 
@@ -255,7 +255,7 @@
 
     private Section _activeSection = Section.None;
     private bool _dependencyCheckCompleted;
-    private bool _canDelete;
+    private bool _noBlockingDependencies;
     private bool _isDeleting;
     private List<string> _externalDependencies = new();
     private List<string> _internalDependencies = new();
@@ -403,7 +403,7 @@
             }
 
             _internalDependencies.Add("Associated namespace configurations and secrets");
-            _canDelete = !_externalDependencies.Any();
+            _noBlockingDependencies = !_externalDependencies.Any();
             _dependencyCheckCompleted = true;
             StateHasChanged();
         }
@@ -417,12 +417,21 @@
 
     private async Task DeleteNamespace()
     {
+        string? refusal;
+        using (var permissionRepo = NamespaceRepoFactory.Create())
+        {
+            refusal = permissionRepo.CanDelete(Namespace.Id, OrganizationId)
+                ? null
+                : "You do not have permission to delete this namespace.";
+        }
+
         var parameters = new DialogParameters<ConfirmDialog>
         {
             { x => x.ContentText, $"This permanently deletes namespace \"{Namespace.Name}\" including all of its modules and job history. This cannot be undone. Type the namespace name to confirm." },
             { x => x.ButtonText, "Delete" },
             { x => x.RequireConfirmation, true },
-            { x => x.ConfirmationText, Namespace.Name }
+            { x => x.ConfirmationText, Namespace.Name },
+            { x => x.RefusalReason, refusal }
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };

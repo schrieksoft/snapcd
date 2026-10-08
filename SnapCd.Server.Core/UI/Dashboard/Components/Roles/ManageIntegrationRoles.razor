@@ -30,8 +30,8 @@
     <MudTabPanel Text="Users" Style="text-transform: none">
         @if (!_showUserCreateForm)
         {
-            <MudButton Color="Color.Secondary"
-                       Variant="Variant.Filled"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
                        OnClick="@ShowUserCreateForm"
                        Size="Size.Small"
                        Class="mb-4">
@@ -59,12 +59,12 @@
                     </ItemTemplate>
                 </MudAutocomplete>
 
-                <MudSelect T="StateStoreRole"
+                <MudSelect T="IntegrationRole"
                            @bind-Value="_selectedUserRole"
                            Label="Select Role"
                            Variant="Variant.Outlined"
                            Class="mb-3">
-                    @foreach (StateStoreRole role in Enum.GetValues(typeof(StateStoreRole)))
+                    @foreach (IntegrationRole role in Enum.GetValues(typeof(IntegrationRole)))
                     {
                         <MudSelectItem Value="@role">@role.ToString()</MudSelectItem>
                     }
@@ -72,16 +72,16 @@
 
                 <MudStack Row Class="mt-2">
                     <MudTooltip Text="Select a user first." Disabled="@(!((_selectedUser == null)))">
-                        <MudButton Color="Color.Secondary"
-                                   Variant="Variant.Filled"
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
                                    OnClick="@CreateUserRoleAssignment"
                                    Size="Size.Small"
                                    Disabled="@(_selectedUser == null)">
                             Create
                         </MudButton>
                     </MudTooltip>
-                    <MudButton Color="Color.Secondary"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CancelUserCreate"
                                Size="Size.Small">
                         Cancel
@@ -91,7 +91,7 @@
         }
 
         <MudExpansionPanels MultiExpansion="true">
-            @foreach (StateStoreRole role in Enum.GetValues(typeof(StateStoreRole)))
+            @foreach (IntegrationRole role in Enum.GetValues(typeof(IntegrationRole)))
             {
                 var roleAssignments = _userRoleAssignments.Where(r => r.RoleName == role).ToList();
                 if (roleAssignments.Any())
@@ -117,8 +117,8 @@
     <MudTabPanel Text="Service Principals" Style="text-transform: none">
         @if (!_showServicePrincipalCreateForm)
         {
-            <MudButton Color="Color.Secondary"
-                       Variant="Variant.Filled"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
                        OnClick="@ShowSpCreateForm"
                        Size="Size.Small"
                        Class="mb-4">
@@ -146,12 +146,12 @@
                     </ItemTemplate>
                 </MudAutocomplete>
 
-                <MudSelect T="StateStoreRole"
+                <MudSelect T="IntegrationRole"
                            @bind-Value="_selectedServicePrincipalRole"
                            Label="Select Role"
                            Variant="Variant.Outlined"
                            Class="mb-3">
-                    @foreach (StateStoreRole role in Enum.GetValues(typeof(StateStoreRole)))
+                    @foreach (IntegrationRole role in Enum.GetValues(typeof(IntegrationRole)))
                     {
                         <MudSelectItem Value="@role">@role.ToString()</MudSelectItem>
                     }
@@ -159,16 +159,16 @@
 
                 <MudStack Row Class="mt-2">
                     <MudTooltip Text="Select a service principal first." Disabled="@(!((_selectedServicePrincipal == null)))">
-                        <MudButton Color="Color.Secondary"
-                                   Variant="Variant.Filled"
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
                                    OnClick="@CreateSpRoleAssignment"
                                    Size="Size.Small"
                                    Disabled="@(_selectedServicePrincipal == null)">
                             Create
                         </MudButton>
                     </MudTooltip>
-                    <MudButton Color="Color.Secondary"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CancelSpCreate"
                                Size="Size.Small">
                         Cancel
@@ -178,7 +178,7 @@
         }
 
         <MudExpansionPanels MultiExpansion="true">
-            @foreach (StateStoreRole role in Enum.GetValues(typeof(StateStoreRole)))
+            @foreach (IntegrationRole role in Enum.GetValues(typeof(IntegrationRole)))
             {
                 var roleAssignments = _servicePrincipalRoleAssignments.Where(r => r.RoleName == role).ToList();
                 if (roleAssignments.Any())
@@ -204,8 +204,8 @@
     <MudTabPanel Text="Groups" Style="text-transform: none">
         @if (!_showGroupCreateForm)
         {
-            <MudButton Color="Color.Secondary"
-                       Variant="Variant.Filled"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
                        OnClick="@ShowGroupCreateForm"
                        Size="Size.Small"
                        Class="mb-4">
@@ -233,12 +233,12 @@
                     </ItemTemplate>
                 </MudAutocomplete>
 
-                <MudSelect T="StateStoreRole"
+                <MudSelect T="IntegrationRole"
                            @bind-Value="_selectedGroupRole"
                            Label="Select Role"
                            Variant="Variant.Outlined"
                            Class="mb-3">
-                    @foreach (StateStoreRole role in Enum.GetValues(typeof(StateStoreRole)))
+                    @foreach (IntegrationRole role in Enum.GetValues(typeof(IntegrationRole)))
                     {
                         <MudSelectItem Value="@role">@role.ToString()</MudSelectItem>
                     }
@@ -246,16 +246,16 @@
 
                 <MudStack Row Class="mt-2">
                     <MudTooltip Text="Select a group first." Disabled="@(!((_selectedGroup == null)))">
-                        <MudButton Color="Color.Secondary"
-                                   Variant="Variant.Filled"
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
                                    OnClick="@CreateGroupRoleAssignment"
                                    Size="Size.Small"
                                    Disabled="@(_selectedGroup == null)">
                             Create
                         </MudButton>
                     </MudTooltip>
-                    <MudButton Color="Color.Secondary"
-                               Variant="Variant.Filled"
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
                                OnClick="@CancelGroupCreate"
                                Size="Size.Small">
                         Cancel
@@ -265,7 +265,7 @@
         }
 
         <MudExpansionPanels MultiExpansion="true">
-            @foreach (StateStoreRole role in Enum.GetValues(typeof(StateStoreRole)))
+            @foreach (IntegrationRole role in Enum.GetValues(typeof(IntegrationRole)))
             {
                 var roleAssignments = _groupRoleAssignments.Where(r => r.RoleName == role).ToList();
                 if (roleAssignments.Any())
@@ -289,14 +289,14 @@
 </MudTabs>
 
 @code {
-    [Parameter] public required Guid StateStoreId { get; set; }
+    [Parameter] public required Guid IntegrationId { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
-    [Inject] private UserStateStoreRoleAssignmentSecuredRepositoryFactory UserRoleRepoFactory { get; set; } = null!;
-    [Inject] private ServicePrincipalStateStoreRoleAssignmentSecuredRepositoryFactory ServicePrincipalRoleRepoFactory { get; set; } = null!;
-    [Inject] private GroupStateStoreRoleAssignmentSecuredRepositoryFactory GroupRoleRepoFactory { get; set; } = null!;
+    [Inject] private UserIntegrationRoleAssignmentSecuredRepositoryFactory UserRoleRepoFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalIntegrationRoleAssignmentSecuredRepositoryFactory ServicePrincipalRoleRepoFactory { get; set; } = null!;
+    [Inject] private GroupIntegrationRoleAssignmentSecuredRepositoryFactory GroupRoleRepoFactory { get; set; } = null!;
     [Inject] private OrganizationUserSecuredRepositoryFactory OrganizationUserRepoFactory { get; set; } = null!;
     [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
     [Inject] private GroupSecuredRepositoryFactory GroupRepoFactory { get; set; } = null!;
@@ -304,21 +304,21 @@
     private class UserAssignmentRow
     {
         public Guid Id { get; set; }
-        public StateStoreRole RoleName { get; set; }
+        public IntegrationRole RoleName { get; set; }
         public UserMetadata Principal { get; set; } = null!;
     }
 
     private class ServicePrincipalAssignmentRow
     {
         public Guid Id { get; set; }
-        public StateStoreRole RoleName { get; set; }
+        public IntegrationRole RoleName { get; set; }
         public ServicePrincipalMetadata Principal { get; set; } = null!;
     }
 
     private class GroupAssignmentRow
     {
         public Guid Id { get; set; }
-        public StateStoreRole RoleName { get; set; }
+        public IntegrationRole RoleName { get; set; }
         public GroupMetadata Principal { get; set; } = null!;
     }
 
@@ -331,15 +331,15 @@
     private string? _groupAssignRefusal;
 
     private bool _showUserCreateForm;
-    private StateStoreRole _selectedUserRole = StateStoreRole.Reader;
+    private IntegrationRole _selectedUserRole = IntegrationRole.Reader;
     private UserMetadata? _selectedUser;
 
     private bool _showServicePrincipalCreateForm;
-    private StateStoreRole _selectedServicePrincipalRole = StateStoreRole.Reader;
+    private IntegrationRole _selectedServicePrincipalRole = IntegrationRole.Reader;
     private ServicePrincipalMetadata? _selectedServicePrincipal;
 
     private bool _showGroupCreateForm;
-    private StateStoreRole _selectedGroupRole = StateStoreRole.Reader;
+    private IntegrationRole _selectedGroupRole = IntegrationRole.Reader;
     private GroupMetadata? _selectedGroup;
 
 
@@ -357,7 +357,7 @@
         using var userRepo = UserRoleRepoFactory.Create();
         _userRoleAssignments = await userRepo.List(OrganizationId,
             q => q
-                .Where(x => x.StateStoreId == StateStoreId)
+                .Where(x => x.IntegrationId == IntegrationId)
                 .Select(x => new UserAssignmentRow
                 {
                     Id = x.Id,
@@ -373,7 +373,7 @@
         using var servicePrincipalRepo = ServicePrincipalRoleRepoFactory.Create();
         _servicePrincipalRoleAssignments = await servicePrincipalRepo.List(OrganizationId,
             q => q
-                .Where(x => x.StateStoreId == StateStoreId)
+                .Where(x => x.IntegrationId == IntegrationId)
                 .Select(x => new ServicePrincipalAssignmentRow
                 {
                     Id = x.Id,
@@ -390,7 +390,7 @@
         using var groupRepo = GroupRoleRepoFactory.Create();
         _groupRoleAssignments = await groupRepo.List(OrganizationId,
             q => q
-                .Where(x => x.StateStoreId == StateStoreId)
+                .Where(x => x.IntegrationId == IntegrationId)
                 .Select(x => new GroupAssignmentRow
                 {
                     Id = x.Id,
@@ -416,13 +416,13 @@
     {
         using (var permissionRepo = UserRoleRepoFactory.Create())
         {
-            _userAssignRefusal = permissionRepo.CanCreate(StateStoreId, OrganizationId)
+            _userAssignRefusal = permissionRepo.CanCreate(IntegrationId, OrganizationId)
                 ? null
                 : "You do not have permission to assign a user role here.";
         }
 
         _showUserCreateForm = true;
-        _selectedUserRole = StateStoreRole.Reader;
+        _selectedUserRole = IntegrationRole.Reader;
         _selectedUser = null;
     }
 
@@ -450,10 +450,10 @@
 
         try
         {
-            var assignment = new UserStateStoreRoleAssignment
+            var assignment = new UserIntegrationRoleAssignment
             {
                 Id = Guid.NewGuid(),
-                StateStoreId = StateStoreId,
+                IntegrationId = IntegrationId,
                 UserId = _selectedUser.Id,
                 RoleName = _selectedUserRole,
                 OrganizationId = OrganizationId
@@ -475,7 +475,7 @@
 
     private async Task DeleteUserRoleAssignment(UserAssignmentRow assignment)
     {
-        var parameters = new DialogParameters<DeleteUserStateStoreRoleAssignmentDialog>
+        var parameters = new DialogParameters<DeleteUserIntegrationRoleAssignmentDialog>
         {
             { x => x.AssignmentId, assignment.Id },
             { x => x.RoleName, assignment.RoleName.ToString() },
@@ -484,7 +484,7 @@
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteUserStateStoreRoleAssignmentDialog>("Delete User Role Assignment", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteUserIntegrationRoleAssignmentDialog>("Delete User Role Assignment", parameters, options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -499,13 +499,13 @@
     {
         using (var permissionRepo = ServicePrincipalRoleRepoFactory.Create())
         {
-            _servicePrincipalAssignRefusal = permissionRepo.CanCreate(StateStoreId, OrganizationId)
+            _servicePrincipalAssignRefusal = permissionRepo.CanCreate(IntegrationId, OrganizationId)
                 ? null
                 : "You do not have permission to assign a service principal role here.";
         }
 
         _showServicePrincipalCreateForm = true;
-        _selectedServicePrincipalRole = StateStoreRole.Reader;
+        _selectedServicePrincipalRole = IntegrationRole.Reader;
         _selectedServicePrincipal = null;
     }
 
@@ -533,10 +533,10 @@
 
         try
         {
-            var assignment = new ServicePrincipalStateStoreRoleAssignment
+            var assignment = new ServicePrincipalIntegrationRoleAssignment
             {
                 Id = Guid.NewGuid(),
-                StateStoreId = StateStoreId,
+                IntegrationId = IntegrationId,
                 ServicePrincipalId = _selectedServicePrincipal.Id,
                 RoleName = _selectedServicePrincipalRole,
                 OrganizationId = OrganizationId
@@ -558,7 +558,7 @@
 
     private async Task DeleteServicePrincipalRoleAssignment(ServicePrincipalAssignmentRow assignment)
     {
-        var parameters = new DialogParameters<DeleteServicePrincipalStateStoreRoleAssignmentDialog>
+        var parameters = new DialogParameters<DeleteServicePrincipalIntegrationRoleAssignmentDialog>
         {
             { x => x.AssignmentId, assignment.Id },
             { x => x.RoleName, assignment.RoleName.ToString() },
@@ -567,7 +567,7 @@
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteServicePrincipalStateStoreRoleAssignmentDialog>("Delete Service Principal Role Assignment", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteServicePrincipalIntegrationRoleAssignmentDialog>("Delete Service Principal Role Assignment", parameters, options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -583,13 +583,13 @@
     {
         using (var permissionRepo = GroupRoleRepoFactory.Create())
         {
-            _groupAssignRefusal = permissionRepo.CanCreate(StateStoreId, OrganizationId)
+            _groupAssignRefusal = permissionRepo.CanCreate(IntegrationId, OrganizationId)
                 ? null
                 : "You do not have permission to assign a group role here.";
         }
 
         _showGroupCreateForm = true;
-        _selectedGroupRole = StateStoreRole.Reader;
+        _selectedGroupRole = IntegrationRole.Reader;
         _selectedGroup = null;
     }
 
@@ -617,10 +617,10 @@
 
         try
         {
-            var assignment = new GroupStateStoreRoleAssignment
+            var assignment = new GroupIntegrationRoleAssignment
             {
                 Id = Guid.NewGuid(),
-                StateStoreId = StateStoreId,
+                IntegrationId = IntegrationId,
                 GroupId = _selectedGroup.Id,
                 RoleName = _selectedGroupRole,
                 OrganizationId = OrganizationId
@@ -642,7 +642,7 @@
 
     private async Task DeleteGroupRoleAssignment(GroupAssignmentRow assignment)
     {
-        var parameters = new DialogParameters<DeleteGroupStateStoreRoleAssignmentDialog>
+        var parameters = new DialogParameters<DeleteGroupIntegrationRoleAssignmentDialog>
         {
             { x => x.AssignmentId, assignment.Id },
             { x => x.RoleName, assignment.RoleName.ToString() },
@@ -651,7 +651,7 @@
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<DeleteGroupStateStoreRoleAssignmentDialog>("Delete Group Role Assignment", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteGroupIntegrationRoleAssignmentDialog>("Delete Group Role Assignment", parameters, options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -665,4 +665,5 @@
     public void Dispose()
     {
     }
+
 }

@@ -54,15 +54,12 @@
     else
     {
         <MudPaper Elevation="1" Class="pa-4 mb-4">
-            <MudTooltip Text="@(_canCreate ? null : "You do not have permission to create here.")" Disabled="@_canCreate">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           Disabled="@(!_canCreate)"
-                           OnClick="ShowCreate">
-                    Create
-                </MudButton>
-            </MudTooltip>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="ShowCreate">
+                Create
+            </MudButton>
         </MudPaper>
     }
 
@@ -158,7 +155,6 @@
     [SupplyParameterFromQuery] public string? Sp { get; set; }
     [SupplyParameterFromQuery] public string? Action { get; set; }
 
-    private bool _canCreate;
     private Guid OrganizationId => OrganizationContext.CurrentOrganizationId ?? Guid.Empty;
 
     private List<ServicePrincipalReadDto>? _servicePrincipals;
@@ -323,7 +319,6 @@
         _servicePrincipals = await service.List(OrganizationId);
         using (var repo = CreatePermissionRepoFactory.Create())
         {
-            _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
         }
     }
 

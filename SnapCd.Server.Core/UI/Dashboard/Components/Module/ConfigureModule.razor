@@ -129,11 +129,7 @@
                 }
                 else
                 {
-                    @if (!_hasDeletePermission)
-                    {
-                        <ReadOnlyNotice Message="You do not have permission to delete this module." />
-                    }
-                    else if (!_noBlockingDependencies)
+                    @if (!_noBlockingDependencies)
                     {
                         <MudAlert Severity="Severity.Error" Class="mb-3">
                             <strong>Cannot delete this module!</strong> It has external dependencies.
@@ -194,12 +190,12 @@
                                        Color="Color.Secondary"
                                        Size="Size.Small"
                                        OnClick="DeleteModule"
-                                       Disabled="@(!_hasDeletePermission || !_noBlockingDependencies || _isDeleting)">
+                                       Disabled="@(!_noBlockingDependencies || _isDeleting)">
                                 @if (_isDeleting)
                                 {
                                     @:Deleting...
                                 }
-                                else if (!_hasDeletePermission || !_noBlockingDependencies)
+                                else if (!_noBlockingDependencies)
                                 {
                                     @:Cannot Delete
                                 }
@@ -248,12 +244,9 @@
     private Section _activeSection = Section.None;
     private bool _dependencyCheckCompleted;
     private string? DeleteDisabledReason =>
-        !_hasDeletePermission ? "You do not have permission to delete this module."
-        : !_noBlockingDependencies ? "This module has external dependencies."
-        : null;
+        !_noBlockingDependencies ? "This module has external dependencies." : null;
 
     private bool _noBlockingDependencies;
-    private bool _hasDeletePermission;
     private bool _isDeleting;
     private List<string> _externalDependencies = new();
     private List<string> _internalDependencies = new();
@@ -392,7 +385,6 @@
             _noBlockingDependencies = !_externalDependencies.Any();
             using (var deletePermissionRepo = ModuleRepoFactory.Create(PrincipalProvider))
             {
-                _hasDeletePermission = deletePermissionRepo.CanDelete(Module.Id, OrganizationId);
             }
             _dependencyCheckCompleted = true;
             StateHasChanged();
@@ -407,10 +399,19 @@
 
     private async Task DeleteModule()
     {
+        string? refusal;
+        using (var permissionRepo = ModuleRepoFactory.Create())
+        {
+            refusal = permissionRepo.CanDelete(Module.Id, OrganizationId)
+                ? null
+                : "You do not have permission to delete this module.";
+        }
+
         var parameters = new DialogParameters<ConfirmDialog>
         {
             { x => x.ContentText, $"This permanently deletes module \"{Module.Name}\" and its job history. This cannot be undone." },
-            { x => x.ButtonText, "Delete" }
+            { x => x.ButtonText, "Delete" },
+            { x => x.RefusalReason, refusal }
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };

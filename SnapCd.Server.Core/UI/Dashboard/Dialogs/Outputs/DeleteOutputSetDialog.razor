@@ -13,6 +13,10 @@
         <MudText>Delete Output Set</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         @{
             var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(OutputSet.Timestamp).DateTime;
         }
@@ -25,13 +29,16 @@
     </DialogContent>
     <DialogActions>
         <MudTooltip Text="A delete is already in progress." Disabled="@(!(_isDeleting))">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Delete" Disabled="_isDeleting">
+            @if (_refusal is null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Delete" Disabled="_isDeleting">
                 @if (_isDeleting)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                 }
                 Delete
             </MudButton>
+            }
         </MudTooltip>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
@@ -47,6 +54,16 @@
     [Parameter] public required OutputSet OutputSet { get; set; }
 
     private bool _isDeleting;
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _refusal = permissionRepo.CanDelete(OutputSet.Id, OrganizationId)
+            ? null
+            : "You do not have permission to delete this output set.";
+    }
 
     private void Cancel()
     {

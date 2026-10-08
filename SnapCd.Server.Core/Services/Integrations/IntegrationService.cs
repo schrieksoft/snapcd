@@ -231,6 +231,18 @@ public sealed class IntegrationService(
         connectionCache.Evict(id); // immediate on this instance; the fanout consumer covers the others
     }
 
+    public bool CanDelete(Guid id, Guid organizationId)
+    {
+        using var secured = securedFactory.Create();
+        return secured.CanDelete(id, organizationId);
+    }
+
+    public bool CanUpdate(Guid id, Guid organizationId)
+    {
+        using var secured = securedFactory.Create();
+        return secured.CanUpdate(id, organizationId);
+    }
+
     public async Task Delete(Guid id, Guid organizationId)
     {
         using (var secured = securedFactory.Create())

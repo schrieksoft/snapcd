@@ -46,7 +46,7 @@
             </MudText>
             <MudTooltip Text="@PauseDisabledReason" Disabled="@(PauseDisabledReason is null)">
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                           Disabled="@(!_canPause || _busy)" OnClick="Pause">pause</MudButton>
+                           Disabled="@_busy" OnClick="Pause">pause</MudButton>
             </MudTooltip>
         </MudStack>
     </MudPaper>
@@ -91,12 +91,12 @@
                         <MudStack Row Spacing="2">
                             <MudTooltip Text="@AnswerDisabledReason" Disabled="@(AnswerDisabledReason is null)">
                                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                           Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
+                                           Disabled="@(_busy || RunningStateMigration is not null)"
                                            OnClick="@(() => Answer(true))">agree</MudButton>
                             </MudTooltip>
                             <MudTooltip Text="@AnswerDisabledReason" Disabled="@(AnswerDisabledReason is null)">
                                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                           Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
+                                           Disabled="@(_busy || RunningStateMigration is not null)"
                                            OnClick="@(() => Answer(false))">refuse</MudButton>
                             </MudTooltip>
                         </MudStack>
@@ -345,7 +345,7 @@ else
                             <ApprovalPanel Source="@GetApprovalSource()"
                                            JobId="@job.Id"
                                            ModuleId="@Module.Id"
-                                           Enabled="@(_canPause && !_busy)"
+                                           Enabled="@(!_busy)"
                                            OnDecided="Reload"
                                            @key="job.Id"/>
                         </MudTabPanel>
@@ -358,13 +358,11 @@ else
 
 @code {
     private string? PauseDisabledReason =>
-        !_canPause ? "You do not have permission to pause this module."
-        : _busy ? "An operation is already in progress."
+        _busy ? "An operation is already in progress."
         : null;
 
     private string? AnswerDisabledReason =>
-        !_canPause ? "You do not have permission to answer this."
-        : _busy ? "An operation is already in progress."
+        _busy ? "An operation is already in progress."
         : RunningStateMigration is not null ? "A state migration is already running."
         : null;
 
@@ -564,13 +562,12 @@ else
     /// </summary>
     private string? RunJobDisabledReason =>
         NeedsMyAnswer ? "Answer the pending question first."
-        : !_canPause ? "You do not have permission to run a state migration on this module."
         : _busy ? "An operation is already in progress."
         : RunningStateMigration is not null ? "A state migration is already running."
         : null;
 
     private bool IsJobDisabled() =>
-        NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null;
+        NeedsMyAnswer || _busy || RunningStateMigration is not null;
 
     private Task RunChosenJob() => _chosenJob switch
     {
@@ -584,8 +581,6 @@ else
         _ => Task.CompletedTask
     };
 
-    private bool _canPause;
-    private bool _canRunJob;
     private bool _busy;
     private List<Module> _transferCandidates = [];
     private Transfer? _transfer;
@@ -751,11 +746,9 @@ else
         }
 
         using var moduleRepo = ModuleRepoFactory.Create(PrincipalProvider);
-        _canPause = moduleRepo.CanPause(Module.Id, OrganizationId);
 
         using (var jobSecuredRepo = JobSecuredRepoFactory.Create(PrincipalProvider))
         {
-            _canRunJob = jobSecuredRepo.CanRunJob(Module.Id, OrganizationId);
         }
 
         using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
