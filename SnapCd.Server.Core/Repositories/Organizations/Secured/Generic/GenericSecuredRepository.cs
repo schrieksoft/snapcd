@@ -198,6 +198,34 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCrea
 
     public virtual bool CanReadMetadata(Guid id, Guid organizationId) => false;
 
+    /// <summary>
+    /// Reads one metadata view found by something other than its id, checking permission for the
+    /// id the lookup resolved. Mirrors <see cref="Get(Guid, Guid, Func{IQueryable{TEntity}, IQueryable{TEntity}}?)"/>:
+    /// a missing key is not found, a key the principal may not read is not authorized.
+    /// </summary>
+    /// <param name="resolveId">Finds the entity's id from the natural key, ignoring permission.</param>
+    /// <param name="readMetadata">Reads the view once permission is established.</param>
+    /// <param name="describeKey">The key as it should read in an error, e.g. <c>name "payments"</c>.</param>
+    protected async Task<TMetadata> GetMetadataByKey<TMetadata>(
+        Guid organizationId,
+        Func<Task<Guid?>> resolveId,
+        Func<Guid, Task<TMetadata>> readMetadata,
+        string describeKey)
+    {
+        var id = await resolveId();
+
+        if (id is null)
+            throw new EntityNotFoundException(
+                $"Unable to find {typeof(TEntity).Name} with {describeKey}");
+
+        if (!CanReadMetadata(id.Value, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{typeof(TEntity).Name} with ID {id.Value} not found or {PrincipalDiscriminator} with ID "
+                + $"{PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await readMetadata(id.Value);
+    }
+
     public abstract bool CanCreate(Guid parentId, Guid organizationId);
 
     public abstract bool CanUpdate(Guid id, Guid organizationId);

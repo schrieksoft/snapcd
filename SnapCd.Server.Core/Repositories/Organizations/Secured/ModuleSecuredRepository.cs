@@ -475,27 +475,19 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         return module;
     }
 
-    public async Task<ModuleMetadata> GetMetadata(Guid namespaceId, string name, Guid organizationId)
-    {
-        var entity = await Repository.Get(namespaceId, name, organizationId);
+    public Task<ModuleMetadata> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(namespaceId, name, organizationId)).Id,
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            $"namespace {namespaceId} and name \"{name}\"");
 
-        if (!CanReadMetadata(entity.Id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Module)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
-    }
-
-    public async Task<ModuleMetadata> GetMetadata(string stackName, string namespaceName, string moduleName, Guid organizationId)
-    {
-        var entity = await Repository.Get(stackName, namespaceName, moduleName, organizationId);
-
-        if (!CanReadMetadata(entity.Id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Module)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
-    }
+    public Task<ModuleMetadata> GetMetadata(string stackName, string namespaceName, string moduleName, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(stackName, namespaceName, moduleName, organizationId)).Id,
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            $"stack \"{stackName}\", namespace \"{namespaceName}\" and name \"{moduleName}\"");
 
     # endregion
 }

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Settings.Repositories;
@@ -83,6 +84,21 @@ public class PrincipalMetadataReadTests : IAsyncLifetime
 
         Assert.Equal(expected.Id, resolved.Id);
         Assert.Equal(expected.Email, resolved.UserName);
+    }
+
+    /// <summary>
+    /// A lookup by name says not found when the name is unused, and not authorized when the name
+    /// resolves to something the principal may not read. The two are distinct on every entity.
+    /// </summary>
+    [Fact]
+    public async Task AMissingNameIsNotFoundAndARefusalIsNotAuthorized()
+    {
+        await Assert.ThrowsAsync<EntityNotFoundException>(
+            () => UserRepo(_readerId).GetMetadataByUsername("nobody@nowhere.invalid", _organizationId));
+
+        await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(
+            () => UserRepo(_noRoleId).GetMetadataByUsername(
+                _fixture.ScopeReaderUsers["Stack00.Reader"].Email!, _organizationId));
     }
 
     [Fact]

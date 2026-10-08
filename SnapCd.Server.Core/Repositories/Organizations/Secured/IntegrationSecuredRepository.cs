@@ -135,19 +135,15 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
             select entity;
     }
 
-    public async Task<IntegrationMetadata> GetMetadataByName(string name, Guid organizationId)
-    {
-        var id = await ReadMetadataQuery(organizationId)
-            .Where(x => x.Name == name)
-            .Select(x => (Guid?)x.Id)
-            .FirstOrDefaultAsync();
-
-        if (id is null || !CanReadMetadata(id.Value, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Integration)} with organization ID {organizationId} and name {name} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id.Value);
-    }
+    public Task<IntegrationMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            () => Repository.DbContext.Integrations
+                .Where(i => i.OrganizationId == organizationId && i.Name == name)
+                .Select(i => (Guid?)i.Id)
+                .FirstOrDefaultAsync(),
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            $"name \"{name}\"");
 
 
     public override PermissionMap UpdatePermissionMap => new()

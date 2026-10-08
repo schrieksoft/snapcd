@@ -211,16 +211,15 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
     }
 
     /// <summary>The username is the email: the invite path sets one from the other.</summary>
-    public async Task<UserMetadata> GetMetadataByUsername(string username, Guid organizationId)
-    {
-        var view = await ReadMetadataQuery(organizationId)
-            .FirstOrDefaultAsync(x => x.UserName == username && x.OrganizationId == organizationId);
-
-        if (view == null)
-            throw new EntityNotFoundException($"Unable to find user with username \"{username}\"");
-
-        return view;
-    }
+    public Task<UserMetadata> GetMetadataByUsername(string username, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.DbContext.OrganizationUsers
+                    .Where(ou => ou.OrganizationId == organizationId && ou.User.Email == username)
+                    .Select(ou => (Guid?)ou.UserId)
+                    .FirstOrDefaultAsync()),
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId),
+            $"username \"{username}\"");
 
     public async Task<int> CountMetadata(
         Guid organizationId,

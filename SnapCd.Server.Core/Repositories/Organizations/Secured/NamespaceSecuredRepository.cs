@@ -565,27 +565,19 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         return @namespace;
     }
 
-    public async Task<NamespaceMetadata> GetMetadata(Guid stackId, string name, Guid organizationId)
-    {
-        var entity = await Repository.Get(stackId, name, organizationId);
+    public Task<NamespaceMetadata> GetMetadata(Guid stackId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(stackId, name, organizationId)).Id,
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            $"stack {stackId} and name \"{name}\"");
 
-        if (!CanReadMetadata(entity.Id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Namespace)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
-    }
-
-    public async Task<NamespaceMetadata> GetMetadata(string stackName, string name, Guid organizationId)
-    {
-        var entity = await Repository.Get(stackName, name, organizationId);
-
-        if (!CanReadMetadata(entity.Id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Namespace)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
-    }
+    public Task<NamespaceMetadata> GetMetadata(string stackName, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(stackName, name, organizationId)).Id,
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            $"stack \"{stackName}\" and name \"{name}\"");
 
     #endregion
 }

@@ -543,16 +543,12 @@ public class StackSecuredRepository : GenericSecuredRepository<
         return entity;
     }
 
-    public async Task<StackMetadata> GetMetadataByName(string name, Guid organizationId)
-    {
-        var entity = await Repository.GetByName(name, organizationId);
-
-        if (!CanReadMetadata(entity.Id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Stack)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
-    }
+    public Task<StackMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name, organizationId)).Id,
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            $"name \"{name}\"");
 
     #endregion
 }

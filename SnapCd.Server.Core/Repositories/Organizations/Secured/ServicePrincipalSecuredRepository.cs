@@ -129,16 +129,12 @@ public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecured
     }
 
     /// <summary>The client id here is the bare name, as the metadata view exposes it, not the stored prefixed form.</summary>
-    public async Task<ServicePrincipalMetadata> GetMetadataByClientId(string clientId, Guid organizationId)
-    {
-        var view = await ReadMetadataQuery(organizationId)
-            .FirstOrDefaultAsync(x => x.ClientId == clientId && x.OrganizationId == organizationId);
-
-        if (view == null)
-            throw new EntityNotFoundException($"Unable to find {nameof(ServicePrincipal)} with client ID \"{clientId}\"");
-
-        return view;
-    }
+    public Task<ServicePrincipalMetadata> GetMetadataByClientId(string clientId, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByClientId(clientId, organizationId))?.Id,
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId),
+            $"client ID \"{clientId}\"");
 
     public async Task<int> CountMetadata(
         Guid organizationId,

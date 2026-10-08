@@ -231,16 +231,12 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
         return entity;
     }
 
-    public async Task<AgentMetadata> GetMetadataByName(string name, Guid organizationId)
-    {
-        var entity = await Repository.GetByName(name, organizationId);
-
-        if (!CanReadMetadata(entity.Id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Agent)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == entity.Id);
-    }
+    public Task<AgentMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name, organizationId)).Id,
+            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            $"name \"{name}\"");
 
     /// <summary>
     /// Used by the token-issuance code path (Phase 5) — bypasses CanRead since the caller
