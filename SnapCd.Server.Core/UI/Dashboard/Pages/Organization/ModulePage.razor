@@ -1363,11 +1363,15 @@
     {
         using var moduleRepo = RepoFactory.Create();
 
-        // The route carries the name, so a rename makes ModuleName stale and the lookup below
-        // would throw. Navigating re-binds the parameters and reloads against the new name.
-        if (_module != null && !string.Equals(_module.Name, ModuleName, StringComparison.Ordinal))
+        // The route carries the name, so a rename makes ModuleName stale. The edit form writes to
+        // its own copy of the entity, so the current name has to be read back by id rather than
+        // taken from _module. Navigating re-binds the parameters and reloads against the new name.
+        if (_module is null) return;
+
+        var current = await moduleRepo.GetMetadata(_module.Id, OrganizationId);
+        if (!string.Equals(current.Name, ModuleName, StringComparison.Ordinal))
         {
-            NavigationManager.NavigateTo($"/Module/{StackName}/{NamespaceName}/{_module.Name}", false);
+            NavigationManager.NavigateTo($"/Module/{StackName}/{NamespaceName}/{current.Name}", false);
             return;
         }
 

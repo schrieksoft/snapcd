@@ -635,11 +635,15 @@
     {
         using var repo = RepoFactory.Create();
 
-        // The route carries the name, so a rename makes StackName stale and the lookup below
-        // would throw. Navigating re-binds the parameters and reloads against the new name.
-        if (_stack != null && !string.Equals(_stack.Name, StackName, StringComparison.Ordinal))
+        // The route carries the name, so a rename makes StackName stale. The edit form writes to
+        // its own copy of the entity, so the current name has to be read back by id rather than
+        // taken from _stack. Navigating re-binds the parameters and reloads against the new name.
+        if (_stack is null) return;
+
+        var current = await repo.GetMetadata(_stack.Id, OrganizationId);
+        if (!string.Equals(current.Name, StackName, StringComparison.Ordinal))
         {
-            NavigationManager.NavigateTo($"/Stack/{_stack.Name}", false);
+            NavigationManager.NavigateTo($"/Stack/{current.Name}", false);
             return;
         }
 

@@ -719,11 +719,15 @@
     {
         using var repo = RepoFactory.Create();
 
-        // The route carries the name, so a rename makes NamespaceName stale and the lookup below
-        // would throw. Navigating re-binds the parameters and reloads against the new name.
-        if (_namespace != null && !string.Equals(_namespace.Name, NamespaceName, StringComparison.Ordinal))
+        // The route carries the name, so a rename makes NamespaceName stale. The edit form writes
+        // to its own copy of the entity, so the current name has to be read back by id rather than
+        // taken from _namespace. Navigating re-binds the parameters and reloads against the new name.
+        if (_namespace is null) return;
+
+        var current = await repo.GetMetadata(_namespace.Id, OrganizationId);
+        if (!string.Equals(current.Name, NamespaceName, StringComparison.Ordinal))
         {
-            NavigationManager.NavigateTo($"/Namespace/{StackName}/{_namespace.Name}", false);
+            NavigationManager.NavigateTo($"/Namespace/{StackName}/{current.Name}", false);
             return;
         }
 
