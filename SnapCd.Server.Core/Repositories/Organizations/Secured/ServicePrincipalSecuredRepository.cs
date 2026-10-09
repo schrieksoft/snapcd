@@ -103,8 +103,6 @@ public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecured
         
     }
 
-    public override IQueryable<ServicePrincipal> ReadMetadataQuery(Guid organizationId)
-        => ReadMetadataOrganizationRoleQuery(organizationId);
 
     /// <summary>The client id here is the bare name, as the metadata view exposes it, not the stored prefixed form.</summary>
     public Task<ServicePrincipalMetadata> GetMetadataByClientId(string clientId, Guid organizationId)

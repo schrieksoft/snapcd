@@ -77,7 +77,7 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
     };
 
     public override IQueryable<Runner> ReadMetadataQuery(Guid organizationId)
-        => ReadMetadataOrganizationRoleQuery(organizationId)
+        => base.ReadMetadataQuery(organizationId)
             .Concat(RunnerRoleQuery(organizationId, ReadMetadataPermissionMap.RunnerRoles))
             .Concat(SuppliedScopeMetadataQuery(organizationId));
 

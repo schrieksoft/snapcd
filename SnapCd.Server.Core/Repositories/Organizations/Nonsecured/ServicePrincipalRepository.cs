@@ -150,7 +150,7 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
     public async Task<ServicePrincipal?> GetByClientId(string clientId, Guid organizationId)
     {
         var prefixedClientId = $"{organizationId}:{clientId}";
-        return await DbContext.ServicePrincipals
+        return await NarrowQuery(null)
             .Where(sp => sp.OrganizationId == organizationId)
             .SingleOrDefaultAsync(sp => sp.ClientId == prefixedClientId);
     }

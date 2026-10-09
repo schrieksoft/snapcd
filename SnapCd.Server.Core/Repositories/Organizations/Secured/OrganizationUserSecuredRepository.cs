@@ -187,10 +187,6 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
         return await Repository.Deactivate(organizationId, userId);
     }
 
-    public override IQueryable<OrganizationUser> ReadMetadataQuery(Guid organizationId)
-    {
-        return ReadMetadataOrganizationRoleQuery(organizationId);
-    }
 
     /// <summary>
     /// Metadata here names the User, not the membership row, so permission is asked about the

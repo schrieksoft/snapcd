@@ -103,10 +103,6 @@ public class GroupSecuredRepository : GenericOrganizationChildSecuredRepository<
 
     }
 
-    public override IQueryable<Group> ReadMetadataQuery(Guid organizationId)
-    {
-        return ReadMetadataOrganizationRoleQuery(organizationId);
-    }
 
     public Task<GroupMetadata> GetMetadataByName(string name, Guid organizationId)
         => GetMetadataByKey(

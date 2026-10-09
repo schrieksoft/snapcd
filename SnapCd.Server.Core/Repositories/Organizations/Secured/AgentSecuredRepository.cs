@@ -76,7 +76,7 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
     };
 
     public override IQueryable<Agent> ReadMetadataQuery(Guid organizationId)
-        => ReadMetadataOrganizationRoleQuery(organizationId)
+        => base.ReadMetadataQuery(organizationId)
             .Concat(AgentRoleQuery(organizationId, ReadMetadataPermissionMap.AgentRoles))
             .Concat(SuppliedScopeMetadataQuery(organizationId));
 

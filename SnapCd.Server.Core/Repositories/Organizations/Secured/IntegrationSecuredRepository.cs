@@ -65,7 +65,7 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
     };
 
     public override IQueryable<Integration> ReadMetadataQuery(Guid organizationId)
-        => ReadMetadataOrganizationRoleQuery(organizationId)
+        => base.ReadMetadataQuery(organizationId)
             .Concat(IntegrationRoleQuery(organizationId, ReadMetadataPermissionMap.IntegrationRoles))
             .Concat(SuppliedScopeMetadataQuery(organizationId));
 
