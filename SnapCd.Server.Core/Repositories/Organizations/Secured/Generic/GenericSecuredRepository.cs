@@ -198,10 +198,38 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TMetadata, TReposi
     public abstract IQueryable<TEntity> ReadQuery(Guid organizationId);
     public abstract IQueryable<TEntity> UpdateQuery(Guid organizationId);
     public abstract IQueryable<TEntity> DeleteQuery(Guid organizationId);
+    public abstract IQueryable<TEntity> ReadMetadataQuery(Guid organizationId);
 
     public abstract bool CanRead(Guid id, Guid organizationId);
 
-    public virtual bool CanReadMetadata(Guid id, Guid organizationId) => false;
+    public virtual bool CanReadMetadata(Guid id, Guid organizationId)
+        => ReadMetadataQuery(organizationId).Any(x => x.Id == id && x.OrganizationId == organizationId);
+
+    /// <summary>Metadata for one row, once permission for it is established.</summary>
+    public virtual async Task<TMetadata> GetMetadata(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{typeof(TEntity).Name} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await Repository.GetMetadata(id, organizationId);
+    }
+
+    /// <summary>Metadata for the rows this principal may identify.</summary>
+    public virtual async Task<List<TMetadata>> ListMetadata(
+        Guid organizationId,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null,
+        Func<IQueryable<TMetadata>, IOrderedQueryable<TMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => await Repository.ListMetadata(
+            organizationId, ReadMetadataQuery(organizationId), queryModifier, orderBy, pageNumber, pageSize);
+
+    /// <summary>How many rows this principal may identify.</summary>
+    public virtual async Task<int> CountMetadata(
+        Guid organizationId,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null)
+        => await Repository.CountMetadata(organizationId, ReadMetadataQuery(organizationId), queryModifier);
 
     /// <summary>
     /// Reads one metadata view found by something other than its id, checking permission for the

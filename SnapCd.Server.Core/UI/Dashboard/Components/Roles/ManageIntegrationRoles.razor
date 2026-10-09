@@ -454,10 +454,10 @@
     {
         using var repo = OrganizationUserRepoFactory.Create();
         return await repo.ListMetadata(OrganizationId,
-            q => string.IsNullOrWhiteSpace(searchText)
+            queryModifier: q => string.IsNullOrWhiteSpace(searchText)
                 ? q
-                : q.Where(u => u.UserName.ToLower().Contains(searchText.ToLower())),
-            q => q.OrderBy(u => u.UserName),
+                : q.Where(ou => ou.User.Email!.ToLower().Contains(searchText.ToLower())),
+            orderBy: q => q.OrderBy(u => u.UserName),
             pageNumber: 1,
             pageSize: 20);
     }

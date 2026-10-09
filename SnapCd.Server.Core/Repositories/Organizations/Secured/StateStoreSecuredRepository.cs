@@ -131,6 +131,16 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
             ReadPermissionMap.StateStoreRoles);
     }
 
+    /// <summary>No metadata roles are declared for this entity, so this is empty
+    /// until one is: identifying a row is not something anyone may do by default.</summary>
+    public override IQueryable<StateStore> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StateStoreRoles);
+    }
+
     public override IQueryable<StateStore> UpdateQuery(Guid organizationId)
     {
         return RoleQueryDispatch(

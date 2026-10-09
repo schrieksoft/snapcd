@@ -111,6 +111,17 @@ public abstract class GenericStackChildSecuredRepository<TEntity, TDto, TMetadat
             []);
     }
 
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            [],
+            []);
+    }
+
     public override IQueryable<TEntity> UpdateQuery(Guid organizationId)
     {
         return RoleQueryDispatch(

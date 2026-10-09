@@ -45,7 +45,7 @@ public class OrganizationUserSecuredRepositoryFactory(
 
 public class OrganizationUserSecuredRepository : GenericOrganizationChildSecuredRepository<
     OrganizationUser,
-    OrganizationUserReadDto, OrganizationUserMetadata,
+    OrganizationUserReadDto, UserMetadata,
     OrganizationUserRepository,
     OrganizationUserCreatedEvent,
     OrganizationUserUpdatedEvent,
@@ -187,30 +187,20 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
         return await Repository.Deactivate(organizationId, userId);
     }
 
-    public IQueryable<UserMetadata> ReadMetadataQuery(Guid organizationId)
+    public override IQueryable<OrganizationUser> ReadMetadataQuery(Guid organizationId)
     {
-        return ReadMetadataOrganizationRoleQuery(organizationId)
-            .Select(x => new UserMetadata
-            {
-                Id = x.UserId,
-                OrganizationId = x.OrganizationId,
-                UserName = x.User.Email!
-            });
+        return ReadMetadataOrganizationRoleQuery(organizationId);
     }
 
-    public override bool CanReadMetadata(Guid id, Guid organizationId)
-    {
-        return ReadMetadataQuery(organizationId).Any(x => x.Id == id && x.OrganizationId == organizationId);
-    }
+    /// <summary>
+    /// Metadata here names the User, not the membership row, so permission is asked about the
+    /// User's id: that is what a role assignment references and what callers hold.
+    /// </summary>
+    public override bool CanReadMetadata(Guid userId, Guid organizationId)
+        => ReadMetadataQuery(organizationId)
+            .Any(ou => ou.UserId == userId && ou.OrganizationId == organizationId);
 
-    public async Task<UserMetadata> GetMetadata(Guid id, Guid organizationId)
-    {
-        if (!CanReadMetadata(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(OrganizationUser)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
 
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId);
-    }
 
     /// <summary>The username is the email: the invite path sets one from the other.</summary>
     public Task<UserMetadata> GetMetadataByUsername(string username, Guid organizationId)
@@ -220,42 +210,7 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
                     .Where(ou => ou.OrganizationId == organizationId && ou.User.Email == username)
                     .Select(ou => (Guid?)ou.UserId)
                     .FirstOrDefaultAsync()),
-            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId),
+            id => Repository.GetMetadata(id, organizationId),
             $"username \"{username}\"");
 
-    public async Task<int> CountMetadata(
-        Guid organizationId,
-        Func<IQueryable<UserMetadata>, IQueryable<UserMetadata>>? queryModifier = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        return await query.CountAsync();
-    }
-
-    public async Task<List<UserMetadata>> ListMetadata(
-        Guid organizationId,
-        Func<IQueryable<UserMetadata>, IQueryable<UserMetadata>>? queryModifier = null,
-        Func<IQueryable<UserMetadata>, IOrderedQueryable<UserMetadata>>? orderBy = null,
-        int? pageNumber = null,
-        int? pageSize = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        if (orderBy != null)
-            query = orderBy(query);
-
-        if (pageNumber.HasValue && pageSize.HasValue)
-            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
-
-        if (pageSize.HasValue)
-            query = query.Take(pageSize.Value);
-
-        return await query.ToListAsync();
-    }
 }

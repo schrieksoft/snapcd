@@ -103,6 +103,10 @@ public abstract class GenericAgentChildSecuredRepository<TEntity, TDto, TMetadat
     public override IQueryable<TEntity> ReadQuery(Guid organizationId)
         => RoleQueryDispatch(organizationId, ReadPermissionMap);
 
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
+        => RoleQueryDispatch(organizationId, ReadMetadataPermissionMap);
+
     public override IQueryable<TEntity> UpdateQuery(Guid organizationId)
         => RoleQueryDispatch(organizationId, UpdatePermissionMap);
 

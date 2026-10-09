@@ -121,6 +121,19 @@ public class SecretSecuredRepository : GenericSecuredRepository<
             .Concat(moduleSecrets);
     }
 
+    /// <summary>No metadata roles are declared for this entity, so this is empty
+    /// until one is: identifying a row is not something anyone may do by default.</summary>
+    public override IQueryable<Secret> ReadMetadataQuery(Guid organizationId)
+    {
+        var stackSecrets = _stackSecuredRepository.ReadQuery(organizationId).Cast<Secret>();
+        var namespaceSecrets = _namespaceSecuredRepository.ReadQuery(organizationId).Cast<Secret>();
+        var moduleSecrets = _moduleSecuredRepository.ReadQuery(organizationId).Cast<Secret>();
+
+        return stackSecrets
+            .Concat(namespaceSecrets)
+            .Concat(moduleSecrets);
+    }
+
     public override IQueryable<Secret> UpdateQuery(Guid organizationId)
     {
         var stackSecrets = _stackSecuredRepository.UpdateQuery(organizationId).Cast<Secret>();

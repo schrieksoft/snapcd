@@ -91,6 +91,9 @@ public abstract class GenericIntegrationChildSecuredRepository<TEntity, TDto, TM
 
     public override IQueryable<TEntity> CreateQuery(Guid organizationId) => RoleQueryDispatch(organizationId, CreatePermissionMap);
     public override IQueryable<TEntity> ReadQuery(Guid organizationId) => RoleQueryDispatch(organizationId, ReadPermissionMap);
+
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId) => RoleQueryDispatch(organizationId, ReadMetadataPermissionMap);
     public override IQueryable<TEntity> UpdateQuery(Guid organizationId) => RoleQueryDispatch(organizationId, UpdatePermissionMap);
     public override IQueryable<TEntity> DeleteQuery(Guid organizationId) => RoleQueryDispatch(organizationId, DeletePermissionMap);
 

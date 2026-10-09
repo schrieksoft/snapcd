@@ -86,6 +86,14 @@ public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, T
             ReadPermissionMap.OrganizationRoles);
     }
 
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles);
+    }
+
     /// <summary>The organization-role branch of metadata read, for subclasses that add their own.</summary>
     protected IQueryable<TEntity> ReadMetadataOrganizationRoleQuery(Guid organizationId)
     {

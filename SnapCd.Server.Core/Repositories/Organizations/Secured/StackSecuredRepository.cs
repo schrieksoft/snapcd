@@ -150,64 +150,13 @@ public class StackSecuredRepository : GenericSecuredRepository<
             false);
     }
 
-
-
-
-    public async Task<StackMetadata> GetMetadata(Guid id, Guid organizationId)
-    {
-        if (!CanReadMetadata(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Stack)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(s => s.Id == id && s.OrganizationId == organizationId);
-    }
-
-    public async Task<int> CountMetadata(
-        Guid organizationId,
-        Func<IQueryable<StackMetadata>, IQueryable<StackMetadata>>? queryModifier = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        return await query.CountAsync();
-    }
-    public async Task<List<StackMetadata>> ListMetadata(
-        Guid organizationId,
-        Func<IQueryable<StackMetadata>, IQueryable<StackMetadata>>? queryModifier = null,
-        Func<IQueryable<StackMetadata>, IOrderedQueryable<StackMetadata>>? orderBy = null,
-        int? pageNumber = null,
-        int? pageSize = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        if (orderBy != null)
-            query = orderBy(query);
-
-        if (pageNumber.HasValue && pageSize.HasValue)
-            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
-
-        if (pageSize.HasValue)
-            query = query.Take(pageSize.Value);
-
-        return await query.ToListAsync();
-    }
-    public override bool CanReadMetadata(Guid id, Guid organizationId)
-    {
-        return ReadMetadataQuery(organizationId).Any(s => s.Id == id && s.OrganizationId == organizationId);
-    }
-    public IQueryable<StackMetadata> ReadMetadataQuery(Guid organizationId)
+    public override IQueryable<Stack> ReadMetadataQuery(Guid organizationId)
     {
         return RoleQueryDispatch(
             organizationId,
             ReadMetadataPermissionMap.OrganizationRoles,
             ReadMetadataPermissionMap.StackRoles,
-            true)
-            .Select(x => new StackMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
+            true);
     }
 
     public override IQueryable<Stack> UpdateQuery(Guid organizationId)
@@ -549,7 +498,7 @@ public class StackSecuredRepository : GenericSecuredRepository<
         => GetMetadataByKey(
             organizationId,
             async () => (await Repository.GetByName(name, organizationId)).Id,
-            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            id => Repository.GetMetadata(id, organizationId),
             $"name \"{name}\"");
 
     #endregion

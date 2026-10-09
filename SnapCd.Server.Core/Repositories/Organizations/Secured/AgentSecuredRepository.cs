@@ -75,61 +75,10 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
         AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader, AgentRole.MetadataReader]
     };
 
-
-
-
-    public async Task<AgentMetadata> GetMetadata(Guid id, Guid organizationId)
-    {
-        if (!CanReadMetadata(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Agent)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(a => a.Id == id && a.OrganizationId == organizationId);
-    }
-
-    public async Task<int> CountMetadata(
-        Guid organizationId,
-        Func<IQueryable<AgentMetadata>, IQueryable<AgentMetadata>>? queryModifier = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        return await query.CountAsync();
-    }
-    public async Task<List<AgentMetadata>> ListMetadata(
-        Guid organizationId,
-        Func<IQueryable<AgentMetadata>, IQueryable<AgentMetadata>>? queryModifier = null,
-        Func<IQueryable<AgentMetadata>, IOrderedQueryable<AgentMetadata>>? orderBy = null,
-        int? pageNumber = null,
-        int? pageSize = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        if (orderBy != null)
-            query = orderBy(query);
-
-        if (pageNumber.HasValue && pageSize.HasValue)
-            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
-
-        if (pageSize.HasValue)
-            query = query.Take(pageSize.Value);
-
-        return await query.ToListAsync();
-    }
-    public override bool CanReadMetadata(Guid id, Guid organizationId)
-    {
-        return ReadMetadataQuery(organizationId).Any(a => a.Id == id && a.OrganizationId == organizationId);
-    }
-    public IQueryable<AgentMetadata> ReadMetadataQuery(Guid organizationId)
+    public override IQueryable<Agent> ReadMetadataQuery(Guid organizationId)
         => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(AgentRoleQuery(organizationId, ReadMetadataPermissionMap.AgentRoles))
-            .Concat(SuppliedScopeMetadataQuery(organizationId))
-            .Select(x => new AgentMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name });
+            .Concat(SuppliedScopeMetadataQuery(organizationId));
 
     /// <summary>Supplying a Agent to a scope is what makes it usable there, so a role on that
     /// scope carries metadata read on the Agent itself. Derived on write by trigger.</summary>
@@ -237,7 +186,7 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
         => GetMetadataByKey(
             organizationId,
             async () => (await Repository.GetByName(name, organizationId)).Id,
-            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            id => Repository.GetMetadata(id, organizationId),
             $"name \"{name}\"");
 
     /// <summary>

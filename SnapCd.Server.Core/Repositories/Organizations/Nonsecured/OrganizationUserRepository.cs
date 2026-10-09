@@ -34,22 +34,15 @@ public class OrganizationUserRepositoryFactory(IDbContextFactory<SnapCdDbContext
     }
 }
 
-public class OrganizationUserRepository : GenericOrganizationChildRepository<OrganizationUser, OrganizationUserReadDto, OrganizationUserMetadata, OrganizationUserCreatedEvent, OrganizationUserUpdatedEvent,
+public class OrganizationUserRepository : GenericOrganizationChildRepository<OrganizationUser, OrganizationUserReadDto, UserMetadata, OrganizationUserCreatedEvent, OrganizationUserUpdatedEvent,
     OrganizationUserDeletedEvent, OrganizationUserRepositorySettings>
 {
 
-    protected override Expression<Func<OrganizationUser, OrganizationUserMetadata>> MetadataProjection =>
-        e => new OrganizationUserMetadata
-        {
-            Id = e.Id,
-            OrganizationId = e.OrganizationId,
-            UserId = e.UserId
-        };
     /// <summary>
-    /// A membership row seen as the user it names: the id is the User's, which is what a role
-    /// assignment references. Distinct from MetadataProjection, which identifies the row itself.
+    /// A membership row is seen as the user it names, so the id here is the User's: that is what
+    /// a role assignment references and what callers hold.
     /// </summary>
-    private static readonly Expression<Func<OrganizationUser, UserMetadata>> UserMetadataProjection =
+    protected override Expression<Func<OrganizationUser, UserMetadata>> MetadataProjection =>
         e => new UserMetadata
         {
             Id = e.UserId,
@@ -57,14 +50,12 @@ public class OrganizationUserRepository : GenericOrganizationChildRepository<Org
             UserName = e.User.Email!
         };
 
-    /// <summary>Users a caller may name, scoped by the query it is given.</summary>
-    public Task<List<UserMetadata>> ListUserMetadata(
-        Guid organizationId,
-        IQueryable<OrganizationUser>? query = null,
-        Func<IQueryable<UserMetadata>, IOrderedQueryable<UserMetadata>>? orderBy = null,
-        int? pageNumber = null,
-        int? pageSize = null)
-        => List(organizationId, q => q.Select(UserMetadataProjection), query, orderBy, pageNumber, pageSize);
+    /// <summary>Found by the User's id, which is what the metadata view carries.</summary>
+    public override async Task<UserMetadata> GetMetadata(Guid userId, Guid organizationId)
+        => (await List(organizationId, q => q.Where(ou => ou.UserId == userId)
+                                             .Select(MetadataProjection))).First();
+
+
 
     public OrganizationUserRepository(
         SnapCdDbContext dbContext,

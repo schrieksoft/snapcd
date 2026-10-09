@@ -130,6 +130,17 @@ public abstract class GenericModuleChildSecuredRepository<TEntity, TDto, TMetada
             ReadPermissionMap.ModuleRoles);
     }
 
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
+            ReadMetadataPermissionMap.ModuleRoles);
+    }
+
     public override IQueryable<TEntity> UpdateQuery(Guid organizationId)
     {
         return RoleQueryDispatch(

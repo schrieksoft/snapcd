@@ -432,14 +432,32 @@ public abstract class GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, 
     public virtual Task<TMetadata> GetMetadata(Guid id, Guid organizationId)
         => Get(id, organizationId, q => q.Select(MetadataProjection));
 
-    /// <summary>Metadata for a set of rows. Goes through List, with the same consequence.</summary>
+    /// <summary>
+    /// Metadata for a set of rows, through List, with the same consequence. The caller narrows
+    /// the rows and the projection is this repository's, so a metadata read cannot return a
+    /// shape of the caller's choosing.
+    /// </summary>
     public virtual Task<List<TMetadata>> ListMetadata(
         Guid organizationId,
         IQueryable<TEntity>? query = null,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null,
         Func<IQueryable<TMetadata>, IOrderedQueryable<TMetadata>>? orderBy = null,
         int? pageNumber = null,
         int? pageSize = null)
-        => List(organizationId, q => q.Select(MetadataProjection), query, orderBy, pageNumber, pageSize);
+        => List(
+            organizationId,
+            q => (queryModifier is null ? q : queryModifier(q)).Select(MetadataProjection),
+            query,
+            orderBy,
+            pageNumber,
+            pageSize);
+
+    /// <summary>How many rows a metadata read would return. Goes through Count.</summary>
+    public virtual Task<int> CountMetadata(
+        Guid organizationId,
+        IQueryable<TEntity>? query = null,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null)
+        => Count(organizationId, query, queryModifier);
 
     public virtual async Task<List<TProjection>> List<TProjection>(
         Guid organizationId,

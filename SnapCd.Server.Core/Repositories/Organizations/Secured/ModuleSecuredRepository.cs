@@ -113,57 +113,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         ModuleRoles = [ModuleRole.Owner, ModuleRole.Reader, ModuleRole.MetadataReader]
     };
 
-
-
-
-    public async Task<ModuleMetadata> GetMetadata(Guid id, Guid organizationId)
-    {
-        if (!CanReadMetadata(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Module)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(m => m.Id == id && m.OrganizationId == organizationId);
-    }
-
-    public async Task<int> CountMetadata(
-        Guid organizationId,
-        Func<IQueryable<ModuleMetadata>, IQueryable<ModuleMetadata>>? queryModifier = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        return await query.CountAsync();
-    }
-    public async Task<List<ModuleMetadata>> ListMetadata(
-        Guid organizationId,
-        Func<IQueryable<ModuleMetadata>, IQueryable<ModuleMetadata>>? queryModifier = null,
-        Func<IQueryable<ModuleMetadata>, IOrderedQueryable<ModuleMetadata>>? orderBy = null,
-        int? pageNumber = null,
-        int? pageSize = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        if (orderBy != null)
-            query = orderBy(query);
-
-        if (pageNumber.HasValue && pageSize.HasValue)
-            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
-
-        if (pageSize.HasValue)
-            query = query.Take(pageSize.Value);
-
-        return await query.ToListAsync();
-    }
-    public override bool CanReadMetadata(Guid id, Guid organizationId)
-    {
-        return ReadMetadataQuery(organizationId).Any(m => m.Id == id && m.OrganizationId == organizationId);
-    }
-    public IQueryable<ModuleMetadata> ReadMetadataQuery(Guid organizationId)
+    public override IQueryable<Module> ReadMetadataQuery(Guid organizationId)
     {
         return RoleQueryDispatch(
             organizationId,
@@ -171,7 +121,7 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
             ReadMetadataPermissionMap.StackRoles,
             ReadMetadataPermissionMap.NamespaceRoles,
             ReadMetadataPermissionMap.ModuleRoles
-        ).Select(x => new ModuleMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, NamespaceId = x.NamespaceId, RunnerId = x.RunnerId });
+        );
     }
 
     public override IQueryable<Module> ReadQuery(Guid organizationId)
@@ -481,14 +431,14 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         => GetMetadataByKey(
             organizationId,
             async () => (await Repository.Get(namespaceId, name, organizationId)).Id,
-            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            id => Repository.GetMetadata(id, organizationId),
             $"namespace {namespaceId} and name \"{name}\"");
 
     public Task<ModuleMetadata> GetMetadata(string stackName, string namespaceName, string moduleName, Guid organizationId)
         => GetMetadataByKey(
             organizationId,
             async () => (await Repository.Get(stackName, namespaceName, moduleName, organizationId)).Id,
-            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            id => Repository.GetMetadata(id, organizationId),
             $"stack \"{stackName}\", namespace \"{namespaceName}\" and name \"{moduleName}\"");
 
     # endregion

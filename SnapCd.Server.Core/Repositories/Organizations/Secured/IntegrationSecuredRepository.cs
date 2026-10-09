@@ -64,61 +64,10 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
         IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader, IntegrationRole.MetadataReader]
     };
 
-
-
-
-    public async Task<IntegrationMetadata> GetMetadata(Guid id, Guid organizationId)
-    {
-        if (!CanReadMetadata(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(Integration)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(i => i.Id == id && i.OrganizationId == organizationId);
-    }
-
-    public async Task<int> CountMetadata(
-        Guid organizationId,
-        Func<IQueryable<IntegrationMetadata>, IQueryable<IntegrationMetadata>>? queryModifier = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        return await query.CountAsync();
-    }
-    public async Task<List<IntegrationMetadata>> ListMetadata(
-        Guid organizationId,
-        Func<IQueryable<IntegrationMetadata>, IQueryable<IntegrationMetadata>>? queryModifier = null,
-        Func<IQueryable<IntegrationMetadata>, IOrderedQueryable<IntegrationMetadata>>? orderBy = null,
-        int? pageNumber = null,
-        int? pageSize = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        if (orderBy != null)
-            query = orderBy(query);
-
-        if (pageNumber.HasValue && pageSize.HasValue)
-            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
-
-        if (pageSize.HasValue)
-            query = query.Take(pageSize.Value);
-
-        return await query.ToListAsync();
-    }
-    public override bool CanReadMetadata(Guid id, Guid organizationId)
-    {
-        return ReadMetadataQuery(organizationId).Any(i => i.Id == id && i.OrganizationId == organizationId);
-    }
-    public IQueryable<IntegrationMetadata> ReadMetadataQuery(Guid organizationId)
+    public override IQueryable<Integration> ReadMetadataQuery(Guid organizationId)
         => ReadMetadataOrganizationRoleQuery(organizationId)
             .Concat(IntegrationRoleQuery(organizationId, ReadMetadataPermissionMap.IntegrationRoles))
-            .Concat(SuppliedScopeMetadataQuery(organizationId))
-            .Select(x => new IntegrationMetadata { Id = x.Id, OrganizationId = x.OrganizationId, Name = x.Name, IntegrationType = x.IntegrationType });
+            .Concat(SuppliedScopeMetadataQuery(organizationId));
 
     /// <summary>Supplying a Integration to a scope is what makes it usable there, so a role on that
     /// scope carries metadata read on the Integration itself. Derived on write by trigger.</summary>
@@ -144,7 +93,7 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
                 .Where(i => i.OrganizationId == organizationId && i.Name == name)
                 .Select(i => (Guid?)i.Id)
                 .FirstOrDefaultAsync(),
-            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id),
+            id => Repository.GetMetadata(id, organizationId),
             $"name \"{name}\"");
 
 

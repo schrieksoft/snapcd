@@ -141,6 +141,17 @@ public abstract class
             []);
     }
 
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
+            []);
+    }
+
     public override IQueryable<TEntity> UpdateQuery(Guid organizationId)
     {
         return RoleQueryDispatch(

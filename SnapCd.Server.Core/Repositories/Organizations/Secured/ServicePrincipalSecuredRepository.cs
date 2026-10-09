@@ -103,77 +103,15 @@ public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecured
         
     }
 
-    public IQueryable<ServicePrincipalMetadata> ReadMetadataQuery(Guid organizationId)
-    {
-        return ReadMetadataOrganizationRoleQuery(organizationId)
-            // The entity backs every OpenIddict application, so the same narrowing the
-            // non-secured reads apply has to hold here too.
-            .Where(ServicePrincipalRepository.IsServicePrincipal)
-            .Select(x => new ServicePrincipalMetadata
-            {
-                Id = x.Id,
-                OrganizationId = x.OrganizationId,
-                // Stored with the organization as a prefix; callers get the name on its own.
-                ClientId = x.ClientId!.Substring(x.OrganizationId.ToString().Length + 1),
-                DisplayName = x.DisplayName
-            });
-    }
-
-    public override bool CanReadMetadata(Guid id, Guid organizationId)
-    {
-        return ReadMetadataQuery(organizationId).Any(x => x.Id == id && x.OrganizationId == organizationId);
-    }
-
-    public async Task<ServicePrincipalMetadata> GetMetadata(Guid id, Guid organizationId)
-    {
-        if (!CanReadMetadata(id, organizationId))
-            throw new PrincipalNotAuthorizedException(
-                $"{nameof(ServicePrincipal)} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
-
-        return await ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId);
-    }
+    public override IQueryable<ServicePrincipal> ReadMetadataQuery(Guid organizationId)
+        => ReadMetadataOrganizationRoleQuery(organizationId);
 
     /// <summary>The client id here is the bare name, as the metadata view exposes it, not the stored prefixed form.</summary>
     public Task<ServicePrincipalMetadata> GetMetadataByClientId(string clientId, Guid organizationId)
         => GetMetadataByKey(
             organizationId,
             async () => (await Repository.GetByClientId(clientId, organizationId))?.Id,
-            id => ReadMetadataQuery(organizationId).FirstAsync(x => x.Id == id && x.OrganizationId == organizationId),
+            id => Repository.GetMetadata(id, organizationId),
             $"client ID \"{clientId}\"");
 
-    public async Task<int> CountMetadata(
-        Guid organizationId,
-        Func<IQueryable<ServicePrincipalMetadata>, IQueryable<ServicePrincipalMetadata>>? queryModifier = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        return await query.CountAsync();
-    }
-
-    public async Task<List<ServicePrincipalMetadata>> ListMetadata(
-        Guid organizationId,
-        Func<IQueryable<ServicePrincipalMetadata>, IQueryable<ServicePrincipalMetadata>>? queryModifier = null,
-        Func<IQueryable<ServicePrincipalMetadata>, IOrderedQueryable<ServicePrincipalMetadata>>? orderBy = null,
-        int? pageNumber = null,
-        int? pageSize = null)
-    {
-        var query = ReadMetadataQuery(organizationId).Distinct();
-
-        if (queryModifier != null)
-            query = queryModifier(query);
-
-        if (orderBy != null)
-            query = orderBy(query);
-
-        if (pageNumber.HasValue && pageSize.HasValue)
-            query = query.Skip((pageNumber.Value - 1) * pageSize.Value);
-
-        if (pageSize.HasValue)
-            query = query.Take(pageSize.Value);
-
-        return await query.ToListAsync();
-    }
 }

@@ -103,6 +103,18 @@ public class VariableSecuredRepository : GenericSecuredRepository<
             ReadPermissionMap.ModuleRoles);
     }
 
+    /// <summary>No metadata roles are declared for this entity, so this is empty
+    /// until one is: identifying a row is not something anyone may do by default.</summary>
+    public override IQueryable<Variable> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
+            ReadMetadataPermissionMap.ModuleRoles);
+    }
+
     public override IQueryable<Variable> CreateQuery(Guid organizationId)
     {
         return RoleQueryDispatch(
