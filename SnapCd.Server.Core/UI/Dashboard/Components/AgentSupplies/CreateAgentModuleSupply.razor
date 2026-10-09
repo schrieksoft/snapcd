@@ -35,7 +35,7 @@
                 </MudItem>
 
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="ModuleMetadata?"
+                    <MudAutocomplete T="QualifiedModule?"
                                      Label="Module"
                                      @bind-Value="_selectedModule"
                                      Disabled="@(!_canCreate || (ModuleId.HasValue))"
@@ -90,7 +90,7 @@
     [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private ModuleMetadata? _selectedModule;
+    private QualifiedModule? _selectedModule;
     private AgentMetadata? _selectedAgentBacking;
     private AgentMetadata? _selectedAgent
     {
@@ -125,7 +125,7 @@
         if (ModuleId.HasValue)
         {
             using var moduleRepo = ModuleRepoFactory.Create();
-            _selectedModule = await moduleRepo.GetMetadata(ModuleId.Value, OrganizationId);
+            _selectedModule = await moduleRepo.GetQualifiedModule(ModuleId.Value, OrganizationId);
         }
 
         if (AgentId.HasValue)
@@ -136,10 +136,10 @@
     }
 
 
-    private async Task<IEnumerable<ModuleMetadata>> SearchModules(string value, CancellationToken token)
+    private async Task<IEnumerable<QualifiedModule>> SearchModules(string value, CancellationToken token)
     {
         using var repo = ModuleRepoFactory.Create();
-        return await repo.ListMetadata(OrganizationId,
+        return await repo.ListQualifiedModule(OrganizationId,
             q => string.IsNullOrWhiteSpace(value)
                 ? q
                 : q.Where(x => x.Name.Contains(value)),

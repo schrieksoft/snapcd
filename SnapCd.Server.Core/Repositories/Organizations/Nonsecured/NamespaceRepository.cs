@@ -95,6 +95,36 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     }
 
 
+
+    /// <summary>
+    /// The scope with the names above it, which metadata deliberately does not carry: metadata
+    /// is a join-free read, and a picker needs enough to tell one "default" from another.
+    /// </summary>
+    /// <summary>One scope with the names above it, for a preselected picker.</summary>
+    public async Task<QualifiedNamespace> GetQualifiedNamespace(Guid id, Guid organizationId)
+        => (await ListQualifiedNamespace(organizationId, queryModifier: q => q.Where(e => e.Id == id))).First();
+
+    public Task<List<QualifiedNamespace>> ListQualifiedNamespace(
+        Guid organizationId,
+        IQueryable<Namespace>? query = null,
+        Func<IQueryable<Namespace>, IQueryable<Namespace>>? queryModifier = null,
+        Func<IQueryable<QualifiedNamespace>, IOrderedQueryable<QualifiedNamespace>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => List(
+            organizationId,
+            q => (queryModifier is null ? q : queryModifier(q)).Select(e => new QualifiedNamespace
+            {
+                Id = e.Id,
+                OrganizationId = e.OrganizationId,
+                Name = e.Name,
+                StackName = e.Stack.Name
+            }),
+            query,
+            orderBy,
+            pageNumber,
+            pageSize);
+
     protected override NamespaceReadDto MapToDto(Namespace entity)
     {
         return NamespaceMapper.ToDto(entity);

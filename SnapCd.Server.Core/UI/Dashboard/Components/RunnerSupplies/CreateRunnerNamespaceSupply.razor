@@ -37,7 +37,7 @@
 
                 <!-- Namespace Selection -->
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="NamespaceMetadata?"
+                    <MudAutocomplete T="QualifiedNamespace?"
                                      Label="Namespace"
                                      @bind-Value="_selectedNamespace"
                                      Disabled="@(!_canCreate || (NamespaceId.HasValue))"
@@ -93,7 +93,7 @@
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private NamespaceMetadata? _selectedNamespace;
+    private QualifiedNamespace? _selectedNamespace;
     private RunnerMetadata? _selectedRunnerBacking;
     private RunnerMetadata? _selectedRunner
     {
@@ -128,7 +128,7 @@
         if (NamespaceId.HasValue)
         {
             using var namespaceRepo = NamespaceRepoFactory.Create();
-            _selectedNamespace = await namespaceRepo.GetMetadata(NamespaceId.Value, OrganizationId);
+            _selectedNamespace = await namespaceRepo.GetQualifiedNamespace(NamespaceId.Value, OrganizationId);
         }
 
         if (RunnerId.HasValue)
@@ -139,10 +139,10 @@
     }
 
 
-    private async Task<IEnumerable<NamespaceMetadata>> SearchNamespaces(string value, CancellationToken token)
+    private async Task<IEnumerable<QualifiedNamespace>> SearchNamespaces(string value, CancellationToken token)
     {
         using var repo = NamespaceRepoFactory.Create();
-        return await repo.ListMetadata(OrganizationId,
+        return await repo.ListQualifiedNamespace(OrganizationId,
             q => string.IsNullOrWhiteSpace(value)
                 ? q
                 : q.Where(x => x.Name.Contains(value)),

@@ -113,6 +113,30 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         ModuleRoles = [ModuleRole.Owner, ModuleRole.Reader, ModuleRole.MetadataReader]
     };
 
+
+    /// <summary>
+    /// The scope with the names above it, for the callers that must tell two same-named rows
+    /// apart. Scoped by metadata read, as the plain metadata list is.
+    /// </summary>
+    /// <summary>One scope with the names above it, once metadata read for it is established.</summary>
+    public async Task<QualifiedModule> GetQualifiedModule(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Module with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await Repository.GetQualifiedModule(id, organizationId);
+    }
+
+    public Task<List<QualifiedModule>> ListQualifiedModule(
+        Guid organizationId,
+        Func<IQueryable<Module>, IQueryable<Module>>? queryModifier = null,
+        Func<IQueryable<QualifiedModule>, IOrderedQueryable<QualifiedModule>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => Repository.ListQualifiedModule(
+            organizationId, ReadMetadataQuery(organizationId), queryModifier, orderBy, pageNumber, pageSize);
+
     public override IQueryable<Module> ReadMetadataQuery(Guid organizationId)
     {
         return RoleQueryDispatch(

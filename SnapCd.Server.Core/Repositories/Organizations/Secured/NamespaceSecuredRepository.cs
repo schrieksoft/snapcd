@@ -143,6 +143,30 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         );
     }
 
+
+    /// <summary>
+    /// The scope with the names above it, for the callers that must tell two same-named rows
+    /// apart. Scoped by metadata read, as the plain metadata list is.
+    /// </summary>
+    /// <summary>One scope with the names above it, once metadata read for it is established.</summary>
+    public async Task<QualifiedNamespace> GetQualifiedNamespace(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Namespace with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await Repository.GetQualifiedNamespace(id, organizationId);
+    }
+
+    public Task<List<QualifiedNamespace>> ListQualifiedNamespace(
+        Guid organizationId,
+        Func<IQueryable<Namespace>, IQueryable<Namespace>>? queryModifier = null,
+        Func<IQueryable<QualifiedNamespace>, IOrderedQueryable<QualifiedNamespace>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => Repository.ListQualifiedNamespace(
+            organizationId, ReadMetadataQuery(organizationId), queryModifier, orderBy, pageNumber, pageSize);
+
     public override IQueryable<Namespace> ReadMetadataQuery(Guid organizationId)
     {
         var baseQuery = RoleQueryDispatch(

@@ -14,6 +14,7 @@
 @using SnapCd.Server.Core.Entities.Definition.RunnerSupplies
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.RunnerSupplies
+@using SnapCd.Server.Core.Views
 
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -49,7 +50,13 @@
             {
                 <MudExpansionPanel>
                     <TitleContent>
-                        <MudText>@supply.Stack.Name</MudText>
+                        <MudStack Row Spacing="2" AlignItems="AlignItems.Baseline">
+                            <MudLink Href="@supply.Href" @onclick:stopPropagation="true">@supply.ScopeName</MudLink>
+                            @if (supply.ParentPath is not null)
+                            {
+                                <MudText Typo="Typo.caption">in @supply.ParentPath</MudText>
+                            }
+                        </MudStack>
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Delete supply">
@@ -92,7 +99,13 @@
             {
                 <MudExpansionPanel>
                     <TitleContent>
-                        <MudText>@supply.Namespace.Name</MudText>
+                        <MudStack Row Spacing="2" AlignItems="AlignItems.Baseline">
+                            <MudLink Href="@supply.Href" @onclick:stopPropagation="true">@supply.ScopeName</MudLink>
+                            @if (supply.ParentPath is not null)
+                            {
+                                <MudText Typo="Typo.caption">in @supply.ParentPath</MudText>
+                            }
+                        </MudStack>
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Delete supply">
@@ -134,7 +147,13 @@
             {
                 <MudExpansionPanel>
                     <TitleContent>
-                        <MudText>@supply.Module.Name</MudText>
+                        <MudStack Row Spacing="2" AlignItems="AlignItems.Baseline">
+                            <MudLink Href="@supply.Href" @onclick:stopPropagation="true">@supply.ScopeName</MudLink>
+                            @if (supply.ParentPath is not null)
+                            {
+                                <MudText Typo="Typo.caption">in @supply.ParentPath</MudText>
+                            }
+                        </MudStack>
                     </TitleContent>
                     <ChildContent>
                         <MudTooltip Text="Delete supply">
@@ -163,9 +182,9 @@
     private bool _showCreateNamespaceSupply;
     private bool _showCreateModuleSupply;
 
-    private List<RunnerStackSupply> _runnerStackSupplies = new();
-    private List<RunnerModuleSupply> _runnerModuleSupplies = new();
-    private List<RunnerNamespaceSupply> _runnerNamespaceSupplies = new();
+    private List<SuppliedScopeRow> _runnerStackSupplies = new();
+    private List<SuppliedScopeRow> _runnerModuleSupplies = new();
+    private List<SuppliedScopeRow> _runnerNamespaceSupplies = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -193,27 +212,40 @@
 
     private async Task ReloadSupplies()
     {
+        // Projected rather than loaded: the list needs the names above the scope to tell one
+        // "default" from another, not the entities themselves.
         using var stackSupplyRepo = StackSupplyRepoFactory.Create();
         _runnerStackSupplies = await stackSupplyRepo.ListByParentId(
             RunnerId, OrganizationId,
-            x => x
-                .Include(y => y.Runner)
-                .Include(y => y.Stack)
-        );
+            x => x.Select(y => new SuppliedScopeRow
+            {
+                SupplyId = y.Id,
+                OwnerName = y.Runner.Name,
+                StackName = y.Stack.Name
+            }));
 
         using var moduleSupplyRepo = ModuleSupplyRepoFactory.Create();
-        _runnerModuleSupplies = await moduleSupplyRepo.ListByParentId(RunnerId, OrganizationId,
-            x => x
-                .Include(y => y.Runner)
-                .Include(y => y.Module)
-        );
+        _runnerModuleSupplies = await moduleSupplyRepo.ListByParentId(
+            RunnerId, OrganizationId,
+            x => x.Select(y => new SuppliedScopeRow
+            {
+                SupplyId = y.Id,
+                OwnerName = y.Runner.Name,
+                StackName = y.Module.Namespace.Stack.Name,
+                NamespaceName = y.Module.Namespace.Name,
+                ModuleName = y.Module.Name
+            }));
 
         using var namespaceSupplyRepo = NamespaceSupplyRepoFactory.Create();
-        _runnerNamespaceSupplies = await namespaceSupplyRepo.ListByParentId(RunnerId, OrganizationId,
-            x => x
-                .Include(y => y.Runner)
-                .Include(y => y.Namespace)
-        );
+        _runnerNamespaceSupplies = await namespaceSupplyRepo.ListByParentId(
+            RunnerId, OrganizationId,
+            x => x.Select(y => new SuppliedScopeRow
+            {
+                SupplyId = y.Id,
+                OwnerName = y.Runner.Name,
+                StackName = y.Namespace.Stack.Name,
+                NamespaceName = y.Namespace.Name
+            }));
     }
 
     private async Task Close()
@@ -221,13 +253,13 @@
         await OnClose.InvokeAsync();
     }
 
-    private async Task DeleteStackSupply(RunnerStackSupply supply)
+    private async Task DeleteStackSupply(SuppliedScopeRow supply)
     {
         var parameters = new DialogParameters<DeleteRunnerStackSupplyDialog>
         {
-            { x => x.RunnerStackSupplyId, supply.Id },
-            { x => x.StackName, supply.Stack.Name },
-            { x => x.RunnerName, supply.Runner.Name },
+            { x => x.RunnerStackSupplyId, supply.SupplyId },
+            { x => x.StackName, supply.ScopeName },
+            { x => x.RunnerName, supply.OwnerName },
             { x => x.OrganizationId, OrganizationId }
         };
 
@@ -243,13 +275,13 @@
         }
     }
 
-    private async Task DeleteNamespaceSupply(RunnerNamespaceSupply supply)
+    private async Task DeleteNamespaceSupply(SuppliedScopeRow supply)
     {
         var parameters = new DialogParameters<DeleteRunnerNamespaceSupplyDialog>
         {
-            { x => x.RunnerNamespaceSupplyId, supply.Id },
-            { x => x.NamespaceName, supply.Namespace.Name },
-            { x => x.RunnerName, supply.Runner.Name },
+            { x => x.RunnerNamespaceSupplyId, supply.SupplyId },
+            { x => x.NamespaceName, supply.ScopeName },
+            { x => x.RunnerName, supply.OwnerName },
             { x => x.OrganizationId, OrganizationId }
         };
 
@@ -265,13 +297,13 @@
         }
     }
 
-    private async Task DeleteModuleSupply(RunnerModuleSupply supply)
+    private async Task DeleteModuleSupply(SuppliedScopeRow supply)
     {
         var parameters = new DialogParameters<DeleteRunnerModuleSupplyDialog>
         {
-            { x => x.RunnerModuleSupplyId, supply.Id },
-            { x => x.ModuleName, supply.Module.Name },
-            { x => x.RunnerName, supply.Runner.Name },
+            { x => x.RunnerModuleSupplyId, supply.SupplyId },
+            { x => x.ModuleName, supply.ScopeName },
+            { x => x.RunnerName, supply.OwnerName },
             { x => x.OrganizationId, OrganizationId }
         };
 

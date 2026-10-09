@@ -70,6 +70,37 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
     {
     }
 
+
+    /// <summary>
+    /// The scope with the names above it, which metadata deliberately does not carry: metadata
+    /// is a join-free read, and a picker needs enough to tell one "app" from another.
+    /// </summary>
+    /// <summary>One scope with the names above it, for a preselected picker.</summary>
+    public async Task<QualifiedModule> GetQualifiedModule(Guid id, Guid organizationId)
+        => (await ListQualifiedModule(organizationId, queryModifier: q => q.Where(e => e.Id == id))).First();
+
+    public Task<List<QualifiedModule>> ListQualifiedModule(
+        Guid organizationId,
+        IQueryable<Module>? query = null,
+        Func<IQueryable<Module>, IQueryable<Module>>? queryModifier = null,
+        Func<IQueryable<QualifiedModule>, IOrderedQueryable<QualifiedModule>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => List(
+            organizationId,
+            q => (queryModifier is null ? q : queryModifier(q)).Select(e => new QualifiedModule
+            {
+                Id = e.Id,
+                OrganizationId = e.OrganizationId,
+                Name = e.Name,
+                NamespaceName = e.Namespace.Name,
+                StackName = e.Namespace.Stack.Name
+            }),
+            query,
+            orderBy,
+            pageNumber,
+            pageSize);
+
     protected override ModuleReadDto MapToDto(Module entity)
     {
         return ModuleMapper.ToDto(entity);
