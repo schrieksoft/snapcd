@@ -32,6 +32,7 @@ public class AgentStackSupplyController : GenericCrudController<
     AgentStackSupplyCreateDto,
     AgentStackSupplyUpdateDto,
     AgentStackSupplyReadDto,
+    AgentStackSupplyMetadataReadDto,
     AgentStackSupplySecuredRepository,
     AgentStackSupplyRepository,
     AgentStackSupplyService,

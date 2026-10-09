@@ -28,6 +28,7 @@ public class NamespaceInputFromSecretService<TEntity> : GenericCrudService<
      NamespaceInputFromSecretCreateDto,
     NamespaceInputFromSecretUpdateDto,
     NamespaceInputFromSecretReadDto,
+    NamespaceInputFromSecretMetadataReadDto,
     NamespaceInputFromSecretSecuredRepository<TEntity>,
     NamespaceInputFromSecretRepository<TEntity>,
     NamespaceInputFromSecretCreatedEvent,
@@ -50,6 +51,11 @@ public class NamespaceInputFromSecretService<TEntity> : GenericCrudService<
     protected override NamespaceInputFromSecretReadDto MapToDto(TEntity entity)
     {
         return NamespaceInputFromSecretMapper.ToDto(entity);
+    }
+
+    protected override NamespaceInputFromSecretMetadataReadDto MapToMetadataDto(NamespaceInputFromSecretMetadata view)
+    {
+        return NamespaceInputFromSecretMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, NamespaceInputFromSecretUpdateDto dto)

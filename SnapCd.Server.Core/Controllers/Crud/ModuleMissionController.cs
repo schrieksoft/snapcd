@@ -30,6 +30,7 @@ public class ModuleMissionController : GenericCrudController<
     ModuleMissionCreateDto,
     ModuleMissionUpdateDto,
     ModuleMissionReadDto,
+    ModuleMissionMetadataReadDto,
     ModuleMissionSecuredRepository,
     ModuleMissionRepository,
     ModuleMissionService,

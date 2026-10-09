@@ -27,6 +27,7 @@ public class NamespaceTerraformArrayFlagController : GenericCrudController<
     NamespaceTerraformArrayFlagCreateDto,
     NamespaceTerraformArrayFlagUpdateDto,
     NamespaceTerraformArrayFlagReadDto,
+    NamespaceTerraformArrayFlagMetadataReadDto,
     NamespaceTerraformArrayFlagSecuredRepository,
     NamespaceTerraformArrayFlagRepository,
     NamespaceTerraformArrayFlagService,

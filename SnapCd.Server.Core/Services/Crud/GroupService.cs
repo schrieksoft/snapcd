@@ -24,6 +24,7 @@ public class GroupService : GenericCrudService<
     GroupCreateDto,
     GroupUpdateDto,
     GroupReadDto,
+    GroupMetadataReadDto,
     GroupSecuredRepository,
     GroupRepository,
     GroupCreatedEvent,
@@ -45,6 +46,11 @@ public class GroupService : GenericCrudService<
     protected override GroupReadDto MapToDto(Group entity)
     {
         return GroupMapper.ToDto(entity);
+    }
+
+    protected override GroupMetadataReadDto MapToMetadataDto(GroupMetadata view)
+    {
+        return GroupMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Group entity, GroupUpdateDto dto)

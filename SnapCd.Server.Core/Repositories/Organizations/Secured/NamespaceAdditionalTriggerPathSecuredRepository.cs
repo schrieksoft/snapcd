@@ -66,4 +66,11 @@ public class NamespaceAdditionalTriggerPathSecuredRepository : GenericNamespaceC
 
         return entity;
     }
+
+    public Task<NamespaceAdditionalTriggerPathMetadata> GetMetadata(Guid namespaceId, string path, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(namespaceId, path, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"path \"{path}\"");
 }

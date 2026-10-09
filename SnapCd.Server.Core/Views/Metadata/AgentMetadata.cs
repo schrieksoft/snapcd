@@ -12,4 +12,5 @@ namespace SnapCd.Server.Core.Views.Metadata;
 public class AgentMetadata : EntityMetadataBase
 {
     public string Name { get; set; } = null!;
+    public Guid ServicePrincipalId { get; set; }
 }

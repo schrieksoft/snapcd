@@ -45,7 +45,8 @@ public class AgentRepository : GenericOrganizationChildRepository<Agent, AgentRe
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            ServicePrincipalId = e.ServicePrincipalId
         };
     public AgentRepository(
         SnapCdDbContext dbContext,

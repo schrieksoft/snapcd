@@ -24,6 +24,7 @@ public class DependsOnModuleService : GenericCrudService<
     DependsOnModuleCreateDto,
     DependsOnModuleUpdateDto,
     DependsOnModuleReadDto,
+    DependsOnModuleMetadataReadDto,
     DependsOnModuleSecuredRepository,
     DependsOnModuleRepository,
     DependsOnModuleCreatedEvent,
@@ -45,6 +46,11 @@ public class DependsOnModuleService : GenericCrudService<
     protected override DependsOnModuleReadDto MapToDto(DependsOnModule entity)
     {
         return DependsOnModuleMapper.ToDto(entity);
+    }
+
+    protected override DependsOnModuleMetadataReadDto MapToMetadataDto(DependsOnModuleMetadata view)
+    {
+        return DependsOnModuleMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(DependsOnModule entity, DependsOnModuleUpdateDto dto)

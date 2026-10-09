@@ -33,6 +33,7 @@ public class ServicePrincipalService : GenericCrudService<
     ServicePrincipalCreateDto,
     ServicePrincipalUpdateDto,
     ServicePrincipalReadDto,
+    ServicePrincipalMetadataReadDto,
     ServicePrincipalSecuredRepository,
     ServicePrincipalRepository,
     ServicePrincipalCreatedEvent,
@@ -54,6 +55,11 @@ public class ServicePrincipalService : GenericCrudService<
     protected override ServicePrincipalReadDto MapToDto(ServicePrincipal entity)
     {
         return ServicePrincipalMapper.ToDto(entity);
+    }
+
+    protected override ServicePrincipalMetadataReadDto MapToMetadataDto(ServicePrincipalMetadata view)
+    {
+        return ServicePrincipalMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ServicePrincipal entity, ServicePrincipalUpdateDto dto)

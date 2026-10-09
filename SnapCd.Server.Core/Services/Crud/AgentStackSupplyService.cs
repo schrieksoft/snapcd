@@ -24,6 +24,7 @@ public class AgentStackSupplyService : GenericCrudService<
     AgentStackSupplyCreateDto,
     AgentStackSupplyUpdateDto,
     AgentStackSupplyReadDto,
+    AgentStackSupplyMetadataReadDto,
     AgentStackSupplySecuredRepository,
     AgentStackSupplyRepository,
     AgentStackSupplyCreatedEvent,
@@ -45,6 +46,11 @@ public class AgentStackSupplyService : GenericCrudService<
     protected override AgentStackSupplyReadDto MapToDto(AgentStackSupply entity)
     {
         return AgentStackSupplyMapper.ToDto(entity);
+    }
+
+    protected override AgentStackSupplyMetadataReadDto MapToMetadataDto(AgentStackSupplyMetadata view)
+    {
+        return AgentStackSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(AgentStackSupply entity, AgentStackSupplyUpdateDto dto)

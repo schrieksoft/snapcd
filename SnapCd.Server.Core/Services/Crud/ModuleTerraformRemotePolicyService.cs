@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleTerraformRemotePolicyService : GenericCrudService<ModuleTerraformRemotePolicy, ModuleTerraformRemotePolicyMetadata, ModuleTerraformRemotePolicyCreateDto, ModuleTerraformRemotePolicyUpdateDto, ModuleTerraformRemotePolicyReadDto,
+public class ModuleTerraformRemotePolicyService : GenericCrudService<ModuleTerraformRemotePolicy, ModuleTerraformRemotePolicyMetadata, ModuleTerraformRemotePolicyCreateDto, ModuleTerraformRemotePolicyUpdateDto, ModuleTerraformRemotePolicyReadDto, ModuleTerraformRemotePolicyMetadataReadDto,
     ModuleTerraformRemotePolicySecuredRepository, ModuleTerraformRemotePolicyRepository, ModuleTerraformRemotePolicyCreatedEvent,
     ModuleTerraformRemotePolicyUpdatedEvent, ModuleTerraformRemotePolicyDeletedEvent, ModuleTerraformRemotePolicyRepositorySettings>
 {
@@ -39,6 +39,11 @@ public class ModuleTerraformRemotePolicyService : GenericCrudService<ModuleTerra
         return ModuleTerraformRemotePolicyMapper.ToDto(entity);
     }
 
+    protected override ModuleTerraformRemotePolicyMetadataReadDto MapToMetadataDto(ModuleTerraformRemotePolicyMetadata view)
+    {
+        return ModuleTerraformRemotePolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(ModuleTerraformRemotePolicy entity, ModuleTerraformRemotePolicyUpdateDto dto)
     {
         ModuleTerraformRemotePolicyMapper.UpdateEntity(entity, dto);
@@ -48,5 +53,11 @@ public class ModuleTerraformRemotePolicyService : GenericCrudService<ModuleTerra
     {
         var entity = await SecuredRepository.Get(moduleId, name, organizationId);
         return ModuleTerraformRemotePolicyMapper.ToDto(entity);
+    }
+
+    public async Task<ModuleTerraformRemotePolicyMetadataReadDto> GetMetadata(Guid moduleId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(moduleId, name, organizationId);
+        return ModuleTerraformRemotePolicyMapper.ToMetadataDto(view);
     }
 }

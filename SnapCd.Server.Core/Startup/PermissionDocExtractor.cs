@@ -151,8 +151,8 @@ public static class PermissionDocExtractor
     {
         for (var t = controllerType; t is not null; t = t.BaseType!)
         {
-            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,>))
-                return t.GetGenericArguments()[5]; // TSecuredRepository
+            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,,>))
+                return t.GetGenericArguments()[6]; // TSecuredRepository
         }
 
         return null;
@@ -205,7 +205,7 @@ public static class PermissionDocExtractor
 
         var baseDefinition = method.GetBaseDefinition();
         if (baseDefinition.DeclaringType is { IsGenericType: true } declaring
-            && declaring.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,>))
+            && declaring.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,,>))
         {
             return baseDefinition.Name switch
             {
@@ -213,6 +213,7 @@ public static class PermissionDocExtractor
                 "Update" => PermissionVerb.Update,
                 "Delete" => PermissionVerb.Delete,
                 "Get" or "List" or "Count" => PermissionVerb.Read,
+                "GetMetadata" or "ListMetadata" => PermissionVerb.ReadMetadata,
                 _ => null
             };
         }

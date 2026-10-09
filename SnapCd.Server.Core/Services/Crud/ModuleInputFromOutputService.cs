@@ -27,6 +27,7 @@ public class ModuleInputFromOutputService<TEntity> : GenericCrudService<
     ModuleInputFromOutputCreateDto,
     ModuleInputFromOutputUpdateDto,
     ModuleInputFromOutputDtoRead,
+    ModuleInputFromOutputMetadataReadDto,
     ModuleInputFromOutputSecuredRepository<TEntity>,
     ModuleInputFromOutputRepository<TEntity>,
     ModuleInputFromOutputCreatedEvent,
@@ -49,6 +50,11 @@ public class ModuleInputFromOutputService<TEntity> : GenericCrudService<
     protected override ModuleInputFromOutputDtoRead MapToDto(TEntity entity)
     {
         return ModuleInputFromOutputMapper.ToDto(entity);
+    }
+
+    protected override ModuleInputFromOutputMetadataReadDto MapToMetadataDto(ModuleInputFromOutputMetadata view)
+    {
+        return ModuleInputFromOutputMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, ModuleInputFromOutputUpdateDto dto)

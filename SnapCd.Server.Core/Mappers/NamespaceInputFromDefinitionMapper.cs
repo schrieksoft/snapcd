@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.NamespaceInputs;
 using SnapCd.Server.Core.Entities.Interfaces;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -48,5 +49,15 @@ public static class NamespaceInputFromDefinitionMapper
         entity.Name = dto.Name;
         entity.UsageMode = dto.UsageMode;
         entity.DefinitionName = dto.DefinitionName;
+    }
+
+    public static NamespaceInputFromDefinitionMetadataReadDto ToMetadataDto(NamespaceInputFromDefinitionMetadata view)
+    {
+        return new NamespaceInputFromDefinitionMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

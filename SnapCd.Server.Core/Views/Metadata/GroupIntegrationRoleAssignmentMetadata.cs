@@ -14,4 +14,5 @@ public class GroupIntegrationRoleAssignmentMetadata : EntityMetadataBase
     public Guid IntegrationId { get; set; }
 
     public Guid PrincipalId { get; set; }
+    public Guid GroupId { get; set; }
 }

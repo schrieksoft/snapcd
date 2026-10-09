@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.AgentNamespaceSupplies;
 using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class AgentNamespaceSupplyMapper
     {
         entity.NamespaceId = dto.NamespaceId;
         entity.AgentId = dto.AgentId;
+    }
+
+    public static AgentNamespaceSupplyMetadataReadDto ToMetadataDto(AgentNamespaceSupplyMetadata view)
+    {
+        return new AgentNamespaceSupplyMetadataReadDto
+        {
+            Id = view.Id,
+            AgentId = view.AgentId,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

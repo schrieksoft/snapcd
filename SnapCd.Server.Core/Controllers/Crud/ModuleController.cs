@@ -32,6 +32,7 @@ public class ModuleController : GenericCrudController<
     ModuleCreateDto,
     ModuleUpdateDto,
     ModuleReadDto,
+    ModuleMetadataReadDto,
     ModuleSecuredRepository,
     ModuleRepository,
     ModuleService,
@@ -44,7 +45,7 @@ public class ModuleController : GenericCrudController<
     {
     }
 
-    [HttpGet("{namespaceId}/{name}")]
+    [HttpGet("{namespaceId:guid}/{name}")]
     public async Task<ActionResult<ModuleReadDto>> Get(Guid organizationId, Guid namespaceId, string name)
     {
         try
@@ -239,7 +240,7 @@ public class ModuleController : GenericCrudController<
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<ModuleMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public override async Task<ActionResult<List<ModuleMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {

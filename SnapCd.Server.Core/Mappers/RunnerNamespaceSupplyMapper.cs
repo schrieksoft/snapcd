@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.RunnerNamespaceSupplies;
 using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class RunnerNamespaceSupplyMapper
     {
         entity.NamespaceId = dto.NamespaceId;
         entity.RunnerId = dto.RunnerId;
+    }
+
+    public static RunnerNamespaceSupplyMetadataReadDto ToMetadataDto(RunnerNamespaceSupplyMetadata view)
+    {
+        return new RunnerNamespaceSupplyMetadataReadDto
+        {
+            Id = view.Id,
+            NamespaceId = view.NamespaceId,
+            RunnerId = view.RunnerId,
+        };
     }
 }

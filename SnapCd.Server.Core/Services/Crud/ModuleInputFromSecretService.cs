@@ -28,6 +28,7 @@ public class ModuleInputFromSecretService<TEntity> : GenericCrudService<
     ModuleInputFromSecretCreateDto,
     ModuleInputFromSecretUpdateDto,
     ModuleInputFromSecretReadDto,
+    ModuleInputFromSecretMetadataReadDto,
     ModuleInputFromSecretSecuredRepository<TEntity>,
     ModuleInputFromSecretRepository<TEntity>,
     ModuleInputFromSecretCreatedEvent,
@@ -50,6 +51,11 @@ public class ModuleInputFromSecretService<TEntity> : GenericCrudService<
     protected override ModuleInputFromSecretReadDto MapToDto(TEntity entity)
     {
         return ModuleInputFromSecretMapper.ToDto(entity);
+    }
+
+    protected override ModuleInputFromSecretMetadataReadDto MapToMetadataDto(ModuleInputFromSecretMetadata view)
+    {
+        return ModuleInputFromSecretMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, ModuleInputFromSecretUpdateDto dto)

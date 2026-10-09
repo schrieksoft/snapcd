@@ -27,6 +27,7 @@ public class ModuleInputFromNamespaceService<TEntity> : GenericCrudService<
     ModuleInputFromNamespaceCreateDto,
     ModuleInputFromNamespaceUpdateDto,
     ModuleInputFromNamespaceReadDto,
+    ModuleInputFromNamespaceMetadataReadDto,
     ModuleInputFromNamespaceSecuredRepository<TEntity>,
     ModuleInputFromNamespaceRepository<TEntity>,
     ModuleInputFromNamespaceCreatedEvent,
@@ -49,6 +50,11 @@ public class ModuleInputFromNamespaceService<TEntity> : GenericCrudService<
     protected override ModuleInputFromNamespaceReadDto MapToDto(TEntity entity)
     {
         return ModuleInputFromNamespaceMapper.ToDto(entity);
+    }
+
+    protected override ModuleInputFromNamespaceMetadataReadDto MapToMetadataDto(ModuleInputFromNamespaceMetadata view)
+    {
+        return ModuleInputFromNamespaceMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, ModuleInputFromNamespaceUpdateDto dto)

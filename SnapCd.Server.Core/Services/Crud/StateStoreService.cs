@@ -24,6 +24,7 @@ public class StateStoreService : GenericCrudService<
     StateStoreCreateDto,
     StateStoreUpdateDto,
     StateStoreReadDto,
+    StateStoreMetadataReadDto,
     StateStoreSecuredRepository,
     StateStoreRepository,
     StateStoreCreatedEvent,
@@ -47,6 +48,11 @@ public class StateStoreService : GenericCrudService<
         return StateStoreMapper.ToDto(entity);
     }
 
+    protected override StateStoreMetadataReadDto MapToMetadataDto(StateStoreMetadata view)
+    {
+        return StateStoreMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(StateStore entity, StateStoreUpdateDto dto)
     {
         StateStoreMapper.UpdateEntity(entity, dto);
@@ -55,5 +61,11 @@ public class StateStoreService : GenericCrudService<
     public async Task<StateStoreReadDto> GetByName(string name, Guid organizationId)
     {
         return await GetByCriteria(repo => repo.GetByName(name, organizationId));
+    }
+
+    public async Task<StateStoreMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return StateStoreMapper.ToMetadataDto(view);
     }
 }

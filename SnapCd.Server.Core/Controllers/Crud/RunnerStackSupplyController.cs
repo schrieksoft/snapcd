@@ -32,6 +32,7 @@ public class RunnerStackSupplyController : GenericCrudController<
     RunnerStackSupplyCreateDto,
     RunnerStackSupplyUpdateDto,
     RunnerStackSupplyReadDto,
+    RunnerStackSupplyMetadataReadDto,
     RunnerStackSupplySecuredRepository,
     RunnerStackSupplyRepository,
     RunnerStackSupplyService,

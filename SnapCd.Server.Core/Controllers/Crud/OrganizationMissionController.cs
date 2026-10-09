@@ -30,6 +30,7 @@ public class OrganizationMissionController : GenericCrudController<
     OrganizationMissionCreateDto,
     OrganizationMissionUpdateDto,
     OrganizationMissionReadDto,
+    OrganizationMissionMetadataReadDto,
     OrganizationMissionSecuredRepository,
     OrganizationMissionRepository,
     OrganizationMissionService,

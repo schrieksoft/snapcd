@@ -24,6 +24,7 @@ public class
     Entities.Definition.Namespace, 
     NamespaceMetadata,NamespaceCreateDto, NamespaceUpdateDto, 
     NamespaceReadDto, 
+    NamespaceMetadataReadDto, 
     NamespaceSecuredRepository, 
     NamespaceRepository, 
     NamespaceCreatedEvent, 
@@ -45,6 +46,11 @@ public class
     protected override NamespaceReadDto MapToDto(Entities.Definition.Namespace entity)
     {
         return NamespaceMapper.ToDto(entity);
+    }
+
+    protected override NamespaceMetadataReadDto MapToMetadataDto(NamespaceMetadata view)
+    {
+        return NamespaceMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Entities.Definition.Namespace entity, NamespaceUpdateDto dto)

@@ -29,6 +29,7 @@ public class DependsOnModuleController : GenericCrudController<
     DependsOnModuleCreateDto,
     DependsOnModuleUpdateDto,
     DependsOnModuleReadDto,
+    DependsOnModuleMetadataReadDto,
     DependsOnModuleSecuredRepository,
     DependsOnModuleRepository,
     DependsOnModuleService,
@@ -41,7 +42,7 @@ public class DependsOnModuleController : GenericCrudController<
     {
     }
 
-    [HttpGet("{moduleId}/{dependsOnModuleId}")]
+    [HttpGet("{moduleId:guid}/{dependsOnModuleId:guid}")]
     public async Task<ActionResult<DependsOnModuleReadDto>> Get(Guid organizationId, Guid moduleId, Guid dependsOnModuleId)
     {
         try

@@ -24,6 +24,7 @@ public class NamespaceMissionService : GenericCrudService<
     NamespaceMissionCreateDto,
     NamespaceMissionUpdateDto,
     NamespaceMissionReadDto,
+    NamespaceMissionMetadataReadDto,
     NamespaceMissionSecuredRepository,
     NamespaceMissionRepository,
     NamespaceMissionCreatedEvent,
@@ -45,6 +46,11 @@ public class NamespaceMissionService : GenericCrudService<
     protected override NamespaceMissionReadDto MapToDto(NamespaceMission entity)
     {
         return NamespaceMissionMapper.ToDto(entity);
+    }
+
+    protected override NamespaceMissionMetadataReadDto MapToMetadataDto(NamespaceMissionMetadata view)
+    {
+        return NamespaceMissionMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(NamespaceMission entity, NamespaceMissionUpdateDto dto)

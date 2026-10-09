@@ -32,6 +32,7 @@ public class AgentModuleSupplyController : GenericCrudController<
     AgentModuleSupplyCreateDto,
     AgentModuleSupplyUpdateDto,
     AgentModuleSupplyReadDto,
+    AgentModuleSupplyMetadataReadDto,
     AgentModuleSupplySecuredRepository,
     AgentModuleSupplyRepository,
     AgentModuleSupplyService,

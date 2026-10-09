@@ -66,4 +66,11 @@ public class NamespaceTerraformLocalPolicySecuredRepository : GenericNamespaceCh
 
         return entity;
     }
+
+    public Task<NamespaceTerraformLocalPolicyMetadata> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(namespaceId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

@@ -48,7 +48,8 @@ public class OutputRepository : GenericModuleGrandChildRepository<Output,
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            OutputSetId = e.OutputSetId
         };
     public OutputRepository(
         SnapCdDbContext dbContext,

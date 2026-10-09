@@ -27,6 +27,7 @@ public class NamespacePulumiArrayFlagController : GenericCrudController<
     NamespacePulumiArrayFlagCreateDto,
     NamespacePulumiArrayFlagUpdateDto,
     NamespacePulumiArrayFlagReadDto,
+    NamespacePulumiArrayFlagMetadataReadDto,
     NamespacePulumiArrayFlagSecuredRepository,
     NamespacePulumiArrayFlagRepository,
     NamespacePulumiArrayFlagService,

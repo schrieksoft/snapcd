@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceTerraformRemotePolicyService : GenericCrudService<NamespaceTerraformRemotePolicy, NamespaceTerraformRemotePolicyMetadata, NamespaceTerraformRemotePolicyCreateDto, NamespaceTerraformRemotePolicyUpdateDto, NamespaceTerraformRemotePolicyReadDto,
+public class NamespaceTerraformRemotePolicyService : GenericCrudService<NamespaceTerraformRemotePolicy, NamespaceTerraformRemotePolicyMetadata, NamespaceTerraformRemotePolicyCreateDto, NamespaceTerraformRemotePolicyUpdateDto, NamespaceTerraformRemotePolicyReadDto, NamespaceTerraformRemotePolicyMetadataReadDto,
     NamespaceTerraformRemotePolicySecuredRepository, NamespaceTerraformRemotePolicyRepository, NamespaceTerraformRemotePolicyCreatedEvent,
     NamespaceTerraformRemotePolicyUpdatedEvent, NamespaceTerraformRemotePolicyDeletedEvent, NamespaceTerraformRemotePolicyRepositorySettings>
 {
@@ -39,6 +39,11 @@ public class NamespaceTerraformRemotePolicyService : GenericCrudService<Namespac
         return NamespaceTerraformRemotePolicyMapper.ToDto(entity);
     }
 
+    protected override NamespaceTerraformRemotePolicyMetadataReadDto MapToMetadataDto(NamespaceTerraformRemotePolicyMetadata view)
+    {
+        return NamespaceTerraformRemotePolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespaceTerraformRemotePolicy entity, NamespaceTerraformRemotePolicyUpdateDto dto)
     {
         NamespaceTerraformRemotePolicyMapper.UpdateEntity(entity, dto);
@@ -48,5 +53,11 @@ public class NamespaceTerraformRemotePolicyService : GenericCrudService<Namespac
     {
         var entity = await SecuredRepository.Get(namespaceId, name, organizationId);
         return NamespaceTerraformRemotePolicyMapper.ToDto(entity);
+    }
+
+    public async Task<NamespaceTerraformRemotePolicyMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return NamespaceTerraformRemotePolicyMapper.ToMetadataDto(view);
     }
 }

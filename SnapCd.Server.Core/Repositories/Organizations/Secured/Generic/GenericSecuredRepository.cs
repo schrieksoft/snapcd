@@ -187,7 +187,8 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TMetadata, TReposi
     }
 
     public virtual PermissionMap ReadPermissionMap => new();
-    public virtual PermissionMap ReadMetadataPermissionMap => new();
+    /// <summary>Whoever may read the entity may identify it. Overridden where metadata is granted more widely.</summary>
+    public virtual PermissionMap ReadMetadataPermissionMap => ReadPermissionMap;
     public virtual PermissionMap ReverseInheritedReadMetadataPermissionMap => new();
     public virtual PermissionMap UpdatePermissionMap => new();
     public virtual PermissionMap CreatePermissionMap => new();

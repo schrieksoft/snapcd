@@ -32,6 +32,7 @@ public class RunnerNamespaceSupplyController : GenericCrudController<
     RunnerNamespaceSupplyCreateDto,
     RunnerNamespaceSupplyUpdateDto,
     RunnerNamespaceSupplyReadDto,
+    RunnerNamespaceSupplyMetadataReadDto,
     RunnerNamespaceSupplySecuredRepository,
     RunnerNamespaceSupplyRepository,
     RunnerNamespaceSupplyService,

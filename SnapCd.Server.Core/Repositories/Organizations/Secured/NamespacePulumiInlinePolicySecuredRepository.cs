@@ -66,4 +66,11 @@ public class NamespacePulumiInlinePolicySecuredRepository : GenericNamespaceChil
 
         return entity;
     }
+
+    public Task<NamespacePulumiInlinePolicyMetadata> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(namespaceId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

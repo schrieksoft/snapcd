@@ -48,7 +48,8 @@ public class VariableRepository : GenericModuleGrandChildRepository<Variable,
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            VariableSetId = e.VariableSetId
         };
     public VariableRepository(
         SnapCdDbContext dbContext,

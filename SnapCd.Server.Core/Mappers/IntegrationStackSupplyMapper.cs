@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.IntegrationStackSupplies;
 using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class IntegrationStackSupplyMapper
     {
         entity.StackId = dto.StackId;
         entity.IntegrationId = dto.IntegrationId;
+    }
+
+    public static IntegrationStackSupplyMetadataReadDto ToMetadataDto(IntegrationStackSupplyMetadata view)
+    {
+        return new IntegrationStackSupplyMetadataReadDto
+        {
+            Id = view.Id,
+            IntegrationId = view.IntegrationId,
+            StackId = view.StackId,
+        };
     }
 }

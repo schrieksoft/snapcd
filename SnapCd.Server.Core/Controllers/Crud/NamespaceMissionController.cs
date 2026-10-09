@@ -30,6 +30,7 @@ public class NamespaceMissionController : GenericCrudController<
     NamespaceMissionCreateDto,
     NamespaceMissionUpdateDto,
     NamespaceMissionReadDto,
+    NamespaceMissionMetadataReadDto,
     NamespaceMissionSecuredRepository,
     NamespaceMissionRepository,
     NamespaceMissionService,

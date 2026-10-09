@@ -44,7 +44,8 @@ public class NamespacePulumiLocalPolicyRepository : GenericNamespaceChildDefinit
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            NamespaceId = e.NamespaceId
         };
     public NamespacePulumiLocalPolicyRepository(
         SnapCdDbContext dbContext,

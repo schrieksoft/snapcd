@@ -20,4 +20,7 @@ public class RunnerMetadataReadDto : IDto
 
     /// <summary>Whether the Runner is disabled and will not pick up new work.</summary>
     public bool IsDisabled { get; set; }
+
+    /// <summary>ID of the Service Principal this Runner belongs to.</summary>
+    public Guid ServicePrincipalId { get; set; }
 }

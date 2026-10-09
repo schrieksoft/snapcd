@@ -24,6 +24,7 @@ public class OrganizationMissionService : GenericCrudService<
     OrganizationMissionCreateDto,
     OrganizationMissionUpdateDto,
     OrganizationMissionReadDto,
+    OrganizationMissionMetadataReadDto,
     OrganizationMissionSecuredRepository,
     OrganizationMissionRepository,
     OrganizationMissionCreatedEvent,
@@ -45,6 +46,11 @@ public class OrganizationMissionService : GenericCrudService<
     protected override OrganizationMissionReadDto MapToDto(OrganizationMission entity)
     {
         return OrganizationMissionMapper.ToDto(entity);
+    }
+
+    protected override OrganizationMissionMetadataReadDto MapToMetadataDto(OrganizationMissionMetadata view)
+    {
+        return OrganizationMissionMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(OrganizationMission entity, OrganizationMissionUpdateDto dto)

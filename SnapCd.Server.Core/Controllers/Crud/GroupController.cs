@@ -37,6 +37,7 @@ public class GroupController : GenericCrudController<
     GroupCreateDto,
     GroupUpdateDto,
     GroupReadDto,
+    GroupMetadataReadDto,
     GroupSecuredRepository,
     GroupRepository,
     GroupService,
@@ -74,7 +75,7 @@ public class GroupController : GenericCrudController<
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(GroupSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<GroupMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public override async Task<ActionResult<List<GroupMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {
@@ -118,7 +119,7 @@ public class GroupController : GenericCrudController<
 
     [HttpGet("Metadata/{id}")]
     [PermissionSource(Repository = typeof(GroupSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<GroupMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
+    public override async Task<ActionResult<GroupMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
     {
         try
         {

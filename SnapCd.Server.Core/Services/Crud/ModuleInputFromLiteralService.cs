@@ -28,6 +28,7 @@ public class ModuleInputFromLiteralService<TEntity> : GenericCrudService<
     ModuleInputFromLiteralCreateDto,
     ModuleInputFromLiteralUpdateDto,
     ModuleInputFromLiteralReadDto,
+    ModuleInputFromLiteralMetadataReadDto,
     ModuleInputFromLiteralSecuredRepository<TEntity>,
     ModuleInputFromLiteralRepository<TEntity>,
     ModuleInputFromLiteralCreatedEvent,
@@ -50,6 +51,11 @@ public class ModuleInputFromLiteralService<TEntity> : GenericCrudService<
     protected override ModuleInputFromLiteralReadDto MapToDto(TEntity entity)
     {
         return ModuleInputFromLiteralMapper.ToDto(entity);
+    }
+
+    protected override ModuleInputFromLiteralMetadataReadDto MapToMetadataDto(ModuleInputFromLiteralMetadata view)
+    {
+        return ModuleInputFromLiteralMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, ModuleInputFromLiteralUpdateDto dto)

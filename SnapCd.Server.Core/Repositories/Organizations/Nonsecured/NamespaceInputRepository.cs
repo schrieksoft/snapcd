@@ -48,7 +48,8 @@ public class NamespaceInputRepository : GenericNamespaceChildDefinitionRepositor
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            NamespaceId = e.NamespaceId
         };
     public NamespaceInputRepository(
         SnapCdDbContext dbContext,

@@ -46,7 +46,8 @@ public class RunnerRepository : GenericOrganizationChildRepository<Runner, Runne
             Id = e.Id,
             OrganizationId = e.OrganizationId,
             Name = e.Name,
-            IsDisabled = e.IsDisabled
+            IsDisabled = e.IsDisabled,
+            ServicePrincipalId = e.ServicePrincipalId
         };
     public RunnerRepository(
         SnapCdDbContext dbContext,

@@ -24,6 +24,7 @@ public class ModuleMissionService : GenericCrudService<
     ModuleMissionCreateDto,
     ModuleMissionUpdateDto,
     ModuleMissionReadDto,
+    ModuleMissionMetadataReadDto,
     ModuleMissionSecuredRepository,
     ModuleMissionRepository,
     ModuleMissionCreatedEvent,
@@ -45,6 +46,11 @@ public class ModuleMissionService : GenericCrudService<
     protected override ModuleMissionReadDto MapToDto(ModuleMission entity)
     {
         return ModuleMissionMapper.ToDto(entity);
+    }
+
+    protected override ModuleMissionMetadataReadDto MapToMetadataDto(ModuleMissionMetadata view)
+    {
+        return ModuleMissionMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ModuleMission entity, ModuleMissionUpdateDto dto)

@@ -38,6 +38,7 @@ public class ServicePrincipalController : GenericCrudController<
     ServicePrincipalCreateDto,
     ServicePrincipalUpdateDto,
     ServicePrincipalReadDto,
+    ServicePrincipalMetadataReadDto,
     ServicePrincipalSecuredRepository,
     ServicePrincipalRepository,
     ServicePrincipalService,
@@ -102,7 +103,7 @@ public class ServicePrincipalController : GenericCrudController<
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(ServicePrincipalSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<ServicePrincipalMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public override async Task<ActionResult<List<ServicePrincipalMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {
@@ -146,7 +147,7 @@ public class ServicePrincipalController : GenericCrudController<
 
     [HttpGet("Metadata/{id}")]
     [PermissionSource(Repository = typeof(ServicePrincipalSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<ServicePrincipalMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
+    public override async Task<ActionResult<ServicePrincipalMetadataReadDto>> GetMetadata(Guid organizationId, Guid id)
     {
         try
         {

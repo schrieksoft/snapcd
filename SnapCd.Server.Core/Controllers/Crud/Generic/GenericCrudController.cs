@@ -27,15 +27,16 @@ namespace SnapCd.Server.Core.Controllers.Crud.Generic;
 [ApiController]
 [Authorize("BearerPolicy")]
 [OrganizationScopedFeature]
-public abstract class GenericCrudController<TEntity, TMetadata, TCreateDto, TUpdateDto, TDto, TSecuredRepository, TRepository, TService, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : ControllerBase
+public abstract class GenericCrudController<TEntity, TMetadata, TCreateDto, TUpdateDto, TDto, TMetadataDto, TSecuredRepository, TRepository, TService, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : ControllerBase
     where TEntity : class, IEntity
     where TMetadata : EntityMetadataBase
     where TCreateDto : class
     where TUpdateDto : class
     where TDto : class
+    where TMetadataDto : class
     where TRepository : GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
     where TSecuredRepository : GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
-    where TService : GenericCrudService<TEntity, TMetadata, TCreateDto, TUpdateDto, TDto, TSecuredRepository, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
+    where TService : GenericCrudService<TEntity, TMetadata, TCreateDto, TUpdateDto, TDto, TMetadataDto, TSecuredRepository, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -100,6 +101,46 @@ public abstract class GenericCrudController<TEntity, TMetadata, TCreateDto, TUpd
         {
             var entity = await Service.Get(id, organizationId);
             return Ok(entity);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata")]
+    public virtual async Task<ActionResult<List<TMetadataDto>>> ListMetadata(Guid organizationId)
+    {
+        try
+        {
+            var views = await Service.ListMetadata(organizationId);
+            return Ok(views);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{id}")]
+    public virtual async Task<ActionResult<TMetadataDto>> GetMetadata(Guid organizationId, Guid id)
+    {
+        try
+        {
+            var view = await Service.GetMetadata(id, organizationId);
+            return Ok(view);
         }
         catch (EntityNotFoundException e)
         {

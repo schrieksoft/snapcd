@@ -27,6 +27,7 @@ public class ModulePulumiFlagController : GenericCrudController<
     ModulePulumiFlagCreateDto,
     ModulePulumiFlagUpdateDto,
     ModulePulumiFlagReadDto,
+    ModulePulumiFlagMetadataReadDto,
     ModulePulumiFlagSecuredRepository,
     ModulePulumiFlagRepository,
     ModulePulumiFlagService,

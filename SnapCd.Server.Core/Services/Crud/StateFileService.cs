@@ -49,6 +49,7 @@ public class StateFileService : GenericCrudService<
     StateFileCreateDto,
     StateFileUpdateDto,
     StateFileReadDto,
+    StateFileMetadataReadDto,
     StateFileSecuredRepository,
     StateFileRepository,
     StateFileCreatedEvent,
@@ -97,6 +98,11 @@ public class StateFileService : GenericCrudService<
     {
         var dto = StateFileMapper.ToDto(entity);
         return dto;
+    }
+
+    protected override StateFileMetadataReadDto MapToMetadataDto(StateFileMetadata view)
+    {
+        return StateFileMapper.ToMetadataDto(view);
     }
 
     public override async Task<StateFileReadDto> Create(StateFileCreateDto createDto, Guid organizationId)

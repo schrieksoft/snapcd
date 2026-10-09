@@ -24,6 +24,7 @@ public class AgentNamespaceSupplyService : GenericCrudService<
     AgentNamespaceSupplyCreateDto,
     AgentNamespaceSupplyUpdateDto,
     AgentNamespaceSupplyReadDto,
+    AgentNamespaceSupplyMetadataReadDto,
     AgentNamespaceSupplySecuredRepository,
     AgentNamespaceSupplyRepository,
     AgentNamespaceSupplyCreatedEvent,
@@ -45,6 +46,11 @@ public class AgentNamespaceSupplyService : GenericCrudService<
     protected override AgentNamespaceSupplyReadDto MapToDto(AgentNamespaceSupply entity)
     {
         return AgentNamespaceSupplyMapper.ToDto(entity);
+    }
+
+    protected override AgentNamespaceSupplyMetadataReadDto MapToMetadataDto(AgentNamespaceSupplyMetadata view)
+    {
+        return AgentNamespaceSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(AgentNamespaceSupply entity, AgentNamespaceSupplyUpdateDto dto)

@@ -24,6 +24,7 @@ public class OrganizationIntegrationEventService : GenericCrudService<
     OrganizationIntegrationEventCreateDto,
     OrganizationIntegrationEventUpdateDto,
     OrganizationIntegrationEventReadDto,
+    OrganizationIntegrationEventMetadataReadDto,
     OrganizationIntegrationEventSecuredRepository,
     OrganizationIntegrationEventRepository,
     OrganizationIntegrationEventCreatedEvent,
@@ -45,6 +46,11 @@ public class OrganizationIntegrationEventService : GenericCrudService<
     protected override OrganizationIntegrationEventReadDto MapToDto(OrganizationIntegrationEvent entity)
     {
         return OrganizationIntegrationEventMapper.ToDto(entity);
+    }
+
+    protected override OrganizationIntegrationEventMetadataReadDto MapToMetadataDto(OrganizationIntegrationEventMetadata view)
+    {
+        return OrganizationIntegrationEventMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(OrganizationIntegrationEvent entity, OrganizationIntegrationEventUpdateDto dto)

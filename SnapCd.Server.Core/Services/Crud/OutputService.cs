@@ -32,7 +32,7 @@ public class OutputServiceFactory(
     }
 }
 
-public class OutputService : GenericCrudService<Output, OutputMetadata, OutputCreateDto, OutputUpdateDto, OutputReadDto, OutputSecuredRepository, OutputRepository, OutputCreatedEvent, OutputUpdatedEvent, OutputDeletedEvent, OutputRepositorySettings>
+public class OutputService : GenericCrudService<Output, OutputMetadata, OutputCreateDto, OutputUpdateDto, OutputReadDto, OutputMetadataReadDto, OutputSecuredRepository, OutputRepository, OutputCreatedEvent, OutputUpdatedEvent, OutputDeletedEvent, OutputRepositorySettings>
 {
     private readonly CustomOutputMapper _outputMapper;
     private readonly SnapCdDbContext _dbContext;
@@ -55,6 +55,11 @@ public class OutputService : GenericCrudService<Output, OutputMetadata, OutputCr
     protected override OutputReadDto MapToDto(Output entity)
     {
         throw new NotImplementedByDesignException("Variable mapping is performed directly in RunnerHub handler.");
+    }
+
+    protected override OutputMetadataReadDto MapToMetadataDto(OutputMetadata view)
+    {
+        return OutputMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Output entity, OutputUpdateDto dto)

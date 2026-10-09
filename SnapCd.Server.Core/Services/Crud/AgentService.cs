@@ -25,6 +25,7 @@ public class AgentService : GenericCrudService<
     AgentCreateDto,
     AgentUpdateDto,
     AgentReadDto,
+    AgentMetadataReadDto,
     AgentSecuredRepository,
     AgentRepository,
     AgentCreatedEvent,
@@ -46,6 +47,11 @@ public class AgentService : GenericCrudService<
     protected override AgentReadDto MapToDto(Agent entity)
     {
         return AgentMapper.ToDto(entity);
+    }
+
+    protected override AgentMetadataReadDto MapToMetadataDto(AgentMetadata view)
+    {
+        return AgentMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Agent entity, AgentUpdateDto dto)

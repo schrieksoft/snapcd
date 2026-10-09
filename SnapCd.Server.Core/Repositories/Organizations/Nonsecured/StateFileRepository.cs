@@ -43,7 +43,8 @@ public class StateFileRepository : GenericStateStoreChildRepository<StateFile, S
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            StateStoreId = e.StateStoreId
         };
     public StateFileRepository(
         SnapCdDbContext dbContext,

@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModulePulumiInlinePolicyService : GenericCrudService<ModulePulumiInlinePolicy, ModulePulumiInlinePolicyMetadata, ModulePulumiInlinePolicyCreateDto, ModulePulumiInlinePolicyUpdateDto, ModulePulumiInlinePolicyReadDto,
+public class ModulePulumiInlinePolicyService : GenericCrudService<ModulePulumiInlinePolicy, ModulePulumiInlinePolicyMetadata, ModulePulumiInlinePolicyCreateDto, ModulePulumiInlinePolicyUpdateDto, ModulePulumiInlinePolicyReadDto, ModulePulumiInlinePolicyMetadataReadDto,
     ModulePulumiInlinePolicySecuredRepository, ModulePulumiInlinePolicyRepository, ModulePulumiInlinePolicyCreatedEvent,
     ModulePulumiInlinePolicyUpdatedEvent, ModulePulumiInlinePolicyDeletedEvent, ModulePulumiInlinePolicyRepositorySettings>
 {
@@ -39,6 +39,11 @@ public class ModulePulumiInlinePolicyService : GenericCrudService<ModulePulumiIn
         return ModulePulumiInlinePolicyMapper.ToDto(entity);
     }
 
+    protected override ModulePulumiInlinePolicyMetadataReadDto MapToMetadataDto(ModulePulumiInlinePolicyMetadata view)
+    {
+        return ModulePulumiInlinePolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(ModulePulumiInlinePolicy entity, ModulePulumiInlinePolicyUpdateDto dto)
     {
         ModulePulumiInlinePolicyMapper.UpdateEntity(entity, dto);
@@ -48,5 +53,11 @@ public class ModulePulumiInlinePolicyService : GenericCrudService<ModulePulumiIn
     {
         var entity = await SecuredRepository.Get(moduleId, name, organizationId);
         return ModulePulumiInlinePolicyMapper.ToDto(entity);
+    }
+
+    public async Task<ModulePulumiInlinePolicyMetadataReadDto> GetMetadata(Guid moduleId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(moduleId, name, organizationId);
+        return ModulePulumiInlinePolicyMapper.ToMetadataDto(view);
     }
 }

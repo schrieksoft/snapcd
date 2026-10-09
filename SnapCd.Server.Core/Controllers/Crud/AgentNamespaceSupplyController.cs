@@ -32,6 +32,7 @@ public class AgentNamespaceSupplyController : GenericCrudController<
     AgentNamespaceSupplyCreateDto,
     AgentNamespaceSupplyUpdateDto,
     AgentNamespaceSupplyReadDto,
+    AgentNamespaceSupplyMetadataReadDto,
     AgentNamespaceSupplySecuredRepository,
     AgentNamespaceSupplyRepository,
     AgentNamespaceSupplyService,

@@ -20,6 +20,7 @@ using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -34,6 +35,7 @@ public class SourceRefresherPreselectionController : GenericCrudController<
     SourceRefresherPreselectionCreateDto,
     SourceRefresherPreselectionUpdateDto,
     SourceRefresherPreselectionReadDto,
+    SourceRefresherPreselectionMetadataReadDto,
     SourceRefresherPreselectionSecuredRepository,
     SourceRefresherPreselectionRepository,
     SourceRefresherPreselectionService,
@@ -55,6 +57,28 @@ public class SourceRefresherPreselectionController : GenericCrudController<
             return Ok(sourceRefresherPreselectionDto);
         }
 
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet($"Metadata/{SourceRefresherPreselectionCustomEndpointNames.GetBySourceUrl}/{{name}}")]
+    [PermissionSource(Repository = typeof(SourceRefresherPreselectionSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<SourceRefresherPreselectionMetadataReadDto>> GetMetadataBySourceUrl(Guid organizationId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadataBySourceUrl(name, organizationId));
+        }
         catch (EntityNotFoundException e)
         {
             return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);

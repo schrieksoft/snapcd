@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespacePulumiArrayFlagService : GenericCrudService<NamespacePulumiArrayFlag, NamespacePulumiArrayFlagMetadata, NamespacePulumiArrayFlagCreateDto, NamespacePulumiArrayFlagUpdateDto, NamespacePulumiArrayFlagReadDto, NamespacePulumiArrayFlagSecuredRepository, NamespacePulumiArrayFlagRepository,
+public class NamespacePulumiArrayFlagService : GenericCrudService<NamespacePulumiArrayFlag, NamespacePulumiArrayFlagMetadata, NamespacePulumiArrayFlagCreateDto, NamespacePulumiArrayFlagUpdateDto, NamespacePulumiArrayFlagReadDto, NamespacePulumiArrayFlagMetadataReadDto, NamespacePulumiArrayFlagSecuredRepository, NamespacePulumiArrayFlagRepository,
     NamespacePulumiArrayFlagCreatedEvent, NamespacePulumiArrayFlagUpdatedEvent, NamespacePulumiArrayFlagDeletedEvent, NamespacePulumiArrayFlagRepositorySettings>
 {
     public NamespacePulumiArrayFlagService(
@@ -36,6 +36,11 @@ public class NamespacePulumiArrayFlagService : GenericCrudService<NamespacePulum
     protected override NamespacePulumiArrayFlagReadDto MapToDto(NamespacePulumiArrayFlag entity)
     {
         return NamespacePulumiArrayFlagMapper.ToDto(entity);
+    }
+
+    protected override NamespacePulumiArrayFlagMetadataReadDto MapToMetadataDto(NamespacePulumiArrayFlagMetadata view)
+    {
+        return NamespacePulumiArrayFlagMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(NamespacePulumiArrayFlag entity, NamespacePulumiArrayFlagUpdateDto dto)

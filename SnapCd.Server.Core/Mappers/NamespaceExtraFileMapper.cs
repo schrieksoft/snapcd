@@ -9,6 +9,7 @@
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.Dto.NamespaceExtraFiles;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -56,5 +57,14 @@ public static class NamespaceExtraFileMapper
         entity.FileName = dto.FileName;
         entity.Contents = dto.Contents;
         entity.Overwrite = dto.Overwrite;
+    }
+
+    public static NamespaceExtraFileMetadataReadDto ToMetadataDto(NamespaceExtraFileMetadata view)
+    {
+        return new NamespaceExtraFileMetadataReadDto
+        {
+            Id = view.Id,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

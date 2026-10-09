@@ -24,7 +24,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCreateDto, ModuleUpdateDto, ModuleReadDto, ModuleSecuredRepository, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
+public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCreateDto, ModuleUpdateDto, ModuleReadDto, ModuleMetadataReadDto, ModuleSecuredRepository, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
@@ -48,6 +48,11 @@ public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCr
     protected override ModuleReadDto MapToDto(Module entity)
     {
         return ModuleMapper.ToDto(entity);
+    }
+
+    protected override ModuleMetadataReadDto MapToMetadataDto(ModuleMetadata view)
+    {
+        return ModuleMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Module entity, ModuleUpdateDto dto)

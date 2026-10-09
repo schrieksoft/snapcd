@@ -75,7 +75,8 @@ public class UserIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, 
             Id = e.Id,
             OrganizationId = e.OrganizationId,
             IntegrationId = e.IntegrationId,
-            PrincipalId = e.PrincipalId
+            PrincipalId = e.PrincipalId,
+            UserId = e.UserId
         };
 
     protected override UserIntegrationRoleAssignmentReadDto MapToDto(UserIntegrationRoleAssignment entity)
@@ -100,7 +101,8 @@ public class ServicePrincipalIntegrationRoleAssignmentRepository(SnapCdDbContext
             Id = e.Id,
             OrganizationId = e.OrganizationId,
             IntegrationId = e.IntegrationId,
-            PrincipalId = e.PrincipalId
+            PrincipalId = e.PrincipalId,
+            ServicePrincipalId = e.ServicePrincipalId
         };
 
     protected override ServicePrincipalIntegrationRoleAssignmentReadDto MapToDto(ServicePrincipalIntegrationRoleAssignment entity)
@@ -125,7 +127,8 @@ public class GroupIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext,
             Id = e.Id,
             OrganizationId = e.OrganizationId,
             IntegrationId = e.IntegrationId,
-            PrincipalId = e.PrincipalId
+            PrincipalId = e.PrincipalId,
+            GroupId = e.GroupId
         };
 
     protected override GroupIntegrationRoleAssignmentReadDto MapToDto(GroupIntegrationRoleAssignment entity)

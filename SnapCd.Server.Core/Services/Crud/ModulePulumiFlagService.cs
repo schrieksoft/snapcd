@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModulePulumiFlagService : GenericCrudService<ModulePulumiFlag, ModulePulumiFlagMetadata, ModulePulumiFlagCreateDto, ModulePulumiFlagUpdateDto, ModulePulumiFlagReadDto, ModulePulumiFlagSecuredRepository, ModulePulumiFlagRepository,
+public class ModulePulumiFlagService : GenericCrudService<ModulePulumiFlag, ModulePulumiFlagMetadata, ModulePulumiFlagCreateDto, ModulePulumiFlagUpdateDto, ModulePulumiFlagReadDto, ModulePulumiFlagMetadataReadDto, ModulePulumiFlagSecuredRepository, ModulePulumiFlagRepository,
     ModulePulumiFlagCreatedEvent, ModulePulumiFlagUpdatedEvent, ModulePulumiFlagDeletedEvent, ModulePulumiFlagRepositorySettings>
 {
     public ModulePulumiFlagService(
@@ -36,6 +36,11 @@ public class ModulePulumiFlagService : GenericCrudService<ModulePulumiFlag, Modu
     protected override ModulePulumiFlagReadDto MapToDto(ModulePulumiFlag entity)
     {
         return ModulePulumiFlagMapper.ToDto(entity);
+    }
+
+    protected override ModulePulumiFlagMetadataReadDto MapToMetadataDto(ModulePulumiFlagMetadata view)
+    {
+        return ModulePulumiFlagMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ModulePulumiFlag entity, ModulePulumiFlagUpdateDto dto)

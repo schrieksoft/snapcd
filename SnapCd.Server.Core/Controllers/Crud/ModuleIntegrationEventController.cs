@@ -30,6 +30,7 @@ public class ModuleIntegrationEventController : GenericCrudController<
     ModuleIntegrationEventCreateDto,
     ModuleIntegrationEventUpdateDto,
     ModuleIntegrationEventReadDto,
+    ModuleIntegrationEventMetadataReadDto,
     ModuleIntegrationEventSecuredRepository,
     ModuleIntegrationEventRepository,
     ModuleIntegrationEventService,

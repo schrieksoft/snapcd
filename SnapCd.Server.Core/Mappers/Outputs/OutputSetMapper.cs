@@ -10,6 +10,7 @@ using MassTransit;
 using SnapCd.Contracts.Dto.Outputs;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers.Outputs;
 
@@ -44,5 +45,14 @@ public static class OutputSetMapper
     {
 
         throw new NotImplementedByDesignException();
+    }
+
+    public static OutputSetMetadataReadDto ToMetadataDto(OutputSetMetadata view)
+    {
+        return new OutputSetMetadataReadDto
+        {
+            Id = view.Id,
+            ModuleId = view.ModuleId,
+        };
     }
 }

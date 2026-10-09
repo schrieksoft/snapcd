@@ -37,6 +37,7 @@ public class AgentController : GenericCrudController<
     AgentCreateDto,
     AgentUpdateDto,
     AgentReadDto,
+    AgentMetadataReadDto,
     AgentSecuredRepository,
     AgentRepository,
     AgentService,
@@ -85,7 +86,7 @@ public class AgentController : GenericCrudController<
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(AgentSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<AgentMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public override async Task<ActionResult<List<AgentMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {

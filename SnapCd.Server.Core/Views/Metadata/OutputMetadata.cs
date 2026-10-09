@@ -12,4 +12,5 @@ namespace SnapCd.Server.Core.Views.Metadata;
 public class OutputMetadata : EntityMetadataBase
 {
     public string Name { get; set; } = null!;
+    public Guid OutputSetId { get; set; }
 }

@@ -69,4 +69,10 @@ public class ModuleInputFromDefinitionBaseService
     {
         await _repo.Delete(id, organizationId);
     }
+
+    public async Task<ModuleInputMetadataReadDto> GetMetadata(Guid moduleId, string name, Guid organizationId)
+    {
+        var view = await _repo.GetMetadata(moduleId, name, organizationId);
+        return ModuleInputMapper.ToMetadataDto(view);
+    }
 }

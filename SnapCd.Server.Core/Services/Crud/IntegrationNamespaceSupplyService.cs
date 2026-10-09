@@ -24,6 +24,7 @@ public class IntegrationNamespaceSupplyService : GenericCrudService<
     IntegrationNamespaceSupplyCreateDto,
     IntegrationNamespaceSupplyUpdateDto,
     IntegrationNamespaceSupplyReadDto,
+    IntegrationNamespaceSupplyMetadataReadDto,
     IntegrationNamespaceSupplySecuredRepository,
     IntegrationNamespaceSupplyRepository,
     IntegrationNamespaceSupplyCreatedEvent,
@@ -44,6 +45,11 @@ public class IntegrationNamespaceSupplyService : GenericCrudService<
     protected override IntegrationNamespaceSupplyReadDto MapToDto(IntegrationNamespaceSupply entity)
     {
         return IntegrationNamespaceSupplyMapper.ToDto(entity);
+    }
+
+    protected override IntegrationNamespaceSupplyMetadataReadDto MapToMetadataDto(IntegrationNamespaceSupplyMetadata view)
+    {
+        return IntegrationNamespaceSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(IntegrationNamespaceSupply entity, IntegrationNamespaceSupplyUpdateDto dto)

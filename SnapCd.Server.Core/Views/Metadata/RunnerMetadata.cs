@@ -14,4 +14,5 @@ public class RunnerMetadata : EntityMetadataBase
     public string Name { get; set; } = null!;
 
     public bool IsDisabled { get; set; }
+    public Guid ServicePrincipalId { get; set; }
 }

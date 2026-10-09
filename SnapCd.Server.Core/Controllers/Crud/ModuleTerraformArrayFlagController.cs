@@ -27,6 +27,7 @@ public class ModuleTerraformArrayFlagController : GenericCrudController<
     ModuleTerraformArrayFlagCreateDto,
     ModuleTerraformArrayFlagUpdateDto,
     ModuleTerraformArrayFlagReadDto,
+    ModuleTerraformArrayFlagMetadataReadDto,
     ModuleTerraformArrayFlagSecuredRepository,
     ModuleTerraformArrayFlagRepository,
     ModuleTerraformArrayFlagService,

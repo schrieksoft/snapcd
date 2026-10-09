@@ -24,6 +24,7 @@ public class RunnerNamespaceSupplyService : GenericCrudService<
     RunnerNamespaceSupplyCreateDto,
     RunnerNamespaceSupplyUpdateDto,
     RunnerNamespaceSupplyReadDto,
+    RunnerNamespaceSupplyMetadataReadDto,
     RunnerNamespaceSupplySecuredRepository,
     RunnerNamespaceSupplyRepository,
     RunnerNamespaceSupplyCreatedEvent,
@@ -45,6 +46,11 @@ public class RunnerNamespaceSupplyService : GenericCrudService<
     protected override RunnerNamespaceSupplyReadDto MapToDto(RunnerNamespaceSupply entity)
     {
         return RunnerNamespaceSupplyMapper.ToDto(entity);
+    }
+
+    protected override RunnerNamespaceSupplyMetadataReadDto MapToMetadataDto(RunnerNamespaceSupplyMetadata view)
+    {
+        return RunnerNamespaceSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(RunnerNamespaceSupply entity, RunnerNamespaceSupplyUpdateDto dto)

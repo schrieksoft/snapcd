@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.NamespaceAdditionalTriggerPaths;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,14 @@ public static class NamespaceAdditionalTriggerPathMapper
     {
         entity.NamespaceId = dto.NamespaceId;
         entity.Path = dto.Path;
+    }
+
+    public static NamespaceAdditionalTriggerPathMetadataReadDto ToMetadataDto(NamespaceAdditionalTriggerPathMetadata view)
+    {
+        return new NamespaceAdditionalTriggerPathMetadataReadDto
+        {
+            Id = view.Id,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

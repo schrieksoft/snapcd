@@ -24,6 +24,7 @@ public class ModuleIntegrationEventService : GenericCrudService<
     ModuleIntegrationEventCreateDto,
     ModuleIntegrationEventUpdateDto,
     ModuleIntegrationEventReadDto,
+    ModuleIntegrationEventMetadataReadDto,
     ModuleIntegrationEventSecuredRepository,
     ModuleIntegrationEventRepository,
     ModuleIntegrationEventCreatedEvent,
@@ -45,6 +46,11 @@ public class ModuleIntegrationEventService : GenericCrudService<
     protected override ModuleIntegrationEventReadDto MapToDto(ModuleIntegrationEvent entity)
     {
         return ModuleIntegrationEventMapper.ToDto(entity);
+    }
+
+    protected override ModuleIntegrationEventMetadataReadDto MapToMetadataDto(ModuleIntegrationEventMetadata view)
+    {
+        return ModuleIntegrationEventMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ModuleIntegrationEvent entity, ModuleIntegrationEventUpdateDto dto)

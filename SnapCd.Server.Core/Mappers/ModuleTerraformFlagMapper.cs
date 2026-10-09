@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.ModuleTerraformFlags;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -44,5 +45,14 @@ public static class ModuleTerraformFlagMapper
         entity.Flag = dto.Flag;
         entity.Value = dto.Value;
         entity.ModuleId = dto.ModuleId;
+    }
+
+    public static ModuleTerraformFlagMetadataReadDto ToMetadataDto(ModuleTerraformFlagMetadata view)
+    {
+        return new ModuleTerraformFlagMetadataReadDto
+        {
+            Id = view.Id,
+            ModuleId = view.ModuleId,
+        };
     }
 }

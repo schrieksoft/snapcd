@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.IntegrationEvents;
 using SnapCd.Server.Core.Entities.Definition.IntegrationEvents;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -50,5 +51,15 @@ public static class NamespaceIntegrationEventMapper
         entity.Template = dto.Template;
         entity.Filter = dto.Filter;
         entity.IsDisabled = dto.IsDisabled;
+    }
+
+    public static NamespaceIntegrationEventMetadataReadDto ToMetadataDto(NamespaceIntegrationEventMetadata view)
+    {
+        return new NamespaceIntegrationEventMetadataReadDto
+        {
+            Id = view.Id,
+            IntegrationId = view.IntegrationId,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

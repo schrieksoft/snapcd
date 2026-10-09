@@ -338,5 +338,12 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
         return entity;
     }
 
+        public Task<StateStoreMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
+
     #endregion
 }

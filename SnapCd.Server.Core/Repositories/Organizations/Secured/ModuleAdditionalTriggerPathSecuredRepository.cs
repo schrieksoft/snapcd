@@ -66,4 +66,11 @@ public class ModuleAdditionalTriggerPathSecuredRepository : GenericModuleChildSe
 
         return entity;
     }
+
+    public Task<ModuleAdditionalTriggerPathMetadata> GetMetadata(Guid moduleId, string path, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(moduleId, path, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"path \"{path}\"");
 }

@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleExtraFileService : GenericCrudService<ModuleExtraFile, ModuleExtraFileMetadata, ModuleExtraFileCreateDto, ModuleExtraFileUpdateDto, ModuleExtraFileReadDto, ModuleExtraFileSecuredRepository, ModuleExtraFileRepository, ModuleExtraFileCreatedEvent,
+public class ModuleExtraFileService : GenericCrudService<ModuleExtraFile, ModuleExtraFileMetadata, ModuleExtraFileCreateDto, ModuleExtraFileUpdateDto, ModuleExtraFileReadDto, ModuleExtraFileMetadataReadDto, ModuleExtraFileSecuredRepository, ModuleExtraFileRepository, ModuleExtraFileCreatedEvent,
     ModuleExtraFileUpdatedEvent, ModuleExtraFileDeletedEvent, ModuleExtraFileRepositorySettings>
 {
     public ModuleExtraFileService(
@@ -38,6 +38,11 @@ public class ModuleExtraFileService : GenericCrudService<ModuleExtraFile, Module
         return ModuleExtraFileMapper.ToDto(entity);
     }
 
+    protected override ModuleExtraFileMetadataReadDto MapToMetadataDto(ModuleExtraFileMetadata view)
+    {
+        return ModuleExtraFileMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(ModuleExtraFile entity, ModuleExtraFileUpdateDto dto)
     {
         ModuleExtraFileMapper.UpdateEntity(entity, dto);
@@ -47,5 +52,11 @@ public class ModuleExtraFileService : GenericCrudService<ModuleExtraFile, Module
     {
         var entity = await SecuredRepository.Get(moduleId, name, organizationId);
         return ModuleExtraFileMapper.ToDto(entity);
+    }
+
+    public async Task<ModuleExtraFileMetadataReadDto> GetMetadata(Guid moduleId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(moduleId, name, organizationId);
+        return ModuleExtraFileMapper.ToMetadataDto(view);
     }
 }

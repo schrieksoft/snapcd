@@ -48,6 +48,7 @@ public static class AgentMapper
         {
             Id = view.Id,
             Name = view.Name,
+            ServicePrincipalId = view.ServicePrincipalId
         };
     }
 

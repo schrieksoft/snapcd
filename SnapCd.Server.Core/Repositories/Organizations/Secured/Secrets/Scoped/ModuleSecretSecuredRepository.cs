@@ -80,4 +80,11 @@ public class ModuleSecretSecuredRepository : GenericModuleChildSecuredRepository
 
         return secrets;
     }
+
+    public Task<ModuleSecretMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

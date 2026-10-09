@@ -24,6 +24,7 @@ public class IntegrationModuleSupplyService : GenericCrudService<
     IntegrationModuleSupplyCreateDto,
     IntegrationModuleSupplyUpdateDto,
     IntegrationModuleSupplyReadDto,
+    IntegrationModuleSupplyMetadataReadDto,
     IntegrationModuleSupplySecuredRepository,
     IntegrationModuleSupplyRepository,
     IntegrationModuleSupplyCreatedEvent,
@@ -44,6 +45,11 @@ public class IntegrationModuleSupplyService : GenericCrudService<
     protected override IntegrationModuleSupplyReadDto MapToDto(IntegrationModuleSupply entity)
     {
         return IntegrationModuleSupplyMapper.ToDto(entity);
+    }
+
+    protected override IntegrationModuleSupplyMetadataReadDto MapToMetadataDto(IntegrationModuleSupplyMetadata view)
+    {
+        return IntegrationModuleSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(IntegrationModuleSupply entity, IntegrationModuleSupplyUpdateDto dto)

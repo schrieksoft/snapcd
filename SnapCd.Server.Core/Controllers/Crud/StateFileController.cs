@@ -27,6 +27,7 @@ public class StateFileController : GenericCrudController<
     StateFileCreateDto,
     StateFileUpdateDto,
     StateFileReadDto,
+    StateFileMetadataReadDto,
     StateFileSecuredRepository,
     StateFileRepository,
     StateFileService,

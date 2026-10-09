@@ -20,6 +20,7 @@ using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -29,6 +30,7 @@ public class NamespacePulumiInlinePolicyController : GenericCrudController<
     NamespacePulumiInlinePolicyCreateDto,
     NamespacePulumiInlinePolicyUpdateDto,
     NamespacePulumiInlinePolicyReadDto,
+    NamespacePulumiInlinePolicyMetadataReadDto,
     NamespacePulumiInlinePolicySecuredRepository,
     NamespacePulumiInlinePolicyRepository,
     NamespacePulumiInlinePolicyService,
@@ -41,13 +43,35 @@ public class NamespacePulumiInlinePolicyController : GenericCrudController<
     {
     }
 
-    [HttpGet("{namespaceId}/{name}")]
+    [HttpGet("{namespaceId:guid}/{name}")]
     public async Task<ActionResult<NamespacePulumiInlinePolicyReadDto>> Get(Guid organizationId, Guid namespaceId, string name)
     {
         try
         {
             var dto = await Service.Get(namespaceId, name, organizationId);
             return Ok(dto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{namespaceId:guid}/{name}")]
+    [PermissionSource(Repository = typeof(NamespacePulumiInlinePolicySecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<NamespacePulumiInlinePolicyMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid namespaceId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(namespaceId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

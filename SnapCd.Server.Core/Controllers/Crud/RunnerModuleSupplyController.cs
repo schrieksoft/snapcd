@@ -32,6 +32,7 @@ public class RunnerModuleSupplyController : GenericCrudController<
     RunnerModuleSupplyCreateDto,
     RunnerModuleSupplyUpdateDto,
     RunnerModuleSupplyReadDto,
+    RunnerModuleSupplyMetadataReadDto,
     RunnerModuleSupplySecuredRepository,
     RunnerModuleSupplyRepository,
     RunnerModuleSupplyService,

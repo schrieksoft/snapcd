@@ -49,6 +49,7 @@ public static class RunnerMapper
             Id = view.Id,
             Name = view.Name,
             IsDisabled = view.IsDisabled,
+            ServicePrincipalId = view.ServicePrincipalId
         };
     }
 

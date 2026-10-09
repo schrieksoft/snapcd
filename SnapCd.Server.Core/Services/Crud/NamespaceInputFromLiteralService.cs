@@ -28,6 +28,7 @@ public class NamespaceInputFromLiteralService<TEntity> : GenericCrudService<
     NamespaceInputFromLiteralCreateDto,
     NamespaceInputFromLiteralUpdateDto,
     NamespaceInputFromLiteralReadDto,
+    NamespaceInputFromLiteralMetadataReadDto,
     NamespaceInputFromLiteralSecuredRepository<TEntity>,
     NamespaceInputFromLiteralRepository<TEntity>,
     NamespaceInputFromLiteralCreatedEvent,
@@ -50,6 +51,11 @@ public class NamespaceInputFromLiteralService<TEntity> : GenericCrudService<
     protected override NamespaceInputFromLiteralReadDto MapToDto(TEntity entity)
     {
         return NamespaceInputFromLiteralMapper.ToDto(entity);
+    }
+
+    protected override NamespaceInputFromLiteralMetadataReadDto MapToMetadataDto(NamespaceInputFromLiteralMetadata view)
+    {
+        return NamespaceInputFromLiteralMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, NamespaceInputFromLiteralUpdateDto dto)

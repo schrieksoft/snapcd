@@ -20,6 +20,7 @@ using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -29,6 +30,7 @@ public class NamespaceExtraFileController : GenericCrudController<
     NamespaceExtraFileCreateDto,
     NamespaceExtraFileUpdateDto,
     NamespaceExtraFileReadDto,
+    NamespaceExtraFileMetadataReadDto,
     NamespaceExtraFileSecuredRepository,
     NamespaceExtraFileRepository,
     NamespaceExtraFileService,
@@ -41,13 +43,35 @@ public class NamespaceExtraFileController : GenericCrudController<
     {
     }
 
-    [HttpGet("{namespaceId}/{name}")]
+    [HttpGet("{namespaceId:guid}/{name}")]
     public async Task<ActionResult<NamespaceExtraFileReadDto>> Get(Guid organizationId, Guid namespaceId, string name)
     {
         try
         {
             var namespaceExtraFileDto = await Service.Get(namespaceId, name, organizationId);
             return Ok(namespaceExtraFileDto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{namespaceId:guid}/{name}")]
+    [PermissionSource(Repository = typeof(NamespaceExtraFileSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<NamespaceExtraFileMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid namespaceId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(namespaceId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

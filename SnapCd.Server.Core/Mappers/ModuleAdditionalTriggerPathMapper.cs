@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.ModuleAdditionalTriggerPaths;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,14 @@ public static class ModuleAdditionalTriggerPathMapper
     {
         entity.ModuleId = dto.ModuleId;
         entity.Path = dto.Path;
+    }
+
+    public static ModuleAdditionalTriggerPathMetadataReadDto ToMetadataDto(ModuleAdditionalTriggerPathMetadata view)
+    {
+        return new ModuleAdditionalTriggerPathMetadataReadDto
+        {
+            Id = view.Id,
+            ModuleId = view.ModuleId,
+        };
     }
 }

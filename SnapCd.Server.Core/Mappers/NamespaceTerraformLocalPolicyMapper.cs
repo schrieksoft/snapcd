@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.NamespaceTerraformLocalPolicies;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -47,5 +48,15 @@ public static class NamespaceTerraformLocalPolicyMapper
         entity.Path = dto.Path;
         entity.Enabled = dto.Enabled;
         entity.EvaluateOn = dto.EvaluateOn;
+    }
+
+    public static NamespaceTerraformLocalPolicyMetadataReadDto ToMetadataDto(NamespaceTerraformLocalPolicyMetadata view)
+    {
+        return new NamespaceTerraformLocalPolicyMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            NamespaceId = view.NamespaceId
+        };
     }
 }

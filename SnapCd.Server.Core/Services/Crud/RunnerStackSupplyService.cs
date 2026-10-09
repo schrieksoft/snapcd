@@ -24,6 +24,7 @@ public class RunnerStackSupplyService : GenericCrudService<
     RunnerStackSupplyCreateDto,
     RunnerStackSupplyUpdateDto,
     RunnerStackSupplyReadDto,
+    RunnerStackSupplyMetadataReadDto,
     RunnerStackSupplySecuredRepository,
     RunnerStackSupplyRepository,
     RunnerStackSupplyCreatedEvent,
@@ -45,6 +46,11 @@ public class RunnerStackSupplyService : GenericCrudService<
     protected override RunnerStackSupplyReadDto MapToDto(RunnerStackSupply entity)
     {
         return RunnerStackSupplyMapper.ToDto(entity);
+    }
+
+    protected override RunnerStackSupplyMetadataReadDto MapToMetadataDto(RunnerStackSupplyMetadata view)
+    {
+        return RunnerStackSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(RunnerStackSupply entity, RunnerStackSupplyUpdateDto dto)

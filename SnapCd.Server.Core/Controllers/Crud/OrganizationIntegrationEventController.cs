@@ -30,6 +30,7 @@ public class OrganizationIntegrationEventController : GenericCrudController<
     OrganizationIntegrationEventCreateDto,
     OrganizationIntegrationEventUpdateDto,
     OrganizationIntegrationEventReadDto,
+    OrganizationIntegrationEventMetadataReadDto,
     OrganizationIntegrationEventSecuredRepository,
     OrganizationIntegrationEventRepository,
     OrganizationIntegrationEventService,

@@ -66,4 +66,11 @@ public class ModuleInputSecuredRepository : GenericModuleChildSecuredRepository<
 
         return entity;
     }
+
+    public Task<ModuleInputMetadata> GetMetadata(Guid moduleId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(moduleId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

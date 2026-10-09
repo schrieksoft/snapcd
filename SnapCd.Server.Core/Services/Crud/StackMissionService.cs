@@ -24,6 +24,7 @@ public class StackMissionService : GenericCrudService<
     StackMissionCreateDto,
     StackMissionUpdateDto,
     StackMissionReadDto,
+    StackMissionMetadataReadDto,
     StackMissionSecuredRepository,
     StackMissionRepository,
     StackMissionCreatedEvent,
@@ -45,6 +46,11 @@ public class StackMissionService : GenericCrudService<
     protected override StackMissionReadDto MapToDto(StackMission entity)
     {
         return StackMissionMapper.ToDto(entity);
+    }
+
+    protected override StackMissionMetadataReadDto MapToMetadataDto(StackMissionMetadata view)
+    {
+        return StackMissionMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(StackMission entity, StackMissionUpdateDto dto)

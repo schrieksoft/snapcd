@@ -80,4 +80,11 @@ public class StackSecretSecuredRepository : GenericStackChildSecuredRepository<
 
         return secrets;
     }
+
+    public Task<StackSecretMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

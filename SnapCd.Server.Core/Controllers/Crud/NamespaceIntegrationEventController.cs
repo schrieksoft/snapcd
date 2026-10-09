@@ -30,6 +30,7 @@ public class NamespaceIntegrationEventController : GenericCrudController<
     NamespaceIntegrationEventCreateDto,
     NamespaceIntegrationEventUpdateDto,
     NamespaceIntegrationEventReadDto,
+    NamespaceIntegrationEventMetadataReadDto,
     NamespaceIntegrationEventSecuredRepository,
     NamespaceIntegrationEventRepository,
     NamespaceIntegrationEventService,

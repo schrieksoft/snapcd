@@ -66,4 +66,11 @@ public class ModuleTerraformLocalPolicySecuredRepository : GenericModuleChildSec
 
         return entity;
     }
+
+    public Task<ModuleTerraformLocalPolicyMetadata> GetMetadata(Guid moduleId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(moduleId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

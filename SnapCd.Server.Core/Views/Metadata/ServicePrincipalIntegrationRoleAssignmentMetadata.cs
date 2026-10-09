@@ -14,4 +14,5 @@ public class ServicePrincipalIntegrationRoleAssignmentMetadata : EntityMetadataB
     public Guid IntegrationId { get; set; }
 
     public Guid PrincipalId { get; set; }
+    public Guid ServicePrincipalId { get; set; }
 }

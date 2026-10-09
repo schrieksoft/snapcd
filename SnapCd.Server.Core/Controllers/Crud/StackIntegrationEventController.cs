@@ -30,6 +30,7 @@ public class StackIntegrationEventController : GenericCrudController<
     StackIntegrationEventCreateDto,
     StackIntegrationEventUpdateDto,
     StackIntegrationEventReadDto,
+    StackIntegrationEventMetadataReadDto,
     StackIntegrationEventSecuredRepository,
     StackIntegrationEventRepository,
     StackIntegrationEventService,

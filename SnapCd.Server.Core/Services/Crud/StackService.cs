@@ -25,6 +25,7 @@ public class StackService : GenericCrudService<
     StackCreateDto,
     StackUpdateDto,
     StackReadDto,
+    StackMetadataReadDto,
     StackSecuredRepository,
     StackRepository,
     StackCreatedEvent,
@@ -46,6 +47,11 @@ public class StackService : GenericCrudService<
     protected override StackReadDto MapToDto(Stack entity)
     {
         return StackMapper.ToDto(entity);
+    }
+
+    protected override StackMetadataReadDto MapToMetadataDto(StackMetadata view)
+    {
+        return StackMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Stack entity, StackUpdateDto dto)

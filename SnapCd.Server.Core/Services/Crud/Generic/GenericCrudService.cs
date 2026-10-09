@@ -16,12 +16,13 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud.Generic;
 
-public abstract class GenericCrudService<TEntity, TMetadata, TCreateDto, TUpdateDto, TDto, TSecuredRepository, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
+public abstract class GenericCrudService<TEntity, TMetadata, TCreateDto, TUpdateDto, TDto, TMetadataDto, TSecuredRepository, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
     where TEntity : class, IEntity
     where TMetadata : EntityMetadataBase
     where TCreateDto : class
     where TUpdateDto : class
     where TDto : class
+    where TMetadataDto : class
     where TRepository : GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
     where TSecuredRepository : GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
     where TCreateEvent : CreatedEvent<TDto>, new()
@@ -50,6 +51,7 @@ public abstract class GenericCrudService<TEntity, TMetadata, TCreateDto, TUpdate
     protected abstract TEntity MapToEntity(TCreateDto dto, Guid organizationId);
     protected abstract TDto MapToDto(TEntity entity);
     protected abstract void UpdateEntityFromDto(TEntity entity, TUpdateDto dto);
+    protected abstract TMetadataDto MapToMetadataDto(TMetadata view);
 
     public virtual void Dispose()
     {
@@ -86,6 +88,18 @@ public abstract class GenericCrudService<TEntity, TMetadata, TCreateDto, TUpdate
     {
         var entities = await SecuredRepository.List(organizationId);
         return entities.Select(MapToDto).ToList();
+    }
+
+    public virtual async Task<List<TMetadataDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(MapToMetadataDto).ToList();
+    }
+
+    public virtual async Task<TMetadataDto> GetMetadata(Guid id, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(id, organizationId);
+        return MapToMetadataDto(view);
     }
 
     public virtual async Task<TDto> Update(TUpdateDto dto, Guid id, Guid organizationId)

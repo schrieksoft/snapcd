@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleTerraformFlagService : GenericCrudService<ModuleTerraformFlag, ModuleTerraformFlagMetadata, ModuleTerraformFlagCreateDto, ModuleTerraformFlagUpdateDto, ModuleTerraformFlagReadDto, ModuleTerraformFlagSecuredRepository, ModuleTerraformFlagRepository,
+public class ModuleTerraformFlagService : GenericCrudService<ModuleTerraformFlag, ModuleTerraformFlagMetadata, ModuleTerraformFlagCreateDto, ModuleTerraformFlagUpdateDto, ModuleTerraformFlagReadDto, ModuleTerraformFlagMetadataReadDto, ModuleTerraformFlagSecuredRepository, ModuleTerraformFlagRepository,
     ModuleTerraformFlagCreatedEvent, ModuleTerraformFlagUpdatedEvent, ModuleTerraformFlagDeletedEvent, ModuleTerraformFlagRepositorySettings>
 {
     public ModuleTerraformFlagService(
@@ -36,6 +36,11 @@ public class ModuleTerraformFlagService : GenericCrudService<ModuleTerraformFlag
     protected override ModuleTerraformFlagReadDto MapToDto(ModuleTerraformFlag entity)
     {
         return ModuleTerraformFlagMapper.ToDto(entity);
+    }
+
+    protected override ModuleTerraformFlagMetadataReadDto MapToMetadataDto(ModuleTerraformFlagMetadata view)
+    {
+        return ModuleTerraformFlagMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ModuleTerraformFlag entity, ModuleTerraformFlagUpdateDto dto)

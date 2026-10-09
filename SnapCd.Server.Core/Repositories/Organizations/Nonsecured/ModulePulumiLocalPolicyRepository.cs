@@ -44,7 +44,8 @@ public class ModulePulumiLocalPolicyRepository : GenericModuleChildDefinitionRep
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            ModuleId = e.ModuleId
         };
     public ModulePulumiLocalPolicyRepository(
         SnapCdDbContext dbContext,

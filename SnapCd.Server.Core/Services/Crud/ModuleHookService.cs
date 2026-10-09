@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleHookService : GenericCrudService<ModuleHook, ModuleHookMetadata, ModuleHookCreateDto, ModuleHookUpdateDto, ModuleHookReadDto, ModuleHookSecuredRepository, ModuleHookRepository,
+public class ModuleHookService : GenericCrudService<ModuleHook, ModuleHookMetadata, ModuleHookCreateDto, ModuleHookUpdateDto, ModuleHookReadDto, ModuleHookMetadataReadDto, ModuleHookSecuredRepository, ModuleHookRepository,
     ModuleHookCreatedEvent, ModuleHookUpdatedEvent, ModuleHookDeletedEvent, ModuleHookRepositorySettings>
 {
     public ModuleHookService(
@@ -36,6 +36,11 @@ public class ModuleHookService : GenericCrudService<ModuleHook, ModuleHookMetada
     protected override ModuleHookReadDto MapToDto(ModuleHook entity)
     {
         return ModuleHookMapper.ToDto(entity);
+    }
+
+    protected override ModuleHookMetadataReadDto MapToMetadataDto(ModuleHookMetadata view)
+    {
+        return ModuleHookMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ModuleHook entity, ModuleHookUpdateDto dto)

@@ -95,4 +95,11 @@ public class SourceRefresherPreselectionSecuredRepository : GenericOrganizationC
 
         return entity;
     }
+
+    public Task<SourceRefresherPreselectionMetadata> GetMetadataBySourceUrl(string sourceUrl, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetBySourceUrl(sourceUrl, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"source URL \"{sourceUrl}\"");
 }

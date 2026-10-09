@@ -252,7 +252,7 @@ public static class McpSurfaceEmitter
 
     /// <summary>
     /// Best-effort discovery of the service the controller delegates to. For
-    /// <c>GenericCrudController</c>-derived controllers the service is the 7th type argument
+    /// <c>GenericCrudController</c>-derived controllers the service is the 9th type argument
     /// (<c>TService</c>). Returns null when no obvious service is found — the caller falls back
     /// to a placeholder that the developer is expected to fill in.
     /// </summary>
@@ -263,7 +263,7 @@ public static class McpSurfaceEmitter
             if (t.IsGenericType && StripArity(t.Name) == "GenericCrudController")
             {
                 var args = t.GetGenericArguments();
-                if (args.Length >= 8) return args[7]; // TService is the 8th type parameter
+                if (args.Length >= 9) return args[8]; // TService is the 9th type parameter
             }
         }
 

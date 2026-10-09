@@ -35,6 +35,7 @@ public class RunnerController : GenericCrudController<
     RunnerCreateDto,
     RunnerUpdateDto,
     RunnerReadDto,
+    RunnerMetadataReadDto,
     RunnerSecuredRepository,
     RunnerRepository,
     RunnerService,
@@ -72,7 +73,7 @@ public class RunnerController : GenericCrudController<
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(RunnerSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<RunnerMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public override async Task<ActionResult<List<RunnerMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {

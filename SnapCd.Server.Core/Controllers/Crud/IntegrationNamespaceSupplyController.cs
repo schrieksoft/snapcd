@@ -27,6 +27,7 @@ public class IntegrationNamespaceSupplyController : GenericCrudController<
     IntegrationNamespaceSupplyCreateDto,
     IntegrationNamespaceSupplyUpdateDto,
     IntegrationNamespaceSupplyReadDto,
+    IntegrationNamespaceSupplyMetadataReadDto,
     IntegrationNamespaceSupplySecuredRepository,
     IntegrationNamespaceSupplyRepository,
     IntegrationNamespaceSupplyService,

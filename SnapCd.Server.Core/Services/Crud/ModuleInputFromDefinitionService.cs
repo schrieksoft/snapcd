@@ -27,6 +27,7 @@ public class ModuleInputFromDefinitionService<TEntity> : GenericCrudService<
     ModuleInputFromDefinitionCreateDto,
     ModuleInputFromDefinitionUpdateDto,
     ModuleInputFromDefinitionReadDto,
+    ModuleInputFromDefinitionMetadataReadDto,
     ModuleInputFromDefinitionSecuredRepository<TEntity>,
     ModuleInputFromDefinitionRepository<TEntity>,
     ModuleInputFromDefinitionCreatedEvent,
@@ -49,6 +50,11 @@ public class ModuleInputFromDefinitionService<TEntity> : GenericCrudService<
     protected override ModuleInputFromDefinitionReadDto MapToDto(TEntity entity)
     {
         return ModuleInputFromDefinitionMapper.ToDto(entity);
+    }
+
+    protected override ModuleInputFromDefinitionMetadataReadDto MapToMetadataDto(ModuleInputFromDefinitionMetadata view)
+    {
+        return ModuleInputFromDefinitionMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, ModuleInputFromDefinitionUpdateDto dto)

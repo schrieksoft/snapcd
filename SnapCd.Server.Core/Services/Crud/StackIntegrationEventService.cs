@@ -24,6 +24,7 @@ public class StackIntegrationEventService : GenericCrudService<
     StackIntegrationEventCreateDto,
     StackIntegrationEventUpdateDto,
     StackIntegrationEventReadDto,
+    StackIntegrationEventMetadataReadDto,
     StackIntegrationEventSecuredRepository,
     StackIntegrationEventRepository,
     StackIntegrationEventCreatedEvent,
@@ -45,6 +46,11 @@ public class StackIntegrationEventService : GenericCrudService<
     protected override StackIntegrationEventReadDto MapToDto(StackIntegrationEvent entity)
     {
         return StackIntegrationEventMapper.ToDto(entity);
+    }
+
+    protected override StackIntegrationEventMetadataReadDto MapToMetadataDto(StackIntegrationEventMetadata view)
+    {
+        return StackIntegrationEventMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(StackIntegrationEvent entity, StackIntegrationEventUpdateDto dto)

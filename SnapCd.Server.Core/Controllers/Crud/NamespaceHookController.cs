@@ -27,6 +27,7 @@ public class NamespaceHookController : GenericCrudController<
     NamespaceHookCreateDto,
     NamespaceHookUpdateDto,
     NamespaceHookReadDto,
+    NamespaceHookMetadataReadDto,
     NamespaceHookSecuredRepository,
     NamespaceHookRepository,
     NamespaceHookService,

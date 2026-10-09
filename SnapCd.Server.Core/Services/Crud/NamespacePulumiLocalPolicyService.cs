@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespacePulumiLocalPolicyService : GenericCrudService<NamespacePulumiLocalPolicy, NamespacePulumiLocalPolicyMetadata, NamespacePulumiLocalPolicyCreateDto, NamespacePulumiLocalPolicyUpdateDto, NamespacePulumiLocalPolicyReadDto,
+public class NamespacePulumiLocalPolicyService : GenericCrudService<NamespacePulumiLocalPolicy, NamespacePulumiLocalPolicyMetadata, NamespacePulumiLocalPolicyCreateDto, NamespacePulumiLocalPolicyUpdateDto, NamespacePulumiLocalPolicyReadDto, NamespacePulumiLocalPolicyMetadataReadDto,
     NamespacePulumiLocalPolicySecuredRepository, NamespacePulumiLocalPolicyRepository, NamespacePulumiLocalPolicyCreatedEvent,
     NamespacePulumiLocalPolicyUpdatedEvent, NamespacePulumiLocalPolicyDeletedEvent, NamespacePulumiLocalPolicyRepositorySettings>
 {
@@ -39,6 +39,11 @@ public class NamespacePulumiLocalPolicyService : GenericCrudService<NamespacePul
         return NamespacePulumiLocalPolicyMapper.ToDto(entity);
     }
 
+    protected override NamespacePulumiLocalPolicyMetadataReadDto MapToMetadataDto(NamespacePulumiLocalPolicyMetadata view)
+    {
+        return NamespacePulumiLocalPolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespacePulumiLocalPolicy entity, NamespacePulumiLocalPolicyUpdateDto dto)
     {
         NamespacePulumiLocalPolicyMapper.UpdateEntity(entity, dto);
@@ -48,5 +53,11 @@ public class NamespacePulumiLocalPolicyService : GenericCrudService<NamespacePul
     {
         var entity = await SecuredRepository.Get(namespaceId, name, organizationId);
         return NamespacePulumiLocalPolicyMapper.ToDto(entity);
+    }
+
+    public async Task<NamespacePulumiLocalPolicyMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return NamespacePulumiLocalPolicyMapper.ToMetadataDto(view);
     }
 }

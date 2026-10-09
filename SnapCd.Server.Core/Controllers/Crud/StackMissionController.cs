@@ -30,6 +30,7 @@ public class StackMissionController : GenericCrudController<
     StackMissionCreateDto,
     StackMissionUpdateDto,
     StackMissionReadDto,
+    StackMissionMetadataReadDto,
     StackMissionSecuredRepository,
     StackMissionRepository,
     StackMissionService,

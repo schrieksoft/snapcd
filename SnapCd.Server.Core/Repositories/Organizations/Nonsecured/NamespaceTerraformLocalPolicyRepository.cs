@@ -44,7 +44,8 @@ public class NamespaceTerraformLocalPolicyRepository : GenericNamespaceChildDefi
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            NamespaceId = e.NamespaceId
         };
     public NamespaceTerraformLocalPolicyRepository(
         SnapCdDbContext dbContext,

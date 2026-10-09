@@ -20,6 +20,7 @@ using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -29,6 +30,7 @@ public class ModulePulumiLocalPolicyController : GenericCrudController<
     ModulePulumiLocalPolicyCreateDto,
     ModulePulumiLocalPolicyUpdateDto,
     ModulePulumiLocalPolicyReadDto,
+    ModulePulumiLocalPolicyMetadataReadDto,
     ModulePulumiLocalPolicySecuredRepository,
     ModulePulumiLocalPolicyRepository,
     ModulePulumiLocalPolicyService,
@@ -41,13 +43,35 @@ public class ModulePulumiLocalPolicyController : GenericCrudController<
     {
     }
 
-    [HttpGet("{moduleId}/{name}")]
+    [HttpGet("{moduleId:guid}/{name}")]
     public async Task<ActionResult<ModulePulumiLocalPolicyReadDto>> Get(Guid organizationId, Guid moduleId, string name)
     {
         try
         {
             var dto = await Service.Get(moduleId, name, organizationId);
             return Ok(dto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{moduleId:guid}/{name}")]
+    [PermissionSource(Repository = typeof(ModulePulumiLocalPolicySecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<ModulePulumiLocalPolicyMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid moduleId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(moduleId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

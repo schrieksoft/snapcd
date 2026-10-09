@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceTerraformInlinePolicyService : GenericCrudService<NamespaceTerraformInlinePolicy, NamespaceTerraformInlinePolicyMetadata, NamespaceTerraformInlinePolicyCreateDto, NamespaceTerraformInlinePolicyUpdateDto, NamespaceTerraformInlinePolicyReadDto,
+public class NamespaceTerraformInlinePolicyService : GenericCrudService<NamespaceTerraformInlinePolicy, NamespaceTerraformInlinePolicyMetadata, NamespaceTerraformInlinePolicyCreateDto, NamespaceTerraformInlinePolicyUpdateDto, NamespaceTerraformInlinePolicyReadDto, NamespaceTerraformInlinePolicyMetadataReadDto,
     NamespaceTerraformInlinePolicySecuredRepository, NamespaceTerraformInlinePolicyRepository, NamespaceTerraformInlinePolicyCreatedEvent,
     NamespaceTerraformInlinePolicyUpdatedEvent, NamespaceTerraformInlinePolicyDeletedEvent, NamespaceTerraformInlinePolicyRepositorySettings>
 {
@@ -39,6 +39,11 @@ public class NamespaceTerraformInlinePolicyService : GenericCrudService<Namespac
         return NamespaceTerraformInlinePolicyMapper.ToDto(entity);
     }
 
+    protected override NamespaceTerraformInlinePolicyMetadataReadDto MapToMetadataDto(NamespaceTerraformInlinePolicyMetadata view)
+    {
+        return NamespaceTerraformInlinePolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespaceTerraformInlinePolicy entity, NamespaceTerraformInlinePolicyUpdateDto dto)
     {
         NamespaceTerraformInlinePolicyMapper.UpdateEntity(entity, dto);
@@ -48,5 +53,11 @@ public class NamespaceTerraformInlinePolicyService : GenericCrudService<Namespac
     {
         var entity = await SecuredRepository.Get(namespaceId, name, organizationId);
         return NamespaceTerraformInlinePolicyMapper.ToDto(entity);
+    }
+
+    public async Task<NamespaceTerraformInlinePolicyMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return NamespaceTerraformInlinePolicyMapper.ToMetadataDto(view);
     }
 }

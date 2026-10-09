@@ -19,7 +19,7 @@ using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud.Secrets.Scoped;
 
-public class NamespaceSecretService : GenericCrudService<NamespaceSecret, NamespaceSecretMetadata, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretSecuredRepository, NamespaceSecretRepository, NamespaceSecretCreatedEvent,
+public class NamespaceSecretService : GenericCrudService<NamespaceSecret, NamespaceSecretMetadata, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretMetadataReadDto, NamespaceSecretSecuredRepository, NamespaceSecretRepository, NamespaceSecretCreatedEvent,
     NamespaceSecretUpdatedEvent, NamespaceSecretDeletedEvent, NamespaceSecretRepositorySettings>
 {
     public NamespaceSecretService(
@@ -38,6 +38,11 @@ public class NamespaceSecretService : GenericCrudService<NamespaceSecret, Namesp
         return NamespaceSecretMapper.ToDto(entity);
     }
 
+    protected override NamespaceSecretMetadataReadDto MapToMetadataDto(NamespaceSecretMetadata view)
+    {
+        return NamespaceSecretMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespaceSecret entity, NamespaceSecretDto dto)
     {
         NamespaceSecretMapper.UpdateEntity(entity, dto);
@@ -46,5 +51,11 @@ public class NamespaceSecretService : GenericCrudService<NamespaceSecret, Namesp
     public async Task<NamespaceSecretDto> GetByName(string name, Guid organizationId)
     {
         return await GetByCriteria(repo => repo.GetByName(name, organizationId, null));
+    }
+
+    public async Task<NamespaceSecretMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return NamespaceSecretMapper.ToMetadataDto(view);
     }
 }

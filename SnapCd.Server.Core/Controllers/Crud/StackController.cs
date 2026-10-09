@@ -38,6 +38,7 @@ public class StackController : GenericCrudController<
     StackCreateDto,
     StackUpdateDto,
     StackReadDto,
+    StackMetadataReadDto,
     StackSecuredRepository,
     StackRepository,
     StackService,
@@ -75,7 +76,7 @@ public class StackController : GenericCrudController<
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(StackSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<StackMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public override async Task<ActionResult<List<StackMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {

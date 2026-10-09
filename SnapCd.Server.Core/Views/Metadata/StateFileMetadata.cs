@@ -12,4 +12,5 @@ namespace SnapCd.Server.Core.Views.Metadata;
 public class StateFileMetadata : EntityMetadataBase
 {
     public string Name { get; set; } = null!;
+    public Guid StateStoreId { get; set; }
 }

@@ -24,6 +24,7 @@ public class SourceRefresherPreselectionService : GenericCrudService<
     SourceRefresherPreselectionCreateDto,
     SourceRefresherPreselectionUpdateDto,
     SourceRefresherPreselectionReadDto,
+    SourceRefresherPreselectionMetadataReadDto,
     SourceRefresherPreselectionSecuredRepository,
     SourceRefresherPreselectionRepository,
     SourceRefresherPreselectionCreatedEvent,
@@ -47,6 +48,11 @@ public class SourceRefresherPreselectionService : GenericCrudService<
         return SourceRefresherPreselectionMapper.ToDto(entity);
     }
 
+    protected override SourceRefresherPreselectionMetadataReadDto MapToMetadataDto(SourceRefresherPreselectionMetadata view)
+    {
+        return SourceRefresherPreselectionMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(SourceRefresherPreselection entity, SourceRefresherPreselectionUpdateDto dto)
     {
         SourceRefresherPreselectionMapper.UpdateEntity(entity, dto);
@@ -55,5 +61,11 @@ public class SourceRefresherPreselectionService : GenericCrudService<
     public async Task<SourceRefresherPreselectionReadDto> GetBySourceUrl(string sourceUrl, Guid organizationId)
     {
         return await GetByCriteria(repo => repo.GetBySourceUrl(sourceUrl, organizationId));
+    }
+
+    public async Task<SourceRefresherPreselectionMetadataReadDto> GetMetadataBySourceUrl(string sourceUrl, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataBySourceUrl(sourceUrl, organizationId);
+        return SourceRefresherPreselectionMapper.ToMetadataDto(view);
     }
 }

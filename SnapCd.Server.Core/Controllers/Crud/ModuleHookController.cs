@@ -27,6 +27,7 @@ public class ModuleHookController : GenericCrudController<
     ModuleHookCreateDto,
     ModuleHookUpdateDto,
     ModuleHookReadDto,
+    ModuleHookMetadataReadDto,
     ModuleHookSecuredRepository,
     ModuleHookRepository,
     ModuleHookService,

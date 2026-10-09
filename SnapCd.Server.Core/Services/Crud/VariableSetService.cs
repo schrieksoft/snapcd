@@ -32,6 +32,7 @@ public class VariableSetService : GenericCrudService<
     VariableSetCreateDto,
     VariableSetUpdateDto,
     VariableSetReadDto,
+    VariableSetMetadataReadDto,
     VariableSetSecuredRepository,
     VariableSetRepository,
     VariableSetCreatedEvent,
@@ -50,6 +51,11 @@ public class VariableSetService : GenericCrudService<
     }
 
     protected override VariableSetReadDto MapToDto(VariableSet entity)
+    {
+        throw new NotImplementedByDesignException("Variable mapping is performed directly in RunnerHub handler.");
+    }
+
+    protected override VariableSetMetadataReadDto MapToMetadataDto(VariableSetMetadata view)
     {
         throw new NotImplementedByDesignException("Variable mapping is performed directly in RunnerHub handler.");
     }

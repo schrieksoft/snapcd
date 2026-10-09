@@ -24,6 +24,7 @@ public class NamespaceIntegrationEventService : GenericCrudService<
     NamespaceIntegrationEventCreateDto,
     NamespaceIntegrationEventUpdateDto,
     NamespaceIntegrationEventReadDto,
+    NamespaceIntegrationEventMetadataReadDto,
     NamespaceIntegrationEventSecuredRepository,
     NamespaceIntegrationEventRepository,
     NamespaceIntegrationEventCreatedEvent,
@@ -45,6 +46,11 @@ public class NamespaceIntegrationEventService : GenericCrudService<
     protected override NamespaceIntegrationEventReadDto MapToDto(NamespaceIntegrationEvent entity)
     {
         return NamespaceIntegrationEventMapper.ToDto(entity);
+    }
+
+    protected override NamespaceIntegrationEventMetadataReadDto MapToMetadataDto(NamespaceIntegrationEventMetadata view)
+    {
+        return NamespaceIntegrationEventMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(NamespaceIntegrationEvent entity, NamespaceIntegrationEventUpdateDto dto)

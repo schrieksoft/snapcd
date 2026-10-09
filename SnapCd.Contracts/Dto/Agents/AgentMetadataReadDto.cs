@@ -17,4 +17,7 @@ public class AgentMetadataReadDto : IDto
 
     /// <summary>Name of the Agent.</summary>
     public string Name { get; set; } = null!;
+
+    /// <summary>ID of the Service Principal this Agent belongs to.</summary>
+    public Guid ServicePrincipalId { get; set; }
 }

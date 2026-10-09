@@ -80,4 +80,11 @@ public class NamespaceSecretSecuredRepository : GenericNamespaceChildSecuredRepo
 
         return secrets;
     }
+
+    public Task<NamespaceSecretMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

@@ -30,6 +30,7 @@ public class NamespaceController : GenericCrudController<
     NamespaceCreateDto,
     NamespaceUpdateDto,
     NamespaceReadDto,
+    NamespaceMetadataReadDto,
     NamespaceSecuredRepository,
     NamespaceRepository,
     NamespaceService,
@@ -42,7 +43,7 @@ public class NamespaceController : GenericCrudController<
     {
     }
 
-    [HttpGet("{stackId}/{name}")]
+    [HttpGet("{stackId:guid}/{name}")]
     public async Task<IActionResult> Get(Guid organizationId, Guid stackId, string name)
     {
         try
@@ -89,7 +90,7 @@ public class NamespaceController : GenericCrudController<
 
     [HttpGet("Metadata")]
     [PermissionSource(Repository = typeof(NamespaceSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
-    public async Task<ActionResult<List<NamespaceMetadataReadDto>>> ListMetadata(Guid organizationId)
+    public override async Task<ActionResult<List<NamespaceMetadataReadDto>>> ListMetadata(Guid organizationId)
     {
         try
         {

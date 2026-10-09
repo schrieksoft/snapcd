@@ -27,6 +27,7 @@ public class IntegrationStackSupplyController : GenericCrudController<
     IntegrationStackSupplyCreateDto,
     IntegrationStackSupplyUpdateDto,
     IntegrationStackSupplyReadDto,
+    IntegrationStackSupplyMetadataReadDto,
     IntegrationStackSupplySecuredRepository,
     IntegrationStackSupplyRepository,
     IntegrationStackSupplyService,
