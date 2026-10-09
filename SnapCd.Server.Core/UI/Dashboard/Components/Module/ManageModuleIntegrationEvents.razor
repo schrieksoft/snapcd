@@ -25,7 +25,7 @@
         <MudTabPanel Text="Module" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)
             {
-                <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add a event here.")"
+                <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add an event here.")"
                             Disabled="@_canAdd">
                     <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled" Color="Color.Secondary"
                                                         Size="Size.Small"

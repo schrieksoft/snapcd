@@ -44,7 +44,9 @@ public class GroupStateStoreRoleAssignmentRepository : GenericStateStoreChildRep
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            GroupId = e.GroupId
+            GroupId = e.GroupId,
+            StateStoreId = e.StateStoreId,
+            PrincipalId = e.PrincipalId
         };
     public GroupStateStoreRoleAssignmentRepository(
         SnapCdDbContext dbContext,

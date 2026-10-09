@@ -44,7 +44,8 @@ public class UserOrganizationRoleAssignmentRepository : GenericOrganizationChild
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            UserId = e.UserId
+            UserId = e.UserId,
+            PrincipalId = e.PrincipalId
         };
     public UserOrganizationRoleAssignmentRepository(
         SnapCdDbContext dbContext,

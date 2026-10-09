@@ -13,9 +13,5 @@ public class StackIntegrationEventMetadata : EntityMetadataBase
 {
     public Guid IntegrationId { get; set; }
 
-    public Guid ModuleId { get; set; }
-
-    public Guid NamespaceId { get; set; }
-
     public Guid StackId { get; set; }
 }

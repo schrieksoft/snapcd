@@ -44,7 +44,9 @@ public class ServicePrincipalGroupMemberRepository : GenericOrganizationChildRep
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            GroupId = e.GroupId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalGroupMemberRepository(
         SnapCdDbContext dbContext,

@@ -44,7 +44,9 @@ public class GroupStackRoleAssignmentRepository : GenericStackChildRepository<Gr
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            GroupId = e.GroupId
+            GroupId = e.GroupId,
+            StackId = e.StackId,
+            PrincipalId = e.PrincipalId
         };
     public GroupStackRoleAssignmentRepository(
         SnapCdDbContext dbContext,

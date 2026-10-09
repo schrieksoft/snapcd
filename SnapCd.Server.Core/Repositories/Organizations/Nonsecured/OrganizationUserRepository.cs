@@ -45,6 +45,27 @@ public class OrganizationUserRepository : GenericOrganizationChildRepository<Org
             OrganizationId = e.OrganizationId,
             UserId = e.UserId
         };
+    /// <summary>
+    /// A membership row seen as the user it names: the id is the User's, which is what a role
+    /// assignment references. Distinct from MetadataProjection, which identifies the row itself.
+    /// </summary>
+    private static readonly Expression<Func<OrganizationUser, UserMetadata>> UserMetadataProjection =
+        e => new UserMetadata
+        {
+            Id = e.UserId,
+            OrganizationId = e.OrganizationId,
+            UserName = e.User.Email!
+        };
+
+    /// <summary>Users a caller may name, scoped by the query it is given.</summary>
+    public Task<List<UserMetadata>> ListUserMetadata(
+        Guid organizationId,
+        IQueryable<OrganizationUser>? query = null,
+        Func<IQueryable<UserMetadata>, IOrderedQueryable<UserMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => List(organizationId, q => q.Select(UserMetadataProjection), query, orderBy, pageNumber, pageSize);
+
     public OrganizationUserRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

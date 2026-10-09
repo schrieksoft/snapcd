@@ -45,7 +45,9 @@ public class ServicePrincipalModuleRoleAssignmentRepository : GenericModuleChild
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            ModuleId = e.ModuleId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalModuleRoleAssignmentRepository(
         SnapCdDbContext dbContext,

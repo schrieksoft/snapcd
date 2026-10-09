@@ -48,7 +48,8 @@ public class ServicePrincipalOrganizationRoleAssignmentRepository : GenericOrgan
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalOrganizationRoleAssignmentRepository(
         SnapCdDbContext dbContext,

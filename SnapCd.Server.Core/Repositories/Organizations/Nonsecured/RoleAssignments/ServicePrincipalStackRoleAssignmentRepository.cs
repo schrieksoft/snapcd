@@ -45,7 +45,9 @@ public class ServicePrincipalStackRoleAssignmentRepository : GenericStackChildRe
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            StackId = e.StackId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalStackRoleAssignmentRepository(
         SnapCdDbContext dbContext,

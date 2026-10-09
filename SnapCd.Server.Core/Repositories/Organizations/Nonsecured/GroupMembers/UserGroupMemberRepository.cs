@@ -44,7 +44,9 @@ public class UserGroupMemberRepository : GenericOrganizationChildRepository<User
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            UserId = e.UserId
+            UserId = e.UserId,
+            GroupId = e.GroupId,
+            PrincipalId = e.PrincipalId
         };
     public UserGroupMemberRepository(
         SnapCdDbContext dbContext,

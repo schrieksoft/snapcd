@@ -44,7 +44,9 @@ public class GroupModuleRoleAssignmentRepository : GenericModuleChildRepository<
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            GroupId = e.GroupId
+            GroupId = e.GroupId,
+            ModuleId = e.ModuleId,
+            PrincipalId = e.PrincipalId
         };
     public GroupModuleRoleAssignmentRepository(
         SnapCdDbContext dbContext,

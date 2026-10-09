@@ -44,13 +44,16 @@ else
             </MudExpansionPanel>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="StartCreate"
-                   Class="mt-2">
-            Add New
-        </MudButton>
+        <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add an additional trigger path here.")"
+                    Disabled="@_canAdd">
+            <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="StartCreate"
+                       Class="mt-2">
+                Add New
+            </MudButton>
+        </MudTooltip>
 
     </MudExpansionPanels>
 }
@@ -66,6 +69,14 @@ else
 
 
     [Inject] private ModuleAdditionalTriggerPathSecuredRepositoryFactory ModuleAdditionalTriggerPathSecuredRepositoryFactory { get; set; } = null!;
+
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = ModuleAdditionalTriggerPathSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canAdd = permissionRepo.CanCreate(ModuleId, OrganizationId);
+    }
 
     private bool _isCreating;
     private bool _newItemExpanded;

@@ -44,7 +44,9 @@ public class UserNamespaceRoleAssignmentRepository : GenericNamespaceChildReposi
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            UserId = e.UserId
+            UserId = e.UserId,
+            NamespaceId = e.NamespaceId,
+            PrincipalId = e.PrincipalId
         };
     public UserNamespaceRoleAssignmentRepository(
         SnapCdDbContext dbContext,

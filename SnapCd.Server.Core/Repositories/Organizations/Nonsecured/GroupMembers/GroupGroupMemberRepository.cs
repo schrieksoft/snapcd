@@ -45,7 +45,9 @@ public class GroupGroupMemberRepository : GenericOrganizationChildRepository<Gro
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            MemberGroupId = e.MemberGroupId
+            MemberGroupId = e.MemberGroupId,
+            GroupId = e.GroupId,
+            PrincipalId = e.PrincipalId
         };
     private const int MaxGroupHierarchyDepth = 10;
 

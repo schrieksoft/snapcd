@@ -51,7 +51,8 @@ public class IntegrationRepository : GenericOrganizationChildRepository<Integrat
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            Name = e.Name
+            Name = e.Name,
+            IntegrationType = e.IntegrationType
         };
     public IntegrationRepository(
         SnapCdDbContext dbContext,

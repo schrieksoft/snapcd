@@ -43,7 +43,10 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
         e => new ServicePrincipalMetadata
         {
             Id = e.Id,
-            OrganizationId = e.OrganizationId
+            OrganizationId = e.OrganizationId,
+            // Stored with the organization as a prefix; callers get the name on its own.
+            ClientId = e.ClientId!.Substring(e.OrganizationId.ToString().Length + 1),
+            DisplayName = e.DisplayName
         };
     public ServicePrincipalRepository(
         SnapCdDbContext dbContext,
@@ -62,7 +65,7 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
     // The entity backs every OpenIddict application, so the table also holds clients that are not
     // service principals. One is created with an organization-prefixed client id, a secret and the
     // client credentials grant, and the reads below return only those.
-    public static readonly Expression<Func<ServicePrincipal, bool>> IsServicePrincipal =
+    private static readonly Expression<Func<ServicePrincipal, bool>> IsServicePrincipal =
         sp => sp.ClientType == OpenIddictConstants.ClientTypes.Confidential
               && sp.ClientId != null
               && sp.ClientId.StartsWith(sp.OrganizationId.ToString() + ":")

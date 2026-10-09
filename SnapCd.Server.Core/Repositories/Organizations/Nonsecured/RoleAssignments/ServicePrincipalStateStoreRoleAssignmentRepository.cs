@@ -48,7 +48,9 @@ public class ServicePrincipalStateStoreRoleAssignmentRepository : GenericStateSt
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            StateStoreId = e.StateStoreId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalStateStoreRoleAssignmentRepository(
         SnapCdDbContext dbContext,

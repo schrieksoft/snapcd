@@ -48,7 +48,9 @@ public class ServicePrincipalRunnerRoleAssignmentRepository : GenericRunnerChild
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            RunnerId = e.RunnerId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalRunnerRoleAssignmentRepository(
         SnapCdDbContext dbContext,

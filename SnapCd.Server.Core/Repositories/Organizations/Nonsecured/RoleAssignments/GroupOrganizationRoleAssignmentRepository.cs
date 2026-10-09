@@ -44,7 +44,8 @@ public class GroupOrganizationRoleAssignmentRepository : GenericOrganizationChil
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            GroupId = e.GroupId
+            GroupId = e.GroupId,
+            PrincipalId = e.PrincipalId
         };
     public GroupOrganizationRoleAssignmentRepository(
         SnapCdDbContext dbContext,

@@ -44,7 +44,9 @@ public class GroupRunnerRoleAssignmentRepository : GenericRunnerChildRepository<
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            GroupId = e.GroupId
+            GroupId = e.GroupId,
+            RunnerId = e.RunnerId,
+            PrincipalId = e.PrincipalId
         };
     public GroupRunnerRoleAssignmentRepository(
         SnapCdDbContext dbContext,

@@ -48,7 +48,8 @@ public class NamespaceSecretRepository : GenericNamespaceChildDefinitionReposito
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            NamespaceId = e.NamespaceId
+            NamespaceId = e.NamespaceId,
+            Name = e.Name
         };
     public NamespaceSecretRepository(
         SnapCdDbContext dbContext,

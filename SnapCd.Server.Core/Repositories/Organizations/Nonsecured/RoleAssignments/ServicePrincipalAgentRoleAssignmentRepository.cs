@@ -44,7 +44,9 @@ public class ServicePrincipalAgentRoleAssignmentRepository : GenericAgentChildRe
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            AgentId = e.AgentId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalAgentRoleAssignmentRepository(
         SnapCdDbContext dbContext,

@@ -44,7 +44,9 @@ public class GroupAgentRoleAssignmentRepository : GenericAgentChildRepository<Gr
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            GroupId = e.GroupId
+            GroupId = e.GroupId,
+            AgentId = e.AgentId,
+            PrincipalId = e.PrincipalId
         };
     public GroupAgentRoleAssignmentRepository(
         SnapCdDbContext dbContext,

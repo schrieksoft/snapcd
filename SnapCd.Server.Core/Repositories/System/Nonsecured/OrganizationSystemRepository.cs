@@ -58,7 +58,8 @@ public class OrganizationSystemRepository : GenericSystemRepository<Organization
         e => new OrganizationMetadata
         {
             Id = e.Id,
-            OrganizationId = e.Id
+            OrganizationId = e.Id,
+            Name = e.Name
         };
 
     private readonly IUserQuotaProvider _userQuotaProvider;

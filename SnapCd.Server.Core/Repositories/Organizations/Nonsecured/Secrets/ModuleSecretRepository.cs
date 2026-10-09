@@ -48,7 +48,8 @@ public class ModuleSecretRepository : GenericModuleChildDefinitionRepository<Mod
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ModuleId = e.ModuleId
+            ModuleId = e.ModuleId,
+            Name = e.Name
         };
     public ModuleSecretRepository(
         SnapCdDbContext dbContext,

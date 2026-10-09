@@ -44,7 +44,9 @@ public class UserRunnerRoleAssignmentRepository : GenericRunnerChildRepository<U
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            UserId = e.UserId
+            UserId = e.UserId,
+            RunnerId = e.RunnerId,
+            PrincipalId = e.PrincipalId
         };
     public UserRunnerRoleAssignmentRepository(
         SnapCdDbContext dbContext,

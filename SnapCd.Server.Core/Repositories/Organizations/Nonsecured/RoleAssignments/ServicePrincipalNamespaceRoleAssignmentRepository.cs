@@ -48,7 +48,9 @@ public class ServicePrincipalNamespaceRoleAssignmentRepository : GenericNamespac
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            ServicePrincipalId = e.ServicePrincipalId
+            ServicePrincipalId = e.ServicePrincipalId,
+            NamespaceId = e.NamespaceId,
+            PrincipalId = e.PrincipalId
         };
     public ServicePrincipalNamespaceRoleAssignmentRepository(
         SnapCdDbContext dbContext,

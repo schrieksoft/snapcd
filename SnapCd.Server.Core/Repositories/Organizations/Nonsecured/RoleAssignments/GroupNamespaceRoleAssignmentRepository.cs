@@ -44,7 +44,9 @@ public class GroupNamespaceRoleAssignmentRepository : GenericNamespaceChildRepos
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            GroupId = e.GroupId
+            GroupId = e.GroupId,
+            NamespaceId = e.NamespaceId,
+            PrincipalId = e.PrincipalId
         };
     public GroupNamespaceRoleAssignmentRepository(
         SnapCdDbContext dbContext,

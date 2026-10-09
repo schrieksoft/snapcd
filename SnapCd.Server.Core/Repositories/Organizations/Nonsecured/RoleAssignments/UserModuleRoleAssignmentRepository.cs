@@ -44,7 +44,9 @@ public class UserModuleRoleAssignmentRepository : GenericModuleChildRepository<U
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            UserId = e.UserId
+            UserId = e.UserId,
+            ModuleId = e.ModuleId,
+            PrincipalId = e.PrincipalId
         };
     public UserModuleRoleAssignmentRepository(
         SnapCdDbContext dbContext,

@@ -48,7 +48,8 @@ public class StackSecretRepository : GenericStackChildDefinitionRepository<Stack
         {
             Id = e.Id,
             OrganizationId = e.OrganizationId,
-            StackId = e.StackId
+            StackId = e.StackId,
+            Name = e.Name
         };
     public StackSecretRepository(
         SnapCdDbContext dbContext,

@@ -45,13 +45,16 @@ else
             </MudExpansionPanel>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="StartCreate"
-                   Class="mt-2">
-            Add New
-        </MudButton>
+        <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add a Pulumi flag here.")"
+                    Disabled="@_canAdd">
+            <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="StartCreate"
+                       Class="mt-2">
+                Add New
+            </MudButton>
+        </MudTooltip>
 
     </MudExpansionPanels>
 }
@@ -67,6 +70,14 @@ else
 
 
     [Inject] private NamespacePulumiFlagSecuredRepositoryFactory NamespacePulumiFlagSecuredRepositoryFactory { get; set; } = null!;
+
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = NamespacePulumiFlagSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canAdd = permissionRepo.CanCreate(NamespaceId, OrganizationId);
+    }
 
     private bool _isCreating;
     private bool _newItemExpanded;
