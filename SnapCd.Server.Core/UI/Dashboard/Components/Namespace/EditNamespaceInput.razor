@@ -91,7 +91,8 @@
                                  Variant="Variant.Outlined"
                                  FullWidth="true"
                                  Required="true"
-                                 RequiredError="Secret is required">
+                                 RequiredError="Secret is required"
+                                 AdornmentIcon="@SnapCdIcons.Search">
                     <ItemTemplate Context="secretItem">
                         <MudText>@secretItem.Name <MudText Typo="Typo.caption" Class="ml-2">(@secretItem.Source)</MudText></MudText>
                     </ItemTemplate>

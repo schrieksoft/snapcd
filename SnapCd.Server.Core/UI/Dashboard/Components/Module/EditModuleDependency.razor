@@ -28,7 +28,9 @@
                              ToStringFunc="@(m => m?.DisplayName ?? string.Empty)"
                              ResetValueOnEmptyText="true"
                              Required="true"
-                             DebounceInterval="300">
+                             DebounceInterval="300"
+                             AdornmentIcon="@SnapCdIcons.Search"
+                             Variant="Variant.Outlined">
                 <ItemTemplate Context="itemTemplateContext">
                     <MudText>@itemTemplateContext?.DisplayName</MudText>
                     <MudText Color="Color.Secondary" Typo="Typo.caption">

@@ -53,7 +53,9 @@
                                  ToStringFunc="@(u => u?.UserName ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
-                                 Class="mb-3">
+                                 Class="mb-3"
+                                 AdornmentIcon="@SnapCdIcons.Search"
+                                 Variant="Variant.Outlined">
                     <ItemTemplate Context="item">
                         <MudText>@item?.UserName</MudText>
                     </ItemTemplate>
@@ -138,7 +140,9 @@
                                  ToStringFunc="@(sp => sp?.ClientId ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
-                                 Class="mb-3">
+                                 Class="mb-3"
+                                 AdornmentIcon="@SnapCdIcons.Search"
+                                 Variant="Variant.Outlined">
                     <ItemTemplate Context="item">
                         <MudText>@item?.ClientId</MudText>
                     </ItemTemplate>
@@ -223,7 +227,9 @@
                                  ToStringFunc="@(g => g?.Name ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
-                                 Class="mb-3">
+                                 Class="mb-3"
+                                 AdornmentIcon="@SnapCdIcons.Search"
+                                 Variant="Variant.Outlined">
                     <ItemTemplate Context="item">
                         <MudText>@item?.Name</MudText>
                     </ItemTemplate>

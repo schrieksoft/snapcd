@@ -10,6 +10,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
+@using SnapCd.Server.Core.Views
 
 <MudForm ReadOnly="@(!_canSave)">
     @if (!_canSave)
@@ -32,7 +33,7 @@
                            Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
                     @foreach (var sp in _availableServicePrincipals)
                     {
-                        <MudSelectItem Value="@sp.Id">@sp.DisplayName (@sp.DisplayClientId)</MudSelectItem>
+                        <MudSelectItem Value="@sp.Id">@sp.DisplayName (@sp.ClientId)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -95,13 +96,14 @@
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private InputModel Input { get; set; } = new();
-    private List<ServicePrincipal> _availableServicePrincipals = new();
+    private List<ServicePrincipalMetadata> _availableServicePrincipals = new();
 
     protected override async Task OnInitializedAsync()
     {
         ResolveCanSave();
         using var spRepo = ServicePrincipalRepoFactory.Create();
-        _availableServicePrincipals = await spRepo.List(OrganizationId);
+        _availableServicePrincipals = await spRepo.ListMetadata(OrganizationId,
+            orderBy: q => q.OrderBy(x => x.ClientId));
     }
 
     protected override void OnParametersSet()

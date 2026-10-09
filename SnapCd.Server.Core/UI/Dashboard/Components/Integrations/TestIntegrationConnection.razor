@@ -1,0 +1,71 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using SnapCd.Contracts
+@using SnapCd.Server.Core.Services.Integrations.Codecs
+@inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Test Connection</MudText>
+
+    <MudText Typo="Typo.body2" Class="mb-3">
+        Sends a connectivity check to @IntegrationType using the stored credentials. Nothing is
+        delivered to any channel.
+    </MudText>
+
+    @if (_result is not null)
+    {
+        <MudAlert Severity="@(_result.Success ? Severity.Success : Severity.Error)" Class="mb-3">
+            @(_result.Success ? "Connection succeeded." : _result.Error)
+        </MudAlert>
+    }
+
+    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   Disabled="@_running" OnClick="RunTest">
+            Test Now
+        </MudButton>
+        @if (_running)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary"/>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                   OnClick="OnClose">
+            Close
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public Guid IntegrationId { get; set; }
+    [Parameter] public IntegrationType IntegrationType { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private IntegrationTestResult? _result;
+    private bool _running;
+
+    private async Task RunTest()
+    {
+        _running = true;
+        _result = null;
+
+        try
+        {
+            _result = await Service.TestConnection(IntegrationId, OrganizationId);
+        }
+        catch (Exception e)
+        {
+            _result = new IntegrationTestResult(false, e.Message);
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+}

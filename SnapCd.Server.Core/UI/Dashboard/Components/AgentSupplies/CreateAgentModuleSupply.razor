@@ -131,24 +131,22 @@
 
     private async Task<IEnumerable<ModuleMetadata>> SearchModules(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<ModuleMetadata>();
-
         using var repo = ModuleRepoFactory.Create();
         return await repo.ListMetadata(OrganizationId,
-            q => q.Where(x => x.Name.Contains(value)),
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
             orderBy: q => q.OrderBy(x => x.Name),
             pageSize: 20);
     }
 
     private async Task<IEnumerable<AgentMetadata>> SearchAgents(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<AgentMetadata>();
-
         using var repo = AgentRepoFactory.Create();
         return await repo.ListMetadata(OrganizationId,
-            q => q.Where(x => x.Name.Contains(value)),
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
             orderBy: q => q.OrderBy(x => x.Name),
             pageSize: 20);
     }

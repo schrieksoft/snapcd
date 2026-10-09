@@ -97,8 +97,8 @@
 
                         <MudTooltip Text="Test Connection">
                             <MudIconButton Icon="@SnapCdIcons.NetworkCheck"
-                                           Color="Color.Primary" Size="Size.Small"
-                                           OnClick="() => Test(i.Id)"/>
+                                           Color="@GetColor(i.Id, ShowingType.Test)" Size="Size.Small"
+                                           OnClick="() => SelectShowing(i.Id, ShowingType.Test)"/>
                         </MudTooltip>
 
                         <MudTooltip Text="Delete Integration">
@@ -128,6 +128,16 @@
                                 <ManageIntegrationSupplies
                                     IntegrationId="i.Id"
                                     OnClose="HandleSuppliesClosed"/>
+                            </MudItem>
+                        }
+
+                        @if (IsShowing(i.Id, ShowingType.Test))
+                        {
+                            <MudItem Class="mt-2">
+                                <TestIntegrationConnection
+                                    IntegrationId="i.Id"
+                                    IntegrationType="i.IntegrationType"
+                                    OnClose="HandleTestClosed"/>
                             </MudItem>
                         }
 
@@ -164,7 +174,8 @@
         Edit,
         IntegrationEvents,
         Supplies,
-        Roles
+        Roles,
+        Test
     }
 
     private Color GetColor(Guid integrationId, ShowingType showTypeToMatch)
@@ -243,6 +254,13 @@
         UpdateUrl();
     }
 
+    private void HandleTestClosed()
+    {
+        _selectedIntegrationId = null;
+        _showing = ShowingType.None;
+        UpdateUrl();
+    }
+
     private void HandleRolesClosed()
     {
         _selectedIntegrationId = null;
@@ -284,19 +302,6 @@
     }
 
     private void ShowCreate() => _showCreate = true;
-
-    private async Task Test(Guid id)
-    {
-        try
-        {
-            var result = await Service.TestConnection(id, OrganizationId);
-            Snackbar.Add(result.Success ? "Connection OK." : $"Failed: {result.Error}", result.Success ? Severity.Success : Severity.Error);
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add(e.Message, Severity.Error);
-        }
-    }
 
     private async Task Delete(Guid id)
     {

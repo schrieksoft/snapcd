@@ -10,6 +10,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
+@using SnapCd.Server.Core.Views
 
 <MudPaper Elevation="1" Class="pa-4 my-4">
     @if (!_canCreate)
@@ -24,7 +25,7 @@
                            Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
                     @foreach (var sp in _availableServicePrincipals)
                     {
-                        <MudSelectItem T="Guid?" Value="@((Guid?)sp.Id)">@sp.DisplayClientId</MudSelectItem>
+                        <MudSelectItem T="Guid?" Value="@((Guid?)sp.Id)">@sp.ClientId</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -85,12 +86,13 @@
     }
 
     private InputModel Input { get; set; } = new();
-    private List<ServicePrincipal> _availableServicePrincipals = new();
+    private List<ServicePrincipalMetadata> _availableServicePrincipals = new();
 
     protected override async Task OnInitializedAsync()
     {
         using var spRepo = ServicePrincipalRepoFactory.Create();
-        _availableServicePrincipals = await spRepo.List(OrganizationId);
+        _availableServicePrincipals = await spRepo.ListMetadata(OrganizationId,
+            orderBy: q => q.OrderBy(x => x.ClientId));
     }
 
     private sealed class InputModel

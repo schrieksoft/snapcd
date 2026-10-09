@@ -129,11 +129,10 @@
 
     private async Task<IEnumerable<Runner>> SearchRunners(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Runner>();
-
         using var repo = RunnerRepoFactory.Create();
-        return await repo.List<Runner>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+        return await repo.List<Runner>(OrganizationId, q => string.IsNullOrWhiteSpace(value)
+            ? q
+            : q.Where(s => s.Name.Contains(value)));
     }
 
     private async Task Cancel()

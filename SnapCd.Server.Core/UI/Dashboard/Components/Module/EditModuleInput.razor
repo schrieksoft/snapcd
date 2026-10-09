@@ -171,7 +171,8 @@
                                  Variant="Variant.Outlined"
                                  FullWidth="true"
                                  Required="true"
-                                 RequiredError="Secret is required">
+                                 RequiredError="Secret is required"
+                                 AdornmentIcon="@SnapCdIcons.Search">
                     <ItemTemplate Context="secretItem">
                         <MudText>@secretItem.Name <MudText Typo="Typo.caption" Class="ml-2">(@secretItem.Source)</MudText></MudText>
                     </ItemTemplate>
@@ -441,12 +442,10 @@
 
     private async Task<IEnumerable<Module>> SearchModules(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Module>();
-
         using var repo = ModuleRepoFactory.Create(PrincipalProvider);
         return await repo.List<Module>(OrganizationId, q => q
-            .Where(m => m.Name.Contains(value) && m.Namespace.StackId == StackId)
+            .Where(m => m.Namespace.StackId == StackId
+                        && (string.IsNullOrWhiteSpace(value) || m.Name.Contains(value)))
             .Include(m => m.Namespace)
             .ThenInclude(n => n.Stack));
     }

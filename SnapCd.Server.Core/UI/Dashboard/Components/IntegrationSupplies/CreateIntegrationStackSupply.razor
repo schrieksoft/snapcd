@@ -130,24 +130,22 @@
 
     private async Task<IEnumerable<StackMetadata>> SearchStacks(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<StackMetadata>();
-
         using var repo = StackRepoFactory.Create();
         return await repo.ListMetadata(OrganizationId,
-            q => q.Where(x => x.Name.Contains(value)),
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
             orderBy: q => q.OrderBy(x => x.Name),
             pageSize: 20);
     }
 
     private async Task<IEnumerable<IntegrationMetadata>> SearchIntegrations(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<IntegrationMetadata>();
-
         using var repo = IntegrationRepoFactory.Create();
         return await repo.ListMetadata(OrganizationId,
-            q => q.Where(x => x.Name.Contains(value)),
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
             orderBy: q => q.OrderBy(x => x.Name),
             pageSize: 20);
     }

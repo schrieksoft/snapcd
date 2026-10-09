@@ -171,6 +171,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             AddRunnerRole(dbContext, infraOwner.Id, _preseededRunnerId, RunnerRole.Owner);
             AddAgentRole(dbContext, infraOwner.Id, _preseededAgentId, AgentRole.Owner);
             AddIntegrationRole(dbContext, infraOwner.Id, DebugIntegrationId, IntegrationRole.Owner);
+            AddStateStoreRole(dbContext, infraOwner.Id, PreseededSettings.DefaultId, StateStoreRole.Owner);
             AddStackRole(dbContext, infraOwner.Id, _preseededStackId, StackRole.MetadataReader);
         }
 
@@ -182,6 +183,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             AddRunnerRole(dbContext, infraOwnerNoMetadata.Id, _preseededRunnerId, RunnerRole.Owner);
             AddAgentRole(dbContext, infraOwnerNoMetadata.Id, _preseededAgentId, AgentRole.Owner);
             AddIntegrationRole(dbContext, infraOwnerNoMetadata.Id, DebugIntegrationId, IntegrationRole.Owner);
+            AddStateStoreRole(dbContext, infraOwnerNoMetadata.Id, PreseededSettings.DefaultId, StateStoreRole.Owner);
         }
 
         // Reads the infrastructure without owning it: sees the Runner, Agent and Integration
@@ -192,6 +194,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             AddRunnerRole(dbContext, infraReader.Id, _preseededRunnerId, RunnerRole.Reader);
             AddAgentRole(dbContext, infraReader.Id, _preseededAgentId, AgentRole.Reader);
             AddIntegrationRole(dbContext, infraReader.Id, DebugIntegrationId, IntegrationRole.Reader);
+            AddStateStoreRole(dbContext, infraReader.Id, PreseededSettings.DefaultId, StateStoreRole.Reader);
             AddStackRole(dbContext, infraReader.Id, _preseededStackId, StackRole.MetadataReader);
         }
 
@@ -257,6 +260,22 @@ public class DebugDataSeeder : ProductionDataSeeder
             Id = Guid.NewGuid(),
             UserId = userId,
             IntegrationId = integrationId,
+            OrganizationId = _preseededOrganizationId,
+            RoleName = role
+        });
+    }
+
+    private void AddStateStoreRole(SnapCdDbContext dbContext, Guid userId, Guid stateStoreId, StateStoreRole role)
+    {
+        if (dbContext.Set<UserStateStoreRoleAssignment>().Any(ra =>
+                ra.UserId == userId && ra.StateStoreId == stateStoreId && ra.RoleName == role))
+            return;
+
+        dbContext.Set<UserStateStoreRoleAssignment>().Add(new UserStateStoreRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            StateStoreId = stateStoreId,
             OrganizationId = _preseededOrganizationId,
             RoleName = role
         });
