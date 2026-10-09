@@ -27,21 +27,21 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Label="SourceUrl"
+                <MudTextField Disabled="@(!_canSave)" Label="SourceUrl"
                               @bind-Value="Input.SourceUrl"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="RunnerInstanceName"
+                <MudTextField Disabled="@(!_canSave)" Label="RunnerInstanceName"
                               @bind-Value="Input.RunnerInstanceName"
                               Required="false"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="RunnerId"
+                <MudTextField Disabled="@(!_canSave)" Label="RunnerId"
                               @bind-Value="Input.RunnerId"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>

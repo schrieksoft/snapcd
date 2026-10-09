@@ -24,11 +24,14 @@
         <MudTabPanel Text="Organization" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                    Size="Size.Small"
-                           OnClick="ShowCreate" Class="mb-3">
-                    Add Mission
-                </MudButton>
+                <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add a mission here.")"
+                            Disabled="@_canAdd">
+                    <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled" Color="Color.Secondary"
+                                                        Size="Size.Small"
+                               OnClick="ShowCreate" Class="mb-3">
+                        Add Mission
+                    </MudButton>
+                </MudTooltip>
             }
 
             @if (_showCreateForm || _editing is not null)
@@ -99,6 +102,14 @@
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private OrganizationMissionSecuredRepositoryFactory OrgMissionRepoFactory { get; set; } = null!;
+
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = OrgMissionRepoFactory.Create();
+        _canAdd = permissionRepo.CanCreate(AgentId, OrganizationId);
+    }
 
     private sealed class InputModel
     {

@@ -22,14 +22,14 @@
 <MudGrid>
     <MudItem xs="12" md="8" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Name"
+            <MudTextField Disabled="@(!_canSave)" Label="Name"
                           @bind-Value="Context.Name"
                           Immediate="true"
                           FullWidth="true"/>
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Policy Content (Rego)"
+            <MudTextField Disabled="@(!_canSave)" Label="Policy Content (Rego)"
                           @bind-Value="Context.PolicyContent"
                           Immediate="true"
                           Lines="15"
@@ -38,7 +38,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSelect T="PolicyEvaluateOn" Label="Evaluate On" @bind-Value="Context.EvaluateOn" Variant="Variant.Outlined" Immediate="true">
+            <MudSelect Disabled="@(!_canSave)" T="PolicyEvaluateOn" Label="Evaluate On" @bind-Value="Context.EvaluateOn" Variant="Variant.Outlined" Immediate="true">
                 @foreach (var val in Enum.GetValues<PolicyEvaluateOn>())
                 {
                     <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
@@ -47,7 +47,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSwitch T="bool" @bind-Value="Context.Enabled" Label="Enabled" Color="Color.Secondary"/>
+            <MudSwitch Disabled="@(!_canSave)" T="bool" @bind-Value="Context.Enabled" Label="Enabled" Color="Color.Secondary"/>
         </MudItem>
 
         <MudStack Row="true" Spacing="4" Class="mt-4">

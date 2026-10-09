@@ -21,11 +21,14 @@
         <MudTabPanel Text="Stack" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                    Size="Size.Small"
-                           OnClick="ShowCreate" Class="mb-3">
-                    Add Mission
-                </MudButton>
+                <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add a mission here.")"
+                            Disabled="@_canAdd">
+                    <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled" Color="Color.Secondary"
+                                                        Size="Size.Small"
+                               OnClick="ShowCreate" Class="mb-3">
+                        Add Mission
+                    </MudButton>
+                </MudTooltip>
             }
 
             @if (_showCreateForm || _editing is not null)
@@ -128,6 +131,14 @@
     [Inject] private StackMissionSecuredRepositoryFactory StackMissionRepoFactory { get; set; } = null!;
     [Inject] private OrganizationMissionSecuredRepositoryFactory OrgMissionRepoFactory { get; set; } = null!;
     [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
+
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = StackMissionRepoFactory.Create();
+        _canAdd = permissionRepo.CanCreate(StackId, OrganizationId);
+    }
 
     private sealed class InputModel
     {

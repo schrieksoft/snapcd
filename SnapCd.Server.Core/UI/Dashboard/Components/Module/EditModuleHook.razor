@@ -22,7 +22,7 @@
 <MudGrid>
     <MudItem xs="12" md="8" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudSelect T="HookTask" Label="Task" @bind-Value="Context.Task" Variant="Variant.Outlined" Immediate="true">
+            <MudSelect Disabled="@(!_canSave)" T="HookTask" Label="Task" @bind-Value="Context.Task" Variant="Variant.Outlined" Immediate="true">
                 @foreach (var val in Enum.GetValues<HookTask>())
                 {
                     <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
@@ -31,7 +31,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSelect T="HookPhase" Label="Phase" @bind-Value="Context.Phase" Variant="Variant.Outlined" Immediate="true">
+            <MudSelect Disabled="@(!_canSave)" T="HookPhase" Label="Phase" @bind-Value="Context.Phase" Variant="Variant.Outlined" Immediate="true">
                 @foreach (var val in Enum.GetValues<HookPhase>())
                 {
                     <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
@@ -40,7 +40,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Script"
+            <MudTextField Disabled="@(!_canSave)" Label="Script"
                           @bind-Value="Context.Script"
                           Immediate="true"
                           Lines="6"

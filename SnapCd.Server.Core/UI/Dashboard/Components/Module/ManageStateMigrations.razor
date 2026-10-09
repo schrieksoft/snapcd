@@ -764,8 +764,21 @@ else
 
     private async Task Pause()
     {
+        string? refusal;
+        using (var repo = ModuleRepoFactory.Create(PrincipalProvider))
+        {
+            refusal = repo.CanPause(Module.Id, OrganizationId)
+                ? null
+                : "You do not have permission to pause this module.";
+        }
+
+        var parameters = new DialogParameters<PauseModuleDialog>
+        {
+            { x => x.RefusalReason, refusal }
+        };
+
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<PauseModuleDialog>("Pause module", options);
+        var dialog = await DialogService.ShowAsync<PauseModuleDialog>("Pause module", parameters, options);
         var result = await dialog.Result;
 
         if (result is null || result.Canceled) return;

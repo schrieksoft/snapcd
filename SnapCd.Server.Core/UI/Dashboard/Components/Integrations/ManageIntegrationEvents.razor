@@ -23,11 +23,14 @@
 
     @if (!_showCreateForm && _editing is null)
     {
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                            Size="Size.Small"
-                   OnClick="ShowCreate" Class="mb-3">
-            Add Event
-        </MudButton>
+        <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add a event here.")"
+                    Disabled="@_canAdd">
+            <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
+                       OnClick="ShowCreate" Class="mb-3">
+                Add Event
+            </MudButton>
+        </MudTooltip>
     }
 
     @if (_showCreateForm || _editing is not null)
@@ -110,6 +113,14 @@
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private OrganizationIntegrationEventSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _canAdd = permissionRepo.CanCreate(IntegrationId, OrganizationId);
+    }
 
     private sealed class InputModel
     {

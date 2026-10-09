@@ -22,7 +22,7 @@
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Path"
+            <MudTextField Disabled="@(!_canSave)" Label="Path"
                           @bind-Value="Context.Path"
                           Immediate="true"
                           Validation="@((Func<string?, string?>)TriggerPathValidator.Validate)"

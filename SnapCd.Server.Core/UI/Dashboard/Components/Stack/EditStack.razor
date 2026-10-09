@@ -26,7 +26,7 @@
 
             <!-- Core Properties -->
             <MudItem md="12">
-                <MudTextField Label="Name" @bind-Value="Stack.Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Name" @bind-Value="Stack.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
                               MaxLength="255" Counter="255"
                               Validation="@((string s) => NameValidator.Validate(s, "Stack"))"/>

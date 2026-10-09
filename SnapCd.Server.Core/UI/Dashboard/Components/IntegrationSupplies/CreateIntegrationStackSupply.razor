@@ -12,9 +12,9 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies
 @using SnapCd.Server.Core.Views
 <MudPaper Elevation="1" Class="pa-4 mb-4">
-    @if (_refusal is not null)
+    @if (!_canCreate)
     {
-        <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        <ReadOnlyNotice Message="You do not have permission to add a supply to this integration."/>
     }
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
@@ -23,7 +23,7 @@
                     <MudAutocomplete T="IntegrationMetadata?"
                                      Label="Integration"
                                      @bind-Value="_selectedIntegration"
-                                     Disabled="@(IntegrationId.HasValue)"
+                                     Disabled="@(!_canCreate || (IntegrationId.HasValue))"
                                      Required="@(!IntegrationId.HasValue)"
                                      RequiredError="Integration is required"
                                      SearchFunc="@SearchIntegrations"
@@ -37,7 +37,7 @@
                     <MudAutocomplete T="StackMetadata?"
                                      Label="Stack"
                                      @bind-Value="_selectedStack"
-                                     Disabled="@(StackId.HasValue)"
+                                     Disabled="@(!_canCreate || (StackId.HasValue))"
                                      Required="@(!StackId.HasValue)"
                                      RequiredError="Stack is required"
                                      SearchFunc="@SearchStacks"
@@ -49,7 +49,7 @@
             </MudItem>
 
             <MudItem xs="12">
-                @if (_refusal is null)
+                @if (_canCreate)
                 {
     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
@@ -84,23 +84,33 @@
 
     private MudForm? _form;
     private StackMetadata? _selectedStack;
-    private IntegrationMetadata? _selectedIntegration;
+    private IntegrationMetadata? _selectedIntegrationBacking;
+    private IntegrationMetadata? _selectedIntegration
+    {
+        get => _selectedIntegrationBacking;
+        set { _selectedIntegrationBacking = value; RefreshCanCreate(); }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialValues();
     }
 
-    private string? _refusal;
+    private bool _canCreate = true;
 
-    protected override void OnParametersSet()
+    protected override void OnParametersSet() => RefreshCanCreate();
+
+    private void RefreshCanCreate()
     {
-        if (IntegrationId is null) return;
+        var ownerId = IntegrationId ?? _selectedIntegration?.Id;
+        if (ownerId is null)
+        {
+            _canCreate = true;
+            return;
+        }
 
         using var permissionRepo = SupplyRepoFactory.Create();
-        _refusal = permissionRepo.CanCreate(IntegrationId.Value, OrganizationId)
-            ? null
-            : "You do not have permission to add a supply to this integration.";
+        _canCreate = permissionRepo.CanCreate(ownerId.Value, OrganizationId);
     }
 
     private async Task LoadInitialValues()

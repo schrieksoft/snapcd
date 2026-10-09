@@ -12,9 +12,9 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies
 @using SnapCd.Server.Core.Views
 <MudPaper Elevation="1" Class="pa-4 mb-4">
-    @if (_refusal is not null)
+    @if (!_canCreate)
     {
-        <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        <ReadOnlyNotice Message="You do not have permission to add a supply to this agent."/>
     }
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
@@ -23,7 +23,7 @@
                     <MudAutocomplete T="AgentMetadata?"
                                      Label="Agent"
                                      @bind-Value="_selectedAgent"
-                                     Disabled="@(AgentId.HasValue)"
+                                     Disabled="@(!_canCreate || (AgentId.HasValue))"
                                      Required="@(!AgentId.HasValue)"
                                      RequiredError="Agent is required"
                                      SearchFunc="@SearchAgents"
@@ -37,7 +37,7 @@
                     <MudAutocomplete T="ModuleMetadata?"
                                      Label="Module"
                                      @bind-Value="_selectedModule"
-                                     Disabled="@(ModuleId.HasValue)"
+                                     Disabled="@(!_canCreate || (ModuleId.HasValue))"
                                      Required="@(!ModuleId.HasValue)"
                                      RequiredError="Module is required"
                                      SearchFunc="@SearchModules"
@@ -49,7 +49,7 @@
             </MudItem>
 
             <MudItem xs="12">
-                @if (_refusal is null)
+                @if (_canCreate)
                 {
     <MudButton Variant="Variant.Filled"
                                Color="Color.Secondary"
@@ -84,23 +84,33 @@
 
     private MudForm? _form;
     private ModuleMetadata? _selectedModule;
-    private AgentMetadata? _selectedAgent;
+    private AgentMetadata? _selectedAgentBacking;
+    private AgentMetadata? _selectedAgent
+    {
+        get => _selectedAgentBacking;
+        set { _selectedAgentBacking = value; RefreshCanCreate(); }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialValues();
     }
 
-    private string? _refusal;
+    private bool _canCreate = true;
 
-    protected override void OnParametersSet()
+    protected override void OnParametersSet() => RefreshCanCreate();
+
+    private void RefreshCanCreate()
     {
-        if (AgentId is null) return;
+        var ownerId = AgentId ?? _selectedAgent?.Id;
+        if (ownerId is null)
+        {
+            _canCreate = true;
+            return;
+        }
 
         using var permissionRepo = SupplyRepoFactory.Create();
-        _refusal = permissionRepo.CanCreate(AgentId.Value, OrganizationId)
-            ? null
-            : "You do not have permission to add a supply to this agent.";
+        _canCreate = permissionRepo.CanCreate(ownerId.Value, OrganizationId);
     }
 
     private async Task LoadInitialValues()

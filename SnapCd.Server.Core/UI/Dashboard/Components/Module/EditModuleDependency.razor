@@ -21,7 +21,7 @@
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudAutocomplete T="ModuleDisplay?"
+            <MudAutocomplete Disabled="@(!_canSave)" T="ModuleDisplay?"
                              @bind-Value="_selectedModule"
                              Label="Depends On Module"
                              SearchFunc="@SearchModules"

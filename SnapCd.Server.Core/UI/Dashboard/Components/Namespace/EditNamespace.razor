@@ -35,14 +35,14 @@
 
             <!-- Core Properties -->
             <MudItem md="12">
-                <MudTextField Label="Name" @bind-Value="Namespace.Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Name" @bind-Value="Namespace.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
                               MaxLength="255" Counter="255"
                               Validation="@((string s) => NameValidator.Validate(s, "Namespace"))"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSelect T="StateManagementEngine?" Label="Default Engine" @bind-Value="Namespace.DefaultEngine"
+                <MudSelect Disabled="@(!_canSave)" T="StateManagementEngine?" Label="Default Engine" @bind-Value="Namespace.DefaultEngine"
                            Variant="Variant.Outlined">
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Default (OpenTofu)</MudSelectItem>
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
@@ -89,7 +89,7 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField T="int?" Label="Default Drift Check Interval Minutes"
+                <MudTextField Disabled="@(!_canSave)" T="int?" Label="Default Drift Check Interval Minutes"
                               @bind-Value="Namespace.DefaultDriftCheckIntervalMinutes"
                               Variant="Variant.Outlined"/>
             </MudItem>

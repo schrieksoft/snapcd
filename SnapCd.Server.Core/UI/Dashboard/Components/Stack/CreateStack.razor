@@ -9,12 +9,16 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 <MudPaper Elevation="1" Class="pa-4 mb-4">
+    @if (!_canCreate)
+    {
+        <ReadOnlyNotice Message="You do not have permission to create a Stack."/>
+    }
     <EditForm Model="NewStack" OnValidSubmit="Create">
         <DataAnnotationsValidator/>
         <MudGrid Class="pa-4">
             <!-- Core Properties -->
             <MudItem md="12">
-                <MudTextField Label="Name" @bind-Value="NewStack.Name"
+                <MudTextField Disabled="@(!_canCreate)" Label="Name" @bind-Value="NewStack.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
                               MaxLength="255" Counter="255"
                               Validation="@((string s) => NameValidator.Validate(s, "Stack"))"/>
@@ -22,12 +26,15 @@
 
             <!-- Action Buttons -->
             <MudItem md="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -48,6 +55,13 @@
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
     private Stack NewStack { get; set; } = new();
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet()
+    {
+        using var repo = RepoFactory.Create();
+        _canCreate = repo.CanCreate(OrganizationId, OrganizationId);
+    }
 
 
     private async Task Create()

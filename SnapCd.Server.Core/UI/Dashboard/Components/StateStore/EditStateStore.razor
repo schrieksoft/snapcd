@@ -27,7 +27,7 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Label="State Store Name"
+                <MudTextField Disabled="@(!_canSave)" Label="State Store Name"
                               @bind-Value="Input.Name"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>

@@ -28,7 +28,7 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudSelect T="Guid" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
+                <MudSelect Disabled="@(!_canSave)" T="Guid" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
                            Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
                     @foreach (var sp in _availableServicePrincipals)
                     {
@@ -38,20 +38,20 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Label="Runner Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Runner Name"
                               @bind-Value="Input.Name"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" Value="Input.AllowMultipleInstances"
+                <MudSwitch Disabled="@(!_canSave)" T="bool" Value="Input.AllowMultipleInstances"
                            ValueChanged="AllowMultipleInstancesChanged" Label="Allow Multiple Instances"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" Value="Input.IsSuppliedToAllModules"
+                <MudSwitch Disabled="@(!_canSave)" T="bool" Value="Input.IsSuppliedToAllModules"
                            ValueChanged="IsSuppliedToAllModulesChanged" Label="Is Supplied To All Modules"
                            Color="Color.Secondary"/>
             </MudItem>

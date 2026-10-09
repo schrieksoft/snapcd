@@ -25,14 +25,14 @@ else
         }
 
         <MudPaper Elevation="0" Class="pa-4">
-            <MudTextField @bind-Value="_model.Name" Label="Name" Class="mb-2"/>
+            <MudTextField Disabled="@(!_canSave)" @bind-Value="_model.Name" Label="Name" Class="mb-2"/>
             @if (IntegrationType == IntegrationType.Slack)
             {
-                <MudTextField @bind-Value="_model.DefaultChannel" Label="Default channel" Class="mb-2"/>
-                <MudTextField @bind-Value="_model.BotToken" Label="Bot token (leave masked to keep)" InputType="MudBlazor.InputType.Password" Class="mb-2"/>
+                <MudTextField Disabled="@(!_canSave)" @bind-Value="_model.DefaultChannel" Label="Default channel" Class="mb-2"/>
+                <MudTextField Disabled="@(!_canSave)" @bind-Value="_model.BotToken" Label="Bot token (leave masked to keep)" InputType="MudBlazor.InputType.Password" Class="mb-2"/>
             }
-            <MudSwitch T="bool" @bind-Value="_model.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary"/>
-            <MudSwitch T="bool" @bind-Value="_model.Enabled" Label="Enabled" Color="Color.Secondary"/>
+            <MudSwitch Disabled="@(!_canSave)" T="bool" @bind-Value="_model.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary"/>
+            <MudSwitch Disabled="@(!_canSave)" T="bool" @bind-Value="_model.Enabled" Label="Enabled" Color="Color.Secondary"/>
             <div class="mt-2">
                 <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
                     <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"

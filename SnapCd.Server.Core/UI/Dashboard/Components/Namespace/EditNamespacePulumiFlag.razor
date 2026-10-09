@@ -22,7 +22,7 @@
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudSelect T="PulumiCommandTask" Label="Task" @bind-Value="Context.Task" Variant="Variant.Outlined" Immediate="true">
+            <MudSelect Disabled="@(!_canSave)" T="PulumiCommandTask" Label="Task" @bind-Value="Context.Task" Variant="Variant.Outlined" Immediate="true">
                 @foreach (var val in Enum.GetValues<PulumiCommandTask>())
                 {
                     <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
@@ -31,7 +31,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSelect T="PulumiFlag" Label="Flag" @bind-Value="Context.Flag" Variant="Variant.Outlined" Immediate="true">
+            <MudSelect Disabled="@(!_canSave)" T="PulumiFlag" Label="Flag" @bind-Value="Context.Flag" Variant="Variant.Outlined" Immediate="true">
                 @foreach (var val in Enum.GetValues<PulumiFlag>())
                 {
                     <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
@@ -40,7 +40,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Value"
+            <MudTextField Disabled="@(!_canSave)" Label="Value"
                           @bind-Value="Context.Value"
                           Immediate="true"
                           FullWidth="true"/>

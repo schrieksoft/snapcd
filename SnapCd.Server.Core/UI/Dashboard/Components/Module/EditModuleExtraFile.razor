@@ -21,14 +21,14 @@
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="File Name"
+            <MudTextField Disabled="@(!_canSave)" Label="File Name"
                           @bind-Value="Context.FileName"
                           Immediate="true"
                           FullWidth="true"/>
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Contents"
+            <MudTextField Disabled="@(!_canSave)" Label="Contents"
                           @bind-Value="Context.Contents"
                           Immediate="true"
                           Lines="15"
@@ -36,7 +36,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSwitch T="bool"
+            <MudSwitch Disabled="@(!_canSave)" T="bool"
                        Label="Overwrite"
                        Color="Color.Secondary"
                        Value="Context.Overwrite"

@@ -11,18 +11,22 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 
 <MudPaper Elevation="1" Class="pa-4 my-4">
+    @if (!_canCreate)
+    {
+        <ReadOnlyNotice Message="You do not have permission to create a Source Refresher."/>
+    }
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
         <MudGrid Class="d-flex flex-column gap-4">
             <MudItem xs="12">
-                <MudTextField Label="SourceUrl"
+                <MudTextField Disabled="@(!_canCreate)" Label="SourceUrl"
                               @bind-Value="Input.SourceUrl"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="RunnerInstanceName"
+                <MudTextField Disabled="@(!_canCreate)" Label="RunnerInstanceName"
                               @bind-Value="Input.RunnerInstanceName"
                               Required="false"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
@@ -34,7 +38,7 @@
                 <MudAutocomplete T="Runner?"
                                  Label="Runner"
                                  @bind-Value="Input.Runner"
-                                 Disabled="false"
+                                 Disabled="@(!_canCreate || false)"
                                  Required="true"
                                  RequiredError="Runner is required"
                                  SearchFunc="@SearchRunners"
@@ -45,12 +49,15 @@
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -70,6 +77,14 @@
     [Inject] private SourceRefresherPreselectionSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
+
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _canCreate = permissionRepo.CanCreate(OrganizationId, OrganizationId);
+    }
 
     private InputModel Input { get; set; } = new();
 

@@ -31,7 +31,7 @@
         @if (Context is NamespaceInput input)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudTextField
+                <MudTextField Disabled="@(!_canSave)"
                     Label="Name"
                     @bind-Value="input.Name"
                     FullWidth="true"
@@ -43,7 +43,7 @@
         @if (Context is INamespaceInputFromDefinition fromDef)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudSelect Label="Definition Type"
+                <MudSelect Disabled="@(!_canSave)" Label="Definition Type"
                            @bind-Value="fromDef.DefinitionName"
                            T="DefinitionInputType"
                            FullWidth="true">
@@ -58,7 +58,7 @@
         @if (Context is INamespaceInputFromLiteral fromLiteral)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudTextField Label="Literal Value"
+                <MudTextField Disabled="@(!_canSave)" Label="Literal Value"
                               @bind-Value="fromLiteral.LiteralValue"
                               Required
                               Immediate="true"
@@ -66,7 +66,7 @@
                               FullWidth="true"/>
             </MudItem>
             <MudItem xs="12" Class="mb-4">
-                <MudSelect Label="Type"
+                <MudSelect Disabled="@(!_canSave)" Label="Type"
                            @bind-Value="fromLiteral.Type"
                            T="InputType"
                            FullWidth="true">
@@ -82,7 +82,7 @@
         @if (Context is INamespaceInputFromSecret fromSecret && Context is NamespaceInputFromSecret concreteFromSecret)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudAutocomplete T="SecretItem"
+                <MudAutocomplete Disabled="@(!_canSave)" T="SecretItem"
                                  Label="Secret"
                                  Value="_selectedSecret"
                                  ValueChanged="OnSecretSelected"
@@ -98,7 +98,7 @@
                 </MudAutocomplete>
             </MudItem>
             <MudItem xs="12" Class="mb-4">
-                <MudSelect Label="Type"
+                <MudSelect Disabled="@(!_canSave)" Label="Type"
                            @bind-Value="concreteFromSecret.Type"
                            T="InputType"
                            FullWidth="true">

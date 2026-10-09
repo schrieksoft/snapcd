@@ -32,6 +32,7 @@
 @using SnapCd.Server.Core.Services.Notification
 @using SnapCd.Server.Core.Services.OrganizationContext
 @using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Views
 
 @implements IDisposable
 
@@ -62,7 +63,7 @@
 <PageTitle>Module: @ModuleName</PageTitle>
 
 <CascadingValue Value="OrganizationId">
-    @if (_module != null)
+    @if (_meta != null)
     {
         <div class="module-page-header">
             <div class="d-flex align-center gap-3">
@@ -81,7 +82,7 @@
                         @(IsDraining ? "Pausing" : "Paused")
                     </span>
                 }
-                <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_module.Id"/>
+                <FavoriteToggle TargetType="FavoriteTargetType.Module" TargetId="_meta.Id"/>
             </div>
             <MudText Typo="Typo.body2" Class="module-page-subtitle">
                 <span class="module-page-parents">
@@ -172,7 +173,15 @@
            IMPORTANT: any component you add that loads data for THIS module (typically
            in OnInitialized) MUST go inside this container. Placed outside it, it would
            be reused across module switches and show stale data. *@
-        <div @key="_module.Id">
+        @if (!_canRead)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                You can see this module's name, but not its contents.
+            </MudAlert>
+        }
+        else
+        {
+        <div @key="_module!.Id">
             @if (_showing == ShowingType.Jobs)
             {
                 <ManageModuleJobs Module="_module"
@@ -219,7 +228,7 @@
                                   PrincipalProvider="_literalPrincipalProvider"/>
             }
         </div>
-
+        }
     }
 </CascadingValue>
 
@@ -369,7 +378,9 @@
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
 
-    private Module _module = null!;
+    private Module? _module;
+    private ModuleMetadata _meta = null!;
+    private bool _canRead;
     private ModuleSaga _moduleSaga = null!;
     private List<RunnerConnection> _activeRunners = new();
     private Runner? _runner;
@@ -1159,23 +1170,31 @@
         {
             using var moduleRepo = RepoFactory.Create();
 
-            _module = await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId);
-            _canReadForConfiguration = moduleRepo.CanRead(_module.Id, OrganizationId);
+            // Metadata establishes identity, so the page still renders for someone who may
+            // name the module but not read it. The tabs all need the full entity.
+            _meta = await moduleRepo.GetMetadata(StackName, NamespaceName, ModuleName, OrganizationId);
+            _canRead = moduleRepo.CanRead(_meta.Id, OrganizationId);
+            _module = _canRead
+                ? await moduleRepo.Get(StackName, NamespaceName, ModuleName, OrganizationId)
+                : null;
+            _canReadForConfiguration = _canRead;
 
             // The Module's own navigation would need read on the Namespace; its metadata is enough.
             using var namespaceRepo = NamespaceRepoFactory.Create();
-            _stackId = (await namespaceRepo.GetMetadata(_module.NamespaceId, OrganizationId)).StackId;
+            _stackId = (await namespaceRepo.GetMetadata(_meta.NamespaceId, OrganizationId)).StackId;
 
+            if (!_canRead)
+                return;
 
             // Reading a Runner is a separate permission from reading the Module it is assigned to.
             _runner = null;
             _runnerUnreadable = false;
-            if (_module.RunnerId != Guid.Empty)
+            if (_meta.RunnerId != Guid.Empty)
             {
                 using var runnerRepo = RunnerRepoFactory.Create();
                 try
                 {
-                    _runner = await runnerRepo.Get(_module.RunnerId, OrganizationId);
+                    _runner = await runnerRepo.Get(_meta.RunnerId, OrganizationId);
                 }
                 catch (PrincipalNotAuthorizedException)
                 {
@@ -1244,8 +1263,8 @@
             : requested;
         _configureSection = Section;
 
-        RunnerAvailabilityModifiedNotificationService.Subscribe(_module.RunnerId, HandleRunnerAvailabilityModified);
-        ModuleSagaModifiedNotificationService.Subscribe(_module.Id, HandleModuleSagaModified);
+        RunnerAvailabilityModifiedNotificationService.Subscribe(_meta.RunnerId, HandleRunnerAvailabilityModified);
+        ModuleSagaModifiedNotificationService.Subscribe(_meta.Id, HandleModuleSagaModified);
 
         // Start periodic refresh timer to catch expired cache entries (30 second interval)
         _runnerAvailabilityRefreshTimer = new Timer(
@@ -1283,14 +1302,14 @@
 
     private async Task HandleRunnerAvailabilityModified(Guid runnerId, string runnerInstanceName)
     {
-        if (runnerId != _module.RunnerId) return;
+        if (runnerId != _meta.RunnerId) return;
 
         await ReloadRunnerAvailability(true);
     }
 
     private async Task HandleModuleSagaModified(Guid moduleId)
     {
-        if (moduleId != _module.Id) return;
+        if (moduleId != _meta.Id) return;
 
         await ReloadModuleSaga(true);
     }
@@ -1418,10 +1437,10 @@
         _runnerAvailabilityRefreshTimer?.Dispose();
         _runnerAvailabilityRefreshTimer = null;
 
-        if (_loadedModuleKey != null && _module != null)
+        if (_loadedModuleKey != null && _meta != null)
         {
-            RunnerAvailabilityModifiedNotificationService.Unsubscribe(_module.RunnerId, HandleRunnerAvailabilityModified);
-            ModuleSagaModifiedNotificationService.Unsubscribe(_module.Id, HandleModuleSagaModified);
+            RunnerAvailabilityModifiedNotificationService.Unsubscribe(_meta.RunnerId, HandleRunnerAvailabilityModified);
+            ModuleSagaModifiedNotificationService.Unsubscribe(_meta.Id, HandleModuleSagaModified);
         }
     }
 

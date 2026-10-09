@@ -41,6 +41,7 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid DebugStackMetadataReaderUserId = new("99999999-9999-9999-9999-999999999997");
     private static readonly Guid DebugInfraOwnerUserId = new("99999999-9999-9999-9999-999999999998");
     private static readonly Guid DebugInfraOwnerNoMetadataUserId = new("99999999-9999-9999-9999-999999999989");
+    private static readonly Guid DebugInfraReaderUserId = new("99999999-9999-9999-9999-999999999987");
     private static readonly Guid DebugNoRolesUserId = new("99999999-9999-9999-9999-999999999988");
 
     // Every preseeded debug user shares this, so switching between them needs no lookup.
@@ -138,6 +139,7 @@ public class DebugDataSeeder : ProductionDataSeeder
             (DebugStackMetadataReaderUserId, "stackmetadatareader@preseeded.io"),
             (DebugInfraOwnerUserId, "infraowner@preseeded.io"),
             (DebugInfraOwnerNoMetadataUserId, "infraowner-no-metadata@preseeded.io"),
+            (DebugInfraReaderUserId, "infrareader@preseeded.io"),
             // No grant at all: every list should be empty and say why, every control disabled.
             (DebugNoRolesUserId, "noroles@preseeded.io")
         };
@@ -180,6 +182,17 @@ public class DebugDataSeeder : ProductionDataSeeder
             AddRunnerRole(dbContext, infraOwnerNoMetadata.Id, _preseededRunnerId, RunnerRole.Owner);
             AddAgentRole(dbContext, infraOwnerNoMetadata.Id, _preseededAgentId, AgentRole.Owner);
             AddIntegrationRole(dbContext, infraOwnerNoMetadata.Id, DebugIntegrationId, IntegrationRole.Owner);
+        }
+
+        // Reads the infrastructure without owning it: sees the Runner, Agent and Integration
+        // and their supplies, and cannot change any of them or manage their roles.
+        var infraReader = await userManager.FindByNameAsync("infrareader@preseeded.io");
+        if (infraReader != null)
+        {
+            AddRunnerRole(dbContext, infraReader.Id, _preseededRunnerId, RunnerRole.Reader);
+            AddAgentRole(dbContext, infraReader.Id, _preseededAgentId, AgentRole.Reader);
+            AddIntegrationRole(dbContext, infraReader.Id, DebugIntegrationId, IntegrationRole.Reader);
+            AddStackRole(dbContext, infraReader.Id, _preseededStackId, StackRole.MetadataReader);
         }
 
         await dbContext.SaveChangesAsync();
