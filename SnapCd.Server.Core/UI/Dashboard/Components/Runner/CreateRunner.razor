@@ -19,13 +19,13 @@
     }
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             <MudItem xs="12">
                 <MudSelect Disabled="@(!_canCreate)" T="Guid?" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
                            Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
                     @foreach (var sp in _availableServicePrincipals)
                     {
-                        <MudSelectItem T="Guid?" Value="@((Guid?)sp.Id)">@sp.ClientId</MudSelectItem>
+                        <MudSelectItem T="Guid?" Value="@((Guid?)sp.Id)">@sp.Label</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>

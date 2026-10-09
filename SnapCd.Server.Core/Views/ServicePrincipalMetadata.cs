@@ -19,4 +19,10 @@ public class ServicePrincipalMetadata
     public string ClientId { get; set; } = null!;
 
     public string? DisplayName { get; set; }
+
+    /// <summary>The client id, with the display name in brackets when it adds anything.</summary>
+    public string Label =>
+        string.IsNullOrWhiteSpace(DisplayName) || DisplayName == ClientId
+            ? ClientId
+            : $"{ClientId} ({DisplayName})";
 }

@@ -18,27 +18,51 @@
     {
         <ReadOnlyNotice Message="You do not have permission to create an Integration."/>
     }
-    <MudSelect Disabled="@(!_canCreate)" T="IntegrationType" @bind-Value="_model.IntegrationType" Label="Integration Type" Class="mb-2">
-        @foreach (var t in Enum.GetValues<IntegrationType>())
+    <MudGrid>
+        <MudItem xs="12">
+            <MudSelect Disabled="@(!_canCreate)" T="IntegrationType" @bind-Value="_model.IntegrationType" Label="Integration Type">
+                @foreach (var t in Enum.GetValues<IntegrationType>())
+                {
+                    <MudSelectItem T="IntegrationType" Value="t">@t</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudTextField Disabled="@(!_canCreate)" @bind-Value="_model.Name" Label="Name"/>
+        </MudItem>
+
+        @if (_model.IntegrationType == IntegrationType.Slack)
         {
-            <MudSelectItem T="IntegrationType" Value="t">@t</MudSelectItem>
+            <MudItem xs="12">
+                <MudTextField Disabled="@(!_canCreate)" @bind-Value="_model.DefaultChannel"
+                              Label="Default channel (e.g. #alerts or channel id)"/>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Disabled="@(!_canCreate)" @bind-Value="_model.BotToken"
+                              Label="Bot token (xoxb-…)" InputType="MudBlazor.InputType.Password"/>
+            </MudItem>
         }
-    </MudSelect>
-    <MudTextField Disabled="@(!_canCreate)" @bind-Value="_model.Name" Label="Name" Class="mb-2"/>
-    @if (_model.IntegrationType == IntegrationType.Slack)
-    {
-        <MudTextField Disabled="@(!_canCreate)" @bind-Value="_model.DefaultChannel" Label="Default channel (e.g. #alerts or channel id)" Class="mb-2"/>
-        <MudTextField Disabled="@(!_canCreate)" @bind-Value="_model.BotToken" Label="Bot token (xoxb-…)" InputType="MudBlazor.InputType.Password" Class="mb-2"/>
-    }
-    <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="_model.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary"/>
-    <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="_model.Enabled" Label="Enabled" Color="Color.Secondary"/>
-    <MudStack Row Spacing="2" Class="mt-2">
-        @if (_canCreate)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Submit">Create</MudButton>
-        }
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Cancel">Cancel</MudButton>
-    </MudStack>
+
+        <MudItem xs="12">
+            <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="_model.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary"/>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="_model.Enabled" Label="Enabled" Color="Color.Secondary"/>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudStack Row Spacing="2">
+                @if (_canCreate)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Submit">Create</MudButton>
+                }
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Cancel">Cancel</MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
 </MudPaper>
 
 @code {

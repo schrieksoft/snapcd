@@ -214,18 +214,12 @@
         if (servicePrincipalIds.Any())
         {
             using var spRepo = ServicePrincipalRepoFactory.Create();
-            var servicePrincipals = await spRepo.List(
-                queryModifier: q => q.Where(sp => servicePrincipalIds.Contains(sp.Id))
-                    .Select(sp => new { sp.Id, sp.ClientId }),
-                organizationId: OrganizationId
-            );
+            var servicePrincipals = await spRepo.ListMetadata(OrganizationId,
+                q => q.Where(sp => servicePrincipalIds.Contains(sp.Id)));
 
             foreach (var sp in servicePrincipals)
             {
-                if (!string.IsNullOrEmpty(sp.ClientId))
-                {
-                    _principalNames[sp.Id] = sp.ClientId;
-                }
+                _principalNames[sp.Id] = sp.Label;
             }
         }
     }

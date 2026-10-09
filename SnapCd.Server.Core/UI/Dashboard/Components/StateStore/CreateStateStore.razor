@@ -18,7 +18,7 @@
     }
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             <MudItem xs="12">
                 <MudTextField Disabled="@(!_canCreate)" Label="State Store Name"
                               @bind-Value="Input.Name"

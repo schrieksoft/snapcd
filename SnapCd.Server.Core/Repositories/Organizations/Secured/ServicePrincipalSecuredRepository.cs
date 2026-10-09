@@ -104,6 +104,9 @@ public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecured
     public IQueryable<ServicePrincipalMetadata> ReadMetadataQuery(Guid organizationId)
     {
         return ReadMetadataOrganizationRoleQuery(organizationId)
+            // The entity backs every OpenIddict application, so the same narrowing the
+            // non-secured reads apply has to hold here too.
+            .Where(ServicePrincipalRepository.IsServicePrincipal)
             .Select(x => new ServicePrincipalMetadata
             {
                 Id = x.Id,

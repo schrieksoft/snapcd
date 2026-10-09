@@ -137,14 +137,14 @@
                                  @bind-Value="_selectedServicePrincipal"
                                  SearchFunc="@SearchServicePrincipals"
                                  Label="Search Service Principal by Client ID"
-                                 ToStringFunc="@(sp => sp?.ClientId ?? string.Empty)"
+                                 ToStringFunc="@(sp => sp?.Label ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
                                  Class="mb-3"
                                  AdornmentIcon="@SnapCdIcons.Search"
                                  Variant="Variant.Outlined">
                     <ItemTemplate Context="item">
-                        <MudText>@item?.ClientId</MudText>
+                        <MudText>@item?.Label</MudText>
                     </ItemTemplate>
                 </MudAutocomplete>
 

@@ -17,7 +17,7 @@
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             @if (GroupId.HasValue)
             {
                 <!-- Group ID (Fixed) -->
@@ -229,12 +229,15 @@
     private async Task<List<PrincipalDisplay>> SearchServicePrincipals(string searchText, CancellationToken _)
     {
         using var repo = ServicePrincipalRepoFactory.Create();
-        return await repo.List<PrincipalDisplay>(OrganizationId,
-            q => q
-                .Where(sp => sp.ClientId != null && sp.ClientId.Contains(searchText))
-                .Select(sp => new PrincipalDisplay { Id = sp.Id, Name = sp.ClientId ?? string.Empty }),
-            q => q.OrderBy(sp => sp.Name)
-        );
+        var principals = await repo.ListMetadata(OrganizationId,
+            q => string.IsNullOrWhiteSpace(searchText)
+                ? q
+                : q.Where(sp => sp.ClientId.Contains(searchText)),
+            q => q.OrderBy(sp => sp.ClientId));
+
+        return principals
+            .Select(sp => new PrincipalDisplay { Id = sp.Id, Name = sp.Label })
+            .ToList();
     }
 
     private async Task<List<PrincipalDisplay>> SearchGroupsAsPrincipals(string searchText, CancellationToken _)

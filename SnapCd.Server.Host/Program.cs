@@ -161,6 +161,7 @@ builder.Services.AddSnapCdHeaderForwardingConfiguration();
     
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddMudServices();
+SnapCd.Server.Core.UI.Dashboard.Theme.SnapCdTheme.ApplyInputDefaults();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSnapCdCaching(builder.Configuration);

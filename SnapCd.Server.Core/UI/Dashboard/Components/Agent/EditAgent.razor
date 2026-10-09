@@ -21,7 +21,7 @@
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             <MudItem xs="12">
                 <MudTextField Label="Agent Id"
                               @bind-Value="Agent.Id"
@@ -33,7 +33,7 @@
                            Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
                     @foreach (var sp in _availableServicePrincipals)
                     {
-                        <MudSelectItem Value="@sp.Id">@sp.DisplayName (@sp.ClientId)</MudSelectItem>
+                        <MudSelectItem Value="@sp.Id">@sp.Label</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
