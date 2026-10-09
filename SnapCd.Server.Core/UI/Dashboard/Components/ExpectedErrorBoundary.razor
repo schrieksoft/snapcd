@@ -1,0 +1,140 @@
+﻿@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+@using Microsoft.AspNetCore.Components.Web
+@using EntityFramework.Exceptions.Common
+@using SnapCd.Server.Core.Misc.Exceptions
+
+@inherits ErrorBoundaryBase
+@inject ISnackbar Snackbar
+@inject ILogger<ExpectedErrorBoundary> Logger
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+
+@ChildContent
+
+@if (_report != null)
+{
+    <MudAlert Severity="Severity.Error" Class="ma-4" ShowCloseIcon="true" CloseIconClicked="DismissReport">
+        <MudText Typo="Typo.body2">Something went wrong on this page.</MudText>
+        <MudText Typo="Typo.body2">
+            Please report this error to your administrator, or consider opening an issue at
+            <MudLink Href="https://github.com/schrieksoft/snapcd/issues" Target="_blank"
+                     Typo="Typo.body2" Underline="Underline.Always">github.com/schrieksoft/snapcd/issues</MudLink>.
+        </MudText>
+
+        @if (_reportExpanded)
+        {
+            <pre class="error-report">@_report</pre>
+        }
+
+        <MudStack Row="true" Spacing="2" Class="mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       OnClick="@(() => _reportExpanded = !_reportExpanded)">
+                @(_reportExpanded ? "Hide report" : "View report")
+            </MudButton>
+
+            @if (_reportExpanded)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           OnClick="CopyReport">Copy</MudButton>
+            }
+        </MudStack>
+    </MudAlert>
+}
+
+<style>
+    .error-report {
+        margin-top: 0.5rem;
+        max-height: 20rem;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: var(--snap-font-mono);
+        font-size: 0.75rem;
+        line-height: 1.4;
+    }
+</style>
+
+@code {
+    private string? _report;
+    private bool _reportExpanded;
+
+    protected override Task OnErrorAsync(Exception exception)
+    {
+        // These are the server answering, not failing: report them and keep the circuit. The
+        // controllers treat the same set as expected outcomes with their own status codes.
+        // Anything else is rethrown so the default error UI still surfaces a genuine fault.
+        var severity = exception switch
+        {
+            PrincipalNotAuthorizedException => Severity.Warning,
+            MaintenanceModeException => Severity.Info,
+            EntityNotFoundException => Severity.Warning,
+            UniqueConstraintException => Severity.Warning,
+            QuotaExceededException => Severity.Warning,
+            LicenseLimitExceededException => Severity.Warning,
+            StateMigrationNotAllowedException => Severity.Warning,
+            ApprovalNoLongerWithdrawableException => Severity.Warning,
+            _ => (Severity?)null
+        };
+
+        if (severity is null)
+        {
+            // Unhandled: the circuit survives, and the banner carries enough to report it. The
+            // default Blazor error UI says only "An unhandled error has occurred".
+            var occurredAt = DateTimeOffset.UtcNow;
+            Logger.LogError(exception, "Unhandled error surfaced to the user at {OccurredAt}", occurredAt);
+
+            // Everything needed to act on a bug report: what, when, where, and the inner cause,
+            // which is usually the real one when EF or MassTransit wraps it.
+            // ToString carries the type, message, stack trace and the whole inner-exception
+            // chain with their own traces, which is where the real location usually is. The page
+            // is relative: the host is the reader's own and says nothing about the fault.
+            _report = string.Join(
+                Environment.NewLine,
+                $"Occurred: {occurredAt:yyyy-MM-dd HH:mm:ss}Z",
+                $"Page: {NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}",
+                $"Version: {typeof(ExpectedErrorBoundary).Assembly.GetName().Version}",
+                string.Empty,
+                exception.ToString());
+            _reportExpanded = false;
+            Recover();
+
+            return Task.CompletedTask;
+        }
+
+        _report = null;
+        Snackbar.Add(exception.Message, severity.Value);
+
+        // The base latches the error, so without this the next one is swallowed silently.
+        Recover();
+
+        return Task.CompletedTask;
+    }
+
+    private async Task CopyReport()
+    {
+        if (_report == null) return;
+
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _report);
+            Snackbar.Add("Report copied", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Logger.LogDebug(e, "Clipboard write refused");
+            Snackbar.Add("Could not copy. Select the report text and copy it manually.", Severity.Info);
+        }
+    }
+
+    private void DismissReport()
+    {
+        _report = null;
+        _reportExpanded = false;
+    }
+}

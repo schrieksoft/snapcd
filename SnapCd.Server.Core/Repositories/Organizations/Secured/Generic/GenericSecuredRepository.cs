@@ -18,15 +18,19 @@ using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 
-public class GenericSecuredRepositoryFactory<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>(
+public class GenericSecuredRepositoryFactory<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
     IOptions<TOptions> options)
     where TEntity : class, IEntity
-    where TRepository : GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TMetadata : EntityMetadataBase
+    where TRepository : GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -41,9 +45,10 @@ public class GenericSecuredRepositoryFactory<TEntity, TDto, TRepository, TCreate
     }
 }
 
-public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : IDisposable
+public abstract class GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : IDisposable, IEntitySecuredRepository<TEntity>
     where TEntity : class, IEntity
-    where TRepository : GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TMetadata : EntityMetadataBase
+    where TRepository : GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -182,7 +187,9 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCrea
     }
 
     public virtual PermissionMap ReadPermissionMap => new();
-    public virtual PermissionMap ReverseInheritedReadPermissionMap => new();
+    /// <summary>Whoever may read the entity may identify it. Overridden where metadata is granted more widely.</summary>
+    public virtual PermissionMap ReadMetadataPermissionMap => ReadPermissionMap;
+    public virtual PermissionMap ReverseInheritedReadMetadataPermissionMap => new();
     public virtual PermissionMap UpdatePermissionMap => new();
     public virtual PermissionMap CreatePermissionMap => new();
     public virtual PermissionMap DeletePermissionMap => new();
@@ -192,8 +199,66 @@ public abstract class GenericSecuredRepository<TEntity, TDto, TRepository, TCrea
     public abstract IQueryable<TEntity> ReadQuery(Guid organizationId);
     public abstract IQueryable<TEntity> UpdateQuery(Guid organizationId);
     public abstract IQueryable<TEntity> DeleteQuery(Guid organizationId);
+    public abstract IQueryable<TEntity> ReadMetadataQuery(Guid organizationId);
 
     public abstract bool CanRead(Guid id, Guid organizationId);
+
+    public virtual bool CanReadMetadata(Guid id, Guid organizationId)
+        => ReadMetadataQuery(organizationId).Any(x => x.Id == id && x.OrganizationId == organizationId);
+
+    /// <summary>Metadata for one row, once permission for it is established.</summary>
+    public virtual async Task<TMetadata> GetMetadata(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{typeof(TEntity).Name} with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await Repository.GetMetadata(id, organizationId);
+    }
+
+    /// <summary>Metadata for the rows this principal may identify.</summary>
+    public virtual async Task<List<TMetadata>> ListMetadata(
+        Guid organizationId,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null,
+        Func<IQueryable<TMetadata>, IOrderedQueryable<TMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => await Repository.ListMetadata(
+            organizationId, ReadMetadataQuery(organizationId), queryModifier, orderBy, pageNumber, pageSize);
+
+    /// <summary>How many rows this principal may identify.</summary>
+    public virtual async Task<int> CountMetadata(
+        Guid organizationId,
+        Func<IQueryable<TEntity>, IQueryable<TEntity>>? queryModifier = null)
+        => await Repository.CountMetadata(organizationId, ReadMetadataQuery(organizationId), queryModifier);
+
+    /// <summary>
+    /// Reads one metadata view found by something other than its id, checking permission for the
+    /// id the lookup resolved. Mirrors <see cref="Get(Guid, Guid, Func{IQueryable{TEntity}, IQueryable{TEntity}}?)"/>:
+    /// a missing key is not found, a key the principal may not read is not authorized.
+    /// </summary>
+    /// <param name="resolveId">Finds the entity's id from the natural key, ignoring permission.</param>
+    /// <param name="readMetadata">Reads the view once permission is established.</param>
+    /// <param name="describeKey">The key as it should read in an error, e.g. <c>name "payments"</c>.</param>
+    protected async Task<TMetadata> GetMetadataByKey<TMetadata>(
+        Guid organizationId,
+        Func<Task<Guid?>> resolveId,
+        Func<Guid, Task<TMetadata>> readMetadata,
+        string describeKey)
+    {
+        var id = await resolveId();
+
+        if (id is null)
+            throw new EntityNotFoundException(
+                $"Unable to find {typeof(TEntity).Name} with {describeKey}");
+
+        if (!CanReadMetadata(id.Value, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"{typeof(TEntity).Name} with ID {id.Value} not found or {PrincipalDiscriminator} with ID "
+                + $"{PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await readMetadata(id.Value);
+    }
 
     public abstract bool CanCreate(Guid parentId, Guid organizationId);
 

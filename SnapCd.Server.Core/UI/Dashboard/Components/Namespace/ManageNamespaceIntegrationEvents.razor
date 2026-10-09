@@ -15,6 +15,8 @@
 @using SnapCd.Server.Core.Licensing.Models
 @using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 
 @inject ISnackbar Snackbar
 
@@ -23,11 +25,14 @@
         <MudTabPanel Text="Namespace" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                    Size="Size.Small"
-                           OnClick="ShowCreate" Class="mb-3">
-                    Add Event
-                </MudButton>
+                <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add an event here.")"
+                            Disabled="@_canAdd">
+                    <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled" Color="Color.Secondary"
+                                                        Size="Size.Small"
+                               OnClick="ShowCreate" Class="mb-3">
+                        Add Event
+                    </MudButton>
+                </MudTooltip>
             }
 
             @if (_showCreateForm || _editing is not null)
@@ -156,6 +161,14 @@
     [Inject] private OrganizationIntegrationEventSecuredRepositoryFactory OrgEventRepoFactory { get; set; } = null!;
     [Inject] private IntegrationSecuredRepositoryFactory IntegrationRepoFactory { get; set; } = null!;
 
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = NsEventRepoFactory.Create();
+        _canAdd = permissionRepo.CanCreate(NamespaceId, OrganizationId);
+    }
+
     private sealed class InputModel
     {
         public Guid? IntegrationId { get; set; }
@@ -171,7 +184,7 @@
     private List<NamespaceIntegrationEvent> _namespaceRows = new();
     private List<StackIntegrationEvent> _stackRows = new();
     private List<OrganizationIntegrationEvent> _orgRows = new();
-    private List<Integration> _integrations = new();
+    private List<IntegrationMetadata> _integrations = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -182,7 +195,7 @@
     private async Task ReloadDependencies()
     {
         using var integrationRepo = IntegrationRepoFactory.Create();
-        _integrations = await integrationRepo.List(OrganizationId);
+        _integrations = await integrationRepo.ListMetadata(OrganizationId);
     }
 
     private async Task ReloadRows()

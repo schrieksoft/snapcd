@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Exceptions;
@@ -24,6 +25,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -45,7 +48,7 @@ public class RunnerSecuredRepositoryFactory(
 
 public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository<
     Runner,
-    RunnerReadDto,
+    RunnerReadDto, RunnerMetadata,
     RunnerRepository,
     RunnerCreatedEvent,
     RunnerUpdatedEvent,
@@ -64,6 +67,37 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.RunnerContributor, OrganizationRole.RunnerReader],
         RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader]
     };
+    /// <summary>
+    /// Wider than read by MetadataReader, which a supply to a readable scope derives.
+    /// </summary>
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.RunnerContributor, OrganizationRole.RunnerReader],
+        RunnerRoles = [RunnerRole.Owner, RunnerRole.Contributor, RunnerRole.Reader, RunnerRole.MetadataReader]
+    };
+
+    public override IQueryable<Runner> ReadMetadataQuery(Guid organizationId)
+        => base.ReadMetadataQuery(organizationId)
+            .Concat(RunnerRoleQuery(organizationId, ReadMetadataPermissionMap.RunnerRoles))
+            .Concat(SuppliedScopeMetadataQuery(organizationId));
+
+    /// <summary>Supplying a Runner to a scope is what makes it usable there, so a role on that
+    /// scope carries metadata read on the Runner itself. Derived on write by trigger.</summary>
+    private IQueryable<Runner> SuppliedScopeMetadataQuery(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return from entity in Repository.DbContext.Runners
+            join derived in Repository.DbContext.DerivedRunnerRoleAssignments
+                on new { EntityId = entity.Id, entity.OrganizationId }
+                equals new { EntityId = derived.RunnerId, derived.OrganizationId }
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && derived.PrincipalDiscriminator == PrincipalDiscriminator
+                  && ReadMetadataPermissionMap.RunnerRoles.Contains(derived.RoleName)
+            select entity;
+    }
+
 
     public override PermissionMap UpdatePermissionMap => new()
     {
@@ -148,6 +182,13 @@ public class RunnerSecuredRepository : GenericOrganizationChildSecuredRepository
 
         return entity;
     }
+
+    public Task<RunnerMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 
     public async Task<List<Runner>> ListAssignedToModule(Guid moduleId, Guid organizationId)
     {

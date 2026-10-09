@@ -13,10 +13,17 @@
         <MudText>Delete Group</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         Are you sure you want to delete group "@Group.Name" (ID "@Group.Id")?
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Delete" Size="Size.Small">Delete</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Delete" Size="Size.Small">Delete</MudButton>
+        }
         <MudButton Variant="Variant.Filled " Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -30,6 +37,16 @@
     [Parameter] public Guid OrganizationId { get; set; }
 
     [Parameter] public required Group Group { get; set; }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _refusal = permissionRepo.CanDelete(Group.Id, OrganizationId)
+            ? null
+            : "You do not have permission to delete this group.";
+    }
 
     private void Cancel()
     {

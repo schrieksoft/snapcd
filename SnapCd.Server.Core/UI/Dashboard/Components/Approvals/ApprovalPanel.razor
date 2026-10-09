@@ -103,10 +103,14 @@ else
         @if (_isWaitingForApproval)
         {
             <MudStack Row="true" Spacing="2" Class="mt-3">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
-                           OnClick="Approve" Size="Size.Small">Approve</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
-                           OnClick="Decline" Size="Size.Small">Decline</MudButton>
+                <MudTooltip Text="@DecideDisabledReason" Disabled="@(DecideDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
+                               OnClick="Approve" Size="Size.Small">Approve</MudButton>
+                </MudTooltip>
+                <MudTooltip Text="@DecideDisabledReason" Disabled="@(DecideDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(_busy || !Enabled || !_canDecide)"
+                               OnClick="Decline" Size="Size.Small">Decline</MudButton>
+                </MudTooltip>
             </MudStack>
             @if (!_canDecide)
             {
@@ -119,6 +123,12 @@ else
 }
 
 @code {
+    private string? DecideDisabledReason =>
+        !_canDecide ? "You do not have permission to approve or decline this."
+        : !Enabled ? "This is not awaiting a decision."
+        : _busy ? "A decision is already being submitted."
+        : null;
+
     [Parameter] public required IApprovalSource Source { get; set; }
     [Parameter] public required Guid JobId { get; set; }
     [Parameter] public required Guid ModuleId { get; set; }

@@ -19,10 +19,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Repositories.Custom.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleUpdateDto, ModuleReadDto, ModuleSecuredRepository, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
+public class ModuleService : GenericCrudService<Module, ModuleMetadata, ModuleCreateDto, ModuleUpdateDto, ModuleReadDto, ModuleMetadataReadDto, ModuleSecuredRepository, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
@@ -46,6 +48,11 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
     protected override ModuleReadDto MapToDto(Module entity)
     {
         return ModuleMapper.ToDto(entity);
+    }
+
+    protected override ModuleMetadataReadDto MapToMetadataDto(ModuleMetadata view)
+    {
+        return ModuleMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Module entity, ModuleUpdateDto dto)
@@ -194,6 +201,25 @@ public class ModuleService : GenericCrudService<Module, ModuleCreateDto, ModuleU
             PausedAt = saga.PausedAt,
             PauseReason = saga.PauseReason
         };
+    }
+
+
+    public async Task<List<ModuleMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(ModuleMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<ModuleMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return ModuleMapper.ToMetadataDto(view);
+    }
+
+    public async Task<ModuleMetadataReadDto> GetMetadata(string stackName, string namespaceName, string moduleName, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(stackName, namespaceName, moduleName, organizationId);
+        return ModuleMapper.ToMetadataDto(view);
     }
 
 }

@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.ModuleInputs;
 using SnapCd.Server.Core.Entities.Interfaces;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -48,5 +49,16 @@ public static class ModuleInputFromOutputMapper
         entity.Name = dto.Name;
         entity.OutputModuleId = dto.OutputModuleId;
         entity.OutputName = dto.OutputName;
+    }
+
+    public static ModuleInputFromOutputMetadataReadDto ToMetadataDto(ModuleInputFromOutputMetadata view)
+    {
+        return new ModuleInputFromOutputMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            ModuleId = view.ModuleId,
+            OutputModuleId = view.OutputModuleId,
+        };
     }
 }

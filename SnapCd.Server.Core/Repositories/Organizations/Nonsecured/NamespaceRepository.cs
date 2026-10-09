@@ -23,6 +23,9 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -37,8 +40,17 @@ public class NamespaceRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFac
     }
 }
 
-public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent, NamespaceRepositorySettings>
+public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto, NamespaceMetadata, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent, NamespaceRepositorySettings>
 {
+
+    protected override Expression<Func<Namespace, NamespaceMetadata>> MetadataProjection =>
+        e => new NamespaceMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            StackId = e.StackId
+        };
     public NamespaceRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<NamespaceRepositorySettings> options)
         : base(dbContext, principalProvider, bus, options)
     {
@@ -82,6 +94,36 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
         return messages;
     }
 
+
+
+    /// <summary>
+    /// The scope with the names above it, which metadata deliberately does not carry: metadata
+    /// is a join-free read, and a picker needs enough to tell one "default" from another.
+    /// </summary>
+    /// <summary>One scope with the names above it, for a preselected picker.</summary>
+    public async Task<QualifiedNamespace> GetQualifiedNamespace(Guid id, Guid organizationId)
+        => (await ListQualifiedNamespace(organizationId, queryModifier: q => q.Where(e => e.Id == id))).First();
+
+    public Task<List<QualifiedNamespace>> ListQualifiedNamespace(
+        Guid organizationId,
+        IQueryable<Namespace>? query = null,
+        Func<IQueryable<Namespace>, IQueryable<Namespace>>? queryModifier = null,
+        Func<IQueryable<QualifiedNamespace>, IOrderedQueryable<QualifiedNamespace>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => List(
+            organizationId,
+            q => (queryModifier is null ? q : queryModifier(q)).Select(e => new QualifiedNamespace
+            {
+                Id = e.Id,
+                OrganizationId = e.OrganizationId,
+                Name = e.Name,
+                StackName = e.Stack.Name
+            }),
+            query,
+            orderBy,
+            pageNumber,
+            pageSize);
 
     protected override NamespaceReadDto MapToDto(Namespace entity)
     {
@@ -216,7 +258,8 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 n => n.Id,
                 (pm, n) => new { pm.Input, OutputStackId = n.StackId })
             .Where(x => x.OutputStackId != newStackId)
-            .Select(x => new { x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId, x.OutputStackId })
+            .Select(x => new OutgoingReference(
+                "ModuleParamFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId))
             .ToListAsync();
 
         // Check for cross-stack references in ModuleEnvVarFromOutput entities
@@ -232,7 +275,8 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 n => n.Id,
                 (em, n) => new { em.Input, OutputStackId = n.StackId })
             .Where(x => x.OutputStackId != newStackId)
-            .Select(x => new { x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId, x.OutputStackId })
+            .Select(x => new OutgoingReference(
+                "ModuleEnvVarFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId))
             .ToListAsync();
 
         // Check for cross-stack references in ModuleParamFromOutputSet entities
@@ -248,7 +292,8 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 n => n.Id,
                 (pm, n) => new { pm.Input, OutputStackId = n.StackId })
             .Where(x => x.OutputStackId != newStackId)
-            .Select(x => new { x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId, x.OutputStackId })
+            .Select(x => new OutgoingReference(
+                "ModuleParamFromOutputSet", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Input.OutputModuleId))
             .ToListAsync();
 
         // Combine all cross-stack references
@@ -271,10 +316,8 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 n => n.Id,
                 (pm, n) => new { pm.Input, ConsumerStackId = n.StackId, pm.ConsumerModule.Name })
             .Where(x => x.ConsumerStackId != newStackId)
-            .Select(x => new
-            {
-                x.Input.Id, x.Input.Name, ConsumerModuleId = x.Input.ModuleId, ConsumerModuleName = x.Name, x.Input.OutputModuleId, x.ConsumerStackId, ReferenceType = "ModuleParamFromOutput"
-            })
+            .Select(x => new IncomingReference(
+                "ModuleParamFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Name, x.Input.OutputModuleId))
             .ToListAsync();
 
         var incomingEnvVarFromOutputReferences = await DbContext.ModuleEnvVarFromOutputs
@@ -289,10 +332,8 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 n => n.Id,
                 (em, n) => new { em.Input, ConsumerStackId = n.StackId, em.ConsumerModule.Name })
             .Where(x => x.ConsumerStackId != newStackId)
-            .Select(x => new
-            {
-                x.Input.Id, x.Input.Name, ConsumerModuleId = x.Input.ModuleId, ConsumerModuleName = x.Name, x.Input.OutputModuleId, x.ConsumerStackId, ReferenceType = "ModuleEnvVarFromOutput"
-            })
+            .Select(x => new IncomingReference(
+                "ModuleEnvVarFromOutput", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Name, x.Input.OutputModuleId))
             .ToListAsync();
 
         var incomingParamFromOutputSetReferences = await DbContext.ModuleParamFromOutputSets
@@ -307,15 +348,13 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 n => n.Id,
                 (pm, n) => new { pm.Input, ConsumerStackId = n.StackId, pm.ConsumerModule.Name })
             .Where(x => x.ConsumerStackId != newStackId)
-            .Select(x => new
-            {
-                x.Input.Id, x.Input.Name, ConsumerModuleId = x.Input.ModuleId, ConsumerModuleName = x.Name, x.Input.OutputModuleId, x.ConsumerStackId, ReferenceType = "ModuleParamFromOutputSet"
-            })
+            .Select(x => new IncomingReference(
+                "ModuleParamFromOutputSet", x.Input.Id, x.Input.Name, x.Input.ModuleId, x.Name, x.Input.OutputModuleId))
             .ToListAsync();
 
         // Combine all incoming cross-stack references
         var allIncomingCrossStackReferences = incomingParamFromOutputReferences
-            .Concat(incomingEnvVarFromOutputReferences.Cast<dynamic>())
+            .Concat(incomingEnvVarFromOutputReferences)
             .Concat(incomingParamFromOutputSetReferences)
             .Distinct()
             .ToList();
@@ -351,7 +390,7 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     }
 
     private async Task<string> BuildNamespaceOutgoingReferenceDetails(
-        IEnumerable<dynamic> crossStackReferences,
+        IEnumerable<OutgoingReference> crossStackReferences,
         Namespace existingNamespace,
         Stack newStack)
     {
@@ -364,8 +403,7 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
         // Get all referenced module IDs
         var allReferencedModuleIds = crossStackReferences
-            .Select(r => r.OutputModuleId)
-            .Cast<Guid>()
+            .Select(r => r.TargetId)
             .Distinct()
             .ToList();
 
@@ -390,23 +428,19 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
             .ToDictionaryAsync(x => x.ModuleId);
 
         // Group by module in the namespace
-        var groupedByModule = crossStackReferences.GroupBy(r => r.ModuleId);
-
-        foreach (var moduleGroup in groupedByModule)
+        foreach (var moduleGroup in crossStackReferences.GroupBy(r => r.ConsumerModuleId))
         {
-            var moduleId = (Guid)moduleGroup.Key;
-            var moduleName = namespaceModules[moduleId];
+            var moduleName = namespaceModules.GetValueOrDefault(moduleGroup.Key, "unknown");
 
-            details.Add($"  Module (ID {moduleId}, Name: {moduleName}) has references to:");
+            details.Add($"  Module (ID {moduleGroup.Key}, Name: {moduleName}) has references to:");
 
             foreach (var reference in moduleGroup)
             {
-                var refModuleId = (Guid)reference.OutputModuleId;
-                var refInfo = referencedModuleInfo[refModuleId];
-                var referenceType = GetReferenceType(reference);
+                var line = referencedModuleInfo.TryGetValue(reference.TargetId, out var refInfo)
+                    ? $"referencing OutputModuleId {reference.TargetId} (Name: {refInfo.ModuleName}, NamespaceName: {refInfo.NamespaceName}) in Stack (ID {refInfo.StackId}, Name: {refInfo.StackName})"
+                    : $"referencing OutputModuleId {reference.TargetId}";
 
-                details.Add(
-                    $"    - {referenceType} (ID {GetReferenceId(reference)}, Name: {reference.Name}), referencing OutputModuleId {refModuleId} (Name: {refInfo.ModuleName}, NamespaceName: {refInfo.NamespaceName}) in Stack (ID {refInfo.StackId}, Name: {refInfo.StackName})");
+                details.Add($"    - {reference.ReferenceType} (ID {reference.Id}, Name: {reference.Name}), {line}");
             }
         }
 
@@ -414,7 +448,7 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
     }
 
     private async Task<string> BuildNamespaceIncomingReferenceDetails(
-        IEnumerable<dynamic> incomingReferences,
+        IEnumerable<IncomingReference> incomingReferences,
         Namespace existingNamespace,
         Stack newStack)
     {
@@ -427,13 +461,13 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
 
         // Get all consumer module IDs
         var consumerModuleIds = incomingReferences
-            .Select(r => r.ConsumerModuleName)
+            .Select(r => r.ConsumerModuleId)
             .Distinct()
             .ToList();
 
         // Get consumer module information
         var consumerModuleInfo = await DbContext.Modules
-            .Where(m => consumerModuleIds.Contains(m.Name) && m.OrganizationId == existingNamespace.OrganizationId)
+            .Where(m => consumerModuleIds.Contains(m.Id) && m.OrganizationId == existingNamespace.OrganizationId)
             .Join(DbContext.Namespaces,
                 m => m.NamespaceId,
                 n => n.Id,
@@ -443,48 +477,26 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
                 s => s.Id,
                 (mn, s) => new
                 {
-                    ModuleName = mn.Module.Name,
+                    ModuleId = mn.Module.Id,
                     NamespaceName = mn.Namespace.Name,
                     StackId = s.Id,
                     StackName = s.Name
                 })
-            .ToDictionaryAsync(x => x.ModuleName);
+            .ToDictionaryAsync(x => x.ModuleId);
 
         // Build details for each reference
         foreach (var reference in incomingReferences)
         {
-            var outputModuleId = (Guid)reference.OutputModuleId;
-            var outputModuleName = namespaceModules[outputModuleId];
-            var consumerName = reference.ConsumerModuleName;
-            var consumerInfo = consumerModuleInfo[consumerName];
-            var referenceType = reference.ReferenceType;
-            var referenceId = reference.Id;
+            var outputModuleName = namespaceModules.GetValueOrDefault(reference.OutputModuleId, "unknown");
+            var consumer = consumerModuleInfo.TryGetValue(reference.ConsumerModuleId, out var consumerInfo)
+                ? $"Name: \"{reference.ConsumerModuleName}\", NamespaceName: \"{consumerInfo.NamespaceName}\") in Stack (ID \"{consumerInfo.StackId}\", Name: \"{consumerInfo.StackName}\")"
+                : $"Name: \"{reference.ConsumerModuleName}\")";
 
             details.Add(
-                $"- \"{referenceType}\" (ID \"{referenceId}\", Name: \"{reference.Name}\") from Module (ID \"{reference.ConsumerModuleId}\", Name: \"{consumerName}\", NamespaceName: \"{consumerInfo.NamespaceName}\") in Stack (ID \"{consumerInfo.StackId}\", Name: \"{consumerInfo.StackName}\") referencing Module (ID \"{outputModuleId}\", Name: \"{outputModuleName}\")");
+                $"- \"{reference.ReferenceType}\" (ID \"{reference.Id}\", Name: \"{reference.Name}\") from Module (ID \"{reference.ConsumerModuleId}\", {consumer} referencing Module (ID \"{reference.OutputModuleId}\", Name: \"{outputModuleName}\")");
         }
 
         return string.Join("\n", details);
-    }
-
-    private string GetReferenceType(dynamic reference)
-    {
-        var type = reference.GetType();
-        if (type.Name.Contains("ModuleParamFromOutput") && !type.Name.Contains("Set"))
-            return "ModuleParamFromOutput";
-        if (type.Name.Contains("ModuleParamFromOutputSet"))
-            return "ModuleParamFromOutputSet";
-        if (type.Name.Contains("ModuleEnvVarFromOutput"))
-            return "ModuleEnvVarFromOutput";
-
-        return "Unknown";
-    }
-
-    private Guid GetReferenceId(dynamic reference)
-    {
-        // For the anonymous types created in the validation, we don't have an Id
-        // Return the OutputModuleId instead, which is what we need for reference tracking
-        return (Guid)reference.OutputModuleId;
     }
 
     protected override Func<IQueryable<Namespace>, IQueryable<Namespace>> ByParentIdQueryModifier(Guid stackId)

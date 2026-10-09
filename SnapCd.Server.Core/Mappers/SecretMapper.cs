@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Secrets;
 using SnapCd.Server.Core.Entities.Definition.Secrets;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -35,5 +36,14 @@ public static class SecretMapper
     public static void UpdateEntity(Secret entity, SecretUpdateDto dto)
     {
         entity.Name = dto.Name;
+    }
+
+    public static SecretMetadataReadDto ToMetadataDto(SecretMetadata view)
+    {
+        return new SecretMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+        };
     }
 }

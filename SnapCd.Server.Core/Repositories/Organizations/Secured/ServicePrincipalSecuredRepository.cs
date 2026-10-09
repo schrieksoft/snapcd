@@ -21,6 +21,10 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
+
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
 public class ServicePrincipalSecuredRepositoryFactory(
@@ -41,7 +45,7 @@ public class ServicePrincipalSecuredRepositoryFactory(
 
 public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecuredRepository<
     ServicePrincipal,
-    ServicePrincipalReadDto,
+    ServicePrincipalReadDto, ServicePrincipalMetadata,
     ServicePrincipalRepository,
     ServicePrincipalCreatedEvent,
     ServicePrincipalUpdatedEvent,
@@ -58,6 +62,15 @@ public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecured
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+    };
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles =
+        [
+            OrganizationRole.Owner, OrganizationRole.IdentityAccessManager,
+            OrganizationRole.IdentityAccessMetadataReader
+        ]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
@@ -83,9 +96,20 @@ public class ServicePrincipalSecuredRepository : GenericOrganizationChildSecured
             throw new EntityNotFoundException($"Unable to find ServicePrincipal with ClientId \"{clientId}\"");
         
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to ServicePrincipal {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(ServicePrincipal)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
         
     }
+
+
+    /// <summary>The client id here is the bare name, as the metadata view exposes it, not the stored prefixed form.</summary>
+    public Task<ServicePrincipalMetadata> GetMetadataByClientId(string clientId, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByClientId(clientId, organizationId))?.Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"client ID \"{clientId}\"");
+
 }

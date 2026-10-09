@@ -18,15 +18,19 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.NamespacePulumiRemotePolicy)]
 public class NamespacePulumiRemotePolicyController : GenericCrudController<
-    NamespacePulumiRemotePolicy,
+    NamespacePulumiRemotePolicy, NamespacePulumiRemotePolicyMetadata,
     NamespacePulumiRemotePolicyCreateDto,
     NamespacePulumiRemotePolicyUpdateDto,
     NamespacePulumiRemotePolicyReadDto,
+    NamespacePulumiRemotePolicyMetadataReadDto,
     NamespacePulumiRemotePolicySecuredRepository,
     NamespacePulumiRemotePolicyRepository,
     NamespacePulumiRemotePolicyService,
@@ -39,13 +43,35 @@ public class NamespacePulumiRemotePolicyController : GenericCrudController<
     {
     }
 
-    [HttpGet("{namespaceId}/{name}")]
+    [HttpGet("{namespaceId:guid}/{name}")]
     public async Task<ActionResult<NamespacePulumiRemotePolicyReadDto>> Get(Guid organizationId, Guid namespaceId, string name)
     {
         try
         {
             var dto = await Service.Get(namespaceId, name, organizationId);
             return Ok(dto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{namespaceId:guid}/{name}")]
+    [PermissionSource(Repository = typeof(NamespacePulumiRemotePolicySecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<NamespacePulumiRemotePolicyMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid namespaceId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(namespaceId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

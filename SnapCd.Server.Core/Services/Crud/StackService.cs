@@ -9,19 +9,23 @@
 using SnapCd.Contracts.Dto.Stacks;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class StackService : GenericCrudService<
-    Stack,
+    Stack, StackMetadata,
     StackCreateDto,
     StackUpdateDto,
     StackReadDto,
+    StackMetadataReadDto,
     StackSecuredRepository,
     StackRepository,
     StackCreatedEvent,
@@ -45,6 +49,11 @@ public class StackService : GenericCrudService<
         return StackMapper.ToDto(entity);
     }
 
+    protected override StackMetadataReadDto MapToMetadataDto(StackMetadata view)
+    {
+        return StackMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(Stack entity, StackUpdateDto dto)
     {
         StackMapper.UpdateEntity(entity, dto);
@@ -54,4 +63,17 @@ public class StackService : GenericCrudService<
     {
         return await GetByCriteria(repo => repo.GetByName(name, organizationId));
     }
+
+    public async Task<List<StackMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(StackMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<StackMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return StackMapper.ToMetadataDto(view);
+    }
+
 }

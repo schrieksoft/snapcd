@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Nonsecured;
 
@@ -34,8 +37,15 @@ public class UserRepositoryFactory(
     }
 }
 
-public class UserSystemRepository : GenericSystemRepository<User, UserReadDto, UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, UserRepositorySettings>
+public class UserSystemRepository : GenericSystemRepository<User, UserReadDto, UserMetadata, UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, UserRepositorySettings>
 {
+    protected override Expression<Func<User, UserMetadata>> MetadataProjection =>
+        e => new UserMetadata
+        {
+            Id = e.Id,
+            UserName = e.UserName!
+        };
+
     public UserSystemRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

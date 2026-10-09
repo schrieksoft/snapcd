@@ -11,6 +11,7 @@ using Microsoft.Data.SqlClient;
 using DotNet.Testcontainers.Containers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,6 +28,7 @@ using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
 using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
+using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
@@ -114,6 +116,8 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, VariableSet> VariableSets { get; } = new();
     public Dictionary<string, Variable> Inputs { get; } = new();
     public Dictionary<string, Runner> Runners { get; } = new();
+    public Dictionary<string, ServicePrincipal> ServicePrincipals { get; } = new();
+    public Dictionary<string, ServicePrincipal> NonServicePrincipalClients { get; } = new();
     public Dictionary<string, StackSecret> StackSecrets { get; } = new();
     public Dictionary<string, NamespaceSecret> NamespaceSecrets { get; } = new();
     public Dictionary<string, ModuleSecret> ModuleSecrets { get; } = new();
@@ -133,6 +137,10 @@ public class Fixture : IAsyncLifetime
     public Dictionary<string, Agent> Agents { get; } = new();
     public Dictionary<string, AgentModuleSupply> AgentModuleSupplies { get; } = new();
     public Dictionary<string, RunnerModuleSupply> RunnerModuleSupplies { get; } = new();
+    public Dictionary<string, Integration> Integrations { get; } = new();
+    public Dictionary<string, IntegrationModuleSupply> IntegrationModuleSupplies { get; } = new();
+    public Dictionary<string, IntegrationNamespaceSupply> IntegrationNamespaceSupplies { get; } = new();
+    public Dictionary<string, IntegrationStackSupply> IntegrationStackSupplies { get; } = new();
     public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.OrganizationMission> OrganizationMissions { get; } = new();
     public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.StackMission> StackMissions { get; } = new();
     public Dictionary<string, SnapCd.Server.Core.Entities.Definition.Missions.NamespaceMission> NamespaceMissions { get; } = new();
@@ -280,6 +288,11 @@ public class Fixture : IAsyncLifetime
         var runner0ServicePrincipal = CreateServicePrincipal("runner0-sp", Organizations["0"].Id);
         var runner1ServicePrincipal = CreateServicePrincipal("runner1-sp", Organizations["1"].Id);
         dbContext.ServicePrincipals.Add(runner0ServicePrincipal);
+
+        ServicePrincipals["0"] = CreateServicePrincipal("org0-sp", Organizations["0"].Id);
+        NonServicePrincipalClients["0"] = CreateNonServicePrincipalClient("org0-other-client", Organizations["0"].Id);
+        dbContext.ServicePrincipals.Add(ServicePrincipals["0"]);
+        dbContext.ServicePrincipals.Add(NonServicePrincipalClients["0"]);
         dbContext.ServicePrincipals.Add(runner1ServicePrincipal);
 
         // Create Runners for each organization
@@ -551,10 +564,8 @@ public class Fixture : IAsyncLifetime
         // Tier B scope-role Reader principals — one direct-User per scope row.
         CreateScopeReaderPrincipals_Org0(dbContext);
 
-        // Tier B Agent + RunnerModuleSupply seed: Agent0 + Agent0Sibling in Org0, Agent1 in Org1,
-        // AgentModuleSupply0 + AgentModuleSupply0Sibling, plus RunnerModuleSupply0Sibling
-        // so the runner-chain tests have a sibling row to test isolation against. Includes AgentReader
-        // and RunnerReaderSibling Users.
+        // Tier B Agent / Runner / Integration scope seed. Each supply has a sibling at the same
+        // level so the isolation tests have a row that must not be reached.
         CreateAgentRunnerScopeEntities(dbContext);
 
         // Tier A dedicated per-test-class Update/Delete entities — one positive Update + one Delete
@@ -949,6 +960,113 @@ public class Fixture : IAsyncLifetime
         // ModuleReader on Module0000 + Module0001 (siblings under Namespace000)
         SeedModuleReader(dbContext, org.Id, Modules["0000"].Id, "Module0000.Reader");
         SeedModuleReader(dbContext, org.Id, Modules["0001"].Id, "Module0001.Reader");
+
+        // MetadataReader at each scope level, for the metadata-read tests. Stack00 and its
+        // sibling Stack01 so a grant on one can be shown not to reach the other.
+        SeedStackMetadataReader(dbContext, org.Id, Stacks["00"].Id, "Stack00.MetadataReader");
+        SeedNamespaceMetadataReader(dbContext, org.Id, Namespaces["000"].Id, "Namespace000.MetadataReader");
+        SeedModuleMetadataReader(dbContext, org.Id, Modules["0000"].Id, "Module0000.MetadataReader");
+        SeedOrganizationStackMetadataReader(dbContext, org.Id, "Org.StackMetadataReader");
+        SeedOrganizationIdentityAccessMetadataReader(dbContext, org.Id, "Org.IdentityAccessMetadataReader");
+        SeedStackOwnerForDerivation(dbContext, org.Id, Stacks["00"].Id, "Stack00.OwnerForDerivation");
+    }
+
+    /// <summary>
+    /// Holds Owner on a Stack and nothing at organization level, so the only way they can read
+    /// principal metadata is the derivation.
+    /// </summary>
+    private void SeedStackOwnerForDerivation(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserStackRoleAssignments.Add(new UserStackRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            StackId = stackId,
+            UserId = user.Id,
+            RoleName = StackRole.Owner,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedStackMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserStackRoleAssignments.Add(new UserStackRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            StackId = stackId,
+            UserId = user.Id,
+            RoleName = StackRole.MetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedNamespaceMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid namespaceId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserNamespaceRoleAssignments.Add(new UserNamespaceRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            NamespaceId = namespaceId,
+            UserId = user.Id,
+            RoleName = NamespaceRole.MetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedModuleMetadataReader(SnapCdDbContext dbContext, Guid orgId, Guid moduleId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserModuleRoleAssignments.Add(new UserModuleRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            ModuleId = moduleId,
+            UserId = user.Id,
+            RoleName = ModuleRole.MetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedOrganizationStackMetadataReader(SnapCdDbContext dbContext, Guid orgId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserOrganizationRoleAssignments.Add(new UserOrganizationRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            UserId = user.Id,
+            RoleName = OrganizationRole.StackMetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
+    }
+
+    private void SeedOrganizationIdentityAccessMetadataReader(SnapCdDbContext dbContext, Guid orgId, string key)
+    {
+        var user = CreateUser($"{key.ToLower()}@test.com", orgId);
+        dbContext.Users.Add(user);
+        dbContext.OrganizationUsers.Add(CreateOrganizationUser(user.Id, orgId));
+        dbContext.UserOrganizationRoleAssignments.Add(new UserOrganizationRoleAssignment
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            UserId = user.Id,
+            RoleName = OrganizationRole.IdentityAccessMetadataReader,
+        });
+        ScopeReaderUsers[key] = user;
     }
 
     private void SeedStackReader(SnapCdDbContext dbContext, Guid orgId, Guid stackId, string key)
@@ -1000,16 +1118,19 @@ public class Fixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Tier B (RoleResolution) seed for Agent / Runner chains. Creates:
-    ///   Org0 — Agent0 + Agent0Sibling + their AgentModuleSupplies + RunnerModuleSupply0Sibling
-    ///         (on Module0001 via Runner0).
-    ///   Org1 — Agent1 (for cross-org sweep tests).
+    /// Tier B (RoleResolution) seed for Agent / Runner / Integration chains. Creates:
+    ///   Org0 - Agent0 + Agent0Sibling + their AgentModuleSupplies + RunnerModuleSupply0Sibling,
+    ///         and one Integration supplied at each of module, namespace and stack level.
+    ///   Org1 - Agent1 (for cross-org sweep tests).
     ///   AgentRole.Reader and Sibling Users on each Agent and Runner so the visibility-by-scope tests
     ///   have all the principals they need.
     /// Keyed entries:
     ///   Agents["0"], Agents["0Sibling"], Agents["1"]
-    ///   AgentModuleSupplies["0"] (Agent0 → Module0000), AgentModuleSupplies["0Sibling"] (Agent0Sibling → Module0001)
-    ///   RunnerModuleSupplies["0Sibling"] (Runner0 → Module0001)
+    ///   AgentModuleSupplies["0"] (Agent0 -> Module0000), AgentModuleSupplies["0Sibling"] (Agent0Sibling -> Module0001)
+    ///   RunnerModuleSupplies["0Sibling"] (Runner0Sibling -> Module0001); Runner0 -> Module0000 comes
+    ///   from CreateRunnerRolePrincipals_Org0.
+    ///   Integrations["Module"] -> Module0000, ["ModuleSibling"] -> Module0001, ["Namespace"] -> Namespace000,
+    ///   ["Stack"] -> Stack00, ["AllModules"] (IsSuppliedToAllModules), ["Unsupplied"] (supplied nowhere)
     ///   ScopeReaderUsers["Agent0.Reader"], ["Agent0Sibling.Reader"], ["Runner0Sibling.Reader"]
     /// </summary>
     private void CreateAgentRunnerScopeEntities(SnapCdDbContext dbContext)
@@ -1107,6 +1228,99 @@ public class Fixture : IAsyncLifetime
         SeedAgentReader(dbContext, org0.Id, Agents["0"].Id, "Agent0.Reader");
         // ---- AgentReaderSibling on Agent0Sibling ----
         SeedAgentReader(dbContext, org0.Id, Agents["0Sibling"].Id, "Agent0Sibling.Reader");
+
+        // ---- Integrations, one supplied at each scope level ----
+        // Module, Namespace and Stack each get their own integration, so a role at one level can be
+        // shown to reach what is supplied there and not what is supplied at a sibling of that level.
+        Integrations["Module"] = new Integration
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            Name = "IntegrationOnModule0000",
+            IntegrationType = IntegrationType.Slack,
+            Enabled = true,
+            IsSuppliedToAllModules = false,
+        };
+        Integrations["ModuleSibling"] = new Integration
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            Name = "IntegrationOnModule0001",
+            IntegrationType = IntegrationType.Slack,
+            Enabled = true,
+            IsSuppliedToAllModules = false,
+        };
+        Integrations["Namespace"] = new Integration
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            Name = "IntegrationOnNamespace000",
+            IntegrationType = IntegrationType.Slack,
+            Enabled = true,
+            IsSuppliedToAllModules = false,
+        };
+        Integrations["Stack"] = new Integration
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            Name = "IntegrationOnStack00",
+            IntegrationType = IntegrationType.Slack,
+            Enabled = true,
+            IsSuppliedToAllModules = false,
+        };
+        Integrations["AllModules"] = new Integration
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            Name = "IntegrationOnAllModules",
+            IntegrationType = IntegrationType.Slack,
+            Enabled = true,
+            IsSuppliedToAllModules = true,
+        };
+        Integrations["Unsupplied"] = new Integration
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            Name = "IntegrationSuppliedNowhere",
+            IntegrationType = IntegrationType.Slack,
+            Enabled = true,
+            IsSuppliedToAllModules = false,
+        };
+        dbContext.Integrations.AddRange(Integrations.Values);
+
+        IntegrationModuleSupplies["Module"] = new IntegrationModuleSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            IntegrationId = Integrations["Module"].Id,
+            ModuleId = Modules["0000"].Id,
+        };
+        IntegrationModuleSupplies["ModuleSibling"] = new IntegrationModuleSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            IntegrationId = Integrations["ModuleSibling"].Id,
+            ModuleId = Modules["0001"].Id,
+        };
+        dbContext.IntegrationModuleSupplies.AddRange(IntegrationModuleSupplies.Values);
+
+        IntegrationNamespaceSupplies["Namespace"] = new IntegrationNamespaceSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            IntegrationId = Integrations["Namespace"].Id,
+            NamespaceId = Namespaces["000"].Id,
+        };
+        dbContext.IntegrationNamespaceSupplies.AddRange(IntegrationNamespaceSupplies.Values);
+
+        IntegrationStackSupplies["Stack"] = new IntegrationStackSupply
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = org0.Id,
+            IntegrationId = Integrations["Stack"].Id,
+            StackId = Stacks["00"].Id,
+        };
+        dbContext.IntegrationStackSupplies.AddRange(IntegrationStackSupplies.Values);
 
         // ---- Missions at each scope, owned by Agent0 ----
         // Used by MissionCrossScope_RoleResolutionTests to verify both scope-side and agent-side
@@ -1316,7 +1530,31 @@ public class Fixture : IAsyncLifetime
         {
             Id = Guid.NewGuid(),
             DisplayName = name,
+            // The application prefixes the client id with the organization and issues a
+            // confidential client with the client credentials grant; the repository reads only
+            // those back, so a fixture principal has to look the same.
+            ClientId = $"{organizationId}:{name.ToLower().Replace(" ", "-")}",
+            ClientType = OpenIddictConstants.ClientTypes.Confidential,
+            Permissions = $"[\"{OpenIddictConstants.Permissions.GrantTypes.ClientCredentials}\"]",
+            IsDisabled = false,
+            OrganizationId = organizationId
+        };
+    }
+
+    /// <summary>
+    /// The shape the API reference UI's own OAuth client has: no organization prefix, public, and
+    /// an interactive grant. It shares the table with service principals and must not be read as
+    /// one.
+    /// </summary>
+    private ServicePrincipal CreateNonServicePrincipalClient(string name, Guid organizationId)
+    {
+        return new ServicePrincipal
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = name,
             ClientId = name.ToLower().Replace(" ", "-"),
+            ClientType = OpenIddictConstants.ClientTypes.Public,
+            Permissions = $"[\"{OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode}\"]",
             IsDisabled = false,
             OrganizationId = organizationId
         };

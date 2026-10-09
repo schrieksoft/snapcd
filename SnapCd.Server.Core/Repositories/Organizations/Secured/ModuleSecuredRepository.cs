@@ -13,14 +13,18 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Modules;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -35,7 +39,7 @@ public class ModuleSecuredRepositoryFactory(IDbContextFactory<SnapCdDbContext> d
     }
 }
 
-public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Module, ModuleReadDto, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
+public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Module, ModuleReadDto, ModuleMetadata, ModuleRepository, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
 {
     public ModuleSecuredRepository(ModuleRepository moduleRepository, IPrincipalProvider principalProvider) : base(moduleRepository, principalProvider)
     {
@@ -98,6 +102,49 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
             CreatePermissionMap.StackRoles,
             CreatePermissionMap.NamespaceRoles,
             CreatePermissionMap.ModuleRoles
+        );
+    }
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader, OrganizationRole.StackMetadataReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader, StackRole.MetadataReader],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader, NamespaceRole.MetadataReader],
+        ModuleRoles = [ModuleRole.Owner, ModuleRole.Reader, ModuleRole.MetadataReader]
+    };
+
+
+    /// <summary>
+    /// The scope with the names above it, for the callers that must tell two same-named rows
+    /// apart. Scoped by metadata read, as the plain metadata list is.
+    /// </summary>
+    /// <summary>One scope with the names above it, once metadata read for it is established.</summary>
+    public async Task<QualifiedModule> GetQualifiedModule(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Module with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await Repository.GetQualifiedModule(id, organizationId);
+    }
+
+    public Task<List<QualifiedModule>> ListQualifiedModule(
+        Guid organizationId,
+        Func<IQueryable<Module>, IQueryable<Module>>? queryModifier = null,
+        Func<IQueryable<QualifiedModule>, IOrderedQueryable<QualifiedModule>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => Repository.ListQualifiedModule(
+            organizationId, ReadMetadataQuery(organizationId), queryModifier, orderBy, pageNumber, pageSize);
+
+    public override IQueryable<Module> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
+            ReadMetadataPermissionMap.ModuleRoles
         );
     }
 
@@ -387,7 +434,8 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         var module = await Repository.Get(namespaceId, name, organizationId);
 
         if (!CanRead(module.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to module {module.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Module)} with ID {module.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return module;
     }
@@ -397,10 +445,25 @@ public class ModuleSecuredRepository : GenericNamespaceChildSecuredRepository<Mo
         var module = await Repository.Get(stackName, namespaceName, moduleName, organizationId);
 
         if (!CanRead(module.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to module {module.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Module)} with ID {module.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return module;
     }
+
+    public Task<ModuleMetadata> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(namespaceId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"namespace {namespaceId} and name \"{name}\"");
+
+    public Task<ModuleMetadata> GetMetadata(string stackName, string namespaceName, string moduleName, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(stackName, namespaceName, moduleName, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"stack \"{stackName}\", namespace \"{namespaceName}\" and name \"{moduleName}\"");
 
     # endregion
 }

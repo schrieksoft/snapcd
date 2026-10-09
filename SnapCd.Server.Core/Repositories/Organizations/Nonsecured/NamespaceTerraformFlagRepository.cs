@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,9 +34,17 @@ public class NamespaceTerraformFlagRepositoryFactory(IDbContextFactory<SnapCdDbC
     }
 }
 
-public class NamespaceTerraformFlagRepository : GenericNamespaceChildDefinitionRepository<NamespaceTerraformFlag, NamespaceTerraformFlagReadDto, NamespaceTerraformFlagCreatedEvent,
+public class NamespaceTerraformFlagRepository : GenericNamespaceChildDefinitionRepository<NamespaceTerraformFlag, NamespaceTerraformFlagReadDto, NamespaceTerraformFlagMetadata, NamespaceTerraformFlagCreatedEvent,
     NamespaceTerraformFlagUpdatedEvent, NamespaceTerraformFlagDeletedEvent, NamespaceTerraformFlagRepositorySettings>
 {
+
+    protected override Expression<Func<NamespaceTerraformFlag, NamespaceTerraformFlagMetadata>> MetadataProjection =>
+        e => new NamespaceTerraformFlagMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            NamespaceId = e.NamespaceId
+        };
     public NamespaceTerraformFlagRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

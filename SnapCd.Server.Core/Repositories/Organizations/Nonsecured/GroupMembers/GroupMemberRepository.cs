@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers.GroupMembers.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.GroupMembers;
 
@@ -31,9 +34,18 @@ public class GroupMemberRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbF
     }
 }
 
-public class GroupMemberRepository : GenericOrganizationChildRepository<GroupMember, GroupMemberReadDto, GroupMemberCreatedEvent, GroupMemberUpdatedEvent, GroupMemberDeletedEvent,
+public class GroupMemberRepository : GenericOrganizationChildRepository<GroupMember, GroupMemberReadDto, GroupMemberMetadata, GroupMemberCreatedEvent, GroupMemberUpdatedEvent, GroupMemberDeletedEvent,
     GroupMemberRepositorySettings>
 {
+
+    protected override Expression<Func<GroupMember, GroupMemberMetadata>> MetadataProjection =>
+        e => new GroupMemberMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            GroupId = e.GroupId,
+            PrincipalId = e.PrincipalId
+        };
     private const int MaxGroupHierarchyDepth = 10;
 
     public GroupMemberRepository(

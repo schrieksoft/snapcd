@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,9 +34,29 @@ public class OrganizationUserRepositoryFactory(IDbContextFactory<SnapCdDbContext
     }
 }
 
-public class OrganizationUserRepository : GenericOrganizationChildRepository<OrganizationUser, OrganizationUserReadDto, OrganizationUserCreatedEvent, OrganizationUserUpdatedEvent,
+public class OrganizationUserRepository : GenericOrganizationChildRepository<OrganizationUser, OrganizationUserReadDto, UserMetadata, OrganizationUserCreatedEvent, OrganizationUserUpdatedEvent,
     OrganizationUserDeletedEvent, OrganizationUserRepositorySettings>
 {
+
+    /// <summary>
+    /// A membership row is seen as the user it names, so the id here is the User's: that is what
+    /// a role assignment references and what callers hold.
+    /// </summary>
+    protected override Expression<Func<OrganizationUser, UserMetadata>> MetadataProjection =>
+        e => new UserMetadata
+        {
+            Id = e.UserId,
+            OrganizationId = e.OrganizationId,
+            UserName = e.User.Email!
+        };
+
+    /// <summary>Found by the User's id, which is what the metadata view carries.</summary>
+    public override async Task<UserMetadata> GetMetadata(Guid userId, Guid organizationId)
+        => (await List(organizationId, q => q.Where(ou => ou.UserId == userId)
+                                             .Select(MetadataProjection))).First();
+
+
+
     public OrganizationUserRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

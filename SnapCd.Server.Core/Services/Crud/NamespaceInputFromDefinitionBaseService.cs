@@ -68,4 +68,10 @@ public class NamespaceInputFromDefinitionBaseService
     {
         await _repo.Delete(id, organizationId);
     }
+
+    public async Task<NamespaceInputMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await _repo.GetMetadata(namespaceId, name, organizationId);
+        return NamespaceInputMapper.ToMetadataDto(view);
+    }
 }

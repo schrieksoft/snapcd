@@ -10,10 +10,16 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 
+<MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             <MudItem xs="12">
                 <MudTextField Label="Id"
                               @bind-Value="SourceRefresherPreselection.Id"
@@ -21,21 +27,21 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Label="SourceUrl"
+                <MudTextField Disabled="@(!_canSave)" Label="SourceUrl"
                               @bind-Value="Input.SourceUrl"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="RunnerInstanceName"
+                <MudTextField Disabled="@(!_canSave)" Label="RunnerInstanceName"
                               @bind-Value="Input.RunnerInstanceName"
                               Required="false"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="RunnerId"
+                <MudTextField Disabled="@(!_canSave)" Label="RunnerId"
                               @bind-Value="Input.RunnerId"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
@@ -59,12 +65,24 @@
         </MudGrid>
     </EditForm>
 </MudPaper>
+</MudForm>
 
 @code {
+    protected override void OnInitialized() => ResolveCanSave();
+
     [Parameter] public required SourceRefresherPreselection SourceRefresherPreselection { get; set; }
     [Parameter] public required EventCallback<SourceRefresherPreselection> OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(SourceRefresherPreselection.Id, OrganizationId);
+    }
 
     [Inject] private SourceRefresherPreselectionSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;

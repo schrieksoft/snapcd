@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespacePulumiRemotePolicyService : GenericCrudService<NamespacePulumiRemotePolicy, NamespacePulumiRemotePolicyCreateDto, NamespacePulumiRemotePolicyUpdateDto, NamespacePulumiRemotePolicyReadDto,
+public class NamespacePulumiRemotePolicyService : GenericCrudService<NamespacePulumiRemotePolicy, NamespacePulumiRemotePolicyMetadata, NamespacePulumiRemotePolicyCreateDto, NamespacePulumiRemotePolicyUpdateDto, NamespacePulumiRemotePolicyReadDto, NamespacePulumiRemotePolicyMetadataReadDto,
     NamespacePulumiRemotePolicySecuredRepository, NamespacePulumiRemotePolicyRepository, NamespacePulumiRemotePolicyCreatedEvent,
     NamespacePulumiRemotePolicyUpdatedEvent, NamespacePulumiRemotePolicyDeletedEvent, NamespacePulumiRemotePolicyRepositorySettings>
 {
@@ -37,6 +39,11 @@ public class NamespacePulumiRemotePolicyService : GenericCrudService<NamespacePu
         return NamespacePulumiRemotePolicyMapper.ToDto(entity);
     }
 
+    protected override NamespacePulumiRemotePolicyMetadataReadDto MapToMetadataDto(NamespacePulumiRemotePolicyMetadata view)
+    {
+        return NamespacePulumiRemotePolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespacePulumiRemotePolicy entity, NamespacePulumiRemotePolicyUpdateDto dto)
     {
         NamespacePulumiRemotePolicyMapper.UpdateEntity(entity, dto);
@@ -46,5 +53,11 @@ public class NamespacePulumiRemotePolicyService : GenericCrudService<NamespacePu
     {
         var entity = await SecuredRepository.Get(namespaceId, name, organizationId);
         return NamespacePulumiRemotePolicyMapper.ToDto(entity);
+    }
+
+    public async Task<NamespacePulumiRemotePolicyMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return NamespacePulumiRemotePolicyMapper.ToMetadataDto(view);
     }
 }

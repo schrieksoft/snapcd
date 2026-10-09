@@ -81,10 +81,10 @@ public class ChildRepositoryParentScopeTests : IAsyncLifetime
     {
         var owners = new (Type Marker, string Base)[]
         {
-            (typeof(IAgentChild), "GenericAgentChildRepository`6"),
-            (typeof(IRunnerChild), "GenericRunnerChildRepository`6"),
-            (typeof(IIntegrationChild), "GenericIntegrationChildRepository`6"),
-            (typeof(IStateStoreChild), "GenericStateStoreChildRepository`6"),
+            (typeof(IAgentChild), "GenericAgentChildRepository`7"),
+            (typeof(IRunnerChild), "GenericRunnerChildRepository`7"),
+            (typeof(IIntegrationChild), "GenericIntegrationChildRepository`7"),
+            (typeof(IStateStoreChild), "GenericStateStoreChildRepository`7"),
         };
 
         // An entity that is also scoped to a Stack, Namespace or Module belongs to that scope.
@@ -92,7 +92,7 @@ public class ChildRepositoryParentScopeTests : IAsyncLifetime
 
         var offenders = new List<string>();
 
-        foreach (var repo in typeof(GenericRepository<,,,,,>).Assembly.GetTypes()
+        foreach (var repo in typeof(GenericRepository<,,,,,,>).Assembly.GetTypes()
                      .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false })
                      .Where(t => t.Name.EndsWith("Repository") && !t.Name.EndsWith("SecuredRepository")))
         {

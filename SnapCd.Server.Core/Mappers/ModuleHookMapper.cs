@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.ModuleHooks;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -44,5 +45,14 @@ public static class ModuleHookMapper
         entity.Phase = dto.Phase;
         entity.Script = dto.Script;
         entity.ModuleId = dto.ModuleId;
+    }
+
+    public static ModuleHookMetadataReadDto ToMetadataDto(ModuleHookMetadata view)
+    {
+        return new ModuleHookMetadataReadDto
+        {
+            Id = view.Id,
+            ModuleId = view.ModuleId,
+        };
     }
 }

@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceTerraformFlagService : GenericCrudService<NamespaceTerraformFlag, NamespaceTerraformFlagCreateDto, NamespaceTerraformFlagUpdateDto, NamespaceTerraformFlagReadDto, NamespaceTerraformFlagSecuredRepository, NamespaceTerraformFlagRepository,
+public class NamespaceTerraformFlagService : GenericCrudService<NamespaceTerraformFlag, NamespaceTerraformFlagMetadata, NamespaceTerraformFlagCreateDto, NamespaceTerraformFlagUpdateDto, NamespaceTerraformFlagReadDto, NamespaceTerraformFlagMetadataReadDto, NamespaceTerraformFlagSecuredRepository, NamespaceTerraformFlagRepository,
     NamespaceTerraformFlagCreatedEvent, NamespaceTerraformFlagUpdatedEvent, NamespaceTerraformFlagDeletedEvent, NamespaceTerraformFlagRepositorySettings>
 {
     public NamespaceTerraformFlagService(
@@ -34,6 +36,11 @@ public class NamespaceTerraformFlagService : GenericCrudService<NamespaceTerrafo
     protected override NamespaceTerraformFlagReadDto MapToDto(NamespaceTerraformFlag entity)
     {
         return NamespaceTerraformFlagMapper.ToDto(entity);
+    }
+
+    protected override NamespaceTerraformFlagMetadataReadDto MapToMetadataDto(NamespaceTerraformFlagMetadata view)
+    {
+        return NamespaceTerraformFlagMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(NamespaceTerraformFlag entity, NamespaceTerraformFlagUpdateDto dto)

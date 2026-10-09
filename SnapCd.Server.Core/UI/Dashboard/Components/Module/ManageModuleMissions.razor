@@ -13,6 +13,8 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.UI.Dashboard.Components.Agent
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 
 @inject ISnackbar Snackbar
 
@@ -20,11 +22,14 @@
         <MudTabPanel Text="Module" Style="text-transform: none">
             @if (!_showCreateForm && _editing is null)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                    Size="Size.Small"
-                           OnClick="ShowCreate" Class="mb-3">
-                    Add Mission
-                </MudButton>
+                <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add a mission here.")"
+                            Disabled="@_canAdd">
+                    <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled" Color="Color.Secondary"
+                                                        Size="Size.Small"
+                               OnClick="ShowCreate" Class="mb-3">
+                        Add Mission
+                    </MudButton>
+                </MudTooltip>
             }
 
             @if (_showCreateForm || _editing is not null)
@@ -178,6 +183,14 @@
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
     [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
 
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = ModuleMissionRepoFactory.Create();
+        _canAdd = permissionRepo.CanCreate(ModuleId, OrganizationId);
+    }
+
     private sealed class InputModel
     {
         public Guid? AgentId { get; set; }
@@ -193,7 +206,7 @@
     private List<NamespaceMission> _nsRows = new();
     private List<StackMission> _stackRows = new();
     private List<OrganizationMission> _orgRows = new();
-    private List<Agent> _agents = new();
+    private List<AgentMetadata> _agents = new();
     private Guid? _stackId;
 
     protected override async Task OnInitializedAsync()
@@ -205,7 +218,7 @@
     private async Task ReloadDependencies()
     {
         using (var agentRepo = AgentRepoFactory.Create())
-            _agents = await agentRepo.List(OrganizationId);
+            _agents = await agentRepo.ListMetadata(OrganizationId);
 
         using (var nsRepo = NamespaceRepoFactory.Create())
         {

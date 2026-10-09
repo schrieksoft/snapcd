@@ -21,6 +21,8 @@ using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud.Secrets;
 
@@ -66,7 +68,7 @@ public class SecretServiceFactory
     }
 }
 
-public class SecretService : GenericCrudService<Secret, SecretCreateDto, SecretUpdateDto, SecretDto, SecretSecuredRepository, SecretRepository, SecretCreatedEvent, SecretUpdatedEvent,
+public class SecretService : GenericCrudService<Secret, SecretMetadata, SecretCreateDto, SecretUpdateDto, SecretDto, SecretMetadataReadDto, SecretSecuredRepository, SecretRepository, SecretCreatedEvent, SecretUpdatedEvent,
     SecretDeletedEvent, SecretRepositorySettings>
 {
     private readonly IVaultFactory _vaultFactory;
@@ -100,6 +102,11 @@ public class SecretService : GenericCrudService<Secret, SecretCreateDto, SecretU
     protected override SecretDto MapToDto(Secret entity)
     {
         return SecretMapper.ToDto(entity);
+    }
+
+    protected override SecretMetadataReadDto MapToMetadataDto(SecretMetadata view)
+    {
+        return SecretMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(Secret entity, SecretUpdateDto dto)

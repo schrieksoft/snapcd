@@ -50,19 +50,9 @@ public class DependencyGraphNodeStateDto
     // Ordinal stage display (1st, 2nd, 3rd, etc.)
     public string StageOrdinal { get; set; } = "1st";
 
-    // Module name extracted from DisplayName
     public string ModuleName { get; set; } = "";
+    public string NamespaceName { get; set; } = "";
+    public string StackName { get; set; } = "";
 
-    // Namespace display name (Stack/Namespace)
-    public string NamespaceDisplayName { get; set; } = "";
-
-    // Just the namespace name without stack prefix
-    public string NamespaceName
-    {
-        get
-        {
-            var parts = NamespaceDisplayName.Split('/');
-            return parts.Length >= 2 ? parts[1] : NamespaceDisplayName;
-        }
-    }
+    public string NamespaceDisplayName => $"{StackName}/{NamespaceName}";
 }

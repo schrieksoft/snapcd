@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.StateFiles;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -42,5 +43,15 @@ public static class StateFileMapper
     public static void UpdateEntity(StateFile entity, StateFileUpdateDto dto)
     {
         entity.Name = dto.Name;
+    }
+
+    public static StateFileMetadataReadDto ToMetadataDto(StateFileMetadata view)
+    {
+        return new StateFileMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            StateStoreId = view.StateStoreId
+        };
     }
 }

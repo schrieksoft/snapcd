@@ -14,14 +14,17 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class OrganizationMissionService : GenericCrudService<
-    OrganizationMission,
+    OrganizationMission, OrganizationMissionMetadata,
     OrganizationMissionCreateDto,
     OrganizationMissionUpdateDto,
     OrganizationMissionReadDto,
+    OrganizationMissionMetadataReadDto,
     OrganizationMissionSecuredRepository,
     OrganizationMissionRepository,
     OrganizationMissionCreatedEvent,
@@ -43,6 +46,11 @@ public class OrganizationMissionService : GenericCrudService<
     protected override OrganizationMissionReadDto MapToDto(OrganizationMission entity)
     {
         return OrganizationMissionMapper.ToDto(entity);
+    }
+
+    protected override OrganizationMissionMetadataReadDto MapToMetadataDto(OrganizationMissionMetadata view)
+    {
+        return OrganizationMissionMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(OrganizationMission entity, OrganizationMissionUpdateDto dto)

@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.SourceRefresherPreselections;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -41,5 +42,14 @@ public static class SourceRefresherPreselectionMapper
         entity.RunnerId = dto.RunnerId;
         entity.RunnerInstanceName = dto.RunnerInstanceName;
         entity.SourceUrl = dto.SourceUrl;
+    }
+
+    public static SourceRefresherPreselectionMetadataReadDto ToMetadataDto(SourceRefresherPreselectionMetadata view)
+    {
+        return new SourceRefresherPreselectionMetadataReadDto
+        {
+            Id = view.Id,
+            RunnerId = view.RunnerId,
+        };
     }
 }

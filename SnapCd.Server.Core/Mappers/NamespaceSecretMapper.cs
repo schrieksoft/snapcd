@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class NamespaceSecretMapper
     {
         entity.Name = dto.Name;
         entity.NamespaceId = dto.NamespaceId;
+    }
+
+    public static NamespaceSecretMetadataReadDto ToMetadataDto(NamespaceSecretMetadata view)
+    {
+        return new NamespaceSecretMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

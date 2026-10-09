@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -33,9 +36,17 @@ public class ModuleAdditionalTriggerPathRepositoryFactory(IDbContextFactory<Snap
     }
 }
 
-public class ModuleAdditionalTriggerPathRepository : GenericModuleChildDefinitionRepository<ModuleAdditionalTriggerPath, ModuleAdditionalTriggerPathReadDto, ModuleAdditionalTriggerPathCreatedEvent, ModuleAdditionalTriggerPathUpdatedEvent,
+public class ModuleAdditionalTriggerPathRepository : GenericModuleChildDefinitionRepository<ModuleAdditionalTriggerPath, ModuleAdditionalTriggerPathReadDto, ModuleAdditionalTriggerPathMetadata, ModuleAdditionalTriggerPathCreatedEvent, ModuleAdditionalTriggerPathUpdatedEvent,
     ModuleAdditionalTriggerPathDeletedEvent, ModuleAdditionalTriggerPathRepositorySettings>
 {
+
+    protected override Expression<Func<ModuleAdditionalTriggerPath, ModuleAdditionalTriggerPathMetadata>> MetadataProjection =>
+        e => new ModuleAdditionalTriggerPathMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            ModuleId = e.ModuleId
+        };
     public ModuleAdditionalTriggerPathRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

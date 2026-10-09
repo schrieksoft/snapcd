@@ -10,15 +10,21 @@
 @using SnapCd.Server.Core.Entities.Definition.AgentSupplies
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 <MudPaper Elevation="1" Class="pa-4 mb-4">
+    @if (!_canCreate)
+    {
+        <ReadOnlyNotice Message="You do not have permission to add a supply to this agent."/>
+    }
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
             <MudItem xs="12" md="6">
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Agent?"
+                    <MudAutocomplete T="AgentMetadata?"
                                      Label="Agent"
                                      @bind-Value="_selectedAgent"
-                                     Disabled="@(AgentId.HasValue)"
+                                     Disabled="@(!_canCreate || (AgentId.HasValue))"
                                      Required="@(!AgentId.HasValue)"
                                      RequiredError="Agent is required"
                                      SearchFunc="@SearchAgents"
@@ -29,10 +35,10 @@
                 </MudItem>
 
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Module?"
+                    <MudAutocomplete T="QualifiedModule?"
                                      Label="Module"
                                      @bind-Value="_selectedModule"
-                                     Disabled="@(ModuleId.HasValue)"
+                                     Disabled="@(!_canCreate || (ModuleId.HasValue))"
                                      Required="@(!ModuleId.HasValue)"
                                      RequiredError="Module is required"
                                      SearchFunc="@SearchModules"
@@ -41,16 +47,25 @@
                                      Variant="Variant.Outlined">
                     </MudAutocomplete>
                 </MudItem>
+
+                <MudItem xs="12" md="12">
+                    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Dense="true">
+                        Only Modules that you have at least ReadMetadata permissions on will appear here.
+                    </MudAlert>
+                </MudItem>
             </MudItem>
 
             <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           OnClick="SaveSupply"
-                           Class="mr-2">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="SaveSupply"
+                               Class="mr-2">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -75,12 +90,34 @@
     [Inject] private AgentSecuredRepositoryFactory AgentRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private Module? _selectedModule;
-    private Agent? _selectedAgent;
+    private QualifiedModule? _selectedModule;
+    private AgentMetadata? _selectedAgentBacking;
+    private AgentMetadata? _selectedAgent
+    {
+        get => _selectedAgentBacking;
+        set { _selectedAgentBacking = value; RefreshCanCreate(); }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialValues();
+    }
+
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet() => RefreshCanCreate();
+
+    private void RefreshCanCreate()
+    {
+        var ownerId = AgentId ?? _selectedAgent?.Id;
+        if (ownerId is null)
+        {
+            _canCreate = true;
+            return;
+        }
+
+        using var permissionRepo = SupplyRepoFactory.Create();
+        _canCreate = permissionRepo.CanCreate(ownerId.Value, OrganizationId);
     }
 
     private async Task LoadInitialValues()
@@ -88,33 +125,37 @@
         if (ModuleId.HasValue)
         {
             using var moduleRepo = ModuleRepoFactory.Create();
-            _selectedModule = await moduleRepo.Get(ModuleId.Value, OrganizationId);
+            _selectedModule = await moduleRepo.GetQualifiedModule(ModuleId.Value, OrganizationId);
         }
 
         if (AgentId.HasValue)
         {
             using var storeRepo = AgentRepoFactory.Create();
-            _selectedAgent = await storeRepo.Get(AgentId.Value, OrganizationId);
+            _selectedAgent = await storeRepo.GetMetadata(AgentId.Value, OrganizationId);
         }
     }
 
 
-    private async Task<IEnumerable<Module>> SearchModules(string value, CancellationToken token)
+    private async Task<IEnumerable<QualifiedModule>> SearchModules(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Module>();
-
         using var repo = ModuleRepoFactory.Create();
-        return await repo.List<Module>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+        return await repo.ListQualifiedModule(OrganizationId,
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
-    private async Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
+    private async Task<IEnumerable<AgentMetadata>> SearchAgents(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Agent>();
-
         using var repo = AgentRepoFactory.Create();
-        return await repo.List<Agent>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
     private async Task SaveSupply()

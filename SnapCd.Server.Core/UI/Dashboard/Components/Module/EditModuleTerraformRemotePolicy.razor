@@ -13,30 +13,36 @@
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 @inherits ComponentBase
 
+<MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
 <MudGrid>
     <MudItem xs="12" md="8" Class="d-flex flex-column gap-4">
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Name"
+            <MudTextField Disabled="@(!_canSave)" Label="Name"
                           @bind-Value="Context.Name"
                           Immediate="true"
                           FullWidth="true"/>
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Repo Url"
+            <MudTextField Disabled="@(!_canSave)" Label="Repo Url"
                           @bind-Value="Context.RepoUrl"
                           Immediate="true"
                           FullWidth="true"/>
         </MudItem>
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Revision"
+            <MudTextField Disabled="@(!_canSave)" Label="Revision"
                           @bind-Value="Context.Revision"
                           Immediate="true"
                           HelperText="Tag, branch or commit SHA; resolved at job dispatch"
                           FullWidth="true"/>
         </MudItem>
         <MudItem xs="12" Class="mb-4">
-            <MudTextField Label="Path"
+            <MudTextField Disabled="@(!_canSave)" Label="Path"
                           @bind-Value="Context.Path"
                           Immediate="true"
                           HelperText="Repo-root-relative directory of the policy bundle; empty means the repository root"
@@ -44,7 +50,7 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSelect T="PolicyEvaluateOn" Label="Evaluate On" @bind-Value="Context.EvaluateOn" Variant="Variant.Outlined" Immediate="true">
+            <MudSelect Disabled="@(!_canSave)" T="PolicyEvaluateOn" Label="Evaluate On" @bind-Value="Context.EvaluateOn" Variant="Variant.Outlined" Immediate="true">
                 @foreach (var val in Enum.GetValues<PolicyEvaluateOn>())
                 {
                     <MudSelectItem Value="@val">@val.ToString()</MudSelectItem>
@@ -53,19 +59,21 @@
         </MudItem>
 
         <MudItem xs="12" Class="mb-4">
-            <MudSwitch T="bool" @bind-Value="Context.Enabled" Label="Enabled" Color="Color.Secondary"/>
+            <MudSwitch Disabled="@(!_canSave)" T="bool" @bind-Value="Context.Enabled" Label="Enabled" Color="Color.Secondary"/>
         </MudItem>
 
         <MudStack Row="true" Spacing="4" Class="mt-4">
 
             @if (IsCreateMode)
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           OnClick="CreateItem">
-                    Create
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Disabled="@(!_canSave)" OnClick="CreateItem">
+                        Create
+                    </MudButton>
+                </MudTooltip>
 
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
@@ -76,27 +84,42 @@
             }
             else
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           Disabled="@(!HasChanges)"
-                           OnClick="UpdateItem">
-                    Save
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Disabled="@(!HasChanges || !_canSave)"
+                               OnClick="UpdateItem">
+                        Save
+                    </MudButton>
+                </MudTooltip>
 
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           StartIcon="@SnapCdIcons.Delete"
-                           OnClick="DeleteItem">
-                    Delete
-                </MudButton>
+                <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               StartIcon="@SnapCdIcons.Delete"
+                               Disabled="@(!_canDelete)"
+                               OnClick="DeleteItem">
+                        Delete
+                    </MudButton>
+                </MudTooltip>
             }
         </MudStack>
     </MudItem>
 </MudGrid>
+</MudForm>
 
 @code {
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
+
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        ResolveCanSave();
+    }
+
     [Parameter] public bool IsCreateMode { get; set; } = true;
     [Parameter] public ModuleTerraformRemotePolicy Context { get; set; } = default!;
     [Parameter] public EventCallback OnDelete { get; set; }
@@ -134,6 +157,20 @@
             Enabled = Context.Enabled,
             EvaluateOn = Context.EvaluateOn
         };
+    }
+
+
+    private bool _canSave;
+    private bool _canDelete;
+
+    private void ResolveCanSave()
+    {
+        using var repo = ModuleTerraformRemotePolicySecuredRepositoryFactory.Create(PrincipalProvider);
+
+        _canSave = IsCreateMode
+            ? repo.CanCreate(Context.ParentId(), OrganizationId)
+            : repo.CanUpdate(Context.Id, OrganizationId);
+        _canDelete = !IsCreateMode && repo.CanDelete(Context.Id, OrganizationId);
     }
 
     private async Task DeleteItem()

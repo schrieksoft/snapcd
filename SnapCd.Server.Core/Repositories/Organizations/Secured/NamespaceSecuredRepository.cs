@@ -13,15 +13,19 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Namespaces;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -36,7 +40,7 @@ public class NamespaceSecuredRepositoryFactory(IDbContextFactory<SnapCdDbContext
     }
 }
 
-public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, NamespaceReadDto, NamespaceRepository, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent,
+public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, NamespaceReadDto, NamespaceMetadata, NamespaceRepository, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent,
     NamespaceRepositorySettings>
 {
     public NamespaceSecuredRepository(NamespaceRepository namespaceRepository, IPrincipalProvider principalProvider) : base(namespaceRepository, principalProvider)
@@ -58,9 +62,21 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader]
     };
 
-    public override PermissionMap ReverseInheritedReadPermissionMap => new()
+    /// <summary>
+    /// Any role on a contained Module lets the principal discover this Namespace's name and id, so
+    /// they can navigate to the Module they do have access to. The Namespace's own defaults stay
+    /// behind read.
+    /// </summary>
+    public override PermissionMap ReverseInheritedReadMetadataPermissionMap => new()
     {
         ModuleRoles = [.. Enum.GetValues<ModuleRole>()]
+    };
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.StackContributor, OrganizationRole.StackReader, OrganizationRole.StackMetadataReader],
+        StackRoles = [StackRole.Owner, StackRole.Contributor, StackRole.Reader, StackRole.MetadataReader],
+        NamespaceRoles = [NamespaceRole.Owner, NamespaceRole.Contributor, NamespaceRole.Reader, NamespaceRole.MetadataReader]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
@@ -119,18 +135,53 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
 
     public override IQueryable<Namespace> ReadQuery(Guid organizationId)
     {
-        var baseQuery = RoleQueryDispatch(
+        return RoleQueryDispatch(
             organizationId,
             ReadPermissionMap.OrganizationRoles,
             ReadPermissionMap.StackRoles,
             ReadPermissionMap.NamespaceRoles
         );
+    }
+
+
+    /// <summary>
+    /// The scope with the names above it, for the callers that must tell two same-named rows
+    /// apart. Scoped by metadata read, as the plain metadata list is.
+    /// </summary>
+    /// <summary>One scope with the names above it, once metadata read for it is established.</summary>
+    public async Task<QualifiedNamespace> GetQualifiedNamespace(Guid id, Guid organizationId)
+    {
+        if (!CanReadMetadata(id, organizationId))
+            throw new PrincipalNotAuthorizedException(
+                $"Namespace with ID {id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read its metadata.");
+
+        return await Repository.GetQualifiedNamespace(id, organizationId);
+    }
+
+    public Task<List<QualifiedNamespace>> ListQualifiedNamespace(
+        Guid organizationId,
+        Func<IQueryable<Namespace>, IQueryable<Namespace>>? queryModifier = null,
+        Func<IQueryable<QualifiedNamespace>, IOrderedQueryable<QualifiedNamespace>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => Repository.ListQualifiedNamespace(
+            organizationId, ReadMetadataQuery(organizationId), queryModifier, orderBy, pageNumber, pageSize);
+
+    public override IQueryable<Namespace> ReadMetadataQuery(Guid organizationId)
+    {
+        var baseQuery = RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles
+        );
 
         var reverseInheritanceQuery = ReverseInheritanceQuery(organizationId);
 
-        if (reverseInheritanceQuery == null)
-            return baseQuery;
-        return baseQuery.Concat(reverseInheritanceQuery);
+        if (reverseInheritanceQuery != null)
+            baseQuery = baseQuery.Concat(reverseInheritanceQuery);
+
+        return baseQuery;
     }
 
     public override IQueryable<Namespace> UpdateQuery(Guid organizationId)
@@ -316,7 +367,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
     }
 
     // Any role on a contained Module suffices, so these queries do not filter on
-    // role names (see ReverseInheritedReadPermissionMap).
+    // role names (see ReverseInheritedReadMetadataPermissionMap).
     private IQueryable<Namespace>? ReverseInheritanceQuery(Guid organizationId)
     {
         var principalId = PrincipalProvider.GetSubject(organizationId);
@@ -336,9 +387,12 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         Guid principalId)
         where TModuleRoleAssignment : class, IModuleRoleAssignment
     {
+        var roles = ReverseInheritedReadMetadataPermissionMap.ModuleRoles;
+
         return from assignment in Repository.DbContext.Set<TModuleRoleAssignment>()
             where assignment.PrincipalId == principalId
                   && assignment.OrganizationId == organizationId
+                  && roles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces
@@ -351,6 +405,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         Guid principalId)
         where TGroupMember : class, IGroupMember
     {
+        var moduleRoles = ReverseInheritedReadMetadataPermissionMap.ModuleRoles;
+
         return from groupMember in Repository.DbContext.Set<TGroupMember>()
                 .Where(gm => gm.PrincipalId == principalId && gm.OrganizationId == organizationId)
             join rgm in Repository.DbContext.RecursiveGroupMembers
@@ -359,6 +415,7 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
             join assignment in Repository.DbContext.GroupModuleRoleAssignments
                 on new { OrganizationId = rgm.OrganizationId, PrincipalId = rgm.GroupId }
                 equals new { assignment.OrganizationId, assignment.PrincipalId }
+            where moduleRoles.Contains(assignment.RoleName)
             join module in Repository.DbContext.Modules
                 on new { assignment.ModuleId, assignment.OrganizationId } equals new { ModuleId = module.Id, module.OrganizationId }
             join ns in Repository.DbContext.Namespaces
@@ -467,7 +524,8 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         var @namespace = await Repository.Get(stackId, name, organizationId);
 
         if (!CanRead(@namespace.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to namespace {@namespace.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Namespace)} with ID {@namespace.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return @namespace;
     }
@@ -477,10 +535,25 @@ public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, Na
         var @namespace = await Repository.Get(stackName, name, organizationId);
 
         if (!CanRead(@namespace.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to namespace {@namespace.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(Namespace)} with ID {@namespace.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return @namespace;
     }
+
+    public Task<NamespaceMetadata> GetMetadata(Guid stackId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(stackId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"stack {stackId} and name \"{name}\"");
+
+    public Task<NamespaceMetadata> GetMetadata(string stackName, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(stackName, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"stack \"{stackName}\" and name \"{name}\"");
 
     #endregion
 }

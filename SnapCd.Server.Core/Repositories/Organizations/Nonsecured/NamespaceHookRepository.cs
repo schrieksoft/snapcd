@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,9 +34,17 @@ public class NamespaceHookRepositoryFactory(IDbContextFactory<SnapCdDbContext> d
     }
 }
 
-public class NamespaceHookRepository : GenericNamespaceChildDefinitionRepository<NamespaceHook, NamespaceHookReadDto, NamespaceHookCreatedEvent,
+public class NamespaceHookRepository : GenericNamespaceChildDefinitionRepository<NamespaceHook, NamespaceHookReadDto, NamespaceHookMetadata, NamespaceHookCreatedEvent,
     NamespaceHookUpdatedEvent, NamespaceHookDeletedEvent, NamespaceHookRepositorySettings>
 {
+
+    protected override Expression<Func<NamespaceHook, NamespaceHookMetadata>> MetadataProjection =>
+        e => new NamespaceHookMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            NamespaceId = e.NamespaceId
+        };
     public NamespaceHookRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

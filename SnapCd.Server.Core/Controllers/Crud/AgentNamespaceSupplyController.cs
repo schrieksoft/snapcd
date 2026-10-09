@@ -16,6 +16,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.AgentSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -26,10 +28,11 @@ public static class AgentNamespaceSupplyCustomEndpointNames
 
 [Route(ControllerEndpoints.AgentNamespaceSupply)]
 public class AgentNamespaceSupplyController : GenericCrudController<
-    AgentNamespaceSupply,
+    AgentNamespaceSupply, AgentNamespaceSupplyMetadata,
     AgentNamespaceSupplyCreateDto,
     AgentNamespaceSupplyUpdateDto,
     AgentNamespaceSupplyReadDto,
+    AgentNamespaceSupplyMetadataReadDto,
     AgentNamespaceSupplySecuredRepository,
     AgentNamespaceSupplyRepository,
     AgentNamespaceSupplyService,

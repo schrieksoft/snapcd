@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -34,10 +37,19 @@ public class RunnerConnectionRepositoryFactory(
     }
 }
 
-public class RunnerConnectionRepository : GenericOrganizationChildRepository<RunnerConnection, RunnerConnectionReadDto,
+public class RunnerConnectionRepository : GenericOrganizationChildRepository<RunnerConnection, RunnerConnectionReadDto, RunnerConnectionMetadata,
     RunnerConnectionCreatedEvent, RunnerConnectionUpdatedEvent, RunnerConnectionDeletedEvent,
     RunnerConnectionRepositorySettings>
 {
+
+    protected override Expression<Func<RunnerConnection, RunnerConnectionMetadata>> MetadataProjection =>
+        e => new RunnerConnectionMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            RunnerId = e.RunnerId,
+            ServerInstanceId = e.ServerInstanceId
+        };
     public RunnerConnectionRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

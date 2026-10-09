@@ -8,6 +8,8 @@
 
 using SnapCd.Contracts.Dto.Stacks;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -31,6 +33,15 @@ public static class StackMapper
             Id = entity.Id,
             Name = entity.Name,
             TriggerBehaviourOnModified = entity.TriggerBehaviourOnModified
+        };
+    }
+
+    public static StackMetadataReadDto ToMetadataDto(StackMetadata view)
+    {
+        return new StackMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
         };
     }
 

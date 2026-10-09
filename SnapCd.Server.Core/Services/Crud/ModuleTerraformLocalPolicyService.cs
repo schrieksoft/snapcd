@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleTerraformLocalPolicyService : GenericCrudService<ModuleTerraformLocalPolicy, ModuleTerraformLocalPolicyCreateDto, ModuleTerraformLocalPolicyUpdateDto, ModuleTerraformLocalPolicyReadDto,
+public class ModuleTerraformLocalPolicyService : GenericCrudService<ModuleTerraformLocalPolicy, ModuleTerraformLocalPolicyMetadata, ModuleTerraformLocalPolicyCreateDto, ModuleTerraformLocalPolicyUpdateDto, ModuleTerraformLocalPolicyReadDto, ModuleTerraformLocalPolicyMetadataReadDto,
     ModuleTerraformLocalPolicySecuredRepository, ModuleTerraformLocalPolicyRepository, ModuleTerraformLocalPolicyCreatedEvent,
     ModuleTerraformLocalPolicyUpdatedEvent, ModuleTerraformLocalPolicyDeletedEvent, ModuleTerraformLocalPolicyRepositorySettings>
 {
@@ -37,6 +39,11 @@ public class ModuleTerraformLocalPolicyService : GenericCrudService<ModuleTerraf
         return ModuleTerraformLocalPolicyMapper.ToDto(entity);
     }
 
+    protected override ModuleTerraformLocalPolicyMetadataReadDto MapToMetadataDto(ModuleTerraformLocalPolicyMetadata view)
+    {
+        return ModuleTerraformLocalPolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(ModuleTerraformLocalPolicy entity, ModuleTerraformLocalPolicyUpdateDto dto)
     {
         ModuleTerraformLocalPolicyMapper.UpdateEntity(entity, dto);
@@ -46,5 +53,11 @@ public class ModuleTerraformLocalPolicyService : GenericCrudService<ModuleTerraf
     {
         var entity = await SecuredRepository.Get(moduleId, name, organizationId);
         return ModuleTerraformLocalPolicyMapper.ToDto(entity);
+    }
+
+    public async Task<ModuleTerraformLocalPolicyMetadataReadDto> GetMetadata(Guid moduleId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(moduleId, name, organizationId);
+        return ModuleTerraformLocalPolicyMapper.ToMetadataDto(view);
     }
 }

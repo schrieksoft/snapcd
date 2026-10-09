@@ -14,14 +14,17 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class ModuleIntegrationEventService : GenericCrudService<
-    ModuleIntegrationEvent,
+    ModuleIntegrationEvent, ModuleIntegrationEventMetadata,
     ModuleIntegrationEventCreateDto,
     ModuleIntegrationEventUpdateDto,
     ModuleIntegrationEventReadDto,
+    ModuleIntegrationEventMetadataReadDto,
     ModuleIntegrationEventSecuredRepository,
     ModuleIntegrationEventRepository,
     ModuleIntegrationEventCreatedEvent,
@@ -43,6 +46,11 @@ public class ModuleIntegrationEventService : GenericCrudService<
     protected override ModuleIntegrationEventReadDto MapToDto(ModuleIntegrationEvent entity)
     {
         return ModuleIntegrationEventMapper.ToDto(entity);
+    }
+
+    protected override ModuleIntegrationEventMetadataReadDto MapToMetadataDto(ModuleIntegrationEventMetadata view)
+    {
+        return ModuleIntegrationEventMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ModuleIntegrationEvent entity, ModuleIntegrationEventUpdateDto dto)

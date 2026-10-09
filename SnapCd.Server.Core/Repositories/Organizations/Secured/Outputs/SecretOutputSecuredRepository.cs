@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
@@ -50,7 +51,8 @@ public class SecretOutputSecuredRepository : OutputSecuredRepository
         var secret = await Repository.GetByName(name, include);
 
         if (!CanRead(secret.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to SecretOutput {secret.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(SecretOutput)} with ID {secret.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return secret;
     }
@@ -61,7 +63,8 @@ public class SecretOutputSecuredRepository : OutputSecuredRepository
 
         foreach (var secret in secrets)
             if (!CanRead(secret.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to SecretOutput {secret.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(SecretOutput)} with ID {secret.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return secrets;
     }

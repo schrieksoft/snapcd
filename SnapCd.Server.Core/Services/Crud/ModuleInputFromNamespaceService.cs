@@ -15,14 +15,19 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Services.Crud.Interfaces;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class ModuleInputFromNamespaceService<TEntity> : GenericCrudService<
     TEntity,
+    ModuleInputFromNamespaceMetadata,
     ModuleInputFromNamespaceCreateDto,
     ModuleInputFromNamespaceUpdateDto,
     ModuleInputFromNamespaceReadDto,
+    ModuleInputFromNamespaceMetadataReadDto,
     ModuleInputFromNamespaceSecuredRepository<TEntity>,
     ModuleInputFromNamespaceRepository<TEntity>,
     ModuleInputFromNamespaceCreatedEvent,
@@ -45,6 +50,11 @@ public class ModuleInputFromNamespaceService<TEntity> : GenericCrudService<
     protected override ModuleInputFromNamespaceReadDto MapToDto(TEntity entity)
     {
         return ModuleInputFromNamespaceMapper.ToDto(entity);
+    }
+
+    protected override ModuleInputFromNamespaceMetadataReadDto MapToMetadataDto(ModuleInputFromNamespaceMetadata view)
+    {
+        return ModuleInputFromNamespaceMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(TEntity entity, ModuleInputFromNamespaceUpdateDto dto)

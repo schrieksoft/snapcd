@@ -31,7 +31,13 @@
                 Are you sure you want to delete namespace "@(Namespace.Name)"?
             </MudText>
 
-            @if (!_canDelete)
+            @if (!_hasDeletePermission)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    You do not have permission to delete this namespace.
+                </MudAlert>
+            }
+            else if (!_canDelete)
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">
                     <strong>Cannot delete this namespace!</strong> Modules within this namespace have external
@@ -91,41 +97,52 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Delete"
-                   Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
-                   StartIcon="@SnapCdIcons.Delete">
-            @if (_isDeleting)
-            {
-                @:Deleting...
-            }
-            else if (!_dependencyCheckCompleted)
-            {
-                @:Delete
-            }
-            else if (!_canDelete)
-            {
-                @:Cannot Delete
-            }
-            else
-            {
-                @:Delete
-            }
-        </MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Cancel"
-                   Disabled="@_isDeleting">
-            Cancel
-        </MudButton>
+        <MudTooltip Text="@ActionDisabledReason" Disabled="@(ActionDisabledReason is null)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Delete"
+                       Disabled="@(!_dependencyCheckCompleted || !_hasDeletePermission || !_canDelete || _isDeleting)"
+                       StartIcon="@SnapCdIcons.Delete">
+                @if (_isDeleting)
+                {
+                    @:Deleting...
+                }
+                else if (!_dependencyCheckCompleted)
+                {
+                    @:Delete
+                }
+                else if (!_canDelete)
+                {
+                    @:Cannot Delete
+                }
+                else
+                {
+                    @:Delete
+                }
+            </MudButton>
+        </MudTooltip>
+        <MudTooltip Text="The delete is already under way and cannot be called off here." Disabled="@(!_isDeleting)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Cancel"
+                       Disabled="@_isDeleting">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 
 
 @code {
+    private string? ActionDisabledReason =>
+        !_hasDeletePermission ? "You do not have permission to delete this namespace."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
+        : !_canDelete ? "This namespace has external dependencies."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
+
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
@@ -142,11 +159,17 @@
     private bool _isDeleting;
     private bool _dependencyCheckCompleted;
     private bool _canDelete;
+    private bool _hasDeletePermission;
     private List<string> _externalDependencies = new();
     private List<string> _internalDependencies = new();
 
     protected override async Task OnInitializedAsync()
     {
+        using (var permissionRepo = NamespaceRepoFactory.Create())
+        {
+            _hasDeletePermission = permissionRepo.CanDelete(Namespace.Id, OrganizationId);
+        }
+
         // Start dependency check immediately
         await CheckDependencies();
     }
@@ -257,6 +280,7 @@
             _internalDependencies.Add("Associated namespace configurations and secrets");
 
             _canDelete = !_externalDependencies.Any();
+
             _dependencyCheckCompleted = true;
             StateHasChanged();
         }

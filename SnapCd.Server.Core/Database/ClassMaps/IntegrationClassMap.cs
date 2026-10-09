@@ -16,6 +16,10 @@ public class IntegrationClassMap : IEntityTypeConfiguration<Integration>
 {
     public void Configure(EntityTypeBuilder<Integration> entity)
     {
+        // A trigger derives metadata-read entitlement from this table, and SQL Server
+        // rejects an OUTPUT clause on any table that has one.
+        entity.ToTable(t => t.UseSqlOutputClause(false));
+
         entity.HasKey(e => new { e.Id, e.OrganizationId });
         entity.HasIndex(e => e.Id).IsUnique();
 

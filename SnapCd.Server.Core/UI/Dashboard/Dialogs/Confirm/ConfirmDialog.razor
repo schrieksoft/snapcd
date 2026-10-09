@@ -11,8 +11,12 @@
 
 <MudDialog>
     <DialogContent>
+        @if (RefusalReason is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@RefusalReason</MudAlert>
+        }
         <MudText>@ContentText</MudText>
-        @if (RequireConfirmation)
+        @if (RequireConfirmation && RefusalReason is null)
         {
             <MudTextField @bind-Value="userInput" Label="Type to confirm" Variant="Variant.Outlined"
                           Immediate="true" Class="mt-4" FullWidth="true" />
@@ -25,23 +29,36 @@
                    OnClick="Cancel">
             Cancel
         </MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Submit"
-                   Disabled="@(RequireConfirmation && userInput != ConfirmationText)">
-            @ButtonText
-        </MudButton>
+        @if (RefusalReason is null)
+        {
+            <MudTooltip Text="@SubmitDisabledReason" Disabled="@(SubmitDisabledReason is null)">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           OnClick="Submit"
+                           Disabled="@(RequireConfirmation && userInput != ConfirmationText)">
+                    @ButtonText
+                </MudButton>
+            </MudTooltip>
+        }
     </DialogActions>
 </MudDialog>
 
 @code {
+    private string? SubmitDisabledReason =>
+        RequireConfirmation && userInput != ConfirmationText
+            ? $"Type \"{ConfirmationText}\" to confirm."
+            : null;
+
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter] public string ContentText { get; set; } = "";
     [Parameter] public string ButtonText { get; set; } = "Confirm";
     [Parameter] public bool RequireConfirmation { get; set; } = false;
     [Parameter] public string ConfirmationText { get; set; } = "";
+
+    /// <summary>Set to explain why the action will be refused. The action button is then not offered.</summary>
+    [Parameter] public string? RefusalReason { get; set; }
     
     private string userInput = "";
 

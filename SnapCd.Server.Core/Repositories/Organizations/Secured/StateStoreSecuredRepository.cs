@@ -23,6 +23,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -44,7 +47,7 @@ public class StateStoreSecuredRepositoryFactory(
 
 public class StateStoreSecuredRepository : GenericSecuredRepository<
     StateStore,
-    StateStoreReadDto,
+    StateStoreReadDto, StateStoreMetadata,
     StateStoreRepository,
     StateStoreCreatedEvent,
     StateStoreUpdatedEvent,
@@ -126,6 +129,16 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
             organizationId,
             ReadPermissionMap.OrganizationRoles,
             ReadPermissionMap.StateStoreRoles);
+    }
+
+    /// <summary>No metadata roles are declared for this entity, so this is empty
+    /// until one is: identifying a row is not something anyone may do by default.</summary>
+    public override IQueryable<StateStore> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StateStoreRoles);
     }
 
     public override IQueryable<StateStore> UpdateQuery(Guid organizationId)
@@ -324,6 +337,13 @@ public class StateStoreSecuredRepository : GenericSecuredRepository<
 
         return entity;
     }
+
+        public Task<StateStoreMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 
     #endregion
 }

@@ -32,7 +32,13 @@
                 Are you sure you want to delete module "@Module.Name"?
             </MudText>
 
-            @if (!_canDelete)
+            @if (!_hasDeletePermission)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    You do not have permission to delete this module.
+                </MudAlert>
+            }
+            else if (!_canDelete)
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">
                     <strong>Cannot delete this module!</strong> It has external dependencies.
@@ -90,41 +96,52 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Delete"
-                   Disabled="@(!_dependencyCheckCompleted || !_canDelete || _isDeleting)"
-                   StartIcon="@SnapCdIcons.Delete">
-            @if (_isDeleting)
-            {
-                @:Deleting...
-            }
-            else if (!_dependencyCheckCompleted)
-            {
-                @:Delete
-            }
-            else if (!_canDelete)
-            {
-                @:Cannot Delete
-            }
-            else
-            {
-                @:Delete
-            }
-        </MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Cancel"
-                   Disabled="@_isDeleting">
-            Cancel
-        </MudButton>
+        <MudTooltip Text="@ActionDisabledReason" Disabled="@(ActionDisabledReason is null)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Delete"
+                       Disabled="@(!_dependencyCheckCompleted || !_hasDeletePermission || !_canDelete || _isDeleting)"
+                       StartIcon="@SnapCdIcons.Delete">
+                @if (_isDeleting)
+                {
+                    @:Deleting...
+                }
+                else if (!_dependencyCheckCompleted)
+                {
+                    @:Delete
+                }
+                else if (!_canDelete)
+                {
+                    @:Cannot Delete
+                }
+                else
+                {
+                    @:Delete
+                }
+            </MudButton>
+        </MudTooltip>
+        <MudTooltip Text="The delete is already under way and cannot be called off here." Disabled="@(!_isDeleting)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Cancel"
+                       Disabled="@_isDeleting">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 
 
 @code {
+    private string? ActionDisabledReason =>
+        !_hasDeletePermission ? "You do not have permission to delete this module."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
+        : !_canDelete ? "This module has external dependencies."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
+
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputRepoFactory { get; set; } = null!;
@@ -140,11 +157,17 @@
     private bool _isDeleting;
     private bool _dependencyCheckCompleted;
     private bool _canDelete;
+    private bool _hasDeletePermission;
     private List<string> _externalDependencies = new();
     private List<string> _internalDependencies = new();
 
     protected override async Task OnInitializedAsync()
     {
+        using (var permissionRepo = ModuleRepoFactory.Create())
+        {
+            _hasDeletePermission = permissionRepo.CanDelete(Module.Id, OrganizationId);
+        }
+
         // Start dependency check immediately
         await CheckDependencies();
     }
@@ -230,6 +253,7 @@
             _internalDependencies.Add("Associated module inputs and configurations");
 
             _canDelete = !_externalDependencies.Any();
+
             _dependencyCheckCompleted = true;
             StateHasChanged();
         }

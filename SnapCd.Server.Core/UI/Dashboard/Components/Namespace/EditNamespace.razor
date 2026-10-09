@@ -16,7 +16,12 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Licensing
 @implements IDisposable
 
-<MudForm @ref="_form">
+<MudForm @ref="_form" ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
     <MudGrid>
             <!-- Read-only IDs -->
             <MudItem md="12">
@@ -30,14 +35,14 @@
 
             <!-- Core Properties -->
             <MudItem md="12">
-                <MudTextField Label="Name" @bind-Value="Namespace.Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Name" @bind-Value="Namespace.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
                               MaxLength="255" Counter="255"
                               Validation="@((string s) => NameValidator.Validate(s, "Namespace"))"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSelect T="StateManagementEngine?" Label="Default Engine" @bind-Value="Namespace.DefaultEngine"
+                <MudSelect Disabled="@(!_canSave)" T="StateManagementEngine?" Label="Default Engine" @bind-Value="Namespace.DefaultEngine"
                            Variant="Variant.Outlined">
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Default (OpenTofu)</MudSelectItem>
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
@@ -84,7 +89,7 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField T="int?" Label="Default Drift Check Interval Minutes"
+                <MudTextField Disabled="@(!_canSave)" T="int?" Label="Default Drift Check Interval Minutes"
                               @bind-Value="Namespace.DefaultDriftCheckIntervalMinutes"
                               Variant="Variant.Outlined"/>
             </MudItem>
@@ -304,13 +309,17 @@
 
             <!-- Action Buttons -->
             <MudItem md="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SaveNamespace" Size="Size.Small">Save</MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!_canSave)" OnClick="SaveNamespace" Size="Size.Small">Save</MudButton>
+                </MudTooltip>
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel" Size="Size.Small">Cancel</MudButton>
             </MudItem>
     </MudGrid>
 </MudForm>
 
 @code {
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
     [Parameter] public required Namespace Namespace { get; set; }
     [Parameter] public required EventCallback OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
@@ -319,6 +328,15 @@
 
 
     // Repository Factories
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = NamespaceSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canSave = repo.CanUpdate(Namespace.Id, OrganizationId);
+    }
+
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
     [Inject] private NamespaceInputFromDefinitionSecuredRepositoryFactory<NamespaceParamFromDefinition> NamespaceParamFromDefinitionSecuredRepositoryFactory { get; set; } = null!;
@@ -355,6 +373,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        ResolveCanSave();
 
 
     }

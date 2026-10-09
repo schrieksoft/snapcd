@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.RunnerStackSupplies;
 using SnapCd.Server.Core.Entities.Definition.RunnerSupplies;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class RunnerStackSupplyMapper
     {
         entity.StackId = dto.StackId;
         entity.RunnerId = dto.RunnerId;
+    }
+
+    public static RunnerStackSupplyMetadataReadDto ToMetadataDto(RunnerStackSupplyMetadata view)
+    {
+        return new RunnerStackSupplyMetadataReadDto
+        {
+            Id = view.Id,
+            RunnerId = view.RunnerId,
+            StackId = view.StackId,
+        };
     }
 }

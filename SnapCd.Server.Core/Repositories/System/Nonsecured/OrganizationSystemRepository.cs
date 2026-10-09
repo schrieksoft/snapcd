@@ -29,6 +29,9 @@ using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Nonsecured;
 
@@ -48,9 +51,17 @@ public class OrganizationRepositoryFactory(
     }
 }
 
-public class OrganizationSystemRepository : GenericSystemRepository<Organization, OrganizationReadDto, OrganizationCreatedEvent, OrganizationUpdatedEvent, OrganizationDeletedEvent,
+public class OrganizationSystemRepository : GenericSystemRepository<Organization, OrganizationReadDto, OrganizationMetadata, OrganizationCreatedEvent, OrganizationUpdatedEvent, OrganizationDeletedEvent,
     OrganizationRepositorySettings>
 {
+    protected override Expression<Func<Organization, OrganizationMetadata>> MetadataProjection =>
+        e => new OrganizationMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.Id,
+            Name = e.Name
+        };
+
     private readonly IUserQuotaProvider _userQuotaProvider;
     private readonly IOrganizationLimitPolicy _organizationLimitPolicy;
 

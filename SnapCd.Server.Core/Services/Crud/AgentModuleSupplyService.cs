@@ -14,14 +14,17 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.AgentSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class AgentModuleSupplyService : GenericCrudService<
-    AgentModuleSupply,
+    AgentModuleSupply, AgentModuleSupplyMetadata,
     AgentModuleSupplyCreateDto,
     AgentModuleSupplyUpdateDto,
     AgentModuleSupplyReadDto,
+    AgentModuleSupplyMetadataReadDto,
     AgentModuleSupplySecuredRepository,
     AgentModuleSupplyRepository,
     AgentModuleSupplyCreatedEvent,
@@ -43,6 +46,11 @@ public class AgentModuleSupplyService : GenericCrudService<
     protected override AgentModuleSupplyReadDto MapToDto(AgentModuleSupply entity)
     {
         return AgentModuleSupplyMapper.ToDto(entity);
+    }
+
+    protected override AgentModuleSupplyMetadataReadDto MapToMetadataDto(AgentModuleSupplyMetadata view)
+    {
+        return AgentModuleSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(AgentModuleSupply entity, AgentModuleSupplyUpdateDto dto)

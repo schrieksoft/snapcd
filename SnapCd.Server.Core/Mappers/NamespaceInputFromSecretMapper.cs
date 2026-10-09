@@ -9,6 +9,7 @@
 using SnapCd.Contracts.Dto.NamespaceInputs;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Entities.Interfaces;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -52,5 +53,16 @@ public static class NamespaceInputFromSecretMapper
         entity.UsageMode = dto.UsageMode;
         entity.Type = dto.Type;
         entity.SecretId = dto.SecretId;
+    }
+
+    public static NamespaceInputFromSecretMetadataReadDto ToMetadataDto(NamespaceInputFromSecretMetadata view)
+    {
+        return new NamespaceInputFromSecretMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            NamespaceId = view.NamespaceId,
+            SecretId = view.SecretId,
+        };
     }
 }

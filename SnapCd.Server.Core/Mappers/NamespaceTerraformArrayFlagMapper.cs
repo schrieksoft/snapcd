@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.NamespaceTerraformArrayFlags;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -44,5 +45,14 @@ public static class NamespaceTerraformArrayFlagMapper
         entity.Flag = dto.Flag;
         entity.Value = dto.Value;
         entity.NamespaceId = dto.NamespaceId;
+    }
+
+    public static NamespaceTerraformArrayFlagMetadataReadDto ToMetadataDto(NamespaceTerraformArrayFlagMetadata view)
+    {
+        return new NamespaceTerraformArrayFlagMetadataReadDto
+        {
+            Id = view.Id,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

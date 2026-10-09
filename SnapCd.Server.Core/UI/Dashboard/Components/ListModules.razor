@@ -8,11 +8,17 @@
 
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 @implements IDisposable
 
 @inject PersistentComponentState ApplicationState
 
 <div class="list-heading">Modules</div>
+
+@if (_paginatedModules.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mt-2">No modules yet, or you do not have permission to see any.</MudText>
+}
 
 <div class="module-list">
     @foreach (var module in _paginatedModules)
@@ -65,6 +71,7 @@
     [Parameter] public required string NamespaceName { get; set; }
     [Parameter] public required string StackName { get; set; }
     [Parameter] public List<string> SearchTerms { get; set; } = new();
+    [Parameter] public SearchScope SearchScope { get; set; } = SearchScope.Stack;
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
@@ -72,7 +79,7 @@
 
     [Inject] private ModuleSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
-    private List<TruncatedModule> _paginatedModules = new();
+    private List<ModuleMetadata> _paginatedModules = new();
     private int _currentPage = 1;
     private int _totalPages = 1;
     private const int PageSize = 20;
@@ -147,14 +154,13 @@
         }
 
         // Build query with search terms
-        if (SearchTerms.Any())
+        if (SearchTerms.Any() && SearchScope == SearchScope.Module)
         {
             // Get all modules and filter client-side for now since we need to count them
-            var allModules = await repo.List(OrganizationId,
+            var allModules = await repo.ListMetadata(OrganizationId,
                 q => q
                     .Where(m => m.NamespaceId == NamespaceId)
-                    .Where(m => SearchTerms.All(term => m.Name.Contains(term)))
-                    .Select(m => new TruncatedModule { Id = m.Id, Name = m.Name }),
+                    .Where(m => SearchTerms.All(term => m.Name.Contains(term))),
                 orderBy: q => q.OrderBy(m => m.Name)
             );
 
@@ -174,10 +180,8 @@
             var totalCount = await repo.Count(OrganizationId, q => q.Where(x => x.NamespaceId == NamespaceId));
             _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
 
-            var modules = await repo.List(OrganizationId,
-                q => q
-                    .Where(m => m.NamespaceId == NamespaceId)
-                    .Select(m => new TruncatedModule { Id = m.Id, Name = m.Name }),
+            var modules = await repo.ListMetadata(OrganizationId,
+                q => q.Where(m => m.NamespaceId == NamespaceId),
                 orderBy: q => q.OrderBy(m => m.Name),
                 pageNumber: _currentPage,
                 pageSize: PageSize
@@ -191,7 +195,7 @@
         // _persistenceSubscription.Dispose();
     }
 
-    public List<TruncatedModule> GetSelectedModules()
+    public List<ModuleMetadata> GetSelectedModules()
     {
         return _paginatedModules.Where(m => _selectedModules.Contains(m.Id)).ToList();
     }
@@ -242,7 +246,7 @@
     private class CachedModulesData
     {
         public Guid NamespaceId { get; set; }
-        public List<TruncatedModule> Modules { get; set; } = new();
+        public List<ModuleMetadata> Modules { get; set; } = new();
         public int CurrentPage { get; set; }
         public int TotalPages { get; set; }
     }

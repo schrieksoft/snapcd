@@ -11,6 +11,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 
 <MudDialog>
     <TitleContent>
@@ -33,7 +34,13 @@
                 Are you sure you want to delete @Modules.Count module(s) from namespace "@NamespaceName"?
             </MudText>
 
-            @if (!_canDeleteAll)
+            @if (!_hasDeletePermissionForAll)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    You do not have permission to delete all of the selected modules.
+                </MudAlert>
+            }
+            else if (!_canDeleteAll)
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">
                     <strong>Cannot delete all selected modules!</strong> Some modules have external dependencies.
@@ -134,40 +141,51 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Delete"
-                   Disabled="@(!_dependencyCheckCompleted || !_canDeleteAll || _isDeleting)"
-                   StartIcon="@SnapCdIcons.Delete">
-            @if (_isDeleting)
-            {
-                @:Deleting...
-            }
-            else if (!_dependencyCheckCompleted)
-            {
-                @:Delete All
-            }
-            else if (!_canDeleteAll)
-            {
-                @:Cannot Delete
-            }
-            else
-            {
-                @:Delete All
-            }
-        </MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Cancel"
-                   Disabled="@_isDeleting">
-            Cancel
-        </MudButton>
+        <MudTooltip Text="@ActionDisabledReason" Disabled="@(ActionDisabledReason is null)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Delete"
+                       Disabled="@(!_dependencyCheckCompleted || !_hasDeletePermissionForAll || !_canDeleteAll || _isDeleting)"
+                       StartIcon="@SnapCdIcons.Delete">
+                @if (_isDeleting)
+                {
+                    @:Deleting...
+                }
+                else if (!_dependencyCheckCompleted)
+                {
+                    @:Delete All
+                }
+                else if (!_canDeleteAll)
+                {
+                    @:Cannot Delete
+                }
+                else
+                {
+                    @:Delete All
+                }
+            </MudButton>
+        </MudTooltip>
+        <MudTooltip Text="The delete is already under way and cannot be called off here." Disabled="@(!_isDeleting)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Cancel"
+                       Disabled="@_isDeleting">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 
 @code {
+    private string? ActionDisabledReason =>
+        !_hasDeletePermissionForAll ? "You do not have permission to delete all of these modules."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
+        : !_canDeleteAll ? "Some of these modules have external dependencies."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
+
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleEnvVarFromOutput> ModuleEnvVarFromOutputRepoFactory { get; set; } = null!;
@@ -178,19 +196,20 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 
-    [Parameter] public required List<TruncatedModule> Modules { get; set; }
+    [Parameter] public required List<ModuleMetadata> Modules { get; set; }
     [Parameter] public required string NamespaceName { get; set; }
 
     private bool _isDeleting;
     private bool _dependencyCheckCompleted;
     private bool _canDeleteAll;
+    private bool _hasDeletePermissionForAll;
     private int _currentIndex;
     private double _progress => Modules.Count > 0 ? _currentIndex * 100.0 / Modules.Count : 0;
     private List<ModuleStatus> _moduleStatuses = new();
 
     private class ModuleStatus
     {
-        public TruncatedModule Module { get; set; } = null!;
+        public ModuleMetadata Module { get; set; } = null!;
         public bool CanDelete { get; set; }
         public string Reason { get; set; } = string.Empty;
         public int DeletionOrder { get; set; }
@@ -201,6 +220,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using (var permissionRepo = ModuleRepoFactory.Create())
+        {
+            _hasDeletePermissionForAll = Modules.All(x => permissionRepo.CanDelete(x.Id, OrganizationId));
+        }
+
         // Start dependency check immediately
         await CheckDependencies();
     }

@@ -10,6 +10,7 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 
 <MudDialog>
     <TitleContent>
@@ -32,7 +33,13 @@
                 Are you sure you want to delete @Namespaces.Count namespace(s) from stack "@StackName"?
             </MudText>
 
-            @if (!_canDeleteAll)
+            @if (!_hasDeletePermissionForAll)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    You do not have permission to delete all of the selected namespaces.
+                </MudAlert>
+            }
+            else if (!_canDeleteAll)
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">
                     <strong>Cannot delete all selected namespaces!</strong> Some namespaces contain modules with
@@ -136,40 +143,51 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Delete"
-                   Disabled="@(!_dependencyCheckCompleted || !_canDeleteAll || _isDeleting)"
-                   StartIcon="@SnapCdIcons.Delete">
-            @if (_isDeleting)
-            {
-                @:Deleting...
-            }
-            else if (!_dependencyCheckCompleted)
-            {
-                @:Delete All
-            }
-            else if (!_canDeleteAll)
-            {
-                @:Cannot Delete
-            }
-            else
-            {
-                @:Delete All
-            }
-        </MudButton>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="Cancel"
-                   Disabled="@_isDeleting">
-            Cancel
-        </MudButton>
+        <MudTooltip Text="@ActionDisabledReason" Disabled="@(ActionDisabledReason is null)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Delete"
+                       Disabled="@(!_dependencyCheckCompleted || !_hasDeletePermissionForAll || !_canDeleteAll || _isDeleting)"
+                       StartIcon="@SnapCdIcons.Delete">
+                @if (_isDeleting)
+                {
+                    @:Deleting...
+                }
+                else if (!_dependencyCheckCompleted)
+                {
+                    @:Delete All
+                }
+                else if (!_canDeleteAll)
+                {
+                    @:Cannot Delete
+                }
+                else
+                {
+                    @:Delete All
+                }
+            </MudButton>
+        </MudTooltip>
+        <MudTooltip Text="The delete is already under way and cannot be called off here." Disabled="@(!_isDeleting)">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="Cancel"
+                       Disabled="@_isDeleting">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 
 @code {
+    private string? ActionDisabledReason =>
+        !_hasDeletePermissionForAll ? "You do not have permission to delete all of these namespaces."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
+        : !_canDeleteAll ? "Some of these namespaces have external dependencies."
+        : _isDeleting ? "A delete is already in progress."
+        : null;
+
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private ModuleInputFromOutputSecuredRepositoryFactory<ModuleParamFromOutput> ModuleParamFromOutputRepoFactory { get; set; } = null!;
@@ -181,19 +199,20 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 
-    [Parameter] public required List<TruncatedNamespace> Namespaces { get; set; }
+    [Parameter] public required List<NamespaceMetadata> Namespaces { get; set; }
     [Parameter] public required string StackName { get; set; }
 
     private bool _isDeleting;
     private bool _dependencyCheckCompleted;
     private bool _canDeleteAll;
+    private bool _hasDeletePermissionForAll;
     private int _currentIndex;
     private double _progress => _namespaceStatuses.Count(n => n.CanDelete) > 0 ? _currentIndex * 100.0 / _namespaceStatuses.Count(n => n.CanDelete) : 0;
     private List<NamespaceStatus> _namespaceStatuses = new();
 
     private class NamespaceStatus
     {
-        public TruncatedNamespace Namespace { get; set; } = null!;
+        public NamespaceMetadata Namespace { get; set; } = null!;
         public bool CanDelete { get; set; }
         public string Reason { get; set; } = string.Empty;
         public int DeletionOrder { get; set; }
@@ -204,6 +223,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using (var permissionRepo = NamespaceRepoFactory.Create())
+        {
+            _hasDeletePermissionForAll = Namespaces.All(x => permissionRepo.CanDelete(x.Id, OrganizationId));
+        }
+
         // Start dependency check immediately
         await CheckDependencies();
     }

@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 
@@ -50,6 +53,7 @@ public class SecretSecuredRepositoryFactory(
 public class SecretSecuredRepository : GenericSecuredRepository<
     Secret,
     SecretDto,
+    SecretMetadata,
     SecretRepository,
     SecretCreatedEvent,
     SecretUpdatedEvent,
@@ -107,6 +111,19 @@ public class SecretSecuredRepository : GenericSecuredRepository<
     }
 
     public override IQueryable<Secret> ReadQuery(Guid organizationId)
+    {
+        var stackSecrets = _stackSecuredRepository.ReadQuery(organizationId).Cast<Secret>();
+        var namespaceSecrets = _namespaceSecuredRepository.ReadQuery(organizationId).Cast<Secret>();
+        var moduleSecrets = _moduleSecuredRepository.ReadQuery(organizationId).Cast<Secret>();
+
+        return stackSecrets
+            .Concat(namespaceSecrets)
+            .Concat(moduleSecrets);
+    }
+
+    /// <summary>No metadata roles are declared for this entity, so this is empty
+    /// until one is: identifying a row is not something anyone may do by default.</summary>
+    public override IQueryable<Secret> ReadMetadataQuery(Guid organizationId)
     {
         var stackSecrets = _stackSecuredRepository.ReadQuery(organizationId).Cast<Secret>();
         var namespaceSecrets = _namespaceSecuredRepository.ReadQuery(organizationId).Cast<Secret>();

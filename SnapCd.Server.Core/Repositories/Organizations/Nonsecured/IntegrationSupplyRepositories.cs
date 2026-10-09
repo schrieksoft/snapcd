@@ -20,6 +20,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,10 +35,19 @@ public class IntegrationModuleSupplyRepositoryFactory(
 
 public class IntegrationModuleSupplyRepository(
     SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationModuleSupplyRepositorySettings> options)
-    : GenericIntegrationChildRepository<IntegrationModuleSupply, IntegrationModuleSupplyReadDto,
+    : GenericIntegrationChildRepository<IntegrationModuleSupply, IntegrationModuleSupplyReadDto, IntegrationModuleSupplyMetadata,
         IntegrationModuleSupplyCreatedEvent, IntegrationModuleSupplyUpdatedEvent, IntegrationModuleSupplyDeletedEvent,
         IntegrationModuleSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
+
+    protected override Expression<Func<IntegrationModuleSupply, IntegrationModuleSupplyMetadata>> MetadataProjection =>
+        e => new IntegrationModuleSupplyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            ModuleId = e.ModuleId
+        };
     protected override IntegrationModuleSupplyReadDto MapToDto(IntegrationModuleSupply entity)
         => IntegrationModuleSupplyMapper.ToDto(entity);
 }
@@ -49,10 +61,19 @@ public class IntegrationNamespaceSupplyRepositoryFactory(
 
 public class IntegrationNamespaceSupplyRepository(
     SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationNamespaceSupplyRepositorySettings> options)
-    : GenericIntegrationChildRepository<IntegrationNamespaceSupply, IntegrationNamespaceSupplyReadDto,
+    : GenericIntegrationChildRepository<IntegrationNamespaceSupply, IntegrationNamespaceSupplyReadDto, IntegrationNamespaceSupplyMetadata,
         IntegrationNamespaceSupplyCreatedEvent, IntegrationNamespaceSupplyUpdatedEvent, IntegrationNamespaceSupplyDeletedEvent,
         IntegrationNamespaceSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
+    protected override Expression<Func<IntegrationNamespaceSupply, IntegrationNamespaceSupplyMetadata>> MetadataProjection =>
+        e => new IntegrationNamespaceSupplyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            NamespaceId = e.NamespaceId
+        };
+
     protected override IntegrationNamespaceSupplyReadDto MapToDto(IntegrationNamespaceSupply entity)
         => IntegrationNamespaceSupplyMapper.ToDto(entity);
 }
@@ -66,10 +87,19 @@ public class IntegrationStackSupplyRepositoryFactory(
 
 public class IntegrationStackSupplyRepository(
     SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationStackSupplyRepositorySettings> options)
-    : GenericIntegrationChildRepository<IntegrationStackSupply, IntegrationStackSupplyReadDto,
+    : GenericIntegrationChildRepository<IntegrationStackSupply, IntegrationStackSupplyReadDto, IntegrationStackSupplyMetadata,
         IntegrationStackSupplyCreatedEvent, IntegrationStackSupplyUpdatedEvent, IntegrationStackSupplyDeletedEvent,
         IntegrationStackSupplyRepositorySettings>(dbContext, principalProvider, bus, options)
 {
+    protected override Expression<Func<IntegrationStackSupply, IntegrationStackSupplyMetadata>> MetadataProjection =>
+        e => new IntegrationStackSupplyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            StackId = e.StackId
+        };
+
     protected override IntegrationStackSupplyReadDto MapToDto(IntegrationStackSupply entity)
         => IntegrationStackSupplyMapper.ToDto(entity);
 }

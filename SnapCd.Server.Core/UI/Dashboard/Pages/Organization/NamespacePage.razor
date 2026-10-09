@@ -30,6 +30,7 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Module
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Modules
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.ModuleJobs
+@using SnapCd.Server.Core.Views.Metadata
 
 @implements IDisposable
 
@@ -179,6 +180,7 @@
                                  StackName="@StackName"
                                  NamespaceName="@NamespaceName"
                                  SearchTerms="@_searchTerms"
+                                 SearchScope="@_searchScope"
                                  ShowCheckboxes="@_showSelectionMode"
                                  SelectAll="@_selectAllModules"
                                  OnSelectionChanged="@HandleModuleSelectionChanged"/>
@@ -232,8 +234,9 @@
                             @foreach (var module in _modulesToApply)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
@@ -255,8 +258,9 @@
                             @foreach (var module in _alreadyAppliedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
@@ -285,8 +289,9 @@
                             @foreach (var module in _externalModulesToApply)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to apply this module">
@@ -302,27 +307,30 @@
                     <MudDivider Class="my-4"/>
 
                     <MudStack Row>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="ExecuteApply"
-                                   Disabled="@_isApplying">
-                            @if (_isApplying)
-                            {
-                                @:Applying...
-                            }
-                            else
-                            {
-                                var involvedCount = _modulesToApply.Count + (_applyExternalModules ? _externalModulesToApply.Count : 0);
-                                @:Apply All (@involvedCount modules)
-                            }
-                        </MudButton>
+                        <MudTooltip Text="@(_runnableApplyCount > 0 ? null : "You do not have permission to run jobs on any of these modules.")" Disabled="@(_runnableApplyCount > 0)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="ExecuteApply"
+                                       Disabled="@(_isApplying || _runnableApplyCount == 0)">
+                                @if (_isApplying)
+                                {
+                                    @:Applying...
+                                }
+                                else
+                                {
+                                    @:Apply All (@_runnableApplyCount modules)
+                                }
+                            </MudButton>
+                        </MudTooltip>
 
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   OnClick="CancelApply"
-                                   Disabled="@_isApplying">
-                            Cancel
-                        </MudButton>
+                        <MudTooltip Text="The apply is already under way and cannot be called off here." Disabled="@(!_isApplying)">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       OnClick="CancelApply"
+                                       Disabled="@_isApplying">
+                                Cancel
+                            </MudButton>
+                        </MudTooltip>
                     </MudStack>
                 }
 
@@ -339,8 +347,9 @@
                             @foreach (var module in _alreadyDestroyedModules)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
@@ -362,8 +371,9 @@
                             @foreach (var module in _modulesToDestroy)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
@@ -392,8 +402,9 @@
                             @foreach (var module in _dependentModulesToDestroy)
                             {
                                 <div class="d-flex align-center gap-2">
-                                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled"
-                                             Size="Size.Medium">@module.DisplayName</MudChip>
+                                    <MudLink Href="@($"/Module/{module.DisplayName}")" Underline="Underline.Hover">
+                                        @($"{module.NamespaceName}/{module.ModuleName}")
+                                    </MudLink>
                                     @if (!_modulePermissions.GetValueOrDefault(module.ModuleId, false))
                                     {
                                         <MudTooltip Text="You do not have permission to destroy this module">
@@ -434,27 +445,30 @@
                     }
 
                     <MudStack Row>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="ExecuteDestroy"
-                                   Disabled="@_isDestroying">
-                            @if (_isDestroying)
-                            {
-                                @:Destroying...
-                            }
-                            else
-                            {
-                                var involvedCount = _modulesToDestroy.Count + (_destroyDependentModules ? _dependentModulesToDestroy.Count : 0);
-                                @:Destroy All (@involvedCount modules)
-                            }
-                        </MudButton>
+                        <MudTooltip Text="@(_runnableDestroyCount > 0 ? null : "You do not have permission to run jobs on any of these modules.")" Disabled="@(_runnableDestroyCount > 0)">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="ExecuteDestroy"
+                                       Disabled="@(_isDestroying || _runnableDestroyCount == 0)">
+                                @if (_isDestroying)
+                                {
+                                    @:Destroying...
+                                }
+                                else
+                                {
+                                    @:Destroy All (@_runnableDestroyCount modules)
+                                }
+                            </MudButton>
+                        </MudTooltip>
 
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                   OnClick="CancelDestroy"
-                                   Disabled="@_isDestroying">
-                            Cancel
-                        </MudButton>
+                        <MudTooltip Text="The destroy is already under way and cannot be called off here." Disabled="@(!_isDestroying)">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                       OnClick="CancelDestroy"
+                                       Disabled="@_isDestroying">
+                                Cancel
+                            </MudButton>
+                        </MudTooltip>
                     </MudStack>
                 }
             </MudPaper>
@@ -488,8 +502,8 @@
     [SupplyParameterFromQuery] public string? Section { get; set; }
     [Inject] private NamespaceSecuredRepositoryFactory RepoFactory { get; set; } = null!;
 
-    private Namespace _namespace = null!;
-    private TruncatedNamespace? _truncatedNamespace;
+    private NamespaceMetadata _namespace = null!;
+    private NamespaceMetadata? _truncatedNamespace;
     private string _parentQuery = "";
     private ShowingType _showing = ShowingType.None;
 
@@ -498,12 +512,18 @@
     // does not re-run — we reload in OnParametersSetAsync whenever this changes.
     private string? _loadedNamespaceKey;
 
-    private readonly List<TabBar.TabBarItem> _tabs =
+    // Configuration is the only tab needing read on the resource itself. Metadata read is enough
+    // to reach this page and use everything else on it.
+    private List<TabBar.TabBarItem> _tabs =>
     [
         new() { Key = nameof(ShowingType.Modules), Label = "Modules" },
         new() { Key = nameof(ShowingType.DependencyGraph), Label = "Dependencies" },
-        new() { Key = nameof(ShowingType.Configure), Label = "Configuration" }
+        .. _canReadForConfiguration
+            ? new[] { new TabBar.TabBarItem { Key = nameof(ShowingType.Configure), Label = "Configuration" } }
+            : []
     ];
+
+    private bool _canReadForConfiguration;
     private string? _configureSection;
     private Guid _principalId;
     private PrincipalDiscriminator _principalDiscriminator;
@@ -517,6 +537,7 @@
     private bool _showModuleSearch;
     private string _searchInput = string.Empty;
     private List<string> _searchTerms = new();
+    private SearchScope _searchScope = SearchScope.Module;
     private bool _selectAllModules;
     private HashSet<Guid> _selectedModules = new();
     private bool _showSelectionMode;
@@ -539,6 +560,14 @@
     private List<DependencyGraphNodeStateDto> _externalDependentModulesForApply = new(); // ModuleB - always uninvolved in apply
     private List<DependencyGraphNodeStateDto> _externalPrerequisiteModulesForDestroy = new(); // ModuleA - always uninvolved in destroy
     private Dictionary<Guid, bool> _modulePermissions = new();
+
+    private int _runnableApplyCount => _modulesToApply
+        .Concat(_applyExternalModules ? _externalModulesToApply : [])
+        .Count(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false));
+
+    private int _runnableDestroyCount => _modulesToDestroy
+        .Concat(_destroyDependentModules ? _dependentModulesToDestroy : [])
+        .Count(m => _modulePermissions.GetValueOrDefault(m.ModuleId, false));
 
     protected override async Task OnInitializedAsync()
     {
@@ -591,7 +620,8 @@
         using var repo = RepoFactory.Create();
         try
         {
-            _namespace = await repo.Get(StackName, NamespaceName, OrganizationId);
+            _namespace = await repo.GetMetadata(StackName, NamespaceName, OrganizationId);
+            _canReadForConfiguration = repo.CanRead(_namespace.Id, OrganizationId);
         }
         catch (EntityNotFoundException)
         {
@@ -600,12 +630,7 @@
             return;
         }
 
-        _truncatedNamespace = new TruncatedNamespace
-        {
-            Id = _namespace.Id,
-            Name = _namespace.Name,
-            Modules = new List<TruncatedModule>()
-        };
+        _truncatedNamespace = _namespace;
 
         _loadedNamespaceKey = NamespaceKey;
 
@@ -615,7 +640,7 @@
         //     ApplicationState.PersistAsJson(cacheKey, new CachedNamespaceData
         //     {
         //         Namespace = _namespace,
-        //         TruncatedNamespace = _truncatedNamespace!,
+        //         NamespaceMetadata = _truncatedNamespace!,
         //         ShowingState = _showing
         //     });
         //     return Task.CompletedTask;
@@ -624,12 +649,17 @@
         // if (ApplicationState.TryTakeFromJson<CachedNamespaceData>(cacheKey, out var cachedData))
         // {
         //     _namespace = cachedData.Namespace;
-        //     _truncatedNamespace = cachedData.TruncatedNamespace;
+        //     _truncatedNamespace = cachedData.NamespaceMetadata;
         //     _showing = cachedData.ShowingState;
         // }
 
         // Set initial showing based on query parameter
-        _showing = GetShowingTypeFromAction(Action) ?? ShowingType.Modules;
+        var requested = GetShowingTypeFromAction(Action) ?? ShowingType.Modules;
+
+        // A direct link to Configuration is refused the same way the tab is hidden.
+        _showing = requested == ShowingType.Configure && !_canReadForConfiguration
+            ? ShowingType.Modules
+            : requested;
         _configureSection = Section;
     }
 
@@ -641,6 +671,9 @@
 
     private void SwitchShowing(ShowingType newShowing)
     {
+        if (newShowing == ShowingType.Configure && !_canReadForConfiguration)
+            return;
+
         var targetShowing = newShowing != _showing ? newShowing : ShowingType.None;
         _showing = targetShowing;
 
@@ -654,6 +687,9 @@
     {
         if (Enum.TryParse<ShowingType>(key, out var parsed))
         {
+            if (parsed == ShowingType.Configure && !_canReadForConfiguration)
+                return;
+
             _showing = parsed;
             if (parsed != ShowingType.Configure)
                 _configureSection = null;
@@ -684,15 +720,20 @@
     {
         using var repo = RepoFactory.Create();
 
-        // The route carries the name, so a rename makes NamespaceName stale and the lookup below
-        // would throw. Navigating re-binds the parameters and reloads against the new name.
-        if (_namespace != null && !string.Equals(_namespace.Name, NamespaceName, StringComparison.Ordinal))
+        // The route carries the name, so a rename makes NamespaceName stale. The edit form writes
+        // to its own copy of the entity, so the current name has to be read back by id rather than
+        // taken from _namespace. Navigating re-binds the parameters and reloads against the new name.
+        if (_namespace is null) return;
+
+        var current = await repo.GetMetadata(_namespace.Id, OrganizationId);
+        if (!string.Equals(current.Name, NamespaceName, StringComparison.Ordinal))
         {
-            NavigationManager.NavigateTo($"/Namespace/{StackName}/{_namespace.Name}", false);
+            NavigationManager.NavigateTo($"/Namespace/{StackName}/{current.Name}", false);
             return;
         }
 
-        _namespace = await repo.Get(StackName, NamespaceName, OrganizationId);
+        _namespace = await repo.GetMetadata(StackName, NamespaceName, OrganizationId);
+        _canReadForConfiguration = repo.CanRead(_namespace.Id, OrganizationId);
     }
 
     private async Task AddSearchTerm()
@@ -1156,7 +1197,7 @@
     private class CachedNamespaceData
     {
         public Namespace Namespace { get; set; } = null!;
-        public TruncatedNamespace TruncatedNamespace { get; set; } = null!;
+        public NamespaceMetadata NamespaceMetadata { get; set; } = null!;
         public ShowingType ShowingState { get; set; }
     }
 

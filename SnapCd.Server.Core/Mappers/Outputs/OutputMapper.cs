@@ -9,6 +9,7 @@
 using MassTransit;
 using SnapCd.Contracts.Dto.Outputs;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers.Outputs;
 
@@ -34,5 +35,15 @@ public static class OutputMapper
     {
 
         throw new NotImplementedByDesignException();
+    }
+
+    public static OutputMetadataReadDto ToMetadataDto(OutputMetadata view)
+    {
+        return new OutputMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            OutputSetId = view.OutputSetId
+        };
     }
 }

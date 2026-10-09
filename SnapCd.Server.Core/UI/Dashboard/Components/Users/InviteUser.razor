@@ -30,24 +30,28 @@
                           HelperText="Enter the email address of the user to invite"/>
 
             <MudStack Row Class="mt-2">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           Disabled="@_isSubmitting">
-                    @if (_isSubmitting)
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                    }
-                    Send Invitation
-                </MudButton>
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           OnClick="HandleCancel"
-                           Disabled="@_isSubmitting">
-                    Cancel
-                </MudButton>
+                <MudTooltip Text="A submit is already in progress." Disabled="@(!(_isSubmitting))">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               Disabled="@_isSubmitting">
+                        @if (_isSubmitting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        }
+                        Send Invitation
+                    </MudButton>
+                </MudTooltip>
+                <MudTooltip Text="The invitation is already being sent." Disabled="@(!_isSubmitting)">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="HandleCancel"
+                               Disabled="@_isSubmitting">
+                        Cancel
+                    </MudButton>
+                </MudTooltip>
             </MudStack>
         </EditForm>
     }

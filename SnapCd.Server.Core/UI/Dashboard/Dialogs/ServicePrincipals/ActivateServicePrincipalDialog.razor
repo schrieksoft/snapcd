@@ -16,10 +16,17 @@
         <MudText>Activate Service Principal</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         Are you sure you want to activate service principal "@ServicePrincipal.ClientId" (ID "@ServicePrincipal.Id")?
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Activate" Size="Size.Small">Activate</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Activate" Size="Size.Small">Activate</MudButton>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -32,6 +39,16 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
 
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = ServiceFactory.Create();
+        _refusal = permissionRepo.CanUpdate(ServicePrincipal.Id, OrganizationId)
+            ? null
+            : "You do not have permission to enable this service principal.";
+    }
 
     private void Cancel()
     {

@@ -26,6 +26,7 @@
 @using SnapCd.Server.Core.Services.Notification
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Contracts
+@using SnapCd.Server.Core.Views
 @implements IDisposable
 @inject NavigationManager NavigationManager
 @inject IHostEnvironment HostEnvironment
@@ -380,9 +381,8 @@
             if (stackIds.Any())
             {
                 using var stackRepo = StackRepoFactory.Create(principal);
-                var stacks = await stackRepo.List(orgId, q => q
-                    .Where(s => stackIds.Contains(s.Id))
-                    .Select(s => new { s.Id, s.Name }));
+                var stacks = await stackRepo.ListMetadata(orgId, q => q
+                    .Where(s => stackIds.Contains(s.Id)));
                 stackLookup = stacks.ToDictionary(
                     s => s.Id,
                     s => new FavoriteLink(

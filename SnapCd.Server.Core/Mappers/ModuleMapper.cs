@@ -8,6 +8,8 @@
 
 using SnapCd.Contracts.Dto.Modules;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -81,6 +83,17 @@ public static class ModuleMapper
             TriggerPathFilterEnabled = entity.TriggerPathFilterEnabled,
             DriftCheckEnabled = entity.DriftCheckEnabled,
             DriftCheckIntervalMinutes = entity.DriftCheckIntervalMinutes,
+        };
+    }
+
+    public static ModuleMetadataReadDto ToMetadataDto(ModuleMetadata view)
+    {
+        return new ModuleMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            NamespaceId = view.NamespaceId,
+            RunnerId = view.RunnerId,
         };
     }
 

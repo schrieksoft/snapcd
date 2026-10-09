@@ -154,7 +154,9 @@
     {
         var parameters = new DialogParameters<DeleteServicePrincipalOrganizationRoleAssignmentDialog>
         {
-            { x => x.Assignment, assignment },
+            { x => x.AssignmentId, assignment.Id },
+            { x => x.RoleName, assignment.RoleName.ToString() },
+            { x => x.PrincipalName, GetServicePrincipalDisplayName() },
             { x => x.OrganizationId, OrganizationId }
         };
 

@@ -163,28 +163,32 @@
             var filteredGraph = GetFilteredGraph();
             var uninvolvedCount = GetUninvolvedModuleIds().Count;
             var involvedCount = filteredGraph.NodeStates.Count - uninvolvedCount;
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
-                       OnClick="ExecuteNamespaceDestruction"
-                       Disabled="@_isDestroying">
-                @if (_isDestroying)
-                {
-                    @:Destroying Infrastructure...
-                }
-                else
-                {
-                    @:Destroy All (@involvedCount modules)
-                }
-            </MudButton>
+            <MudTooltip Text="A destroy is already in progress." Disabled="@(!(_isDestroying))">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
+                           OnClick="ExecuteNamespaceDestruction"
+                           Disabled="@_isDestroying">
+                    @if (_isDestroying)
+                    {
+                        @:Destroying Infrastructure...
+                    }
+                    else
+                    {
+                        @:Destroy All (@involvedCount modules)
+                    }
+                </MudButton>
+            </MudTooltip>
         }
 
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                            Size="Size.Small"
-                   
-                   OnClick="Cancel"
-                   Disabled="@_isDestroying">
-            Cancel
-        </MudButton>
+        <MudTooltip Text="The destroy is already under way and cannot be called off here." Disabled="@(!_isDestroying)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
+               
+                       OnClick="Cancel"
+                       Disabled="@_isDestroying">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 

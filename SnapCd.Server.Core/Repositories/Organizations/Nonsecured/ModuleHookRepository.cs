@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,9 +34,17 @@ public class ModuleHookRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFa
     }
 }
 
-public class ModuleHookRepository : GenericModuleChildDefinitionRepository<ModuleHook, ModuleHookReadDto, ModuleHookCreatedEvent, ModuleHookUpdatedEvent,
+public class ModuleHookRepository : GenericModuleChildDefinitionRepository<ModuleHook, ModuleHookReadDto, ModuleHookMetadata, ModuleHookCreatedEvent, ModuleHookUpdatedEvent,
     ModuleHookDeletedEvent, ModuleHookRepositorySettings>
 {
+
+    protected override Expression<Func<ModuleHook, ModuleHookMetadata>> MetadataProjection =>
+        e => new ModuleHookMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            ModuleId = e.ModuleId
+        };
     public ModuleHookRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

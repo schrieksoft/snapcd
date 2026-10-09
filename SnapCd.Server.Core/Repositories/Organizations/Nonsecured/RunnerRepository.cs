@@ -20,6 +20,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -34,8 +37,18 @@ public class RunnerRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactor
     }
 }
 
-public class RunnerRepository : GenericOrganizationChildRepository<Runner, RunnerReadDto, RunnerCreatedEvent, RunnerUpdatedEvent, RunnerDeletedEvent, RunnerRepositorySettings>
+public class RunnerRepository : GenericOrganizationChildRepository<Runner, RunnerReadDto, RunnerMetadata, RunnerCreatedEvent, RunnerUpdatedEvent, RunnerDeletedEvent, RunnerRepositorySettings>
 {
+
+    protected override Expression<Func<Runner, RunnerMetadata>> MetadataProjection =>
+        e => new RunnerMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            IsDisabled = e.IsDisabled,
+            ServicePrincipalId = e.ServicePrincipalId
+        };
     public RunnerRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

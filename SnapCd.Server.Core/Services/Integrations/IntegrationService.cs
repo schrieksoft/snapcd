@@ -12,6 +12,7 @@ using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Integrations;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
@@ -49,7 +50,6 @@ public sealed class IntegrationService(
     private static IntegrationReadDto ToReadDto(Integration i) => new()
     {
         Id = i.Id,
-        OrganizationId = i.OrganizationId,
         Name = i.Name,
         IntegrationType = i.IntegrationType,
         Enabled = i.Enabled,
@@ -72,6 +72,20 @@ public sealed class IntegrationService(
             .FirstOrDefaultAsync();
         if (row is null) throw new EntityNotFoundException($"Integration '{id}' not found");
         return ToReadDto(row);
+    }
+
+    public async Task<List<IntegrationMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        using var secured = securedFactory.Create();
+        var views = await secured.ListMetadata(organizationId);
+        return views.Select(IntegrationMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<IntegrationMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        using var secured = securedFactory.Create();
+        var view = await secured.GetMetadataByName(name, organizationId);
+        return IntegrationMapper.ToMetadataDto(view);
     }
 
     public async Task<IntegrationReadDto> GetReadByName(string name, Guid organizationId)
@@ -120,7 +134,6 @@ public sealed class IntegrationService(
         return new IntegrationDetailDto
         {
             Id = row.Id,
-            OrganizationId = row.OrganizationId,
             Name = row.Name,
             IntegrationType = row.IntegrationType,
             Enabled = row.Enabled,
@@ -216,6 +229,24 @@ public sealed class IntegrationService(
         await repo.Update(entity);
         await secrets.WriteAsync(organizationId, id, codec.Serialize(connection));
         connectionCache.Evict(id); // immediate on this instance; the fanout consumer covers the others
+    }
+
+    public bool CanCreate(Guid organizationId)
+    {
+        using var secured = securedFactory.Create();
+        return secured.CanCreate(organizationId, organizationId);
+    }
+
+    public bool CanDelete(Guid id, Guid organizationId)
+    {
+        using var secured = securedFactory.Create();
+        return secured.CanDelete(id, organizationId);
+    }
+
+    public bool CanUpdate(Guid id, Guid organizationId)
+    {
+        using var secured = securedFactory.Create();
+        return secured.CanUpdate(id, organizationId);
     }
 
     public async Task Delete(Guid id, Guid organizationId)

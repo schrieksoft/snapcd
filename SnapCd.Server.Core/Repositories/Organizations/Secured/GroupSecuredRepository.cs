@@ -21,6 +21,10 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
+
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
 public class GroupSecuredRepositoryFactory(
@@ -41,7 +45,7 @@ public class GroupSecuredRepositoryFactory(
 
 public class GroupSecuredRepository : GenericOrganizationChildSecuredRepository<
     Group,
-    GroupReadDto,
+    GroupReadDto, GroupMetadata,
     GroupRepository,
     GroupCreatedEvent,
     GroupUpdatedEvent,
@@ -58,6 +62,15 @@ public class GroupSecuredRepository : GenericOrganizationChildSecuredRepository<
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+    };
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles =
+        [
+            OrganizationRole.Owner, OrganizationRole.IdentityAccessManager,
+            OrganizationRole.IdentityAccessMetadataReader
+        ]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
@@ -83,9 +96,19 @@ public class GroupSecuredRepository : GenericOrganizationChildSecuredRepository<
             throw new EntityNotFoundException($"Unable to find Group with name \"{name}\"");
         
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to DependsOnModule {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(DependsOnModule)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
 
     }
+
+
+    public Task<GroupMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name, organizationId))?.Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
+
 }

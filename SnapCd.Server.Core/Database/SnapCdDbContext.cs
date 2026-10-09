@@ -36,11 +36,11 @@ using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
-using SnapCd.Server.Core.Views;
 using ExceptionProcessorSqlServer = EntityFramework.Exceptions.SqlServer.ExceptionProcessorExtensions;
 using Authorization = SnapCd.Server.Core.Entities.Definition.Authorization;
 using Definition_User = SnapCd.Server.Core.Entities.Definition.User;
 using Stack = SnapCd.Server.Core.Entities.Definition.Stack;
+using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Database;
 
@@ -79,6 +79,10 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     // Views for group organizationUser
     public DbSet<RecursiveGroupMember> RecursiveGroupMembers { get; set; }
+    public DbSet<DerivedOrganizationRoleAssignment> DerivedOrganizationRoleAssignments { get; set; }
+    public DbSet<DerivedRunnerRoleAssignment> DerivedRunnerRoleAssignments { get; set; }
+    public DbSet<DerivedAgentRoleAssignment> DerivedAgentRoleAssignments { get; set; }
+    public DbSet<DerivedIntegrationRoleAssignment> DerivedIntegrationRoleAssignments { get; set; }
 
 
     public DbSet<NamespaceInput> NamespaceInputs { get; set; }
@@ -478,6 +482,10 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new ServicePrincipalGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new GroupGroupMemberClassMap());
         modelBuilder.ApplyConfiguration(new RecursiveGroupMemberClassMap());
+        modelBuilder.ApplyConfiguration(new DerivedOrganizationRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new DerivedRunnerRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new DerivedAgentRoleAssignmentClassMap());
+        modelBuilder.ApplyConfiguration(new DerivedIntegrationRoleAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new TokenClassMap());
         modelBuilder.ApplyConfiguration(new AuthorizationClassMap());
 

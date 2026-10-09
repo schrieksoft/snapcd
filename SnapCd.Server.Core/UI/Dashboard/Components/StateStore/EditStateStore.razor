@@ -13,7 +13,13 @@
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
+        <MudGrid>
             <MudItem xs="12">
                 <MudTextField Label="State Store Id"
                               @bind-Value="StateStore.Id"
@@ -21,19 +27,21 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Label="State Store Name"
+                <MudTextField Disabled="@(!_canSave)" Label="State Store Name"
                               @bind-Value="Input.Name"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small">
-                    Save
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudButton ButtonType="ButtonType.Submit" Disabled="@(!_canSave)"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small">
+                        Save
+                    </MudButton>
+                </MudTooltip>
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -42,14 +50,28 @@
                 </MudButton>
             </MudItem>
         </MudGrid>
+        </MudForm>
     </EditForm>
 </MudPaper>
 
 @code {
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
+    protected override void OnInitialized() => ResolveCanSave();
+
     [Parameter] public required Entities.Definition.StateStore StateStore { get; set; }
     [Parameter] public required EventCallback<Entities.Definition.StateStore> OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(StateStore.Id, OrganizationId);
+    }
 
     [Inject] private StateStoreSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;

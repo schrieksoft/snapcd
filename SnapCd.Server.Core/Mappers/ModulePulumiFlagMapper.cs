@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.ModulePulumiFlags;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -44,5 +45,14 @@ public static class ModulePulumiFlagMapper
         entity.Flag = dto.Flag;
         entity.Value = dto.Value;
         entity.ModuleId = dto.ModuleId;
+    }
+
+    public static ModulePulumiFlagMetadataReadDto ToMetadataDto(ModulePulumiFlagMetadata view)
+    {
+        return new ModulePulumiFlagMetadataReadDto
+        {
+            Id = view.Id,
+            ModuleId = view.ModuleId,
+        };
     }
 }

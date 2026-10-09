@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,9 +35,18 @@ public class NamespaceTerraformInlinePolicyRepositoryFactory(IDbContextFactory<S
     }
 }
 
-public class NamespaceTerraformInlinePolicyRepository : GenericNamespaceChildDefinitionRepository<NamespaceTerraformInlinePolicy, NamespaceTerraformInlinePolicyReadDto, NamespaceTerraformInlinePolicyCreatedEvent, NamespaceTerraformInlinePolicyUpdatedEvent,
+public class NamespaceTerraformInlinePolicyRepository : GenericNamespaceChildDefinitionRepository<NamespaceTerraformInlinePolicy, NamespaceTerraformInlinePolicyReadDto, NamespaceTerraformInlinePolicyMetadata, NamespaceTerraformInlinePolicyCreatedEvent, NamespaceTerraformInlinePolicyUpdatedEvent,
     NamespaceTerraformInlinePolicyDeletedEvent, NamespaceTerraformInlinePolicyRepositorySettings>
 {
+
+    protected override Expression<Func<NamespaceTerraformInlinePolicy, NamespaceTerraformInlinePolicyMetadata>> MetadataProjection =>
+        e => new NamespaceTerraformInlinePolicyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            NamespaceId = e.NamespaceId
+        };
     public NamespaceTerraformInlinePolicyRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

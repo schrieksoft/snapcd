@@ -20,6 +20,7 @@
 @inject OrganizationServiceFactory OrganizationServiceFactory
 @inject HttpContextPrincipalProvider HttpContextPrincipalProvider
 @inject IOrganizationContext OrganizationContext
+@inject SnapCd.Server.Core.Repositories.Organizations.Secured.ServicePrincipalSecuredRepositoryFactory CreatePermissionRepoFactory
 
 @using Microsoft.AspNetCore.Authorization
 @using SnapCd.Contracts
@@ -316,6 +317,9 @@
     {
         var service = ServiceFactory.Create();
         _servicePrincipals = await service.List(OrganizationId);
+        using (var repo = CreatePermissionRepoFactory.Create())
+        {
+        }
     }
 
     private async Task ActivateServicePrincipal(ServicePrincipalReadDto servicePrincipal)

@@ -12,23 +12,30 @@
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 
 <MudPaper Elevation="1" Class="pa-4 my-4">
+    @if (!_canCreate)
+    {
+        <ReadOnlyNotice Message="You do not have permission to create a State Store."/>
+    }
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             <MudItem xs="12">
-                <MudTextField Label="State Store Name"
+                <MudTextField Disabled="@(!_canCreate)" Label="State Store Name"
                               @bind-Value="Input.Name"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -47,6 +54,14 @@
 
     [Inject] private StateStoreSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _canCreate = permissionRepo.CanCreate(OrganizationId, OrganizationId);
+    }
 
     private InputModel Input { get; set; } = new();
 

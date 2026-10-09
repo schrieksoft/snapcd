@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceHookService : GenericCrudService<NamespaceHook, NamespaceHookCreateDto, NamespaceHookUpdateDto, NamespaceHookReadDto, NamespaceHookSecuredRepository, NamespaceHookRepository,
+public class NamespaceHookService : GenericCrudService<NamespaceHook, NamespaceHookMetadata, NamespaceHookCreateDto, NamespaceHookUpdateDto, NamespaceHookReadDto, NamespaceHookMetadataReadDto, NamespaceHookSecuredRepository, NamespaceHookRepository,
     NamespaceHookCreatedEvent, NamespaceHookUpdatedEvent, NamespaceHookDeletedEvent, NamespaceHookRepositorySettings>
 {
     public NamespaceHookService(
@@ -34,6 +36,11 @@ public class NamespaceHookService : GenericCrudService<NamespaceHook, NamespaceH
     protected override NamespaceHookReadDto MapToDto(NamespaceHook entity)
     {
         return NamespaceHookMapper.ToDto(entity);
+    }
+
+    protected override NamespaceHookMetadataReadDto MapToMetadataDto(NamespaceHookMetadata view)
+    {
+        return NamespaceHookMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(NamespaceHook entity, NamespaceHookUpdateDto dto)

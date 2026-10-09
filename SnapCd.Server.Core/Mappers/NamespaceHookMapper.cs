@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.NamespaceHooks;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -44,5 +45,14 @@ public static class NamespaceHookMapper
         entity.Phase = dto.Phase;
         entity.Script = dto.Script;
         entity.NamespaceId = dto.NamespaceId;
+    }
+
+    public static NamespaceHookMetadataReadDto ToMetadataDto(NamespaceHookMetadata view)
+    {
+        return new NamespaceHookMetadataReadDto
+        {
+            Id = view.Id,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

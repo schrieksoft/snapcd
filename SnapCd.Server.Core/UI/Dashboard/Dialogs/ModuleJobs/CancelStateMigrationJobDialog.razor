@@ -9,12 +9,18 @@
 @using SnapCd.Server.Core.Services.Crud.Jobs
 @using SnapCd.Server.Core.Services.PrincipalProvider
 
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@inject ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory
 @inject StateMigrationServiceFactory StateMigrationServiceFactory
 @inject ISnackbar Snackbar
 @inject ILogger<CancelStateMigrationJobDialog> Logger
 
 <MudDialog>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         @if (WaitingForApproval)
         {
             <MudText Typo="Typo.body2" Class="mb-3">
@@ -35,7 +41,10 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Confirm">Cancel job</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Confirm">Cancel job</MudButton>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Close">Close</MudButton>
     </DialogActions>
 </MudDialog>
@@ -52,6 +61,16 @@
     [Parameter] public bool WaitingForApproval { get; set; }
 
     private CancellationType _cancellationType = CancellationType.AfterCurrent;
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = JobSecuredRepoFactory.Create();
+        _refusal = permissionRepo.CanRunJob(ModuleId, OrganizationId)
+            ? null
+            : "You do not have permission to cancel this state migration.";
+    }
 
     private async Task Confirm()
     {

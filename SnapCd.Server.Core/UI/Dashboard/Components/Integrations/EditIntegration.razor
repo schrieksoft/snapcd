@@ -1,0 +1,147 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@using System.Text.Json
+@using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.Integrations
+@inject SnapCd.Server.Core.Services.Integrations.IntegrationService Service
+@inject ISnackbar Snackbar
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary"/>
+}
+else
+{
+    <MudForm ReadOnly="@(!_canSave)">
+        @if (!_canSave)
+        {
+            <ReadOnlyNotice/>
+        }
+
+        <MudPaper Elevation="1" Class="pa-4 my-4">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField Disabled="@(!_canSave)" @bind-Value="_model.Name" Label="Name"/>
+                </MudItem>
+
+                @if (IntegrationType == IntegrationType.Slack)
+                {
+                    <MudItem xs="12">
+                        <MudTextField Disabled="@(!_canSave)" @bind-Value="_model.DefaultChannel" Label="Default channel"/>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField Disabled="@(!_canSave)" @bind-Value="_model.BotToken"
+                                      Label="Bot token (leave masked to keep)"
+                                      InputType="MudBlazor.InputType.Password"/>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudSwitch Disabled="@(!_canSave)" T="bool" @bind-Value="_model.IsSuppliedToAllModules" Label="Supplied to all modules" Color="Color.Secondary"/>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch Disabled="@(!_canSave)" T="bool" @bind-Value="_model.Enabled" Label="Enabled" Color="Color.Secondary"/>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                   Disabled="@(!_canSave)" OnClick="Save">
+                            Save
+                        </MudButton>
+                    </MudTooltip>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public required Guid IntegrationId { get; set; }
+    [Parameter] public required IntegrationType IntegrationType { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private Model? _model;
+    private bool _canSave;
+
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canSave = Service.CanUpdate(IntegrationId, OrganizationId);
+
+        var detail = await Service.Get(IntegrationId, OrganizationId);
+        var model = new Model
+        {
+            Name = detail.Name,
+            Enabled = detail.Enabled,
+            IsSuppliedToAllModules = detail.IsSuppliedToAllModules
+        };
+
+        if (!string.IsNullOrEmpty(detail.Connection))
+        {
+            using var doc = JsonDocument.Parse(detail.Connection);
+            if (detail.IntegrationType == IntegrationType.Slack)
+            {
+                if (doc.RootElement.TryGetProperty("defaultChannel", out var channel))
+                    model.DefaultChannel = channel.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("botToken", out var token))
+                    model.BotToken = token.GetString() ?? "";
+            }
+        }
+
+        _model = model;
+    }
+
+    private async Task Save()
+    {
+        if (_model is null) return;
+
+        try
+        {
+            await Service.Update(IntegrationId, OrganizationId, new IntegrationUpdateDto
+            {
+                Name = _model.Name,
+                Enabled = _model.Enabled,
+                IsSuppliedToAllModules = _model.IsSuppliedToAllModules,
+                Connection = BuildConnection(IntegrationType, _model.BotToken, _model.DefaultChannel)
+            });
+
+            Snackbar.Add("Saved.", Severity.Success);
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+
+    /// <summary>Slack is the only type with a connection shape; the rest carry an empty object.</summary>
+    private static JsonElement BuildConnection(IntegrationType type, string botToken, string defaultChannel)
+    {
+        return type switch
+        {
+            IntegrationType.Slack => JsonSerializer.SerializeToElement(new { botToken, defaultChannel }),
+            _ => JsonSerializer.SerializeToElement(new { })
+        };
+    }
+
+    private sealed class Model
+    {
+        public string Name { get; set; } = "";
+        public string DefaultChannel { get; set; } = "";
+        public string BotToken { get; set; } = "";
+        public bool IsSuppliedToAllModules { get; set; }
+        public bool Enabled { get; set; }
+    }
+}

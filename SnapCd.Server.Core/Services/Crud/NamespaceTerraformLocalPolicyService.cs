@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceTerraformLocalPolicyService : GenericCrudService<NamespaceTerraformLocalPolicy, NamespaceTerraformLocalPolicyCreateDto, NamespaceTerraformLocalPolicyUpdateDto, NamespaceTerraformLocalPolicyReadDto,
+public class NamespaceTerraformLocalPolicyService : GenericCrudService<NamespaceTerraformLocalPolicy, NamespaceTerraformLocalPolicyMetadata, NamespaceTerraformLocalPolicyCreateDto, NamespaceTerraformLocalPolicyUpdateDto, NamespaceTerraformLocalPolicyReadDto, NamespaceTerraformLocalPolicyMetadataReadDto,
     NamespaceTerraformLocalPolicySecuredRepository, NamespaceTerraformLocalPolicyRepository, NamespaceTerraformLocalPolicyCreatedEvent,
     NamespaceTerraformLocalPolicyUpdatedEvent, NamespaceTerraformLocalPolicyDeletedEvent, NamespaceTerraformLocalPolicyRepositorySettings>
 {
@@ -37,6 +39,11 @@ public class NamespaceTerraformLocalPolicyService : GenericCrudService<Namespace
         return NamespaceTerraformLocalPolicyMapper.ToDto(entity);
     }
 
+    protected override NamespaceTerraformLocalPolicyMetadataReadDto MapToMetadataDto(NamespaceTerraformLocalPolicyMetadata view)
+    {
+        return NamespaceTerraformLocalPolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespaceTerraformLocalPolicy entity, NamespaceTerraformLocalPolicyUpdateDto dto)
     {
         NamespaceTerraformLocalPolicyMapper.UpdateEntity(entity, dto);
@@ -46,5 +53,11 @@ public class NamespaceTerraformLocalPolicyService : GenericCrudService<Namespace
     {
         var entity = await SecuredRepository.Get(namespaceId, name, organizationId);
         return NamespaceTerraformLocalPolicyMapper.ToDto(entity);
+    }
+
+    public async Task<NamespaceTerraformLocalPolicyMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return NamespaceTerraformLocalPolicyMapper.ToMetadataDto(view);
     }
 }

@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,9 +35,18 @@ public class ModulePulumiInlinePolicyRepositoryFactory(IDbContextFactory<SnapCdD
     }
 }
 
-public class ModulePulumiInlinePolicyRepository : GenericModuleChildDefinitionRepository<ModulePulumiInlinePolicy, ModulePulumiInlinePolicyReadDto, ModulePulumiInlinePolicyCreatedEvent, ModulePulumiInlinePolicyUpdatedEvent,
+public class ModulePulumiInlinePolicyRepository : GenericModuleChildDefinitionRepository<ModulePulumiInlinePolicy, ModulePulumiInlinePolicyReadDto, ModulePulumiInlinePolicyMetadata, ModulePulumiInlinePolicyCreatedEvent, ModulePulumiInlinePolicyUpdatedEvent,
     ModulePulumiInlinePolicyDeletedEvent, ModulePulumiInlinePolicyRepositorySettings>
 {
+
+    protected override Expression<Func<ModulePulumiInlinePolicy, ModulePulumiInlinePolicyMetadata>> MetadataProjection =>
+        e => new ModulePulumiInlinePolicyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            ModuleId = e.ModuleId
+        };
     public ModulePulumiInlinePolicyRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

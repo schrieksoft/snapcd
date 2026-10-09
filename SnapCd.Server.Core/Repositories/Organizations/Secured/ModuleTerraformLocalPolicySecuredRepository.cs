@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts.Dto.ModuleTerraformLocalPolicies;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -17,6 +18,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -38,7 +42,7 @@ public class ModuleTerraformLocalPolicySecuredRepositoryFactory(
 
 public class ModuleTerraformLocalPolicySecuredRepository : GenericModuleChildSecuredRepository<
     ModuleTerraformLocalPolicy,
-    ModuleTerraformLocalPolicyReadDto,
+    ModuleTerraformLocalPolicyReadDto, ModuleTerraformLocalPolicyMetadata,
     ModuleTerraformLocalPolicyRepository,
     ModuleTerraformLocalPolicyCreatedEvent,
     ModuleTerraformLocalPolicyUpdatedEvent,
@@ -57,8 +61,16 @@ public class ModuleTerraformLocalPolicySecuredRepository : GenericModuleChildSec
         var entity = await Repository.Get(moduleId, name, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to ModuleTerraformLocalPolicy {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(ModuleTerraformLocalPolicy)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }
+
+    public Task<ModuleTerraformLocalPolicyMetadata> GetMetadata(Guid moduleId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(moduleId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

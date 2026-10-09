@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,9 +34,17 @@ public class ModulePulumiFlagRepositoryFactory(IDbContextFactory<SnapCdDbContext
     }
 }
 
-public class ModulePulumiFlagRepository : GenericModuleChildDefinitionRepository<ModulePulumiFlag, ModulePulumiFlagReadDto, ModulePulumiFlagCreatedEvent, ModulePulumiFlagUpdatedEvent,
+public class ModulePulumiFlagRepository : GenericModuleChildDefinitionRepository<ModulePulumiFlag, ModulePulumiFlagReadDto, ModulePulumiFlagMetadata, ModulePulumiFlagCreatedEvent, ModulePulumiFlagUpdatedEvent,
     ModulePulumiFlagDeletedEvent, ModulePulumiFlagRepositorySettings>
 {
+
+    protected override Expression<Func<ModulePulumiFlag, ModulePulumiFlagMetadata>> MetadataProjection =>
+        e => new ModulePulumiFlagMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            ModuleId = e.ModuleId
+        };
     public ModulePulumiFlagRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

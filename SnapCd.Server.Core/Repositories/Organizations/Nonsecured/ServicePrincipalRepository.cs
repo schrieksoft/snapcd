@@ -6,7 +6,9 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Linq.Expressions;
 using MassTransit;
+using OpenIddict.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SnapCd.Contracts.Dto.ServicePrincipals;
@@ -17,6 +19,8 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,9 +35,19 @@ public class ServicePrincipalRepositoryFactory(IDbContextFactory<SnapCdDbContext
     }
 }
 
-public class ServicePrincipalRepository : GenericOrganizationChildRepository<ServicePrincipal, ServicePrincipalReadDto, ServicePrincipalCreatedEvent, ServicePrincipalUpdatedEvent,
+public class ServicePrincipalRepository : GenericOrganizationChildRepository<ServicePrincipal, ServicePrincipalReadDto, ServicePrincipalMetadata, ServicePrincipalCreatedEvent, ServicePrincipalUpdatedEvent,
     ServicePrincipalDeletedEvent, ServicePrincipalRepositorySettings>
 {
+
+    protected override Expression<Func<ServicePrincipal, ServicePrincipalMetadata>> MetadataProjection =>
+        e => new ServicePrincipalMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            // Stored with the organization as a prefix; callers get the name on its own.
+            ClientId = e.ClientId!.Substring(e.OrganizationId.ToString().Length + 1),
+            DisplayName = e.DisplayName
+        };
     public ServicePrincipalRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
@@ -48,9 +62,86 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
         return ServicePrincipalMapper.ToDto(entity);
     }
 
+    // The entity backs every OpenIddict application, so the table also holds clients that are not
+    // service principals. One is created with an organization-prefixed client id, a secret and the
+    // client credentials grant, and the reads below return only those.
+    private static readonly Expression<Func<ServicePrincipal, bool>> IsServicePrincipal =
+        sp => sp.ClientType == OpenIddictConstants.ClientTypes.Confidential
+              && sp.ClientId != null
+              && sp.ClientId.StartsWith(sp.OrganizationId.ToString() + ":")
+              && sp.Permissions != null
+              && sp.Permissions.Contains(OpenIddictConstants.Permissions.GrantTypes.ClientCredentials);
+
+    // Narrows whatever the caller supplied, rather than standing in for it, so the restriction
+    // holds however the read was reached.
+    private IQueryable<ServicePrincipal> NarrowQuery(IQueryable<ServicePrincipal>? query)
+        => (query ?? DbContext.ServicePrincipals).Where(IsServicePrincipal);
+
+    private static Func<IQueryable<ServicePrincipal>, IQueryable<ServicePrincipal>> NarrowModifier(
+        Func<IQueryable<ServicePrincipal>, IQueryable<ServicePrincipal>>? queryModifier)
+        => q => queryModifier == null
+            ? q.Where(IsServicePrincipal)
+            : queryModifier(q.Where(IsServicePrincipal));
+
+    public override Task<ServicePrincipal> Get(
+        Guid id,
+        Guid organizationId,
+        Func<IQueryable<ServicePrincipal>, IQueryable<ServicePrincipal>>? queryModifier = null)
+        => base.Get(id, organizationId, NarrowModifier(queryModifier));
+
+    public override Task<TProjection> Get<TProjection>(
+        Guid id,
+        Guid organizationId,
+        Func<IQueryable<ServicePrincipal>, IQueryable<TProjection>> projection)
+        => base.Get(id, organizationId, q => projection(NarrowModifier(null)(q)));
+
+    public override Task<int> Count(
+        Guid organizationId,
+        IQueryable<ServicePrincipal>? query = null,
+        Func<IQueryable<ServicePrincipal>, IQueryable<ServicePrincipal>>? queryModifier = null)
+        => base.Count(organizationId, NarrowQuery(query), queryModifier);
+
+    public override Task<List<ServicePrincipal>> List(
+        Guid organizationId,
+        IQueryable<ServicePrincipal>? query = null,
+        Func<IQueryable<ServicePrincipal>, IQueryable<ServicePrincipal>>? queryModifier = null,
+        Func<IQueryable<ServicePrincipal>, IOrderedQueryable<ServicePrincipal>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => base.List(organizationId, NarrowQuery(query), queryModifier, orderBy, pageNumber, pageSize);
+
+    public override Task<List<TProjection>> List<TProjection>(
+        Guid organizationId,
+        Func<IQueryable<ServicePrincipal>, IQueryable<TProjection>> projection,
+        IQueryable<ServicePrincipal>? query = null,
+        Func<IQueryable<TProjection>, IOrderedQueryable<TProjection>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => base.List(organizationId, projection, NarrowQuery(query), orderBy, pageNumber, pageSize);
+
+    public override Task<List<ServicePrincipal>> ListByParentId(
+        Guid parentId,
+        Guid organizationId,
+        Func<IQueryable<ServicePrincipal>, IQueryable<ServicePrincipal>>? queryModifier = null,
+        IQueryable<ServicePrincipal>? query = null,
+        Func<IQueryable<ServicePrincipal>, IOrderedQueryable<ServicePrincipal>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => base.ListByParentId(parentId, organizationId, queryModifier, NarrowQuery(query), orderBy, pageNumber, pageSize);
+
+    public override Task<List<TProjection>> ListByParentId<TProjection>(
+        Guid parentId,
+        Guid organizationId,
+        Func<IQueryable<ServicePrincipal>, IQueryable<TProjection>> projection,
+        IQueryable<ServicePrincipal>? query = null,
+        Func<IQueryable<TProjection>, IOrderedQueryable<TProjection>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => base.ListByParentId(parentId, organizationId, projection, NarrowQuery(query), orderBy, pageNumber, pageSize);
+
     protected override async Task<QuotaCheckResult> CheckQuotaAsync(ServicePrincipal entity)
     {
-        var currentCount = await DbContext.ServicePrincipals
+        var currentCount = await NarrowQuery(null)
             .CountAsync(e => e.OrganizationId == entity.OrganizationId);
 
         return await CheckQuotaWithServiceAsync(entity.OrganizationId, nameof(Settings.QuotaLimits.ServicePrincipalQuota), currentCount);
@@ -59,7 +150,7 @@ public class ServicePrincipalRepository : GenericOrganizationChildRepository<Ser
     public async Task<ServicePrincipal?> GetByClientId(string clientId, Guid organizationId)
     {
         var prefixedClientId = $"{organizationId}:{clientId}";
-        return await DbContext.ServicePrincipals
+        return await NarrowQuery(null)
             .Where(sp => sp.OrganizationId == organizationId)
             .SingleOrDefaultAsync(sp => sp.ClientId == prefixedClientId);
     }

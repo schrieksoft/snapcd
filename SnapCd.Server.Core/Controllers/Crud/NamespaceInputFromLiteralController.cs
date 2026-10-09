@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Misc.Constants;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.Crud;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -31,7 +32,7 @@ public class NamespaceInputFromLiteralController : BaseController
         _baseService = baseService;
     }
 
-    [HttpGet("{namespaceId}/{name}")]
+    [HttpGet("{namespaceId:guid}/{name}")]
     public async Task<ActionResult<NamespaceInputFromLiteralReadDto>> Get(Guid organizationId, Guid namespaceId, string name)
     {
         try
@@ -136,6 +137,28 @@ public class NamespaceInputFromLiteralController : BaseController
         {
             await _baseService.Delete(id, organizationId);
             return Ok();
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{namespaceId:guid}/{name}")]
+    [PermissionSource(Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<NamespaceInputMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid namespaceId, string name)
+    {
+        try
+        {
+            return Ok(await _baseService.GetMetadata(namespaceId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

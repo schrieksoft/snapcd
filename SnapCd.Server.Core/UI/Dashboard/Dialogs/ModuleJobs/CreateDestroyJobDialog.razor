@@ -19,6 +19,8 @@
 @using SnapCd.Server.Core.Services.Crud.Jobs
 @using SnapCd.Server.Core.Services.DependencyGraph
 
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@inject ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory
 @inject ISnackbar Snackbar
 @inject ILogger<CreateDestroyJobDialog> Logger
 @inject SecuredJobServiceFactory SecuredJobServiceFactory
@@ -31,6 +33,10 @@
         <MudText Typo="Typo.h6">Destroy Module</MudText>
     </TitleContent>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         @if (Module == null)
         {
             <div class="text-center">
@@ -124,54 +130,70 @@
     <DialogActions>
         @if (_destroyWithDependencies && _dependencyGraphLoaded && _destroyGraph != null)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
+            <MudTooltip Text="A destroy is already in progress." Disabled="@(!(_isDestroying))">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
                        
-                       OnClick="ExecuteDependencyDestruction"
-                       Disabled="@_isDestroying">
-                @if (_isDestroying)
-                {
-                    @:Destroying Infrastructure...
-                }
-                else
-                {
-                    @:Destroy All (@_destroyGraph.TotalModuleCount modules)
-                }
-            </MudButton>
+                           OnClick="ExecuteDependencyDestruction"
+                           Disabled="@_isDestroying">
+                    @if (_isDestroying)
+                    {
+                        @:Destroying Infrastructure...
+                    }
+                    else
+                    {
+                        @:Destroy All (@_destroyGraph.TotalModuleCount modules)
+                    }
+                </MudButton>
+            </MudTooltip>
         }
         else
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                                Size="Size.Small"
+            <MudTooltip Text="@DestroyDisabledReason" Disabled="@(DestroyDisabledReason is null)">
+                @if (_refusal is null)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                    Size="Size.Small"
                        
-                       OnClick="DestroyModule"
-                       Disabled="@(_isDestroying || Module == null || !_dependencyCheckCompleted || (_destroyWithDependencies && !_dependencyGraphLoaded))">
-                @if (_isDestroying)
-                {
-                    @:Destroying...
+                           OnClick="DestroyModule"
+                           Disabled="@(_isDestroying || Module == null || !_dependencyCheckCompleted || (_destroyWithDependencies && !_dependencyGraphLoaded))">
+                    @if (_isDestroying)
+                    {
+                        @:Destroying...
+                    }
+                    else if (_destroyWithDependencies && _destroyGraph != null)
+                    {
+                        @:Destroy All (@_destroyGraph.TotalModuleCount modules)
+                    }
+                    else
+                    {
+                        @:Destroy Module
+                    }
+                </MudButton>
                 }
-                else if (_destroyWithDependencies && _destroyGraph != null)
-                {
-                    @:Destroy All (@_destroyGraph.TotalModuleCount modules)
-                }
-                else
-                {
-                    @:Destroy Module
-                }
-            </MudButton>
+            </MudTooltip>
         }
 
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
-                                            Size="Size.Small"
-                   
-                   OnClick="Cancel"
-                   Disabled="@_isDestroying">
-            Cancel
-        </MudButton>
+        <MudTooltip Text="The destroy is already under way and cannot be called off here." Disabled="@(!_isDestroying)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                                Size="Size.Small"
+               
+                       OnClick="Cancel"
+                       Disabled="@_isDestroying">
+                Cancel
+            </MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 
 @code {
+    private string? DestroyDisabledReason =>
+        Module == null ? "No module selected."
+        : !_dependencyCheckCompleted ? "Still checking dependencies."
+        : _destroyWithDependencies && !_dependencyGraphLoaded ? "Still loading the dependency graph."
+        : _isDestroying ? "A destroy is already in progress."
+        : null;
+
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
     [Inject] private DestroyModuleGraphServiceFactory DestroyGraphServiceFactory { get; set; } = null!;
     [Inject] private DependencyGraphServiceFactory DependencyGraphServiceFactory { get; set; } = null!;
@@ -239,6 +261,16 @@
         //     _dependencyGraphLoaded = cachedData.DependencyGraphLoaded;
         //     _destroyGraph = cachedData.DestroyGraph;
         // }
+    }
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = JobSecuredRepoFactory.Create();
+        _refusal = permissionRepo.CanRunJob(ModuleId, OrganizationId)
+            ? null
+            : "You do not have permission to run jobs on this module.";
     }
 
     private async Task CheckDependencies()

@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,9 +35,18 @@ public class NamespaceTerraformLocalPolicyRepositoryFactory(IDbContextFactory<Sn
     }
 }
 
-public class NamespaceTerraformLocalPolicyRepository : GenericNamespaceChildDefinitionRepository<NamespaceTerraformLocalPolicy, NamespaceTerraformLocalPolicyReadDto, NamespaceTerraformLocalPolicyCreatedEvent, NamespaceTerraformLocalPolicyUpdatedEvent,
+public class NamespaceTerraformLocalPolicyRepository : GenericNamespaceChildDefinitionRepository<NamespaceTerraformLocalPolicy, NamespaceTerraformLocalPolicyReadDto, NamespaceTerraformLocalPolicyMetadata, NamespaceTerraformLocalPolicyCreatedEvent, NamespaceTerraformLocalPolicyUpdatedEvent,
     NamespaceTerraformLocalPolicyDeletedEvent, NamespaceTerraformLocalPolicyRepositorySettings>
 {
+
+    protected override Expression<Func<NamespaceTerraformLocalPolicy, NamespaceTerraformLocalPolicyMetadata>> MetadataProjection =>
+        e => new NamespaceTerraformLocalPolicyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            NamespaceId = e.NamespaceId
+        };
     public NamespaceTerraformLocalPolicyRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

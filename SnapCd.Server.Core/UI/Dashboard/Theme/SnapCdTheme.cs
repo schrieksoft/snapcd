@@ -111,4 +111,10 @@ public static class SnapCdTheme
             DefaultBorderRadius = "0px"
         }
     };
+
+    /// <summary>Every input is outlined, so a form reads as one set of controls.</summary>
+    public static void ApplyInputDefaults()
+    {
+        MudGlobal.InputDefaults.Variant = Variant.Outlined;
+    }
 }

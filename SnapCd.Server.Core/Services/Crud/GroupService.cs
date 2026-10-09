@@ -14,14 +14,17 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class GroupService : GenericCrudService<
-    Group,
+    Group, GroupMetadata,
     GroupCreateDto,
     GroupUpdateDto,
     GroupReadDto,
+    GroupMetadataReadDto,
     GroupSecuredRepository,
     GroupRepository,
     GroupCreatedEvent,
@@ -45,6 +48,11 @@ public class GroupService : GenericCrudService<
         return GroupMapper.ToDto(entity);
     }
 
+    protected override GroupMetadataReadDto MapToMetadataDto(GroupMetadata view)
+    {
+        return GroupMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(Group entity, GroupUpdateDto dto)
     {
         GroupMapper.UpdateEntity(entity, dto);
@@ -55,5 +63,23 @@ public class GroupService : GenericCrudService<
         return await GetByCriteria(async repo =>
             await repo.GetByName(name, organizationId)
             ?? throw new KeyNotFoundException($"Group '{name}' not found in organization {organizationId}."));
+    }
+
+    public async Task<List<GroupMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(GroupMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<GroupMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return GroupMapper.ToMetadataDto(view);
+    }
+
+    public async Task<GroupMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(id, organizationId);
+        return GroupMapper.ToMetadataDto(view);
     }
 }

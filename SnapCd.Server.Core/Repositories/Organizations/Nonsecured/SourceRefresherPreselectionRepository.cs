@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,9 +35,17 @@ public class SourceRefresherPreselectionRepositoryFactory(IDbContextFactory<Snap
     }
 }
 
-public class SourceRefresherPreselectionRepository : GenericOrganizationChildRepository<SourceRefresherPreselection, SourceRefresherPreselectionReadDto, SourceRefresherPreselectionCreatedEvent,
+public class SourceRefresherPreselectionRepository : GenericOrganizationChildRepository<SourceRefresherPreselection, SourceRefresherPreselectionReadDto, SourceRefresherPreselectionMetadata, SourceRefresherPreselectionCreatedEvent,
     SourceRefresherPreselectionUpdatedEvent, SourceRefresherPreselectionDeletedEvent, SourceRefresherPreselectionRepositorySettings>
 {
+
+    protected override Expression<Func<SourceRefresherPreselection, SourceRefresherPreselectionMetadata>> MetadataProjection =>
+        e => new SourceRefresherPreselectionMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            RunnerId = e.RunnerId
+        };
     public SourceRefresherPreselectionRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

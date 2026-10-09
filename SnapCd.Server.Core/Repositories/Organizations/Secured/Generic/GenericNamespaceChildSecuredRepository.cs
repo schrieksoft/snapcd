@@ -20,15 +20,19 @@ using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 
-public class GenericNamespaceChildSecuredRepositoryFactory<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>(
+public class GenericNamespaceChildSecuredRepositoryFactory<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
     IOptions<TOptions> options)
     where TEntity : class, IEntity, INamespaceChild
-    where TRepository : GenericNamespaceChildRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TMetadata : EntityMetadataBase
+    where TRepository : GenericNamespaceChildRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -44,10 +48,11 @@ public class GenericNamespaceChildSecuredRepositoryFactory<TEntity, TDto, TRepos
 }
 
 public abstract class
-    GenericNamespaceChildSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : GenericSecuredRepository<TEntity, TDto, TRepository, TCreateEvent,
+    GenericNamespaceChildSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent,
     TUpdateEvent, TDeleteEvent, TOptions>
     where TEntity : class, IEntity, INamespaceChild
-    where TRepository : GenericNamespaceChildRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TMetadata : EntityMetadataBase
+    where TRepository : GenericNamespaceChildRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -133,6 +138,17 @@ public abstract class
             ReadPermissionMap.OrganizationRoles,
             ReadPermissionMap.StackRoles,
             ReadPermissionMap.NamespaceRoles,
+            []);
+    }
+
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
             []);
     }
 

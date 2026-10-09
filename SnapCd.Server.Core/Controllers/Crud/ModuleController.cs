@@ -20,16 +20,19 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.Module)]
 [McpEntity(Singular = "Module", Plural = "Modules")]
 public class ModuleController : GenericCrudController<
-    Module,
+    Module, ModuleMetadata,
     ModuleCreateDto,
     ModuleUpdateDto,
     ModuleReadDto,
+    ModuleMetadataReadDto,
     ModuleSecuredRepository,
     ModuleRepository,
     ModuleService,
@@ -42,7 +45,7 @@ public class ModuleController : GenericCrudController<
     {
     }
 
-    [HttpGet("{namespaceId}/{name}")]
+    [HttpGet("{namespaceId:guid}/{name}")]
     public async Task<ActionResult<ModuleReadDto>> Get(Guid organizationId, Guid namespaceId, string name)
     {
         try
@@ -212,4 +215,71 @@ public class ModuleController : GenericCrudController<
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
+
+    [HttpGet("Metadata/{namespaceId}/{name}")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<ModuleMetadataReadDto>> GetMetadata(Guid organizationId, Guid namespaceId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(namespaceId, name, organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public override async Task<ActionResult<List<ModuleMetadataReadDto>>> ListMetadata(Guid organizationId)
+    {
+        try
+        {
+            return Ok(await Service.ListMetadata(organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/ByName/{stackName}/{namespaceName}/{moduleName}")]
+    [PermissionSource(Repository = typeof(ModuleSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<ModuleMetadataReadDto>> GetMetadata(Guid organizationId, string stackName, string namespaceName, string moduleName)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(stackName, namespaceName, moduleName, organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
 }

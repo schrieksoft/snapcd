@@ -35,7 +35,10 @@ RUN_MCP=0
 RUN_OPENAPI=0
 RUN_SETTINGS=0
 wants "$ALWAYS|^SnapCd\.Server\.Core/Controllers/.*\.cs$|^SnapCd\.Contracts/Mcp/|^generators/SnapCd\.Mcp\.Generator/|^SnapCd\.Server\.Core/AI/Mcp/Generated/" && RUN_MCP=1
-wants "$ALWAYS|^SnapCd\.Server\.Core/Controllers/.*\.cs$|^SnapCd\.Contracts/Dto/|^SnapCd\.Server\.Core/Startup/(Scalar|Controllers|CurrentOrganizationOperationTransformer)\.cs$|^generators/SnapCd\.OpenApi\.Generator/|^schemas/openapi\.yaml$" && RUN_OPENAPI=1
+# The OpenAPI generator boots the real app and renders the live document, so it also follows the
+# role enums and the permission map on every secured repository, which the permission transformer
+# reads to list each endpoint's roles.
+wants "$ALWAYS|^SnapCd\.Server\.Core/Controllers/.*\.cs$|^SnapCd\.Contracts/Dto/|^SnapCd\.Contracts/Enums\.cs$|^SnapCd\.Contracts/Enums/|^SnapCd\.Server\.Core/Repositories/.*/Secured/|^SnapCd\.Server\.Core/Startup/(Scalar|Controllers|CurrentOrganizationOperationTransformer|PermissionDocExtractor|PermissionsOperationTransformer)\.cs$|^generators/SnapCd\.OpenApi\.Generator/|^schemas/openapi\.yaml$" && RUN_OPENAPI=1
 wants "$ALWAYS|^SnapCd\.Runner/Settings/|^SnapCd\.Agent/Configuration/|^SnapCd\.Server\.Core/Settings/|^generators/SnapCd\.Settings\.Generator|^schemas/.*\.schema\.yaml$" && RUN_SETTINGS=1
 
 if [[ $RUN_MCP == 0 && $RUN_OPENAPI == 0 && $RUN_SETTINGS == 0 ]]; then

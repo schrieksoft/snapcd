@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts.Dto.ModulePulumiLocalPolicies;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
@@ -17,6 +18,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -38,7 +42,7 @@ public class ModulePulumiLocalPolicySecuredRepositoryFactory(
 
 public class ModulePulumiLocalPolicySecuredRepository : GenericModuleChildSecuredRepository<
     ModulePulumiLocalPolicy,
-    ModulePulumiLocalPolicyReadDto,
+    ModulePulumiLocalPolicyReadDto, ModulePulumiLocalPolicyMetadata,
     ModulePulumiLocalPolicyRepository,
     ModulePulumiLocalPolicyCreatedEvent,
     ModulePulumiLocalPolicyUpdatedEvent,
@@ -57,8 +61,16 @@ public class ModulePulumiLocalPolicySecuredRepository : GenericModuleChildSecure
         var entity = await Repository.Get(moduleId, name, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to ModulePulumiLocalPolicy {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(ModulePulumiLocalPolicy)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }
+
+    public Task<ModulePulumiLocalPolicyMetadata> GetMetadata(Guid moduleId, string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.Get(moduleId, name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

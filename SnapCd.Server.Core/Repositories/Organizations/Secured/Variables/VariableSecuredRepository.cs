@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Variables;
 using SnapCd.Server.Core.Database;
@@ -22,6 +23,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
 
@@ -43,7 +47,7 @@ public class VariableSecuredRepositoryFactory(
 
 public class VariableSecuredRepository : GenericSecuredRepository<
     Variable,
-    VariableReadDto,
+    VariableReadDto, VariableMetadata,
     VariableRepository,
     InputCreatedEvent,
     InputUpdatedEvent,
@@ -97,6 +101,18 @@ public class VariableSecuredRepository : GenericSecuredRepository<
             ReadPermissionMap.StackRoles,
             ReadPermissionMap.NamespaceRoles,
             ReadPermissionMap.ModuleRoles);
+    }
+
+    /// <summary>No metadata roles are declared for this entity, so this is empty
+    /// until one is: identifying a row is not something anyone may do by default.</summary>
+    public override IQueryable<Variable> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
+            ReadMetadataPermissionMap.ModuleRoles);
     }
 
     public override IQueryable<Variable> CreateQuery(Guid organizationId)
@@ -390,7 +406,8 @@ public class VariableSecuredRepository : GenericSecuredRepository<
 
         foreach (var input in inputs)
             if (!CanRead(input.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to Input {input.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(Variable)} with ID {input.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return inputs;
     }
@@ -401,7 +418,8 @@ public class VariableSecuredRepository : GenericSecuredRepository<
 
         foreach (var input in inputs)
             if (!CanRead(input.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to Input {input.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(Variable)} with ID {input.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return inputs;
     }

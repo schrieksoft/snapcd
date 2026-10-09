@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts.Dto.Secrets.Scoped;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
@@ -17,6 +18,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 
@@ -39,6 +43,7 @@ public class ModuleSecretSecuredRepositoryFactory(
 public class ModuleSecretSecuredRepository : GenericModuleChildSecuredRepository<
     ModuleSecret,
     ModuleSecretDto,
+    ModuleSecretMetadata,
     ModuleSecretRepository,
     ModuleSecretCreatedEvent,
     ModuleSecretUpdatedEvent,
@@ -58,7 +63,8 @@ public class ModuleSecretSecuredRepository : GenericModuleChildSecuredRepository
         var secret = await Repository.GetByName(name, include);
 
         if (!CanRead(secret.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to ModuleSecret {secret.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(ModuleSecret)} with ID {secret.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return secret;
     }
@@ -69,8 +75,16 @@ public class ModuleSecretSecuredRepository : GenericModuleChildSecuredRepository
 
         foreach (var secret in secrets)
             if (!CanRead(secret.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to ModuleSecret {secret.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(ModuleSecret)} with ID {secret.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return secrets;
     }
+
+    public Task<ModuleSecretMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 }

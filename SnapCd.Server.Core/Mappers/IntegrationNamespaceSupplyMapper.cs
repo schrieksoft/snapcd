@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.IntegrationNamespaceSupplies;
 using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class IntegrationNamespaceSupplyMapper
     {
         entity.NamespaceId = dto.NamespaceId;
         entity.IntegrationId = dto.IntegrationId;
+    }
+
+    public static IntegrationNamespaceSupplyMetadataReadDto ToMetadataDto(IntegrationNamespaceSupplyMetadata view)
+    {
+        return new IntegrationNamespaceSupplyMetadataReadDto
+        {
+            Id = view.Id,
+            IntegrationId = view.IntegrationId,
+            NamespaceId = view.NamespaceId,
+        };
     }
 }

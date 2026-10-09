@@ -18,15 +18,19 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.ModuleTerraformInlinePolicy)]
 public class ModuleTerraformInlinePolicyController : GenericCrudController<
-    ModuleTerraformInlinePolicy,
+    ModuleTerraformInlinePolicy, ModuleTerraformInlinePolicyMetadata,
     ModuleTerraformInlinePolicyCreateDto,
     ModuleTerraformInlinePolicyUpdateDto,
     ModuleTerraformInlinePolicyReadDto,
+    ModuleTerraformInlinePolicyMetadataReadDto,
     ModuleTerraformInlinePolicySecuredRepository,
     ModuleTerraformInlinePolicyRepository,
     ModuleTerraformInlinePolicyService,
@@ -39,13 +43,35 @@ public class ModuleTerraformInlinePolicyController : GenericCrudController<
     {
     }
 
-    [HttpGet("{moduleId}/{name}")]
+    [HttpGet("{moduleId:guid}/{name}")]
     public async Task<ActionResult<ModuleTerraformInlinePolicyReadDto>> Get(Guid organizationId, Guid moduleId, string name)
     {
         try
         {
             var dto = await Service.Get(moduleId, name, organizationId);
             return Ok(dto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{moduleId:guid}/{name}")]
+    [PermissionSource(Repository = typeof(ModuleTerraformInlinePolicySecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<ModuleTerraformInlinePolicyMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid moduleId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(moduleId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

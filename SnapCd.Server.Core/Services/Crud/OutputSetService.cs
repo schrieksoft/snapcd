@@ -23,11 +23,13 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Services.Outputs;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class
-    OutputSetService : GenericCrudService<OutputSet, OutputSetCreateDto, OutputSetUpdateDto, OutputSetReadDto, OutputSetSecuredRepository, OutputSetRepository, OutputSetCreatedEvent, OutputSetUpdatedEvent, OutputSetDeletedEvent,
+    OutputSetService : GenericCrudService<OutputSet, OutputSetMetadata, OutputSetCreateDto, OutputSetUpdateDto, OutputSetReadDto, OutputSetMetadataReadDto, OutputSetSecuredRepository, OutputSetRepository, OutputSetCreatedEvent, OutputSetUpdatedEvent, OutputSetDeletedEvent,
     OutputSetRepositorySettings>
 {
     private readonly CustomOutputMapper _outputMapper;
@@ -66,6 +68,11 @@ public class
     protected override OutputSetReadDto MapToDto(OutputSet entity)
     {
         throw new NotImplementedByDesignException("Variable mapping is performed directly in RunnerHub handler.");
+    }
+
+    protected override OutputSetMetadataReadDto MapToMetadataDto(OutputSetMetadata view)
+    {
+        return OutputSetMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(OutputSet entity, OutputSetUpdateDto dto)

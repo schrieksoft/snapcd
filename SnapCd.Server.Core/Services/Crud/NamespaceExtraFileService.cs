@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceExtraFileService : GenericCrudService<NamespaceExtraFile, NamespaceExtraFileCreateDto, NamespaceExtraFileUpdateDto, NamespaceExtraFileReadDto, NamespaceExtraFileSecuredRepository, NamespaceExtraFileRepository, NamespaceExtraFileCreatedEvent
+public class NamespaceExtraFileService : GenericCrudService<NamespaceExtraFile, NamespaceExtraFileMetadata, NamespaceExtraFileCreateDto, NamespaceExtraFileUpdateDto, NamespaceExtraFileReadDto, NamespaceExtraFileMetadataReadDto, NamespaceExtraFileSecuredRepository, NamespaceExtraFileRepository, NamespaceExtraFileCreatedEvent
     , NamespaceExtraFileUpdatedEvent, NamespaceExtraFileDeletedEvent, NamespaceExtraFileRepositorySettings>
 {
     public NamespaceExtraFileService(
@@ -36,6 +38,11 @@ public class NamespaceExtraFileService : GenericCrudService<NamespaceExtraFile, 
         return NamespaceExtraFileMapper.ToDto(entity);
     }
 
+    protected override NamespaceExtraFileMetadataReadDto MapToMetadataDto(NamespaceExtraFileMetadata view)
+    {
+        return NamespaceExtraFileMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespaceExtraFile entity, NamespaceExtraFileUpdateDto dto)
     {
         NamespaceExtraFileMapper.UpdateEntity(entity, dto);
@@ -45,5 +52,11 @@ public class NamespaceExtraFileService : GenericCrudService<NamespaceExtraFile, 
     {
         var entity = await SecuredRepository.Get(namespaceId, fileName, organizationId);
         return NamespaceExtraFileMapper.ToDto(entity);
+    }
+
+    public async Task<NamespaceExtraFileMetadataReadDto> GetMetadata(Guid namespaceId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, name, organizationId);
+        return NamespaceExtraFileMapper.ToMetadataDto(view);
     }
 }

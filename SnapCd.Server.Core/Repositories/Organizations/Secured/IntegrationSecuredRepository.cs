@@ -16,13 +16,17 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -43,7 +47,7 @@ public class IntegrationSecuredRepositoryFactory(
 }
 
 public class IntegrationSecuredRepository(IntegrationRepository repository, IPrincipalProvider principalProvider)
-    : GenericOrganizationChildSecuredRepository<Integration, IntegrationReadDto, IntegrationRepository,
+    : GenericOrganizationChildSecuredRepository<Integration, IntegrationReadDto, IntegrationMetadata, IntegrationRepository,
         IntegrationCreatedEvent, IntegrationUpdatedEvent, IntegrationDeletedEvent, IntegrationRepositorySettings>(repository, principalProvider)
 {
     public override PermissionMap ReadPermissionMap => new()
@@ -51,6 +55,47 @@ public class IntegrationSecuredRepository(IntegrationRepository repository, IPri
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.IntegrationContributor, OrganizationRole.IntegrationReader],
         IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader]
     };
+    /// <summary>
+    /// Wider than read by MetadataReader, which a supply to a readable scope derives.
+    /// </summary>
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.IntegrationContributor, OrganizationRole.IntegrationReader],
+        IntegrationRoles = [IntegrationRole.Owner, IntegrationRole.Contributor, IntegrationRole.Reader, IntegrationRole.MetadataReader]
+    };
+
+    public override IQueryable<Integration> ReadMetadataQuery(Guid organizationId)
+        => base.ReadMetadataQuery(organizationId)
+            .Concat(IntegrationRoleQuery(organizationId, ReadMetadataPermissionMap.IntegrationRoles))
+            .Concat(SuppliedScopeMetadataQuery(organizationId));
+
+    /// <summary>Supplying a Integration to a scope is what makes it usable there, so a role on that
+    /// scope carries metadata read on the Integration itself. Derived on write by trigger.</summary>
+    private IQueryable<Integration> SuppliedScopeMetadataQuery(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return from entity in Repository.DbContext.Integrations
+            join derived in Repository.DbContext.DerivedIntegrationRoleAssignments
+                on new { EntityId = entity.Id, entity.OrganizationId }
+                equals new { EntityId = derived.IntegrationId, derived.OrganizationId }
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && derived.PrincipalDiscriminator == PrincipalDiscriminator
+                  && ReadMetadataPermissionMap.IntegrationRoles.Contains(derived.RoleName)
+            select entity;
+    }
+
+    public Task<IntegrationMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            () => Repository.DbContext.Integrations
+                .Where(i => i.OrganizationId == organizationId && i.Name == name)
+                .Select(i => (Guid?)i.Id)
+                .FirstOrDefaultAsync(),
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
+
 
     public override PermissionMap UpdatePermissionMap => new()
     {

@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud.Secrets.Scoped;
 
-public class StackSecretService : GenericCrudService<StackSecret, StackSecretDto, StackSecretDto, StackSecretDto, StackSecretSecuredRepository, StackSecretRepository, StackSecretCreatedEvent, StackSecretUpdatedEvent,
+public class StackSecretService : GenericCrudService<StackSecret, StackSecretMetadata, StackSecretDto, StackSecretDto, StackSecretDto, StackSecretMetadataReadDto, StackSecretSecuredRepository, StackSecretRepository, StackSecretCreatedEvent, StackSecretUpdatedEvent,
     StackSecretDeletedEvent, StackSecretRepositorySettings>
 {
     public StackSecretService(
@@ -36,6 +38,11 @@ public class StackSecretService : GenericCrudService<StackSecret, StackSecretDto
         return StackSecretMapper.ToDto(entity);
     }
 
+    protected override StackSecretMetadataReadDto MapToMetadataDto(StackSecretMetadata view)
+    {
+        return StackSecretMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(StackSecret entity, StackSecretDto dto)
     {
         StackSecretMapper.UpdateEntity(entity, dto);
@@ -44,5 +51,11 @@ public class StackSecretService : GenericCrudService<StackSecret, StackSecretDto
     public async Task<StackSecretDto> GetByName(string name, Guid organizationId)
     {
         return await GetByCriteria(repo => repo.GetByName(name, organizationId, null));
+    }
+
+    public async Task<StackSecretMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return StackSecretMapper.ToMetadataDto(view);
     }
 }

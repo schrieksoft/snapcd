@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts.Dto.NamespaceInputs;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Base;
@@ -18,6 +19,10 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -25,9 +30,10 @@ public class NamespaceInputFromLiteralSecuredRepositoryFactory<TEntity>(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
     IOptions<NamespaceInputFromLiteralRepositorySettings> options)
+    : IEntitySecuredRepositoryFactory<TEntity>
     where TEntity : NamespaceInputWithType, INamespaceInputFromLiteral
 {
-    public NamespaceInputFromLiteralSecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
+    public IEntitySecuredRepository<TEntity> Create(IPrincipalProvider? principalProvider = null)
     {
         if (principalProvider == null)
             principalProvider = new HttpContextPrincipalProvider(new HttpContextAccessor());
@@ -40,7 +46,7 @@ public class NamespaceInputFromLiteralSecuredRepositoryFactory<TEntity>(
 
 public class NamespaceInputFromLiteralSecuredRepository<TEntity> : GenericNamespaceChildSecuredRepository<
     TEntity,
-    NamespaceInputFromLiteralReadDto,
+    NamespaceInputFromLiteralReadDto, NamespaceInputFromLiteralMetadata,
     NamespaceInputFromLiteralRepository<TEntity>,
     NamespaceInputFromLiteralCreatedEvent,
     NamespaceInputFromLiteralUpdatedEvent,
@@ -60,7 +66,8 @@ public class NamespaceInputFromLiteralSecuredRepository<TEntity> : GenericNamesp
         var entity = await Repository.Get(namespaceId, name, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to {typeof(TEntity).Name} {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{typeof(TEntity).Name} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }
@@ -73,7 +80,8 @@ public class NamespaceInputFromLiteralSecuredRepository<TEntity> : GenericNamesp
         // Check if user can read from the namespace
         var namespaceEntity = await Repository.DbContext.Namespaces.FindAsync(namespaceId);
         if (namespaceEntity != null && !ReadQuery(organizationId).Any(e => e.NamespaceId == namespaceId))
-            throw new UnauthorizedAccessException($"Access denied to namespace {namespaceId}");
+            throw new PrincipalNotAuthorizedException(
+                $"Namespace with ID {namespaceId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         var result = await Repository.GetLiterals(namespaceId, envVarNames, organizationId);
         return result;

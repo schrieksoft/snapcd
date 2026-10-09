@@ -44,8 +44,10 @@
             <MudText Typo="Typo.body2">
                 State migrations run against a module that is held still. Pause the module to make them available.
             </MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                       Disabled="@(!_canPause || _busy)" OnClick="Pause">pause</MudButton>
+            <MudTooltip Text="@PauseDisabledReason" Disabled="@(PauseDisabledReason is null)">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                           Disabled="@_busy" OnClick="Pause">pause</MudButton>
+            </MudTooltip>
         </MudStack>
     </MudPaper>
 }
@@ -87,12 +89,16 @@
                         </MudText>
 
                         <MudStack Row Spacing="2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                       OnClick="@(() => Answer(true))">agree</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       Disabled="@(!_canPause || _busy || RunningStateMigration is not null)"
-                                       OnClick="@(() => Answer(false))">refuse</MudButton>
+                            <MudTooltip Text="@AnswerDisabledReason" Disabled="@(AnswerDisabledReason is null)">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           Disabled="@(_busy || RunningStateMigration is not null)"
+                                           OnClick="@(() => Answer(true))">agree</MudButton>
+                            </MudTooltip>
+                            <MudTooltip Text="@AnswerDisabledReason" Disabled="@(AnswerDisabledReason is null)">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           Disabled="@(_busy || RunningStateMigration is not null)"
+                                           OnClick="@(() => Answer(false))">refuse</MudButton>
+                            </MudTooltip>
                         </MudStack>
                     </MudAlert>
                 }
@@ -157,10 +163,12 @@
                     </MudExpansionPanels>
                 </MudRadioGroup>
 
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                           Class="mt-3"
-                           Disabled="@IsJobDisabled()"
-                           OnClick="RunChosenJob">Run</MudButton>
+                <MudTooltip Text="@RunJobDisabledReason" Disabled="@(RunJobDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                               Class="mt-3"
+                               Disabled="@IsJobDisabled()"
+                               OnClick="RunChosenJob">Run</MudButton>
+                </MudTooltip>
             }
         }
     </MudPaper>
@@ -337,7 +345,7 @@ else
                             <ApprovalPanel Source="@GetApprovalSource()"
                                            JobId="@job.Id"
                                            ModuleId="@Module.Id"
-                                           Enabled="@(_canPause && !_busy)"
+                                           Enabled="@(!_busy)"
                                            OnDecided="Reload"
                                            @key="job.Id"/>
                         </MudTabPanel>
@@ -349,6 +357,15 @@ else
 }
 
 @code {
+    private string? PauseDisabledReason =>
+        _busy ? "An operation is already in progress."
+        : null;
+
+    private string? AnswerDisabledReason =>
+        _busy ? "An operation is already in progress."
+        : RunningStateMigration is not null ? "A state migration is already running."
+        : null;
+
     [Parameter] public required Module Module { get; set; }
     [Parameter] public required ModuleSaga ModuleSaga { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
@@ -356,6 +373,7 @@ else
 
     [Inject] private ModuleSagaSecuredRepositoryFactory SagaRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] private ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory { get; set; } = null!;
     [Inject] private StateMigrationServiceFactory StateMigrationServiceFactory { get; set; } = null!;
     [Inject] private TransferServiceFactory TransferServiceFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> TransferDbContextFactory { get; set; } = null!;
@@ -542,8 +560,14 @@ else
     /// What the server refuses, which is the same for every job kind. An open transfer is not among
     /// them: a second one is refused by TransferLocks' primary key, and the rest are unaffected.
     /// </summary>
+    private string? RunJobDisabledReason =>
+        NeedsMyAnswer ? "Answer the pending question first."
+        : _busy ? "An operation is already in progress."
+        : RunningStateMigration is not null ? "A state migration is already running."
+        : null;
+
     private bool IsJobDisabled() =>
-        NeedsMyAnswer || !_canPause || _busy || RunningStateMigration is not null;
+        NeedsMyAnswer || _busy || RunningStateMigration is not null;
 
     private Task RunChosenJob() => _chosenJob switch
     {
@@ -557,7 +581,6 @@ else
         _ => Task.CompletedTask
     };
 
-    private bool _canPause;
     private bool _busy;
     private List<Module> _transferCandidates = [];
     private Transfer? _transfer;
@@ -723,7 +746,10 @@ else
         }
 
         using var moduleRepo = ModuleRepoFactory.Create(PrincipalProvider);
-        _canPause = moduleRepo.CanPause(Module.Id, OrganizationId);
+
+        using (var jobSecuredRepo = JobSecuredRepoFactory.Create(PrincipalProvider))
+        {
+        }
 
         using var stateMigrationService = StateMigrationServiceFactory.Create(PrincipalProvider);
         _blockedReason = await stateMigrationService.GetBlockedReason(Module.Id, OrganizationId);
@@ -738,8 +764,21 @@ else
 
     private async Task Pause()
     {
+        string? refusal;
+        using (var repo = ModuleRepoFactory.Create(PrincipalProvider))
+        {
+            refusal = repo.CanPause(Module.Id, OrganizationId)
+                ? null
+                : "You do not have permission to pause this module.";
+        }
+
+        var parameters = new DialogParameters<PauseModuleDialog>
+        {
+            { x => x.RefusalReason, refusal }
+        };
+
         var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
-        var dialog = await DialogService.ShowAsync<PauseModuleDialog>("Pause module", options);
+        var dialog = await DialogService.ShowAsync<PauseModuleDialog>("Pause module", parameters, options);
         var result = await dialog.Result;
 
         if (result is null || result.Canceled) return;

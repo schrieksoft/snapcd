@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.DependsOnModules;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class DependsOnModuleMapper
     {
         entity.ModuleId = dto.ModuleId;
         entity.DependsOnModuleId = dto.DependsOnModuleId;
+    }
+
+    public static DependsOnModuleMetadataReadDto ToMetadataDto(DependsOnModuleMetadata view)
+    {
+        return new DependsOnModuleMetadataReadDto
+        {
+            Id = view.Id,
+            DependsOnModuleId = view.DependsOnModuleId,
+            ModuleId = view.ModuleId,
+        };
     }
 }

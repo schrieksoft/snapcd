@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.VariableSets;
 using SnapCd.Server.Core.Database;
@@ -20,6 +21,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
 
@@ -42,7 +46,7 @@ public class VariableSetSecuredRepositoryFactory(
 
 public class VariableSetSecuredRepository : GenericModuleChildSecuredRepository<
     VariableSet,
-    VariableSetReadDto,
+    VariableSetReadDto, VariableSetMetadata,
     VariableSetRepository,
     VariableSetCreatedEvent,
     VariableSetUpdatedEvent,
@@ -93,7 +97,8 @@ public class VariableSetSecuredRepository : GenericModuleChildSecuredRepository<
         var entity = await Repository.Get(moduleId, checksum, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to VariableSet {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(VariableSet)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }
@@ -103,7 +108,8 @@ public class VariableSetSecuredRepository : GenericModuleChildSecuredRepository<
         var entity = await Repository.GetLatestByModuleId(moduleId, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to VariableSet {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(VariableSet)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }
@@ -114,7 +120,8 @@ public class VariableSetSecuredRepository : GenericModuleChildSecuredRepository<
 
         foreach (var variableSet in variableSets)
             if (!CanRead(variableSet.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to VariableSet {variableSet.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(VariableSet)} with ID {variableSet.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return variableSets;
     }
@@ -122,7 +129,8 @@ public class VariableSetSecuredRepository : GenericModuleChildSecuredRepository<
     public async Task<Guid?> CreateWithVariables(VariableSet variableSet, Guid organizationId)
     {
         if (!CanCreate(variableSet.ModuleId, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to create VariableSet for module {variableSet.ModuleId}");
+            throw new PrincipalNotAuthorizedException(
+                $"Module with ID {variableSet.ModuleId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to create a {nameof(VariableSet)} within it.");
 
         return await Repository.CreateWithVariables(variableSet, organizationId);
     }

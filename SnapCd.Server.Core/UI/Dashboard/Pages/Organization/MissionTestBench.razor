@@ -154,14 +154,16 @@ else
                         </MudExpansionPanel>
                     </MudExpansionPanels>
 
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               Size="Size.Small"
-                               Disabled="SelectedTargetExists is not true || _triggering"
-                               OnClick="TriggerJob">
-                        <MudIcon Icon="@SnapCdIcons.PlayArrow" Class="mr-2" />
-                        Trigger
-                    </MudButton>
+                    <MudTooltip Text="@TriggerDisabledReason" Disabled="@(TriggerDisabledReason is null)">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Disabled="SelectedTargetExists is not true || _triggering"
+                                   OnClick="TriggerJob">
+                            <MudIcon Icon="@SnapCdIcons.PlayArrow" Class="mr-2" />
+                            Trigger
+                        </MudButton>
+                    </MudTooltip>
 
                     @if (_lastTriggeredJobId is not null)
                     {
@@ -319,6 +321,8 @@ else
 }
 
 @code {
+    private string? TriggerDisabledReason => SelectedTargetExists is true ? null : "A target must exist before this can run.";
+
     private const int LogTailChars = 4000;
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 

@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Missions;
 using SnapCd.Server.Core.Entities.Definition.Missions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -44,5 +45,14 @@ public static class OrganizationMissionMapper
         entity.MissionType = dto.MissionType;
         entity.SidecarName = dto.SidecarName;
         entity.IsDisabled = dto.IsDisabled;
+    }
+
+    public static OrganizationMissionMetadataReadDto ToMetadataDto(OrganizationMissionMetadata view)
+    {
+        return new OrganizationMissionMetadataReadDto
+        {
+            Id = view.Id,
+            AgentId = view.AgentId,
+        };
     }
 }

@@ -15,13 +15,17 @@ using SnapCd.Server.Core.Misc.Helpers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 
-public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> :
-    GenericSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> :
+    GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TEntity : class, IEntity, IOrganizationChild
-    where TRepository : GenericOrganizationChildRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TMetadata : EntityMetadataBase
+    where TRepository : GenericOrganizationChildRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -82,6 +86,14 @@ public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, T
             ReadPermissionMap.OrganizationRoles);
     }
 
+    /// <summary>The rows readable at metadata level, shaped by the repository.</summary>
+    public override IQueryable<TEntity> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles);
+    }
+
     public override IQueryable<TEntity> UpdateQuery(Guid organizationId)
     {
         return RoleQueryDispatch(
@@ -137,8 +149,19 @@ public abstract class GenericOrganizationChildSecuredRepository<TEntity, TDto, T
         var entitiesFromGroupRoles = OrganizationRolesFromGroupQuery<TGroupMember, TOrganizationRoleAssignment>(
             organizationId, principalId, organizationRoles);
 
+        // Roles derived from what the principal holds elsewhere. Group membership is already
+        // accounted for when these are derived, so they are not expanded through groups again.
+        var entitiesFromDerivedRoles = from entity in Repository.DbContext.Set<TEntity>()
+            join derived in Repository.DbContext.DerivedOrganizationRoleAssignments
+                on entity.OrganizationId equals derived.OrganizationId
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && organizationRoles.Contains(derived.RoleName)
+            select entity;
+
         return entitiesFromDirectRoles
-            .Concat(entitiesFromGroupRoles);
+            .Concat(entitiesFromGroupRoles)
+            .Concat(entitiesFromDerivedRoles);
     }
 
     private IQueryable<TEntity> OrganizationRolesFromGroupQuery<TGroupMember, TOrganizationRoleAssignment>(

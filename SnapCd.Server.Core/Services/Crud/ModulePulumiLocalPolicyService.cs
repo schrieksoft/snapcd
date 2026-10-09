@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModulePulumiLocalPolicyService : GenericCrudService<ModulePulumiLocalPolicy, ModulePulumiLocalPolicyCreateDto, ModulePulumiLocalPolicyUpdateDto, ModulePulumiLocalPolicyReadDto,
+public class ModulePulumiLocalPolicyService : GenericCrudService<ModulePulumiLocalPolicy, ModulePulumiLocalPolicyMetadata, ModulePulumiLocalPolicyCreateDto, ModulePulumiLocalPolicyUpdateDto, ModulePulumiLocalPolicyReadDto, ModulePulumiLocalPolicyMetadataReadDto,
     ModulePulumiLocalPolicySecuredRepository, ModulePulumiLocalPolicyRepository, ModulePulumiLocalPolicyCreatedEvent,
     ModulePulumiLocalPolicyUpdatedEvent, ModulePulumiLocalPolicyDeletedEvent, ModulePulumiLocalPolicyRepositorySettings>
 {
@@ -37,6 +39,11 @@ public class ModulePulumiLocalPolicyService : GenericCrudService<ModulePulumiLoc
         return ModulePulumiLocalPolicyMapper.ToDto(entity);
     }
 
+    protected override ModulePulumiLocalPolicyMetadataReadDto MapToMetadataDto(ModulePulumiLocalPolicyMetadata view)
+    {
+        return ModulePulumiLocalPolicyMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(ModulePulumiLocalPolicy entity, ModulePulumiLocalPolicyUpdateDto dto)
     {
         ModulePulumiLocalPolicyMapper.UpdateEntity(entity, dto);
@@ -46,5 +53,11 @@ public class ModulePulumiLocalPolicyService : GenericCrudService<ModulePulumiLoc
     {
         var entity = await SecuredRepository.Get(moduleId, name, organizationId);
         return ModulePulumiLocalPolicyMapper.ToDto(entity);
+    }
+
+    public async Task<ModulePulumiLocalPolicyMetadataReadDto> GetMetadata(Guid moduleId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(moduleId, name, organizationId);
+        return ModulePulumiLocalPolicyMapper.ToMetadataDto(view);
     }
 }

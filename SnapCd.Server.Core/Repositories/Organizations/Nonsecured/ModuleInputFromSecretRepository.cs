@@ -20,18 +20,33 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-public class ModuleInputFromSecretRepository<TEntity> : GenericModuleChildDefinitionRepository<
-    TEntity,
-    ModuleInputFromSecretReadDto,
+public class ModuleInputFromSecretRepository<TEntity> : GenericModuleChildDefinitionRepository<TEntity,
+    ModuleInputFromSecretReadDto, ModuleInputFromSecretMetadata,
     ModuleInputFromSecretCreatedEvent,
     ModuleInputFromSecretUpdatedEvent,
     ModuleInputFromSecretDeletedEvent,
     ModuleInputFromSecretRepositorySettings>
     where TEntity : ModuleInputWithType, IModuleInputFromSecret
 {
+
+
+
+    protected override Expression<Func<TEntity, ModuleInputFromSecretMetadata>> MetadataProjection =>
+        e => new ModuleInputFromSecretMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            ModuleId = e.ModuleId,
+            SecretId = e.SecretId
+        };
     public ModuleInputFromSecretRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

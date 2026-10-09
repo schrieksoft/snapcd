@@ -20,6 +20,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments;
 
@@ -31,10 +34,19 @@ public class IntegrationRoleAssignmentRepositoryFactory(IDbContextFactory<SnapCd
 }
 
 public class IntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericIntegrationChildRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto, IntegrationRoleAssignmentMetadata,
         IntegrationRoleAssignmentCreatedEvent, IntegrationRoleAssignmentUpdatedEvent, IntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {
+
+    protected override Expression<Func<IntegrationRoleAssignment, IntegrationRoleAssignmentMetadata>> MetadataProjection =>
+        e => new IntegrationRoleAssignmentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            PrincipalId = e.PrincipalId
+        };
     protected override IntegrationRoleAssignmentReadDto MapToDto(IntegrationRoleAssignment entity)
         => IntegrationRoleAssignmentMapper.ToDto(entity);
 
@@ -53,10 +65,20 @@ public class UserIntegrationRoleAssignmentRepositoryFactory(IDbContextFactory<Sn
 }
 
 public class UserIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericIntegrationChildRepository<UserIntegrationRoleAssignment, UserIntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<UserIntegrationRoleAssignment, UserIntegrationRoleAssignmentReadDto, UserIntegrationRoleAssignmentMetadata,
         UserIntegrationRoleAssignmentCreatedEvent, UserIntegrationRoleAssignmentUpdatedEvent, UserIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {
+    protected override Expression<Func<UserIntegrationRoleAssignment, UserIntegrationRoleAssignmentMetadata>> MetadataProjection =>
+        e => new UserIntegrationRoleAssignmentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            PrincipalId = e.PrincipalId,
+            UserId = e.UserId
+        };
+
     protected override UserIntegrationRoleAssignmentReadDto MapToDto(UserIntegrationRoleAssignment entity)
         => UserIntegrationRoleAssignmentMapper.ToDto(entity);
 }
@@ -69,10 +91,20 @@ public class ServicePrincipalIntegrationRoleAssignmentRepositoryFactory(IDbConte
 }
 
 public class ServicePrincipalIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericIntegrationChildRepository<ServicePrincipalIntegrationRoleAssignment, ServicePrincipalIntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<ServicePrincipalIntegrationRoleAssignment, ServicePrincipalIntegrationRoleAssignmentReadDto, ServicePrincipalIntegrationRoleAssignmentMetadata,
         ServicePrincipalIntegrationRoleAssignmentCreatedEvent, ServicePrincipalIntegrationRoleAssignmentUpdatedEvent, ServicePrincipalIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {
+    protected override Expression<Func<ServicePrincipalIntegrationRoleAssignment, ServicePrincipalIntegrationRoleAssignmentMetadata>> MetadataProjection =>
+        e => new ServicePrincipalIntegrationRoleAssignmentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            PrincipalId = e.PrincipalId,
+            ServicePrincipalId = e.ServicePrincipalId
+        };
+
     protected override ServicePrincipalIntegrationRoleAssignmentReadDto MapToDto(ServicePrincipalIntegrationRoleAssignment entity)
         => ServicePrincipalIntegrationRoleAssignmentMapper.ToDto(entity);
 }
@@ -85,10 +117,20 @@ public class GroupIntegrationRoleAssignmentRepositoryFactory(IDbContextFactory<S
 }
 
 public class GroupIntegrationRoleAssignmentRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<IntegrationRoleAssignmentRepositorySettings> options)
-    : GenericIntegrationChildRepository<GroupIntegrationRoleAssignment, GroupIntegrationRoleAssignmentReadDto,
+    : GenericIntegrationChildRepository<GroupIntegrationRoleAssignment, GroupIntegrationRoleAssignmentReadDto, GroupIntegrationRoleAssignmentMetadata,
         GroupIntegrationRoleAssignmentCreatedEvent, GroupIntegrationRoleAssignmentUpdatedEvent, GroupIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(dbContext, principalProvider, bus, options)
 {
+    protected override Expression<Func<GroupIntegrationRoleAssignment, GroupIntegrationRoleAssignmentMetadata>> MetadataProjection =>
+        e => new GroupIntegrationRoleAssignmentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            PrincipalId = e.PrincipalId,
+            GroupId = e.GroupId
+        };
+
     protected override GroupIntegrationRoleAssignmentReadDto MapToDto(GroupIntegrationRoleAssignment entity)
         => GroupIntegrationRoleAssignmentMapper.ToDto(entity);
 }

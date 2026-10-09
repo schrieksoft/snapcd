@@ -12,6 +12,10 @@
 
 <MudDialog>
     <DialogContent>
+        @if (RefusalReason is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3" Dense="true">@RefusalReason</MudAlert>
+        }
         @* A confirmation, not a lesson: the user has already chosen to pause. The consequences
            are spelled out on the banner that shows for as long as the module stays paused. *@
         <MudStack Row Spacing="1" AlignItems="AlignItems.Center" Class="mb-3">
@@ -22,10 +26,13 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                   OnClick="Confirm">
-            Pause
-        </MudButton>
+        @if (RefusalReason is null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       OnClick="Confirm">
+                Pause
+            </MudButton>
+        }
 
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                    OnClick="Cancel">
@@ -36,6 +43,9 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Set to explain why the pause will be refused. The Pause button is then not offered.</summary>
+    [Parameter] public string? RefusalReason { get; set; }
 
     private void Confirm() => MudDialog.Close(DialogResult.Ok((string?)null));
 

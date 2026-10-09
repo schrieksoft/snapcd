@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.Secrets.Scoped;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class StackSecretMapper
     {
         entity.Name = dto.Name;
         entity.StackId = dto.StackId;
+    }
+
+    public static StackSecretMetadataReadDto ToMetadataDto(StackSecretMetadata view)
+    {
+        return new StackSecretMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            StackId = view.StackId,
+        };
     }
 }

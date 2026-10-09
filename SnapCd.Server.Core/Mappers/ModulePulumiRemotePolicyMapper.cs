@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.ModulePulumiRemotePolicies;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -53,5 +54,15 @@ public static class ModulePulumiRemotePolicyMapper
         entity.Path = dto.Path;
         entity.Enabled = dto.Enabled;
         entity.EvaluateOn = dto.EvaluateOn;
+    }
+
+    public static ModulePulumiRemotePolicyMetadataReadDto ToMetadataDto(ModulePulumiRemotePolicyMetadata view)
+    {
+        return new ModulePulumiRemotePolicyMetadataReadDto
+        {
+            Id = view.Id,
+            Name = view.Name,
+            ModuleId = view.ModuleId
+        };
     }
 }

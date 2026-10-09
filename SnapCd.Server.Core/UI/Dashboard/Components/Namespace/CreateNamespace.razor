@@ -17,18 +17,22 @@
 @implements IDisposable
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
-    <MudForm @ref="_form">
+    @if (!_canCreate)
+{
+    <ReadOnlyNotice Message="You do not have permission to create a Namespace."/>
+}
+<MudForm @ref="_form">
         <MudGrid Class="pa-4">
             <!-- Core Properties -->
             <MudItem md="12">
-                <MudTextField Label="Name" @bind-Value="NewNamespace.Name"
+                <MudTextField Disabled="@(!_canCreate)" Label="Name" @bind-Value="NewNamespace.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
                               MaxLength="255" Counter="255"
                               Validation="@((string s) => NameValidator.Validate(s, "Namespace"))"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSelect T="StateManagementEngine?" Label="Default Engine" @bind-Value="NewNamespace.DefaultEngine"
+                <MudSelect Disabled="@(!_canCreate)" T="StateManagementEngine?" Label="Default Engine" @bind-Value="NewNamespace.DefaultEngine"
                            Variant="Variant.Outlined">
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Default (OpenTofu)</MudSelectItem>
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
@@ -75,7 +79,7 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField T="int?" Label="Default Drift Check Interval Minutes"
+                <MudTextField Disabled="@(!_canCreate)" T="int?" Label="Default Drift Check Interval Minutes"
                               @bind-Value="NewNamespace.DefaultDriftCheckIntervalMinutes"
                               Variant="Variant.Outlined"/>
             </MudItem>
@@ -164,7 +168,10 @@
 
             <!-- Action Buttons -->
             <MudItem md="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="OnCreate">Create</MudButton>
+                @if (_canCreate)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="OnCreate">Create</MudButton>
+                }
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCancel" Size="Size.Small">Cancel</MudButton>
             </MudItem>
         </MudGrid>
@@ -181,6 +188,14 @@
     // Repository Factories
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
+
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = NamespaceSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canCreate = permissionRepo.CanCreate(StackId, OrganizationId);
+    }
 
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 

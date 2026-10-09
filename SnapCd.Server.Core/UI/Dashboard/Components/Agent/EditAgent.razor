@@ -10,11 +10,19 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
+
+<MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
 
 <MudPaper Elevation="1" Class="pa-4 my-4">
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             <MudItem xs="12">
                 <MudTextField Label="Agent Id"
                               @bind-Value="Agent.Id"
@@ -22,30 +30,30 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudSelect T="Guid" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
+                <MudSelect Disabled="@(!_canSave)" T="Guid" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
                            Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
                     @foreach (var sp in _availableServicePrincipals)
                     {
-                        <MudSelectItem Value="@sp.Id">@sp.DisplayName (@sp.DisplayClientId)</MudSelectItem>
+                        <MudSelectItem Value="@sp.Id">@sp.Label</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Label="Agent Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Agent Name"
                               @bind-Value="Input.Name"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" Value="Input.AllowMultipleInstances"
+                <MudSwitch Disabled="@(!_canSave)" T="bool" Value="Input.AllowMultipleInstances"
                            ValueChanged="AllowMultipleInstancesChanged" Label="Allow Multiple Instances"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" Value="Input.IsSuppliedToAllModules"
+                <MudSwitch Disabled="@(!_canSave)" T="bool" Value="Input.IsSuppliedToAllModules"
                            ValueChanged="IsSuppliedToAllModulesChanged" Label="Supplied to all Modules (org-wide supply)"
                            Color="Color.Secondary"/>
             </MudItem>
@@ -67,6 +75,7 @@
         </MudGrid>
     </EditForm>
 </MudPaper>
+</MudForm>
 
 @code {
     [Parameter] public required Agent Agent { get; set; }
@@ -74,17 +83,28 @@
     [Parameter] public required EventCallback OnCancel { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create();
+        _canSave = repo.CanUpdate(Agent.Id, OrganizationId);
+    }
+
     [Inject] private AgentSecuredRepositoryFactory RepoFactory { get; set; } = null!;
     [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private InputModel Input { get; set; } = new();
-    private List<ServicePrincipal> _availableServicePrincipals = new();
+    private List<ServicePrincipalMetadata> _availableServicePrincipals = new();
 
     protected override async Task OnInitializedAsync()
     {
+        ResolveCanSave();
         using var spRepo = ServicePrincipalRepoFactory.Create();
-        _availableServicePrincipals = await spRepo.List(OrganizationId);
+        _availableServicePrincipals = await spRepo.ListMetadata(OrganizationId,
+            orderBy: q => q.OrderBy(x => x.ClientId));
     }
 
     protected override void OnParametersSet()

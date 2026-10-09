@@ -12,6 +12,8 @@
 @using SnapCd.Server.Core.UI.Dashboard.Components.Roles
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Confirm
 @using Stack = SnapCd.Server.Core.Entities.Definition.Stack
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 
 <MudExpansionPanels MultiExpansion="false">
     <MudExpansionPanel Expanded="@IsSection(Section.Edit)"
@@ -23,9 +25,9 @@
             </div>
         </TitleContent>
         <ChildContent>
-            @if (IsSection(Section.Edit))
+            @if (IsSection(Section.Edit) && _full != null)
             {
-                <EditStack Stack="Stack"
+                <EditStack Stack="_full"
                            PrincipalProvider="PrincipalProvider"
                            OnSaved="HandleStackSaved"
                            OnCancel="@(() => CollapseSection())"/>
@@ -134,7 +136,7 @@
 </MudExpansionPanels>
 
 @code {
-    [Parameter] public required Stack Stack { get; set; }
+    [Parameter] public required StackMetadata Stack { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [Parameter] public string? InitialSection { get; set; }
     [Parameter] public EventCallback<string?> OnSectionChanged { get; set; }
@@ -143,6 +145,17 @@
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    // Configuration needs the whole Stack, which is a read. Metadata read reaches the page but
+    // not this section, so the tab is hidden without read and this load would refuse anyway.
+    private Entities.Definition.Stack? _full;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        using var repo = RepoFactory.Create(PrincipalProvider);
+        _full = await repo.Get(Stack.Id, Stack.OrganizationId);
+    }
+
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
 
@@ -199,12 +212,21 @@
 
     private async Task DeleteStack()
     {
+        string? refusal;
+        using (var permissionRepo = RepoFactory.Create())
+        {
+            refusal = permissionRepo.CanDelete(Stack.Id, OrganizationId)
+                ? null
+                : "You do not have permission to delete this stack.";
+        }
+
         var parameters = new DialogParameters<ConfirmDialog>
         {
             { x => x.ContentText, $"This permanently deletes stack \"{Stack.Name}\" including all of its namespaces, modules and job history. This cannot be undone. Type the stack name to confirm." },
             { x => x.ButtonText, "Delete" },
             { x => x.RequireConfirmation, true },
-            { x => x.ConfirmationText, Stack.Name }
+            { x => x.ConfirmationText, Stack.Name },
+            { x => x.RefusalReason, refusal }
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, CloseOnEscapeKey = true };

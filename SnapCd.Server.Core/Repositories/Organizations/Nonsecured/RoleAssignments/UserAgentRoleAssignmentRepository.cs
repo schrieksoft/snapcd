@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Mappers.RoleAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments;
 
@@ -32,9 +35,19 @@ public class UserAgentRoleAssignmentRepositoryFactory(IDbContextFactory<SnapCdDb
     }
 }
 
-public class UserAgentRoleAssignmentRepository : GenericAgentChildRepository<UserAgentRoleAssignment, UserAgentRoleAssignmentReadDto, UserAgentRoleAssignmentCreatedEvent,
+public class UserAgentRoleAssignmentRepository : GenericAgentChildRepository<UserAgentRoleAssignment, UserAgentRoleAssignmentReadDto, UserAgentRoleAssignmentMetadata, UserAgentRoleAssignmentCreatedEvent,
     UserAgentRoleAssignmentUpdatedEvent, UserAgentRoleAssignmentDeletedEvent, UserAgentRoleAssignmentRepositorySettings>
 {
+
+    protected override Expression<Func<UserAgentRoleAssignment, UserAgentRoleAssignmentMetadata>> MetadataProjection =>
+        e => new UserAgentRoleAssignmentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            UserId = e.UserId,
+            AgentId = e.AgentId,
+            PrincipalId = e.PrincipalId
+        };
     public UserAgentRoleAssignmentRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

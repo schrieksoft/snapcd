@@ -10,45 +10,54 @@
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 
 <MudPaper Elevation="1" Class="pa-4 my-4">
+    @if (!_canCreate)
+    {
+        <ReadOnlyNotice Message="You do not have permission to create a Runner."/>
+    }
     <EditForm Model="Input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator/>
-        <MudGrid Class="d-flex flex-column gap-4">
+        <MudGrid>
             <MudItem xs="12">
-                <MudSelect T="Guid" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
+                <MudSelect Disabled="@(!_canCreate)" T="Guid?" Label="Service Principal" @bind-Value="Input.ServicePrincipalId"
                            Variant="Variant.Outlined" Required="true" RequiredError="Service Principal is required">
                     @foreach (var sp in _availableServicePrincipals)
                     {
-                        <MudSelectItem Value="@sp.Id">@sp.DisplayClientId</MudSelectItem>
+                        <MudSelectItem T="Guid?" Value="@((Guid?)sp.Id)">@sp.Label</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Label="Runner Name"
+                <MudTextField Disabled="@(!_canCreate)" Label="Runner Name"
                               @bind-Value="Input.Name"
                               Required="true"
                               UserAttributes="@(new Dictionary<string, object> { { "autocomplete", "true" } })"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="Input.AllowMultipleInstances" Label="Allow Multiple Instances"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="Input.AllowMultipleInstances" Label="Allow Multiple Instances"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="Input.IsSuppliedToAllModules" Label="Is Supplied To All Modules"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="Input.IsSuppliedToAllModules" Label="Is Supplied To All Modules"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -69,18 +78,27 @@
     [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _canCreate = permissionRepo.CanCreate(OrganizationId, OrganizationId);
+    }
+
     private InputModel Input { get; set; } = new();
-    private List<ServicePrincipal> _availableServicePrincipals = new();
+    private List<ServicePrincipalMetadata> _availableServicePrincipals = new();
 
     protected override async Task OnInitializedAsync()
     {
         using var spRepo = ServicePrincipalRepoFactory.Create();
-        _availableServicePrincipals = await spRepo.List(OrganizationId);
+        _availableServicePrincipals = await spRepo.ListMetadata(OrganizationId,
+            orderBy: q => q.OrderBy(x => x.ClientId));
     }
 
     private sealed class InputModel
     {
-        [Required] [Display(Name = "Service Principal")] public Guid ServicePrincipalId { get; set; }
+        [Required] [Display(Name = "Service Principal")] public Guid? ServicePrincipalId { get; set; }
 
         [Required] [Display(Name = "Name")] public string Name { get; set; } = string.Empty;
 
@@ -101,7 +119,7 @@
             var runner = new Runner
             {
                 Id = Guid.NewGuid(),
-                ServicePrincipalId = Input.ServicePrincipalId,
+                ServicePrincipalId = Input.ServicePrincipalId!.Value,
                 Name = Input.Name,
                 AllowMultipleInstances = Input.AllowMultipleInstances,
                 IsSuppliedToAllModules = Input.IsSuppliedToAllModules,

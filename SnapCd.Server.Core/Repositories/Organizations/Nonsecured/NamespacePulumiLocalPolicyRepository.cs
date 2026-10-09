@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,9 +35,18 @@ public class NamespacePulumiLocalPolicyRepositoryFactory(IDbContextFactory<SnapC
     }
 }
 
-public class NamespacePulumiLocalPolicyRepository : GenericNamespaceChildDefinitionRepository<NamespacePulumiLocalPolicy, NamespacePulumiLocalPolicyReadDto, NamespacePulumiLocalPolicyCreatedEvent, NamespacePulumiLocalPolicyUpdatedEvent,
+public class NamespacePulumiLocalPolicyRepository : GenericNamespaceChildDefinitionRepository<NamespacePulumiLocalPolicy, NamespacePulumiLocalPolicyReadDto, NamespacePulumiLocalPolicyMetadata, NamespacePulumiLocalPolicyCreatedEvent, NamespacePulumiLocalPolicyUpdatedEvent,
     NamespacePulumiLocalPolicyDeletedEvent, NamespacePulumiLocalPolicyRepositorySettings>
 {
+
+    protected override Expression<Func<NamespacePulumiLocalPolicy, NamespacePulumiLocalPolicyMetadata>> MetadataProjection =>
+        e => new NamespacePulumiLocalPolicyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            NamespaceId = e.NamespaceId
+        };
     public NamespacePulumiLocalPolicyRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

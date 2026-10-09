@@ -12,6 +12,10 @@
 
 <MudDialog>
     <DialogContent>
+        @if (_refusal is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">@_refusal</MudAlert>
+        }
         <MudText>Are you sure you want to activate user "@OrganizationUser.User?.Email"?</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
             This will restore the user's access to this organization.
@@ -19,7 +23,10 @@
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Secondary" Size="Size.Small" Variant="Variant.Filled" OnClick="Submit">Activate</MudButton>
+        @if (_refusal is null)
+        {
+            <MudButton Color="Color.Secondary" Size="Size.Small" Variant="Variant.Filled" OnClick="Submit">Activate</MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -30,6 +37,16 @@
     [Parameter] public required Guid OrganizationId { get; set; }
 
     [Inject] private OrganizationUserSecuredRepositoryFactory RepoFactory { get; set; } = null!;
+
+    private string? _refusal;
+
+    protected override void OnInitialized()
+    {
+        using var permissionRepo = RepoFactory.Create();
+        _refusal = permissionRepo.CanUpdate(OrganizationUser.Id, OrganizationId)
+            ? null
+            : "You do not have permission to enable this user.";
+    }
 
     private void Cancel() => MudDialog.Cancel();
 

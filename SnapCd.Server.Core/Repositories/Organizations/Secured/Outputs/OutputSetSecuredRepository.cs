@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.OutputSets;
 using SnapCd.Server.Core.Database;
@@ -20,6 +21,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 
@@ -42,7 +46,7 @@ public class OutputSetSecuredRepositoryFactory(
 
 public class OutputSetSecuredRepository : GenericModuleChildSecuredRepository<
     OutputSet,
-    OutputSetReadDto,
+    OutputSetReadDto, OutputSetMetadata,
     OutputSetRepository,
     OutputSetCreatedEvent,
     OutputSetUpdatedEvent,
@@ -94,7 +98,8 @@ public class OutputSetSecuredRepository : GenericModuleChildSecuredRepository<
         var entity = await Repository.Get(moduleId, checksum, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to OutputSet {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(OutputSet)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }
@@ -104,7 +109,8 @@ public class OutputSetSecuredRepository : GenericModuleChildSecuredRepository<
         var entity = await Repository.GetLatestByModuleId(moduleId, organizationId);
 
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to OutputSet {entity.Id}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(OutputSet)} with ID {entity.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
     }
@@ -115,7 +121,8 @@ public class OutputSetSecuredRepository : GenericModuleChildSecuredRepository<
 
         foreach (var outputSet in outputSets)
             if (!CanRead(outputSet.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to OutputSet {outputSet.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(OutputSet)} with ID {outputSet.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return outputSets;
     }
@@ -123,7 +130,8 @@ public class OutputSetSecuredRepository : GenericModuleChildSecuredRepository<
     public async Task<Guid?> CreateWithOutputs(OutputSet outputSet, Guid organizationId)
     {
         if (!CanCreate(outputSet.ModuleId, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to create OutputSet for module {outputSet.ModuleId}");
+            throw new PrincipalNotAuthorizedException(
+                $"Module with ID {outputSet.ModuleId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to create a {nameof(OutputSet)} within it.");
 
         return await Repository.CreateWithOutputs(outputSet, organizationId);
     }

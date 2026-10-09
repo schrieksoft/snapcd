@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Dto.Outputs;
 using SnapCd.Server.Core.Database;
@@ -22,6 +23,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 
@@ -43,7 +47,7 @@ public class OutputSecuredRepositoryFactory(
 
 public class OutputSecuredRepository : GenericSecuredRepository<
     Output,
-    OutputReadDto,
+    OutputReadDto, OutputMetadata,
     OutputRepository,
     OutputCreatedEvent,
     OutputUpdatedEvent,
@@ -97,6 +101,18 @@ public class OutputSecuredRepository : GenericSecuredRepository<
             ReadPermissionMap.StackRoles,
             ReadPermissionMap.NamespaceRoles,
             ReadPermissionMap.ModuleRoles);
+    }
+
+    /// <summary>No metadata roles are declared for this entity, so this is empty
+    /// until one is: identifying a row is not something anyone may do by default.</summary>
+    public override IQueryable<Output> ReadMetadataQuery(Guid organizationId)
+    {
+        return RoleQueryDispatch(
+            organizationId,
+            ReadMetadataPermissionMap.OrganizationRoles,
+            ReadMetadataPermissionMap.StackRoles,
+            ReadMetadataPermissionMap.NamespaceRoles,
+            ReadMetadataPermissionMap.ModuleRoles);
     }
 
     public override IQueryable<Output> CreateQuery(Guid organizationId)
@@ -391,7 +407,8 @@ public class OutputSecuredRepository : GenericSecuredRepository<
 
         foreach (var output in outputs)
             if (!CanRead(output.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to Output {output.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(Output)} with ID {output.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return outputs;
     }
@@ -402,7 +419,8 @@ public class OutputSecuredRepository : GenericSecuredRepository<
 
         foreach (var output in outputs)
             if (!CanRead(output.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to Output {output.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(Output)} with ID {output.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return outputs;
     }

@@ -15,6 +15,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
@@ -27,10 +29,11 @@ public class ServicePrincipalServiceFactory(ServicePrincipalSecuredRepositoryFac
 }
 
 public class ServicePrincipalService : GenericCrudService<
-    ServicePrincipal,
+    ServicePrincipal, ServicePrincipalMetadata,
     ServicePrincipalCreateDto,
     ServicePrincipalUpdateDto,
     ServicePrincipalReadDto,
+    ServicePrincipalMetadataReadDto,
     ServicePrincipalSecuredRepository,
     ServicePrincipalRepository,
     ServicePrincipalCreatedEvent,
@@ -52,6 +55,11 @@ public class ServicePrincipalService : GenericCrudService<
     protected override ServicePrincipalReadDto MapToDto(ServicePrincipal entity)
     {
         return ServicePrincipalMapper.ToDto(entity);
+    }
+
+    protected override ServicePrincipalMetadataReadDto MapToMetadataDto(ServicePrincipalMetadata view)
+    {
+        return ServicePrincipalMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(ServicePrincipal entity, ServicePrincipalUpdateDto dto)
@@ -116,5 +124,23 @@ public class ServicePrincipalService : GenericCrudService<
             dto.ClientSecret = secret;
 
         return dto;
+    }
+
+    public async Task<List<ServicePrincipalMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(ServicePrincipalMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<ServicePrincipalMetadataReadDto> GetMetadataByClientId(string clientId, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByClientId(clientId, organizationId);
+        return ServicePrincipalMapper.ToMetadataDto(view);
+    }
+
+    public async Task<ServicePrincipalMetadataReadDto> GetMetadata(Guid id, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(id, organizationId);
+        return ServicePrincipalMapper.ToMetadataDto(view);
     }
 }

@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -28,10 +31,11 @@ public static class StateStoreCustomEndpointNames
 
 [Route(ControllerEndpoints.StateStore)]
 public class StateStoreController : GenericCrudController<
-    StateStore,
+    StateStore, StateStoreMetadata,
     StateStoreCreateDto,
     StateStoreUpdateDto,
     StateStoreReadDto,
+    StateStoreMetadataReadDto,
     StateStoreSecuredRepository,
     StateStoreRepository,
     StateStoreService,
@@ -51,6 +55,28 @@ public class StateStoreController : GenericCrudController<
         {
             var dto = await Service.GetByName(name, organizationId);
             return Ok(dto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet($"Metadata/{StateStoreCustomEndpointNames.GetStateStoreByName}/{{name}}")]
+    [PermissionSource(Repository = typeof(StateStoreSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<StateStoreMetadataReadDto>> GetMetadataByName(Guid organizationId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadataByName(name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

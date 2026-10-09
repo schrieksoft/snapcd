@@ -17,37 +17,41 @@
 @implements IDisposable
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
-    <EditForm Model="NewModule" OnValidSubmit="Create">
+    @if (!_canCreate)
+{
+    <ReadOnlyNotice Message="You do not have permission to create a Module."/>
+}
+<EditForm Model="NewModule" OnValidSubmit="Create">
         <DataAnnotationsValidator/>
         <MudGrid Class="pa-4">
             <!-- Core Properties -->
             <MudItem md="12">
-                <MudTextField Label="Name" @bind-Value="NewModule.Name"
+                <MudTextField Disabled="@(!_canCreate)" Label="Name" @bind-Value="NewModule.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
                               MaxLength="255" Counter="255"
                               Validation="@((string s) => NameValidator.Validate(s, "Module"))"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="Source Url" @bind-Value="NewModule.SourceUrl" Required
+                <MudTextField Disabled="@(!_canCreate)" Label="Source Url" @bind-Value="NewModule.SourceUrl" Required
                               RequiredError="Source Url is required"
                               Variant="Variant.Outlined" MaxLength="800"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="Source Relative Path" @bind-Value="NewModule.SourceSubdirectory"
+                <MudTextField Disabled="@(!_canCreate)" Label="Source Relative Path" @bind-Value="NewModule.SourceSubdirectory"
                               Variant="Variant.Outlined" MaxLength="800"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="Source Revision" @bind-Value="NewModule.SourceRevision" Required
+                <MudTextField Disabled="@(!_canCreate)" Label="Source Revision" @bind-Value="NewModule.SourceRevision" Required
                               RequiredError="Source Revision is required"
                               Variant="Variant.Outlined" MaxLength="255"/>
             </MudItem>
 
 
             <MudItem md="12">
-                <MudSelect T="Guid" Label="Runner" @bind-Value="NewModule.RunnerId"
+                <MudSelect Disabled="@(!_canCreate)" T="Guid" Label="Runner" @bind-Value="NewModule.RunnerId"
                            Variant="Variant.Outlined" Required="true" RequiredError="Runner is required">
                     @foreach (var runner in _availableRunners)
                     {
@@ -57,12 +61,12 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField Label="Runner Instance Name" @bind-Value="NewModule.RunnerInstanceName"
+                <MudTextField Disabled="@(!_canCreate)" Label="Runner Instance Name" @bind-Value="NewModule.RunnerInstanceName"
                               Variant="Variant.Outlined" MaxLength="255"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSelect T="StateManagementEngine?" Label="Engine" @bind-Value="NewModule.Engine"
+                <MudSelect Disabled="@(!_canCreate)" T="StateManagementEngine?" Label="Engine" @bind-Value="NewModule.Engine"
                            Variant="Variant.Outlined">
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)null)">Use Namespace Default</MudSelectItem>
                     <MudSelectItem T="StateManagementEngine?" Value="@((StateManagementEngine?)StateManagementEngine.OpenTofu)">OpenTofu</MudSelectItem>
@@ -73,14 +77,16 @@
 
             @* *@
             @* <MudItem md="12"> *@
-            @*     <MudAutocomplete T="SecretStoreDisplay?" *@
+            @*     <MudAutocomplete Disabled="@(!_canCreate)" T="SecretStoreDisplay?" *@
             @*                      @bind-Value="_selectedSecretStore" *@
             @*                      Label="Default Output Secret Store" *@
             @*                      SearchFunc="@SearchSecretStores" *@
             @*                      ToStringFunc="@(s => s?.FormattedName ?? string.Empty)" *@
             @*                      ResetValueOnEmptyText="true" *@
             @*                      Required="false" *@
-            @*                      DebounceInterval="300"> *@
+            @*                      DebounceInterval="300"
+    AdornmentIcon="@SnapCdIcons.Search"
+    Variant="Variant.Outlined"> *@
             @*         <ItemTemplate Context="itemTemplateContext"> *@
             @*             <MudText>@itemTemplateContext?.FormattedName</MudText> *@
             @*             <MudText Color="Color.Info" Typo="Typo.caption"> *@
@@ -118,7 +124,7 @@
                 ApprovalTimeoutMinutesChanged="@(v => NewModule.ApprovalTimeoutMinutes = v)"/>
 
             <MudItem md="12">
-                <MudSelect T="WaitForApplyDependencies" Label="Wait For Apply Dependencies"
+                <MudSelect Disabled="@(!_canCreate)" T="WaitForApplyDependencies" Label="Wait For Apply Dependencies"
                            @bind-Value="NewModule.WaitForApplyDependencies"
                            Variant="Variant.Outlined" Required="true"
                            RequiredError="Wait For Apply Dependencies is required">
@@ -129,7 +135,7 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudSelect T="WaitForDestroyDependencies" Label="Wait For Destroy Dependencies"
+                <MudSelect Disabled="@(!_canCreate)" T="WaitForDestroyDependencies" Label="Wait For Destroy Dependencies"
                            @bind-Value="NewModule.WaitForDestroyDependencies"
                            Variant="Variant.Outlined" Required="true"
                            RequiredError="Wait For Destroy Dependencies is required">
@@ -140,23 +146,23 @@
 
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnDefinitionChanged"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.TriggerOnDefinitionChanged"
                            Label="Trigger on Definition Changed" Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnUpstreamOutputChanged"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.TriggerOnUpstreamOutputChanged"
                            Label="Trigger on Upstream Output Changed" Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnSourceChanged" Label="Trigger on Source Changed"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.TriggerOnSourceChanged" Label="Trigger on Source Changed"
                            Color="Color.Secondary"/>
             </MudItem>
 
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="NewModule.TriggerOnSourceChangedNotification"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.TriggerOnSourceChangedNotification"
                            Label="Trigger on Source Changed Notification"
                            Color="Color.Secondary"/>
             </MudItem>
@@ -171,13 +177,13 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceExtraFiles"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreNamespaceExtraFiles"
                            Label="Ignore Namespace Extra Files"
                            Color="Color.Secondary"/>
             </MudItem>
 
             <MudItem md="12">
-                <MudSwitch T="bool" @bind-Value="NewModule.IgnoreNamespaceFlags"
+                <MudSwitch Disabled="@(!_canCreate)" T="bool" @bind-Value="NewModule.IgnoreNamespaceFlags"
                            Label="Ignore Namespace Flags"
                            Color="Color.Secondary"/>
             </MudItem>
@@ -201,7 +207,7 @@
             </MudItem>
 
             <MudItem md="12">
-                <MudTextField T="int?" Label="Drift Check Interval Minutes" @bind-Value="NewModule.DriftCheckIntervalMinutes"
+                <MudTextField Disabled="@(!_canCreate)" T="int?" Label="Drift Check Interval Minutes" @bind-Value="NewModule.DriftCheckIntervalMinutes"
                               Variant="Variant.Outlined"/>
             </MudItem>
 
@@ -286,12 +292,15 @@
 
             <!-- Action Buttons -->
             <MudItem md="12" Class="d-flex justify-end gap-2">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -315,6 +324,14 @@
     [Inject] private RunnerSecuredRepositoryFactory RunnerSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private IDbContextFactory<SnapCdDbContext> DbContextFactory { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = ModuleSecuredRepositoryFactory.Create(PrincipalProvider);
+        _canCreate = permissionRepo.CanCreate(NamespaceId, OrganizationId);
+    }
 
     private List<Runner> _availableRunners = new();
 

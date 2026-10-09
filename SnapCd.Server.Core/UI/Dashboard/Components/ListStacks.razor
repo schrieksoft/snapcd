@@ -9,10 +9,15 @@
 @inject PersistentComponentState ApplicationState
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 
 @if (_stacks == null)
 {
     <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_stacks.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mt-2">No stacks yet, or you do not have permission to see any.</MudText>
 }
 else
 {
@@ -41,12 +46,19 @@ else
                 </TitleContent>
                 <ChildContent>
                     <div class="mt-2">
-                        <ListNamespaces StackName="@stack.Name" StackId="@stack.Id" SearchTerms="@SearchTerms"/>
+                        <ListNamespaces StackName="@stack.Name" StackId="@stack.Id" SearchTerms="@SearchTerms" SearchScope="@SearchScope"/>
                     </div>
                 </ChildContent>
             </MudExpansionPanel>
         }
     </div>
+
+    @if (SearchTerms.Any() && SearchScope != SearchScope.Stack && _matchCount > 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+            @_matchCount matching @(SearchScope == SearchScope.Namespace ? "namespaces" : "modules"), in the stacks below.
+        </MudText>
+    }
 
     @if (_totalPages > 1)
     {
@@ -71,6 +83,7 @@ else
 
 @code {
     [Parameter] public List<string> SearchTerms { get; set; } = new();
+    [Parameter] public SearchScope SearchScope { get; set; } = SearchScope.Stack;
     [Parameter] public EventCallback<HashSet<Guid>> OnSelectionChanged { get; set; }
     [Parameter] public bool SelectAll { get; set; }
     [Parameter] public bool ShowCheckboxes { get; set; }
@@ -80,7 +93,8 @@ else
     [Inject] private NamespaceSecuredRepositoryFactory NamespaceRepoFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
 
-    private List<TruncatedStack>? _stacks;
+    private List<StackMetadata>? _stacks;
+    private int _matchCount;
     private int _currentPage = 1;
     private int _totalPages = 1;
     private const int PageSize = 10;
@@ -137,101 +151,79 @@ else
 
         if (SearchTerms.Any())
         {
-            // When searching, we need to:
-            // 1. Find stacks that match the search terms directly
-            // 2. Find namespaces that match the search terms across ALL stacks
-            // 3. Find modules that match the search terms across ALL stacks
-            // 4. Combine and deduplicate the stack results
-            // 5. Expand stacks that contain matching namespaces or modules
-
-            // Find stacks matching directly
-            var stacksMatchingDirectly = await repo.List(
-                OrganizationId,
-                q => q
-                    .Where(s => SearchTerms.All(term => s.Name.Contains(term)))
-                    .Select(s => new TruncatedStack
-                    {
-                        Id = s.Id,
-                        Name = s.Name,
-                        Namespaces = new List<TruncatedNamespace>()
-                    })
-            );
-
-            // Find all namespaces that match search terms
-            var namespacesWithStacks = await namespaceRepo.List(
-                OrganizationId,
-                q => q
-                    .Where(ns => SearchTerms.All(term => ns.Name.Contains(term)))
-                    .Select(ns => new
-                    {
-                        NamespaceId = ns.Id,
-                        NamespaceName = ns.Name,
-                        ns.StackId,
-                        StackName = ns.Stack.Name
-                    })
-            );
-
-            // Get unique stacks that contain matching namespaces
-            var stacksWithMatchingNamespaces = namespacesWithStacks
-                .GroupBy(ns => ns.StackId)
-                .Select(g => new TruncatedStack
-                {
-                    Id = g.Key,
-                    Name = g.First().StackName,
-                    Namespaces = new List<TruncatedNamespace>()
-                })
-                .ToList();
-
-            // Find all modules that match search terms
-            var modulesWithStacksAndNamespaces = await moduleRepo.List(
-                OrganizationId,
-                q => q
-                    .Where(m => SearchTerms.All(term => m.Name.Contains(term)))
-                    .Select(m => new
-                    {
-                        ModuleId = m.Id,
-                        ModuleName = m.Name,
-                        m.NamespaceId,
-                        NamespaceName = m.Namespace.Name,
-                        m.Namespace.StackId,
-                        StackName = m.Namespace.Stack.Name
-                    })
-            );
-
-            // Get unique stacks that contain matching modules
-            var stacksWithMatchingModules = modulesWithStacksAndNamespaces
-                .GroupBy(m => m.StackId)
-                .Select(g => new TruncatedStack
-                {
-                    Id = g.Key,
-                    Name = g.First().StackName,
-                    Namespaces = new List<TruncatedNamespace>()
-                })
-                .ToList();
-
-            // Auto-expand stacks that contain matching namespaces or modules
-            foreach (var stack in stacksWithMatchingNamespaces.Concat(stacksWithMatchingModules))
+            // One level at a time: the terms match the name of whichever level the scope names.
+            // The pager counts matches at that level, so searching Modules pages through Modules
+            // even though the rows are the Stacks those Modules belong to - a page of matches can
+            // therefore resolve to fewer rows than its size. Matching below Stack level opens the
+            // Stack, so the row that caused the match is visible.
+            if (SearchScope == SearchScope.Stack)
             {
-                _expandedStacks.Add(stack.Id);
+                _matchCount = await repo.CountMetadata(
+                    OrganizationId,
+                    q => q.Where(x => SearchTerms.All(term => x.Name.Contains(term))));
+
+                _stacks = await repo.ListMetadata(
+                    OrganizationId,
+                    q => q.Where(x => SearchTerms.All(term => x.Name.Contains(term))),
+                    orderBy: q => q.OrderBy(x => x.Name),
+                    pageNumber: _currentPage,
+                    pageSize: PageSize);
+            }
+            else
+            {
+                List<Guid> stackIds;
+
+                if (SearchScope == SearchScope.Namespace)
+                {
+                    _matchCount = await namespaceRepo.CountMetadata(
+                        OrganizationId,
+                        q => q.Where(x => SearchTerms.All(term => x.Name.Contains(term))));
+
+                    var namespaces = await namespaceRepo.ListMetadata(
+                        OrganizationId,
+                        q => q.Where(x => SearchTerms.All(term => x.Name.Contains(term))),
+                        orderBy: q => q.OrderBy(x => x.Name),
+                        pageNumber: _currentPage,
+                        pageSize: PageSize);
+
+                    stackIds = namespaces.Select(x => x.StackId).Distinct().ToList();
+                }
+                else
+                {
+                    _matchCount = await moduleRepo.CountMetadata(
+                        OrganizationId,
+                        q => q.Where(x => SearchTerms.All(term => x.Name.Contains(term))));
+
+                    var modules = await moduleRepo.ListMetadata(
+                        OrganizationId,
+                        q => q.Where(x => SearchTerms.All(term => x.Name.Contains(term))),
+                        orderBy: q => q.OrderBy(x => x.Name),
+                        pageNumber: _currentPage,
+                        pageSize: PageSize);
+
+                    var namespaceIds = modules.Select(x => x.NamespaceId).Distinct().ToList();
+
+                    var parentNamespaces = namespaceIds.Count == 0
+                        ? new List<NamespaceMetadata>()
+                        : await namespaceRepo.ListMetadata(
+                            OrganizationId,
+                            q => q.Where(x => namespaceIds.Contains(x.Id)));
+
+                    stackIds = parentNamespaces.Select(x => x.StackId).Distinct().ToList();
+                }
+
+                _stacks = stackIds.Count == 0
+                    ? new List<StackMetadata>()
+                    : await repo.ListMetadata(
+                        OrganizationId,
+                        q => q.Where(x => stackIds.Contains(x.Id)),
+                        orderBy: q => q.OrderBy(x => x.Name));
+
+                foreach (var stack in _stacks)
+                    _expandedStacks.Add(stack.Id);
             }
 
-            // Combine and deduplicate stacks
-            var allMatchingStacks = stacksMatchingDirectly
-                .Concat(stacksWithMatchingNamespaces)
-                .Concat(stacksWithMatchingModules)
-                .GroupBy(s => s.Id)
-                .Select(g => g.First())
-                .OrderBy(s => s.Name)
-                .ToList();
-
-            var totalCount = allMatchingStacks.Count;
-            _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
-
-            // Apply pagination
-            _stacks = allMatchingStacks
-                .Skip((_currentPage - 1) * PageSize)
-                .Take(PageSize)
-                .ToList();
+            _totalPages = (int)Math.Ceiling(_matchCount / (double)PageSize);
         }
         else
         {
@@ -239,15 +231,8 @@ else
             var totalCount = await repo.Count(OrganizationId);
             _totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
 
-            var stacks = await repo.List(
+            var stacks = await repo.ListMetadata(
                 OrganizationId,
-                queryModifier: q => q
-                    .Select(s => new TruncatedStack
-                    {
-                        Id = s.Id,
-                        Name = s.Name,
-                        Namespaces = new List<TruncatedNamespace>()
-                    }),
                 orderBy: q => q.OrderBy(s => s.Name),
                 pageNumber: _currentPage,
                 pageSize: PageSize
@@ -279,9 +264,9 @@ else
         }
     }
 
-    public List<TruncatedStack> GetSelectedStacks()
+    public List<StackMetadata> GetSelectedStacks()
     {
-        return _stacks?.Where(s => _selectedStacks.Contains(s.Id)).ToList() ?? new List<TruncatedStack>();
+        return _stacks?.Where(s => _selectedStacks.Contains(s.Id)).ToList() ?? new List<StackMetadata>();
     }
 
     public void TriggerStateHasChanged()

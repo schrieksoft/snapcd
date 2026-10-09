@@ -21,6 +21,10 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
+
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
 public class OrganizationUserSecuredRepositoryFactory(
@@ -41,7 +45,7 @@ public class OrganizationUserSecuredRepositoryFactory(
 
 public class OrganizationUserSecuredRepository : GenericOrganizationChildSecuredRepository<
     OrganizationUser,
-    OrganizationUserReadDto,
+    OrganizationUserReadDto, UserMetadata,
     OrganizationUserRepository,
     OrganizationUserCreatedEvent,
     OrganizationUserUpdatedEvent,
@@ -58,6 +62,15 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
     public override PermissionMap ReadPermissionMap => new()
     {
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.IdentityAccessManager]
+    };
+
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles =
+        [
+            OrganizationRole.Owner, OrganizationRole.IdentityAccessManager,
+            OrganizationRole.IdentityAccessMetadataReader
+        ]
     };
 
     public override PermissionMap UpdatePermissionMap => new()
@@ -117,7 +130,8 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
             throw new EntityNotFoundException($"Unable to find OrganizationUser with UserId \"{userId}\"");
         
         if (!CanRead(entity.Id, organizationId))
-            throw new UnauthorizedAccessException($"Access denied to OrganizationUser with UserId {userId}");
+            throw new PrincipalNotAuthorizedException(
+                $"{nameof(OrganizationUser)} with ID {userId} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return entity;
         
@@ -172,4 +186,27 @@ public class OrganizationUserSecuredRepository : GenericOrganizationChildSecured
 
         return await Repository.Deactivate(organizationId, userId);
     }
+
+
+    /// <summary>
+    /// Metadata here names the User, not the membership row, so permission is asked about the
+    /// User's id: that is what a role assignment references and what callers hold.
+    /// </summary>
+    public override bool CanReadMetadata(Guid userId, Guid organizationId)
+        => ReadMetadataQuery(organizationId)
+            .Any(ou => ou.UserId == userId && ou.OrganizationId == organizationId);
+
+
+
+    /// <summary>The username is the email: the invite path sets one from the other.</summary>
+    public Task<UserMetadata> GetMetadataByUsername(string username, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.DbContext.OrganizationUsers
+                    .Where(ou => ou.OrganizationId == organizationId && ou.User.Email == username)
+                    .Select(ou => (Guid?)ou.UserId)
+                    .FirstOrDefaultAsync()),
+            id => Repository.GetMetadata(id, organizationId),
+            $"username \"{username}\"");
+
 }

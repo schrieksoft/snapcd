@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Mappers.RoleAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments;
 
@@ -32,9 +35,19 @@ public class GroupNamespaceRoleAssignmentRepositoryFactory(IDbContextFactory<Sna
     }
 }
 
-public class GroupNamespaceRoleAssignmentRepository : GenericNamespaceChildRepository<GroupNamespaceRoleAssignment, GroupNamespaceRoleAssignmentReadDto, GroupNamespaceRoleAssignmentCreatedEvent,
+public class GroupNamespaceRoleAssignmentRepository : GenericNamespaceChildRepository<GroupNamespaceRoleAssignment, GroupNamespaceRoleAssignmentReadDto, GroupNamespaceRoleAssignmentMetadata, GroupNamespaceRoleAssignmentCreatedEvent,
     GroupNamespaceRoleAssignmentUpdatedEvent, GroupNamespaceRoleAssignmentDeletedEvent, GroupNamespaceRoleAssignmentRepositorySettings>
 {
+
+    protected override Expression<Func<GroupNamespaceRoleAssignment, GroupNamespaceRoleAssignmentMetadata>> MetadataProjection =>
+        e => new GroupNamespaceRoleAssignmentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            GroupId = e.GroupId,
+            NamespaceId = e.NamespaceId,
+            PrincipalId = e.PrincipalId
+        };
     public GroupNamespaceRoleAssignmentRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

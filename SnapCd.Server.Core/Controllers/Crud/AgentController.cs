@@ -14,11 +14,14 @@ using SnapCd.Server.Core.Controllers.Crud.Generic;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Constants;
+using SnapCd.Server.Core.Misc.Attributes;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -30,10 +33,11 @@ public static class AgentCustomEndpointNames
 [Route(ControllerEndpoints.Agent)]
 [McpEntity(Singular = "Agent", Plural = "Agents")]
 public class AgentController : GenericCrudController<
-    Agent,
+    Agent, AgentMetadata,
     AgentCreateDto,
     AgentUpdateDto,
     AgentReadDto,
+    AgentMetadataReadDto,
     AgentSecuredRepository,
     AgentRepository,
     AgentService,
@@ -79,4 +83,49 @@ public class AgentController : GenericCrudController<
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
+
+    [HttpGet("Metadata")]
+    [PermissionSource(Repository = typeof(AgentSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public override async Task<ActionResult<List<AgentMetadataReadDto>>> ListMetadata(Guid organizationId)
+    {
+        try
+        {
+            return Ok(await Service.ListMetadata(organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/ByName/{name}")]
+    [PermissionSource(Repository = typeof(AgentSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<AgentMetadataReadDto>> GetMetadataByName(Guid organizationId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadataByName(name, organizationId));
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
 }

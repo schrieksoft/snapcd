@@ -7,7 +7,7 @@
    for terms covering either use. *@
 
 @typeparam TEntity where TEntity : SnapCd.Server.Core.Entities.Definition.Base.ModuleInput, new()
-    @typeparam TSecuredRepositoryFactory where TSecuredRepositoryFactory : class
+    @typeparam TSecuredRepositoryFactory where TSecuredRepositoryFactory : IEntitySecuredRepositoryFactory<TEntity>
 @using System.Text.Json
 @using Microsoft.EntityFrameworkCore
 @using SnapCd.Contracts
@@ -15,11 +15,18 @@
 @using SnapCd.Server.Core.Entities.Definition.Base
 @using SnapCd.Server.Core.Entities.Interfaces
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 @using InputType = SnapCd.Contracts.InputType
 @inherits ComponentBase
+
+<MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
 
 <MudGrid>
     <MudItem xs="12" md="6" Class="d-flex flex-column gap-4"> <!-- Added gap container -->
@@ -27,7 +34,7 @@
         @if (Context is ModuleInput input)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudTextField
+                <MudTextField Disabled="@(!_canSave)"
                     Label="Name"
                     @bind-Value="input.Name"
                     FullWidth="true"
@@ -40,7 +47,7 @@
         @if (Context is IModuleInputFromDefinition fromDef)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudSelect Label="Definition Type"
+                <MudSelect Disabled="@(!_canSave)" Label="Definition Type"
                            @bind-Value="fromDef.DefinitionName"
                            T="DefinitionInputType"
                            FullWidth="true">
@@ -55,7 +62,7 @@
         @if (Context is IModuleInputFromLiteral fromLiteral)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudTextField Label="Literal Value"
+                <MudTextField Disabled="@(!_canSave)" Label="Literal Value"
                               @bind-Value="fromLiteral.LiteralValue"
                               Required
                               Immediate="true"
@@ -63,7 +70,7 @@
                               FullWidth="true"/>
             </MudItem>
             <MudItem xs="12" Class="mb-4">
-                <MudSelect Label="Type"
+                <MudSelect Disabled="@(!_canSave)" Label="Type"
                            @bind-Value="fromLiteral.Type"
                            T="InputType"
                            FullWidth="true">
@@ -79,7 +86,7 @@
         @if (Context is IModuleInputFromNamespace fromNamespace)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudTextField Label="Reference Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Reference Name"
                               @bind-Value="fromNamespace.NamespaceInputId"
                               Immediate="true"
                               Required
@@ -92,7 +99,7 @@
         @if (Context is IModuleInputFromOutput fromOutput)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudAutocomplete T="Module?"
+                <MudAutocomplete Disabled="@(!_canSave)" T="Module?"
                                  Label="Output Module"
                                  @bind-Value="SelectedOutputModule"
                                  Required="true"
@@ -114,7 +121,7 @@
                 </MudAutocomplete>
             </MudItem>
             <MudItem xs="12" Class="mb-4">
-                <MudTextField Label="Output Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Output Name"
                               @bind-Value="fromOutput.OutputName"
                               Required
                               Immediate="true"
@@ -127,7 +134,7 @@
         @if (Context is IModuleInputFromOutputSet)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudAutocomplete T="Module?"
+                <MudAutocomplete Disabled="@(!_canSave)" T="Module?"
                                  Label="Output Module"
                                  @bind-Value="SelectedOutputSetModule"
                                  Required="true"
@@ -155,7 +162,7 @@
         @if (Context is IModuleInputFromSecret fromSecret && Context is ModuleInputFromSecret concreteFromSecret)
         {
             <MudItem xs="12" Class="mb-4">
-                <MudAutocomplete T="SecretItem"
+                <MudAutocomplete Disabled="@(!_canSave)" T="SecretItem"
                                  Label="Secret"
                                  Value="_selectedSecret"
                                  ValueChanged="OnSecretSelected"
@@ -164,14 +171,15 @@
                                  Variant="Variant.Outlined"
                                  FullWidth="true"
                                  Required="true"
-                                 RequiredError="Secret is required">
+                                 RequiredError="Secret is required"
+                                 AdornmentIcon="@SnapCdIcons.Search">
                     <ItemTemplate Context="secretItem">
                         <MudText>@secretItem.Name <MudText Typo="Typo.caption" Class="ml-2">(@secretItem.Source)</MudText></MudText>
                     </ItemTemplate>
                 </MudAutocomplete>
             </MudItem>
             <MudItem xs="12" Class="mb-4">
-                <MudSelect Label="Type"
+                <MudSelect Disabled="@(!_canSave)" Label="Type"
                            @bind-Value="concreteFromSecret.Type"
                            T="InputType"
                            FullWidth="true">
@@ -187,12 +195,17 @@
 
             @if (IsCreateMode)
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           OnClick="CreateItem">
-                    Create
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                        <MudButton Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Variant="Variant.Filled"
+                                   Disabled="@(!_canSave)"
+                                   OnClick="CreateItem">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
+                </MudTooltip>
 
                 <MudButton Color="Color.Secondary"
                            Size="Size.Small"
@@ -203,27 +216,37 @@
             }
             else
             {
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           Disabled="@(!HasChanges)"
-                           OnClick="UpdateItem">
-                    Save
-                </MudButton>
+                <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                    <MudTooltip Text="@SaveDisabledReason" Disabled="@(SaveDisabledReason is null)">
+                        <MudButton Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Variant="Variant.Filled"
+                                   Disabled="@(!HasChanges || !_canSave)"
+                                   OnClick="UpdateItem">
+                            Save
+                        </MudButton>
+                    </MudTooltip>
+                </MudTooltip>
 
-                <MudButton Color="Color.Secondary"
-                           Size="Size.Small"
-                           Variant="Variant.Filled"
-                           StartIcon="@SnapCdIcons.Delete"
-                           OnClick="DeleteItem">
-                    Delete
-                </MudButton>
+                <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+                    <MudButton Color="Color.Secondary"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               StartIcon="@SnapCdIcons.Delete"
+                               Disabled="@(!_canDelete)"
+                               OnClick="DeleteItem">
+                        Delete
+                    </MudButton>
+                </MudTooltip>
             }
         </MudStack>
     </MudItem>
 </MudGrid>
+</MudForm>
 
 @code {
+    private string? SaveDisabledReason => _canSave ? null : "You do not have permission to change this.";
+
     [Parameter] public bool IsCreateMode { get; set; } = true;
     [Parameter] public TEntity Context { get; set; } = default!;
     [Parameter] public TSecuredRepositoryFactory RepositoryFactory { get; set; } = default!;
@@ -244,6 +267,10 @@
     [Inject] private NamespaceSecretSecuredRepositoryFactory NamespaceSecretRepoFactory { get; set; } = null!;
     [Inject] private StackSecretSecuredRepositoryFactory StackSecretRepoFactory { get; set; } = null!;
 
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
+
+    private bool _canSave;
+    private bool _canDelete;
     private TEntity _original = default!;
     private Module? _selectedOutputModule;
     private Module? _selectedOutputSetModule;
@@ -261,6 +288,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        ResolveCanSave();
         _original = Clone(Context);
 
         // Initialize selected modules for output inputs
@@ -338,14 +366,23 @@
     }
 
 
+    private void ResolveCanSave()
+    {
+        using var repository = RepositoryFactory.Create(PrincipalProvider);
+        _canSave = IsCreateMode
+            ? repository.CanCreate(ModuleId, OrganizationId)
+            : repository.CanUpdate(Context.Id, OrganizationId);
+        _canDelete = !IsCreateMode && repository.CanDelete(Context.Id, OrganizationId);
+    }
+
     private bool HasChanges => !AreEqual(Context, _original);
 
     private async Task DeleteItem()
     {
         try
         {
-            using var repository = ((dynamic)RepositoryFactory).Create(PrincipalProvider);
-            await repository.Delete((Context as IEntity).Id);
+            using var repository = RepositoryFactory.Create(PrincipalProvider);
+            await repository.Delete(Context.Id, OrganizationId);
             await OnDelete.InvokeAsync();
             Snackbar.Add("Item deleted successfully", Severity.Success);
         }
@@ -359,7 +396,7 @@
     {
         try
         {
-            using var repository = ((dynamic)RepositoryFactory).Create(PrincipalProvider);
+            using var repository = RepositoryFactory.Create(PrincipalProvider);
             await repository.Create(Context);
             await OnCreate.InvokeAsync();
             Snackbar.Add("Item created successfully", Severity.Success);
@@ -374,8 +411,8 @@
     {
         try
         {
-            using var repository = ((dynamic)RepositoryFactory).Create(PrincipalProvider);
-            await repository.Update(Context, (Context as IEntity).Id);
+            using var repository = RepositoryFactory.Create(PrincipalProvider);
+            await repository.Update(Context);
             _original = Clone(Context);
             await OnUpdate.InvokeAsync();
             Snackbar.Add("Item updated successfully", Severity.Success);
@@ -405,12 +442,10 @@
 
     private async Task<IEnumerable<Module>> SearchModules(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Module>();
-
         using var repo = ModuleRepoFactory.Create(PrincipalProvider);
         return await repo.List<Module>(OrganizationId, q => q
-            .Where(m => m.Name.Contains(value) && m.Namespace.StackId == StackId)
+            .Where(m => m.Namespace.StackId == StackId
+                        && (string.IsNullOrWhiteSpace(value) || m.Name.Contains(value)))
             .Include(m => m.Namespace)
             .ThenInclude(n => n.Stack));
     }

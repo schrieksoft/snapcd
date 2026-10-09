@@ -19,15 +19,19 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.System.Nonsecured;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Secured;
 
-public class GenericSystemSecuredRepositoryFactory<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>(
+public class GenericSystemSecuredRepositoryFactory<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     IPublishEndpoint bus,
     IOptions<TOptions> options)
     where TEntity : class, ISystemEntity
-    where TRepository : GenericSystemRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TMetadata : EntityMetadataBase
+    where TRepository : GenericSystemRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : SystemCreatedEvent<TDto>, new()
     where TUpdateEvent : SystemUpdatedEvent<TDto>, new()
     where TDeleteEvent : SystemDeletedEvent<TDto>, new()
@@ -42,9 +46,10 @@ public class GenericSystemSecuredRepositoryFactory<TEntity, TDto, TRepository, T
     }
 }
 
-public abstract class GenericSystemSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : IDisposable
+public abstract class GenericSystemSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions> : IDisposable
     where TEntity : class, ISystemEntity
-    where TRepository : GenericSystemRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
+    where TMetadata : EntityMetadataBase
+    where TRepository : GenericSystemRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TOptions>
     where TCreateEvent : SystemCreatedEvent<TDto>, new()
     where TUpdateEvent : SystemUpdatedEvent<TDto>, new()
     where TDeleteEvent : SystemDeletedEvent<TDto>, new()

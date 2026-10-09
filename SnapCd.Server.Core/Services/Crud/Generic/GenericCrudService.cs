@@ -11,16 +11,20 @@ using SnapCd.Server.Core.Events.Repository.Organization.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Settings.Interfaces;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud.Generic;
 
-public abstract class GenericCrudService<TEntity, TCreateDto, TUpdateDto, TDto, TSecuredRepository, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
+public abstract class GenericCrudService<TEntity, TMetadata, TCreateDto, TUpdateDto, TDto, TMetadataDto, TSecuredRepository, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
     where TEntity : class, IEntity
+    where TMetadata : EntityMetadataBase
     where TCreateDto : class
     where TUpdateDto : class
     where TDto : class
-    where TRepository : GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
-    where TSecuredRepository : GenericSecuredRepository<TEntity, TDto, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
+    where TMetadataDto : class
+    where TRepository : GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
+    where TSecuredRepository : GenericSecuredRepository<TEntity, TDto, TMetadata, TRepository, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -34,10 +38,20 @@ public abstract class GenericCrudService<TEntity, TCreateDto, TUpdateDto, TDto, 
         SecuredRepository = securedRepository;
     }
 
+    /// <summary>Whether the caller may read this entity. For a dialog that wants to say so before acting.</summary>
+    public bool CanRead(Guid id, Guid organizationId) => SecuredRepository.CanRead(id, organizationId);
+
+    public bool CanUpdate(Guid id, Guid organizationId) => SecuredRepository.CanUpdate(id, organizationId);
+
+    public bool CanDelete(Guid id, Guid organizationId) => SecuredRepository.CanDelete(id, organizationId);
+
+    public bool CanCreate(Guid parentId, Guid organizationId) => SecuredRepository.CanCreate(parentId, organizationId);
+
     // Abstract mapping methods that each service must implement
     protected abstract TEntity MapToEntity(TCreateDto dto, Guid organizationId);
     protected abstract TDto MapToDto(TEntity entity);
     protected abstract void UpdateEntityFromDto(TEntity entity, TUpdateDto dto);
+    protected abstract TMetadataDto MapToMetadataDto(TMetadata view);
 
     public virtual void Dispose()
     {
@@ -74,6 +88,18 @@ public abstract class GenericCrudService<TEntity, TCreateDto, TUpdateDto, TDto, 
     {
         var entities = await SecuredRepository.List(organizationId);
         return entities.Select(MapToDto).ToList();
+    }
+
+    public virtual async Task<List<TMetadataDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(MapToMetadataDto).ToList();
+    }
+
+    public virtual async Task<TMetadataDto> GetMetadata(Guid id, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(id, organizationId);
+        return MapToMetadataDto(view);
     }
 
     public virtual async Task<TDto> Update(TUpdateDto dto, Guid id, Guid organizationId)

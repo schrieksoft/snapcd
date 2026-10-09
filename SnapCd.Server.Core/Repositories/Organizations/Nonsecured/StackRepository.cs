@@ -24,6 +24,9 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.Entities.Definition.Secrets.Scoped;
 using Stack = SnapCd.Server.Core.Entities.Definition.Stack;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -38,8 +41,16 @@ public class StackRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory
     }
 }
 
-public class StackRepository : GenericOrganizationChildRepository<Stack, StackReadDto, StackCreatedEvent, StackUpdatedEvent, StackDeletedEvent, StackRepositorySettings>
+public class StackRepository : GenericOrganizationChildRepository<Stack, StackReadDto, StackMetadata, StackCreatedEvent, StackUpdatedEvent, StackDeletedEvent, StackRepositorySettings>
 {
+
+    protected override Expression<Func<Stack, StackMetadata>> MetadataProjection =>
+        e => new StackMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public StackRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

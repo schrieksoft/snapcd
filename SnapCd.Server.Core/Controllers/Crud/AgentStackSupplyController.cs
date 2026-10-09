@@ -16,6 +16,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.AgentSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.AgentSupplies;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -26,10 +28,11 @@ public static class AgentStackSupplyCustomEndpointNames
 
 [Route(ControllerEndpoints.AgentStackSupply)]
 public class AgentStackSupplyController : GenericCrudController<
-    AgentStackSupply,
+    AgentStackSupply, AgentStackSupplyMetadata,
     AgentStackSupplyCreateDto,
     AgentStackSupplyUpdateDto,
     AgentStackSupplyReadDto,
+    AgentStackSupplyMetadataReadDto,
     AgentStackSupplySecuredRepository,
     AgentStackSupplyRepository,
     AgentStackSupplyService,

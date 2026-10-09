@@ -14,12 +14,20 @@
         <MudText>Delete Service Principal Agent Role Assignment</MudText>
     </TitleContent>
     <DialogContent>
-        <MudText>Are you sure you want to delete the role assignment "@Assignment.RoleName" for service principal
-            "@GetServicePrincipalDisplayName()"?
+        <MudText>Are you sure you want to delete the role assignment "@RoleName" for service principal
+            "@PrincipalName"?
         </MudText>
+        @if (!_canDelete)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                You do not have permission to delete this.
+            </MudAlert>
+        }
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Delete">Delete</MudButton>
+        <MudTooltip Text="@DeleteDisabledReason" Disabled="@(DeleteDisabledReason is null)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="Delete" Disabled="@(!_canDelete)">Delete</MudButton>
+        </MudTooltip>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Cancel" Size="Size.Small">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
@@ -29,19 +37,29 @@
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid OrganizationId { get; set; }
-    [Parameter] public required ServicePrincipalAgentRoleAssignment Assignment { get; set; }
+    [Parameter] public required Guid AssignmentId { get; set; }
+
+    [Parameter] public required string RoleName { get; set; }
+
+    [Parameter] public required string PrincipalName { get; set; }
+
+    private bool _canDelete;
+
+    private string? DeleteDisabledReason => _canDelete ? null : "You do not have permission to delete this.";
+
+    protected override void OnInitialized()
+    {
+        using var repo = RepoFactory.Create();
+        _canDelete = repo.CanDelete(AssignmentId, OrganizationId);
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task Delete()
     {
         using var repo = RepoFactory.Create();
-        await repo.Delete(Assignment.Id, OrganizationId);
-        MudDialog.Close(DialogResult.Ok(Assignment.Id));
+        await repo.Delete(AssignmentId, OrganizationId);
+        MudDialog.Close(DialogResult.Ok(AssignmentId));
     }
 
-    private string GetServicePrincipalDisplayName()
-    {
-        return Assignment.ServicePrincipal?.ClientId ?? $"ServicePrincipal {Assignment.ServicePrincipalId}";
-    }
 }

@@ -45,25 +45,39 @@ else
             </MudExpansionPanel>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Secondary"
-                   Size="Size.Small"
-                   OnClick="StartCreate"
-                   Class="mt-2">
-            Add New
-        </MudButton>
+        <MudTooltip Text="@(_canAdd ? null : "You do not have permission to add a Terraform remote policy here.")"
+                    Disabled="@_canAdd">
+            <MudButton Disabled="@(!_canAdd)" Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="StartCreate"
+                       Class="mt-2">
+                Add New
+            </MudButton>
+        </MudTooltip>
 
     </MudExpansionPanels>
 }
 
 @code {
+
     [Parameter] public string Title { get; set; } = null!;
     [Parameter] public Guid NamespaceId { get; set; }
     [Parameter] public EventCallback OnTabClick { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
+
+
     [Inject] private NamespaceTerraformRemotePolicySecuredRepositoryFactory NamespaceTerraformRemotePolicySecuredRepositoryFactory { get; set; } = null!;
+
+    private bool _canAdd = true;
+
+    protected override void OnParametersSet()
+    {
+        using var permissionRepo = NamespaceTerraformRemotePolicySecuredRepositoryFactory.Create(PrincipalProvider);
+        _canAdd = permissionRepo.CanCreate(NamespaceId, OrganizationId);
+    }
 
     private bool _isCreating;
     private bool _newItemExpanded;

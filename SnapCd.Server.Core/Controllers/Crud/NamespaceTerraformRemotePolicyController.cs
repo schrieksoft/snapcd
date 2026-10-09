@@ -18,15 +18,19 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.NamespaceTerraformRemotePolicy)]
 public class NamespaceTerraformRemotePolicyController : GenericCrudController<
-    NamespaceTerraformRemotePolicy,
+    NamespaceTerraformRemotePolicy, NamespaceTerraformRemotePolicyMetadata,
     NamespaceTerraformRemotePolicyCreateDto,
     NamespaceTerraformRemotePolicyUpdateDto,
     NamespaceTerraformRemotePolicyReadDto,
+    NamespaceTerraformRemotePolicyMetadataReadDto,
     NamespaceTerraformRemotePolicySecuredRepository,
     NamespaceTerraformRemotePolicyRepository,
     NamespaceTerraformRemotePolicyService,
@@ -39,13 +43,35 @@ public class NamespaceTerraformRemotePolicyController : GenericCrudController<
     {
     }
 
-    [HttpGet("{namespaceId}/{name}")]
+    [HttpGet("{namespaceId:guid}/{name}")]
     public async Task<ActionResult<NamespaceTerraformRemotePolicyReadDto>> Get(Guid organizationId, Guid namespaceId, string name)
     {
         try
         {
             var dto = await Service.Get(namespaceId, name, organizationId);
             return Ok(dto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{namespaceId:guid}/{name}")]
+    [PermissionSource(Repository = typeof(NamespaceTerraformRemotePolicySecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<NamespaceTerraformRemotePolicyMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid namespaceId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(namespaceId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

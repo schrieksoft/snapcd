@@ -18,15 +18,19 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.NamespaceAdditionalTriggerPath)]
 public class NamespaceAdditionalTriggerPathController : GenericCrudController<
-    NamespaceAdditionalTriggerPath,
+    NamespaceAdditionalTriggerPath, NamespaceAdditionalTriggerPathMetadata,
     NamespaceAdditionalTriggerPathCreateDto,
     NamespaceAdditionalTriggerPathUpdateDto,
     NamespaceAdditionalTriggerPathReadDto,
+    NamespaceAdditionalTriggerPathMetadataReadDto,
     NamespaceAdditionalTriggerPathSecuredRepository,
     NamespaceAdditionalTriggerPathRepository,
     NamespaceAdditionalTriggerPathService,
@@ -39,13 +43,35 @@ public class NamespaceAdditionalTriggerPathController : GenericCrudController<
     {
     }
 
-    [HttpGet("{namespaceId}/{**path}")]
+    [HttpGet("{namespaceId:guid}/{**path:minlength(1)}")]
     public async Task<ActionResult<NamespaceAdditionalTriggerPathReadDto>> Get(Guid organizationId, Guid namespaceId, string path)
     {
         try
         {
             var namespaceAdditionalTriggerPathDto = await Service.Get(namespaceId, path, organizationId);
             return Ok(namespaceAdditionalTriggerPathDto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{namespaceId:guid}/{**path:minlength(1)}")]
+    [PermissionSource(Repository = typeof(NamespaceAdditionalTriggerPathSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<NamespaceAdditionalTriggerPathMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid namespaceId, string path)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(namespaceId, path, organizationId));
         }
         catch (EntityNotFoundException e)
         {

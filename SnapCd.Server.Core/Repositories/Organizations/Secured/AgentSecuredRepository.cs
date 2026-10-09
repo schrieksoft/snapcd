@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.GroupMembers;
 using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views;
 using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
 using SnapCd.Server.Core.Misc.Exceptions;
@@ -23,6 +24,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -44,7 +47,7 @@ public class AgentSecuredRepositoryFactory(
 
 public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
     Agent,
-    AgentReadDto,
+    AgentReadDto, AgentMetadata,
     AgentRepository,
     AgentCreatedEvent,
     AgentUpdatedEvent,
@@ -63,6 +66,37 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
         OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.AgentContributor, OrganizationRole.AgentReader],
         AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader]
     };
+    /// <summary>
+    /// Wider than read by MetadataReader, which a supply to a readable scope derives.
+    /// </summary>
+    public override PermissionMap ReadMetadataPermissionMap => new()
+    {
+        OrganizationRoles = [OrganizationRole.Owner, OrganizationRole.Contributor, OrganizationRole.Reader, OrganizationRole.AgentContributor, OrganizationRole.AgentReader],
+        AgentRoles = [AgentRole.Owner, AgentRole.Contributor, AgentRole.Reader, AgentRole.MetadataReader]
+    };
+
+    public override IQueryable<Agent> ReadMetadataQuery(Guid organizationId)
+        => base.ReadMetadataQuery(organizationId)
+            .Concat(AgentRoleQuery(organizationId, ReadMetadataPermissionMap.AgentRoles))
+            .Concat(SuppliedScopeMetadataQuery(organizationId));
+
+    /// <summary>Supplying a Agent to a scope is what makes it usable there, so a role on that
+    /// scope carries metadata read on the Agent itself. Derived on write by trigger.</summary>
+    private IQueryable<Agent> SuppliedScopeMetadataQuery(Guid organizationId)
+    {
+        var principalId = PrincipalProvider.GetSubject(organizationId);
+
+        return from entity in Repository.DbContext.Agents
+            join derived in Repository.DbContext.DerivedAgentRoleAssignments
+                on new { EntityId = entity.Id, entity.OrganizationId }
+                equals new { EntityId = derived.AgentId, derived.OrganizationId }
+            where entity.OrganizationId == organizationId
+                  && derived.PrincipalId == principalId
+                  && derived.PrincipalDiscriminator == PrincipalDiscriminator
+                  && ReadMetadataPermissionMap.AgentRoles.Contains(derived.RoleName)
+            select entity;
+    }
+
 
     public override PermissionMap UpdatePermissionMap => new()
     {
@@ -147,6 +181,13 @@ public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
 
         return entity;
     }
+
+    public Task<AgentMetadata> GetMetadataByName(string name, Guid organizationId)
+        => GetMetadataByKey(
+            organizationId,
+            async () => (await Repository.GetByName(name, organizationId)).Id,
+            id => Repository.GetMetadata(id, organizationId),
+            $"name \"{name}\"");
 
     /// <summary>
     /// Used by the token-issuance code path (Phase 5) — bypasses CanRead since the caller

@@ -6,6 +6,7 @@
    Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
    for terms covering either use. *@
 
+@using SnapCd.Server.Core.Views
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.RoleAssignments
 @using SnapCd.Server.Core.UI.Dashboard.Helpers
 @using Microsoft.EntityFrameworkCore
@@ -13,6 +14,7 @@
 @using SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments
+@using SnapCd.Server.Core.Views.Metadata
 
 @implements IDisposable
 
@@ -29,28 +31,32 @@
     <MudTabPanel Text="Users" Style="text-transform: none">
         @if (!_showUserCreateForm)
         {
-            <MudButton Color="Color.Secondary"
-                       Variant="Variant.Filled"
-                       OnClick="@ShowUserCreateForm"
-                       Size="Size.Small"
-                       Class="mb-4">
-                Assign Role
-            </MudButton>
+            <MudTooltip Text="@_userAssignRefusal" Disabled="@(_userAssignRefusal is null)">
+                <MudButton Disabled="@(_userAssignRefusal is not null)" Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="@ShowUserCreateForm"
+                           Size="Size.Small"
+                           Class="mb-4">
+                    Assign Role
+                </MudButton>
+            </MudTooltip>
         }
 
-        @if (_showUserCreateForm)
+        @if (_showUserCreateForm && _userAssignRefusal is null)
         {
             <MudPaper Elevation="2" Class="pa-3 mb-4">
-                <MudAutocomplete T="UserDisplay?"
+                <MudAutocomplete T="UserMetadata?"
                                  @bind-Value="_selectedUser"
                                  SearchFunc="@SearchUsers"
                                  Label="Search User by Email or Username"
-                                 ToStringFunc="@(u => u?.DisplayName ?? string.Empty)"
+                                 ToStringFunc="@(u => u?.UserName ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
-                                 Class="mb-3">
+                                 Class="mb-3"
+                                 AdornmentIcon="@SnapCdIcons.Search"
+                                 Variant="Variant.Outlined">
                     <ItemTemplate Context="item">
-                        <MudText>@item?.DisplayName</MudText>
+                        <MudText>@item?.UserName</MudText>
                     </ItemTemplate>
                 </MudAutocomplete>
 
@@ -66,13 +72,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Color="Color.Secondary"
-                               Variant="Variant.Filled"
-                               OnClick="@CreateUserRoleAssignment"
-                               Size="Size.Small"
-                               Disabled="@(_selectedUser == null)">
-                        Create
-                    </MudButton>
+                    <MudTooltip Text="Select a user first." Disabled="@(!((_selectedUser == null)))">
+                        <MudButton Color="Color.Secondary"
+                                   Variant="Variant.Filled"
+                                   OnClick="@CreateUserRoleAssignment"
+                                   Size="Size.Small"
+                                   Disabled="@(_selectedUser == null)">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
                     <MudButton Color="Color.Secondary"
                                Variant="Variant.Filled"
                                OnClick="@CancelUserCreate"
@@ -93,7 +101,7 @@
                         @foreach (var assignment in roleAssignments)
                         {
                             <div class="d-flex justify-space-between align-center py-1">
-                                <MudText>@GetUserDisplayName(assignment)</MudText>
+                                <MudText>@assignment.Principal.UserName</MudText>
                                 <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
@@ -108,35 +116,39 @@
 
     <!-- Service Principal Tab -->
     <MudTabPanel Text="Service Principals" Style="text-transform: none">
-        @if (!_showSpCreateForm)
+        @if (!_showServicePrincipalCreateForm)
         {
-            <MudButton Color="Color.Secondary"
-                       Variant="Variant.Filled"
-                       OnClick="@ShowSpCreateForm"
-                       Size="Size.Small"
-                       Class="mb-4">
-                Assign Role
-            </MudButton>
+            <MudTooltip Text="@_servicePrincipalAssignRefusal" Disabled="@(_servicePrincipalAssignRefusal is null)">
+                <MudButton Disabled="@(_servicePrincipalAssignRefusal is not null)" Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="@ShowSpCreateForm"
+                           Size="Size.Small"
+                           Class="mb-4">
+                    Assign Role
+                </MudButton>
+            </MudTooltip>
         }
 
-        @if (_showSpCreateForm)
+        @if (_showServicePrincipalCreateForm && _servicePrincipalAssignRefusal is null)
         {
             <MudPaper Elevation="2" Class="pa-3 mb-4">
-                <MudAutocomplete T="ServicePrincipalDisplay?"
+                <MudAutocomplete T="ServicePrincipalMetadata?"
                                  @bind-Value="_selectedServicePrincipal"
                                  SearchFunc="@SearchServicePrincipals"
                                  Label="Search Service Principal by Client ID"
-                                 ToStringFunc="@(sp => StripOrgPrefix(sp?.ClientId) ?? string.Empty)"
+                                 ToStringFunc="@(sp => sp?.Label ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
-                                 Class="mb-3">
+                                 Class="mb-3"
+                                 AdornmentIcon="@SnapCdIcons.Search"
+                                 Variant="Variant.Outlined">
                     <ItemTemplate Context="item">
-                        <MudText>@StripOrgPrefix(item?.ClientId)</MudText>
+                        <MudText>@item?.Label</MudText>
                     </ItemTemplate>
                 </MudAutocomplete>
 
                 <MudSelect T="RunnerRole"
-                           @bind-Value="_selectedSpRole"
+                           @bind-Value="_selectedServicePrincipalRole"
                            Label="Select Role"
                            Variant="Variant.Outlined"
                            Class="mb-3">
@@ -147,13 +159,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Color="Color.Secondary"
-                               Variant="Variant.Filled"
-                               OnClick="@CreateSpRoleAssignment"
-                               Size="Size.Small"
-                               Disabled="@(_selectedServicePrincipal == null)">
-                        Create
-                    </MudButton>
+                    <MudTooltip Text="Select a service principal first." Disabled="@(!((_selectedServicePrincipal == null)))">
+                        <MudButton Color="Color.Secondary"
+                                   Variant="Variant.Filled"
+                                   OnClick="@CreateSpRoleAssignment"
+                                   Size="Size.Small"
+                                   Disabled="@(_selectedServicePrincipal == null)">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
                     <MudButton Color="Color.Secondary"
                                Variant="Variant.Filled"
                                OnClick="@CancelSpCreate"
@@ -167,18 +181,18 @@
         <MudExpansionPanels MultiExpansion="true">
             @foreach (RunnerRole role in Enum.GetValues(typeof(RunnerRole)))
             {
-                var roleAssignments = _spRoleAssignments.Where(r => r.RoleName == role).ToList();
+                var roleAssignments = _servicePrincipalRoleAssignments.Where(r => r.RoleName == role).ToList();
                 if (roleAssignments.Any())
                 {
                     <MudExpansionPanel Text="@role.ToString()" Class="mb-2">
                         @foreach (var assignment in roleAssignments)
                         {
                             <div class="d-flex justify-space-between align-center py-1">
-                                <MudText>@GetServicePrincipalDisplayName(assignment)</MudText>
+                                <MudText>@assignment.Principal.ClientId</MudText>
                                 <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
-                                               OnClick="@(async () => await DeleteSpRoleAssignment(assignment))"/>
+                                               OnClick="@(async () => await DeleteServicePrincipalRoleAssignment(assignment))"/>
                             </div>
                         }
                     </MudExpansionPanel>
@@ -191,26 +205,30 @@
     <MudTabPanel Text="Groups" Style="text-transform: none">
         @if (!_showGroupCreateForm)
         {
-            <MudButton Color="Color.Secondary"
-                       Variant="Variant.Filled"
-                       OnClick="@ShowGroupCreateForm"
-                       Size="Size.Small"
-                       Class="mb-4">
-                Assign Role
-            </MudButton>
+            <MudTooltip Text="@_groupAssignRefusal" Disabled="@(_groupAssignRefusal is null)">
+                <MudButton Disabled="@(_groupAssignRefusal is not null)" Color="Color.Secondary"
+                           Variant="Variant.Filled"
+                           OnClick="@ShowGroupCreateForm"
+                           Size="Size.Small"
+                           Class="mb-4">
+                    Assign Role
+                </MudButton>
+            </MudTooltip>
         }
 
-        @if (_showGroupCreateForm)
+        @if (_showGroupCreateForm && _groupAssignRefusal is null)
         {
             <MudPaper Elevation="2" Class="pa-3 mb-4">
-                <MudAutocomplete T="GroupDisplay?"
+                <MudAutocomplete T="GroupMetadata?"
                                  @bind-Value="_selectedGroup"
                                  SearchFunc="@SearchGroups"
                                  Label="Search Group by Name"
                                  ToStringFunc="@(g => g?.Name ?? string.Empty)"
                                  ResetValueOnEmptyText="true"
                                  DebounceInterval="300"
-                                 Class="mb-3">
+                                 Class="mb-3"
+                                 AdornmentIcon="@SnapCdIcons.Search"
+                                 Variant="Variant.Outlined">
                     <ItemTemplate Context="item">
                         <MudText>@item?.Name</MudText>
                     </ItemTemplate>
@@ -228,13 +246,15 @@
                 </MudSelect>
 
                 <MudStack Row Class="mt-2">
-                    <MudButton Color="Color.Secondary"
-                               Variant="Variant.Filled"
-                               OnClick="@CreateGroupRoleAssignment"
-                               Size="Size.Small"
-                               Disabled="@(_selectedGroup == null)">
-                        Create
-                    </MudButton>
+                    <MudTooltip Text="Select a group first." Disabled="@(!((_selectedGroup == null)))">
+                        <MudButton Color="Color.Secondary"
+                                   Variant="Variant.Filled"
+                                   OnClick="@CreateGroupRoleAssignment"
+                                   Size="Size.Small"
+                                   Disabled="@(_selectedGroup == null)">
+                            Create
+                        </MudButton>
+                    </MudTooltip>
                     <MudButton Color="Color.Secondary"
                                Variant="Variant.Filled"
                                OnClick="@CancelGroupCreate"
@@ -255,7 +275,7 @@
                         @foreach (var assignment in roleAssignments)
                         {
                             <div class="d-flex justify-space-between align-center py-1">
-                                <MudText>@GetGroupDisplayName(assignment)</MudText>
+                                <MudText>@assignment.Principal.Name</MudText>
                                 <MudIconButton Icon="@SnapCdIcons.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
@@ -276,45 +296,78 @@
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     [Inject] private UserRunnerRoleAssignmentSecuredRepositoryFactory UserRoleRepoFactory { get; set; } = null!;
-    [Inject] private ServicePrincipalRunnerRoleAssignmentSecuredRepositoryFactory SpRoleRepoFactory { get; set; } = null!;
+    [Inject] private ServicePrincipalRunnerRoleAssignmentSecuredRepositoryFactory ServicePrincipalRoleRepoFactory { get; set; } = null!;
     [Inject] private GroupRunnerRoleAssignmentSecuredRepositoryFactory GroupRoleRepoFactory { get; set; } = null!;
     [Inject] private OrganizationUserSecuredRepositoryFactory OrganizationUserRepoFactory { get; set; } = null!;
     [Inject] private ServicePrincipalSecuredRepositoryFactory ServicePrincipalRepoFactory { get; set; } = null!;
     [Inject] private GroupSecuredRepositoryFactory GroupRepoFactory { get; set; } = null!;
 
-    private List<UserRunnerRoleAssignment> _userRoleAssignments = new();
-    private List<ServicePrincipalRunnerRoleAssignment> _spRoleAssignments = new();
-    private List<GroupRunnerRoleAssignment> _groupRoleAssignments = new();
+    private class UserAssignmentRow
+    {
+        public Guid Id { get; set; }
+        public RunnerRole RoleName { get; set; }
+        public UserMetadata Principal { get; set; } = null!;
+    }
+
+    private class ServicePrincipalAssignmentRow
+    {
+        public Guid Id { get; set; }
+        public RunnerRole RoleName { get; set; }
+        public ServicePrincipalMetadata Principal { get; set; } = null!;
+    }
+
+    private class GroupAssignmentRow
+    {
+        public Guid Id { get; set; }
+        public RunnerRole RoleName { get; set; }
+        public GroupMetadata Principal { get; set; } = null!;
+    }
+
+    private List<UserAssignmentRow> _userRoleAssignments = new();
+    private List<ServicePrincipalAssignmentRow> _servicePrincipalRoleAssignments = new();
+    private List<GroupAssignmentRow> _groupRoleAssignments = new();
+
+    private string? _userAssignRefusal;
+    private string? _servicePrincipalAssignRefusal;
+    private string? _groupAssignRefusal;
 
     private bool _showUserCreateForm;
     private RunnerRole _selectedUserRole = RunnerRole.Reader;
-    private UserDisplay? _selectedUser;
+    private UserMetadata? _selectedUser;
 
-    private bool _showSpCreateForm;
-    private RunnerRole _selectedSpRole = RunnerRole.Reader;
-    private ServicePrincipalDisplay? _selectedServicePrincipal;
+    private bool _showServicePrincipalCreateForm;
+    private RunnerRole _selectedServicePrincipalRole = RunnerRole.Reader;
+    private ServicePrincipalMetadata? _selectedServicePrincipal;
 
     private bool _showGroupCreateForm;
     private RunnerRole _selectedGroupRole = RunnerRole.Reader;
-    private GroupDisplay? _selectedGroup;
+    private GroupMetadata? _selectedGroup;
 
-    private class UserDisplay
-    {
-        public Guid UserId { get; set; }
-        public string DisplayName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-    }
 
-    private class ServicePrincipalDisplay
-    {
-        public Guid Id { get; set; }
-        public string ClientId { get; set; } = string.Empty;
-    }
 
-    private class GroupDisplay
+
+    protected override void OnParametersSet()
     {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        using (var repo = UserRoleRepoFactory.Create())
+        {
+            _userAssignRefusal = repo.CanCreate(RunnerId, OrganizationId)
+                ? null
+                : "You do not have permission to assign a user role here.";
+        }
+
+        using (var repo = ServicePrincipalRoleRepoFactory.Create())
+        {
+            _servicePrincipalAssignRefusal = repo.CanCreate(RunnerId, OrganizationId)
+                ? null
+                : "You do not have permission to assign a service principal role here.";
+        }
+
+        using (var repo = GroupRoleRepoFactory.Create())
+        {
+            _groupAssignRefusal = repo.CanCreate(RunnerId, OrganizationId)
+                ? null
+                : "You do not have permission to assign a group role here.";
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -324,30 +377,62 @@
 
     private async Task LoadRoleAssignments()
     {
+        // Projected rather than included: the User entity carries the password hash and the
+        // security stamp, and none of that is wanted to render a name.
         using var userRepo = UserRoleRepoFactory.Create();
         _userRoleAssignments = await userRepo.List(OrganizationId,
             q => q
-                .Include(x => x.OrganizationUser)
-                    .ThenInclude(ou => ou.User)
-                .Where(x => x.RunnerId == RunnerId));
+                .Where(x => x.RunnerId == RunnerId)
+                .Select(x => new UserAssignmentRow
+                {
+                    Id = x.Id,
+                    RoleName = x.RoleName,
+                    Principal = new UserMetadata
+                    {
+                        Id = x.OrganizationUser.UserId,
+                        OrganizationId = x.OrganizationUser.OrganizationId,
+                        UserName = x.OrganizationUser.User.Email ?? string.Empty
+                    }
+                }));
 
-        using var spRepo = SpRoleRepoFactory.Create();
-        _spRoleAssignments = await spRepo.List(OrganizationId,
+        using var servicePrincipalRepo = ServicePrincipalRoleRepoFactory.Create();
+        _servicePrincipalRoleAssignments = await servicePrincipalRepo.List(OrganizationId,
             q => q
-                .Include(x => x.ServicePrincipal)
-                .Where(x => x.RunnerId == RunnerId));
+                .Where(x => x.RunnerId == RunnerId)
+                .Select(x => new ServicePrincipalAssignmentRow
+                {
+                    Id = x.Id,
+                    RoleName = x.RoleName,
+                    Principal = new ServicePrincipalMetadata
+                    {
+                        Id = x.ServicePrincipal.Id,
+                        OrganizationId = x.ServicePrincipal.OrganizationId,
+                        ClientId = x.ServicePrincipal.ClientId!.Substring(x.ServicePrincipal.OrganizationId.ToString().Length + 1),
+                        DisplayName = x.ServicePrincipal.DisplayName
+                    }
+                }));
 
         using var groupRepo = GroupRoleRepoFactory.Create();
         _groupRoleAssignments = await groupRepo.List(OrganizationId,
             q => q
-                .Include(x => x.Group)
-                .Where(x => x.RunnerId == RunnerId));
+                .Where(x => x.RunnerId == RunnerId)
+                .Select(x => new GroupAssignmentRow
+                {
+                    Id = x.Id,
+                    RoleName = x.RoleName,
+                    Principal = new GroupMetadata
+                    {
+                        Id = x.Group.Id,
+                        OrganizationId = x.Group.OrganizationId,
+                        Name = x.Group.Name
+                    }
+                }));
     }
 
     private void OnTabChanged()
     {
         _showUserCreateForm = false;
-        _showSpCreateForm = false;
+        _showServicePrincipalCreateForm = false;
         _showGroupCreateForm = false;
         StateHasChanged();
     }
@@ -366,34 +451,16 @@
         _selectedUser = null;
     }
 
-    private async Task<IEnumerable<UserDisplay>> SearchUsers(string searchText, CancellationToken cancellationToken)
+    private async Task<IEnumerable<UserMetadata>> SearchUsers(string searchText, CancellationToken cancellationToken)
     {
         using var repo = OrganizationUserRepoFactory.Create();
-        return await repo.List<UserDisplay>(OrganizationId,
-            q =>
-            {
-                var query = q
-                    .Include(ou => ou.User)
-                    .Where(ou => ou.User.Email != null && ou.User.UserName != null);
-
-                if (!string.IsNullOrWhiteSpace(searchText))
-                {
-                    query = query.Where(ou =>
-                        ou.User.Email!.ToLower().Contains(searchText.ToLower()) ||
-                        ou.User.UserName!.ToLower().Contains(searchText.ToLower()));
-                }
-
-                return query
-                    .Take(20)
-                    .Select(ou => new UserDisplay
-                    {
-                        UserId = ou.UserId,
-                        DisplayName = ou.User.UserName ?? ou.User.Email ?? "Unknown",
-                        Email = ou.User.Email ?? string.Empty
-                    });
-            },
-            q => q.OrderBy(x => x.DisplayName)
-        );
+        return await repo.ListMetadata(OrganizationId,
+            queryModifier: q => string.IsNullOrWhiteSpace(searchText)
+                ? q
+                : q.Where(ou => ou.User.Email!.ToLower().Contains(searchText.ToLower())),
+            orderBy: q => q.OrderBy(u => u.UserName),
+            pageNumber: 1,
+            pageSize: 20);
     }
 
     private async Task CreateUserRoleAssignment()
@@ -406,7 +473,7 @@
             {
                 Id = Guid.NewGuid(),
                 RunnerId = RunnerId,
-                UserId = _selectedUser.UserId,
+                UserId = _selectedUser.Id,
                 RoleName = _selectedUserRole,
                 OrganizationId = OrganizationId
             };
@@ -425,11 +492,13 @@
         }
     }
 
-    private async Task DeleteUserRoleAssignment(UserRunnerRoleAssignment assignment)
+    private async Task DeleteUserRoleAssignment(UserAssignmentRow assignment)
     {
         var parameters = new DialogParameters<DeleteUserRunnerRoleAssignmentDialog>
         {
-            { x => x.Assignment, assignment },
+            { x => x.AssignmentId, assignment.Id },
+            { x => x.RoleName, assignment.RoleName.ToString() },
+            { x => x.PrincipalName, assignment.Principal.UserName },
             { x => x.OrganizationId, OrganizationId }
         };
 
@@ -444,50 +513,31 @@
         }
     }
 
-    private string GetUserDisplayName(UserRunnerRoleAssignment assignment)
-    {
-        return assignment.OrganizationUser?.User?.UserName ??
-               assignment.OrganizationUser?.User?.Email ??
-               $"User {assignment.UserId}";
-    }
 
     // Service Principal methods
     private void ShowSpCreateForm()
     {
-        _showSpCreateForm = true;
-        _selectedSpRole = RunnerRole.Reader;
+        _showServicePrincipalCreateForm = true;
+        _selectedServicePrincipalRole = RunnerRole.Reader;
         _selectedServicePrincipal = null;
     }
 
     private void CancelSpCreate()
     {
-        _showSpCreateForm = false;
+        _showServicePrincipalCreateForm = false;
         _selectedServicePrincipal = null;
     }
 
-    private async Task<IEnumerable<ServicePrincipalDisplay>> SearchServicePrincipals(string searchText, CancellationToken cancellationToken)
+    private async Task<IEnumerable<ServicePrincipalMetadata>> SearchServicePrincipals(string searchText, CancellationToken cancellationToken)
     {
         using var repo = ServicePrincipalRepoFactory.Create();
-        return await repo.List(OrganizationId,
-            q =>
-            {
-                var query = q.Where(sp => sp.ClientId != null);
-
-                if (!string.IsNullOrWhiteSpace(searchText))
-                {
-                    query = query.Where(sp => sp.ClientId!.ToLower().Contains(searchText.ToLower()));
-                }
-
-                return query
-                    .Take(20)
-                    .Select(sp => new ServicePrincipalDisplay
-                    {
-                        Id = sp.Id,
-                        ClientId = sp.ClientId ?? string.Empty
-                    });
-            },
-            q => q.OrderBy(x => x.ClientId)
-        );
+        return await repo.ListMetadata(OrganizationId,
+            q => string.IsNullOrWhiteSpace(searchText)
+                ? q
+                : q.Where(sp => sp.ClientId.ToLower().Contains(searchText.ToLower())),
+            q => q.OrderBy(sp => sp.ClientId),
+            pageNumber: 1,
+            pageSize: 20);
     }
 
     private async Task CreateSpRoleAssignment()
@@ -501,15 +551,15 @@
                 Id = Guid.NewGuid(),
                 RunnerId = RunnerId,
                 ServicePrincipalId = _selectedServicePrincipal.Id,
-                RoleName = _selectedSpRole,
+                RoleName = _selectedServicePrincipalRole,
                 OrganizationId = OrganizationId
             };
 
-            using var repo = SpRoleRepoFactory.Create();
+            using var repo = ServicePrincipalRoleRepoFactory.Create();
             await repo.Create(assignment);
 
             Snackbar.Add("Service principal role assignment created successfully", Severity.Success);
-            _showSpCreateForm = false;
+            _showServicePrincipalCreateForm = false;
             _selectedServicePrincipal = null;
             await LoadRoleAssignments();
         }
@@ -519,11 +569,13 @@
         }
     }
 
-    private async Task DeleteSpRoleAssignment(ServicePrincipalRunnerRoleAssignment assignment)
+    private async Task DeleteServicePrincipalRoleAssignment(ServicePrincipalAssignmentRow assignment)
     {
         var parameters = new DialogParameters<DeleteServicePrincipalRunnerRoleAssignmentDialog>
         {
-            { x => x.Assignment, assignment },
+            { x => x.AssignmentId, assignment.Id },
+            { x => x.RoleName, assignment.RoleName.ToString() },
+            { x => x.PrincipalName, assignment.Principal.ClientId },
             { x => x.OrganizationId, OrganizationId }
         };
 
@@ -538,17 +590,7 @@
         }
     }
 
-    private string GetServicePrincipalDisplayName(ServicePrincipalRunnerRoleAssignment assignment)
-    {
-        return StripOrgPrefix(assignment.ServicePrincipal?.ClientId) ?? $"ServicePrincipal {assignment.ServicePrincipalId}";
-    }
 
-    private string? StripOrgPrefix(string? clientId)
-    {
-        if (clientId == null) return null;
-        var prefix = OrganizationId + ":";
-        return clientId.StartsWith(prefix) ? clientId[prefix.Length..] : clientId;
-    }
 
     // Group methods
     private void ShowGroupCreateForm()
@@ -564,29 +606,16 @@
         _selectedGroup = null;
     }
 
-    private async Task<IEnumerable<GroupDisplay>> SearchGroups(string searchText, CancellationToken cancellationToken)
+    private async Task<IEnumerable<GroupMetadata>> SearchGroups(string searchText, CancellationToken cancellationToken)
     {
         using var repo = GroupRepoFactory.Create();
-        return await repo.List(OrganizationId,
-            q =>
-            {
-                var query = q.Where(g => g.Name != null);
-
-                if (!string.IsNullOrWhiteSpace(searchText))
-                {
-                    query = query.Where(g => g.Name!.ToLower().Contains(searchText.ToLower()));
-                }
-
-                return query
-                    .Take(20)
-                    .Select(g => new GroupDisplay
-                    {
-                        Id = g.Id,
-                        Name = g.Name ?? string.Empty
-                    });
-            },
-            q => q.OrderBy(x => x.Name)
-        );
+        return await repo.ListMetadata(OrganizationId,
+            q => string.IsNullOrWhiteSpace(searchText)
+                ? q
+                : q.Where(g => g.Name.ToLower().Contains(searchText.ToLower())),
+            q => q.OrderBy(g => g.Name),
+            pageNumber: 1,
+            pageSize: 20);
     }
 
     private async Task CreateGroupRoleAssignment()
@@ -618,11 +647,13 @@
         }
     }
 
-    private async Task DeleteGroupRoleAssignment(GroupRunnerRoleAssignment assignment)
+    private async Task DeleteGroupRoleAssignment(GroupAssignmentRow assignment)
     {
         var parameters = new DialogParameters<DeleteGroupRunnerRoleAssignmentDialog>
         {
-            { x => x.Assignment, assignment },
+            { x => x.AssignmentId, assignment.Id },
+            { x => x.RoleName, assignment.RoleName.ToString() },
+            { x => x.PrincipalName, assignment.Principal.Name },
             { x => x.OrganizationId, OrganizationId }
         };
 
@@ -637,10 +668,6 @@
         }
     }
 
-    private string GetGroupDisplayName(GroupRunnerRoleAssignment assignment)
-    {
-        return assignment.Group?.Name ?? $"Group {assignment.GroupId}";
-    }
 
     public void Dispose()
     {

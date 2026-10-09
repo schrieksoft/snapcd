@@ -11,6 +11,12 @@
 @using SnapCd.Server.Core.Services.PrincipalProvider
 <EditForm Model="Stack" OnValidSubmit="SaveStack">
     <DataAnnotationsValidator/>
+<MudForm ReadOnly="@(!_canSave)">
+    @if (!_canSave)
+    {
+        <ReadOnlyNotice />
+    }
+
     <MudGrid>
             <!-- Read-only IDs -->
             <MudItem md="12">
@@ -20,7 +26,7 @@
 
             <!-- Core Properties -->
             <MudItem md="12">
-                <MudTextField Label="Name" @bind-Value="Stack.Name"
+                <MudTextField Disabled="@(!_canSave)" Label="Name" @bind-Value="Stack.Name"
                               Variant="Variant.Outlined" Required RequiredError="Name is required"
                               MaxLength="255" Counter="255"
                               Validation="@((string s) => NameValidator.Validate(s, "Stack"))"/>
@@ -42,14 +48,26 @@
                 </MudButton>
             </MudItem>
     </MudGrid>
+</MudForm>
 </EditForm>
 
 @code {
+    protected override void OnInitialized() => ResolveCanSave();
+
     [Parameter] public required Stack Stack { get; set; }
     [Parameter] public required EventCallback OnSaved { get; set; }
     [Parameter] public required EventCallback OnCancel { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
+    private bool _canSave;
+
+    private void ResolveCanSave()
+    {
+        using var repo = RepoFactory.Create(PrincipalProvider);
+        _canSave = repo.CanUpdate(Stack.Id, OrganizationId);
+    }
 
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private StackSecuredRepositoryFactory RepoFactory { get; set; } = null!;

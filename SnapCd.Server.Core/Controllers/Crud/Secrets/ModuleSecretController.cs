@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Services.Crud.Secrets.Scoped;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud.Secrets;
 
@@ -31,10 +34,11 @@ public static class ModuleSecretCustomEndpointNames
 [ApiController]
 [Authorize("BearerPolicy")]
 public class ModuleSecretController : GenericCrudController<
-    ModuleSecret,
+    ModuleSecret, ModuleSecretMetadata,
     ModuleSecretDto,
     ModuleSecretDto,
     ModuleSecretDto,
+    ModuleSecretMetadataReadDto,
     ModuleSecretSecuredRepository,
     ModuleSecretRepository,
     ModuleSecretService,
@@ -56,6 +60,28 @@ public class ModuleSecretController : GenericCrudController<
             return Ok(dto);
         }
 
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet($"Metadata/{ModuleSecretCustomEndpointNames.GetByName}/{{name}}")]
+    [PermissionSource(Repository = typeof(ModuleSecretSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<ModuleSecretMetadataReadDto>> GetMetadataByName(Guid organizationId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadataByName(name, organizationId));
+        }
         catch (EntityNotFoundException e)
         {
             return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);

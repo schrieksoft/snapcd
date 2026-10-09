@@ -12,6 +12,7 @@ using SnapCd.Contracts.RunnerRequests.HelperClasses;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.StateMachine.Jobs.Utils;
+using JobMetadata = SnapCd.Contracts.RunnerRequests.HelperClasses.JobMetadata;
 namespace SnapCd.Server.Core.Consumers.Tasks.Builders;
 
 /// <summary>

@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleAdditionalTriggerPathService : GenericCrudService<ModuleAdditionalTriggerPath, ModuleAdditionalTriggerPathCreateDto, ModuleAdditionalTriggerPathUpdateDto, ModuleAdditionalTriggerPathReadDto,
+public class ModuleAdditionalTriggerPathService : GenericCrudService<ModuleAdditionalTriggerPath, ModuleAdditionalTriggerPathMetadata, ModuleAdditionalTriggerPathCreateDto, ModuleAdditionalTriggerPathUpdateDto, ModuleAdditionalTriggerPathReadDto, ModuleAdditionalTriggerPathMetadataReadDto,
     ModuleAdditionalTriggerPathSecuredRepository, ModuleAdditionalTriggerPathRepository, ModuleAdditionalTriggerPathCreatedEvent,
     ModuleAdditionalTriggerPathUpdatedEvent, ModuleAdditionalTriggerPathDeletedEvent, ModuleAdditionalTriggerPathRepositorySettings>
 {
@@ -37,6 +39,11 @@ public class ModuleAdditionalTriggerPathService : GenericCrudService<ModuleAddit
         return ModuleAdditionalTriggerPathMapper.ToDto(entity);
     }
 
+    protected override ModuleAdditionalTriggerPathMetadataReadDto MapToMetadataDto(ModuleAdditionalTriggerPathMetadata view)
+    {
+        return ModuleAdditionalTriggerPathMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(ModuleAdditionalTriggerPath entity, ModuleAdditionalTriggerPathUpdateDto dto)
     {
         ModuleAdditionalTriggerPathMapper.UpdateEntity(entity, dto);
@@ -46,5 +53,11 @@ public class ModuleAdditionalTriggerPathService : GenericCrudService<ModuleAddit
     {
         var entity = await SecuredRepository.Get(moduleId, path, organizationId);
         return ModuleAdditionalTriggerPathMapper.ToDto(entity);
+    }
+
+    public async Task<ModuleAdditionalTriggerPathMetadataReadDto> GetMetadata(Guid moduleId, string path, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(moduleId, path, organizationId);
+        return ModuleAdditionalTriggerPathMapper.ToMetadataDto(view);
     }
 }

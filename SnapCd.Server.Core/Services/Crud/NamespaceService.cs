@@ -8,19 +8,23 @@
 
 using SnapCd.Contracts.Dto.Namespaces;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class
     NamespaceService : GenericCrudService<
     Entities.Definition.Namespace, 
-    NamespaceCreateDto, NamespaceUpdateDto, 
+    NamespaceMetadata,NamespaceCreateDto, NamespaceUpdateDto, 
     NamespaceReadDto, 
+    NamespaceMetadataReadDto, 
     NamespaceSecuredRepository, 
     NamespaceRepository, 
     NamespaceCreatedEvent, 
@@ -44,6 +48,11 @@ public class
         return NamespaceMapper.ToDto(entity);
     }
 
+    protected override NamespaceMetadataReadDto MapToMetadataDto(NamespaceMetadata view)
+    {
+        return NamespaceMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(Entities.Definition.Namespace entity, NamespaceUpdateDto dto)
     {
         NamespaceMapper.UpdateEntity(entity, dto);
@@ -53,4 +62,23 @@ public class
     {
         return await GetByCriteria(repo => repo.Get(stackId, name, organizationId));
     }
+
+    public async Task<List<NamespaceMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(NamespaceMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<NamespaceMetadataReadDto> GetMetadata(Guid stackId, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(stackId, name, organizationId);
+        return NamespaceMapper.ToMetadataDto(view);
+    }
+
+    public async Task<NamespaceMetadataReadDto> GetMetadata(string stackName, string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(stackName, name, organizationId);
+        return NamespaceMapper.ToMetadataDto(view);
+    }
+
 }

@@ -53,24 +53,28 @@
                 </MudItem>
 
                 <MudItem md="12" Class="d-flex justify-end gap-2">
-                    <MudButton ButtonType="ButtonType.Submit"
-                               Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               Size="Size.Small"
-                               Disabled="@_isCreating">
-                        @if (_isCreating)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                        }
-                        Create
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Secondary"
-                               Size="Size.Small"
-                               OnClick="HandleCreateCanceled"
-                               Disabled="@_isCreating">
-                        Cancel
-                    </MudButton>
+                    <MudTooltip Text="A create is already in progress." Disabled="@(!(_isCreating))">
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   Disabled="@_isCreating">
+                            @if (_isCreating)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                            }
+                            Create
+                        </MudButton>
+                    </MudTooltip>
+                    <MudTooltip Text="The create is already under way." Disabled="@(!_isCreating)">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="HandleCreateCanceled"
+                                   Disabled="@_isCreating">
+                            Cancel
+                        </MudButton>
+                    </MudTooltip>
                 </MudItem>
             </MudGrid>
         </EditForm>

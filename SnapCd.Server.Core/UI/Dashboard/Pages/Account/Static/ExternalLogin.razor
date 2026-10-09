@@ -51,21 +51,23 @@
                 else if (_isDeliveryActive == true)
                 {
                     <div class="mt-3">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Secondary"
-                                   Size="Size.Small"
-                                   OnClick="ResendConfirmationEmail"
-                                   Disabled="@_isResending">
-                            @if (_isResending)
-                            {
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                                <span>Sending...</span>
-                            }
-                            else
-                            {
-                                <span>Resend Confirmation Email</span>
-                            }
-                        </MudButton>
+                        <MudTooltip Text="A resend is already in progress." Disabled="@(!(_isResending))">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="ResendConfirmationEmail"
+                                       Disabled="@_isResending">
+                                @if (_isResending)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                                    <span>Sending...</span>
+                                }
+                                else
+                                {
+                                    <span>Resend Confirmation Email</span>
+                                }
+                            </MudButton>
+                        </MudTooltip>
                     </div>
                 }
             }

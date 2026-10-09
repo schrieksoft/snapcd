@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.AgentStackSupplies;
 using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class AgentStackSupplyMapper
     {
         entity.StackId = dto.StackId;
         entity.AgentId = dto.AgentId;
+    }
+
+    public static AgentStackSupplyMetadataReadDto ToMetadataDto(AgentStackSupplyMetadata view)
+    {
+        return new AgentStackSupplyMetadataReadDto
+        {
+            Id = view.Id,
+            AgentId = view.AgentId,
+            StackId = view.StackId,
+        };
     }
 }

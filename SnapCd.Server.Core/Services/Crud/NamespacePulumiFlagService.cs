@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespacePulumiFlagService : GenericCrudService<NamespacePulumiFlag, NamespacePulumiFlagCreateDto, NamespacePulumiFlagUpdateDto, NamespacePulumiFlagReadDto, NamespacePulumiFlagSecuredRepository, NamespacePulumiFlagRepository,
+public class NamespacePulumiFlagService : GenericCrudService<NamespacePulumiFlag, NamespacePulumiFlagMetadata, NamespacePulumiFlagCreateDto, NamespacePulumiFlagUpdateDto, NamespacePulumiFlagReadDto, NamespacePulumiFlagMetadataReadDto, NamespacePulumiFlagSecuredRepository, NamespacePulumiFlagRepository,
     NamespacePulumiFlagCreatedEvent, NamespacePulumiFlagUpdatedEvent, NamespacePulumiFlagDeletedEvent, NamespacePulumiFlagRepositorySettings>
 {
     public NamespacePulumiFlagService(
@@ -34,6 +36,11 @@ public class NamespacePulumiFlagService : GenericCrudService<NamespacePulumiFlag
     protected override NamespacePulumiFlagReadDto MapToDto(NamespacePulumiFlag entity)
     {
         return NamespacePulumiFlagMapper.ToDto(entity);
+    }
+
+    protected override NamespacePulumiFlagMetadataReadDto MapToMetadataDto(NamespacePulumiFlagMetadata view)
+    {
+        return NamespacePulumiFlagMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(NamespacePulumiFlag entity, NamespacePulumiFlagUpdateDto dto)

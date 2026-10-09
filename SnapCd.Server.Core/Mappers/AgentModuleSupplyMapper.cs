@@ -8,6 +8,7 @@
 
 using SnapCd.Contracts.Dto.AgentModuleSupplies;
 using SnapCd.Server.Core.Entities.Definition.AgentSupplies;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -38,5 +39,15 @@ public static class AgentModuleSupplyMapper
     {
         entity.ModuleId = dto.ModuleId;
         entity.AgentId = dto.AgentId;
+    }
+
+    public static AgentModuleSupplyMetadataReadDto ToMetadataDto(AgentModuleSupplyMetadata view)
+    {
+        return new AgentModuleSupplyMetadataReadDto
+        {
+            Id = view.Id,
+            AgentId = view.AgentId,
+            ModuleId = view.ModuleId,
+        };
     }
 }

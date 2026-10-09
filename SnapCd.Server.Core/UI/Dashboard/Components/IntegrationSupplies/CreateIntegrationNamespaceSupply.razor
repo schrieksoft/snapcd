@@ -10,15 +10,21 @@
 @using SnapCd.Server.Core.Entities.Definition.IntegrationSupplies
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 <MudPaper Elevation="1" Class="pa-4 mb-4">
+    @if (!_canCreate)
+    {
+        <ReadOnlyNotice Message="You do not have permission to add a supply to this integration."/>
+    }
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
             <MudItem xs="12" md="6">
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Integration?"
+                    <MudAutocomplete T="IntegrationMetadata?"
                                      Label="Integration"
                                      @bind-Value="_selectedIntegration"
-                                     Disabled="@(IntegrationId.HasValue)"
+                                     Disabled="@(!_canCreate || (IntegrationId.HasValue))"
                                      Required="@(!IntegrationId.HasValue)"
                                      RequiredError="Integration is required"
                                      SearchFunc="@SearchIntegrations"
@@ -29,10 +35,10 @@
                 </MudItem>
 
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Namespace?"
+                    <MudAutocomplete T="QualifiedNamespace?"
                                      Label="Namespace"
                                      @bind-Value="_selectedNamespace"
-                                     Disabled="@(NamespaceId.HasValue)"
+                                     Disabled="@(!_canCreate || (NamespaceId.HasValue))"
                                      Required="@(!NamespaceId.HasValue)"
                                      RequiredError="Namespace is required"
                                      SearchFunc="@SearchNamespaces"
@@ -41,16 +47,25 @@
                                      Variant="Variant.Outlined">
                     </MudAutocomplete>
                 </MudItem>
+
+                <MudItem xs="12" md="12">
+                    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Dense="true">
+                        Only Namespaces that you have at least ReadMetadata permissions on will appear here.
+                    </MudAlert>
+                </MudItem>
             </MudItem>
 
             <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           OnClick="SaveSupply"
-                           Class="mr-2">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="SaveSupply"
+                               Class="mr-2">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -75,12 +90,34 @@
     [Inject] private IntegrationSecuredRepositoryFactory IntegrationRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private Namespace? _selectedNamespace;
-    private Integration? _selectedIntegration;
+    private QualifiedNamespace? _selectedNamespace;
+    private IntegrationMetadata? _selectedIntegrationBacking;
+    private IntegrationMetadata? _selectedIntegration
+    {
+        get => _selectedIntegrationBacking;
+        set { _selectedIntegrationBacking = value; RefreshCanCreate(); }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialValues();
+    }
+
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet() => RefreshCanCreate();
+
+    private void RefreshCanCreate()
+    {
+        var ownerId = IntegrationId ?? _selectedIntegration?.Id;
+        if (ownerId is null)
+        {
+            _canCreate = true;
+            return;
+        }
+
+        using var permissionRepo = SupplyRepoFactory.Create();
+        _canCreate = permissionRepo.CanCreate(ownerId.Value, OrganizationId);
     }
 
     private async Task LoadInitialValues()
@@ -88,32 +125,36 @@
         if (NamespaceId.HasValue)
         {
             using var nsRepo = NamespaceRepoFactory.Create();
-            _selectedNamespace = await nsRepo.Get(NamespaceId.Value, OrganizationId);
+            _selectedNamespace = await nsRepo.GetQualifiedNamespace(NamespaceId.Value, OrganizationId);
         }
 
         if (IntegrationId.HasValue)
         {
             using var repo = IntegrationRepoFactory.Create();
-            _selectedIntegration = await repo.Get(IntegrationId.Value, OrganizationId);
+            _selectedIntegration = await repo.GetMetadata(IntegrationId.Value, OrganizationId);
         }
     }
 
-    private async Task<IEnumerable<Namespace>> SearchNamespaces(string value, CancellationToken token)
+    private async Task<IEnumerable<QualifiedNamespace>> SearchNamespaces(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Namespace>();
-
         using var repo = NamespaceRepoFactory.Create();
-        return await repo.List<Namespace>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+        return await repo.ListQualifiedNamespace(OrganizationId,
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
-    private async Task<IEnumerable<Integration>> SearchIntegrations(string value, CancellationToken token)
+    private async Task<IEnumerable<IntegrationMetadata>> SearchIntegrations(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Integration>();
-
         using var repo = IntegrationRepoFactory.Create();
-        return await repo.List<Integration>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
     private async Task SaveSupply()

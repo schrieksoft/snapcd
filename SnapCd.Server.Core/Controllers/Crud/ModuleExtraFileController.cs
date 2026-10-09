@@ -18,15 +18,19 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using SnapCd.Server.Core.Misc.Attributes;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.ModuleExtraFile)]
 public class ModuleExtraFileController : GenericCrudController<
-    ModuleExtraFile,
+    ModuleExtraFile, ModuleExtraFileMetadata,
     ModuleExtraFileCreateDto,
     ModuleExtraFileUpdateDto,
     ModuleExtraFileReadDto,
+    ModuleExtraFileMetadataReadDto,
     ModuleExtraFileSecuredRepository,
     ModuleExtraFileRepository,
     ModuleExtraFileService,
@@ -39,13 +43,35 @@ public class ModuleExtraFileController : GenericCrudController<
     {
     }
 
-    [HttpGet("{moduleId}/{name}")]
+    [HttpGet("{moduleId:guid}/{name}")]
     public async Task<ActionResult<ModuleExtraFileReadDto>> Get(Guid organizationId, Guid moduleId, string name)
     {
         try
         {
             var moduleExtraFileDto = await Service.Get(moduleId, name, organizationId);
             return Ok(moduleExtraFileDto);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return StatusCode(CustomStatusCodes.Status441EntityNotFound, e.Message);
+        }
+        catch (PrincipalNotAuthorizedException e)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("Metadata/{moduleId:guid}/{name}")]
+    [PermissionSource(Repository = typeof(ModuleExtraFileSecuredRepository), Verb = PermissionVerb.ReadMetadata)]
+    public async Task<ActionResult<ModuleExtraFileMetadataReadDto>> GetMetadataByKey(Guid organizationId, Guid moduleId, string name)
+    {
+        try
+        {
+            return Ok(await Service.GetMetadata(moduleId, name, organizationId));
         }
         catch (EntityNotFoundException e)
         {

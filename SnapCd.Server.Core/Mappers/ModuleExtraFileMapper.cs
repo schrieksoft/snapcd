@@ -9,6 +9,7 @@
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.Dto.ModuleExtraFiles;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Mappers;
 
@@ -56,5 +57,14 @@ public static class ModuleExtraFileMapper
         entity.FileName = dto.FileName;
         entity.Contents = dto.Contents;
         entity.Overwrite = dto.Overwrite ?? false;
+    }
+
+    public static ModuleExtraFileMetadataReadDto ToMetadataDto(ModuleExtraFileMetadata view)
+    {
+        return new ModuleExtraFileMetadataReadDto
+        {
+            Id = view.Id,
+            ModuleId = view.ModuleId,
+        };
     }
 }

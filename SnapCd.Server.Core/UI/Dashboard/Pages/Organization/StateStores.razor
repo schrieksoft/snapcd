@@ -62,6 +62,10 @@
     {
         <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
     }
+    else if (_stateStores.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mt-2">No state stores yet, or you do not have permission to see any.</MudText>
+    }
     else
     {
         <MudExpansionPanels>

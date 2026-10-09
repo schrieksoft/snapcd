@@ -9,19 +9,23 @@
 using SnapCd.Contracts.Dto.Agents;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Events.Repository.Organization;
+using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class AgentService : GenericCrudService<
-    Agent,
+    Agent, AgentMetadata,
     AgentCreateDto,
     AgentUpdateDto,
     AgentReadDto,
+    AgentMetadataReadDto,
     AgentSecuredRepository,
     AgentRepository,
     AgentCreatedEvent,
@@ -45,6 +49,11 @@ public class AgentService : GenericCrudService<
         return AgentMapper.ToDto(entity);
     }
 
+    protected override AgentMetadataReadDto MapToMetadataDto(AgentMetadata view)
+    {
+        return AgentMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(Agent entity, AgentUpdateDto dto)
     {
         AgentMapper.UpdateEntity(entity, dto);
@@ -54,4 +63,17 @@ public class AgentService : GenericCrudService<
     {
         return await GetByCriteria(repo => repo.GetByName(name, organizationId));
     }
+
+    public async Task<List<AgentMetadataReadDto>> ListMetadata(Guid organizationId)
+    {
+        var views = await SecuredRepository.ListMetadata(organizationId);
+        return views.Select(AgentMapper.ToMetadataDto).ToList();
+    }
+
+    public async Task<AgentMetadataReadDto> GetMetadataByName(string name, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataByName(name, organizationId);
+        return AgentMapper.ToMetadataDto(view);
+    }
+
 }

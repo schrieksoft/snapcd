@@ -42,8 +42,10 @@
             </MudText>
             @if (ShowRunNow)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                           Disabled="@IsPaused" OnClick="OnRunQueueNow">run now</MudButton>
+                <MudTooltip Text="@RunJobDisabledReason" Disabled="@(RunJobDisabledReason is null)">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                               Disabled="@IsPaused" OnClick="OnRunQueueNow">run now</MudButton>
+                </MudTooltip>
             }
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                        OnClick="OnClearQueue">clear</MudButton>
@@ -53,10 +55,14 @@
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <MudStack Row Spacing="2">
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply" Size="Size.Small"
-                   Disabled="@IsPaused">apply</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy" Size="Size.Small"
-                   Disabled="@IsPaused">destroy</MudButton>
+        <MudTooltip Text="@RunJobDisabledReason" Disabled="@(RunJobDisabledReason is null)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunApply" Size="Size.Small"
+                       Disabled="@IsPaused">apply</MudButton>
+        </MudTooltip>
+        <MudTooltip Text="@RunJobDisabledReason" Disabled="@(RunJobDisabledReason is null)">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunDestroy" Size="Size.Small"
+                       Disabled="@IsPaused">destroy</MudButton>
+        </MudTooltip>
     </MudStack>
 </MudPaper>
 
@@ -217,6 +223,10 @@ else
 
     [Inject] ModuleJobRepositoryFactory JobRepoFactory { get; set; } = null!;
     [Inject] ModuleSecuredRepositoryFactory ModuleRepoFactory { get; set; } = null!;
+    [Inject] ModuleJobSecuredRepositoryFactory JobSecuredRepoFactory { get; set; } = null!;
+
+    private string? RunJobDisabledReason =>
+        IsPaused ? "Jobs are paused for this module." : null;
 
     private const int PageSize = 10;
     private int _currentPage = 1;

@@ -10,16 +10,22 @@
 @using SnapCd.Server.Core.Entities.Definition.RunnerSupplies
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies
+@using SnapCd.Server.Core.Views
+@using SnapCd.Server.Core.Views.Metadata
 <MudPaper Elevation="1" Class="pa-4 mb-4">
+    @if (!_canCreate)
+    {
+        <ReadOnlyNotice Message="You do not have permission to add a supply to this runner."/>
+    }
     <MudForm @ref="_form">
         <MudGrid Class="pa-4" Spacing="3">
             <MudItem xs="12" md="6">
                 <!-- Runner Selection -->
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Runner?"
+                    <MudAutocomplete T="RunnerMetadata?"
                                      Label="Runner"
                                      @bind-Value="_selectedRunner"
-                                     Disabled="@(RunnerId.HasValue)"
+                                     Disabled="@(!_canCreate || (RunnerId.HasValue))"
                                      Required="@(!RunnerId.HasValue)"
                                      RequiredError="Runner is required"
                                      SearchFunc="@SearchRunners"
@@ -31,10 +37,10 @@
 
                 <!-- Namespace Selection -->
                 <MudItem xs="12" md="12">
-                    <MudAutocomplete T="Namespace?"
+                    <MudAutocomplete T="QualifiedNamespace?"
                                      Label="Namespace"
                                      @bind-Value="_selectedNamespace"
-                                     Disabled="@(NamespaceId.HasValue)"
+                                     Disabled="@(!_canCreate || (NamespaceId.HasValue))"
                                      Required="@(!NamespaceId.HasValue)"
                                      RequiredError="Namespace is required"
                                      SearchFunc="@SearchNamespaces"
@@ -43,17 +49,26 @@
                                      Variant="Variant.Outlined">
                     </MudAutocomplete>
                 </MudItem>
+
+                <MudItem xs="12" md="12">
+                    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Left" Dense="true">
+                        Only Namespaces that you have at least ReadMetadata permissions on will appear here.
+                    </MudAlert>
+                </MudItem>
             </MudItem>
 
             <!-- Action Buttons -->
             <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           OnClick="SaveSupply"
-                           Class="mr-2">
-                    Create
-                </MudButton>
+                @if (_canCreate)
+                {
+    <MudButton Variant="Variant.Filled"
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               OnClick="SaveSupply"
+                               Class="mr-2">
+                        Create
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Secondary"
                            Size="Size.Small"
@@ -78,12 +93,34 @@
     [Inject] private RunnerSecuredRepositoryFactory RunnerRepoFactory { get; set; } = null!;
 
     private MudForm? _form;
-    private Namespace? _selectedNamespace;
-    private Runner? _selectedRunner;
+    private QualifiedNamespace? _selectedNamespace;
+    private RunnerMetadata? _selectedRunnerBacking;
+    private RunnerMetadata? _selectedRunner
+    {
+        get => _selectedRunnerBacking;
+        set { _selectedRunnerBacking = value; RefreshCanCreate(); }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialValues();
+    }
+
+    private bool _canCreate = true;
+
+    protected override void OnParametersSet() => RefreshCanCreate();
+
+    private void RefreshCanCreate()
+    {
+        var ownerId = RunnerId ?? _selectedRunner?.Id;
+        if (ownerId is null)
+        {
+            _canCreate = true;
+            return;
+        }
+
+        using var permissionRepo = SupplyRepoFactory.Create();
+        _canCreate = permissionRepo.CanCreate(ownerId.Value, OrganizationId);
     }
 
     private async Task LoadInitialValues()
@@ -91,33 +128,37 @@
         if (NamespaceId.HasValue)
         {
             using var namespaceRepo = NamespaceRepoFactory.Create();
-            _selectedNamespace = await namespaceRepo.Get(NamespaceId.Value, OrganizationId);
+            _selectedNamespace = await namespaceRepo.GetQualifiedNamespace(NamespaceId.Value, OrganizationId);
         }
 
         if (RunnerId.HasValue)
         {
             using var storeRepo = RunnerRepoFactory.Create();
-            _selectedRunner = await storeRepo.Get(RunnerId.Value, OrganizationId);
+            _selectedRunner = await storeRepo.GetMetadata(RunnerId.Value, OrganizationId);
         }
     }
 
 
-    private async Task<IEnumerable<Namespace>> SearchNamespaces(string value, CancellationToken token)
+    private async Task<IEnumerable<QualifiedNamespace>> SearchNamespaces(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Namespace>();
-
         using var repo = NamespaceRepoFactory.Create();
-        return await repo.List<Namespace>(OrganizationId, q => q.Where(m => m.Name.Contains(value)));
+        return await repo.ListQualifiedNamespace(OrganizationId,
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
-    private async Task<IEnumerable<Runner>> SearchRunners(string value, CancellationToken token)
+    private async Task<IEnumerable<RunnerMetadata>> SearchRunners(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<Runner>();
-
         using var repo = RunnerRepoFactory.Create();
-        return await repo.List<Runner>(OrganizationId, q => q.Where(s => s.Name.Contains(value)));
+        return await repo.ListMetadata(OrganizationId,
+            q => string.IsNullOrWhiteSpace(value)
+                ? q
+                : q.Where(x => x.Name.Contains(value)),
+            orderBy: q => q.OrderBy(x => x.Name),
+            pageSize: 20);
     }
 
     private async Task SaveSupply()

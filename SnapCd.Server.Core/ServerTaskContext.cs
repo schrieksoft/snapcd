@@ -8,6 +8,7 @@
 
 using Microsoft.Extensions.Logging;
 using SnapCd.Contracts.RunnerRequests.HelperClasses;
+using JobMetadata = SnapCd.Contracts.RunnerRequests.HelperClasses.JobMetadata;
 
 namespace SnapCd.Server.Core;
 

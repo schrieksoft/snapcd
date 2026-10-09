@@ -14,14 +14,17 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class SourceRefresherPreselectionService : GenericCrudService<
-    SourceRefresherPreselection,
+    SourceRefresherPreselection, SourceRefresherPreselectionMetadata,
     SourceRefresherPreselectionCreateDto,
     SourceRefresherPreselectionUpdateDto,
     SourceRefresherPreselectionReadDto,
+    SourceRefresherPreselectionMetadataReadDto,
     SourceRefresherPreselectionSecuredRepository,
     SourceRefresherPreselectionRepository,
     SourceRefresherPreselectionCreatedEvent,
@@ -45,6 +48,11 @@ public class SourceRefresherPreselectionService : GenericCrudService<
         return SourceRefresherPreselectionMapper.ToDto(entity);
     }
 
+    protected override SourceRefresherPreselectionMetadataReadDto MapToMetadataDto(SourceRefresherPreselectionMetadata view)
+    {
+        return SourceRefresherPreselectionMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(SourceRefresherPreselection entity, SourceRefresherPreselectionUpdateDto dto)
     {
         SourceRefresherPreselectionMapper.UpdateEntity(entity, dto);
@@ -53,5 +61,11 @@ public class SourceRefresherPreselectionService : GenericCrudService<
     public async Task<SourceRefresherPreselectionReadDto> GetBySourceUrl(string sourceUrl, Guid organizationId)
     {
         return await GetByCriteria(repo => repo.GetBySourceUrl(sourceUrl, organizationId));
+    }
+
+    public async Task<SourceRefresherPreselectionMetadataReadDto> GetMetadataBySourceUrl(string sourceUrl, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadataBySourceUrl(sourceUrl, organizationId);
+        return SourceRefresherPreselectionMapper.ToMetadataDto(view);
     }
 }

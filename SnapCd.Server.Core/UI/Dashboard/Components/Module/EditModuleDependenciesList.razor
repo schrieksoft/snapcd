@@ -57,12 +57,15 @@ else
 }
 
 @code {
+
     [Parameter] public string Title { get; set; } = null!;
     [Parameter] public Guid ModuleId { get; set; }
     [Parameter] public Guid StackId { get; set; }
     [Parameter] public EventCallback OnTabClick { get; set; }
     [Parameter] public IPrincipalProvider? PrincipalProvider { get; set; }
     [CascadingParameter] public Guid OrganizationId { get; set; }
+
+
 
     [Inject] private DependsOnModuleSecuredRepositoryFactory DependsOnModuleSecuredRepositoryFactory { get; set; } = null!;
     [Inject] private ModuleSecuredRepositoryFactory ModuleSecuredRepositoryFactory { get; set; } = null!;

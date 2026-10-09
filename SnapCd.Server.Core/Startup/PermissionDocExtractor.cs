@@ -151,8 +151,8 @@ public static class PermissionDocExtractor
     {
         for (var t = controllerType; t is not null; t = t.BaseType!)
         {
-            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,>))
-                return t.GetGenericArguments()[4]; // TSecuredRepository
+            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,,>))
+                return t.GetGenericArguments()[6]; // TSecuredRepository
         }
 
         return null;
@@ -205,7 +205,7 @@ public static class PermissionDocExtractor
 
         var baseDefinition = method.GetBaseDefinition();
         if (baseDefinition.DeclaringType is { IsGenericType: true } declaring
-            && declaring.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,>))
+            && declaring.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,,>))
         {
             return baseDefinition.Name switch
             {
@@ -213,6 +213,7 @@ public static class PermissionDocExtractor
                 "Update" => PermissionVerb.Update,
                 "Delete" => PermissionVerb.Delete,
                 "Get" or "List" or "Count" => PermissionVerb.Read,
+                "GetMetadata" or "ListMetadata" => PermissionVerb.ReadMetadata,
                 _ => null
             };
         }
@@ -249,11 +250,12 @@ public static class PermissionDocExtractor
             if (names.Count > 0) roles[dimensionName] = names;
         }
 
-        // Reverse inheritance applies to reads only: any role on a contained resource
-        // grants read, so only the dimensions matter, not the role lists.
+        // Reverse inheritance applies to metadata reads only: any role on a contained resource
+        // lets the principal discover its ancestors, so only the dimensions matter, not the role
+        // lists. It confers no read on the ancestor itself.
         var reverseDimensions = new List<string>();
-        if (verb == PermissionVerb.Read
-            && repoType.GetProperty("ReverseInheritedReadPermissionMap")?.GetValue(instance) is PermissionMap reverse)
+        if (verb == PermissionVerb.ReadMetadata
+            && repoType.GetProperty("ReverseInheritedReadMetadataPermissionMap")?.GetValue(instance) is PermissionMap reverse)
             foreach (var (dimensionName, select) in Dimensions)
                 if (select(reverse).Any())
                     reverseDimensions.Add(dimensionName);

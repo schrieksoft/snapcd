@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Misc.Helpers;
@@ -65,7 +66,8 @@ public class LiteralOutputSecuredRepository : OutputSecuredRepository
 
         foreach (var output in outputs)
             if (!CanRead(output.Id, organizationId))
-                throw new UnauthorizedAccessException($"Access denied to LiteralOutput {output.Id}");
+                throw new PrincipalNotAuthorizedException(
+                    $"{nameof(LiteralOutput)} with ID {output.Id} not found or {PrincipalDiscriminator} with ID {PrincipalProvider.GetSubject(organizationId)} does not have permission to read it.");
 
         return outputs;
     }

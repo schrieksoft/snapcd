@@ -14,14 +14,17 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class IntegrationStackSupplyService : GenericCrudService<
-    IntegrationStackSupply,
+    IntegrationStackSupply, IntegrationStackSupplyMetadata,
     IntegrationStackSupplyCreateDto,
     IntegrationStackSupplyUpdateDto,
     IntegrationStackSupplyReadDto,
+    IntegrationStackSupplyMetadataReadDto,
     IntegrationStackSupplySecuredRepository,
     IntegrationStackSupplyRepository,
     IntegrationStackSupplyCreatedEvent,
@@ -42,6 +45,11 @@ public class IntegrationStackSupplyService : GenericCrudService<
     protected override IntegrationStackSupplyReadDto MapToDto(IntegrationStackSupply entity)
     {
         return IntegrationStackSupplyMapper.ToDto(entity);
+    }
+
+    protected override IntegrationStackSupplyMetadataReadDto MapToMetadataDto(IntegrationStackSupplyMetadata view)
+    {
+        return IntegrationStackSupplyMapper.ToMetadataDto(view);
     }
 
     protected override void UpdateEntityFromDto(IntegrationStackSupply entity, IntegrationStackSupplyUpdateDto dto)

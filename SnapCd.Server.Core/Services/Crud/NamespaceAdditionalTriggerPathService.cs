@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceAdditionalTriggerPathService : GenericCrudService<NamespaceAdditionalTriggerPath, NamespaceAdditionalTriggerPathCreateDto, NamespaceAdditionalTriggerPathUpdateDto, NamespaceAdditionalTriggerPathReadDto,
+public class NamespaceAdditionalTriggerPathService : GenericCrudService<NamespaceAdditionalTriggerPath, NamespaceAdditionalTriggerPathMetadata, NamespaceAdditionalTriggerPathCreateDto, NamespaceAdditionalTriggerPathUpdateDto, NamespaceAdditionalTriggerPathReadDto, NamespaceAdditionalTriggerPathMetadataReadDto,
     NamespaceAdditionalTriggerPathSecuredRepository, NamespaceAdditionalTriggerPathRepository, NamespaceAdditionalTriggerPathCreatedEvent,
     NamespaceAdditionalTriggerPathUpdatedEvent, NamespaceAdditionalTriggerPathDeletedEvent, NamespaceAdditionalTriggerPathRepositorySettings>
 {
@@ -37,6 +39,11 @@ public class NamespaceAdditionalTriggerPathService : GenericCrudService<Namespac
         return NamespaceAdditionalTriggerPathMapper.ToDto(entity);
     }
 
+    protected override NamespaceAdditionalTriggerPathMetadataReadDto MapToMetadataDto(NamespaceAdditionalTriggerPathMetadata view)
+    {
+        return NamespaceAdditionalTriggerPathMapper.ToMetadataDto(view);
+    }
+
     protected override void UpdateEntityFromDto(NamespaceAdditionalTriggerPath entity, NamespaceAdditionalTriggerPathUpdateDto dto)
     {
         NamespaceAdditionalTriggerPathMapper.UpdateEntity(entity, dto);
@@ -46,5 +53,11 @@ public class NamespaceAdditionalTriggerPathService : GenericCrudService<Namespac
     {
         var entity = await SecuredRepository.Get(namespaceId, path, organizationId);
         return NamespaceAdditionalTriggerPathMapper.ToDto(entity);
+    }
+
+    public async Task<NamespaceAdditionalTriggerPathMetadataReadDto> GetMetadata(Guid namespaceId, string path, Guid organizationId)
+    {
+        var view = await SecuredRepository.GetMetadata(namespaceId, path, organizationId);
+        return NamespaceAdditionalTriggerPathMapper.ToMetadataDto(view);
     }
 }
