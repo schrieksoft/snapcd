@@ -16,6 +16,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerSupplies;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.RunnerSupplies;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -26,7 +28,7 @@ public static class RunnerNamespaceSupplyCustomEndpointNames
 
 [Route(ControllerEndpoints.RunnerNamespaceSupply)]
 public class RunnerNamespaceSupplyController : GenericCrudController<
-    RunnerNamespaceSupply,
+    RunnerNamespaceSupply, RunnerNamespaceSupplyMetadata,
     RunnerNamespaceSupplyCreateDto,
     RunnerNamespaceSupplyUpdateDto,
     RunnerNamespaceSupplyReadDto,

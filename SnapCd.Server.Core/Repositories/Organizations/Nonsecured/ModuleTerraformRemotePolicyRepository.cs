@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -33,9 +36,17 @@ public class ModuleTerraformRemotePolicyRepositoryFactory(IDbContextFactory<Snap
     }
 }
 
-public class ModuleTerraformRemotePolicyRepository : GenericModuleChildDefinitionRepository<ModuleTerraformRemotePolicy, ModuleTerraformRemotePolicyReadDto, ModuleTerraformRemotePolicyCreatedEvent, ModuleTerraformRemotePolicyUpdatedEvent,
+public class ModuleTerraformRemotePolicyRepository : GenericModuleChildDefinitionRepository<ModuleTerraformRemotePolicy, ModuleTerraformRemotePolicyReadDto, ModuleTerraformRemotePolicyMetadata, ModuleTerraformRemotePolicyCreatedEvent, ModuleTerraformRemotePolicyUpdatedEvent,
     ModuleTerraformRemotePolicyDeletedEvent, ModuleTerraformRemotePolicyRepositorySettings>
 {
+
+    protected override Expression<Func<ModuleTerraformRemotePolicy, ModuleTerraformRemotePolicyMetadata>> MetadataProjection =>
+        e => new ModuleTerraformRemotePolicyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public ModuleTerraformRemotePolicyRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

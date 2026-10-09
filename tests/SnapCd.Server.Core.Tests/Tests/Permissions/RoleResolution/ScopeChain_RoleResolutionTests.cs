@@ -203,7 +203,7 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
         Assert.NotEmpty(visible);
     }
 
-    private async Task<List<Views.StackMetadata>> ListStackMetadata(Guid principalId)
+    private async Task<List<Views.Metadata.StackMetadata>> ListStackMetadata(Guid principalId)
     {
         var orgId = _fixture.Organizations["0"].Id;
         var pp = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, orgId);
@@ -214,7 +214,7 @@ public class ScopeChain_RoleResolutionTests : IAsyncLifetime
         return await repo.ListMetadata(orgId);
     }
 
-    private async Task<List<Views.NamespaceMetadata>> ListNamespaceMetadata(Guid principalId)
+    private async Task<List<Views.Metadata.NamespaceMetadata>> ListNamespaceMetadata(Guid principalId)
     {
         var orgId = _fixture.Organizations["0"].Id;
         var pp = _fixture.CreatePrincipalProvider(principalId, PrincipalDiscriminator.User, orgId);

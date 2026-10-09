@@ -23,11 +23,13 @@ using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Services.Outputs;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class
-    OutputSetService : GenericCrudService<OutputSet, OutputSetCreateDto, OutputSetUpdateDto, OutputSetReadDto, OutputSetSecuredRepository, OutputSetRepository, OutputSetCreatedEvent, OutputSetUpdatedEvent, OutputSetDeletedEvent,
+    OutputSetService : GenericCrudService<OutputSet, OutputSetMetadata, OutputSetCreateDto, OutputSetUpdateDto, OutputSetReadDto, OutputSetSecuredRepository, OutputSetRepository, OutputSetCreatedEvent, OutputSetUpdatedEvent, OutputSetDeletedEvent,
     OutputSetRepositorySettings>
 {
     private readonly CustomOutputMapper _outputMapper;

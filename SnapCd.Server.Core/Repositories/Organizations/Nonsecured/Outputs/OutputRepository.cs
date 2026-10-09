@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 
@@ -31,15 +34,22 @@ public class OutputRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactor
     }
 }
 
-public class OutputRepository : GenericModuleGrandChildRepository<
-    Output,
+public class OutputRepository : GenericModuleGrandChildRepository<Output,
     OutputSet,
-    OutputReadDto,
+    OutputReadDto, OutputMetadata,
     OutputCreatedEvent,
     OutputUpdatedEvent,
     OutputDeletedEvent,
     OutputRepositorySettings>
 {
+
+    protected override Expression<Func<Output, OutputMetadata>> MetadataProjection =>
+        e => new OutputMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public OutputRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

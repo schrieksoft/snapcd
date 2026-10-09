@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,8 +35,16 @@ public class StateFileRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFac
     }
 }
 
-public class StateFileRepository : GenericStateStoreChildRepository<StateFile, StateFileReadDto, StateFileCreatedEvent, StateFileUpdatedEvent, StateFileDeletedEvent, StateFileRepositorySettings>
+public class StateFileRepository : GenericStateStoreChildRepository<StateFile, StateFileReadDto, StateFileMetadata, StateFileCreatedEvent, StateFileUpdatedEvent, StateFileDeletedEvent, StateFileRepositorySettings>
 {
+
+    protected override Expression<Func<StateFile, StateFileMetadata>> MetadataProjection =>
+        e => new StateFileMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public StateFileRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Services;
 
 using SnapCd.Server.Core.Events.Steps.Base;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
+using JobMetadata = SnapCd.Contracts.RunnerRequests.HelperClasses.JobMetadata;
 
 namespace SnapCd.Server.Core.Consumers.Tasks;
 

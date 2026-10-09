@@ -20,6 +20,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -34,8 +37,16 @@ public class StateStoreRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFa
     }
 }
 
-public class StateStoreRepository : GenericOrganizationChildRepository<StateStore, StateStoreReadDto, StateStoreCreatedEvent, StateStoreUpdatedEvent, StateStoreDeletedEvent, StateStoreRepositorySettings>
+public class StateStoreRepository : GenericOrganizationChildRepository<StateStore, StateStoreReadDto, StateStoreMetadata, StateStoreCreatedEvent, StateStoreUpdatedEvent, StateStoreDeletedEvent, StateStoreRepositorySettings>
 {
+
+    protected override Expression<Func<StateStore, StateStoreMetadata>> MetadataProjection =>
+        e => new StateStoreMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public StateStoreRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

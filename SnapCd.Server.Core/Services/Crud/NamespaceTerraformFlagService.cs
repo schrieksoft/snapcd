@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class NamespaceTerraformFlagService : GenericCrudService<NamespaceTerraformFlag, NamespaceTerraformFlagCreateDto, NamespaceTerraformFlagUpdateDto, NamespaceTerraformFlagReadDto, NamespaceTerraformFlagSecuredRepository, NamespaceTerraformFlagRepository,
+public class NamespaceTerraformFlagService : GenericCrudService<NamespaceTerraformFlag, NamespaceTerraformFlagMetadata, NamespaceTerraformFlagCreateDto, NamespaceTerraformFlagUpdateDto, NamespaceTerraformFlagReadDto, NamespaceTerraformFlagSecuredRepository, NamespaceTerraformFlagRepository,
     NamespaceTerraformFlagCreatedEvent, NamespaceTerraformFlagUpdatedEvent, NamespaceTerraformFlagDeletedEvent, NamespaceTerraformFlagRepositorySettings>
 {
     public NamespaceTerraformFlagService(

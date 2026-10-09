@@ -22,6 +22,8 @@ using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
@@ -43,7 +45,7 @@ public class StateFileServiceFactory(
 }
 
 public class StateFileService : GenericCrudService<
-    StateFile,
+    StateFile, StateFileMetadata,
     StateFileCreateDto,
     StateFileUpdateDto,
     StateFileReadDto,

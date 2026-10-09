@@ -19,6 +19,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Services.Crud.Secrets.Scoped;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud.Secrets;
 
@@ -31,7 +33,7 @@ public static class StackSecretCustomEndpointNames
 [ApiController]
 [Authorize("BearerPolicy")]
 public class StackSecretController : GenericCrudController<
-    StackSecret,
+    StackSecret, StackSecretMetadata,
     StackSecretDto,
     StackSecretDto,
     StackSecretDto,

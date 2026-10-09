@@ -92,7 +92,7 @@ public class ChildRepositoryParentScopeTests : IAsyncLifetime
 
         var offenders = new List<string>();
 
-        foreach (var repo in typeof(GenericRepository<,,,,,>).Assembly.GetTypes()
+        foreach (var repo in typeof(GenericRepository<,,,,,,>).Assembly.GetTypes()
                      .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false })
                      .Where(t => t.Name.EndsWith("Repository") && !t.Name.EndsWith("SecuredRepository")))
         {

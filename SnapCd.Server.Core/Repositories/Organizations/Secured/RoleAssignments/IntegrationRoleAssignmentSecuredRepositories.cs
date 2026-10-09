@@ -21,6 +21,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured.RoleAssignments;
 
@@ -36,7 +39,7 @@ public class IntegrationRoleAssignmentSecuredRepositoryFactory(IDbContextFactory
 }
 
 public class IntegrationRoleAssignmentSecuredRepository(IntegrationRoleAssignmentRepository repository, IPrincipalProvider principalProvider)
-    : GenericIntegrationChildSecuredRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto, IntegrationRoleAssignmentRepository,
+    : GenericIntegrationChildSecuredRepository<IntegrationRoleAssignment, IntegrationRoleAssignmentReadDto, IntegrationRoleAssignmentMetadata, IntegrationRoleAssignmentRepository,
         IntegrationRoleAssignmentCreatedEvent, IntegrationRoleAssignmentUpdatedEvent, IntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {
@@ -58,7 +61,7 @@ public class UserIntegrationRoleAssignmentSecuredRepositoryFactory(IDbContextFac
 }
 
 public class UserIntegrationRoleAssignmentSecuredRepository(UserIntegrationRoleAssignmentRepository repository, IPrincipalProvider principalProvider)
-    : GenericIntegrationChildSecuredRepository<UserIntegrationRoleAssignment, UserIntegrationRoleAssignmentReadDto, UserIntegrationRoleAssignmentRepository,
+    : GenericIntegrationChildSecuredRepository<UserIntegrationRoleAssignment, UserIntegrationRoleAssignmentReadDto, UserIntegrationRoleAssignmentMetadata, UserIntegrationRoleAssignmentRepository,
         UserIntegrationRoleAssignmentCreatedEvent, UserIntegrationRoleAssignmentUpdatedEvent, UserIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {
@@ -80,7 +83,7 @@ public class ServicePrincipalIntegrationRoleAssignmentSecuredRepositoryFactory(I
 }
 
 public class ServicePrincipalIntegrationRoleAssignmentSecuredRepository(ServicePrincipalIntegrationRoleAssignmentRepository repository, IPrincipalProvider principalProvider)
-    : GenericIntegrationChildSecuredRepository<ServicePrincipalIntegrationRoleAssignment, ServicePrincipalIntegrationRoleAssignmentReadDto, ServicePrincipalIntegrationRoleAssignmentRepository,
+    : GenericIntegrationChildSecuredRepository<ServicePrincipalIntegrationRoleAssignment, ServicePrincipalIntegrationRoleAssignmentReadDto, ServicePrincipalIntegrationRoleAssignmentMetadata, ServicePrincipalIntegrationRoleAssignmentRepository,
         ServicePrincipalIntegrationRoleAssignmentCreatedEvent, ServicePrincipalIntegrationRoleAssignmentUpdatedEvent, ServicePrincipalIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {
@@ -102,7 +105,7 @@ public class GroupIntegrationRoleAssignmentSecuredRepositoryFactory(IDbContextFa
 }
 
 public class GroupIntegrationRoleAssignmentSecuredRepository(GroupIntegrationRoleAssignmentRepository repository, IPrincipalProvider principalProvider)
-    : GenericIntegrationChildSecuredRepository<GroupIntegrationRoleAssignment, GroupIntegrationRoleAssignmentReadDto, GroupIntegrationRoleAssignmentRepository,
+    : GenericIntegrationChildSecuredRepository<GroupIntegrationRoleAssignment, GroupIntegrationRoleAssignmentReadDto, GroupIntegrationRoleAssignmentMetadata, GroupIntegrationRoleAssignmentRepository,
         GroupIntegrationRoleAssignmentCreatedEvent, GroupIntegrationRoleAssignmentUpdatedEvent, GroupIntegrationRoleAssignmentDeletedEvent,
         IntegrationRoleAssignmentRepositorySettings>(repository, principalProvider)
 {

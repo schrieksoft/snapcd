@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -34,8 +37,16 @@ public class OrganizationIntegrationEventRepositoryFactory(IDbContextFactory<Sna
     }
 }
 
-public class OrganizationIntegrationEventRepository : GenericIntegrationChildRepository<OrganizationIntegrationEvent, OrganizationIntegrationEventReadDto, OrganizationIntegrationEventCreatedEvent, OrganizationIntegrationEventUpdatedEvent, OrganizationIntegrationEventDeletedEvent, OrganizationIntegrationEventRepositorySettings>
+public class OrganizationIntegrationEventRepository : GenericIntegrationChildRepository<OrganizationIntegrationEvent, OrganizationIntegrationEventReadDto, OrganizationIntegrationEventMetadata, OrganizationIntegrationEventCreatedEvent, OrganizationIntegrationEventUpdatedEvent, OrganizationIntegrationEventDeletedEvent, OrganizationIntegrationEventRepositorySettings>
 {
+
+    protected override Expression<Func<OrganizationIntegrationEvent, OrganizationIntegrationEventMetadata>> MetadataProjection =>
+        e => new OrganizationIntegrationEventMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId
+        };
     public OrganizationIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
@@ -68,8 +79,17 @@ public class StackIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbCo
     }
 }
 
-public class StackIntegrationEventRepository : GenericStackChildRepository<StackIntegrationEvent, StackIntegrationEventReadDto, StackIntegrationEventCreatedEvent, StackIntegrationEventUpdatedEvent, StackIntegrationEventDeletedEvent, StackIntegrationEventRepositorySettings>
+public class StackIntegrationEventRepository : GenericStackChildRepository<StackIntegrationEvent, StackIntegrationEventReadDto, StackIntegrationEventMetadata, StackIntegrationEventCreatedEvent, StackIntegrationEventUpdatedEvent, StackIntegrationEventDeletedEvent, StackIntegrationEventRepositorySettings>
 {
+    protected override Expression<Func<StackIntegrationEvent, StackIntegrationEventMetadata>> MetadataProjection =>
+        e => new StackIntegrationEventMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            StackId = e.StackId
+        };
+
     public StackIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
@@ -109,8 +129,17 @@ public class NamespaceIntegrationEventRepositoryFactory(IDbContextFactory<SnapCd
     }
 }
 
-public class NamespaceIntegrationEventRepository : GenericNamespaceChildRepository<NamespaceIntegrationEvent, NamespaceIntegrationEventReadDto, NamespaceIntegrationEventCreatedEvent, NamespaceIntegrationEventUpdatedEvent, NamespaceIntegrationEventDeletedEvent, NamespaceIntegrationEventRepositorySettings>
+public class NamespaceIntegrationEventRepository : GenericNamespaceChildRepository<NamespaceIntegrationEvent, NamespaceIntegrationEventReadDto, NamespaceIntegrationEventMetadata, NamespaceIntegrationEventCreatedEvent, NamespaceIntegrationEventUpdatedEvent, NamespaceIntegrationEventDeletedEvent, NamespaceIntegrationEventRepositorySettings>
 {
+    protected override Expression<Func<NamespaceIntegrationEvent, NamespaceIntegrationEventMetadata>> MetadataProjection =>
+        e => new NamespaceIntegrationEventMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            NamespaceId = e.NamespaceId
+        };
+
     public NamespaceIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,
@@ -150,8 +179,17 @@ public class ModuleIntegrationEventRepositoryFactory(IDbContextFactory<SnapCdDbC
     }
 }
 
-public class ModuleIntegrationEventRepository : GenericModuleChildRepository<ModuleIntegrationEvent, ModuleIntegrationEventReadDto, ModuleIntegrationEventCreatedEvent, ModuleIntegrationEventUpdatedEvent, ModuleIntegrationEventDeletedEvent, ModuleIntegrationEventRepositorySettings>
+public class ModuleIntegrationEventRepository : GenericModuleChildRepository<ModuleIntegrationEvent, ModuleIntegrationEventReadDto, ModuleIntegrationEventMetadata, ModuleIntegrationEventCreatedEvent, ModuleIntegrationEventUpdatedEvent, ModuleIntegrationEventDeletedEvent, ModuleIntegrationEventRepositorySettings>
 {
+    protected override Expression<Func<ModuleIntegrationEvent, ModuleIntegrationEventMetadata>> MetadataProjection =>
+        e => new ModuleIntegrationEventMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            IntegrationId = e.IntegrationId,
+            ModuleId = e.ModuleId
+        };
+
     public ModuleIntegrationEventRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

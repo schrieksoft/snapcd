@@ -25,6 +25,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -45,7 +47,7 @@ public class IntegrationSecuredRepositoryFactory(
 }
 
 public class IntegrationSecuredRepository(IntegrationRepository repository, IPrincipalProvider principalProvider)
-    : GenericOrganizationChildSecuredRepository<Integration, IntegrationReadDto, IntegrationRepository,
+    : GenericOrganizationChildSecuredRepository<Integration, IntegrationReadDto, IntegrationMetadata, IntegrationRepository,
         IntegrationCreatedEvent, IntegrationUpdatedEvent, IntegrationDeletedEvent, IntegrationRepositorySettings>(repository, principalProvider)
 {
     public override PermissionMap ReadPermissionMap => new()

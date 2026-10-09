@@ -16,6 +16,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Outputs;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
@@ -30,7 +32,7 @@ public class OutputServiceFactory(
     }
 }
 
-public class OutputService : GenericCrudService<Output, OutputCreateDto, OutputUpdateDto, OutputReadDto, OutputSecuredRepository, OutputRepository, OutputCreatedEvent, OutputUpdatedEvent, OutputDeletedEvent, OutputRepositorySettings>
+public class OutputService : GenericCrudService<Output, OutputMetadata, OutputCreateDto, OutputUpdateDto, OutputReadDto, OutputSecuredRepository, OutputRepository, OutputCreatedEvent, OutputUpdatedEvent, OutputDeletedEvent, OutputRepositorySettings>
 {
     private readonly CustomOutputMapper _outputMapper;
     private readonly SnapCdDbContext _dbContext;

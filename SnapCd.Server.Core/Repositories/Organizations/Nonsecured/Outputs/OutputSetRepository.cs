@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Outputs;
 
@@ -33,14 +36,21 @@ public class OutputSetRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFac
     }
 }
 
-public class OutputSetRepository : GenericModuleChildRepository<
-    OutputSet,
-    OutputSetReadDto,
+public class OutputSetRepository : GenericModuleChildRepository<OutputSet,
+    OutputSetReadDto, OutputSetMetadata,
     OutputSetCreatedEvent,
     OutputSetUpdatedEvent,
     OutputSetDeletedEvent,
     OutputSetRepositorySettings>
 {
+
+    protected override Expression<Func<OutputSet, OutputSetMetadata>> MetadataProjection =>
+        e => new OutputSetMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            ModuleId = e.ModuleId
+        };
     private readonly QuotaService _quotaService;
 
     public OutputSetRepository(

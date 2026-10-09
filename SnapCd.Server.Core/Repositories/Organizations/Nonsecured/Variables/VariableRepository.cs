@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
 
@@ -31,15 +34,22 @@ public class VariableRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFact
     }
 }
 
-public class VariableRepository : GenericModuleGrandChildRepository<
-    Variable,
+public class VariableRepository : GenericModuleGrandChildRepository<Variable,
     VariableSet,
-    VariableReadDto,
+    VariableReadDto, VariableMetadata,
     InputCreatedEvent,
     InputUpdatedEvent,
     InputDeletedEvent,
     VariableRepositorySettings>
 {
+
+    protected override Expression<Func<Variable, VariableMetadata>> MetadataProjection =>
+        e => new VariableMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public VariableRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

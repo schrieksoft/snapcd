@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RunnerSupplies;
 
@@ -31,9 +34,18 @@ public class RunnerStackSupplyRepositoryFactory(IDbContextFactory<SnapCdDbContex
     }
 }
 
-public class RunnerStackSupplyRepository : GenericRunnerChildRepository<RunnerStackSupply, RunnerStackSupplyReadDto, RunnerStackSupplyCreatedEvent,
+public class RunnerStackSupplyRepository : GenericRunnerChildRepository<RunnerStackSupply, RunnerStackSupplyReadDto, RunnerStackSupplyMetadata, RunnerStackSupplyCreatedEvent,
     RunnerStackSupplyUpdatedEvent, RunnerStackSupplyDeletedEvent, RunnerStackSupplyRepositorySettings>
 {
+
+    protected override Expression<Func<RunnerStackSupply, RunnerStackSupplyMetadata>> MetadataProjection =>
+        e => new RunnerStackSupplyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            RunnerId = e.RunnerId,
+            StackId = e.StackId
+        };
     public RunnerStackSupplyRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

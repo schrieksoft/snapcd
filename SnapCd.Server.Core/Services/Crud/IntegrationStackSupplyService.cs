@@ -14,11 +14,13 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.IntegrationSupplies;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
 public class IntegrationStackSupplyService : GenericCrudService<
-    IntegrationStackSupply,
+    IntegrationStackSupply, IntegrationStackSupplyMetadata,
     IntegrationStackSupplyCreateDto,
     IntegrationStackSupplyUpdateDto,
     IntegrationStackSupplyReadDto,

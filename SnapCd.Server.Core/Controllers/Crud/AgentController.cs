@@ -20,6 +20,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
@@ -31,7 +33,7 @@ public static class AgentCustomEndpointNames
 [Route(ControllerEndpoints.Agent)]
 [McpEntity(Singular = "Agent", Plural = "Agents")]
 public class AgentController : GenericCrudController<
-    Agent,
+    Agent, AgentMetadata,
     AgentCreateDto,
     AgentUpdateDto,
     AgentReadDto,

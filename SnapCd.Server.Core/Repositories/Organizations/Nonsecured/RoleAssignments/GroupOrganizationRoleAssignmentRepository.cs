@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Mappers.RoleAssignments;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.RoleAssignments;
 
@@ -32,9 +35,17 @@ public class GroupOrganizationRoleAssignmentRepositoryFactory(IDbContextFactory<
     }
 }
 
-public class GroupOrganizationRoleAssignmentRepository : GenericOrganizationChildRepository<GroupOrganizationRoleAssignment, GroupOrganizationRoleAssignmentReadDto,
+public class GroupOrganizationRoleAssignmentRepository : GenericOrganizationChildRepository<GroupOrganizationRoleAssignment, GroupOrganizationRoleAssignmentReadDto, GroupOrganizationRoleAssignmentMetadata,
     GroupOrganizationRoleAssignmentCreatedEvent, GroupOrganizationRoleAssignmentUpdatedEvent, GroupOrganizationRoleAssignmentDeletedEvent, GroupOrganizationRoleAssignmentRepositorySettings>
 {
+
+    protected override Expression<Func<GroupOrganizationRoleAssignment, GroupOrganizationRoleAssignmentMetadata>> MetadataProjection =>
+        e => new GroupOrganizationRoleAssignmentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            GroupId = e.GroupId
+        };
     public GroupOrganizationRoleAssignmentRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

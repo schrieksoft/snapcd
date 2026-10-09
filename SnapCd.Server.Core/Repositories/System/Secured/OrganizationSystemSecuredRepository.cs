@@ -18,6 +18,8 @@ using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Edition;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Secured;
 
@@ -38,7 +40,7 @@ public class OrganizationSecuredRepositoryFactory(
     }
 }
 
-public class OrganizationSystemSecuredRepository : GenericSystemSecuredRepository<Entities.Definition.Organization, OrganizationReadDto, OrganizationSystemRepository, OrganizationCreatedEvent,
+public class OrganizationSystemSecuredRepository : GenericSystemSecuredRepository<Entities.Definition.Organization, OrganizationReadDto, OrganizationMetadata, OrganizationSystemRepository, OrganizationCreatedEvent,
     OrganizationUpdatedEvent, OrganizationDeletedEvent, OrganizationRepositorySettings>
 {
     public OrganizationSystemSecuredRepository(

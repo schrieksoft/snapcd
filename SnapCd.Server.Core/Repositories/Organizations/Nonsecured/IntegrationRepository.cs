@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -38,11 +41,18 @@ public class IntegrationRepositoryFactory(
     }
 }
 
-public class IntegrationRepository : GenericOrganizationChildRepository<
-    Integration, IntegrationReadDto,
+public class IntegrationRepository : GenericOrganizationChildRepository<Integration, IntegrationReadDto, IntegrationMetadata,
     IntegrationCreatedEvent, IntegrationUpdatedEvent, IntegrationDeletedEvent,
     IntegrationRepositorySettings>
 {
+
+    protected override Expression<Func<Integration, IntegrationMetadata>> MetadataProjection =>
+        e => new IntegrationMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public IntegrationRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

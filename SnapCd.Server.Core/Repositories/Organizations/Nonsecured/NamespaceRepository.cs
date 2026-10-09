@@ -23,6 +23,9 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -37,8 +40,17 @@ public class NamespaceRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFac
     }
 }
 
-public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent, NamespaceRepositorySettings>
+public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto, NamespaceMetadata, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent, NamespaceRepositorySettings>
 {
+
+    protected override Expression<Func<Namespace, NamespaceMetadata>> MetadataProjection =>
+        e => new NamespaceMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            StackId = e.StackId
+        };
     public NamespaceRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<NamespaceRepositorySettings> options)
         : base(dbContext, principalProvider, bus, options)
     {

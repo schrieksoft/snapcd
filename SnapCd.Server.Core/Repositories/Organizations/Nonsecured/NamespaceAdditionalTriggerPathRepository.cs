@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Misc.Utils;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -33,14 +36,21 @@ public class NamespaceAdditionalTriggerPathRepositoryFactory(IDbContextFactory<S
     }
 }
 
-public class NamespaceAdditionalTriggerPathRepository : GenericNamespaceChildDefinitionRepository<
-    NamespaceAdditionalTriggerPath,
-    NamespaceAdditionalTriggerPathReadDto,
+public class NamespaceAdditionalTriggerPathRepository : GenericNamespaceChildDefinitionRepository<NamespaceAdditionalTriggerPath,
+    NamespaceAdditionalTriggerPathReadDto, NamespaceAdditionalTriggerPathMetadata,
     NamespaceAdditionalTriggerPathCreatedEvent,
     NamespaceAdditionalTriggerPathUpdatedEvent,
     NamespaceAdditionalTriggerPathDeletedEvent,
     NamespaceAdditionalTriggerPathRepositorySettings>
 {
+
+    protected override Expression<Func<NamespaceAdditionalTriggerPath, NamespaceAdditionalTriggerPathMetadata>> MetadataProjection =>
+        e => new NamespaceAdditionalTriggerPathMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            NamespaceId = e.NamespaceId
+        };
     public NamespaceAdditionalTriggerPathRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

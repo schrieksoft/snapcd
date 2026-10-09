@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -32,10 +35,19 @@ public class DependsOnModuleRepositoryFactory(IDbContextFactory<SnapCdDbContext>
     }
 }
 
-public class DependsOnModuleRepository : GenericModuleChildDefinitionRepository<DependsOnModule, DependsOnModuleReadDto, DependsOnModuleCreatedEvent, DependsOnModuleUpdatedEvent,
+public class DependsOnModuleRepository : GenericModuleChildDefinitionRepository<DependsOnModule, DependsOnModuleReadDto, DependsOnModuleMetadata, DependsOnModuleCreatedEvent, DependsOnModuleUpdatedEvent,
     DependsOnModuleDeletedEvent,
     DependsOnModuleRepositorySettings>
 {
+
+    protected override Expression<Func<DependsOnModule, DependsOnModuleMetadata>> MetadataProjection =>
+        e => new DependsOnModuleMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            DependsOnModuleId = e.DependsOnModuleId,
+            ModuleId = e.ModuleId
+        };
     public DependsOnModuleRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

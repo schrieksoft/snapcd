@@ -20,6 +20,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -34,8 +37,16 @@ public class AgentRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory
     }
 }
 
-public class AgentRepository : GenericOrganizationChildRepository<Agent, AgentReadDto, AgentCreatedEvent, AgentUpdatedEvent, AgentDeletedEvent, AgentRepositorySettings>
+public class AgentRepository : GenericOrganizationChildRepository<Agent, AgentReadDto, AgentMetadata, AgentCreatedEvent, AgentUpdatedEvent, AgentDeletedEvent, AgentRepositorySettings>
 {
+
+    protected override Expression<Func<Agent, AgentMetadata>> MetadataProjection =>
+        e => new AgentMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public AgentRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

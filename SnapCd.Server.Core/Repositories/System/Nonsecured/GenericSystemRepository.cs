@@ -18,11 +18,15 @@ using SnapCd.Server.Core.Mappers.Repositories;
 using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Nonsecured;
 
-public abstract class GenericSystemRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
+public abstract class GenericSystemRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
     where TEntity : class, ISystemEntity
+    where TMetadata : EntityMetadataBase
     where TCreateEvent : SystemCreatedEvent<TDto>, new()
     where TUpdateEvent : SystemUpdatedEvent<TDto>, new()
     where TDeleteEvent : SystemDeletedEvent<TDto>, new()
@@ -296,6 +300,24 @@ public abstract class GenericSystemRepository<TEntity, TDto, TCreateEvent, TUpda
 
         return query.ToList();
     }
+
+    /// <summary>
+    /// What a metadata read returns. Declared once per entity so every metadata read agrees on
+    /// what may be seen without reading the row.
+    /// </summary>
+    protected abstract Expression<Func<TEntity, TMetadata>> MetadataProjection { get; }
+
+    /// <summary>Metadata for one row, through Get, so whatever that narrows to applies here too.</summary>
+    public virtual Task<TMetadata> GetMetadata(Guid id)
+        => Get(id, q => q.Select(MetadataProjection));
+
+    /// <summary>Metadata for a set of rows, through List, with the same consequence.</summary>
+    public virtual Task<List<TMetadata>> ListMetadata(
+        IQueryable<TEntity>? query = null,
+        Func<IQueryable<TMetadata>, IOrderedQueryable<TMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => List(q => q.Select(MetadataProjection), query, orderBy, pageNumber, pageSize);
 
     public virtual async Task<List<TProjection>> List<TProjection>(
         Func<IQueryable<TEntity>, IQueryable<TProjection>> projection,

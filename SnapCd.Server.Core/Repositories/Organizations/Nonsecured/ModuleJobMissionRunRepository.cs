@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -40,11 +43,23 @@ public class ModuleJobMissionRunRepositoryFactory(
     }
 }
 
-public class ModuleJobMissionRunRepository : GenericOrganizationChildRepository<
-    ModuleJobMissionRun, ModuleJobMissionRunReadDto,
+public class ModuleJobMissionRunRepository : GenericOrganizationChildRepository<ModuleJobMissionRun, ModuleJobMissionRunReadDto, ModuleJobMissionRunMetadata,
     ModuleJobMissionRunCreatedEvent, ModuleJobMissionRunUpdatedEvent, ModuleJobMissionRunDeletedEvent,
     ModuleJobMissionRunRepositorySettings>
 {
+
+    protected override Expression<Func<ModuleJobMissionRun, ModuleJobMissionRunMetadata>> MetadataProjection =>
+        e => new ModuleJobMissionRunMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            AgentConnectionId = e.AgentConnectionId,
+            AgentId = e.AgentId,
+            InvocationId = e.InvocationId,
+            ModuleJobId = e.ModuleJobId,
+            ModuleJobMissionId = e.ModuleJobMissionId,
+            ServerInstanceId = e.ServerInstanceId
+        };
     public ModuleJobMissionRunRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

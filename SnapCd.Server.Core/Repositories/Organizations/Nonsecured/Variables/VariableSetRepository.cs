@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
 
@@ -33,14 +36,21 @@ public class VariableSetRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbF
     }
 }
 
-public class VariableSetRepository : GenericModuleChildRepository<
-    VariableSet,
-    VariableSetReadDto,
+public class VariableSetRepository : GenericModuleChildRepository<VariableSet,
+    VariableSetReadDto, VariableSetMetadata,
     VariableSetCreatedEvent,
     VariableSetUpdatedEvent,
     VariableSetDeletedEvent,
     VariableSetRepositorySettings>
 {
+
+    protected override Expression<Func<VariableSet, VariableSetMetadata>> MetadataProjection =>
+        e => new VariableSetMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            ModuleId = e.ModuleId
+        };
     private readonly QuotaService _quotaService;
 
     public VariableSetRepository(

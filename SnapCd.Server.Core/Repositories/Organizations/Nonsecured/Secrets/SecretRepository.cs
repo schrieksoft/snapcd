@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 
@@ -32,14 +35,21 @@ public class SecretRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactor
     }
 }
 
-public class SecretRepository : GenericRepository<
-    Secret,
-    SecretDto,
+public class SecretRepository : GenericRepository<Secret,
+    SecretDto, SecretMetadata,
     SecretCreatedEvent,
     SecretUpdatedEvent,
     SecretDeletedEvent,
     SecretRepositorySettings>
 {
+
+    protected override Expression<Func<Secret, SecretMetadata>> MetadataProjection =>
+        e => new SecretMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public SecretRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

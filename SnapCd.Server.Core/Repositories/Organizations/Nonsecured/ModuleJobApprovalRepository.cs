@@ -20,6 +20,9 @@ using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -34,9 +37,19 @@ public class ModuleJobApprovalRepositoryFactory(IDbContextFactory<SnapCdDbContex
     }
 }
 
-public class ModuleJobApprovalRepository : GenericRepository<ModuleJobApproval, ModuleJobApprovalReadDto, ModuleJobApprovalCreatedEvent, ModuleJobApprovalUpdatedEvent, ModuleJobApprovalDeletedEvent,
+public class ModuleJobApprovalRepository : GenericRepository<ModuleJobApproval, ModuleJobApprovalReadDto, ModuleJobApprovalMetadata, ModuleJobApprovalCreatedEvent, ModuleJobApprovalUpdatedEvent, ModuleJobApprovalDeletedEvent,
     ModuleJobApprovalRepositorySettings>
 {
+
+    protected override Expression<Func<ModuleJobApproval, ModuleJobApprovalMetadata>> MetadataProjection =>
+        e => new ModuleJobApprovalMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            AgentId = e.AgentId,
+            ModuleJobId = e.ModuleJobId,
+            PrincipalId = e.PrincipalId
+        };
     public ModuleJobApprovalRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

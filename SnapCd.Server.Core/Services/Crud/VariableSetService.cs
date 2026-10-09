@@ -14,6 +14,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Variables;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Variables;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
@@ -26,7 +28,7 @@ public class VariableSetServiceFactory(VariableSetSecuredRepositoryFactory secur
 }
 
 public class VariableSetService : GenericCrudService<
-    VariableSet,
+    VariableSet, VariableSetMetadata,
     VariableSetCreateDto,
     VariableSetUpdateDto,
     VariableSetReadDto,

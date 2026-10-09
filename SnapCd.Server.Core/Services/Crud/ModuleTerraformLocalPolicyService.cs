@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleTerraformLocalPolicyService : GenericCrudService<ModuleTerraformLocalPolicy, ModuleTerraformLocalPolicyCreateDto, ModuleTerraformLocalPolicyUpdateDto, ModuleTerraformLocalPolicyReadDto,
+public class ModuleTerraformLocalPolicyService : GenericCrudService<ModuleTerraformLocalPolicy, ModuleTerraformLocalPolicyMetadata, ModuleTerraformLocalPolicyCreateDto, ModuleTerraformLocalPolicyUpdateDto, ModuleTerraformLocalPolicyReadDto,
     ModuleTerraformLocalPolicySecuredRepository, ModuleTerraformLocalPolicyRepository, ModuleTerraformLocalPolicyCreatedEvent,
     ModuleTerraformLocalPolicyUpdatedEvent, ModuleTerraformLocalPolicyDeletedEvent, ModuleTerraformLocalPolicyRepositorySettings>
 {

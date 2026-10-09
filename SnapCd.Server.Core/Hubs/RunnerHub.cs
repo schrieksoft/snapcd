@@ -39,7 +39,6 @@ using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.RunnerConnectionValidator;
 using SnapCd.Server.Core.Settings;
-using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Hubs;
 

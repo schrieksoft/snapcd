@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,8 +34,16 @@ public class GroupRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory
     }
 }
 
-public class GroupRepository : GenericOrganizationChildRepository<Group, GroupReadDto, GroupCreatedEvent, GroupUpdatedEvent, GroupDeletedEvent, GroupRepositorySettings>
+public class GroupRepository : GenericOrganizationChildRepository<Group, GroupReadDto, GroupMetadata, GroupCreatedEvent, GroupUpdatedEvent, GroupDeletedEvent, GroupRepositorySettings>
 {
+
+    protected override Expression<Func<Group, GroupMetadata>> MetadataProjection =>
+        e => new GroupMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name
+        };
     public GroupRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

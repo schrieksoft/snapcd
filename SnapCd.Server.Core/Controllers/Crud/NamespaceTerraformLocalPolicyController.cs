@@ -18,12 +18,14 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Controllers.Crud;
 
 [Route(ControllerEndpoints.NamespaceTerraformLocalPolicy)]
 public class NamespaceTerraformLocalPolicyController : GenericCrudController<
-    NamespaceTerraformLocalPolicy,
+    NamespaceTerraformLocalPolicy, NamespaceTerraformLocalPolicyMetadata,
     NamespaceTerraformLocalPolicyCreateDto,
     NamespaceTerraformLocalPolicyUpdateDto,
     NamespaceTerraformLocalPolicyReadDto,

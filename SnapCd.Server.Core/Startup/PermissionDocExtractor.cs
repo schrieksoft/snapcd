@@ -151,8 +151,8 @@ public static class PermissionDocExtractor
     {
         for (var t = controllerType; t is not null; t = t.BaseType!)
         {
-            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,>))
-                return t.GetGenericArguments()[4]; // TSecuredRepository
+            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,>))
+                return t.GetGenericArguments()[5]; // TSecuredRepository
         }
 
         return null;
@@ -205,7 +205,7 @@ public static class PermissionDocExtractor
 
         var baseDefinition = method.GetBaseDefinition();
         if (baseDefinition.DeclaringType is { IsGenericType: true } declaring
-            && declaring.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,>))
+            && declaring.GetGenericTypeDefinition() == typeof(GenericCrudController<,,,,,,,,,,,>))
         {
             return baseDefinition.Name switch
             {

@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.GroupMembers;
 
@@ -32,9 +35,17 @@ public class UserGroupMemberRepositoryFactory(IDbContextFactory<SnapCdDbContext>
     }
 }
 
-public class UserGroupMemberRepository : GenericOrganizationChildRepository<UserGroupMember, UserGroupMemberReadDto, UserGroupMemberCreatedEvent, UserGroupMemberUpdatedEvent, UserGroupMemberDeletedEvent,
+public class UserGroupMemberRepository : GenericOrganizationChildRepository<UserGroupMember, UserGroupMemberReadDto, UserGroupMemberMetadata, UserGroupMemberCreatedEvent, UserGroupMemberUpdatedEvent, UserGroupMemberDeletedEvent,
     UserGroupMemberRepositorySettings>
 {
+
+    protected override Expression<Func<UserGroupMember, UserGroupMemberMetadata>> MetadataProjection =>
+        e => new UserGroupMemberMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            UserId = e.UserId
+        };
     public UserGroupMemberRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

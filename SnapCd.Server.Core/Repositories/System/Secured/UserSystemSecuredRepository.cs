@@ -19,6 +19,9 @@ using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Repositories.System.Nonsecured;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.System.Secured;
 
@@ -41,7 +44,7 @@ public class UserSecuredRepositoryFactory(
     }
 }
 
-public class UserSystemSecuredRepository : GenericSystemSecuredRepository<User, UserReadDto, UserSystemRepository, UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, UserRepositorySettings>
+public class UserSystemSecuredRepository : GenericSystemSecuredRepository<User, UserReadDto, UserMetadata, UserSystemRepository, UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent, UserRepositorySettings>
 {
     private readonly UserManager<User> _userManager;
 

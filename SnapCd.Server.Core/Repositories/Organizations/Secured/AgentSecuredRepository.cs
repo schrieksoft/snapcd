@@ -24,6 +24,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -45,7 +47,7 @@ public class AgentSecuredRepositoryFactory(
 
 public class AgentSecuredRepository : GenericOrganizationChildSecuredRepository<
     Agent,
-    AgentReadDto,
+    AgentReadDto, AgentMetadata,
     AgentRepository,
     AgentCreatedEvent,
     AgentUpdatedEvent,

@@ -13,6 +13,9 @@ using SnapCd.Server.Core.Entities.Interfaces;
 using SnapCd.Server.Core.Events.Repository.Organization.Base;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 
@@ -29,9 +32,10 @@ namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 /// <typeparam name="TUpdateEvent">The update event type</typeparam>
 /// <typeparam name="TDeleteEvent">The delete event type</typeparam>
 /// <typeparam name="TSettings">The repository settings type</typeparam>
-public abstract class GenericModuleGrandChildRepository<TEntity, TEntityParent, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
-    : GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
+public abstract class GenericModuleGrandChildRepository<TEntity, TEntityParent, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
+    : GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings>
     where TEntity : class, IEntity
+    where TMetadata : EntityMetadataBase
     where TEntityParent : class, IEntity, IModuleChild
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()

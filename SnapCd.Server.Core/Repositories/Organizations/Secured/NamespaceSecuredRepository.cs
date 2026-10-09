@@ -24,6 +24,8 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Secured;
 
@@ -38,7 +40,7 @@ public class NamespaceSecuredRepositoryFactory(IDbContextFactory<SnapCdDbContext
     }
 }
 
-public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, NamespaceReadDto, NamespaceRepository, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent,
+public class NamespaceSecuredRepository : GenericSecuredRepository<Namespace, NamespaceReadDto, NamespaceMetadata, NamespaceRepository, NamespaceCreatedEvent, NamespaceUpdatedEvent, NamespaceDeletedEvent,
     NamespaceRepositorySettings>
 {
     public NamespaceSecuredRepository(NamespaceRepository namespaceRepository, IPrincipalProvider principalProvider) : base(namespaceRepository, principalProvider)

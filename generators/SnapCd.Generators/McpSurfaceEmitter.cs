@@ -263,7 +263,7 @@ public static class McpSurfaceEmitter
             if (t.IsGenericType && StripArity(t.Name) == "GenericCrudController")
             {
                 var args = t.GetGenericArguments();
-                if (args.Length >= 7) return args[6]; // TService is the 7th type parameter
+                if (args.Length >= 8) return args[7]; // TService is the 8th type parameter
             }
         }
 

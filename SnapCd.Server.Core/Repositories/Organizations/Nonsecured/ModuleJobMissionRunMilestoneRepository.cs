@@ -18,6 +18,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -40,11 +43,18 @@ public class ModuleJobMissionRunMilestoneRepositoryFactory(
     }
 }
 
-public class ModuleJobMissionRunMilestoneRepository : GenericOrganizationChildRepository<
-    ModuleJobMissionRunMilestone, ModuleJobMissionRunMilestoneReadDto,
+public class ModuleJobMissionRunMilestoneRepository : GenericOrganizationChildRepository<ModuleJobMissionRunMilestone, ModuleJobMissionRunMilestoneReadDto, ModuleJobMissionRunMilestoneMetadata,
     ModuleJobMissionRunMilestoneCreatedEvent, ModuleJobMissionRunMilestoneUpdatedEvent, ModuleJobMissionRunMilestoneDeletedEvent,
     ModuleJobMissionRunMilestoneRepositorySettings>
 {
+
+    protected override Expression<Func<ModuleJobMissionRunMilestone, ModuleJobMissionRunMilestoneMetadata>> MetadataProjection =>
+        e => new ModuleJobMissionRunMilestoneMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            ModuleJobMissionRunId = e.ModuleJobMissionRunId
+        };
     public ModuleJobMissionRunMilestoneRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

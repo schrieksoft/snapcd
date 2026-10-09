@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud;
 
-public class ModuleExtraFileService : GenericCrudService<ModuleExtraFile, ModuleExtraFileCreateDto, ModuleExtraFileUpdateDto, ModuleExtraFileReadDto, ModuleExtraFileSecuredRepository, ModuleExtraFileRepository, ModuleExtraFileCreatedEvent,
+public class ModuleExtraFileService : GenericCrudService<ModuleExtraFile, ModuleExtraFileMetadata, ModuleExtraFileCreateDto, ModuleExtraFileUpdateDto, ModuleExtraFileReadDto, ModuleExtraFileSecuredRepository, ModuleExtraFileRepository, ModuleExtraFileCreatedEvent,
     ModuleExtraFileUpdatedEvent, ModuleExtraFileDeletedEvent, ModuleExtraFileRepositorySettings>
 {
     public ModuleExtraFileService(

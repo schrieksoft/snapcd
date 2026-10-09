@@ -26,6 +26,9 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
 using SnapCd.Server.Core.StateMachine.Gatekeeping;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -50,8 +53,18 @@ public class ModuleRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactor
     }
 }
 
-public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleReadDto, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
+public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleReadDto, ModuleMetadata, ModuleCreatedEvent, ModuleUpdatedEvent, ModuleDeletedEvent, ModuleRepositorySettings>
 {
+
+    protected override Expression<Func<Module, ModuleMetadata>> MetadataProjection =>
+        e => new ModuleMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            NamespaceId = e.NamespaceId,
+            RunnerId = e.RunnerId
+        };
     public ModuleRepository(SnapCdDbContext dbContext, IPrincipalProvider principalProvider, IPublishEndpoint bus, IOptions<ModuleRepositorySettings> options)
         : base(dbContext, principalProvider, bus, options)
     {

@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.AgentSupplies;
 
@@ -31,9 +34,18 @@ public class AgentModuleSupplyRepositoryFactory(IDbContextFactory<SnapCdDbContex
     }
 }
 
-public class AgentModuleSupplyRepository : GenericAgentChildRepository<AgentModuleSupply, AgentModuleSupplyReadDto, AgentModuleSupplyCreatedEvent,
+public class AgentModuleSupplyRepository : GenericAgentChildRepository<AgentModuleSupply, AgentModuleSupplyReadDto, AgentModuleSupplyMetadata, AgentModuleSupplyCreatedEvent,
     AgentModuleSupplyUpdatedEvent, AgentModuleSupplyDeletedEvent, AgentModuleSupplyRepositorySettings>
 {
+
+    protected override Expression<Func<AgentModuleSupply, AgentModuleSupplyMetadata>> MetadataProjection =>
+        e => new AgentModuleSupplyMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            AgentId = e.AgentId,
+            ModuleId = e.ModuleId
+        };
     public AgentModuleSupplyRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

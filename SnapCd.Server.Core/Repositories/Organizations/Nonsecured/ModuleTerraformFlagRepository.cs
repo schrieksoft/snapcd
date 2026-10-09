@@ -17,6 +17,9 @@ using SnapCd.Server.Core.Mappers;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -31,9 +34,17 @@ public class ModuleTerraformFlagRepositoryFactory(IDbContextFactory<SnapCdDbCont
     }
 }
 
-public class ModuleTerraformFlagRepository : GenericModuleChildDefinitionRepository<ModuleTerraformFlag, ModuleTerraformFlagReadDto, ModuleTerraformFlagCreatedEvent, ModuleTerraformFlagUpdatedEvent,
+public class ModuleTerraformFlagRepository : GenericModuleChildDefinitionRepository<ModuleTerraformFlag, ModuleTerraformFlagReadDto, ModuleTerraformFlagMetadata, ModuleTerraformFlagCreatedEvent, ModuleTerraformFlagUpdatedEvent,
     ModuleTerraformFlagDeletedEvent, ModuleTerraformFlagRepositorySettings>
 {
+
+    protected override Expression<Func<ModuleTerraformFlag, ModuleTerraformFlagMetadata>> MetadataProjection =>
+        e => new ModuleTerraformFlagMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            ModuleId = e.ModuleId
+        };
     public ModuleTerraformFlagRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

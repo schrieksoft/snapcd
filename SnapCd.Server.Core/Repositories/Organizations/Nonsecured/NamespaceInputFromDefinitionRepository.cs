@@ -19,18 +19,32 @@ using SnapCd.Server.Core.Misc.Exceptions;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Repositories;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-public class NamespaceInputFromDefinitionRepository<TEntity> : GenericNamespaceChildDefinitionRepository<
-    TEntity,
-    NamespaceInputFromDefinitionReadDto,
+public class NamespaceInputFromDefinitionRepository<TEntity> : GenericNamespaceChildDefinitionRepository<TEntity,
+    NamespaceInputFromDefinitionReadDto, NamespaceInputFromDefinitionMetadata,
     NamespaceInputFromDefinitionCreatedEvent,
     NamespaceInputFromDefinitionUpdatedEvent,
     NamespaceInputFromDefinitionDeletedEvent,
     NamespaceInputFromDefinitionRepositorySettings>
     where TEntity : NamespaceInput, INamespaceInputFromDefinition
 {
+
+
+
+    protected override Expression<Func<TEntity, NamespaceInputFromDefinitionMetadata>> MetadataProjection =>
+        e => new NamespaceInputFromDefinitionMetadata
+        {
+            Id = e.Id,
+            OrganizationId = e.OrganizationId,
+            Name = e.Name,
+            NamespaceId = e.NamespaceId
+        };
     public NamespaceInputFromDefinitionRepository(
         SnapCdDbContext dbContext,
         IPrincipalProvider principalProvider,

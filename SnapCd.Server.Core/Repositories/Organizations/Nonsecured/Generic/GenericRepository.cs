@@ -22,13 +22,17 @@ using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Settings.Interfaces;
 
 using SnapCd.Server.Core.Services.MaintenanceMode;
+using SnapCd.Server.Core.Views;
+using System.Linq.Expressions;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Generic;
 
 public record QuotaCheckResult(bool IsExceeded, int CurrentCount, int Limit);
 
-public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
+public abstract class GenericRepository<TEntity, TDto, TMetadata, TCreateEvent, TUpdateEvent, TDeleteEvent, TSettings> : IDisposable
     where TEntity : class, IEntity
+    where TMetadata : EntityMetadataBase
     where TCreateEvent : CreatedEvent<TDto>, new()
     where TUpdateEvent : UpdatedEvent<TDto>, new()
     where TDeleteEvent : DeletedEvent<TDto>, new()
@@ -414,6 +418,28 @@ public abstract class GenericRepository<TEntity, TDto, TCreateEvent, TUpdateEven
 
         return query.ToList();
     }
+
+    /// <summary>
+    /// What a metadata read returns. Declared once per entity so every metadata read agrees on
+    /// what may be seen without reading the row.
+    /// </summary>
+    protected abstract Expression<Func<TEntity, TMetadata>> MetadataProjection { get; }
+
+    /// <summary>
+    /// Metadata for one row. Goes through Get, so whatever that narrows to applies here too: a
+    /// repository that hides rows from a read hides them from a metadata read by construction.
+    /// </summary>
+    public virtual Task<TMetadata> GetMetadata(Guid id, Guid organizationId)
+        => Get(id, organizationId, q => q.Select(MetadataProjection));
+
+    /// <summary>Metadata for a set of rows. Goes through List, with the same consequence.</summary>
+    public virtual Task<List<TMetadata>> ListMetadata(
+        Guid organizationId,
+        IQueryable<TEntity>? query = null,
+        Func<IQueryable<TMetadata>, IOrderedQueryable<TMetadata>>? orderBy = null,
+        int? pageNumber = null,
+        int? pageSize = null)
+        => List(organizationId, q => q.Select(MetadataProjection), query, orderBy, pageNumber, pageSize);
 
     public virtual async Task<List<TProjection>> List<TProjection>(
         Guid organizationId,

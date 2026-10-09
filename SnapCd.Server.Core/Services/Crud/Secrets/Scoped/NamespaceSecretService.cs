@@ -14,10 +14,12 @@ using SnapCd.Server.Core.Repositories.Organizations.Nonsecured.Secrets;
 using SnapCd.Server.Core.Repositories.Organizations.Secured.Secrets.Scoped;
 using SnapCd.Server.Core.Services.Crud.Generic;
 using SnapCd.Server.Core.Settings.Repositories;
+using SnapCd.Server.Core.Views;
+using SnapCd.Server.Core.Views.Metadata;
 
 namespace SnapCd.Server.Core.Services.Crud.Secrets.Scoped;
 
-public class NamespaceSecretService : GenericCrudService<NamespaceSecret, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretSecuredRepository, NamespaceSecretRepository, NamespaceSecretCreatedEvent,
+public class NamespaceSecretService : GenericCrudService<NamespaceSecret, NamespaceSecretMetadata, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretDto, NamespaceSecretSecuredRepository, NamespaceSecretRepository, NamespaceSecretCreatedEvent,
     NamespaceSecretUpdatedEvent, NamespaceSecretDeletedEvent, NamespaceSecretRepositorySettings>
 {
     public NamespaceSecretService(
