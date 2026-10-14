@@ -19,6 +19,7 @@ public enum JobKind
     Remove,
     Split,
     Transfer,
+    RippleProbe,
 
     /// <summary>Not a job kind: forces the state-transition race. See RaceRun.</summary>
     Race,
@@ -211,7 +212,7 @@ public class RunOptions
                                             "Server=localhost,1435;User Id=sa;Password=...;TrustServerCertificate=True"
                   --database      <name>    default: a fresh name per run
                   --job           <kind>    apply (default), list, move, import, remove,
-                                            split, transfer, race to force the
+                                            split, transfer, rippleprobe, race to force the
                                             state-transition race, or cancel to
                                             kill a move mid-write
                   --counterparty  <guid>    the transfer's other Module

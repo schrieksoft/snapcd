@@ -72,6 +72,14 @@ public class FakeRunner(
 
     public PolicyOutcome PolicyOutcome { get; set; } = PolicyOutcome.Passed;
 
+    /// <summary>
+    /// What the canned probe reports. A real planwalker document rather than a placeholder, so a
+    /// run asserting that an unknown survives the round trip has an unknown to assert on: the
+    /// after value is base64 of d4 00 00, which is how cty's msgpack codec writes one.
+    /// </summary>
+    public string SignalsJson { get; set; } =
+        """{"format_version":"1","outputs":{"pet_id":{"action":"unknown","type":"InN0cmluZyI=","before":"sGNoYW1waW9uLWhlcnJpbmc=","after":"1AAA"}}}""";
+
     /// <summary>Set for a transfer, which refuses to move state a plan says is not settled.</summary>
     public bool PlansClean { get; set; }
 
@@ -175,6 +183,7 @@ public class FakeRunner(
             case nameof(IApplyEndpoints.ApplyCancelKill): await hub.ApplyCancelKillCompleted(jobId); break;
             case nameof(IDestroyEndpoints.DestroyCancelKill): await hub.DestroyCancelKillCompleted(jobId); break;
             case nameof(ISplitEndpoints.SplitCancelKill): await hub.SplitCancelKillCompleted(jobId); break;
+            case nameof(IRippleProbeEndpoints.RippleProbeCancelKill): await hub.RippleProbeCancelKillCompleted(jobId); break;
         }
     }
 
@@ -189,6 +198,7 @@ public class FakeRunner(
             case nameof(IApplyEndpoints.ApplyCancelKill):
             case nameof(IDestroyEndpoints.DestroyCancelKill):
             case nameof(ISplitEndpoints.SplitCancelKill):
+            case nameof(IRippleProbeEndpoints.RippleProbeCancelKill):
                 WasKilled = true;
                 await _killed.CancelAsync();
                 await ReportKilled(hub, endpoint, jobId);
@@ -275,6 +285,21 @@ public class FakeRunner(
             }
             case nameof(ISplitEndpoints.SplitGetModule):
                 await hub.SplitGetModuleCompleted(jobId);
+                break;
+            case nameof(IRippleProbeEndpoints.RippleProbeGetModule):
+                await hub.RippleProbeGetModuleCompleted(jobId);
+                break;
+            case nameof(IRippleProbeEndpoints.RippleProbeInit):
+                await hub.RippleProbeInitCompleted(jobId);
+                break;
+            case nameof(IRippleProbeEndpoints.RippleProbeValidate):
+                await hub.RippleProbeValidateCompleted(jobId);
+                break;
+            // The probe's own step: the only reply in the family carrying a payload. The signals
+            // are a real planwalker document so the value survives the round trip being asserted,
+            // rather than a placeholder that would pass a null check and prove nothing.
+            case nameof(IRippleProbeEndpoints.RippleProbeProbe):
+                await hub.RippleProbeProbeCompleted(jobId, SignalsJson);
                 break;
             case nameof(ISplitEndpoints.SplitInit):
                 await hub.SplitInitCompleted(jobId);

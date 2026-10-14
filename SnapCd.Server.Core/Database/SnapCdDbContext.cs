@@ -184,6 +184,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<RunnerConnectionJob> RunnerConnectionJobs { get; set; }
 
     public DbSet<RunnerConnectionStateMigration> RunnerConnectionStateMigrations { get; set; }
+    public DbSet<RunnerConnectionRippleProbe> RunnerConnectionRippleProbes { get; set; }
     public DbSet<JobRunnerAssignment> JobRunnerAssignments { get; set; }
     public DbSet<RunnerStackSupply> RunnerStackSupplies { get; set; }
     public DbSet<RunnerNamespaceSupply> RunnerNamespaceSupplies { get; set; }
@@ -464,6 +465,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new RunnerConnectionClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionJobClassMap());
         modelBuilder.ApplyConfiguration(new RunnerConnectionStateMigrationClassMap());
+        modelBuilder.ApplyConfiguration(new RunnerConnectionRippleProbeClassMap());
         modelBuilder.ApplyConfiguration(new JobRunnerAssignmentClassMap());
         modelBuilder.ApplyConfiguration(new SourceRefresherPreselectionClassMap());
         modelBuilder.ApplyConfiguration(new RunnerStackSupplyClassMap());

@@ -54,8 +54,8 @@ public class LogService
 
                 // Lock the row using UPDLOCK and ROWLOCK hints. Single, not First: Id is the primary
                 // key, so at most one row can match, and EF cannot see the filter inside raw SQL.
-                // A job id belongs to one family or the other, so the order of the two lookups
-                // cannot change which row is found.
+                // A job id belongs to exactly one family, so the order of the lookups cannot
+                // change which row is found.
                 var moduleJob = await dbContext.ModuleJobs
                     .FromSqlRaw("SELECT * FROM ModuleJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
                     .SingleOrDefaultAsync();
@@ -68,7 +68,15 @@ public class LogService
                         .SingleOrDefaultAsync();
                 }
 
+                RippleProbeJob? rippleProbe = null;
                 if (moduleJob == null && stateMigration == null)
+                {
+                    rippleProbe = await dbContext.RippleProbeJobs
+                        .FromSqlRaw("SELECT * FROM RippleProbeJobs WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", correlationId)
+                        .SingleOrDefaultAsync();
+                }
+
+                if (moduleJob == null && stateMigration == null && rippleProbe == null)
                 {
                     // A runner-side failure reaches the operator only through its logs.
                     _logger.LogWarning(
@@ -78,7 +86,10 @@ public class LogService
                     continue;
                 }
 
-                var currentLogs = moduleJob != null ? moduleJob.Logs : stateMigration!.Logs;
+                // The holder, not the value: a job writing its first entry has null Logs.
+                var currentLogs = moduleJob != null ? moduleJob.Logs
+                    : stateMigration != null ? stateMigration.Logs
+                    : rippleProbe!.Logs;
 
                 // Parse existing logs or create new array
                 List<LogEntryDto> existingLogs = new();
@@ -103,8 +114,10 @@ public class LogService
                 var serialized = JsonSerializer.Serialize(existingLogs);
                 if (moduleJob != null)
                     moduleJob.Logs = serialized;
+                else if (stateMigration != null)
+                    stateMigration.Logs = serialized;
                 else
-                    stateMigration!.Logs = serialized;
+                    rippleProbe!.Logs = serialized;
 
                 await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -121,13 +134,17 @@ public class LogService
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        // A job id belongs to one family or the other. A row with no logs yet is
-        // not a missing row, so the holder distinguishes them.
+        // A job id belongs to exactly one family. A row with no logs yet is not a missing row,
+        // so the holder rather than the value is what the coalescing tests.
         var found = await dbContext.ModuleJobs
             .Where(j => j.Id == correlationId)
             .Select(j => new { j.Logs })
             .FirstOrDefaultAsync()
             ?? await dbContext.StateMigrationJobs
+                .Where(j => j.Id == correlationId)
+                .Select(j => new { j.Logs })
+                .FirstOrDefaultAsync()
+            ?? await dbContext.RippleProbeJobs
                 .Where(j => j.Id == correlationId)
                 .Select(j => new { j.Logs })
                 .FirstOrDefaultAsync();
