@@ -228,8 +228,133 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
         Assert.Equal("RippleProbeGetModulePending", StateOf(second));
     }
 
+    // The operator-initiated cancel path, as distinct from a step reporting itself cancelled.
+
+    [Theory]
+    [InlineData("RippleProbeGetModulePending")]
+    [InlineData("RippleProbeInitPending")]
+    [InlineData("RippleProbeValidatePending")]
+    public async Task A_cancel_kill_from_a_step_asks_the_runner_to_kill_and_parks_the_saga(string state)
+    {
+        var jobId = await Seed(state);
+
+        await PublishCancel(jobId, CancellationType.ImmediateKill);
+
+        Assert.True(await WaitUntil(() => StateOf(jobId) == "CancellingImmediateKill"),
+            $"a cancel-kill in {state} should park the saga while the runner is asked to kill; saga is in {StateOf(jobId)}");
+
+        Assert.True(_harness.Published.Select<RippleProbeCancelKillRequested>()
+            .Any(m => m.Context.Message.CorrelationId == jobId),
+            "the kill request should be dispatched to the runner");
+    }
+
+    [Fact]
+    public async Task A_cancel_after_current_lets_the_running_step_finish_first()
+    {
+        var jobId = await Seed("RippleProbeInitPending");
+
+        await PublishCancel(jobId, CancellationType.AfterCurrent);
+
+        Assert.True(await WaitUntil(() => StateOf(jobId) == "CancellingAfterCurrent"),
+            $"the saga should wait for the current step; saga is in {StateOf(jobId)}");
+
+        // No kill goes out: the step is allowed to finish on its own.
+        Assert.False(_harness.Published.Select<RippleProbeCancelKillRequested>()
+            .Any(m => m.Context.Message.CorrelationId == jobId));
+
+        // The step then reports, and that ends the job rather than continuing the chain.
+        await _harness.Bus.Publish(new RippleProbeInitCompleted { CorrelationId = jobId, OrganizationId = _organizationId });
+
+        Assert.True(await WaitUntil(() => StatusOf(jobId) == ExecutionStatus.Cancelled),
+            "the step reporting back while cancelling should end the job");
+    }
+
+    [Fact]
+    public async Task The_runner_answering_a_kill_ends_the_job()
+    {
+        var jobId = await Seed("CancellingImmediateKill");
+
+        await _harness.Bus.Publish(new RippleProbeCancelKillCompleted
+            { CorrelationId = jobId, OrganizationId = _organizationId });
+
+        Assert.True(await WaitUntil(() => StatusOf(jobId) == ExecutionStatus.Cancelled));
+
+        Assert.True(_harness.Published.Select<RippleProbeCancelled>()
+            .Any(m => m.Context.Message.ModuleJobId == jobId));
+    }
+
+    [Theory]
+    [InlineData("Completed")]
+    [InlineData("Failed")]
+    [InlineData("Cancelled")]
+    public async Task A_cancel_on_a_finished_probe_is_absorbed(string state)
+    {
+        var jobId = await Seed(state);
+
+        await PublishCancel(jobId, CancellationType.ImmediateKill);
+
+        Assert.Null(await ConsumedCancel(jobId));
+    }
+
+    /// <summary>
+    /// Cancelling again while the timeout is still due does nothing: re-issuing would restart the
+    /// clock, so repeated clicks would push the deadline out indefinitely.
+    /// </summary>
+    [Theory]
+    [InlineData("CancellingImmediateKill")]
+    [InlineData("CancellingAfterCurrent")]
+    public async Task Cancelling_again_inside_the_window_changes_nothing(string state)
+    {
+        var jobId = await Seed(state, waitingSince: DateTime.UtcNow.AddSeconds(-5));
+
+        await PublishCancel(jobId, CancellationType.ImmediateKill);
+
+        Assert.Null(await ConsumedCancel(jobId));
+        Assert.Equal(ExecutionStatus.Running, StatusOf(jobId));
+        Assert.Equal(state, StateOf(jobId));
+    }
+
+    /// <summary>
+    /// Cancelling again once the timeout was due means the timeout was lost: nothing else will
+    /// ever end this job, so the click forces it closed.
+    /// </summary>
+    [Theory]
+    [InlineData("CancellingImmediateKill")]
+    [InlineData("CancellingAfterCurrent")]
+    public async Task Cancelling_again_after_the_timeout_was_due_forces_it_closed(string state)
+    {
+        var jobId = await Seed(state, waitingSince: DateTime.UtcNow.AddMinutes(-10));
+
+        await PublishCancel(jobId, CancellationType.ImmediateKill);
+
+        Assert.True(await WaitUntil(() => StatusOf(jobId) == ExecutionStatus.Cancelled),
+            "the stuck probe was not forced closed");
+
+        Assert.True(_harness.Published.Select<RippleProbeCancelled>()
+            .Any(m => m.Context.Message.ModuleJobId == jobId));
+    }
+
+    private Task PublishCancel(Guid jobId, CancellationType type) =>
+        _harness.Bus.Publish(new CancelRippleProbeJobRequested
+        {
+            CorrelationId = jobId,
+            OrganizationId = _organizationId,
+            CancellationType = type
+        });
+
+    /// <summary>The consumer's exception, or null when it handled the message cleanly.</summary>
+    private async Task<Exception?> ConsumedCancel(Guid jobId)
+    {
+        Assert.True(await WaitUntil(() =>
+            _harness.Consumed.Select<CancelRippleProbeJobRequested>().Any(m => m.Context.Message.CorrelationId == jobId)),
+            "the cancel was never consumed");
+
+        return _harness.Consumed.Select<CancelRippleProbeJobRequested>()
+            .First(m => m.Context.Message.CorrelationId == jobId).Exception;
+    }
+
     /// <summary>Seeds a job and a saga already in the given state, as the split tests do.</summary>
-    private async Task<Guid> Seed(string state)
+    private async Task<Guid> Seed(string state, DateTime? waitingSince = null)
     {
         var jobId = await SeedJob();
 
@@ -247,6 +372,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
             UpstreamModuleId = _upstreamModuleId,
             InputsJson = "{}",
             ApprovalTimeoutMinutes = 0,
+            WaitingSince = waitingSince,
             RowVersion = []
         });
         await db.SaveChangesAsync();
