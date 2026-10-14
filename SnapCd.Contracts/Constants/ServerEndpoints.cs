@@ -134,6 +134,9 @@ public static class ServerEndpoints
     public const string RippleProbeValidateCompleted = "RippleProbeValidateCompleted";
     public const string RippleProbeValidateCancelled = "RippleProbeValidateCancelled";
     public const string RippleProbeValidateFaulted = "RippleProbeValidateFaulted";
+    public const string RippleProbeProbeCompleted = "RippleProbeProbeCompleted";
+    public const string RippleProbeProbeCancelled = "RippleProbeProbeCancelled";
+    public const string RippleProbeProbeFaulted = "RippleProbeProbeFaulted";
 
     public const string TransferGetModuleCompleted = "TransferGetModuleCompleted";
     public const string TransferGetModuleCancelled = "TransferGetModuleCancelled";

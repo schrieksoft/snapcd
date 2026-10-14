@@ -856,6 +856,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputFaulted, jobId, errorMessage, stackTrace);
     }
 
+    public async Task InvokeRippleProbeProbeCompleted(Guid jobId, string? signalsJson)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeProbeCompleted, jobId, signalsJson);
+    }
+
+    public async Task InvokeRippleProbeProbeCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeProbeCancelled, jobId);
+    }
+
+    public async Task InvokeRippleProbeProbeFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeProbeFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeRippleProbeGetModuleCompleted(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeGetModuleCompleted, jobId);

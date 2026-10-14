@@ -33,7 +33,8 @@ public class CompleteRippleProbeJobActivity<TMessage> : IStateMachineActivity<Ri
             context.Saga.CorrelationId,
             context.Saga.OrganizationId,
             ExecutionStatus.Completed,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            context.Saga.SignalsJson);
 
         await next.Execute(context).ConfigureAwait(false);
     }

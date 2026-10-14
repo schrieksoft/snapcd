@@ -34,3 +34,18 @@ public class RippleProbeValidateCompleted : StepResponseBase;
 public class RippleProbeValidateFaulted : StepFaultedBase;
 
 public class RippleProbeValidateCancelled : StepResponseBase;
+
+public class RippleProbeProbeRequested : RippleProbeStepRequestBase;
+
+/// <summary>
+/// What the plan said about each of this Module's outputs, as planwalker emitted it. Opaque to the
+/// server: the values are cty encoded, and only the runner decodes them.
+/// </summary>
+public class RippleProbeProbeCompleted : StepResponseBase
+{
+    public string? SignalsJson { get; set; }
+}
+
+public class RippleProbeProbeFaulted : StepFaultedBase;
+
+public class RippleProbeProbeCancelled : StepResponseBase;

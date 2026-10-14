@@ -60,9 +60,13 @@ public class RippleProbeJobClassMap : IEntityTypeConfiguration<RippleProbeJob>
         entity
             .HasIndex(m => new { m.UpstreamModuleJobId, m.OrganizationId });
 
-        // No filtered unique index on module and status, unlike StateMigrationJobs. A ripple probe
-        // is a read that runs alongside the module's own work, so concurrent jobs on one module
-        // are the expected case rather than the race to reject.
+        // At most one unfinished probe per module. Probes on one module share a checkout, so two
+        // at once would run two inits in one directory and write over each other's inputs and
+        // signals. The application check can be raced; this index is the guarantee.
+        entity
+            .HasIndex(e => new { e.ModuleId, e.OrganizationId })
+            .IsUnique()
+            .HasFilter("[Status] = 'Running'");
 
         entity
             .Property(d => d.Status)

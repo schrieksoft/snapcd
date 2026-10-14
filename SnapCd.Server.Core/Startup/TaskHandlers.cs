@@ -34,6 +34,7 @@ public static class TaskHandlers
         services.AddScoped<RippleProbeGetModuleHandler>();
         services.AddScoped<RippleProbeInitHandler>();
         services.AddScoped<RippleProbeValidateHandler>();
+        services.AddScoped<RippleProbeProbeHandler>();
         services.AddScoped<SplitInitHandler>();
         services.AddScoped<SplitValidateHandler>();
         services.AddScoped<SplitPlanHandler>();

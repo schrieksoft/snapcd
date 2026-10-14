@@ -15,6 +15,7 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.SplitMigrate;
+using SnapCd.Contracts.RunnerRequests.RippleProbe;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Constants;
@@ -511,6 +512,13 @@ public class RunnerHubConnection :
             request =>
             {
                 Task.Run(() => RippleProbeValidate(request));
+                return Task.CompletedTask;
+            });
+
+        _connection.On<RippleProbeProbeRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeProbe),
+            request =>
+            {
+                Task.Run(() => RippleProbeProbe(request));
                 return Task.CompletedTask;
             });
 
@@ -1028,6 +1036,9 @@ public class RunnerHubConnection :
             Client.InvokeRippleProbeInitCompleted,
             Client.InvokeRippleProbeInitCancelled,
             Client.InvokeRippleProbeInitFaulted);
+
+    public Task RippleProbeProbe(RippleProbeProbeRequestBase request) =>
+        _tasks.Value.RippleProbeProbe(request, _connection!);
 
     public Task RippleProbeValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(

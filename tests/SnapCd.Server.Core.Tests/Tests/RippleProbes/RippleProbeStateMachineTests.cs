@@ -42,6 +42,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     private ITestHarness _harness = null!;
     private Guid _moduleId;
     private Guid _upstreamModuleId;
+    private Guid _otherModuleId;
     private Guid _organizationId;
     private readonly List<Guid> _seeded = [];
 
@@ -51,6 +52,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     {
         _moduleId = _fixture.Modules["0000"].Id;
         _upstreamModuleId = _fixture.Modules["0001"].Id;
+        _otherModuleId = _fixture.Modules["0002"].Id;
         _organizationId = _fixture.Organizations["0"].Id;
 
         var services = new ServiceCollection();
@@ -121,6 +123,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     [Theory]
     [InlineData("RippleProbeGetModulePending", "RippleProbeInit")]
     [InlineData("RippleProbeInitPending", "RippleProbeValidate")]
+    [InlineData("RippleProbeValidatePending", "RippleProbeProbe")]
     public async Task A_completed_step_hands_off_to_the_next(string state, string next)
     {
         var jobId = await Seed(state);
@@ -132,25 +135,37 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
             $"{state} should hand off to {next}; saga is in {StateOf(jobId)}");
     }
 
+    /// <summary>
+    /// Probe is the last step, and the only one whose reply carries a payload: the signals it
+    /// produced reach the job row rather than being dropped on the way through the saga.
+    /// </summary>
     [Fact]
-    public async Task The_last_step_completes_the_probe()
+    public async Task The_last_step_completes_the_probe_and_stores_its_signals()
     {
-        var jobId = await Seed("RippleProbeValidatePending");
+        var jobId = await Seed("RippleProbeProbePending");
 
-        await _harness.Bus.Publish(new RippleProbeValidateCompleted
-            { CorrelationId = jobId, OrganizationId = _organizationId });
+        var signals = """{"format_version":"1","outputs":{"pet_id":{"action":"unknown","type":"InN0cmluZyI=","before":"sGNoYW1waW9uLWhlcnJpbmc=","after":"1AAA"}}}""";
+
+        await _harness.Bus.Publish(new RippleProbeProbeCompleted
+            { CorrelationId = jobId, OrganizationId = _organizationId, SignalsJson = signals });
 
         Assert.True(await WaitUntil(() => Completed(jobId)),
-            "Validate is the last step, so completing it should complete the probe");
+            "Probe is the last step, so completing it should complete the probe");
 
         Assert.True(_harness.Published.Select<RippleProbeCompleted>()
             .Any(m => m.Context.Message.ModuleJobId == jobId));
+
+        await using var check = _fixture.CreateDbContext();
+        var job = await check.RippleProbeJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
+
+        Assert.Equal(signals, job.SignalsJson);
     }
 
     [Theory]
     [InlineData("RippleProbeGetModulePending")]
     [InlineData("RippleProbeInitPending")]
     [InlineData("RippleProbeValidatePending")]
+    [InlineData("RippleProbeProbePending")]
     public async Task A_faulted_step_fails_the_probe_and_records_the_error(string state)
     {
         var jobId = await Seed(state);
@@ -174,6 +189,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     [InlineData("RippleProbeGetModulePending")]
     [InlineData("RippleProbeInitPending")]
     [InlineData("RippleProbeValidatePending")]
+    [InlineData("RippleProbeProbePending")]
     public async Task A_cancelled_step_cancels_the_probe(string state)
     {
         var jobId = await Seed(state);
@@ -209,23 +225,20 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Two probes on one Module, each with its own saga. The saga is keyed on correlation id, so
-    /// this is what proves the concurrency the entity's missing filtered index allows.
+    /// Probes on different Modules are independent: one failing leaves the other untouched. Two on
+    /// the same Module are refused at the control plane, which RippleProbeServiceTests covers.
     /// </summary>
     [Fact]
-    public async Task Two_probes_on_one_module_are_tracked_separately()
+    public async Task Probes_on_different_modules_are_tracked_separately()
     {
-        var first = await Seed("RippleProbeInitPending");
-        var second = await Seed("RippleProbeGetModulePending");
+        var mine = await Seed("RippleProbeInitPending");
+        var other = await Seed("RippleProbeGetModulePending", moduleId: _otherModuleId);
 
-        Assert.Equal("RippleProbeInitPending", StateOf(first));
-        Assert.Equal("RippleProbeGetModulePending", StateOf(second));
+        await PublishFaultFor("RippleProbeInitPending", mine);
 
-        await PublishFaultFor("RippleProbeInitPending", first);
-
-        Assert.True(await WaitUntil(() => StatusOf(first) == ExecutionStatus.Failed));
-        Assert.Equal(ExecutionStatus.Running, StatusOf(second));
-        Assert.Equal("RippleProbeGetModulePending", StateOf(second));
+        Assert.True(await WaitUntil(() => StatusOf(mine) == ExecutionStatus.Failed));
+        Assert.Equal(ExecutionStatus.Running, StatusOf(other));
+        Assert.Equal("RippleProbeGetModulePending", StateOf(other));
     }
 
     // The operator-initiated cancel path, as distinct from a step reporting itself cancelled.
@@ -234,6 +247,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     [InlineData("RippleProbeGetModulePending")]
     [InlineData("RippleProbeInitPending")]
     [InlineData("RippleProbeValidatePending")]
+    [InlineData("RippleProbeProbePending")]
     public async Task A_cancel_kill_from_a_step_asks_the_runner_to_kill_and_parks_the_saga(string state)
     {
         var jobId = await Seed(state);
@@ -354,15 +368,15 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     }
 
     /// <summary>Seeds a job and a saga already in the given state, as the split tests do.</summary>
-    private async Task<Guid> Seed(string state, DateTime? waitingSince = null)
+    private async Task<Guid> Seed(string state, DateTime? waitingSince = null, Guid? moduleId = null)
     {
-        var jobId = await SeedJob();
+        var jobId = await SeedJob(moduleId);
 
         await using var db = _fixture.CreateDbContext();
         db.Set<RippleProbeSaga>().Add(new RippleProbeSaga
         {
             CorrelationId = jobId,
-            ModuleId = _moduleId,
+            ModuleId = moduleId ?? _moduleId,
             OrganizationId = _organizationId,
             CurrentState = state,
             RunnerId = _fixture.Modules["0000"].RunnerId,
@@ -385,6 +399,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
         "RippleProbeGetModulePending" => _harness.Bus.Publish(new RippleProbeGetModuleCompleted { CorrelationId = jobId, OrganizationId = _organizationId }),
         "RippleProbeInitPending" => _harness.Bus.Publish(new RippleProbeInitCompleted { CorrelationId = jobId, OrganizationId = _organizationId }),
         "RippleProbeValidatePending" => _harness.Bus.Publish(new RippleProbeValidateCompleted { CorrelationId = jobId, OrganizationId = _organizationId }),
+        "RippleProbeProbePending" => _harness.Bus.Publish(new RippleProbeProbeCompleted { CorrelationId = jobId, OrganizationId = _organizationId }),
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
 
@@ -396,6 +411,8 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
             { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "init failed", IsServerSideError = true }),
         "RippleProbeValidatePending" => _harness.Bus.Publish(new RippleProbeValidateFaulted
             { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "validate failed", IsServerSideError = true }),
+        "RippleProbeProbePending" => _harness.Bus.Publish(new RippleProbeProbeFaulted
+            { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "probe failed", IsServerSideError = true }),
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
 
@@ -404,6 +421,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
         "RippleProbeGetModulePending" => _harness.Bus.Publish(new RippleProbeGetModuleCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
         "RippleProbeInitPending" => _harness.Bus.Publish(new RippleProbeInitCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
         "RippleProbeValidatePending" => _harness.Bus.Publish(new RippleProbeValidateCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
+        "RippleProbeProbePending" => _harness.Bus.Publish(new RippleProbeProbeCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
         _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
     };
 
@@ -433,7 +451,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
             .Any(j => j.Id == jobId && j.Status == ExecutionStatus.Completed);
     }
 
-    private async Task<Guid> SeedJob()
+    private async Task<Guid> SeedJob(Guid? moduleId = null)
     {
         var id = Guid.NewGuid();
 
@@ -442,7 +460,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
         {
             Id = id,
             OrganizationId = _organizationId,
-            ModuleId = _moduleId,
+            ModuleId = moduleId ?? _moduleId,
             UpstreamModuleId = _upstreamModuleId,
             TimestampStart = DateTimeOffset.UtcNow,
             Status = ExecutionStatus.Running,

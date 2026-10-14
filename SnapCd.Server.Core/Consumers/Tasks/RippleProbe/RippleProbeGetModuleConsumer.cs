@@ -50,7 +50,7 @@ public class RippleProbeGetModuleConsumer : IConsumer<RippleProbeGetModuleReques
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
                 nameof(IRippleProbeEndpoints.RippleProbeGetModule),
-                StepRequestBuilders.GetModule(jobId, orgId, msg.Declared));
+                RippleProbeStepRequestBuilders.GetModule(jobId, orgId, msg.Declared));
 
             _logger.LogDebug("Dispatched RippleProbeGetModule request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);

@@ -98,7 +98,18 @@ public class RippleProbeService : IDisposable
         };
 
         dbContext.RippleProbeJobs.Add(job);
-        await dbContext.SaveChangesAsync();
+
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // The filtered unique index is the real guarantee: the check a caller makes first can
+            // be raced. Probes on one Module share a checkout, so the second one is refused.
+            throw new RippleProbeNotAllowedException(
+                "A ripple probe is already running on this module.");
+        }
 
         try
         {
@@ -137,6 +148,23 @@ public class RippleProbeService : IDisposable
         job.ServerSideError = ErrorText.Body(error);
 
         await dbContext.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Why a probe cannot start on this Module, or null when it can. The launch re-checks rather
+    /// than trusting this, as the unique index is what actually serialises them.
+    /// </summary>
+    public async Task<string?> GetBlockedReason(Guid moduleId, Guid organizationId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var running = await dbContext.RippleProbeJobs
+            .AsNoTracking()
+            .AnyAsync(j => j.ModuleId == moduleId
+                           && j.OrganizationId == organizationId
+                           && j.Status == ExecutionStatus.Running);
+
+        return running ? "A ripple probe is already running on this module." : null;
     }
 
     public void Dispose()

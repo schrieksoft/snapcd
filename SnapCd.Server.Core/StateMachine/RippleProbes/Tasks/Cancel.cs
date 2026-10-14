@@ -128,6 +128,7 @@ public partial class RippleProbeStateMachine
         When(RippleProbeGetModuleCompleted).ThenRippleProbeCancelled(Cancelled),
         When(RippleProbeInitCompleted).ThenRippleProbeCancelled(Cancelled),
         When(RippleProbeValidateCompleted).ThenRippleProbeCancelled(Cancelled),
+        When(RippleProbeProbeCompleted).ThenRippleProbeCancelled(Cancelled),
         When(CancelKillCompleted).ThenRippleProbeCancelled(Cancelled),
         Ignore(RunnerReconnectedEvent),
         Ignore(HeartbeatScheduled.Received),

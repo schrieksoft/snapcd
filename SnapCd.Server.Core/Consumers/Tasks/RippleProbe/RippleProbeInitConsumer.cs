@@ -55,7 +55,7 @@ public class RippleProbeInitConsumer : IConsumer<RippleProbeInitRequested>
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
                 nameof(IRippleProbeEndpoints.RippleProbeInit),
-                StepRequestBuilders.Init(jobId, orgId, msg.Declared, resolvedEnvVars));
+                RippleProbeStepRequestBuilders.Init(jobId, orgId, msg.Declared, resolvedEnvVars));
 
             _logger.LogDebug("Dispatched RippleProbeInit request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);

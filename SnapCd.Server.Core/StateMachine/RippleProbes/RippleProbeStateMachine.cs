@@ -66,6 +66,7 @@ public partial class RippleProbeStateMachine : MassTransitStateMachine<RipplePro
         Configure_RippleProbeGetModule();
         Configure_RippleProbeInit();
         Configure_RippleProbeValidate();
+        Configure_RippleProbeProbe();
 
         // A cancel that arrives after the job ended has nothing to do, but must not fault: an
         // unhandled event is retried and then dead-lettered, which looks like a broken cancel.

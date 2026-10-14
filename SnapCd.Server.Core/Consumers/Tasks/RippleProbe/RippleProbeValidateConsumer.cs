@@ -50,7 +50,7 @@ public class RippleProbeValidateConsumer : IConsumer<RippleProbeValidateRequeste
 
             await _hubContext.Clients.Client(runner.SignalRConnectionId).SendAsync(
                 nameof(IRippleProbeEndpoints.RippleProbeValidate),
-                StepRequestBuilders.Validate(jobId, orgId, msg.Declared));
+                RippleProbeStepRequestBuilders.Validate(jobId, orgId, msg.Declared));
 
             _logger.LogDebug("Dispatched RippleProbeValidate request to runner {RunnerName} for job {JobId}",
                 runner.InstanceName, jobId);

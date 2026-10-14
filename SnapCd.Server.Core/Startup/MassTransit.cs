@@ -254,6 +254,7 @@ public static class MassTransit
         typeof(RippleProbeGetModuleConsumer),
         typeof(RippleProbeInitConsumer),
         typeof(RippleProbeValidateConsumer),
+        typeof(RippleProbeProbeConsumer),
         typeof(SplitGetModuleConsumer),
         typeof(SplitInitConsumer),
         typeof(SplitValidateConsumer),

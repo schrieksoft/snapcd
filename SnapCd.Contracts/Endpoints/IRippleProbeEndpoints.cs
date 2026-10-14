@@ -8,6 +8,7 @@
 
 
 using SnapCd.Contracts.RunnerRequests;
+using SnapCd.Contracts.RunnerRequests.RippleProbe;
 
 namespace SnapCd.Contracts.Endpoints;
 
@@ -17,4 +18,5 @@ public interface IRippleProbeEndpoints
     Task RippleProbeGetModule(GetModuleRequestBase request);
     Task RippleProbeInit(InitRequestBase request);
     Task RippleProbeValidate(ValidateRequestBase request);
+    Task RippleProbeProbe(RippleProbeProbeRequestBase request);
 }

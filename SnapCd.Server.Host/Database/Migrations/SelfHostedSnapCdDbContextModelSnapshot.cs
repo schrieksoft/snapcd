@@ -4965,7 +4965,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("ModuleId", "OrganizationId");
+                    b.HasIndex("ModuleId", "OrganizationId")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Running'");
 
                     b.HasIndex("UpstreamModuleId", "OrganizationId");
 
@@ -8785,6 +8787,9 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Property<Guid?>("ServerInstanceId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SignalsJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("UpstreamModuleId")
                         .HasColumnType("uniqueidentifier");

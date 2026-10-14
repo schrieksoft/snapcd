@@ -94,23 +94,26 @@ public class RippleProbeServiceTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Two plans on one Module at once. This is the case StateMigrationJobs forbids with a unique
-    /// index filtered on Running, and the case this family exists to allow.
+    /// One probe per Module at a time. Probes on one Module share a checkout, so a second would
+    /// run a second init in the same directory and write over the first one's inputs and signals.
+    /// The filtered unique index is the guarantee; an application check can be raced.
     /// </summary>
     [Fact]
-    public async Task A_second_plan_can_run_while_the_first_is_running()
+    public async Task A_second_probe_on_one_module_is_refused()
     {
-        var first = await Insert(ExecutionStatus.Running);
+        await Insert(ExecutionStatus.Running);
+
+        await Assert.ThrowsAnyAsync<DbUpdateException>(() => Insert(ExecutionStatus.Running));
+    }
+
+    /// <summary>A finished probe does not block the next one: the index filters on Running.</summary>
+    [Fact]
+    public async Task A_probe_can_run_once_the_previous_one_has_finished()
+    {
+        var first = await Insert(ExecutionStatus.Completed);
         var second = await Insert(ExecutionStatus.Running);
 
         Assert.NotEqual(first, second);
-
-        var running = await _dbContext.RippleProbeJobs.AsNoTracking()
-            .CountAsync(j => j.ModuleId == _moduleId
-                             && j.OrganizationId == _organizationId
-                             && j.Status == ExecutionStatus.Running);
-
-        Assert.Equal(2, running);
     }
 
     [Fact]
@@ -118,8 +121,9 @@ public class RippleProbeServiceTests : IAsyncLifetime
     {
         var upstreamJobId = Guid.NewGuid();
 
+        // Only one probe per Module may be Running, so the other is a finished one.
         var mine = await Insert(ExecutionStatus.Running, upstreamJobId);
-        await Insert(ExecutionStatus.Running, Guid.NewGuid());
+        await Insert(ExecutionStatus.Completed, Guid.NewGuid());
 
         using var repository = new RippleProbeJobRepository(_fixture.CreateDbContext());
         var listed = await repository.ListByUpstreamJob(upstreamJobId, _organizationId);
@@ -163,11 +167,16 @@ public class RippleProbeServiceTests : IAsyncLifetime
         Assert.Equal("body", row.ServerSideError);
     }
 
+    /// <summary>
+    /// A context of its own per insert. A refused insert leaves the entity tracked, so a shared
+    /// context would retry it on the next save and fail for the wrong reason.
+    /// </summary>
     private async Task<Guid> Insert(ExecutionStatus status, Guid? upstreamModuleJobId = null)
     {
         var id = Guid.NewGuid();
 
-        _dbContext.RippleProbeJobs.Add(new RippleProbeJob
+        await using var db = _fixture.CreateDbContext();
+        db.RippleProbeJobs.Add(new RippleProbeJob
         {
             Id = id,
             OrganizationId = _organizationId,
@@ -179,8 +188,8 @@ public class RippleProbeServiceTests : IAsyncLifetime
             InputsJson = "{}"
         });
 
-        await _dbContext.SaveChangesAsync();
         _created.Add(id);
+        await db.SaveChangesAsync();
 
         return id;
     }

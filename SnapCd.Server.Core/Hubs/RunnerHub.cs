@@ -67,6 +67,7 @@ public class RunnerHub : Hub
     private readonly RippleProbeGetModuleHandler _rippleProbeGetModuleHandler;
     private readonly RippleProbeInitHandler _rippleProbeInitHandler;
     private readonly RippleProbeValidateHandler _rippleProbeValidateHandler;
+    private readonly RippleProbeProbeHandler _rippleProbeProbeHandler;
     private readonly TransferStepHandler _transferStepHandler;
     private readonly ApplyGetModuleHandler _applyGetModuleHandler;
     private readonly ApplyInitHandler _applyInitHandler;
@@ -122,6 +123,7 @@ public class RunnerHub : Hub
         RippleProbeGetModuleHandler rippleProbeGetModuleHandler,
         RippleProbeInitHandler rippleProbeInitHandler,
         RippleProbeValidateHandler rippleProbeValidateHandler,
+        RippleProbeProbeHandler rippleProbeProbeHandler,
         TransferStepHandler transferStepHandler,
         ApplyGetModuleHandler applyGetModuleHandler,
         ApplyInitHandler applyInitHandler,
@@ -176,6 +178,7 @@ public class RunnerHub : Hub
         _rippleProbeGetModuleHandler = rippleProbeGetModuleHandler;
         _rippleProbeInitHandler = rippleProbeInitHandler;
         _rippleProbeValidateHandler = rippleProbeValidateHandler;
+        _rippleProbeProbeHandler = rippleProbeProbeHandler;
         _transferStepHandler = transferStepHandler;
         _applyGetModuleHandler = applyGetModuleHandler;
         _applyInitHandler = applyInitHandler;
@@ -1983,6 +1986,30 @@ public class RunnerHub : Hub
             .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
 
         await _rippleProbeValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task RippleProbeProbeCompleted(Guid jobId, string? signalsJson)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeProbeHandler.Complete(jobId, organizationId, signalsJson);
+    }
+
+    public async Task RippleProbeProbeCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeProbeHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RippleProbeProbeFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeProbeHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
     }
 
     /// <summary>Called by the runner when a kill cancellation completes on a ripple probe.</summary>

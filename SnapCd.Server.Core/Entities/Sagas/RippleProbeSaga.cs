@@ -25,4 +25,10 @@ public class RippleProbeSaga : JobSagaBase
     /// text the whole way: an unknown has no JSON representation, so the server never decodes it.
     /// </summary>
     public string InputsJson { get; set; } = null!;
+
+    /// <summary>
+    /// What the probe reported, held between the step's reply and the write that closes the job.
+    /// Opaque to the server, as <see cref="InputsJson"/> is.
+    /// </summary>
+    public string? SignalsJson { get; set; }
 }
