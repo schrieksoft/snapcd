@@ -23,13 +23,13 @@ using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
 
-namespace SnapCd.Server.Core.Tests.Tests.BlastProbes;
+namespace SnapCd.Server.Core.Tests.Tests.RippleProbes;
 
 /// <summary>
 /// The request path: a job row and a published request, with nothing listening for it yet.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
-public class BlastProbeServiceTests : IAsyncLifetime
+public class RippleProbeServiceTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private SnapCdDbContext _dbContext = null!;
@@ -38,7 +38,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
     private Guid _organizationId;
     private readonly List<Guid> _created = [];
 
-    public BlastProbeServiceTests(Fixture fixture) => _fixture = fixture;
+    public RippleProbeServiceTests(Fixture fixture) => _fixture = fixture;
 
     public Task InitializeAsync()
     {
@@ -53,7 +53,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
     {
         if (_created.Count > 0)
         {
-            await _dbContext.BlastProbeJobs
+            await _dbContext.RippleProbeJobs
                 .Where(j => _created.Contains(j.Id))
                 .ExecuteDeleteAsync();
         }
@@ -73,7 +73,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
         await Assert.ThrowsAsync<PrincipalNotAuthorizedException>(
             () => service.Start(_moduleId, _organizationId, _upstreamModuleId, "{}"));
 
-        Assert.False(await _dbContext.BlastProbeJobs.AsNoTracking()
+        Assert.False(await _dbContext.RippleProbeJobs.AsNoTracking()
             .AnyAsync(j => j.ModuleId == _moduleId && j.OrganizationId == _organizationId));
     }
 
@@ -89,7 +89,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.Start(_moduleId, _organizationId, _upstreamModuleId, "{}"));
 
-        Assert.False(await _dbContext.BlastProbeJobs.AsNoTracking()
+        Assert.False(await _dbContext.RippleProbeJobs.AsNoTracking()
             .AnyAsync(j => j.ModuleId == _moduleId && j.OrganizationId == _organizationId));
     }
 
@@ -105,7 +105,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
 
         Assert.NotEqual(first, second);
 
-        var running = await _dbContext.BlastProbeJobs.AsNoTracking()
+        var running = await _dbContext.RippleProbeJobs.AsNoTracking()
             .CountAsync(j => j.ModuleId == _moduleId
                              && j.OrganizationId == _organizationId
                              && j.Status == ExecutionStatus.Running);
@@ -121,7 +121,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
         var mine = await Insert(ExecutionStatus.Running, upstreamJobId);
         await Insert(ExecutionStatus.Running, Guid.NewGuid());
 
-        using var repository = new BlastProbeJobRepository(_fixture.CreateDbContext());
+        using var repository = new RippleProbeJobRepository(_fixture.CreateDbContext());
         var listed = await repository.ListByUpstreamJob(upstreamJobId, _organizationId);
 
         Assert.Single(listed);
@@ -135,10 +135,10 @@ public class BlastProbeServiceTests : IAsyncLifetime
 
         var signals = """{"format_version":"1","outputs":{"pet_id":{"action":"unknown","type":"InN0cmluZyI=","before":"sGNoYW1waW9uLWhlcnJpbmc=","after":"1AAA"}}}""";
 
-        using var repository = new BlastProbeJobRepository(_fixture.CreateDbContext());
+        using var repository = new RippleProbeJobRepository(_fixture.CreateDbContext());
         await repository.Finalize(id, _organizationId, ExecutionStatus.Completed, DateTimeOffset.UtcNow, signals);
 
-        var row = await _dbContext.BlastProbeJobs.AsNoTracking()
+        var row = await _dbContext.RippleProbeJobs.AsNoTracking()
             .SingleAsync(j => j.Id == id && j.OrganizationId == _organizationId);
 
         Assert.Equal(ExecutionStatus.Completed, row.Status);
@@ -151,11 +151,11 @@ public class BlastProbeServiceTests : IAsyncLifetime
     {
         var id = await Insert(ExecutionStatus.Running);
 
-        using var repository = new BlastProbeJobRepository(_fixture.CreateDbContext());
+        using var repository = new RippleProbeJobRepository(_fixture.CreateDbContext());
         await repository.FinalizeWithServerError(
             id, _organizationId, DateTimeOffset.UtcNow, null, "header", "body");
 
-        var row = await _dbContext.BlastProbeJobs.AsNoTracking()
+        var row = await _dbContext.RippleProbeJobs.AsNoTracking()
             .SingleAsync(j => j.Id == id && j.OrganizationId == _organizationId);
 
         Assert.Equal(ExecutionStatus.Failed, row.Status);
@@ -167,7 +167,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
     {
         var id = Guid.NewGuid();
 
-        _dbContext.BlastProbeJobs.Add(new BlastProbeJob
+        _dbContext.RippleProbeJobs.Add(new RippleProbeJob
         {
             Id = id,
             OrganizationId = _organizationId,
@@ -185,7 +185,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
         return id;
     }
 
-    private BlastProbeService CreateService(bool asOwner = true)
+    private RippleProbeService CreateService(bool asOwner = true)
     {
         var principalId = asOwner
             ? _fixture.OrganizationPrincipals["0"][OrganizationRole.Owner].DirectUser.Id
@@ -202,7 +202,7 @@ public class BlastProbeServiceTests : IAsyncLifetime
                 _fixture.CreateModuleSettings()),
             principalProvider);
 
-        return new BlastProbeService(DbContextFactory(), securedRepository);
+        return new RippleProbeService(DbContextFactory(), securedRepository);
     }
 
     private IDbContextFactory<SnapCdDbContext> DbContextFactory()

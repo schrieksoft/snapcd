@@ -11,7 +11,7 @@ using SnapCd.Server.Core.Events.Jobs.Base;
 
 namespace SnapCd.Server.Core.Events.Jobs.Module;
 
-public class BlastProbeRequested : ModuleJobEventBase
+public class RippleProbeRequested : ModuleJobEventBase
 {
     /// <summary>The Module whose outputs changed.</summary>
     public Guid UpstreamModuleId { get; set; }

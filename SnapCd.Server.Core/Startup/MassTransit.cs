@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using SnapCd.Server.Core.StateMachine.RippleProbes;
 using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
@@ -402,6 +403,7 @@ public static class MassTransit
         AddSagaReceiveEndpoint<ApplyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
         AddSagaReceiveEndpoint<DestroyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
         AddSagaReceiveEndpoint<SplitMigrateSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
+        AddSagaReceiveEndpoint<RippleProbeSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
 
         AddSagaReceiveEndpoint<ModuleSaga, TMqFactory>(serviceBusSettings, context, cfg, serviceBusSettings.SagaConcurrencyLimit, s =>
         {
@@ -468,6 +470,7 @@ public static class MassTransit
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
+        AddSagaStateMachine<RippleProbeStateMachine, RippleProbeSaga>(x);
         AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
         AddSagaStateMachine<LookupAddressesStateMachine, LookupAddressesSaga>(x);
         AddSagaStateMachine<MoveStateMachine, MoveSaga>(x);

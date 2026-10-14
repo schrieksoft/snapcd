@@ -144,7 +144,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<ModuleJob> ModuleJobs { get; set; }
     public DbSet<StateMigrationJob> StateMigrationJobs { get; set; }
-    public DbSet<BlastProbeJob> BlastProbeJobs { get; set; }
+    public DbSet<RippleProbeJob> RippleProbeJobs { get; set; }
     public DbSet<StateMigrationJobApproval> StateMigrationJobApprovals { get; set; }
     public DbSet<StateMigrationJobStep> StateMigrationJobSteps { get; set; }
     public DbSet<StateMigrationJobAddress> StateMigrationJobAddresses { get; set; }
@@ -296,6 +296,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         {
             yield return new ApplyJobSagaClassMap();
             yield return new SplitMigrateSagaClassMap();
+            yield return new RippleProbeSagaClassMap();
             yield return new TransferMigrateSagaClassMap();
             yield return new LookupAddressesSagaClassMap();
             yield return new MoveSagaClassMap();
@@ -432,7 +433,7 @@ public class SnapCdDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.ApplyConfiguration(new VariableClassMap());
         modelBuilder.ApplyConfiguration(new ModuleJobClassMap());
         modelBuilder.ApplyConfiguration(new StateMigrationJobClassMap());
-        modelBuilder.ApplyConfiguration(new BlastProbeJobClassMap());
+        modelBuilder.ApplyConfiguration(new RippleProbeJobClassMap());
         modelBuilder.ApplyConfiguration(new StateMigrationJobApprovalClassMap());
         modelBuilder.ApplyConfiguration(new StateMigrationJobStepClassMap());
         modelBuilder.ApplyConfiguration(new StateMigrationJobAddressClassMap());

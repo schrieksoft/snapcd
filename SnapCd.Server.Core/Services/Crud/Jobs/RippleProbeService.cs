@@ -21,15 +21,15 @@ using SnapCd.Server.Core.Services.ResolvedConfiguration;
 
 namespace SnapCd.Server.Core.Services.Crud.Jobs;
 
-public class BlastProbeServiceFactory(
+public class RippleProbeServiceFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     ModuleSecuredRepositoryFactory moduleSecuredRepositoryFactory,
     ResolvedConfigurationServiceFactory resolvedConfigurationServiceFactory,
     IBus bus)
 {
-    public BlastProbeService Create(IPrincipalProvider? principalProvider = null)
+    public RippleProbeService Create(IPrincipalProvider? principalProvider = null)
     {
-        return new BlastProbeService(
+        return new RippleProbeService(
             dbFactory,
             moduleSecuredRepositoryFactory.Create(principalProvider),
             resolvedConfigurationServiceFactory.Create(),
@@ -38,18 +38,18 @@ public class BlastProbeServiceFactory(
 }
 
 /// <summary>
-/// Starts blast probes: a read-only plan of a Module, run with an upstream Module's changed
+/// Starts ripple probes: a read-only plan of a Module, run with an upstream Module's changed
 /// outputs supplied as the values they will become. Separate from StateMigrationService because
 /// nothing here pauses a Module or refuses to run alongside its work.
 /// </summary>
-public class BlastProbeService : IDisposable
+public class RippleProbeService : IDisposable
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ModuleSecuredRepository _moduleSecuredRepository;
     private readonly ResolvedConfigurationService? _resolvedConfigurationService;
     private readonly IBus? _bus;
 
-    public BlastProbeService(
+    public RippleProbeService(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         ModuleSecuredRepository moduleSecuredRepository,
         ResolvedConfigurationService? resolvedConfigurationService = null,
@@ -65,7 +65,7 @@ public class BlastProbeService : IDisposable
     /// Creates the job row and asks for the plan. The consumer Module is read, not changed, so
     /// read permission on it is the gate; it is never paused and never queued behind its own work.
     /// </summary>
-    public async Task<BlastProbeJob> Start(
+    public async Task<RippleProbeJob> Start(
         Guid moduleId,
         Guid organizationId,
         Guid upstreamModuleId,
@@ -79,13 +79,13 @@ public class BlastProbeService : IDisposable
 
         if (_resolvedConfigurationService is null || _bus is null)
             throw new InvalidOperationException(
-                $"{nameof(BlastProbeService)} was constructed without the dependencies needed to start a job.");
+                $"{nameof(RippleProbeService)} was constructed without the dependencies needed to start a job.");
 
         var correlationId = optionalCorrelationId ?? Guid.NewGuid();
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = new BlastProbeJob
+        var job = new RippleProbeJob
         {
             Id = correlationId,
             ModuleId = moduleId,
@@ -97,14 +97,14 @@ public class BlastProbeService : IDisposable
             InputsJson = inputsJson
         };
 
-        dbContext.BlastProbeJobs.Add(job);
+        dbContext.RippleProbeJobs.Add(job);
         await dbContext.SaveChangesAsync();
 
         try
         {
             var declared = await _resolvedConfigurationService.GetDeclared(moduleId, organizationId, null);
 
-            await _bus.Publish(new BlastProbeRequested
+            await _bus.Publish(new RippleProbeRequested
             {
                 CorrelationId = job.Id,
                 Declared = declared,
@@ -127,7 +127,7 @@ public class BlastProbeService : IDisposable
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var job = await dbContext.BlastProbeJobs
+        var job = await dbContext.RippleProbeJobs
             .SingleOrDefaultAsync(j => j.Id == id && j.OrganizationId == organizationId);
 
         if (job is null) return;

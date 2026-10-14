@@ -13,11 +13,11 @@ using SnapCd.Server.Core.Entities.Definition;
 
 namespace SnapCd.Server.Core.Database.ClassMaps;
 
-public class BlastProbeJobClassMap : IEntityTypeConfiguration<BlastProbeJob>
+public class RippleProbeJobClassMap : IEntityTypeConfiguration<RippleProbeJob>
 {
-    public void Configure(EntityTypeBuilder<BlastProbeJob> entity)
+    public void Configure(EntityTypeBuilder<RippleProbeJob> entity)
     {
-        entity.ToTable("BlastProbeJobs", t => t.UseSqlOutputClause(false));
+        entity.ToTable("RippleProbeJobs", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
@@ -41,7 +41,7 @@ public class BlastProbeJobClassMap : IEntityTypeConfiguration<BlastProbeJob>
 
         entity
             .HasOne(e => e.Organization)
-            .WithMany(x => x.BlastProbeJobs)
+            .WithMany(x => x.RippleProbeJobs)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -55,12 +55,12 @@ public class BlastProbeJobClassMap : IEntityTypeConfiguration<BlastProbeJob>
         entity
             .HasIndex(m => new { m.ModuleId, m.TimestampStart, m.OrganizationId });
 
-        // Every blast probe for one upstream job, which is how the job waiting on them finds
+        // Every ripple probe for one upstream job, which is how the job waiting on them finds
         // them.
         entity
             .HasIndex(m => new { m.UpstreamModuleJobId, m.OrganizationId });
 
-        // No filtered unique index on module and status, unlike StateMigrationJobs. A blast probe
+        // No filtered unique index on module and status, unlike StateMigrationJobs. A ripple probe
         // is a read that runs alongside the module's own work, so concurrent jobs on one module
         // are the expected case rather than the race to reject.
 

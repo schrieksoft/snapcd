@@ -16,24 +16,24 @@ using SnapCd.Server.Core.Misc.Helpers;
 
 namespace SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
-public class BlastProbeJobRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
+public class RippleProbeJobRepositoryFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
 {
-    public BlastProbeJobRepository Create()
+    public RippleProbeJobRepository Create()
     {
-        return new BlastProbeJobRepository(dbFactory.CreateDbContext());
+        return new RippleProbeJobRepository(dbFactory.CreateDbContext());
     }
 }
 
 /// <summary>
-/// Writes to BlastProbeJobs. Each write has an Execute form that saves without owning a
+/// Writes to RippleProbeJobs. Each write has an Execute form that saves without owning a
 /// transaction, for callers already inside one, and an outer form that supplies its own, following
 /// StateMigrationJobRepository.
 /// </summary>
-public class BlastProbeJobRepository : IDisposable
+public class RippleProbeJobRepository : IDisposable
 {
     private readonly SnapCdDbContext _dbContext;
 
-    public BlastProbeJobRepository(SnapCdDbContext dbContext)
+    public RippleProbeJobRepository(SnapCdDbContext dbContext)
     {
         _dbContext = dbContext;
     }
@@ -64,21 +64,21 @@ public class BlastProbeJobRepository : IDisposable
         }
     }
 
-    public async Task<BlastProbeJob> Get(Guid id, Guid organizationId)
+    public async Task<RippleProbeJob> Get(Guid id, Guid organizationId)
     {
-        var job = await _dbContext.BlastProbeJobs
+        var job = await _dbContext.RippleProbeJobs
             .FirstOrDefaultAsync(j => j.Id == id && j.OrganizationId == organizationId);
 
         if (job == null)
             throw new EntityNotFoundException(
-                $"{nameof(BlastProbeJob)} with Id {id} in Organization {organizationId} not found.");
+                $"{nameof(RippleProbeJob)} with Id {id} in Organization {organizationId} not found.");
 
         return job;
     }
 
-    public async Task<List<BlastProbeJob>> ListByModule(Guid moduleId, Guid organizationId, int take = 50)
+    public async Task<List<RippleProbeJob>> ListByModule(Guid moduleId, Guid organizationId, int take = 50)
     {
-        return await _dbContext.BlastProbeJobs
+        return await _dbContext.RippleProbeJobs
             .AsNoTracking()
             .Where(j => j.ModuleId == moduleId && j.OrganizationId == organizationId)
             .OrderByDescending(j => j.TimestampStart)
@@ -86,10 +86,10 @@ public class BlastProbeJobRepository : IDisposable
             .ToListAsync();
     }
 
-    /// <summary>Every blast probe prompted by one upstream job.</summary>
-    public async Task<List<BlastProbeJob>> ListByUpstreamJob(Guid upstreamModuleJobId, Guid organizationId)
+    /// <summary>Every ripple probe prompted by one upstream job.</summary>
+    public async Task<List<RippleProbeJob>> ListByUpstreamJob(Guid upstreamModuleJobId, Guid organizationId)
     {
-        return await _dbContext.BlastProbeJobs
+        return await _dbContext.RippleProbeJobs
             .AsNoTracking()
             .Where(j => j.UpstreamModuleJobId == upstreamModuleJobId && j.OrganizationId == organizationId)
             .OrderBy(j => j.TimestampStart)

@@ -22,7 +22,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// ModuleJob because that entity's unique index on module and start timestamp admits one job per
 /// module at a time, and this one runs alongside whatever the module is already doing.
 /// </summary>
-public class BlastProbeJob : AuditBase, IEntity, IModuleChild
+public class RippleProbeJob : AuditBase, IEntity, IModuleChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
@@ -37,7 +37,7 @@ public class BlastProbeJob : AuditBase, IEntity, IModuleChild
 
     /// <summary>
     /// The ModuleJob whose plan reported the change, when one did. Null for a plan requested by
-    /// hand, which is the only way a blast probe starts until Apply and Destroy trigger them.
+    /// hand, which is the only way a ripple probe starts until Apply and Destroy trigger them.
     /// </summary>
     public Guid? UpstreamModuleJobId { get; set; }
 

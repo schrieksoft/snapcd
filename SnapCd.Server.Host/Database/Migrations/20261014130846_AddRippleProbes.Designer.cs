@@ -12,8 +12,8 @@ using SnapCd.Server.Host.Database;
 namespace SnapCd.Server.Host.Database.Migrations
 {
     [DbContext(typeof(SelfHostedSnapCdDbContext))]
-    [Migration("20261014125730_AddBlastProbeJobs")]
-    partial class AddBlastProbeJobs
+    [Migration("20261014130846_AddRippleProbes")]
+    partial class AddRippleProbes
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -683,115 +683,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasDiscriminator().HasValue("NamespaceInput");
 
                     b.UseTphMappingStrategy();
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.BlastProbeJob", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FailedOnServerSideStep")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("InputsJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("JobNumber")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobNumber"));
-
-                    b.Property<string>("Logs")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ServerSideError")
-                        .HasMaxLength(16000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ServerSideErrorHeader")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("SignalsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTimeOffset?>("TimestampEnd")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("TimestampStart")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid>("UpstreamModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("UpstreamModuleJobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool?>("WaitingForRunner")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("ModuleId");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("ModuleId", "OrganizationId");
-
-                    b.HasIndex("UpstreamModuleId", "OrganizationId");
-
-                    b.HasIndex("UpstreamModuleJobId", "OrganizationId");
-
-                    b.HasIndex("ModuleId", "TimestampStart", "OrganizationId");
-
-                    b.ToTable("BlastProbeJobs", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.DependsOnModule", b =>
@@ -4973,6 +4864,115 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.ToTable("OutputSets");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RippleProbeJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailedOnServerSideStep")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("InputsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("JobNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobNumber"));
+
+                    b.Property<string>("Logs")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedByAgentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ModifiedByPrincipalDiscriminator")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ServerSideError")
+                        .HasMaxLength(16000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ServerSideErrorHeader")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SignalsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset?>("TimestampEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("TimestampStart")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UpstreamModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UpstreamModuleJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool?>("WaitingForRunner")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id", "OrganizationId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.HasIndex("UpstreamModuleId", "OrganizationId");
+
+                    b.HasIndex("UpstreamModuleJobId", "OrganizationId");
+
+                    b.HasIndex("ModuleId", "TimestampStart", "OrganizationId");
+
+                    b.ToTable("RippleProbeJobs", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base.AgentRoleAssignment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8693,6 +8693,118 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.RippleProbeSaga", b =>
+                {
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("ApprovalTimeoutMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ApprovalTimeoutScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CurrentState")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("DeclaredJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DefinitiveRevision")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("HeartbeatRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("HeartbeatScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InputsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeclined")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("KillCancellationRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PreviousStateBeforeCancelling")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("PreviousStateBeforeWaiting")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ResponseAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("RunnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RunnerInstanceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("RunnerName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("ServerInstanceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UpstreamModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UpstreamModuleJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("WaitingSince")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("CorrelationId", "OrganizationId");
+
+                    b.HasIndex("CorrelationId")
+                        .IsUnique();
+
+                    b.HasIndex("ModuleId", "OrganizationId");
+
+                    b.ToTable("RippleProbeSagas", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.SplitMigrateSaga", b =>
                 {
                     b.Property<Guid>("CorrelationId")
@@ -10623,33 +10735,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.BlastProbeJob", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany("BlastProbeJobs")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
-                        .WithMany()
-                        .HasForeignKey("ModuleId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "UpstreamModule")
-                        .WithMany()
-                        .HasForeignKey("UpstreamModuleId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Module");
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("UpstreamModule");
-                });
-
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.DependsOnModule", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -11715,6 +11800,33 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RippleProbeJob", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
+                        .WithMany("RippleProbeJobs")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithMany()
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "UpstreamModule")
+                        .WithMany()
+                        .HasForeignKey("UpstreamModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("UpstreamModule");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base.AgentRoleAssignment", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -12462,6 +12574,15 @@ namespace SnapCd.Server.Host.Database.Migrations
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", null)
                         .WithMany()
+                        .HasForeignKey("ModuleId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.RippleProbeSaga", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", null)
+                        .WithMany("RippleProbeSagas")
                         .HasForeignKey("ModuleId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -13333,6 +13454,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("PulumiRemotePolicies");
 
+                    b.Navigation("RippleProbeSagas");
+
                     b.Navigation("RunnerModuleSupplies");
 
                     b.Navigation("SecretsScopedToModule");
@@ -13429,8 +13552,6 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("Agents");
 
-                    b.Navigation("BlastProbeJobs");
-
                     b.Navigation("DependsOnModules");
 
                     b.Navigation("GroupMembers");
@@ -13498,6 +13619,8 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("OutputSets");
 
                     b.Navigation("Outputs");
+
+                    b.Navigation("RippleProbeJobs");
 
                     b.Navigation("RunnerModuleSupplies");
 
