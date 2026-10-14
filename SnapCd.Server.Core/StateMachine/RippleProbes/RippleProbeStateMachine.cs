@@ -13,7 +13,9 @@ using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
-using SnapCd.Server.Core.StateMachine.RippleProbes.Finalization;
+using SnapCd.Server.Core.Events.Runners;
+using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Server.Core.Events.System;
 
 namespace SnapCd.Server.Core.StateMachine.RippleProbes;
 
@@ -28,6 +30,10 @@ public partial class RippleProbeStateMachine : MassTransitStateMachine<RipplePro
 
     public Event<RippleProbeRequested> RippleProbeRequested { get; } = null!;
 
+    public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
+    public Request<RippleProbeSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Schedule<RippleProbeSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
+
     public State Completed { get; } = null!;
     public State Failed { get; } = null!;
 
@@ -39,6 +45,27 @@ public partial class RippleProbeStateMachine : MassTransitStateMachine<RipplePro
         SetCompletedWhenFinalized();
 
         Event(() => RippleProbeRequested, x => x.CorrelateById(y => y.Message.CorrelationId));
+
+        Event(() => RunnerReconnectedEvent, x => x
+            .CorrelateBy((saga, context) =>
+                saga.RunnerId == context.Message.RunnerId &&
+                saga.RunnerInstanceName == context.Message.InstanceName &&
+                saga.OrganizationId == context.Message.OrganizationId)
+            .SelectId(context => Guid.NewGuid()));
+
+        Request(() => HeartbeatRequested, x => x.HeartbeatRequestId, o => { o.Timeout = TimeSpan.FromSeconds(60); });
+
+        Schedule(() => HeartbeatScheduled, saga => saga.HeartbeatScheduleTokenId, config =>
+        {
+            config.Delay = TimeSpan.FromSeconds(60);
+            config.Received = e => e.CorrelateById(context => context.Message.CorrelationId);
+        });
+
+        Configure_Cancel();
+        Configure_RippleProbeSelectRunnerInstance();
+        Configure_RippleProbeGetModule();
+        Configure_RippleProbeInit();
+        Configure_RippleProbeValidate();
 
         Initially(
             When(RippleProbeRequested)
@@ -56,16 +83,15 @@ public partial class RippleProbeStateMachine : MassTransitStateMachine<RipplePro
                     context.Saga.InputsJson = context.Message.InputsJson;
                 })
                 .Then(x => _logger.LogInformation(
-                    "Ripple probe completed for Module {ModuleId}, job {JobId}",
+                    "Ripple probe started for Module {ModuleId}, job {JobId}",
                     x.Saga.ModuleId, x.Saga.CorrelationId))
-                .Publish(context => new RippleProbeCompleted
+                .Publish(context => new SelectRunnerInstanceRequested
                 {
-                    ModuleId = context.Saga.ModuleId,
+                    RunnerId = context.Saga.RunnerId,
+                    CorrelationId = context.Saga.CorrelationId,
                     OrganizationId = context.Saga.OrganizationId,
-                    ModuleJobId = context.Saga.CorrelationId
+                    Declared = JsonSerializer.Deserialize<ResolvedModule>(context.Saga.DeclaredJson)!
                 })
-                .Activity(x => x.OfType<CompleteRippleProbeJobActivity<RippleProbeRequested>>())
-                .TransitionTo(Completed)
-                .Finalize());
+                .TransitionTo(RippleProbeSelectRunnerInstancePending));
     }
 }

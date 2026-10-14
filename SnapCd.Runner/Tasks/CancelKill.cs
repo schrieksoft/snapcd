@@ -27,6 +27,10 @@ public partial class Tasks
         CancelKill(request, connection,
             c => c.InvokeSplitCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeSplitCancelKillCompleted));
 
+    public Task RippleProbeCancelKill(CancelKillRequest request, HubConnection connection) =>
+        CancelKill(request, connection,
+            c => c.InvokeRippleProbeCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeRippleProbeCancelKillCompleted));
+
     public Task MoveCancelKill(CancelKillRequest request, HubConnection connection) =>
         CancelKill(request, connection,
             c => c.InvokeMoveCancelKillCompleted(request.JobId), nameof(RunnerHubClient.InvokeMoveCancelKillCompleted));

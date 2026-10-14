@@ -479,6 +479,11 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitCancelKillCompleted, jobId);
     }
 
+    public async Task InvokeRippleProbeCancelKillCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeCancelKillCompleted, jobId);
+    }
+
     public async Task InvokeMoveCancelKillCompleted(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.MoveCancelKillCompleted, jobId);
@@ -849,6 +854,51 @@ public class RunnerHubClient
     public async Task InvokeDestroyOutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRippleProbeGetModuleCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeGetModuleCompleted, jobId);
+    }
+
+    public async Task InvokeRippleProbeGetModuleCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeGetModuleCancelled, jobId);
+    }
+
+    public async Task InvokeRippleProbeGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeGetModuleFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRippleProbeInitCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeInitCompleted, jobId);
+    }
+
+    public async Task InvokeRippleProbeInitCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeInitCancelled, jobId);
+    }
+
+    public async Task InvokeRippleProbeInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeInitFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeRippleProbeValidateCompleted(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeValidateCompleted, jobId);
+    }
+
+    public async Task InvokeRippleProbeValidateCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeValidateCancelled, jobId);
+    }
+
+    public async Task InvokeRippleProbeValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeValidateFaulted, jobId, errorMessage, stackTrace);
     }
 
     public async Task InvokeSplitGetModuleCompleted(Guid jobId)

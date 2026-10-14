@@ -17,7 +17,10 @@ using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Module;
+using SnapCd.Server.Core.Events.Steps;
+using SnapCd.Server.Core.Events.Steps.RippleProbe;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.StateMachine.RippleProbes;
@@ -58,6 +61,7 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
             sp.GetRequiredService<IDbContextFactory<SnapCdDbContext>>().CreateDbContext());
         services.AddScoped<IPrincipalProvider>(_ =>
             new LiteralPrincipalProvider(Guid.Empty, PrincipalDiscriminator.User, [_organizationId]));
+        services.AddScoped<IMaintenanceModeService, MaintenanceModeService>();
         services.AddScoped<RippleProbeJobRepository>();
         services.AddMassTransitTestHarness(x =>
         {
@@ -85,50 +89,123 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_request_creates_a_saga_carrying_what_the_probe_was_asked_for()
+    public async Task A_request_creates_a_saga_and_asks_for_a_runner()
     {
         var jobId = await SeedJob();
         var inputs = """{"format_version":"1","variables":{"prefix_source":{"action":"unknown","type":"InN0cmluZyI=","before":"pGRlbW8=","after":"1AAA"}}}""";
 
         await Publish(jobId, inputs);
 
-        // The shell has no step between start and finish, so the saga is created and finalized in
-        // one transition and never exists to be read. What it carried is observable through the
-        // event it publishes and the job row it closes.
-        Assert.True(await WaitUntil(() => Completed(jobId)), "the probe should complete");
+        Assert.True(await WaitUntil(() => StateOf(jobId) == "RippleProbeSelectRunnerInstancePending"),
+            "the probe should be waiting for a runner instance");
 
-        var published = Assert.Single(_harness.Published.Select<RippleProbeCompleted>()
-            .Where(m => m.Context.Message.ModuleJobId == jobId));
+        await using var check = _fixture.CreateDbContext();
+        var saga = await check.Set<RippleProbeSaga>().AsNoTracking()
+            .SingleAsync(sa => sa.CorrelationId == jobId);
 
-        Assert.Equal(_moduleId, published.Context.Message.ModuleId);
-        Assert.Equal(_organizationId, published.Context.Message.OrganizationId);
+        Assert.Equal(_moduleId, saga.ModuleId);
+        Assert.Equal(_organizationId, saga.OrganizationId);
+        Assert.Equal(_upstreamModuleId, saga.UpstreamModuleId);
+        Assert.Equal(inputs, saga.InputsJson);
+        Assert.False(string.IsNullOrEmpty(saga.DeclaredJson));
 
-        Assert.True(await _harness.Consumed.Any<RippleProbeRequested>(
-            m => m.Context.Message.CorrelationId == jobId
-                 && m.Context.Message.InputsJson == inputs));
+        Assert.True(_harness.Published.Select<SelectRunnerInstanceRequested>()
+            .Any(m => m.Context.Message.CorrelationId == jobId));
+    }
+
+    /// <summary>
+    /// Each step hands off to the next. The saga is seeded into a step's pending state rather than
+    /// driven there, because advancing through a step dispatches to a runner and the dispatch is
+    /// not what these assertions are about. This is how SplitProveStateMachineTests does it.
+    /// </summary>
+    [Theory]
+    [InlineData("RippleProbeGetModulePending", "RippleProbeInit")]
+    [InlineData("RippleProbeInitPending", "RippleProbeValidate")]
+    public async Task A_completed_step_hands_off_to_the_next(string state, string next)
+    {
+        var jobId = await Seed(state);
+
+        await PublishCompletedFor(state, jobId);
+
+        Assert.True(await WaitUntil(() => StateOf(jobId) is { } s
+                                         && (s == $"{next}Pending" || s == $"{next}WaitingForRunner")),
+            $"{state} should hand off to {next}; saga is in {StateOf(jobId)}");
     }
 
     [Fact]
-    public async Task A_request_reaches_a_terminal_state_and_finalizes()
+    public async Task The_last_step_completes_the_probe()
     {
-        var jobId = await SeedJob();
+        var jobId = await Seed("RippleProbeValidatePending");
 
-        await Publish(jobId);
+        await _harness.Bus.Publish(new RippleProbeValidateCompleted
+            { CorrelationId = jobId, OrganizationId = _organizationId });
 
-        Assert.True(await WaitUntil(() => Completed(jobId)), "the probe should reach Completed");
+        Assert.True(await WaitUntil(() => Completed(jobId)),
+            "Validate is the last step, so completing it should complete the probe");
 
         Assert.True(_harness.Published.Select<RippleProbeCompleted>()
+            .Any(m => m.Context.Message.ModuleJobId == jobId));
+    }
+
+    [Theory]
+    [InlineData("RippleProbeGetModulePending")]
+    [InlineData("RippleProbeInitPending")]
+    [InlineData("RippleProbeValidatePending")]
+    public async Task A_faulted_step_fails_the_probe_and_records_the_error(string state)
+    {
+        var jobId = await Seed(state);
+
+        await PublishFaultFor(state, jobId);
+
+        Assert.True(await WaitUntil(() => StatusOf(jobId) == ExecutionStatus.Failed),
+            $"a fault in {state} should fail the probe");
+
+        Assert.True(_harness.Published.Select<RippleProbeFailed>()
             .Any(m => m.Context.Message.ModuleJobId == jobId));
 
         await using var check = _fixture.CreateDbContext();
         var job = await check.RippleProbeJobs.AsNoTracking().SingleAsync(j => j.Id == jobId);
 
-        Assert.Equal(ExecutionStatus.Completed, job.Status);
         Assert.NotNull(job.TimestampEnd);
+        Assert.NotNull(job.ServerSideError);
+    }
 
-        // SetCompletedWhenFinalized plus Finalize means a finished probe leaves no saga row.
-        Assert.False(await check.Set<RippleProbeSaga>().AsNoTracking()
-            .AnyAsync(sa => sa.CorrelationId == jobId));
+    [Theory]
+    [InlineData("RippleProbeGetModulePending")]
+    [InlineData("RippleProbeInitPending")]
+    [InlineData("RippleProbeValidatePending")]
+    public async Task A_cancelled_step_cancels_the_probe(string state)
+    {
+        var jobId = await Seed(state);
+
+        await PublishCancelFor(state, jobId);
+
+        Assert.True(await WaitUntil(() => StatusOf(jobId) == ExecutionStatus.Cancelled),
+            $"a cancel in {state} should cancel the probe");
+
+        Assert.True(_harness.Published.Select<RippleProbeCancelled>()
+            .Any(m => m.Context.Message.ModuleJobId == jobId));
+    }
+
+    /// <summary>
+    /// A cancel for a probe whose saga is gone still closes the job row. Without the missing
+    /// instance fallback the cancel is swallowed and the row stays Running until the orphan sweep
+    /// reports it as abandoned rather than cancelled.
+    /// </summary>
+    [Fact]
+    public async Task A_cancel_with_no_saga_still_closes_the_job()
+    {
+        var jobId = await SeedJob();
+
+        await _harness.Bus.Publish(new CancelRippleProbeJobRequested
+        {
+            CorrelationId = jobId,
+            OrganizationId = _organizationId,
+            CancellationType = CancellationType.ImmediateKill
+        });
+
+        Assert.True(await WaitUntil(() => StatusOf(jobId) == ExecutionStatus.Cancelled),
+            "the job should be cancelled even with no saga to receive it");
     }
 
     /// <summary>
@@ -136,15 +213,90 @@ public class RippleProbeStateMachineTests : IAsyncLifetime
     /// this is what proves the concurrency the entity's missing filtered index allows.
     /// </summary>
     [Fact]
-    public async Task Two_probes_on_one_module_get_their_own_sagas()
+    public async Task Two_probes_on_one_module_are_tracked_separately()
     {
-        var first = await SeedJob();
-        var second = await SeedJob();
+        var first = await Seed("RippleProbeInitPending");
+        var second = await Seed("RippleProbeGetModulePending");
 
-        await Publish(first);
-        await Publish(second);
+        Assert.Equal("RippleProbeInitPending", StateOf(first));
+        Assert.Equal("RippleProbeGetModulePending", StateOf(second));
 
-        Assert.True(await WaitUntil(() => Completed(first) && Completed(second)));
+        await PublishFaultFor("RippleProbeInitPending", first);
+
+        Assert.True(await WaitUntil(() => StatusOf(first) == ExecutionStatus.Failed));
+        Assert.Equal(ExecutionStatus.Running, StatusOf(second));
+        Assert.Equal("RippleProbeGetModulePending", StateOf(second));
+    }
+
+    /// <summary>Seeds a job and a saga already in the given state, as the split tests do.</summary>
+    private async Task<Guid> Seed(string state)
+    {
+        var jobId = await SeedJob();
+
+        await using var db = _fixture.CreateDbContext();
+        db.Set<RippleProbeSaga>().Add(new RippleProbeSaga
+        {
+            CorrelationId = jobId,
+            ModuleId = _moduleId,
+            OrganizationId = _organizationId,
+            CurrentState = state,
+            RunnerId = _fixture.Modules["0000"].RunnerId,
+            RunnerName = "runner",
+            RunnerInstanceName = "probe-test",
+            DeclaredJson = "{}",
+            UpstreamModuleId = _upstreamModuleId,
+            InputsJson = "{}",
+            ApprovalTimeoutMinutes = 0,
+            RowVersion = []
+        });
+        await db.SaveChangesAsync();
+
+        return jobId;
+    }
+
+    private Task PublishCompletedFor(string state, Guid jobId) => state switch
+    {
+        "RippleProbeGetModulePending" => _harness.Bus.Publish(new RippleProbeGetModuleCompleted { CorrelationId = jobId, OrganizationId = _organizationId }),
+        "RippleProbeInitPending" => _harness.Bus.Publish(new RippleProbeInitCompleted { CorrelationId = jobId, OrganizationId = _organizationId }),
+        "RippleProbeValidatePending" => _harness.Bus.Publish(new RippleProbeValidateCompleted { CorrelationId = jobId, OrganizationId = _organizationId }),
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+    };
+
+    private Task PublishFaultFor(string state, Guid jobId) => state switch
+    {
+        "RippleProbeGetModulePending" => _harness.Bus.Publish(new RippleProbeGetModuleFaulted
+            { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "checkout failed", IsServerSideError = true }),
+        "RippleProbeInitPending" => _harness.Bus.Publish(new RippleProbeInitFaulted
+            { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "init failed", IsServerSideError = true }),
+        "RippleProbeValidatePending" => _harness.Bus.Publish(new RippleProbeValidateFaulted
+            { CorrelationId = jobId, OrganizationId = _organizationId, ErrorMessage = "validate failed", IsServerSideError = true }),
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+    };
+
+    private Task PublishCancelFor(string state, Guid jobId) => state switch
+    {
+        "RippleProbeGetModulePending" => _harness.Bus.Publish(new RippleProbeGetModuleCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
+        "RippleProbeInitPending" => _harness.Bus.Publish(new RippleProbeInitCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
+        "RippleProbeValidatePending" => _harness.Bus.Publish(new RippleProbeValidateCancelled { CorrelationId = jobId, OrganizationId = _organizationId }),
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+    };
+
+    private string? StateOf(Guid jobId)
+    {
+        using var scope = _provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
+        return db.Set<RippleProbeSaga>().AsNoTracking()
+            .SingleOrDefault(sa => sa.CorrelationId == jobId)?.CurrentState;
+    }
+
+    private ExecutionStatus? StatusOf(Guid jobId)
+    {
+        using var scope = _provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SnapCdDbContext>();
+        return db.RippleProbeJobs.AsNoTracking()
+            .Where(j => j.Id == jobId)
+            .Select(j => (ExecutionStatus?)j.Status)
+            .SingleOrDefault();
     }
 
     private bool Completed(Guid jobId)

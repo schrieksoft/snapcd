@@ -21,6 +21,7 @@ using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
 using SnapCd.Server.Core.Consumers.Tasks.SplitMigrate;
+using SnapCd.Server.Core.Consumers.Tasks.RippleProbe;
 using SnapCd.Server.Core.Consumers.Tasks.Transfers;
 using SnapCd.Server.Core.StateMachine.SplitMigrate;
 using SnapCd.Server.Core.StateMachine.Transfers;
@@ -250,6 +251,9 @@ public static class MassTransit
         typeof(ApplyVariablesConsumer),
         typeof(DestroyVariablesConsumer),
         typeof(PlanConsumer),
+        typeof(RippleProbeGetModuleConsumer),
+        typeof(RippleProbeInitConsumer),
+        typeof(RippleProbeValidateConsumer),
         typeof(SplitGetModuleConsumer),
         typeof(SplitInitConsumer),
         typeof(SplitValidateConsumer),

@@ -34,6 +34,7 @@ public class RunnerHubConnection :
     IApplyEndpoints,
     IDestroyEndpoints,
     ISplitEndpoints,
+    IRippleProbeEndpoints,
     ITransferEndpoints,
     ILookupAddressesEndpoints,
     IMoveEndpoints,
@@ -489,6 +490,34 @@ public class RunnerHubConnection :
             request =>
             {
                 Task.Run(() => ApplyPlan(request));
+                return Task.CompletedTask;
+            });
+
+        _connection.On<GetModuleRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeGetModule),
+            request =>
+            {
+                Task.Run(() => RippleProbeGetModule(request));
+                return Task.CompletedTask;
+            });
+
+        _connection.On<InitRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeInit),
+            request =>
+            {
+                Task.Run(() => RippleProbeInit(request));
+                return Task.CompletedTask;
+            });
+
+        _connection.On<ValidateRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeValidate),
+            request =>
+            {
+                Task.Run(() => RippleProbeValidate(request));
+                return Task.CompletedTask;
+            });
+
+        _connection.On<CancelKillRequest>(nameof(IRippleProbeEndpoints.RippleProbeCancelKill),
+            request =>
+            {
+                Task.Run(() => RippleProbeCancelKill(request));
                 return Task.CompletedTask;
             });
 
@@ -982,6 +1011,30 @@ public class RunnerHubConnection :
 
     public Task SplitCancelKill(CancelKillRequest request) =>
         _tasks.Value.SplitCancelKill(request, _connection!);
+
+    public Task RippleProbeCancelKill(CancelKillRequest request) =>
+        _tasks.Value.RippleProbeCancelKill(request, _connection!);
+
+    public Task RippleProbeGetModule(GetModuleRequestBase request) =>
+        _tasks.Value.GetModule(
+            request, _connection!,
+            Client.InvokeRippleProbeGetModuleCompleted,
+            Client.InvokeRippleProbeGetModuleCancelled,
+            Client.InvokeRippleProbeGetModuleFaulted);
+
+    public Task RippleProbeInit(InitRequestBase request) =>
+        _tasks.Value.Init(
+            request, _connection!,
+            Client.InvokeRippleProbeInitCompleted,
+            Client.InvokeRippleProbeInitCancelled,
+            Client.InvokeRippleProbeInitFaulted);
+
+    public Task RippleProbeValidate(ValidateRequestBase request) =>
+        _tasks.Value.Validate(
+            request, _connection!,
+            Client.InvokeRippleProbeValidateCompleted,
+            Client.InvokeRippleProbeValidateCancelled,
+            Client.InvokeRippleProbeValidateFaulted);
 
     public Task SplitGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(

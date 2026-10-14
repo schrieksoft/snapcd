@@ -30,6 +30,7 @@ using SnapCd.Server.Core.Hubs.Handlers;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Hubs.Handlers.StateMigrations;
 using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
+using SnapCd.Server.Core.Hubs.Handlers.RippleProbe;
 using SnapCd.Server.Core.Hubs.Handlers.Transfers;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Events.Steps.Transfer;
@@ -63,6 +64,9 @@ public class RunnerHub : Hub
     private readonly DestroyOutputHandler _destroyOutputHandler;
     private readonly PlanHandler _planHandler;
     private readonly SplitGetModuleHandler _splitGetModuleHandler;
+    private readonly RippleProbeGetModuleHandler _rippleProbeGetModuleHandler;
+    private readonly RippleProbeInitHandler _rippleProbeInitHandler;
+    private readonly RippleProbeValidateHandler _rippleProbeValidateHandler;
     private readonly TransferStepHandler _transferStepHandler;
     private readonly ApplyGetModuleHandler _applyGetModuleHandler;
     private readonly ApplyInitHandler _applyInitHandler;
@@ -115,6 +119,9 @@ public class RunnerHub : Hub
         DestroyOutputHandler destroyOutputHandler,
         PlanHandler planHandler,
         SplitGetModuleHandler splitGetModuleHandler,
+        RippleProbeGetModuleHandler rippleProbeGetModuleHandler,
+        RippleProbeInitHandler rippleProbeInitHandler,
+        RippleProbeValidateHandler rippleProbeValidateHandler,
         TransferStepHandler transferStepHandler,
         ApplyGetModuleHandler applyGetModuleHandler,
         ApplyInitHandler applyInitHandler,
@@ -166,6 +173,9 @@ public class RunnerHub : Hub
         _destroyOutputHandler = destroyOutputHandler;
         _planHandler = planHandler;
         _splitGetModuleHandler = splitGetModuleHandler;
+        _rippleProbeGetModuleHandler = rippleProbeGetModuleHandler;
+        _rippleProbeInitHandler = rippleProbeInitHandler;
+        _rippleProbeValidateHandler = rippleProbeValidateHandler;
         _transferStepHandler = transferStepHandler;
         _applyGetModuleHandler = applyGetModuleHandler;
         _applyInitHandler = applyInitHandler;
@@ -1899,6 +1909,89 @@ public class RunnerHub : Hub
             .ValidateRunnerCanAccessJob<DestroyJobSaga>(Context, jobId);
 
         await _destroyOutputHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    // A ripple probe answers on its own endpoints, as every family does.
+
+    public async Task RippleProbeGetModuleCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeGetModuleHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task RippleProbeGetModuleCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeGetModuleHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RippleProbeGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeGetModuleHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task RippleProbeInitCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeInitHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task RippleProbeInitCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeInitHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RippleProbeInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeInitHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    public async Task RippleProbeValidateCompleted(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeValidateHandler.Complete(jobId, organizationId);
+    }
+
+    public async Task RippleProbeValidateCancelled(Guid jobId)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeValidateHandler.Cancel(jobId, organizationId);
+    }
+
+    public async Task RippleProbeValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        var organizationId = await _authorizationService
+            .ValidateRunnerCanAccessJob<RippleProbeSaga>(Context, jobId);
+
+        await _rippleProbeValidateHandler.Fault(jobId, organizationId, errorMessage, stackTrace);
+    }
+
+    /// <summary>Called by the runner when a kill cancellation completes on a ripple probe.</summary>
+    public async Task RippleProbeCancelKillCompleted(Guid jobId)
+    {
+        await _authorizationService.ValidateRunnerCanAccessJob<RippleProbeSaga>(
+            Context, jobId);
+
+        await _cancelKillHandler.Complete<Events.Steps.RippleProbeCancelKillCompleted>(jobId);
     }
 
     // Split answers on its own endpoints for the setup steps too.
