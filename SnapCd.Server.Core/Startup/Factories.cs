@@ -237,6 +237,7 @@ public static class Factories
         services.AddScoped<JobServiceFactory>();
         services.AddScoped<SecuredJobServiceFactory>();
         services.AddScoped<StateMigrationServiceFactory>();
+        services.AddScoped<BlastProbeServiceFactory>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferServiceFactory>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.StateMigrations.StateMigrationAddressService>();
         services.AddScoped<SourceChangedServiceFactory>();
