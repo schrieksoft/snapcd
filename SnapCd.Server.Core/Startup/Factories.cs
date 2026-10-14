@@ -35,6 +35,7 @@ using SnapCd.Server.Core.Repositories.System.Secured;
 using SnapCd.Server.Core.Services;
 using SnapCd.Server.Core.Services.Crud;
 using SnapCd.Server.Core.Services.Crud.Jobs;
+using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Services.Crud.Transfers;
 using SnapCd.Server.Core.Services.Crud.RoleAssignment;
 using SnapCd.Server.Core.Services.Crud.Secrets;
@@ -238,6 +239,7 @@ public static class Factories
         services.AddScoped<SecuredJobServiceFactory>();
         services.AddScoped<StateMigrationServiceFactory>();
         services.AddScoped<RippleProbeServiceFactory>();
+        services.AddScoped<RippleProbeConsumerLookupFactory>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.Transfers.TransferServiceFactory>();
         services.AddScoped<SnapCd.Server.Core.Services.Crud.StateMigrations.StateMigrationAddressService>();
         services.AddScoped<SourceChangedServiceFactory>();
