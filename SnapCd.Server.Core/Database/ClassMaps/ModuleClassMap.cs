@@ -99,15 +99,6 @@ public class ModuleClassMap : IEntityTypeConfiguration<Module>
             .HasForeignKey(m => new { m.RunnerId, m.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Foreign Key to ModuleModifiedSaga (optional, uses Module.Id as FK)
-        entity
-            .HasOne(m => m.ModuleModifiedSaga)
-            .WithOne(s => s.Module)
-            .HasForeignKey<Module>(m => new { ModuleModifiedSagaCorrelationId = m.Id, ModuleModifiedSagaOrganizationId = m.OrganizationId })
-            .HasPrincipalKey<ModuleModifiedSaga>(s => new { s.CorrelationId, s.OrganizationId })
-            .OnDelete(DeleteBehavior.Restrict)
-            .IsRequired(false);
-
         entity.Ignore(e => e.GroupModuleRoleAssignments);
         entity.Ignore(e => e.UserModuleRoleAssignments);
         entity.Ignore(e => e.ServicePrincipalModuleRoleAssignments);

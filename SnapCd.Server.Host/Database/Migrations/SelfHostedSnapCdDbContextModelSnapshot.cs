@@ -10895,11 +10895,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SnapCd.Server.Core.Entities.Sagas.ModuleModifiedSaga", "ModuleModifiedSaga")
-                        .WithOne("Module")
-                        .HasForeignKey("SnapCd.Server.Core.Entities.Definition.Module", "Id", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Namespace", "Namespace")
                         .WithMany("Modules")
                         .HasForeignKey("NamespaceId", "OrganizationId")
@@ -10911,8 +10906,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasForeignKey("RunnerId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("ModuleModifiedSaga");
 
                     b.Navigation("Namespace");
 
@@ -12307,6 +12300,17 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleModifiedSaga", b =>
+                {
+                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
+                        .WithOne("ModuleModifiedSaga")
+                        .HasForeignKey("SnapCd.Server.Core.Entities.Sagas.ModuleModifiedSaga", "CorrelationId", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+                });
+
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleSaga", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
@@ -13174,6 +13178,8 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("ModuleMissions");
 
+                    b.Navigation("ModuleModifiedSaga");
+
                     b.Navigation("ModuleParamFromDefinitions");
 
                     b.Navigation("ModuleParamFromLiterals");
@@ -13520,11 +13526,6 @@ namespace SnapCd.Server.Host.Database.Migrations
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.VariableSet", b =>
                 {
                     b.Navigation("Variables");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleModifiedSaga", b =>
-                {
-                    b.Navigation("Module");
                 });
 #pragma warning restore 612, 618
         }

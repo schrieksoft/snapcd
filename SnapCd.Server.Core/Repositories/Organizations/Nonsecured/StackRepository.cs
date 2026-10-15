@@ -159,6 +159,28 @@ public class StackRepository : GenericOrganizationChildRepository<Stack, StackRe
             .Where(s => s.StackId == id && s.OrganizationId == organizationId)
             .ExecuteDeleteAsync();
 
+        // A Transfer restricts on both of the Modules it names, so it blocks a Module that
+        // cascades away with this stack. Both sides of a transfer are in one stack, so matching
+        // on either reaches every transfer this delete would strand.
+        var transferIds = await DbContext.Transfers
+            .Where(t => t.OrganizationId == organizationId && t.Module.Namespace.StackId == id)
+            .Select(t => t.Id)
+            .ToListAsync();
+
+        if (transferIds.Count > 0)
+        {
+            // The jobs belong to the Module and cascade with it. Their FK to Transfers is NoAction
+            // and would otherwise block the delete below.
+            await DbContext.StateMigrationJobs
+                .Where(j => j.OrganizationId == organizationId &&
+                            j.TransferId != null && transferIds.Contains(j.TransferId.Value))
+                .ExecuteUpdateAsync(u => u.SetProperty(j => j.TransferId, (Guid?)null));
+
+            await DbContext.Transfers
+                .Where(t => transferIds.Contains(t.Id) && t.OrganizationId == organizationId)
+                .ExecuteDeleteAsync();
+        }
+
         await base.ExecuteDelete(id, organizationId);
     }
 

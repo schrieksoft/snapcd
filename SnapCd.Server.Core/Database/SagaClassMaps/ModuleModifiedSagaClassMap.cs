@@ -9,6 +9,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Sagas;
 
 namespace SnapCd.Server.Core.Database.SagaClassMaps;
@@ -30,5 +31,15 @@ public class ModuleModifiedSagaClassMap : SagaClassMap<ModuleModifiedSaga>
         entity.Property(x => x.CurrentState).HasMaxLength(64);
 
         entity.Property(x => x.RowVersion).IsRowVersion(); // for optimistic concurrency
+
+        // The saga is the dependent, as ModuleSaga is: it is per-Module state created with the
+        // Module and meaningless without it, so it goes when the Module does. Mapped the other way
+        // round it was the Module that carried the reference, which left the saga behind.
+        entity
+            .HasOne(e => e.Module)
+            .WithOne(m => m.ModuleModifiedSaga)
+            .HasForeignKey<ModuleModifiedSaga>(e => new { e.CorrelationId, e.OrganizationId })
+            .HasPrincipalKey<Module>(m => new { m.Id, m.OrganizationId })
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

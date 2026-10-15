@@ -229,6 +229,30 @@ public class NamespaceRepository : GenericRepository<Namespace, NamespaceReadDto
             .Where(s => s.NamespaceId == id)
             .ExecuteDeleteAsync();
 
+        // A Transfer restricts on both of the Modules it names, so it blocks a Module that
+        // cascades away with this namespace. Cleared here as well as in ModuleRepository, because
+        // a namespace delete cascades its Modules rather than deleting them through that
+        // repository.
+        var transferIds = await DbContext.Transfers
+            .Where(t => t.OrganizationId == organizationId &&
+                        (t.Module.NamespaceId == id || t.CounterpartyModule.NamespaceId == id))
+            .Select(t => t.Id)
+            .ToListAsync();
+
+        if (transferIds.Count > 0)
+        {
+            // The jobs belong to the Module and cascade with it, so they are detached rather than
+            // deleted. Their FK to Transfers is NoAction and would otherwise block this.
+            await DbContext.StateMigrationJobs
+                .Where(j => j.OrganizationId == organizationId &&
+                            j.TransferId != null && transferIds.Contains(j.TransferId.Value))
+                .ExecuteUpdateAsync(u => u.SetProperty(j => j.TransferId, (Guid?)null));
+
+            await DbContext.Transfers
+                .Where(t => transferIds.Contains(t.Id) && t.OrganizationId == organizationId)
+                .ExecuteDeleteAsync();
+        }
+
         // Now proceed with normal namespace deletion (which will cascade to modules)
         await base.ExecuteDelete(id, organizationId);
     }

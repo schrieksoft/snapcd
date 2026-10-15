@@ -226,6 +226,34 @@ public class ModuleRepository : GenericNamespaceChildRepository<Module, ModuleRe
             DbContext.ModuleSecrets.RemoveRange(secretsToDelete);
         }
 
+        // A Transfer names two Modules and restricts on both, so it cannot cascade: SQL Server
+        // refuses two cascade paths into one table. Nothing cleared it when a Module was deleted,
+        // so any transfer the Module appeared in blocked the delete permanently.
+        //
+        // Open and closed alike are cleared. An open transfer no longer refuses the delete, which
+        // the Restrict on it used to enforce; a Module being deleted has nothing left to transfer.
+        var transfers = await DbContext.Transfers
+            .Where(t => t.OrganizationId == organizationId &&
+                        (t.ModuleId == id || t.CounterpartyModuleId == id))
+            .ToListAsync();
+
+        if (transfers.Count > 0)
+        {
+            var transferIds = transfers.Select(t => t.Id).ToList();
+
+            // The jobs outlive the transfer and belong to the Module, so they are detached rather
+            // than deleted: the Module's own delete takes them.
+            var jobs = await DbContext.StateMigrationJobs
+                .Where(j => j.OrganizationId == organizationId &&
+                            j.TransferId != null && transferIds.Contains(j.TransferId.Value))
+                .ToListAsync();
+
+            foreach (var job in jobs) job.TransferId = null;
+
+            // Artefacts and locks cascade from the transfer.
+            DbContext.Transfers.RemoveRange(transfers);
+        }
+
         // Now proceed with normal module deletion (which will cascade to other entities)
         await base.ExecuteDelete(id, organizationId);
     }
