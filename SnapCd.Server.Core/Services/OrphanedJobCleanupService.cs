@@ -85,4 +85,25 @@ public class OrphanedJobCleanupService
             select new OrphanedJobInfo { Id = job.Id, OrganizationId = job.OrganizationId, JobType = job.JobType }
         ).ToListAsync();
     }
+
+    /// <summary>
+    /// Ripple probes left Running with no saga behind them. The filtered unique index keys on
+    /// Running, so one of these blocks every future probe on that Module until it is closed.
+    /// </summary>
+    public async Task<List<OrphanedJobInfo>> ListOrphanedRippleProbes()
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        return await (
+            from job in dbContext.RippleProbeJobs
+            where job.TimestampEnd == null
+            join saga in dbContext.Set<RippleProbeSaga>()
+                on new { job.Id, job.OrganizationId }
+                equals new { Id = saga.CorrelationId, saga.OrganizationId }
+                into sagas
+            from saga in sagas.DefaultIfEmpty()
+            where saga == null
+            select new OrphanedJobInfo { Id = job.Id, OrganizationId = job.OrganizationId, JobType = nameof(RippleProbeSaga) }
+        ).ToListAsync();
+    }
 }

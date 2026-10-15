@@ -16,17 +16,20 @@ public class OrphanedJobCleanupJob
 {
     private readonly OrphanedJobCleanupService _cleanupService;
     private readonly StateMigrationJobRepositoryFactory _stateMigrationJobRepositoryFactory;
+    private readonly RippleProbeJobRepositoryFactory _rippleProbeJobRepositoryFactory;
     private readonly IBus _bus;
     private readonly ILogger<OrphanedJobCleanupJob> _logger;
 
     public OrphanedJobCleanupJob(
         OrphanedJobCleanupService cleanupService,
         StateMigrationJobRepositoryFactory stateMigrationJobRepositoryFactory,
+        RippleProbeJobRepositoryFactory rippleProbeJobRepositoryFactory,
         IBus bus,
         ILogger<OrphanedJobCleanupJob> logger)
     {
         _cleanupService = cleanupService;
         _stateMigrationJobRepositoryFactory = stateMigrationJobRepositoryFactory;
+        _rippleProbeJobRepositoryFactory = rippleProbeJobRepositoryFactory;
         _bus = bus;
         _logger = logger;
     }
@@ -57,6 +60,32 @@ public class OrphanedJobCleanupJob
         }
     }
 
+    /// <summary>
+    /// A probe has no saga to route a cancellation through once its saga is gone, so the row is
+    /// closed here directly. Leaving it open would block every future probe on the Module through
+    /// the filtered unique index.
+    /// </summary>
+    private async Task CleanUpRippleProbes()
+    {
+        var orphaned = await _cleanupService.ListOrphanedRippleProbes();
+
+        foreach (var job in orphaned)
+        {
+            _logger.LogWarning(
+                "Found orphaned ripple probe {JobId} in organization {OrganizationId}, closing it",
+                job.Id, job.OrganizationId);
+
+            using var repository = _rippleProbeJobRepositoryFactory.Create();
+            await repository.FinalizeWithServerError(
+                job.Id,
+                job.OrganizationId,
+                DateTimeOffset.UtcNow,
+                null,
+                "This probe was abandoned.",
+                "The probe's saga is no longer present, so it could not be completed. It has been closed so that further probes can run on this module.");
+        }
+    }
+
     public async Task ExecuteJob()
     {
         using var _ = SnapCd.Server.Core.Services.CallerContext.CallerContext.Begin(SnapCd.Server.Core.Services.CallerContext.CallerKind.System);
@@ -77,6 +106,7 @@ public class OrphanedJobCleanupJob
                 });
             }
             await CleanUpStateMigrations();
+            await CleanUpRippleProbes();
         }
         catch (Exception ex)
         {
