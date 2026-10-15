@@ -64,7 +64,8 @@ public class RunnerConnectionRippleProbeService
                 OrganizationId = organizationId,
                 RunnerConnectionId = connection.Id,
                 RippleProbeJobId = rippleProbeJobId,
-                TaskName = taskName
+                TaskName = taskName,
+                ModifiedDateTime = DateTime.UtcNow
             });
         }
 

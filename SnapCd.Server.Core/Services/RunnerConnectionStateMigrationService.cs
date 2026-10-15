@@ -61,7 +61,8 @@ public class RunnerConnectionStateMigrationService
                 OrganizationId = organizationId,
                 RunnerConnectionId = connection.Id,
                 StateMigrationJobId = stateMigrationJobId,
-                TaskName = taskName
+                TaskName = taskName,
+                ModifiedDateTime = DateTime.UtcNow
             });
         }
 
