@@ -72,9 +72,7 @@ public class RunnerHubConnection :
     /// Buffered while disconnected, each entry with the endpoint it was bound for: a batch that
     /// outlives the connection still has to reach the table it belongs to.
     /// </summary>
-    private readonly ConcurrentQueue<(string Endpoint, object Entry)> _logBuffer = new();
-    private const int MaxLogBufferSize = 10000;
-    private int _droppedLogCount = 0;
+    private readonly LogBuffer _logBuffer = new();
 
     private readonly ProcessRegistry _processRegistry;
 
@@ -790,18 +788,10 @@ public class RunnerHubConnection :
         if (_connection?.State != HubConnectionState.Connected)
         {
             foreach (var log in logEntries)
-            {
-                if (_logBuffer.Count >= MaxLogBufferSize)
-                {
-                    // Drop oldest log
-                    _logBuffer.TryDequeue(out _);
-                    _droppedLogCount++;
-                }
+                _logBuffer.AddWhileDisconnected(endpoint, log);
 
-                _logBuffer.Enqueue((endpoint, log));
-            }
-
-            if (_droppedLogCount > 0) _logger.LogWarning("Dropped {Count} log entries due to buffer overflow", _droppedLogCount);
+            if (_logBuffer.DroppedCount > 0)
+                _logger.LogWarning("Dropped {Count} log entries due to buffer overflow", _logBuffer.DroppedCount);
 
             return;
         }
@@ -811,14 +801,18 @@ public class RunnerHubConnection :
             await _connection.InvokeAsync(endpoint, logEntries);
             _logger.LogTrace("Sent {Count} log entries to server", logEntries.Count);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (HubInvocationRetry.IsRetryable(ex))
         {
             _logger.LogError(ex, "Error sending logs to server, buffering for retry");
 
-            // Buffer the logs for retry
             foreach (var log in logEntries)
-                if (_logBuffer.Count < MaxLogBufferSize)
-                    _logBuffer.Enqueue((endpoint, log));
+                _logBuffer.AddForRetry(endpoint, log);
+        }
+        catch (Exception ex)
+        {
+            // A rejection will not change on a second attempt, and the buffer drops its oldest
+            // entry when full, so re-queueing one evicts logs that could still be delivered.
+            _logger.LogError(ex, "Server rejected {Count} log entries, discarding them", logEntries.Count);
         }
     }
 
@@ -827,8 +821,7 @@ public class RunnerHubConnection :
         if (_logBuffer.IsEmpty || _connection?.State != HubConnectionState.Connected)
             return;
 
-        var buffered = new List<(string Endpoint, object Entry)>();
-        while (_logBuffer.TryDequeue(out var log) && buffered.Count < 100) buffered.Add(log);
+        var buffered = _logBuffer.TakeBatch(100);
 
         // One invoke per endpoint: entries bound for different tables cannot travel together.
         foreach (var batch in buffered.GroupBy(b => b.Endpoint))
@@ -840,19 +833,21 @@ public class RunnerHubConnection :
             {
                 await _connection.InvokeAsync(batch.Key, logsToSend);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (HubInvocationRetry.IsRetryable(ex))
             {
                 _logger.LogError(ex, "Error flushing buffered logs, will retry later");
                 // Re-queue the logs
-                foreach (var entry in logsToSend) _logBuffer.Enqueue((batch.Key, entry));
+                foreach (var entry in logsToSend) _logBuffer.AddForRetry(batch.Key, entry);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Server rejected {Count} buffered log entries, discarding them", logsToSend.Count);
             }
         }
 
-        if (_droppedLogCount > 0)
-        {
-            _logger.LogWarning("Total of {Count} log entries were dropped due to buffer overflow", _droppedLogCount);
-            _droppedLogCount = 0;
-        }
+        var dropped = _logBuffer.ReadAndResetDroppedCount();
+        if (dropped > 0)
+            _logger.LogWarning("Total of {Count} log entries were dropped due to buffer overflow", dropped);
     }
 
     /// <summary>

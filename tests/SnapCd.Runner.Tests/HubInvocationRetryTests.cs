@@ -151,4 +151,30 @@ public class HubInvocationRetryTests
 
         Assert.Equal(1, attempts);
     }
+
+    /// <summary>
+    /// The log path classifies with the same predicate as a step reply. A refused batch is a
+    /// decision rather than a mishap, so holding it would retry it for as long as the runner
+    /// lives while occupying room in a capped buffer.
+    /// </summary>
+    [Theory]
+    [InlineData("Unauthorized: not the runner for job 0f8fad5b-d9cb-469f-a165-70867728950e.")]
+    [InlineData("Unauthorized: Runner connection not found")]
+    [InlineData("Error processing logs")]
+    public void A_refused_log_batch_is_not_retryable(string message)
+    {
+        Assert.False(HubInvocationRetry.IsRetryable(new HubException(message)));
+    }
+
+    /// <summary>
+    /// The failures a log batch should be kept for: the call never reached the server, so the
+    /// entries are still worth delivering once it is back.
+    /// </summary>
+    [Fact]
+    public void A_transport_failure_sending_logs_is_retryable()
+    {
+        Assert.True(HubInvocationRetry.IsRetryable(new HttpRequestException("connection refused")));
+        Assert.True(HubInvocationRetry.IsRetryable(new TimeoutException()));
+        Assert.True(HubInvocationRetry.IsRetryable(new TaskCanceledException()));
+    }
 }
