@@ -19,6 +19,18 @@ namespace SnapCd.Server.Host.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<Guid>(
+                name: "SelectedRunnerId",
+                table: "StateMigrationJobs",
+                type: "uniqueidentifier",
+                nullable: true);
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "SelectedRunnerId",
+                table: "ModuleJobs",
+                type: "uniqueidentifier",
+                nullable: true);
+
             migrationBuilder.CreateTable(
                 name: "ProbeWaves",
                 columns: table => new
@@ -369,6 +381,14 @@ namespace SnapCd.Server.Host.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "SignalOutputSets");
+
+            migrationBuilder.DropColumn(
+                name: "SelectedRunnerId",
+                table: "StateMigrationJobs");
+
+            migrationBuilder.DropColumn(
+                name: "SelectedRunnerId",
+                table: "ModuleJobs");
         }
     }
 }
