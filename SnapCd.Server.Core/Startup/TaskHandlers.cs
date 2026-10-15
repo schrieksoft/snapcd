@@ -9,7 +9,6 @@
 
 using SnapCd.Server.Core.Hubs.Handlers;
 using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
-using SnapCd.Server.Core.Hubs.Handlers.RippleProbe;
 
 namespace SnapCd.Server.Core.Startup;
 
@@ -31,10 +30,6 @@ public static class TaskHandlers
         services.AddScoped<DestroyVariablesHandler>();
         services.AddScoped<PlanHandler>();
         services.AddScoped<SplitGetModuleHandler>();
-        services.AddScoped<RippleProbeGetModuleHandler>();
-        services.AddScoped<RippleProbeInitHandler>();
-        services.AddScoped<RippleProbeValidateHandler>();
-        services.AddScoped<RippleProbeProbeHandler>();
         services.AddScoped<SplitInitHandler>();
         services.AddScoped<SplitValidateHandler>();
         services.AddScoped<SplitPlanHandler>();

@@ -121,7 +121,6 @@ public static class MiscService
         services.AddScoped<QuotaService>();
         services.AddScoped<StuckJobDetectionService>();
         services.AddScoped<RunnerConnectionStateMigrationService>();
-        services.AddScoped<RunnerConnectionRippleProbeService>();
         services.AddScoped<QuiescenceProbeService>();
         services.AddScoped<TransportProbeService>();
         services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsService>();

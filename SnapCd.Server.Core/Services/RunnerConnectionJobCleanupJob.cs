@@ -53,20 +53,6 @@ public class RunnerConnectionJobCleanupJob
                     oldStateMigrationRecords.Count);
             }
 
-            var oldRippleProbeRecords = await dbContext.RunnerConnectionRippleProbes
-                .Where(r => r.ModifiedDateTime < cutoffTime)
-                .ToListAsync();
-
-            if (oldRippleProbeRecords.Count > 0)
-            {
-                dbContext.RunnerConnectionRippleProbes.RemoveRange(oldRippleProbeRecords);
-                await dbContext.SaveChangesAsync();
-
-                _logger.LogDebug(
-                    "Cleaned up {Count} old RunnerConnectionRippleProbe record(s)",
-                    oldRippleProbeRecords.Count);
-            }
-
             // Find all RunnerConnectionJob records older than 10 minutes
             var oldRecords = await dbContext.RunnerConnectionJobs
                 .Where(rcj => rcj.ModifiedDateTime < cutoffTime)

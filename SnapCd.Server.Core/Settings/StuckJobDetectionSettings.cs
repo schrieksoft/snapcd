@@ -27,11 +27,4 @@ public class StuckJobDetectionSettings
     /// step dispatches, so a reply lost before then leaves the job running with nothing to time out.
     /// </summary>
     public int StateMigrationNoProgressThresholdMinutes { get; set; } = 30;
-
-    /// <summary>
-    /// A probe running this long without its saga having parked or moved is flagged. Shorter than
-    /// the manual-job equivalent because a probe plans against an already-initialised directory
-    /// and holds the Module's only probe slot while it runs.
-    /// </summary>
-    public int RippleProbeNoProgressThresholdMinutes { get; set; } = 10;
 }

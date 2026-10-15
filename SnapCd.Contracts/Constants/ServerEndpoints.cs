@@ -100,14 +100,12 @@ public static class ServerEndpoints
     // where the batch belongs, so the server never looks an id up across tables.
     public const string AddModuleJobLogs = "AddModuleJobLogs";
     public const string AddStateMigrationLogs = "AddStateMigrationLogs";
-    public const string AddRippleProbeLogs = "AddRippleProbeLogs";
 
     public const string ReportRunningTask = "ReportRunningTask";
     
     public const string ApplyCancelKillCompleted = "ApplyCancelKillCompleted";
     public const string DestroyCancelKillCompleted = "DestroyCancelKillCompleted";
     public const string SplitCancelKillCompleted = "SplitCancelKillCompleted";
-    public const string RippleProbeCancelKillCompleted = "RippleProbeCancelKillCompleted";
     public const string MoveCancelKillCompleted = "MoveCancelKillCompleted";
     public const string ImportCancelKillCompleted = "ImportCancelKillCompleted";
     public const string RemoveCancelKillCompleted = "RemoveCancelKillCompleted";
@@ -129,18 +127,6 @@ public static class ServerEndpoints
     public const string SplitPlanCancelled = "SplitPlanCancelled";
     public const string SplitPlanFaulted = "SplitPlanFaulted";
 
-    public const string RippleProbeGetModuleCompleted = "RippleProbeGetModuleCompleted";
-    public const string RippleProbeGetModuleCancelled = "RippleProbeGetModuleCancelled";
-    public const string RippleProbeGetModuleFaulted = "RippleProbeGetModuleFaulted";
-    public const string RippleProbeInitCompleted = "RippleProbeInitCompleted";
-    public const string RippleProbeInitCancelled = "RippleProbeInitCancelled";
-    public const string RippleProbeInitFaulted = "RippleProbeInitFaulted";
-    public const string RippleProbeValidateCompleted = "RippleProbeValidateCompleted";
-    public const string RippleProbeValidateCancelled = "RippleProbeValidateCancelled";
-    public const string RippleProbeValidateFaulted = "RippleProbeValidateFaulted";
-    public const string RippleProbeProbeCompleted = "RippleProbeProbeCompleted";
-    public const string RippleProbeProbeCancelled = "RippleProbeProbeCancelled";
-    public const string RippleProbeProbeFaulted = "RippleProbeProbeFaulted";
 
     public const string TransferGetModuleCompleted = "TransferGetModuleCompleted";
     public const string TransferGetModuleCancelled = "TransferGetModuleCancelled";

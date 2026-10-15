@@ -7,7 +7,6 @@
 // for terms covering either use.
 
 using MassTransit;
-using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
 
@@ -67,34 +66,6 @@ public class RecordSelectedStateMigrationRunnerActivity<TSaga, TMessage> : IStat
 
     public Task Faulted<TException>(
         BehaviorExceptionContext<TSaga, TMessage, TException> context, IBehavior<TSaga, TMessage> next)
-        where TException : Exception
-        => next.Faulted(context);
-
-    public void Probe(ProbeContext context) => context.CreateScope("record-selected-runner");
-
-    public void Accept(StateMachineVisitor visitor) => visitor.Visit(this);
-}
-
-/// <summary>The same for a ripple probe. See <see cref="RecordSelectedRunnerActivity{TSaga,TMessage}"/>.</summary>
-public class RecordSelectedRippleProbeRunnerActivity<TMessage> : IStateMachineActivity<RippleProbeSaga, TMessage>
-    where TMessage : class
-{
-    private readonly RippleProbeJobRepository _jobs;
-
-    public RecordSelectedRippleProbeRunnerActivity(RippleProbeJobRepository jobs) => _jobs = jobs;
-
-    public async Task Execute(
-        BehaviorContext<RippleProbeSaga, TMessage> context, IBehavior<RippleProbeSaga, TMessage> next)
-    {
-        await _jobs.ExecuteRecordSelectedRunner(
-            context.Saga.CorrelationId, context.Saga.OrganizationId, context.Saga.RunnerId);
-
-        await next.Execute(context).ConfigureAwait(false);
-    }
-
-    public Task Faulted<TException>(
-        BehaviorExceptionContext<RippleProbeSaga, TMessage, TException> context,
-        IBehavior<RippleProbeSaga, TMessage> next)
         where TException : Exception
         => next.Faulted(context);
 

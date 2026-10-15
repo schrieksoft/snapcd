@@ -21,13 +21,13 @@ public class LogBufferTests
     {
         var buffer = new LogBuffer();
 
-        buffer.AddWhileDisconnected("AddRippleProbeLogs", "first");
+        buffer.AddWhileDisconnected("AddStateMigrationLogs", "first");
         buffer.AddWhileDisconnected("AddModuleJobLogs", "second");
 
         var batch = buffer.TakeBatch(10);
 
         Assert.Equal(
-            [("AddRippleProbeLogs", (object)"first"), ("AddModuleJobLogs", (object)"second")],
+            [("AddStateMigrationLogs", (object)"first"), ("AddModuleJobLogs", (object)"second")],
             batch);
         Assert.True(buffer.IsEmpty);
     }

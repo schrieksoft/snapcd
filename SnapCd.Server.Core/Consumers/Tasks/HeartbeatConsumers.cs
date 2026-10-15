@@ -99,15 +99,3 @@ public class StateMigrationHeartbeatConsumer : HeartbeatConsumerBase<StateMigrat
             .Select(r => (DateTime?)r.ModifiedDateTime)
             .FirstOrDefaultAsync();
 }
-
-public class RippleProbeHeartbeatConsumer : HeartbeatConsumerBase<RippleProbeHeartbeatRequested>
-{
-    public RippleProbeHeartbeatConsumer(ILogger<RippleProbeHeartbeatConsumer> logger, IDbContextFactory<SnapCdDbContext> dbContextFactory)
-        : base(logger, dbContextFactory) { }
-
-    protected override async Task<DateTime?> LastReportedAt(SnapCdDbContext dbContext, Guid organizationId, Guid jobId) =>
-        await dbContext.RunnerConnectionRippleProbes
-            .Where(r => r.OrganizationId == organizationId && r.RippleProbeJobId == jobId)
-            .Select(r => (DateTime?)r.ModifiedDateTime)
-            .FirstOrDefaultAsync();
-}

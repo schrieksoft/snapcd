@@ -72,7 +72,6 @@ public class HeartbeatConsumerTests : IAsyncLifetime
         {
             x.AddConsumer<ModuleJobHeartbeatConsumer>();
             x.AddConsumer<StateMigrationHeartbeatConsumer>();
-            x.AddConsumer<RippleProbeHeartbeatConsumer>();
         });
 
         _provider = services.BuildServiceProvider(true);
@@ -90,10 +89,8 @@ public class HeartbeatConsumerTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         await db.RunnerConnectionJobs.Where(r => _jobs.Contains(r.ModuleJobId)).ExecuteDeleteAsync();
         await db.RunnerConnectionStateMigrations.Where(r => _jobs.Contains(r.StateMigrationJobId)).ExecuteDeleteAsync();
-        await db.RunnerConnectionRippleProbes.Where(r => _jobs.Contains(r.RippleProbeJobId)).ExecuteDeleteAsync();
         await db.ModuleJobs.Where(j => _jobs.Contains(j.Id)).ExecuteDeleteAsync();
         await db.StateMigrationJobs.Where(j => _jobs.Contains(j.Id)).ExecuteDeleteAsync();
-        await db.RippleProbeJobs.Where(j => _jobs.Contains(j.Id)).ExecuteDeleteAsync();
         await db.RunnerConnections.Where(rc => rc.InstanceName == Instance).ExecuteDeleteAsync();
     }
 
@@ -105,49 +102,9 @@ public class HeartbeatConsumerTests : IAsyncLifetime
     public async Task A_Fresh_State_Migration_Heartbeat_Succeeds() =>
         Assert.True(await HeartbeatSucceeds<StateMigrationHeartbeatRequested>(await SeedStateMigration(ageSeconds: 5)));
 
-    /// <summary>
-    /// The case that was broken: the probe's row lives in its own table, and a two-way flag on the
-    /// request could not name it, so the read fell through to RunnerConnectionJobs and found
-    /// nothing.
-    /// </summary>
-    [Fact]
-    public async Task A_Fresh_Ripple_Probe_Heartbeat_Succeeds() =>
-        Assert.True(await HeartbeatSucceeds<RippleProbeHeartbeatRequested>(await SeedRippleProbe(ageSeconds: 5)));
-
-    [Fact]
-    public async Task A_Stale_Ripple_Probe_Heartbeat_Fails() =>
-        Assert.False(await HeartbeatSucceeds<RippleProbeHeartbeatRequested>(await SeedRippleProbe(ageSeconds: 120)));
-
-    /// <summary>
-    /// Each consumer reads only its own table, so a probe asked about as a deployment job is not
-    /// found. Under the old shared message this was the silent failure: every probe heartbeat took
-    /// this path and the job stopped with nothing in the log.
-    /// </summary>
-    [Fact]
-    public async Task A_Probe_Asked_About_As_A_Deployment_Job_Is_Not_Found() =>
-        Assert.False(await HeartbeatSucceeds<ModuleJobHeartbeatRequested>(await SeedRippleProbe(ageSeconds: 5)));
-
     [Fact]
     public async Task A_Job_With_No_Connection_Row_Fails() =>
-        Assert.False(await HeartbeatSucceeds<RippleProbeHeartbeatRequested>(Guid.NewGuid()));
-
-    /// <summary>
-    /// The row the runner's first report creates must be live immediately. ModifiedDateTime is
-    /// not set by the context (only CreatedDateTime is), so an insert that leaves it at default
-    /// reads as DateTime.MinValue and the first heartbeat fails.
-    /// </summary>
-    [Fact]
-    public async Task The_First_Report_On_A_Ripple_Probe_Leaves_It_Live()
-    {
-        var jobId = await SeedRippleProbeJobOnly();
-
-        using var scope = _provider.CreateScope();
-        await new RunnerConnectionRippleProbeService(
-            _provider.GetRequiredService<IDbContextFactory<SnapCdDbContext>>())
-            .CreateOrUpdate(_module.OrganizationId, jobId, "RippleProbeProbe", _module.RunnerId, Instance);
-
-        Assert.True(await HeartbeatSucceeds<RippleProbeHeartbeatRequested>(jobId));
-    }
+        Assert.False(await HeartbeatSucceeds<ModuleJobHeartbeatRequested>(Guid.NewGuid()));
 
     [Fact]
     public async Task The_First_Report_On_A_State_Migration_Leaves_It_Live()
@@ -159,26 +116,6 @@ public class HeartbeatConsumerTests : IAsyncLifetime
             .CreateOrUpdate(_module.OrganizationId, jobId, "Plan", _module.RunnerId, Instance);
 
         Assert.True(await HeartbeatSucceeds<StateMigrationHeartbeatRequested>(jobId));
-    }
-
-    private async Task<Guid> SeedRippleProbeJobOnly()
-    {
-        var jobId = Guid.NewGuid();
-        _jobs.Add(jobId);
-
-        await using var db = _fixture.CreateDbContext();
-        db.RippleProbeJobs.Add(new RippleProbeJob
-        {
-            Id = jobId,
-            OrganizationId = _module.OrganizationId,
-            ModuleId = _fixture.Modules["0010"].Id,
-            UpstreamModuleId = _fixture.Modules["0011"].Id,
-            TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
-            InputsJson = "{}"
-        });
-        await db.SaveChangesAsync();
-        return jobId;
     }
 
     private async Task<Guid> SeedStateMigrationJobOnly()
@@ -271,35 +208,6 @@ public class HeartbeatConsumerTests : IAsyncLifetime
             RunnerConnectionId = _runnerConnectionId,
             StateMigrationJobId = jobId,
             TaskName = "Plan",
-            ModifiedDateTime = DateTime.UtcNow.AddSeconds(-ageSeconds)
-        });
-        await db.SaveChangesAsync();
-        return jobId;
-    }
-
-    private async Task<Guid> SeedRippleProbe(int ageSeconds)
-    {
-        var jobId = Guid.NewGuid();
-        _jobs.Add(jobId);
-
-        await using var db = _fixture.CreateDbContext();
-        db.RippleProbeJobs.Add(new RippleProbeJob
-        {
-            Id = jobId,
-            OrganizationId = _module.OrganizationId,
-            ModuleId = _fixture.Modules["0002"].Id,
-            UpstreamModuleId = _fixture.Modules["0003"].Id,
-            TimestampStart = DateTimeOffset.UtcNow,
-            Status = ExecutionStatus.Running,
-            InputsJson = "{}"
-        });
-        db.RunnerConnectionRippleProbes.Add(new RunnerConnectionRippleProbe
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = _module.OrganizationId,
-            RunnerConnectionId = _runnerConnectionId,
-            RippleProbeJobId = jobId,
-            TaskName = "RippleProbeProbe",
             ModifiedDateTime = DateTime.UtcNow.AddSeconds(-ageSeconds)
         });
         await db.SaveChangesAsync();

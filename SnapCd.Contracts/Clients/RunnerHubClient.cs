@@ -28,20 +28,6 @@ public class RunnerHubClient
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     public async Task InvokeSplitPlanEmptyVerifyCompleted(Guid jobId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitPlanEmptyVerifyCompleted, jobId);
@@ -81,13 +67,6 @@ public class RunnerHubClient
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitMigrateRunCompleted, jobId);
     }
-
-
-
-
-
-
-
 
 
     public async Task InvokeAnalyseTransferRefactorMapCompleted(
@@ -267,8 +246,6 @@ public class RunnerHubClient
     }
 
 
-
-
     public async Task InvokeTransferMigrateVerifyCompleted(Guid jobId, Guid moduleId)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.TransferMigrateVerifyCompleted, jobId, moduleId);
@@ -350,8 +327,6 @@ public class RunnerHubClient
     }
 
 
-
-
     // Plan
     public async Task InvokeApplyPlanCompleted(Guid jobId, PlanCompletedData data)
     {
@@ -419,8 +394,6 @@ public class RunnerHubClient
     // Output
 
 
-
-
     // SourceRefresh (stateless - no JobId, matched by source parameters)
     public async Task InvokeSourceRefreshCompleted(
         string sourceUrl,
@@ -480,10 +453,6 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.SplitCancelKillCompleted, jobId);
     }
 
-    public async Task InvokeRippleProbeCancelKillCompleted(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeCancelKillCompleted, jobId);
-    }
 
     public async Task InvokeMoveCancelKillCompleted(Guid jobId)
     {
@@ -867,70 +836,6 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.AddStateMigrationLogs, logEntries);
     }
 
-    public async Task InvokeAddRippleProbeLogs(List<RippleProbeLogEntryDto> logEntries)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.AddRippleProbeLogs, logEntries);
-    }
-
-    public async Task InvokeRippleProbeProbeCompleted(Guid jobId, string? signalsJson)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeProbeCompleted, jobId, signalsJson);
-    }
-
-    public async Task InvokeRippleProbeProbeCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeProbeCancelled, jobId);
-    }
-
-    public async Task InvokeRippleProbeProbeFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeProbeFaulted, jobId, errorMessage, stackTrace);
-    }
-
-    public async Task InvokeRippleProbeGetModuleCompleted(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeGetModuleCompleted, jobId);
-    }
-
-    public async Task InvokeRippleProbeGetModuleCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeGetModuleCancelled, jobId);
-    }
-
-    public async Task InvokeRippleProbeGetModuleFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeGetModuleFaulted, jobId, errorMessage, stackTrace);
-    }
-
-    public async Task InvokeRippleProbeInitCompleted(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeInitCompleted, jobId);
-    }
-
-    public async Task InvokeRippleProbeInitCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeInitCancelled, jobId);
-    }
-
-    public async Task InvokeRippleProbeInitFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeInitFaulted, jobId, errorMessage, stackTrace);
-    }
-
-    public async Task InvokeRippleProbeValidateCompleted(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeValidateCompleted, jobId);
-    }
-
-    public async Task InvokeRippleProbeValidateCancelled(Guid jobId)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeValidateCancelled, jobId);
-    }
-
-    public async Task InvokeRippleProbeValidateFaulted(Guid jobId, string? errorMessage, string? stackTrace)
-    {
-        await _hubConnection.InvokeAsync(ServerEndpoints.RippleProbeValidateFaulted, jobId, errorMessage, stackTrace);
-    }
 
     public async Task InvokeSplitGetModuleCompleted(Guid jobId)
     {
@@ -1020,7 +925,6 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(
             ServerEndpoints.TransferValidateFaulted, jobId, moduleId, errorMessage, stackTrace);
     }
-
 
 
 }

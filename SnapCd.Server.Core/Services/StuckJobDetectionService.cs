@@ -54,12 +54,7 @@ public class StuckJobDetectionService
                     .Where(s => s.WaitingSince != null)
                     .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
                     .ToListAsync())
-                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "SplitMigrate")))
-            .Concat((await db.Set<RippleProbeSaga>().AsNoTracking()
-                    .Where(s => s.WaitingSince != null)
-                    .Select(s => new { s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince })
-                    .ToListAsync())
-                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "RippleProbe")));
+                .Select(s => (s.CorrelationId, s.OrganizationId, s.ModuleId, s.CurrentState, s.WaitingSince, JobType: "SplitMigrate")));
 
         var stuck = new List<StuckJob>();
         foreach (var saga in candidates)
@@ -73,7 +68,6 @@ public class StuckJobDetectionService
         }
 
         stuck.AddRange(await FindStateMigrationsWithoutProgressAsync(db, now));
-        stuck.AddRange(await FindRippleProbesWithoutProgressAsync(db, now));
 
         return stuck;
     }
@@ -112,45 +106,6 @@ public class StuckJobDetectionService
 
             var startedAt = job.TimestampStart.UtcDateTime;
             stuck.Add(new StuckJob(job.Id, job.JobType, job.OrganizationId, job.ModuleId, saga.CurrentState, startedAt, now - startedAt));
-        }
-
-        return stuck;
-    }
-
-    /// <summary>
-    /// A probe whose saga has neither parked nor reached a terminal state. Invisible to both the
-    /// waits above and the heartbeat for the same reason a manual job is, and worse in effect: the
-    /// filtered unique index means it holds the Module's only probe slot while it sits there.
-    /// </summary>
-    private async Task<List<StuckJob>> FindRippleProbesWithoutProgressAsync(SnapCdDbContext db, DateTime now)
-    {
-        var threshold = TimeSpan.FromMinutes(_settings.RippleProbeNoProgressThresholdMinutes);
-        var cutoff = new DateTimeOffset(now, TimeSpan.Zero) - threshold;
-
-        var running = await db.RippleProbeJobs.AsNoTracking()
-            .Where(j => j.Status == ExecutionStatus.Running && j.TimestampStart < cutoff)
-            .Select(j => new { j.Id, j.OrganizationId, j.ModuleId, j.TimestampStart })
-            .ToListAsync();
-
-        if (running.Count == 0) return [];
-
-        var ids = running.Select(j => j.Id).ToList();
-        var sagaStates = await db.Set<RippleProbeSaga>().AsNoTracking()
-            .Where(s => ids.Contains(s.CorrelationId))
-            .Select(s => new { s.CorrelationId, s.CurrentState, s.WaitingSince })
-            .ToListAsync();
-
-        var stuck = new List<StuckJob>();
-        foreach (var job in running)
-        {
-            var saga = sagaStates.FirstOrDefault(s => s.CorrelationId == job.Id);
-
-            // No saga at all is the orphan cleanup's business, and a parked saga is already
-            // covered by the waits above.
-            if (saga is null || saga.WaitingSince != null) continue;
-
-            var startedAt = job.TimestampStart.UtcDateTime;
-            stuck.Add(new StuckJob(job.Id, "RippleProbe", job.OrganizationId, job.ModuleId, saga.CurrentState, startedAt, now - startedAt));
         }
 
         return stuck;

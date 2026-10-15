@@ -6,7 +6,6 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using SnapCd.Server.Core.StateMachine.RippleProbes;
 using SnapCd.Server.Core.StateMachine.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
 using SnapCd.Server.Core.Consumers.Tasks.StateMigrations;
@@ -21,7 +20,6 @@ using SnapCd.Server.Core.Consumers.Missions;
 using SnapCd.Server.Core.Consumers.System.Competing;
 using SnapCd.Server.Core.Consumers.System.Fanout;
 using SnapCd.Server.Core.Consumers.Tasks.SplitMigrate;
-using SnapCd.Server.Core.Consumers.Tasks.RippleProbe;
 using SnapCd.Server.Core.Consumers.Tasks.Transfers;
 using SnapCd.Server.Core.StateMachine.SplitMigrate;
 using SnapCd.Server.Core.StateMachine.Transfers;
@@ -251,10 +249,6 @@ public static class MassTransit
         typeof(ApplyVariablesConsumer),
         typeof(DestroyVariablesConsumer),
         typeof(PlanConsumer),
-        typeof(RippleProbeGetModuleConsumer),
-        typeof(RippleProbeInitConsumer),
-        typeof(RippleProbeValidateConsumer),
-        typeof(RippleProbeProbeConsumer),
         typeof(SplitGetModuleConsumer),
         typeof(SplitInitConsumer),
         typeof(SplitValidateConsumer),
@@ -330,7 +324,6 @@ public static class MassTransit
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
         typeof(ModuleJobHeartbeatConsumer),
         typeof(StateMigrationHeartbeatConsumer),
-        typeof(RippleProbeHeartbeatConsumer),
 
         // Acts on nothing; it gives a warm-up somewhere to land.
         typeof(WarmupCompetingConsumer),
@@ -410,7 +403,6 @@ public static class MassTransit
         AddSagaReceiveEndpoint<ApplyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
         AddSagaReceiveEndpoint<DestroyJobSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
         AddSagaReceiveEndpoint<SplitMigrateSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
-        AddSagaReceiveEndpoint<RippleProbeSaga, TMqFactory>(serviceBusSettings, context, cfg, endpointNameFormatter);
 
         AddSagaReceiveEndpoint<ModuleSaga, TMqFactory>(serviceBusSettings, context, cfg, serviceBusSettings.SagaConcurrencyLimit, s =>
         {
@@ -445,7 +437,6 @@ public static class MassTransit
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
         services.AddScoped(typeof(RecordSelectedRunnerActivity<,>));
         services.AddScoped(typeof(RecordSelectedStateMigrationRunnerActivity<,>));
-        services.AddScoped(typeof(RecordSelectedRippleProbeRunnerActivity<>));
         services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForConsentActivity<,>));
@@ -480,7 +471,6 @@ public static class MassTransit
         AddSagaStateMachine<ModuleStateMachine, ModuleSaga>(x);
         AddSagaStateMachine<ModuleModifiedStateMachine, ModuleModifiedSaga>(x);
         AddSagaStateMachine<SplitMigrateStateMachine, SplitMigrateSaga>(x);
-        AddSagaStateMachine<RippleProbeStateMachine, RippleProbeSaga>(x);
         AddSagaStateMachine<TransferMigrateStateMachine, TransferMigrateSaga>(x);
         AddSagaStateMachine<LookupAddressesStateMachine, LookupAddressesSaga>(x);
         AddSagaStateMachine<MoveStateMachine, MoveSaga>(x);

@@ -25,6 +25,3 @@ public class ModuleJobHeartbeatRequested : HeartbeatRequestedBase;
 
 /// <summary>CorrelationId is a StateMigrationJob: liveness lives in RunnerConnectionStateMigrations.</summary>
 public class StateMigrationHeartbeatRequested : HeartbeatRequestedBase;
-
-/// <summary>CorrelationId is a RippleProbeJob: liveness lives in RunnerConnectionRippleProbes.</summary>
-public class RippleProbeHeartbeatRequested : HeartbeatRequestedBase;

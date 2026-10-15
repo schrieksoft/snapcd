@@ -21,5 +21,4 @@ public interface IJobLogStreams
     /// <summary>Manual jobs: Move, Import, Remove and SplitMigrate all log here.</summary>
     IJobLogStream StateMigrations { get; }
 
-    IJobLogStream RippleProbes { get; }
 }

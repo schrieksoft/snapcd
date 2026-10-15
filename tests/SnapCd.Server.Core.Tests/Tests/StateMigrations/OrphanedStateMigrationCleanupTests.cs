@@ -118,7 +118,6 @@ public class OrphanedStateMigrationCleanupTests : IAsyncLifetime
         var job = new OrphanedJobCleanupJob(
             new OrphanedJobCleanupService(_dbContextFactory),
             new StateMigrationJobRepositoryFactory(_dbContextFactory),
-            new RippleProbeJobRepositoryFactory(_dbContextFactory),
             _fixture.CreateMockBus(),
             NullLogger<OrphanedJobCleanupJob>.Instance);
         await job.ExecuteJob();

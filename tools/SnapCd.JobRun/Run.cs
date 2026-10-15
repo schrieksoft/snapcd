@@ -158,9 +158,6 @@ public static class Run
         if (options.Job == JobKind.Race)
             return await RaceRun.Execute(scope, principal, dbFactory, options);
 
-        if (options.Job == JobKind.RippleProbe)
-            return await RippleProbeRun.Execute(services, scope, principal, dbFactory, options, notifications);
-
         if (options.Job == JobKind.Transfer)
             return await TransferRun.Execute(services, scope, principal, dbFactory, options, notifications);
 

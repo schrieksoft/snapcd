@@ -102,8 +102,6 @@ public static class Repositories
         services.AddScoped<ModuleJobRepository>();
         services.AddScoped<StateMigrationJobRepository>();
         services.AddScoped<StateMigrationJobRepositoryFactory>();
-        services.AddScoped<RippleProbeJobRepository>();
-        services.AddScoped<RippleProbeJobRepositoryFactory>();
         services.AddScoped<ModuleJobApprovalRepository>();
         services.AddScoped<OutputSetRepository>();
         services.AddScoped<OutputRepository>();

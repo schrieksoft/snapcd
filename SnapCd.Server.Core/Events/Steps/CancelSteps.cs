@@ -37,13 +37,6 @@ public class SplitCancelKillCompleted : CancelKillCompletedBase;
 public class DummySplitCancelKillCompleted : StepResponseBase;
 
 
-public class RippleProbeCancelKillRequested : CancelKillRequestedBase;
-
-public class RippleProbeCancelKillCompleted : CancelKillCompletedBase;
-
-public class DummyRippleProbeCancelKillCompleted : StepResponseBase;
-
-
 public class MoveCancelKillRequested : CancelKillRequestedBase;
 
 public class MoveCancelKillCompleted : CancelKillCompletedBase;

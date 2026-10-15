@@ -228,7 +228,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ServicePrincipalId", "OrganizationId");
 
-                    b.ToTable("Agents");
+                    b.ToTable("Agents", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -300,7 +300,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OrganizationId", "AgentId", "InstanceName")
                         .IsUnique();
 
-                    b.ToTable("AgentConnections");
+                    b.ToTable("AgentConnections", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.AgentSupplies.AgentModuleSupply", b =>
@@ -363,7 +363,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "AgentId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("AgentModuleSupplies");
+                    b.ToTable("AgentModuleSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -428,7 +428,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "AgentId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("AgentNamespaceSupplies");
+                    b.ToTable("AgentNamespaceSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -493,7 +493,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("StackId", "AgentId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("AgentStackSupplies");
+                    b.ToTable("AgentStackSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -683,7 +683,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "InputKind", "Name", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("NamespaceInputs");
+                    b.ToTable("NamespaceInputs", (string)null);
 
                     b.HasDiscriminator().HasValue("NamespaceInput");
 
@@ -806,7 +806,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("Name", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("Groups");
+                    b.ToTable("Groups", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -874,7 +874,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("PrincipalId", "OrganizationId", "GroupMemberDiscriminator")
                         .HasDatabaseName("IX_GroupMembers_Principal_Org_Disc");
 
-                    b.ToTable("GroupMembers");
+                    b.ToTable("GroupMembers", (string)null);
 
                     b.HasDiscriminator<string>("GroupMemberDiscriminator").HasValue("Base");
 
@@ -943,7 +943,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OrganizationId", "IntegrationType", "Name")
                         .IsUnique();
 
-                    b.ToTable("Integrations");
+                    b.ToTable("Integrations", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -1006,7 +1006,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("IntegrationId", "ModuleJobMissionId", "OrganizationId");
 
-                    b.ToTable("IntegrationDeliveries");
+                    b.ToTable("IntegrationDeliveries", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.IntegrationEvents.ModuleIntegrationEvent", b =>
@@ -1085,7 +1085,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "IntegrationId", "OrganizationId", "Trigger")
                         .IsUnique();
 
-                    b.ToTable("ModuleIntegrationEvents");
+                    b.ToTable("ModuleIntegrationEvents", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.IntegrationEvents.NamespaceIntegrationEvent", b =>
@@ -1164,7 +1164,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "IntegrationId", "OrganizationId", "Trigger")
                         .IsUnique();
 
-                    b.ToTable("NamespaceIntegrationEvents");
+                    b.ToTable("NamespaceIntegrationEvents", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.IntegrationEvents.OrganizationIntegrationEvent", b =>
@@ -1234,7 +1234,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("IntegrationId", "OrganizationId", "Trigger")
                         .IsUnique();
 
-                    b.ToTable("OrganizationIntegrationEvents");
+                    b.ToTable("OrganizationIntegrationEvents", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.IntegrationEvents.StackIntegrationEvent", b =>
@@ -1313,7 +1313,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("StackId", "IntegrationId", "OrganizationId", "Trigger")
                         .IsUnique();
 
-                    b.ToTable("StackIntegrationEvents");
+                    b.ToTable("StackIntegrationEvents", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.IntegrationSupplies.IntegrationModuleSupply", b =>
@@ -1376,7 +1376,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "IntegrationId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("IntegrationModuleSupplies");
+                    b.ToTable("IntegrationModuleSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -1441,7 +1441,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "IntegrationId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("IntegrationNamespaceSupplies");
+                    b.ToTable("IntegrationNamespaceSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -1506,7 +1506,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("StackId", "IntegrationId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("IntegrationStackSupplies");
+                    b.ToTable("IntegrationStackSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -1603,7 +1603,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("RunnerIdentityId", "Status")
                         .HasDatabaseName("IX_JobRunnerAssignment_RunnerIdentityId_Status");
 
-                    b.ToTable("JobRunnerAssignments");
+                    b.ToTable("JobRunnerAssignments", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.MaintenanceMode", b =>
@@ -1644,7 +1644,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MaintenanceMode", t =>
+                    b.ToTable("MaintenanceMode", null, t =>
                         {
                             t.HasCheckConstraint("CK_MaintenanceMode_Singleton", "[Id] = 1");
                         });
@@ -1721,7 +1721,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "AgentId", "OrganizationId", "MissionType")
                         .IsUnique();
 
-                    b.ToTable("ModuleMissions");
+                    b.ToTable("ModuleMissions", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Missions.NamespaceMission", b =>
@@ -1795,7 +1795,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "AgentId", "OrganizationId", "MissionType")
                         .IsUnique();
 
-                    b.ToTable("NamespaceMissions");
+                    b.ToTable("NamespaceMissions", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Missions.OrganizationMission", b =>
@@ -1860,7 +1860,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("AgentId", "OrganizationId", "MissionType")
                         .IsUnique();
 
-                    b.ToTable("OrganizationMissions");
+                    b.ToTable("OrganizationMissions", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Missions.StackMission", b =>
@@ -1934,7 +1934,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("StackId", "AgentId", "OrganizationId", "MissionType")
                         .IsUnique();
 
-                    b.ToTable("StackMissions");
+                    b.ToTable("StackMissions", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Module", b =>
@@ -2155,7 +2155,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Path")
                         .IsUnique();
 
-                    b.ToTable("ModuleAdditionalTriggerPaths");
+                    b.ToTable("ModuleAdditionalTriggerPaths", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleExtraFile", b =>
@@ -2222,7 +2222,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ModuleExtraFiles");
+                    b.ToTable("ModuleExtraFiles", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleHook", b =>
@@ -2289,7 +2289,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Task", "Phase")
                         .IsUnique();
 
-                    b.ToTable("ModuleHooks");
+                    b.ToTable("ModuleHooks", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJob", b =>
@@ -2533,7 +2533,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleJobId", "PrincipalId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("ModuleJobApprovals");
+                    b.ToTable("ModuleJobApprovals", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJobMission", b =>
@@ -2622,7 +2622,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleJobId", "MissionType", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("ModuleJobMissions");
+                    b.ToTable("ModuleJobMissions", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJobMissionRun", b =>
@@ -2756,7 +2756,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique()
                         .HasFilter("[Status] IN ('Pending', 'Running', 'AwaitingReconnect')");
 
-                    b.ToTable("ModuleJobMissionRuns");
+                    b.ToTable("ModuleJobMissionRuns", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleJobMissionRunMilestone", b =>
@@ -2818,7 +2818,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleJobMissionRunId", "OrganizationId");
 
-                    b.ToTable("ModuleJobMissionRunMilestones");
+                    b.ToTable("ModuleJobMissionRunMilestones", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModulePulumiArrayFlag", b =>
@@ -2885,7 +2885,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Task", "Flag", "Value")
                         .IsUnique();
 
-                    b.ToTable("ModulePulumiArrayFlags");
+                    b.ToTable("ModulePulumiArrayFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModulePulumiFlag", b =>
@@ -2951,7 +2951,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Task", "Flag")
                         .IsUnique();
 
-                    b.ToTable("ModulePulumiFlags");
+                    b.ToTable("ModulePulumiFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModulePulumiInlinePolicy", b =>
@@ -3032,7 +3032,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ModulePulumiInlinePolicies");
+                    b.ToTable("ModulePulumiInlinePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModulePulumiLocalPolicy", b =>
@@ -3104,7 +3104,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ModulePulumiLocalPolicies");
+                    b.ToTable("ModulePulumiLocalPolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModulePulumiRemotePolicy", b =>
@@ -3186,7 +3186,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ModulePulumiRemotePolicies");
+                    b.ToTable("ModulePulumiRemotePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleTerraformArrayFlag", b =>
@@ -3253,7 +3253,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Task", "Flag", "Value")
                         .IsUnique();
 
-                    b.ToTable("ModuleTerraformArrayFlags");
+                    b.ToTable("ModuleTerraformArrayFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleTerraformFlag", b =>
@@ -3319,7 +3319,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Task", "Flag")
                         .IsUnique();
 
-                    b.ToTable("ModuleTerraformFlags");
+                    b.ToTable("ModuleTerraformFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleTerraformInlinePolicy", b =>
@@ -3391,7 +3391,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ModuleTerraformInlinePolicies");
+                    b.ToTable("ModuleTerraformInlinePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleTerraformLocalPolicy", b =>
@@ -3463,7 +3463,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ModuleTerraformLocalPolicies");
+                    b.ToTable("ModuleTerraformLocalPolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ModuleTerraformRemotePolicy", b =>
@@ -3545,7 +3545,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ModuleTerraformRemotePolicies");
+                    b.ToTable("ModuleTerraformRemotePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Namespace", b =>
@@ -3702,7 +3702,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "Path")
                         .IsUnique();
 
-                    b.ToTable("NamespaceAdditionalTriggerPaths");
+                    b.ToTable("NamespaceAdditionalTriggerPaths", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceExtraFile", b =>
@@ -3769,7 +3769,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("NamespaceId", "OrganizationId");
 
-                    b.ToTable("NamespaceExtraFiles");
+                    b.ToTable("NamespaceExtraFiles", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceHook", b =>
@@ -3836,7 +3836,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "Task", "Phase")
                         .IsUnique();
 
-                    b.ToTable("NamespaceHooks");
+                    b.ToTable("NamespaceHooks", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespacePulumiArrayFlag", b =>
@@ -3903,7 +3903,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "Task", "Flag", "Value")
                         .IsUnique();
 
-                    b.ToTable("NamespacePulumiArrayFlags");
+                    b.ToTable("NamespacePulumiArrayFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespacePulumiFlag", b =>
@@ -3969,7 +3969,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "Task", "Flag")
                         .IsUnique();
 
-                    b.ToTable("NamespacePulumiFlags");
+                    b.ToTable("NamespacePulumiFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespacePulumiInlinePolicy", b =>
@@ -4050,7 +4050,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("NamespaceId", "OrganizationId");
 
-                    b.ToTable("NamespacePulumiInlinePolicies");
+                    b.ToTable("NamespacePulumiInlinePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespacePulumiLocalPolicy", b =>
@@ -4122,7 +4122,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("NamespaceId", "OrganizationId");
 
-                    b.ToTable("NamespacePulumiLocalPolicies");
+                    b.ToTable("NamespacePulumiLocalPolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespacePulumiRemotePolicy", b =>
@@ -4204,7 +4204,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("NamespaceId", "OrganizationId");
 
-                    b.ToTable("NamespacePulumiRemotePolicies");
+                    b.ToTable("NamespacePulumiRemotePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceTerraformArrayFlag", b =>
@@ -4271,7 +4271,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "Task", "Flag", "Value")
                         .IsUnique();
 
-                    b.ToTable("NamespaceTerraformArrayFlags");
+                    b.ToTable("NamespaceTerraformArrayFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceTerraformFlag", b =>
@@ -4337,7 +4337,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "Task", "Flag")
                         .IsUnique();
 
-                    b.ToTable("NamespaceTerraformFlags");
+                    b.ToTable("NamespaceTerraformFlags", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceTerraformInlinePolicy", b =>
@@ -4409,7 +4409,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("NamespaceId", "OrganizationId");
 
-                    b.ToTable("NamespaceTerraformInlinePolicies");
+                    b.ToTable("NamespaceTerraformInlinePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceTerraformLocalPolicy", b =>
@@ -4481,7 +4481,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("NamespaceId", "OrganizationId");
 
-                    b.ToTable("NamespaceTerraformLocalPolicies");
+                    b.ToTable("NamespaceTerraformLocalPolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.NamespaceTerraformRemotePolicy", b =>
@@ -4563,7 +4563,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("NamespaceId", "OrganizationId");
 
-                    b.ToTable("NamespaceTerraformRemotePolicies");
+                    b.ToTable("NamespaceTerraformRemotePolicies", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Organization", b =>
@@ -4633,7 +4633,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Organizations");
+                    b.ToTable("Organizations", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.OrganizationUser", b =>
@@ -4723,7 +4723,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .IsUnique()
                         .HasFilter("UserId IS NOT NULL");
 
-                    b.ToTable("OrganizationUsers");
+                    b.ToTable("OrganizationUsers", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Output", b =>
@@ -4797,7 +4797,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OutputSetId", "Name", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("Outputs");
+                    b.ToTable("Outputs", (string)null);
 
                     b.HasDiscriminator().HasValue("Output");
 
@@ -4869,121 +4869,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Timestamp", "Checksum", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("OutputSets");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RippleProbeJob", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FailedOnServerSideStep")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("InputsJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("JobNumber")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobNumber"));
-
-                    b.Property<string>("Logs")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("SelectedRunnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ServerSideError")
-                        .HasMaxLength(16000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ServerSideErrorHeader")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("SignalsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTimeOffset?>("TimestampEnd")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("TimestampStart")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid>("UpstreamModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("UpstreamModuleJobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool?>("WaitingForRunner")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("ModuleId");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("ModuleId", "OrganizationId")
-                        .IsUnique()
-                        .HasFilter("[Status] = 'Running'");
-
-                    b.HasIndex("UpstreamModuleId", "OrganizationId");
-
-                    b.HasIndex("UpstreamModuleJobId", "OrganizationId");
-
-                    b.HasIndex("ModuleId", "TimestampStart", "OrganizationId");
-
-                    b.ToTable("RippleProbeJobs", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                    b.ToTable("OutputSets", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base.AgentRoleAssignment", b =>
@@ -5053,7 +4939,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("AgentId", "OrganizationId", "PrincipalId", "RoleName")
                         .HasDatabaseName("IX_AgentRoleAssign_Agent_Principal_Org_Role");
 
-                    b.ToTable("AgentRoleAssignments");
+                    b.ToTable("AgentRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5129,7 +5015,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "OrganizationId", "PrincipalId", "RoleName")
                         .HasDatabaseName("IX_ModRoleAssign_Mod_Principal_Org_Role");
 
-                    b.ToTable("ModuleRoleAssignments");
+                    b.ToTable("ModuleRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5210,7 +5096,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasDatabaseName("IX_NsRoleAssign_Group_PrincipalFirst")
                         .HasFilter("[PrincipalDiscriminator] = 'Group'");
 
-                    b.ToTable("NamespaceRoleAssignments");
+                    b.ToTable("NamespaceRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5281,7 +5167,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("PrincipalId", "OrganizationId", "RoleName")
                         .HasDatabaseName("IX_OrgRoleAssign_Principal_Org_Role");
 
-                    b.ToTable("OrganizationRoleAssignments");
+                    b.ToTable("OrganizationRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5362,7 +5248,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasDatabaseName("IX_StackRoleAssign_UserSP_StackFirst")
                         .HasFilter("[PrincipalDiscriminator] IN ('User', 'ServicePrincipal')");
 
-                    b.ToTable("StackRoleAssignments");
+                    b.ToTable("StackRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5441,7 +5327,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasDatabaseName("IX_StateStoreRoleAssign_UserSP_StoreFirst")
                         .HasFilter("[PrincipalDiscriminator] IN ('User', 'ServicePrincipal')");
 
-                    b.ToTable("StateStoreRoleAssignments");
+                    b.ToTable("StateStoreRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5518,7 +5404,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("IntegrationId", "OrganizationId", "PrincipalId", "RoleName")
                         .HasDatabaseName("IX_IntegRoleAssign_Integ_Principal_Org_Role");
 
-                    b.ToTable("IntegrationRoleAssignments");
+                    b.ToTable("IntegrationRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5594,7 +5480,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("RunnerId", "OrganizationId", "PrincipalId", "RoleName")
                         .HasDatabaseName("IX_RunnerRoleAssign_Runner_Principal_Org_Role");
 
-                    b.ToTable("RunnerRoleAssignments");
+                    b.ToTable("RunnerRoleAssignments", (string)null);
 
                     b.HasDiscriminator<string>("PrincipalDiscriminator").HasValue("Base");
 
@@ -5659,7 +5545,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ServicePrincipalId", "RoleName")
                         .IsUnique();
 
-                    b.ToTable("ServicePrincipalSystemRoleAssignments");
+                    b.ToTable("ServicePrincipalSystemRoleAssignments", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.System.UserSystemRoleAssignment", b =>
@@ -5718,7 +5604,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("UserId", "RoleName")
                         .IsUnique();
 
-                    b.ToTable("UserSystemRoleAssignments");
+                    b.ToTable("UserSystemRoleAssignments", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Runner", b =>
@@ -5791,7 +5677,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ServicePrincipalId", "OrganizationId");
 
-                    b.ToTable("Runners");
+                    b.ToTable("Runners", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -5863,7 +5749,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OrganizationId", "RunnerId", "InstanceName")
                         .IsUnique();
 
-                    b.ToTable("RunnerConnections");
+                    b.ToTable("RunnerConnections", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionJob", b =>
@@ -5927,71 +5813,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("RunnerConnectionId", "ModuleJobId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("RunnerConnectionJobs");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionRippleProbe", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CreatedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CreatedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ModifiedByAgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ModifiedByPrincipalDiscriminator")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("RippleProbeJobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("RunnerConnectionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("TaskName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.HasKey("Id", "OrganizationId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("RippleProbeJobId", "OrganizationId");
-
-                    b.HasIndex("RunnerConnectionId", "OrganizationId");
-
-                    b.HasIndex("RunnerConnectionId", "RippleProbeJobId", "OrganizationId")
-                        .IsUnique();
-
-                    b.ToTable("RunnerConnectionRippleProbes");
+                    b.ToTable("RunnerConnectionJobs", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionStateMigration", b =>
@@ -6055,7 +5877,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("RunnerConnectionId", "StateMigrationJobId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("RunnerConnectionStateMigrations");
+                    b.ToTable("RunnerConnectionStateMigrations", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerSupplies.RunnerModuleSupply", b =>
@@ -6118,7 +5940,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "RunnerId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("RunnerModuleSupplies");
+                    b.ToTable("RunnerModuleSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -6183,7 +6005,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("NamespaceId", "RunnerId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("RunnerNamespaceSupplies");
+                    b.ToTable("RunnerNamespaceSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -6248,7 +6070,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("StackId", "RunnerId", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("RunnerStackSupplies");
+                    b.ToTable("RunnerStackSupplies", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -6371,7 +6193,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId", "RunStartedUtc");
 
-                    b.ToTable("SecretMigrationAudits");
+                    b.ToTable("SecretMigrationAudits", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Secrets.Secret", b =>
@@ -6431,7 +6253,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Secrets");
+                    b.ToTable("Secrets", (string)null);
 
                     b.HasDiscriminator().HasValue("Secret");
 
@@ -6491,7 +6313,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasKey("OrganizationId");
 
-                    b.ToTable("SelfHostedOrganizationLicenses");
+                    b.ToTable("SelfHostedOrganizationLicenses", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.ServicePrincipal", b =>
@@ -6660,7 +6482,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("SourceUrl", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("SourceRefresherPreselections");
+                    b.ToTable("SourceRefresherPreselections", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Stack", b =>
@@ -6801,7 +6623,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("StateStoreId", "OrganizationId");
 
-                    b.ToTable("StateFiles");
+                    b.ToTable("StateFiles", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateFileVersion", b =>
@@ -6841,7 +6663,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("StateFileId", "OrganizationId");
 
-                    b.ToTable("StateFileVersions");
+                    b.ToTable("StateFileVersions", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.StateMigrationJob", b =>
@@ -7344,7 +7166,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("OrganizationId", "Name")
                         .IsUnique();
 
-                    b.ToTable("StateStores");
+                    b.ToTable("StateStores", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.Token", b =>
@@ -7907,7 +7729,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("VariableSetId", "Name", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("Variables");
+                    b.ToTable("Variables", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.VariableSet", b =>
@@ -7975,7 +7797,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "Timestamp", "Checksum", "OrganizationId")
                         .IsUnique();
 
-                    b.ToTable("VariableSets");
+                    b.ToTable("VariableSets", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.VaultSecret", b =>
@@ -8023,7 +7845,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasKey("Name");
 
-                    b.ToTable("VaultSecrets");
+                    b.ToTable("VaultSecrets", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ApplyJobSaga", b =>
@@ -8123,7 +7945,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("ApplyJobSagas");
+                    b.ToTable("ApplyJobSagas", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.DestroyJobSaga", b =>
@@ -8223,7 +8045,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasIndex("ModuleId", "OrganizationId");
 
-                    b.ToTable("DestroyJobSagas");
+                    b.ToTable("DestroyJobSagas", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ImportSaga", b =>
@@ -8476,7 +8298,7 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("CorrelationId")
                         .IsUnique();
 
-                    b.ToTable("ModuleModifiedSaga");
+                    b.ToTable("ModuleModifiedSaga", (string)null);
                 });
 
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.ModuleSaga", b =>
@@ -8769,121 +8591,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.HasIndex("ModuleId", "OrganizationId");
 
                     b.ToTable("RemoveSagas", (string)null);
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.RippleProbeSaga", b =>
-                {
-                    b.Property<Guid>("CorrelationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("ApprovalTimeoutMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("ApprovalTimeoutScheduleTokenId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CurrentState")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("DeclaredJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DefinitiveRevision")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid?>("HeartbeatRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("HeartbeatScheduleTokenId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("InputsJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeclined")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid?>("KillCancellationRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PreviousStateBeforeCancelling")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("PreviousStateBeforeWaiting")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid?>("RequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ResponseAddress")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("RunnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("RunnerInstanceName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("RunnerName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid?>("ServerInstanceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("SignalsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("UpstreamModuleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("UpstreamModuleJobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("WaitingSince")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("CorrelationId", "OrganizationId");
-
-                    b.HasIndex("CorrelationId")
-                        .IsUnique();
-
-                    b.HasIndex("ModuleId", "OrganizationId");
-
-                    b.ToTable("RippleProbeSagas", (string)null);
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -9725,7 +9432,7 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Installations", t =>
+                    b.ToTable("Installations", null, t =>
                         {
                             t.HasCheckConstraint("CK_Installations_Singleton", "[Id] = 1");
                         });
@@ -11876,33 +11583,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("Organization");
                 });
 
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RippleProbeJob", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany("RippleProbeJobs")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "Module")
-                        .WithMany()
-                        .HasForeignKey("ModuleId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", "UpstreamModule")
-                        .WithMany()
-                        .HasForeignKey("UpstreamModuleId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Module");
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("UpstreamModule");
-                });
-
             modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RoleAssignments.Org.Agent.Base.AgentRoleAssignment", b =>
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
@@ -12131,33 +11811,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("ModuleJob");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("RunnerConnection");
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Definition.RunnerConnectionRippleProbe", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.RippleProbeJob", "RippleProbeJob")
-                        .WithMany()
-                        .HasForeignKey("RippleProbeJobId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.RunnerConnection", "RunnerConnection")
-                        .WithMany()
-                        .HasForeignKey("RunnerConnectionId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("RippleProbeJob");
 
                     b.Navigation("RunnerConnection");
                 });
@@ -12688,15 +12341,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                 {
                     b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", null)
                         .WithMany()
-                        .HasForeignKey("ModuleId", "OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("SnapCd.Server.Core.Entities.Sagas.RippleProbeSaga", b =>
-                {
-                    b.HasOne("SnapCd.Server.Core.Entities.Definition.Module", null)
-                        .WithMany("RippleProbeSagas")
                         .HasForeignKey("ModuleId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -13570,8 +13214,6 @@ namespace SnapCd.Server.Host.Database.Migrations
 
                     b.Navigation("PulumiRemotePolicies");
 
-                    b.Navigation("RippleProbeSagas");
-
                     b.Navigation("RunnerModuleSupplies");
 
                     b.Navigation("SecretsScopedToModule");
@@ -13735,8 +13377,6 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Navigation("OutputSets");
 
                     b.Navigation("Outputs");
-
-                    b.Navigation("RippleProbeJobs");
 
                     b.Navigation("RunnerModuleSupplies");
 

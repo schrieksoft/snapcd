@@ -16,7 +16,6 @@ using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests;
 using SnapCd.Contracts.RunnerRequests.SplitMigrate;
-using SnapCd.Contracts.RunnerRequests.RippleProbe;
 using SnapCd.Contracts.Endpoints;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Runner.Constants;
@@ -36,7 +35,6 @@ public class RunnerHubConnection :
     IApplyEndpoints,
     IDestroyEndpoints,
     ISplitEndpoints,
-    IRippleProbeEndpoints,
     ITransferEndpoints,
     ILookupAddressesEndpoints,
     IMoveEndpoints,
@@ -333,9 +331,6 @@ public class RunnerHubConnection :
             });
 
 
-
-
-
         // A transfer runs two Modules under one job, so its replies name the Module as well.
         _connection.On<GetModuleRequestBase>(nameof(ITransferEndpoints.TransferGetModule),
             request =>
@@ -502,41 +497,6 @@ public class RunnerHubConnection :
             request =>
             {
                 Task.Run(() => ApplyPlan(request));
-                return Task.CompletedTask;
-            });
-
-        _connection.On<GetModuleRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeGetModule),
-            request =>
-            {
-                Task.Run(() => RippleProbeGetModule(request));
-                return Task.CompletedTask;
-            });
-
-        _connection.On<InitRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeInit),
-            request =>
-            {
-                Task.Run(() => RippleProbeInit(request));
-                return Task.CompletedTask;
-            });
-
-        _connection.On<ValidateRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeValidate),
-            request =>
-            {
-                Task.Run(() => RippleProbeValidate(request));
-                return Task.CompletedTask;
-            });
-
-        _connection.On<RippleProbeProbeRequestBase>(nameof(IRippleProbeEndpoints.RippleProbeProbe),
-            request =>
-            {
-                Task.Run(() => RippleProbeProbe(request));
-                return Task.CompletedTask;
-            });
-
-        _connection.On<CancelKillRequest>(nameof(IRippleProbeEndpoints.RippleProbeCancelKill),
-            request =>
-            {
-                Task.Run(() => RippleProbeCancelKill(request));
                 return Task.CompletedTask;
             });
 
@@ -773,10 +733,6 @@ public class RunnerHubConnection :
     /// <summary>Ship a batch to the table manual jobs log in.</summary>
     public Task SendStateMigrationLogsAsync(List<StateMigrationLogEntryDto> logEntries) =>
         SendLogsAsync(ServerEndpoints.AddStateMigrationLogs, logEntries);
-
-    /// <summary>Ship a batch to the table ripple probes log in.</summary>
-    public Task SendRippleProbeLogsAsync(List<RippleProbeLogEntryDto> logEntries) =>
-        SendLogsAsync(ServerEndpoints.AddRippleProbeLogs, logEntries);
 
     private async Task SendLogsAsync<TLogEntry>(string endpoint, List<TLogEntry> logEntries)
         where TLogEntry : class, IJobLogEntry
@@ -1062,35 +1018,6 @@ public class RunnerHubConnection :
     public Task SplitCancelKill(CancelKillRequest request) =>
         _tasks.Value.SplitCancelKill(request, _connection!);
 
-    public Task RippleProbeCancelKill(CancelKillRequest request) =>
-        _tasks.Value.RippleProbeCancelKill(request, _connection!);
-
-    public Task RippleProbeGetModule(GetModuleRequestBase request) =>
-        _tasks.Value.GetModule(
-            request, _connection!,
-            _jobLogStreams.Value.RippleProbes,
-            Client.InvokeRippleProbeGetModuleCompleted,
-            Client.InvokeRippleProbeGetModuleCancelled,
-            Client.InvokeRippleProbeGetModuleFaulted);
-
-    public Task RippleProbeInit(InitRequestBase request) =>
-        _tasks.Value.Init(
-            request, _connection!,
-            _jobLogStreams.Value.RippleProbes,
-            Client.InvokeRippleProbeInitCompleted,
-            Client.InvokeRippleProbeInitCancelled,
-            Client.InvokeRippleProbeInitFaulted);
-
-    public Task RippleProbeProbe(RippleProbeProbeRequestBase request) =>
-        _tasks.Value.RippleProbeProbe(request, _connection!);
-
-    public Task RippleProbeValidate(ValidateRequestBase request) =>
-        _tasks.Value.Validate(
-            request, _connection!,
-            _jobLogStreams.Value.RippleProbes,
-            Client.InvokeRippleProbeValidateCompleted,
-            Client.InvokeRippleProbeValidateCancelled,
-            Client.InvokeRippleProbeValidateFaulted);
 
     public Task SplitGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(

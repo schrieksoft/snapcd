@@ -60,7 +60,6 @@ public class Organization : AuditBase, ISystemEntity, ICreationTrackable
 
     public virtual ICollection<ModuleJob> ModuleJobs { get; set; } = new List<ModuleJob>();
     public virtual ICollection<StateMigrationJob> StateMigrationJobs { get; set; } = new List<StateMigrationJob>();
-    public virtual ICollection<RippleProbeJob> RippleProbeJobs { get; set; } = new List<RippleProbeJob>();
     public virtual ICollection<StateMigrationJobApproval> StateMigrationJobApprovals { get; set; } = new List<StateMigrationJobApproval>();
     public virtual ICollection<StateMigrationJobStep> StateMigrationJobSteps { get; set; } = new List<StateMigrationJobStep>();
     public virtual ICollection<StateMigrationJobArtefact> StateMigrationJobArtefacts { get; set; } = new List<StateMigrationJobArtefact>();

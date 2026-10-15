@@ -123,12 +123,9 @@ public class StuckJobDetectionTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         await db.Set<SplitMigrateSaga>().Where(s => _seededStateMigrations.Contains(s.CorrelationId)).ExecuteDeleteAsync();
         await db.StateMigrationJobs.Where(j => _seededStateMigrations.Contains(j.Id)).ExecuteDeleteAsync();
-        await db.Set<RippleProbeSaga>().Where(s => _seededRippleProbes.Contains(s.CorrelationId)).ExecuteDeleteAsync();
-        await db.RippleProbeJobs.Where(j => _seededRippleProbes.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
     private readonly List<Guid> _seededStateMigrations = [];
-    private readonly List<Guid> _seededRippleProbes = [];
 
     private StuckJobDetectionService CreateService()
         => new(
@@ -275,91 +272,6 @@ public class StuckJobDetectionTests : IAsyncLifetime
         var parked = stuck.Single(s => s.JobId == parkedStale);
         Assert.Equal("ApplyFromPlanWaitingForRunner", parked.State);
         Assert.True(parked.Stalled > TimeSpan.FromMinutes(90));
-    }
-
-    /// <summary>
-    /// The same blind spot as the manual job above, on a shorter threshold, and worse in effect:
-    /// a probe sitting here holds the Module's only probe slot.
-    /// </summary>
-    [Fact]
-    public async Task Detects_A_Ripple_Probe_Whose_Saga_Never_Progressed()
-    {
-        // One Running probe per module, enforced by a filtered unique index.
-        var deaf = await SeedRippleProbe("RippleProbeProbePending", startedMinutesAgo: 90, waitingSince: null, moduleId: _fixture.Modules["0010"].Id);
-        var fresh = await SeedRippleProbe("RippleProbeProbePending", startedMinutesAgo: 2, waitingSince: null, moduleId: _fixture.Modules["0011"].Id);
-        var parked = await SeedRippleProbe("RippleProbeGetModuleWaitingForRunner", startedMinutesAgo: 90, waitingSince: DateTime.UtcNow.AddMinutes(-2), moduleId: _fixture.Modules["0100"].Id);
-
-        var stuck = await CreateService().FindStuckJobsAsync();
-        var ids = stuck.Select(s => s.JobId).ToHashSet();
-
-        Assert.Contains(deaf, ids);
-        Assert.DoesNotContain(fresh, ids);
-        // Parked recently: the runner-wait threshold governs it, and it has not been reached.
-        Assert.DoesNotContain(parked, ids);
-
-        var reported = stuck.Single(s => s.JobId == deaf);
-        Assert.Equal("RippleProbeProbePending", reported.State);
-        Assert.Equal("RippleProbe", reported.JobType);
-        Assert.True(reported.Stalled > TimeSpan.FromMinutes(60));
-    }
-
-    [Fact]
-    public async Task Detects_A_Ripple_Probe_Parked_Waiting_For_A_Runner()
-    {
-        var parked = await SeedRippleProbe("RippleProbeGetModuleWaitingForRunner", startedMinutesAgo: 120, waitingSince: DateTime.UtcNow.AddHours(-2), moduleId: _fixture.Modules["0010"].Id);
-
-        var stuck = await CreateService().FindStuckJobsAsync();
-
-        var reported = stuck.Single(s => s.JobId == parked);
-        Assert.Equal("RippleProbe", reported.JobType);
-        Assert.True(reported.Stalled > TimeSpan.FromMinutes(90));
-    }
-
-    [Fact]
-    public async Task Ignores_A_Finished_Ripple_Probe()
-    {
-        var done = await SeedRippleProbe("Completed", startedMinutesAgo: 120, waitingSince: null, status: ExecutionStatus.Completed);
-
-        var stuck = await CreateService().FindStuckJobsAsync();
-
-        Assert.DoesNotContain(done, stuck.Select(s => s.JobId));
-    }
-
-    private async Task<Guid> SeedRippleProbe(string state, int startedMinutesAgo, DateTime? waitingSince, ExecutionStatus status = ExecutionStatus.Running, Guid? moduleId = null)
-    {
-        var jobId = Guid.NewGuid();
-        var onModule = moduleId ?? _module.Id;
-        _seededRippleProbes.Add(jobId);
-
-        await using var db = _fixture.CreateDbContext();
-        db.RippleProbeJobs.Add(new RippleProbeJob
-        {
-            Id = jobId,
-            OrganizationId = _module.OrganizationId,
-            ModuleId = onModule,
-            UpstreamModuleId = _fixture.Modules["0001"].Id,
-            TimestampStart = DateTimeOffset.UtcNow.AddMinutes(-startedMinutesAgo),
-            TimestampEnd = status == ExecutionStatus.Running ? null : DateTimeOffset.UtcNow,
-            Status = status,
-            InputsJson = "{}"
-        });
-        db.Set<RippleProbeSaga>().Add(new RippleProbeSaga
-        {
-            CorrelationId = jobId,
-            CurrentState = state,
-            ModuleId = onModule,
-            UpstreamModuleId = _fixture.Modules["0001"].Id,
-            OrganizationId = _module.OrganizationId,
-            RunnerId = _runner.Id,
-            RunnerName = _runner.Name,
-            RunnerInstanceName = "stuck-harness",
-            DeclaredJson = "{}",
-            InputsJson = "{}",
-            WaitingSince = waitingSince,
-            RowVersion = []
-        });
-        await db.SaveChangesAsync();
-        return jobId;
     }
 
     [Fact]

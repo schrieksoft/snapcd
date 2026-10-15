@@ -25,20 +25,17 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
     private readonly ILogger<ReportRunningTaskInvokedConsumer> _logger;
     private readonly RunnerConnectionJobRepositoryFactory _runnerConnectionJobRepositoryFactory;
     private readonly RunnerConnectionStateMigrationService _runnerConnectionStateMigrationService;
-    private readonly RunnerConnectionRippleProbeService _runnerConnectionRippleProbeService;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
 
     public ReportRunningTaskInvokedConsumer(
         ILogger<ReportRunningTaskInvokedConsumer> logger,
         RunnerConnectionJobRepositoryFactory runnerConnectionJobRepositoryFactory,
         RunnerConnectionStateMigrationService runnerConnectionStateMigrationService,
-        RunnerConnectionRippleProbeService runnerConnectionRippleProbeService,
         IDbContextFactory<SnapCdDbContext> dbContextFactory)
     {
         _logger = logger;
         _runnerConnectionJobRepositoryFactory = runnerConnectionJobRepositoryFactory;
         _runnerConnectionStateMigrationService = runnerConnectionStateMigrationService;
-        _runnerConnectionRippleProbeService = runnerConnectionRippleProbeService;
         _dbContextFactory = dbContextFactory;
     }
 
@@ -53,22 +50,10 @@ public class ReportRunningTaskInvokedConsumer : IConsumer<ReportRunningTaskInvok
                 .AnyAsync(j => j.Id == message.JobId && j.OrganizationId == message.OrganizationId);
 
             // Each job family has its own table, because the foreign key is what makes the
-            // heartbeat's lookup safe. An id that is in none of them belongs to no job.
-            var isRippleProbe = !isStateMigration && await db.RippleProbeJobs
-                .AnyAsync(j => j.Id == message.JobId && j.OrganizationId == message.OrganizationId);
-
+            // heartbeat's lookup safe.
             if (isStateMigration)
             {
                 await _runnerConnectionStateMigrationService.CreateOrUpdate(
-                    message.OrganizationId,
-                    message.JobId,
-                    message.TaskName,
-                    message.RunnerId,
-                    message.RunnerInstanceName);
-            }
-            else if (isRippleProbe)
-            {
-                await _runnerConnectionRippleProbeService.CreateOrUpdate(
                     message.OrganizationId,
                     message.JobId,
                     message.TaskName,

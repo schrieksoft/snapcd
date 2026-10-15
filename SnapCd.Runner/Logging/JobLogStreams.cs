@@ -23,7 +23,6 @@ public sealed class JobLogStreams : IJobLogStreams, IAsyncDisposable
 {
     private readonly HubJobLogStream<ModuleJobLogEntryDto> _moduleJobs;
     private readonly HubJobLogStream<StateMigrationLogEntryDto> _stateMigrations;
-    private readonly HubJobLogStream<RippleProbeLogEntryDto> _rippleProbes;
 
     public JobLogStreams(IServiceProvider services, IOptions<JobLogStreamSettings> settings)
     {
@@ -31,17 +30,14 @@ public sealed class JobLogStreams : IJobLogStreams, IAsyncDisposable
 
         _moduleJobs = new HubJobLogStream<ModuleJobLogEntryDto>(logs => Hub().SendModuleJobLogsAsync(logs), settings);
         _stateMigrations = new HubJobLogStream<StateMigrationLogEntryDto>(logs => Hub().SendStateMigrationLogsAsync(logs), settings);
-        _rippleProbes = new HubJobLogStream<RippleProbeLogEntryDto>(logs => Hub().SendRippleProbeLogsAsync(logs), settings);
     }
 
     public IJobLogStream ModuleJobs => _moduleJobs;
     public IJobLogStream StateMigrations => _stateMigrations;
-    public IJobLogStream RippleProbes => _rippleProbes;
 
     public async ValueTask DisposeAsync()
     {
         await _moduleJobs.DisposeAsync();
         await _stateMigrations.DisposeAsync();
-        await _rippleProbes.DisposeAsync();
     }
 }
