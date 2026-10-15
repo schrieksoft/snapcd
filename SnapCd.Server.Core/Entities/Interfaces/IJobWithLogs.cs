@@ -6,23 +6,16 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
-using MassTransit;
-using SnapCd.Contracts.Dto.Misc;
-using SnapCd.Server.Core.Services;
 
-namespace SnapCd.Server.Core.Consumers.Logging;
+namespace SnapCd.Server.Core.Entities.Interfaces;
 
-public class LogConsumer : IConsumer<LogEntryDto>
+/// <summary>
+/// A job whose runner logs are stored on the row. Closed over by JobLogService so the logic is
+/// written once while each caller names the table it means.
+/// </summary>
+public interface IJobWithLogs
 {
-    private readonly LogService _logService;
-
-    public LogConsumer(LogService logService)
-    {
-        _logService = logService;
-    }
-
-    public async Task Consume(ConsumeContext<LogEntryDto> context)
-    {
-        await _logService.AddLogEntries(new List<LogEntryDto> { context.Message });
-    }
+    Guid Id { get; set; }
+    Guid OrganizationId { get; set; }
+    string? Logs { get; set; }
 }

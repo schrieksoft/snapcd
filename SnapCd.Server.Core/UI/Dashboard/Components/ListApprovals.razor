@@ -8,6 +8,7 @@
 
 @implements IDisposable
 @using SnapCd.Server.Core.UI.Dashboard.Dialogs.Approvals
+@using SnapCd.Contracts.Dto.Misc
 @using Microsoft.EntityFrameworkCore
 @using SnapCd.Contracts
 @using SnapCd.Server.Core.Entities.Definition
@@ -78,7 +79,7 @@
 
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
-            <ListLogs ModuleJobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
+            <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
         </MudPaper>
     }
 }
@@ -97,7 +98,7 @@
     [Inject] private ModuleJobApprovalSecuredRepositoryFactory ModuleJobApprovalRepoFactory { get; set; } = null!;
 
     private ModuleJob? _moduleJob;
-    private ListLogs? _inlineLogsRef;
+    private ListLogs<ModuleJob, ModuleJobLogEntryDto>? _inlineLogsRef;
     private ApprovalPanel? _panelRef;
     private IApprovalSource _source = null!;
 

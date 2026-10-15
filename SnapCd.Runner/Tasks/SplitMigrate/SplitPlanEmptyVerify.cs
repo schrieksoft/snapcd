@@ -39,7 +39,7 @@ public partial class Tasks
             request.JobId,
             nameof(SplitPlanEmptyVerify),
             logger,
-            _jobLogStream,
+            _jobLogStreams.StateMigrations,
             request.Metadata
         );
 

@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Runner.Logging;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
@@ -16,7 +17,7 @@ namespace SnapCd.Runner.Tasks;
 
 public partial class Tasks
 {
-    public async Task DestroyFromPlan(DestroyFromPlanRequestBase request, HubConnection connection)
+    public async Task DestroyFromPlan(DestroyFromPlanRequestBase request, HubConnection connection, IJobLogStream logStream)
     {
         var killCts = new CancellationTokenSource();
         _processRegistry.Register(request.JobId, killCts, CancellationType.ImmediateKill);
@@ -36,7 +37,7 @@ public partial class Tasks
             request.JobId,
             nameof(DestroyFromPlan),
             logger,
-            _jobLogStream,
+            logStream,
             request.Metadata
         );
 

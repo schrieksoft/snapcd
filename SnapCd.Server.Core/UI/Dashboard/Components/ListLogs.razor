@@ -8,13 +8,16 @@
 
 @implements IAsyncDisposable
 
+@typeparam TJob where TJob : class, SnapCd.Server.Core.Entities.Interfaces.IJobWithLogs
+@typeparam TLogEntry where TLogEntry : class, SnapCd.Contracts.Dto.Misc.IJobLogEntry
+
 @using System.Text
 @using System.Text.Json
 @using System.Text.RegularExpressions
 @using AnsiConsoleToHtml
 @using SnapCd.Contracts.Dto.Misc
 @using SnapCd.Server.Core.Services
-@inject LogService LogService
+@inject SnapCd.Server.Core.Factories.JobLogServiceFactory JobLogServiceFactory
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 
@@ -81,7 +84,7 @@ else
 }
 
 @code {
-    [Parameter] public Guid ModuleJobId { get; set; }
+    [Parameter] public Guid JobId { get; set; }
     [Parameter] public string? InitialTask { get; set; }
     [Parameter] public string[]? TaskFilter { get; set; }
 
@@ -194,9 +197,9 @@ else
         _downloadModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import", "./_content/SnapCd.Server.Core/snapcd-download.js");
 
-    private async Task<List<LogEntryDto>> EntriesFor(string? taskName)
+    private async Task<List<TLogEntry>> EntriesFor(string? taskName)
     {
-        var entries = await LogService.GetLogEntries(ModuleJobId);
+        var entries = await JobLogServiceFactory.Create<TJob, TLogEntry>().GetLogEntries(JobId);
 
         if (ModuleId is { } module)
             entries = entries.Where(e => e.ModuleId == module).ToList();
@@ -212,8 +215,8 @@ else
 
     private string FileNameFor(string? taskName, string extension)
         => taskName is null
-            ? $"job-{ModuleJobId}-logs.{extension}"
-            : $"job-{ModuleJobId}-{taskName}.{extension}";
+            ? $"job-{JobId}-logs.{extension}"
+            : $"job-{JobId}-{taskName}.{extension}";
 
     private async Task DownloadText(string? taskName)
     {
@@ -260,7 +263,7 @@ else
 
     private async Task ReloadLogs()
     {
-        _logs = await LogService.GetLogStrings(ModuleJobId, ModuleId);
+        _logs = await JobLogServiceFactory.Create<TJob, TLogEntry>().GetLogStrings(JobId, ModuleId);
 
         foreach (var kvp in _logs)
         {

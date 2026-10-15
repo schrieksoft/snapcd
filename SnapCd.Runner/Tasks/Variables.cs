@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Runner.Logging;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.Dto.VariableSets;
@@ -24,6 +25,7 @@ public partial class Tasks
     public async Task Variables(
         VariablesRequestBase request,
         HubConnection connection,
+        IJobLogStream logStream,
         Func<Guid, VariableSetCreateDto?, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -46,7 +48,7 @@ public partial class Tasks
             request.JobId,
             nameof(Variables),
             logger,
-            _jobLogStream,
+            logStream,
             request.Metadata
         );
 

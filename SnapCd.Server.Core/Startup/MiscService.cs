@@ -97,7 +97,7 @@ public static class MiscService
         services.AddScoped<SourceRefreshJob>();
         services.AddScoped<SourceRefreshDispatcher>();
 
-        services.AddScoped<LogService>();
+        services.AddScoped<JobLogServiceFactory>();
 
         // Other services
         services.AddScoped<IPrincipalProvider, HttpContextPrincipalProvider>();

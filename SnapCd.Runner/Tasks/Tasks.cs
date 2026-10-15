@@ -23,7 +23,7 @@ namespace SnapCd.Runner.Tasks;
 public partial class Tasks
 {
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IJobLogStream _jobLogStream;
+    private readonly IJobLogStreams _jobLogStreams;
     private readonly ProcessRegistry _processRegistry;
     private readonly RunnerSettings _settings;
     private readonly ModuleGetterFactory _moduleGetterFactory;
@@ -58,7 +58,7 @@ public partial class Tasks
         ProcessRegistry processRegistry,
         IOptions<RunnerSettings> settings,
         ILoggerFactory loggerFactory,
-        IJobLogStream jobLogStream,
+        IJobLogStreams jobLogStreams,
         ModuleGetterFactory moduleGetterFactory,
         EngineFactory engineFactory,
         VariableDiscoveryServiceFactory discoveryServiceFactory,
@@ -71,7 +71,7 @@ public partial class Tasks
     {
         _processRegistry = processRegistry;
         _loggerFactory = loggerFactory;
-        _jobLogStream = jobLogStream;
+        _jobLogStreams = jobLogStreams;
         _settings = settings.Value;
         _moduleGetterFactory = moduleGetterFactory;
         _engineFactory = engineFactory;

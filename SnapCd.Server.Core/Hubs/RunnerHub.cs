@@ -30,6 +30,8 @@ using SnapCd.Server.Core.Hubs.Handlers;
 using SnapCd.Server.Core.Entities.Sagas;
 using SnapCd.Server.Core.Hubs.Handlers.StateMigrations;
 using SnapCd.Server.Core.Hubs.Handlers.SplitMigrate;
+using SnapCd.Server.Core.Entities.Interfaces;
+using SnapCd.Server.Core.Factories;
 using SnapCd.Server.Core.Hubs.Handlers.RippleProbe;
 using SnapCd.Server.Core.Hubs.Handlers.Transfers;
 using SnapCd.Server.Core.Services.Crud.Transfers;
@@ -51,7 +53,7 @@ namespace SnapCd.Server.Core.Hubs;
 public class RunnerHub : Hub
 {
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
-    private readonly LogService _logService;
+    private readonly JobLogServiceFactory _jobLogServiceFactory;
     private readonly JobServiceFactory _jobServiceFactory;
     private readonly IBus _bus;
     private readonly ILogger<RunnerHub> _logger;
@@ -107,7 +109,7 @@ public class RunnerHub : Hub
 
     public RunnerHub(
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
-        LogService logService,
+        JobLogServiceFactory jobLogServiceFactory,
         JobServiceFactory jobServiceFactory,
         IBus bus,
         ILogger<RunnerHub> logger,
@@ -162,7 +164,7 @@ public class RunnerHub : Hub
         CancelKillHandler cancelKillHandler)
     {
         _dbContextFactory = dbContextFactory;
-        _logService = logService;
+        _jobLogServiceFactory = jobLogServiceFactory;
         _jobServiceFactory = jobServiceFactory;
         _bus = bus;
         _logger = logger;
@@ -455,17 +457,31 @@ public class RunnerHub : Hub
         return Task.CompletedTask;
     }
 
+    /// <summary>Receive a batch of log entries from a runner working on a deployment job.</summary>
+    public Task AddModuleJobLogs(List<ModuleJobLogEntryDto> logEntries) =>
+        AddLogs<ModuleJob, ModuleJobLogEntryDto>(logEntries);
+
+    /// <summary>Receive a batch of log entries from a runner working on a manual job.</summary>
+    public Task AddStateMigrationLogs(List<StateMigrationLogEntryDto> logEntries) =>
+        AddLogs<StateMigrationJob, StateMigrationLogEntryDto>(logEntries);
+
+    /// <summary>Receive a batch of log entries from a runner working on a ripple probe.</summary>
+    public Task AddRippleProbeLogs(List<RippleProbeLogEntryDto> logEntries) =>
+        AddLogs<RippleProbeJob, RippleProbeLogEntryDto>(logEntries);
+
     /// <summary>
-    /// Receive a batch of log entries from the runner
+    /// The batch handling every table shares. Which endpoint the runner invoked is what names the
+    /// table, so nothing here looks a job id up across tables.
     /// </summary>
-    public async Task AddLogs(List<LogEntryDto> logEntries)
+    private async Task AddLogs<TJob, TLogEntry>(List<TLogEntry> logEntries)
+        where TJob : class, IJobWithLogs
+        where TLogEntry : class, IJobLogEntry
     {
         if (logEntries == null || logEntries.Count == 0)
             return;
 
         try
         {
-            // Query database to get connection info
             using var connectionRepository = _connectionRepositoryFactory.Create();
             var connection = await connectionRepository.GetBySignalRConnectionIdAsync(Context.ConnectionId, _authorizationService.GetValidatedOrganizationId(Context));
 
@@ -478,8 +494,7 @@ public class RunnerHub : Hub
             // TODO: Add permission checking here (like LogsController.CheckHasPermission)
             // For now, skip permission checking
 
-            // Add log entries to database
-            await _logService.AddLogEntries(logEntries);
+            await _jobLogServiceFactory.Create<TJob, TLogEntry>().AddLogEntries(logEntries);
 
             // Publish LogReceivedEvent for the first correlation ID
             var firstEntry = logEntries.First();

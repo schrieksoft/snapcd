@@ -20,7 +20,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// because IsCurrent there drives dependency resolution and the gatekeeper's dequeue check, and
 /// manual work is neither a deployment nor a reason for dependents to wait.
 /// </summary>
-public class StateMigrationJob : AuditBase, IEntity, IModuleChild
+public class StateMigrationJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }

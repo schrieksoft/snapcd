@@ -6,11 +6,18 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+
 using Serilog.Events;
 
 namespace SnapCd.Contracts.Dto.Misc;
 
-public class LogEntryDto
+/// <summary>
+/// One log line from a runner working on a job in StateMigrationJobs. One type per table rather than per
+/// job family: the type names which table the line is written to, and several families share a
+/// table. Apply and Destroy are both ModuleJobs; Move, Import, Remove and SplitMigrate are all
+/// StateMigrationJobs.
+/// </summary>
+public class StateMigrationLogEntryDto : IJobLogEntry
 {
     public Guid JobId { get; set; }
     public DateTimeOffset Timestamp { get; set; }
@@ -19,7 +26,6 @@ public class LogEntryDto
 
     public Guid? StackId { get; set; }
 
-
     public Guid? NamespaceId { get; set; }
 
     public Guid ModuleId { get; set; }
@@ -27,6 +33,7 @@ public class LogEntryDto
     public string StackName { get; set; } = null!;
 
     public string NamespaceName { get; set; } = null!;
+
     public string? ModuleName { get; set; }
 
     public LogEventLevel Level { get; set; }

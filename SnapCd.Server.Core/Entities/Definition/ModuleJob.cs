@@ -15,7 +15,7 @@ using SnapCd.Contracts;
 
 namespace SnapCd.Server.Core.Entities.Definition;
 
-public class ModuleJob : AuditBase, IEntity, IModuleChild
+public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }

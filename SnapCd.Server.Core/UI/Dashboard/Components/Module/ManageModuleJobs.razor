@@ -7,6 +7,7 @@
    for terms covering either use. *@
 
 @using SnapCd.Contracts
+@using SnapCd.Contracts.Dto.Misc
 @using SnapCd.Server.Core.Entities.Definition
 @using SnapCd.Server.Core.Enums
 @using SnapCd.Server.Core.Misc.Exceptions
@@ -173,7 +174,7 @@ else
                              ActivePanelIndex="@GetTabIndex(job.Id)"
                              ActivePanelIndexChanged="@(idx => OnTabChanged(job.Id, idx))">
                         <MudTabPanel Text="Logs" Style="text-transform: none">
-                            <ListLogs ModuleJobId="@job.Id"
+                            <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto" JobId="@job.Id"
                                       InitialTask="@(job.Id == _expandedJobId ? _activeTask : null)"
                                       OnTaskChanged="@(t => OnLogTaskChanged(job.Id, t))"
                                       @ref="_listLogsRefs[job.Id]"/>
@@ -241,7 +242,7 @@ else
     // private List<Guid> _recentlyCreatedJobIds = new();
     private HashSet<Guid> _loadedLogs = new();
     private HashSet<Guid> _openPanels = new();
-    private Dictionary<Guid, ListLogs> _listLogsRefs = new();
+    private Dictionary<Guid, ListLogs<ModuleJob, ModuleJobLogEntryDto>> _listLogsRefs = new();
     private Dictionary<Guid, ListApprovals> _listApprovalRefs = new();
     private List<ModuleJobView>? _moduleJobs;
 

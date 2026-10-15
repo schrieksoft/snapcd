@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+
+using Microsoft.Extensions.Options;
+using SnapCd.Contracts.Dto.Misc;
+using SnapCd.Runner.Hub;
+using SnapCd.Runner.Settings;
+
+namespace SnapCd.Runner.Logging;
+
+/// <summary>
+/// Builds the three streams over one hub connection. The connection is resolved on first emit
+/// rather than at construction, which is what keeps the documented DI cycle open:
+/// Tasks -> IJobLogStreams -> RunnerHubConnection -> Tasks.
+/// </summary>
+public sealed class JobLogStreams : IJobLogStreams, IAsyncDisposable
+{
+    private readonly HubJobLogStream<ModuleJobLogEntryDto> _moduleJobs;
+    private readonly HubJobLogStream<StateMigrationLogEntryDto> _stateMigrations;
+    private readonly HubJobLogStream<RippleProbeLogEntryDto> _rippleProbes;
+
+    public JobLogStreams(IServiceProvider services, IOptions<JobLogStreamSettings> settings)
+    {
+        RunnerHubConnection Hub() => services.GetRequiredService<RunnerHubConnection>();
+
+        _moduleJobs = new HubJobLogStream<ModuleJobLogEntryDto>(logs => Hub().SendModuleJobLogsAsync(logs), settings);
+        _stateMigrations = new HubJobLogStream<StateMigrationLogEntryDto>(logs => Hub().SendStateMigrationLogsAsync(logs), settings);
+        _rippleProbes = new HubJobLogStream<RippleProbeLogEntryDto>(logs => Hub().SendRippleProbeLogsAsync(logs), settings);
+    }
+
+    public IJobLogStream ModuleJobs => _moduleJobs;
+    public IJobLogStream StateMigrations => _stateMigrations;
+    public IJobLogStream RippleProbes => _rippleProbes;
+
+    public async ValueTask DisposeAsync()
+    {
+        await _moduleJobs.DisposeAsync();
+        await _stateMigrations.DisposeAsync();
+        await _rippleProbes.DisposeAsync();
+    }
+}

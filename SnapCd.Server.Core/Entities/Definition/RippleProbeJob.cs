@@ -22,7 +22,7 @@ namespace SnapCd.Server.Core.Entities.Definition;
 /// ModuleJob because that entity's unique index on module and start timestamp admits one job per
 /// module at a time, and this one runs alongside whatever the module is already doing.
 /// </summary>
-public class RippleProbeJob : AuditBase, IEntity, IModuleChild
+public class RippleProbeJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }

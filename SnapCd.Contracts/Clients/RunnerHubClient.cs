@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Contracts.Dto.Misc;
 using SnapCd.Contracts.RunnerRequests.Transfers;
 using SnapCd.Contracts.Constants;
 using SnapCd.Contracts.Dto.OutputSets;
@@ -854,6 +855,21 @@ public class RunnerHubClient
     public async Task InvokeDestroyOutputFaulted(Guid jobId, string? errorMessage, string? stackTrace)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyOutputFaulted, jobId, errorMessage, stackTrace);
+    }
+
+    public async Task InvokeAddModuleJobLogs(List<ModuleJobLogEntryDto> logEntries)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.AddModuleJobLogs, logEntries);
+    }
+
+    public async Task InvokeAddStateMigrationLogs(List<StateMigrationLogEntryDto> logEntries)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.AddStateMigrationLogs, logEntries);
+    }
+
+    public async Task InvokeAddRippleProbeLogs(List<RippleProbeLogEntryDto> logEntries)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.AddRippleProbeLogs, logEntries);
     }
 
     public async Task InvokeRippleProbeProbeCompleted(Guid jobId, string? signalsJson)

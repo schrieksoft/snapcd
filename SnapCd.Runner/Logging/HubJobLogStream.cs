@@ -30,16 +30,21 @@ namespace SnapCd.Runner.Logging;
 /// + reconnect-driven flush + per-retry exception handling live downstream in
 /// <see cref="RunnerHubConnection.SendLogsAsync"/>.
 /// </summary>
-public sealed class HubJobLogStream : IJobLogStream, IAsyncDisposable
+public sealed class HubJobLogStream<TLogEntry> : IJobLogStream, IAsyncDisposable
+    where TLogEntry : class, IJobLogEntry, new()
 {
     private readonly Logger _shipper;
     private readonly PeriodicBatchingSink _batchSink;
 
-    public HubJobLogStream(RunnerHubConnection hub, IOptions<JobLogStreamSettings> settings)
+    /// <summary>
+    /// One stream per job table. The callback says where its batches ship, the way a shared runner
+    /// task is handed the callbacks its replies go to.
+    /// </summary>
+    public HubJobLogStream(Func<List<TLogEntry>, Task> send, IOptions<JobLogStreamSettings> settings)
     {
         var s = settings.Value;
         _batchSink = new PeriodicBatchingSink(
-            new SignalRLogSink(hub),
+            new SignalRLogSink<TLogEntry>(send),
             new PeriodicBatchingSinkOptions
             {
                 BatchSizeLimit = s.BatchSizeLimit,
@@ -58,13 +63,13 @@ public sealed class HubJobLogStream : IJobLogStream, IAsyncDisposable
         // ForContext attaches properties to the next event only (no AsyncLocal). SignalRLogSink
         // reads these property names off LogEvent.Properties via LogMessageHelper to build the DTO.
         _shipper
-            .ForContext(nameof(LogEntryDto.JobId), envelope.JobId)
-            .ForContext(nameof(LogEntryDto.ModuleId), envelope.ModuleId)
-            .ForContext(nameof(LogEntryDto.StackName), envelope.StackName)
-            .ForContext(nameof(LogEntryDto.NamespaceName), envelope.NamespaceName)
-            .ForContext(nameof(LogEntryDto.ModuleName), envelope.ModuleName)
-            .ForContext(nameof(LogEntryDto.TaskName), envelope.TaskName)
-            .ForContext(nameof(LogEntryDto.Message), message)
+            .ForContext(nameof(IJobLogEntry.JobId), envelope.JobId)
+            .ForContext(nameof(IJobLogEntry.ModuleId), envelope.ModuleId)
+            .ForContext(nameof(IJobLogEntry.StackName), envelope.StackName)
+            .ForContext(nameof(IJobLogEntry.NamespaceName), envelope.NamespaceName)
+            .ForContext(nameof(IJobLogEntry.ModuleName), envelope.ModuleName)
+            .ForContext(nameof(IJobLogEntry.TaskName), envelope.TaskName)
+            .ForContext(nameof(IJobLogEntry.Message), message)
             .Write(MapLevel(envelope.Level), message);
         return Task.CompletedTask;
     }

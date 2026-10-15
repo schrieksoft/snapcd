@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.AspNetCore.SignalR.Client;
+using SnapCd.Runner.Logging;
 using SnapCd.Contracts;
 using SnapCd.Contracts.Clients;
 using SnapCd.Contracts.RunnerRequests;
@@ -23,6 +24,7 @@ public partial class Tasks
     public async Task GetDefinitiveRevision(
         GetDefinitiveRevisionRequest request,
         HubConnection connection,
+        IJobLogStream logStream,
         Func<Guid, string, Task> completed,
         Func<Guid, Task> cancelled,
         Func<Guid, string?, string?, Task> faulted)
@@ -45,7 +47,7 @@ public partial class Tasks
             request.JobId,
             nameof(GetDefinitiveRevision),
             logger,
-            _jobLogStream,
+            logStream,
             request.Metadata
         );
 

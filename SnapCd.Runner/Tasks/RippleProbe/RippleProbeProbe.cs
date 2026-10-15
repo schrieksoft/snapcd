@@ -40,7 +40,7 @@ public partial class Tasks
             request.JobId,
             nameof(RippleProbeProbe),
             logger,
-            _jobLogStream,
+            _jobLogStreams.RippleProbes,
             request.Metadata
         );
 

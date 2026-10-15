@@ -18,18 +18,23 @@ using SnapCd.Runner.Services;
 
 namespace SnapCd.Runner.Logging;
 
-public class SignalRLogSink : IBatchedLogEventSink
+public class SignalRLogSink<TLogEntry> : IBatchedLogEventSink
+    where TLogEntry : class, IJobLogEntry, new()
 {
-    private readonly RunnerHubConnection _hubConnection;
+    private readonly Func<List<TLogEntry>, Task> _send;
 
-    public SignalRLogSink(RunnerHubConnection hubConnection)
+    /// <summary>
+    /// The callback says which endpoint the batch ships to, so one sink serves every job table and
+    /// each still reaches the one its logs belong in.
+    /// </summary>
+    public SignalRLogSink(Func<List<TLogEntry>, Task> send)
     {
-        _hubConnection = hubConnection;
+        _send = send;
     }
 
     public async Task EmitBatchAsync(IEnumerable<LogEvent> events)
     {
-        var logEntries = new List<LogEntryDto>();
+        var logEntries = new List<TLogEntry>();
 
         var batchTimeStamp = DateTime.UtcNow;
 
@@ -42,13 +47,13 @@ public class SignalRLogSink : IBatchedLogEventSink
             string message;
             try
             {
-                message = logEvent.Properties.TryGetValue(nameof(LogEntryDto.Message), out var messageValue)
+                message = logEvent.Properties.TryGetValue(nameof(IJobLogEntry.Message), out var messageValue)
                     ? LogMessageHelper.TrimQuotes(Regex.Unescape(messageValue.ToString()))
                     : string.Empty;
             }
             catch (Exception)
             {
-                message = logEvent.Properties.TryGetValue(nameof(LogEntryDto.Message), out var raw)
+                message = logEvent.Properties.TryGetValue(nameof(IJobLogEntry.Message), out var raw)
                     ? LogMessageHelper.TrimQuotes(raw.ToString())
                     : string.Empty;
             }
@@ -56,18 +61,18 @@ public class SignalRLogSink : IBatchedLogEventSink
             // No ModuleId filter: this sink is a private detail of HubJobLogStream, which is
             // the only writer. Every event we see is a job log by construction.
 
-            var logEntry = new LogEntryDto
+            var logEntry = new TLogEntry
             {
                 Timestamp = logEvent.Timestamp,
-                JobId = LogMessageHelper.GetGuidProperty(logEvent, nameof(LogEntryDto.JobId)),
-                StackId = LogMessageHelper.GetGuidProperty(logEvent, nameof(LogEntryDto.StackId)),
-                NamespaceId = LogMessageHelper.GetGuidProperty(logEvent, nameof(LogEntryDto.NamespaceId)),
-                ModuleId = LogMessageHelper.GetGuidProperty(logEvent, nameof(LogEntryDto.ModuleId)),
+                JobId = LogMessageHelper.GetGuidProperty(logEvent, nameof(IJobLogEntry.JobId)),
+                StackId = LogMessageHelper.GetGuidProperty(logEvent, nameof(IJobLogEntry.StackId)),
+                NamespaceId = LogMessageHelper.GetGuidProperty(logEvent, nameof(IJobLogEntry.NamespaceId)),
+                ModuleId = LogMessageHelper.GetGuidProperty(logEvent, nameof(IJobLogEntry.ModuleId)),
 
-                StackName = LogMessageHelper.GetStringProperty(logEvent, nameof(LogEntryDto.StackName)),
-                NamespaceName = LogMessageHelper.GetStringProperty(logEvent, nameof(LogEntryDto.NamespaceName)),
-                ModuleName = LogMessageHelper.GetStringProperty(logEvent, nameof(LogEntryDto.ModuleName)),
-                TaskName = LogMessageHelper.GetStringProperty(logEvent, nameof(LogEntryDto.TaskName)),
+                StackName = LogMessageHelper.GetStringProperty(logEvent, nameof(IJobLogEntry.StackName)),
+                NamespaceName = LogMessageHelper.GetStringProperty(logEvent, nameof(IJobLogEntry.NamespaceName)),
+                ModuleName = LogMessageHelper.GetStringProperty(logEvent, nameof(IJobLogEntry.ModuleName)),
+                TaskName = LogMessageHelper.GetStringProperty(logEvent, nameof(IJobLogEntry.TaskName)),
 
                 Message = message,
                 BatchTimeStamp = batchTimeStamp,
@@ -77,7 +82,7 @@ public class SignalRLogSink : IBatchedLogEventSink
             logEntries.Add(logEntry);
         }
 
-        await _hubConnection.SendLogsAsync(logEntries);
+        await _send(logEntries);
     }
 
 

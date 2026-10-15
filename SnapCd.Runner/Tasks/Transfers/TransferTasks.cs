@@ -30,7 +30,7 @@ public partial class Tasks
             request.JobId,
             nameof(AnalyseTransferRefactorMap),
             logger,
-            _jobLogStream,
+            _jobLogStreams.StateMigrations,
             request.Metadata);
 
         var runnerHubClient = new RunnerHubClient(connection);
@@ -106,7 +106,7 @@ public partial class Tasks
             request.JobId,
             nameof(TransferMigrateMap),
             logger,
-            _jobLogStream,
+            _jobLogStreams.StateMigrations,
             request.Metadata
         );
 
@@ -194,7 +194,7 @@ public partial class Tasks
             request.JobId,
             nameof(TransferMigrateProve),
             logger,
-            _jobLogStream,
+            _jobLogStreams.StateMigrations,
             request.Metadata
         );
 

@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using SnapCd.Contracts.RunnerRequests.StateMigrations;
+using SnapCd.Runner.Logging;
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Caching.Memory;
@@ -53,6 +54,12 @@ public class RunnerHubConnection :
     // time the graph is fully built — so deferring resolution to first access is safe.
     private readonly Lazy<Tasks.Tasks> _tasks;
 
+    /// <summary>
+    /// Lazy for the same reason as Tasks: JobLogStreams resolves this connection to ship through,
+    /// so injecting the streams eagerly would close the cycle while the graph is being built.
+    /// </summary>
+    private readonly Lazy<IJobLogStreams> _jobLogStreams;
+
     /// <summary>Replies go back over the connection the request arrived on.</summary>
     private RunnerHubClient Client => new(_connection!);
 
@@ -61,7 +68,11 @@ public class RunnerHubConnection :
     private int _restarting;
 
     // Log buffering
-    private readonly ConcurrentQueue<LogEntryDto> _logBuffer = new();
+    /// <summary>
+    /// Buffered while disconnected, each entry with the endpoint it was bound for: a batch that
+    /// outlives the connection still has to reach the table it belongs to.
+    /// </summary>
+    private readonly ConcurrentQueue<(string Endpoint, object Entry)> _logBuffer = new();
     private const int MaxLogBufferSize = 10000;
     private int _droppedLogCount = 0;
 
@@ -74,7 +85,8 @@ public class RunnerHubConnection :
         ILoggerFactory loggerFactory,
         IMemoryCache memoryCache,
         ProcessRegistry processRegistry,
-        Lazy<Tasks.Tasks> tasks)
+        Lazy<Tasks.Tasks> tasks,
+        Lazy<IJobLogStreams> jobLogStreams)
     {
         _logger = logger;
         _loggerFactory = loggerFactory;
@@ -83,6 +95,7 @@ public class RunnerHubConnection :
         _serverSettings = serverSettings.Value;
         _memoryCache = memoryCache;
         _tasks = tasks;
+        _jobLogStreams = jobLogStreams;
     }
 
     /// <summary>
@@ -755,7 +768,20 @@ public class RunnerHubConnection :
     /// Send a batch of log entries to the server via SignalR.
     /// If not connected, logs are buffered for sending when connection is restored.
     /// </summary>
-    public async Task SendLogsAsync(List<LogEntryDto> logEntries)
+    /// <summary>Ship a batch to the table deployment jobs log in.</summary>
+    public Task SendModuleJobLogsAsync(List<ModuleJobLogEntryDto> logEntries) =>
+        SendLogsAsync(ServerEndpoints.AddModuleJobLogs, logEntries);
+
+    /// <summary>Ship a batch to the table manual jobs log in.</summary>
+    public Task SendStateMigrationLogsAsync(List<StateMigrationLogEntryDto> logEntries) =>
+        SendLogsAsync(ServerEndpoints.AddStateMigrationLogs, logEntries);
+
+    /// <summary>Ship a batch to the table ripple probes log in.</summary>
+    public Task SendRippleProbeLogsAsync(List<RippleProbeLogEntryDto> logEntries) =>
+        SendLogsAsync(ServerEndpoints.AddRippleProbeLogs, logEntries);
+
+    private async Task SendLogsAsync<TLogEntry>(string endpoint, List<TLogEntry> logEntries)
+        where TLogEntry : class, IJobLogEntry
     {
         if (logEntries == null || logEntries.Count == 0)
             return;
@@ -772,7 +798,7 @@ public class RunnerHubConnection :
                     _droppedLogCount++;
                 }
 
-                _logBuffer.Enqueue(log);
+                _logBuffer.Enqueue((endpoint, log));
             }
 
             if (_droppedLogCount > 0) _logger.LogWarning("Dropped {Count} log entries due to buffer overflow", _droppedLogCount);
@@ -782,7 +808,7 @@ public class RunnerHubConnection :
 
         try
         {
-            await _connection.InvokeAsync(ServerEndpoints.AddLogs, logEntries);
+            await _connection.InvokeAsync(endpoint, logEntries);
             _logger.LogTrace("Sent {Count} log entries to server", logEntries.Count);
         }
         catch (Exception ex)
@@ -792,7 +818,7 @@ public class RunnerHubConnection :
             // Buffer the logs for retry
             foreach (var log in logEntries)
                 if (_logBuffer.Count < MaxLogBufferSize)
-                    _logBuffer.Enqueue(log);
+                    _logBuffer.Enqueue((endpoint, log));
         }
     }
 
@@ -801,21 +827,24 @@ public class RunnerHubConnection :
         if (_logBuffer.IsEmpty || _connection?.State != HubConnectionState.Connected)
             return;
 
-        var logsToSend = new List<LogEntryDto>();
-        while (_logBuffer.TryDequeue(out var log) && logsToSend.Count < 100) logsToSend.Add(log);
+        var buffered = new List<(string Endpoint, object Entry)>();
+        while (_logBuffer.TryDequeue(out var log) && buffered.Count < 100) buffered.Add(log);
 
-        if (logsToSend.Count > 0)
+        // One invoke per endpoint: entries bound for different tables cannot travel together.
+        foreach (var batch in buffered.GroupBy(b => b.Endpoint))
         {
-            _logger.LogDebug("Flushing {Count} buffered log entries", logsToSend.Count);
+            var logsToSend = batch.Select(b => b.Entry).ToList();
+            _logger.LogDebug("Flushing {Count} buffered log entries to {Endpoint}", logsToSend.Count, batch.Key);
+
             try
             {
-                await _connection.InvokeAsync("SendLogs", logsToSend);
+                await _connection.InvokeAsync(batch.Key, logsToSend);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error flushing buffered logs, will retry later");
                 // Re-queue the logs
-                foreach (var log in logsToSend) _logBuffer.Enqueue(log);
+                foreach (var entry in logsToSend) _logBuffer.Enqueue((batch.Key, entry));
             }
         }
 
@@ -849,6 +878,7 @@ public class RunnerHubConnection :
         var moduleId = request.Metadata.ModuleId;
         return _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             jobId => client.InvokeTransferGetModuleCompleted(jobId, moduleId),
             jobId => client.InvokeTransferGetModuleCancelled(jobId, moduleId),
             (jobId, error, stack) => client.InvokeTransferGetModuleFaulted(jobId, moduleId, error, stack));
@@ -860,6 +890,7 @@ public class RunnerHubConnection :
         var moduleId = request.Metadata.ModuleId;
         return _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             jobId => client.InvokeTransferInitCompleted(jobId, moduleId),
             jobId => client.InvokeTransferInitCancelled(jobId, moduleId),
             (jobId, error, stack) => client.InvokeTransferInitFaulted(jobId, moduleId, error, stack));
@@ -871,6 +902,7 @@ public class RunnerHubConnection :
         var moduleId = request.Metadata.ModuleId;
         return _tasks.Value.Validate(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             jobId => client.InvokeTransferValidateCompleted(jobId, moduleId),
             jobId => client.InvokeTransferValidateCancelled(jobId, moduleId),
             (jobId, error, stack) => client.InvokeTransferValidateFaulted(jobId, moduleId, error, stack));
@@ -897,11 +929,12 @@ public class RunnerHubConnection :
         _tasks.Value.ApplyCancelKill(request, _connection!);
 
     public Task ApplyFromPlan(ApplyFromPlanRequestBase request) =>
-        _tasks.Value.ApplyFromPlan(request, _connection!);
+        _tasks.Value.ApplyFromPlan(request, _connection!, _jobLogStreams.Value.ModuleJobs);
 
     public Task ApplyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
         _tasks.Value.GetDefinitiveRevision(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyGetDefinitiveRevisionCompleted,
             Client.InvokeApplyGetDefinitiveRevisionCancelled,
             Client.InvokeApplyGetDefinitiveRevisionFaulted);
@@ -909,6 +942,7 @@ public class RunnerHubConnection :
     public Task ApplyGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyGetModuleCompleted,
             Client.InvokeApplyGetModuleCancelled,
             Client.InvokeApplyGetModuleFaulted);
@@ -916,6 +950,7 @@ public class RunnerHubConnection :
     public Task ApplyInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyInitCompleted,
             Client.InvokeApplyInitCancelled,
             Client.InvokeApplyInitFaulted);
@@ -923,6 +958,7 @@ public class RunnerHubConnection :
     public Task ApplyOutput(OutputRequestBase request) =>
         _tasks.Value.Output(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyOutputCompleted,
             Client.InvokeApplyOutputCancelled,
             Client.InvokeApplyOutputFaulted);
@@ -930,6 +966,7 @@ public class RunnerHubConnection :
     public Task ApplyPlan(PlanRequestBase request) =>
         _tasks.Value.Plan(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyPlanCompleted,
             Client.InvokeApplyPlanCancelled,
             Client.InvokeApplyPlanFaulted);
@@ -937,6 +974,7 @@ public class RunnerHubConnection :
     public Task ApplyPolicyValidate(PolicyValidateRequestBase request) =>
         _tasks.Value.PolicyValidate(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyPolicyValidateCompleted,
             Client.InvokeApplyPolicyValidateCancelled,
             Client.InvokeApplyPolicyValidateFaulted);
@@ -944,6 +982,7 @@ public class RunnerHubConnection :
     public Task ApplyValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyValidateCompleted,
             Client.InvokeApplyValidateCancelled,
             Client.InvokeApplyValidateFaulted);
@@ -951,6 +990,7 @@ public class RunnerHubConnection :
     public Task ApplyVariables(VariablesRequestBase request) =>
         _tasks.Value.Variables(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeApplyVariablesCompleted,
             Client.InvokeApplyVariablesCancelled,
             Client.InvokeApplyVariablesFaulted);
@@ -961,11 +1001,12 @@ public class RunnerHubConnection :
         _tasks.Value.DestroyCancelKill(request, _connection!);
 
     public Task DestroyFromPlan(DestroyFromPlanRequestBase request) =>
-        _tasks.Value.DestroyFromPlan(request, _connection!);
+        _tasks.Value.DestroyFromPlan(request, _connection!, _jobLogStreams.Value.ModuleJobs);
 
     public Task DestroyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
         _tasks.Value.GetDefinitiveRevision(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeDestroyGetDefinitiveRevisionCompleted,
             Client.InvokeDestroyGetDefinitiveRevisionCancelled,
             Client.InvokeDestroyGetDefinitiveRevisionFaulted);
@@ -973,6 +1014,7 @@ public class RunnerHubConnection :
     public Task DestroyGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeDestroyGetModuleCompleted,
             Client.InvokeDestroyGetModuleCancelled,
             Client.InvokeDestroyGetModuleFaulted);
@@ -980,6 +1022,7 @@ public class RunnerHubConnection :
     public Task DestroyInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeDestroyInitCompleted,
             Client.InvokeDestroyInitCancelled,
             Client.InvokeDestroyInitFaulted);
@@ -987,16 +1030,18 @@ public class RunnerHubConnection :
     public Task DestroyOutput(OutputRequestBase request) =>
         _tasks.Value.Output(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeDestroyOutputCompleted,
             Client.InvokeDestroyOutputCancelled,
             Client.InvokeDestroyOutputFaulted);
 
     public Task DestroyPlan(PlanDestroyRequestBase request) =>
-        _tasks.Value.PlanDestroy(request, _connection!);
+        _tasks.Value.PlanDestroy(request, _connection!, _jobLogStreams.Value.ModuleJobs);
 
     public Task DestroyPolicyValidate(PolicyValidateRequestBase request) =>
         _tasks.Value.PolicyValidate(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeDestroyPolicyValidateCompleted,
             Client.InvokeDestroyPolicyValidateCancelled,
             Client.InvokeDestroyPolicyValidateFaulted);
@@ -1004,6 +1049,7 @@ public class RunnerHubConnection :
     public Task DestroyValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeDestroyValidateCompleted,
             Client.InvokeDestroyValidateCancelled,
             Client.InvokeDestroyValidateFaulted);
@@ -1011,6 +1057,7 @@ public class RunnerHubConnection :
     public Task DestroyVariables(VariablesRequestBase request) =>
         _tasks.Value.Variables(
             request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
             Client.InvokeDestroyVariablesCompleted,
             Client.InvokeDestroyVariablesCancelled,
             Client.InvokeDestroyVariablesFaulted);
@@ -1026,6 +1073,7 @@ public class RunnerHubConnection :
     public Task RippleProbeGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.RippleProbes,
             Client.InvokeRippleProbeGetModuleCompleted,
             Client.InvokeRippleProbeGetModuleCancelled,
             Client.InvokeRippleProbeGetModuleFaulted);
@@ -1033,6 +1081,7 @@ public class RunnerHubConnection :
     public Task RippleProbeInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.RippleProbes,
             Client.InvokeRippleProbeInitCompleted,
             Client.InvokeRippleProbeInitCancelled,
             Client.InvokeRippleProbeInitFaulted);
@@ -1043,6 +1092,7 @@ public class RunnerHubConnection :
     public Task RippleProbeValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(
             request, _connection!,
+            _jobLogStreams.Value.RippleProbes,
             Client.InvokeRippleProbeValidateCompleted,
             Client.InvokeRippleProbeValidateCancelled,
             Client.InvokeRippleProbeValidateFaulted);
@@ -1050,6 +1100,7 @@ public class RunnerHubConnection :
     public Task SplitGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeSplitGetModuleCompleted,
             Client.InvokeSplitGetModuleCancelled,
             Client.InvokeSplitGetModuleFaulted);
@@ -1057,6 +1108,7 @@ public class RunnerHubConnection :
     public Task SplitInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeSplitInitCompleted,
             Client.InvokeSplitInitCancelled,
             Client.InvokeSplitInitFaulted);
@@ -1076,6 +1128,7 @@ public class RunnerHubConnection :
     public Task SplitPlan(PlanRequestBase request) =>
         _tasks.Value.Plan(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             (jobId,
             data) => Client.InvokeSplitPlanCompleted(jobId,
             data),
@@ -1099,6 +1152,7 @@ public class RunnerHubConnection :
     public Task SplitValidate(ValidateRequestBase request) =>
         _tasks.Value.Validate(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeSplitValidateCompleted,
             Client.InvokeSplitValidateCancelled,
             Client.InvokeSplitValidateFaulted);
@@ -1111,6 +1165,7 @@ public class RunnerHubConnection :
     public Task LookupAddressesGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeLookupAddressesGetModuleCompleted,
             Client.InvokeLookupAddressesGetModuleCancelled,
             Client.InvokeLookupAddressesGetModuleFaulted);
@@ -1118,6 +1173,7 @@ public class RunnerHubConnection :
     public Task LookupAddressesInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeLookupAddressesInitCompleted,
             Client.InvokeLookupAddressesInitCancelled,
             Client.InvokeLookupAddressesInitFaulted);
@@ -1136,6 +1192,7 @@ public class RunnerHubConnection :
     public Task MoveGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeMoveGetModuleCompleted,
             Client.InvokeMoveGetModuleCancelled,
             Client.InvokeMoveGetModuleFaulted);
@@ -1143,6 +1200,7 @@ public class RunnerHubConnection :
     public Task MoveInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeMoveInitCompleted,
             Client.InvokeMoveInitCancelled,
             Client.InvokeMoveInitFaulted);
@@ -1158,6 +1216,7 @@ public class RunnerHubConnection :
     public Task ImportGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeImportGetModuleCompleted,
             Client.InvokeImportGetModuleCancelled,
             Client.InvokeImportGetModuleFaulted);
@@ -1165,6 +1224,7 @@ public class RunnerHubConnection :
     public Task ImportInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeImportInitCompleted,
             Client.InvokeImportInitCancelled,
             Client.InvokeImportInitFaulted);
@@ -1186,6 +1246,7 @@ public class RunnerHubConnection :
     public Task RemoveGetModule(GetModuleRequestBase request) =>
         _tasks.Value.GetModule(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeRemoveGetModuleCompleted,
             Client.InvokeRemoveGetModuleCancelled,
             Client.InvokeRemoveGetModuleFaulted);
@@ -1193,6 +1254,7 @@ public class RunnerHubConnection :
     public Task RemoveInit(InitRequestBase request) =>
         _tasks.Value.Init(
             request, _connection!,
+            _jobLogStreams.Value.StateMigrations,
             Client.InvokeRemoveInitCompleted,
             Client.InvokeRemoveInitCancelled,
             Client.InvokeRemoveInitFaulted);
