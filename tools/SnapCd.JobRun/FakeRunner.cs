@@ -475,28 +475,53 @@ public class FakeRunner(
         })
         .ToList();
 
+    // Which table a job's logs belong in follows from the endpoint's interface, so the sets are
+    // read off the interfaces rather than listed by hand or matched on a name prefix.
+    private static readonly HashSet<string> RippleProbeEndpoints = EndpointNamesOf<IRippleProbeEndpoints>();
+
+    private static readonly HashSet<string> StateMigrationEndpoints =
+    [
+        ..EndpointNamesOf<ISplitEndpoints>(),
+        ..EndpointNamesOf<ITransferEndpoints>(),
+        ..EndpointNamesOf<ILookupAddressesEndpoints>(),
+        ..EndpointNamesOf<IMoveEndpoints>(),
+        ..EndpointNamesOf<IImportEndpoints>(),
+        ..EndpointNamesOf<IRemoveEndpoints>(),
+    ];
+
+    private static HashSet<string> EndpointNamesOf<T>() =>
+        typeof(T).GetMethods().Select(m => m.Name).ToHashSet(StringComparer.Ordinal);
+
+    private TLogEntry Entry<TLogEntry>(Guid jobId, string task)
+        where TLogEntry : class, IJobLogEntry, new() =>
+        new()
+        {
+            JobId = jobId,
+            ModuleId = ModuleId,
+            Timestamp = DateTimeOffset.UtcNow,
+            BatchTimeStamp = DateTimeOffset.UtcNow,
+            StackName = "jobrun",
+            NamespaceName = "jobrun",
+            Level = LogEventLevel.Information,
+            Message = $"{task}: running under jobrun",
+            TaskName = task
+        };
+
     /// <summary>
     /// One line per step, which is what the page's log panel reads and what raises the event that
-    /// tells an open page to look again.
+    /// tells an open page to look again. The endpoint names the job family, so it names the
+    /// table the entry is written to, as a real runner's log stream does.
     /// </summary>
     private async Task SendLog(RunnerHub hub, Guid jobId, string task)
     {
         try
         {
-            await hub.AddLogs([
-                new LogEntryDto
-                {
-                    JobId = jobId,
-                    ModuleId = ModuleId,
-                    Timestamp = DateTimeOffset.UtcNow,
-                    BatchTimeStamp = DateTimeOffset.UtcNow,
-                    StackName = "jobrun",
-                    NamespaceName = "jobrun",
-                    Level = LogEventLevel.Information,
-                    Message = $"{task}: running under jobrun",
-                    TaskName = task
-                }
-            ]);
+            if (RippleProbeEndpoints.Contains(task))
+                await hub.AddRippleProbeLogs([Entry<RippleProbeLogEntryDto>(jobId, task)]);
+            else if (StateMigrationEndpoints.Contains(task))
+                await hub.AddStateMigrationLogs([Entry<StateMigrationLogEntryDto>(jobId, task)]);
+            else
+                await hub.AddModuleJobLogs([Entry<ModuleJobLogEntryDto>(jobId, task)]);
         }
         catch (Exception ex)
         {
