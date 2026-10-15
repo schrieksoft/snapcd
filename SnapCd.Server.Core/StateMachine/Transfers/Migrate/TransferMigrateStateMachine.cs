@@ -10,6 +10,7 @@
 using System.Text.Json;
 using SnapCd.Server.Core.Events.System;
 using MassTransit;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -214,6 +215,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
                         "Transfer: moving state for Module {ModuleId}",
                         context.Saga.ModuleId);
                 })
+                .Activity(x => x.OfType<RecordSelectedStateMigrationRunnerActivity<TransferMigrateSaga, TransferMigrateRequested>>())
                 .IfElseAsync(
                     context => IsInitiator(context),
                     waiting => waiting

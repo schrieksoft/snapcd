@@ -164,6 +164,17 @@ public class RippleProbeJobRepository : IDisposable
         await _dbContext.SaveChangesAsync();
     }
 
+    public Task RecordSelectedRunner(Guid id, Guid organizationId, Guid selectedRunnerId) =>
+        InTransaction(() => ExecuteRecordSelectedRunner(id, organizationId, selectedRunnerId));
+
+    public async Task ExecuteRecordSelectedRunner(Guid id, Guid organizationId, Guid selectedRunnerId)
+    {
+        var job = await Get(id, organizationId);
+        job.SelectedRunnerId = selectedRunnerId;
+
+        await _dbContext.SaveChangesAsync();
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

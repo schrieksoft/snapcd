@@ -118,6 +118,17 @@ public class ModuleJobRepository : GenericModuleChildRepository<ModuleJob, Modul
             await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
     }
 
+    public async Task RecordSelectedRunner(Guid id, Guid organizationId, Guid selectedRunnerId, bool wrapInTransaction = false)
+    {
+        var job = await Get(id, organizationId);
+        job.SelectedRunnerId = selectedRunnerId;
+
+        if (wrapInTransaction)
+            await Update(job);
+        else
+            await ExecuteUpdate(job); //E.g. if calling from MassTransit state machine, a transaction is already running
+    }
+
     public async Task<string?> GetActualDefinitiveRevision(Guid moduleId, Guid organizationId)
     {
         return await DbContext.ModuleJobs

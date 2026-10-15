@@ -443,6 +443,9 @@ public static class MassTransit
         services.AddScoped(typeof(TerraformStateMigrationNeedsApprovalActivity<,>));
         services.AddScoped(typeof(RunnerConnectedActivity<,>));
         services.AddScoped(typeof(CheckRunnerConnectionActivity<,>));
+        services.AddScoped(typeof(RecordSelectedRunnerActivity<,>));
+        services.AddScoped(typeof(RecordSelectedStateMigrationRunnerActivity<,>));
+        services.AddScoped(typeof(RecordSelectedRippleProbeRunnerActivity<>));
         services.AddScoped(typeof(NotWaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForRunnerActivity<,>));
         services.AddScoped(typeof(WaitingForConsentActivity<,>));

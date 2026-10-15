@@ -11,6 +11,7 @@ using System.Text.Json;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.Events.Jobs.Module;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Events.Runners;
@@ -88,6 +89,7 @@ public partial class RippleProbeStateMachine : MassTransitStateMachine<RipplePro
                     context.Saga.UpstreamModuleJobId = context.Message.UpstreamModuleJobId;
                     context.Saga.InputsJson = context.Message.InputsJson;
                 })
+                .Activity(x => x.OfType<RecordSelectedRippleProbeRunnerActivity<RippleProbeRequested>>())
                 .Then(x => _logger.LogInformation(
                     "Ripple probe started for Module {ModuleId}, job {JobId}",
                     x.Saga.ModuleId, x.Saga.CorrelationId))

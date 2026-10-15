@@ -18,4 +18,7 @@ public interface IJobWithLogs
     Guid Id { get; set; }
     Guid OrganizationId { get; set; }
     string? Logs { get; set; }
+
+    /// <summary>The runner this job was dispatched to, which is what authorizes one writing to it.</summary>
+    Guid? SelectedRunnerId { get; set; }
 }

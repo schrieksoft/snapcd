@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Events.Runners;
 using SnapCd.Server.Core.Events.Steps;
 using SnapCd.Server.Core.Events.Steps.Base;
 using SnapCd.Server.Core.Repositories.Organizations.Nonsecured;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using SnapCd.Server.Core.Services.ResolvedConfiguration.HelperClasses;
 using SnapCd.Server.Core.Events.Jobs.Module;
 
@@ -262,6 +263,7 @@ public partial class JobStateMachine<
                     context.Saga.RunnerInstanceName = context.Message.Declared.RunnerInstanceName;
                     context.Saga.ApprovalTimeoutMinutes = context.Message.Declared.ApprovalTimeoutMinutes;
                 })
+                .Activity(x => x.OfType<RecordSelectedRunnerActivity<TSaga, TRequest>>())
                 .Publish(context => new SelectRunnerInstanceRequested
                 {
                     RunnerId = context.Saga.RunnerId,

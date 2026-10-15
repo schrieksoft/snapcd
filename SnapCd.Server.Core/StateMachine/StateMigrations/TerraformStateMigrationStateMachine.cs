@@ -195,6 +195,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
                         "{Verb} of {Count} addresses starting on Module {ModuleId}",
                         Verb, context.Message.Instructions.Count, context.Saga.ModuleId);
                 })
+                .Activity(x => x.OfType<RecordSelectedStateMigrationRunnerActivity<TSaga, TJobRequested>>())
                 .Publish(context => Request<TSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
                 .TransitionTo(SelectRunnerInstancePending)

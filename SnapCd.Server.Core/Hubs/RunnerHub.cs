@@ -491,8 +491,23 @@ public class RunnerHub : Hub
                 return;
             }
 
-            // TODO: Add permission checking here (like LogsController.CheckHasPermission)
-            // For now, skip permission checking
+            // Same question every step method asks: is the caller the runner this job was given to.
+            // SelectedRunnerId is null only on a row written before it existed, and null is not a
+            // match, so those are refused rather than trusted.
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+            var jobId = logEntries.First().JobId;
+            var selectedRunnerId = await dbContext.Set<TJob>().AsNoTracking()
+                .Where(j => j.Id == jobId && j.OrganizationId == connection.OrganizationId)
+                .Select(j => j.SelectedRunnerId)
+                .FirstOrDefaultAsync();
+
+            if (selectedRunnerId != connection.RunnerId)
+            {
+                _logger.LogWarning(
+                    "Authorization failed: logs for job {JobId} require Runner {RequiredRunnerId}, but the caller is {CallerRunnerId}",
+                    jobId, selectedRunnerId, connection.RunnerId);
+                throw new HubException($"Unauthorized: not the runner for job {jobId}.");
+            }
 
             await _jobLogServiceFactory.Create<TJob, TLogEntry>().AddLogEntries(logEntries);
 

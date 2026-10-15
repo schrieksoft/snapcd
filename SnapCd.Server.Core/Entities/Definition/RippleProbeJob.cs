@@ -65,6 +65,12 @@ public class RippleProbeJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
     /// reads as Running, which is indistinguishable from working.
     /// </summary>
     public bool? WaitingForRunner { get; set; }
+    /// <summary>
+    /// The runner this job was dispatched to. Recorded on the job rather than only on the saga,
+    /// which is deleted when the job finishes, and carried without a foreign key so it survives
+    /// the runner being removed.
+    /// </summary>
+    public Guid? SelectedRunnerId { get; set; }
 
     public ServerSideStep? FailedOnServerSideStep { get; set; }
 

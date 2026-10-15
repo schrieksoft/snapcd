@@ -89,6 +89,7 @@ public partial class SplitMigrateStateMachine : MassTransitStateMachine<SplitMig
                     context.Saga.RederiveBackend = context.Message.RederiveBackend;
                     context.Saga.StopAfterProve = context.Message.StopAfterProve;
                 })
+                .Activity(x => x.OfType<RecordSelectedStateMigrationRunnerActivity<SplitMigrateSaga, SplitMigrateRequested>>())
                 .Publish(context => new SelectRunnerInstanceRequested
                 {
                     RunnerId = context.Saga.RunnerId,

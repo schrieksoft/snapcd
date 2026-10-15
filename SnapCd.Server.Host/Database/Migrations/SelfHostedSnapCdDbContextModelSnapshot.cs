@@ -2400,6 +2400,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("PolicyOutcome")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("SelectedRunnerId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ServerSideError")
                         .HasMaxLength(16000)
                         .HasColumnType("nvarchar(max)");
@@ -4925,6 +4928,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("SelectedRunnerId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ServerSideError")
                         .HasMaxLength(16000)
                         .HasColumnType("nvarchar(max)");
@@ -6898,6 +6904,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("ProveRef")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("SelectedRunnerId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ServerSideError")
                         .HasMaxLength(16000)

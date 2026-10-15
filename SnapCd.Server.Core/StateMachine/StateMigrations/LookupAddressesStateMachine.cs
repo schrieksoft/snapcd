@@ -9,6 +9,7 @@
 
 using System.Text.Json;
 using MassTransit;
+using SnapCd.Server.Core.StateMachine.Jobs.Activites;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Entities.Sagas;
@@ -120,6 +121,7 @@ public partial class LookupAddressesStateMachine : MassTransitStateMachine<Looku
                         "Checking {Count} addresses against Module {ModuleId}",
                         context.Message.Addresses.Count, context.Saga.ModuleId);
                 })
+                .Activity(x => x.OfType<RecordSelectedStateMigrationRunnerActivity<LookupAddressesSaga, LookupAddressesJobRequested>>())
                 .Publish(context => Request<LookupAddressesSelectRunnerInstanceRequested>(context.Saga))
                 .ThenAsync(context => RecordDispatched(context, "SelectRunnerInstance"))
                 .TransitionTo(LookupAddressesSelectRunnerInstancePending)

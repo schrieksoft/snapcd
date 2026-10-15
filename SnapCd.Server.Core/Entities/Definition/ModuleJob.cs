@@ -41,6 +41,12 @@ public class ModuleJob : AuditBase, IEntity, IModuleChild, IJobWithLogs
     public string? Logs { get; set; }
 
     public bool? WaitingForApproval { get; set; }
+    /// <summary>
+    /// The runner this job was dispatched to. Recorded on the job rather than only on the saga,
+    /// which is deleted when the job finishes, and carried without a foreign key so it survives
+    /// the runner being removed.
+    /// </summary>
+    public Guid? SelectedRunnerId { get; set; }
 
     public bool? IsCurrent { get; set; }
 
