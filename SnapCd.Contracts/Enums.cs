@@ -493,7 +493,8 @@ public enum SecretDiscriminator
     StackSecret,
     NamespaceSecret,
     ModuleSecret,
-    SecretOutput
+    SecretOutput,
+    SecretSignalOutput
 }
 
 public enum CancellationType

@@ -158,3 +158,29 @@ public enum ActualStateHeadline
     ApplyPolicyDenied,
     DestroyPolicyDenied
 }
+
+/// <summary>
+/// Whether a signal could flow along one edge of a wave. Resolves from Potential exactly once,
+/// and a participant is released when none of its contributions is Potential any more.
+/// </summary>
+public enum SignalContributionStatus
+{
+    /// <summary>The upstream might signal something this consumer reads. The state at creation.</summary>
+    Potential,
+
+    /// <summary>The upstream produced a signal set and this consumer reads something in it.</summary>
+    Confirmed,
+
+    /// <summary>
+    /// The upstream terminated and there is nothing here for this consumer: it signalled nothing,
+    /// or signalled only outputs this consumer does not read. The same answer either way.
+    /// </summary>
+    NotNeeded,
+
+    /// <summary>
+    /// The upstream will never report, because it is paused, refused, or no longer exists. Distinct
+    /// from NotNeeded, which is an answer; this is the absence of one, and it releases the consumer
+    /// rather than leaving the wave waiting forever.
+    /// </summary>
+    Unanswerable
+}
