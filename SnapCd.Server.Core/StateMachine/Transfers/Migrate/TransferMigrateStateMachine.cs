@@ -41,7 +41,7 @@ public partial class TransferMigrateStateMachine : MassTransitStateMachine<Trans
 
     // Liveness: the runner can go away mid-job.
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<TransferMigrateSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<TransferMigrateSaga, StateMigrationHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<TransferMigrateSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     // From the runner, each naming the Module it is for

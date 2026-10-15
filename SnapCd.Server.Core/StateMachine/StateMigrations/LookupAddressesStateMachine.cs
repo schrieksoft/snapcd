@@ -52,7 +52,7 @@ public partial class LookupAddressesStateMachine : MassTransitStateMachine<Looku
     public Event<LookupAddressesFaulted> ListFaulted { get; } = null!;
 
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<LookupAddressesSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<LookupAddressesSaga, StateMigrationHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<LookupAddressesSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     public State LookupAddressesSelectRunnerInstancePending { get; } = null!;

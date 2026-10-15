@@ -172,7 +172,7 @@ public partial class JobStateMachine<
     public Event<TRequest> ModuleRequest { get; } = null!;
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
     public Event<CleanupOrphanedJobRequested> CleanupOrphanedJobRequested { get; } = null!;
-    public Request<TSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<TSaga, ModuleJobHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<TSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     public State Completed { get; } = null!;

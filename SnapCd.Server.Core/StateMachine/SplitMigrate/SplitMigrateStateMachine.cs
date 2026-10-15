@@ -40,7 +40,7 @@ public partial class SplitMigrateStateMachine : MassTransitStateMachine<SplitMig
 
     // Liveness
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<SplitMigrateSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<SplitMigrateSaga, StateMigrationHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<SplitMigrateSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     // Terminal

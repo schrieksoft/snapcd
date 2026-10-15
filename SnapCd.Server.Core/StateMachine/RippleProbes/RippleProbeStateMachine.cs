@@ -31,7 +31,7 @@ public partial class RippleProbeStateMachine : MassTransitStateMachine<RipplePro
     public Event<RippleProbeRequested> RippleProbeRequested { get; } = null!;
 
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<RippleProbeSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<RippleProbeSaga, RippleProbeHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<RippleProbeSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     public State Completed { get; } = null!;

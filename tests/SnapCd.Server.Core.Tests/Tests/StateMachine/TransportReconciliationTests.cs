@@ -263,7 +263,7 @@ public class TransportReconciliationTests : IAsyncLifetime
 
     private bool RequestPublishedFor(Guid jobId)
         => _harness.Published
-            .Select<HeartbeatRequested>(x => ((IPublishedMessage<HeartbeatRequested>)x).Context.Message.CorrelationId == jobId)
+            .Select<ModuleJobHeartbeatRequested>(x => ((IPublishedMessage<ModuleJobHeartbeatRequested>)x).Context.Message.CorrelationId == jobId)
             .Any();
 
     [Fact]
@@ -274,7 +274,7 @@ public class TransportReconciliationTests : IAsyncLifetime
 
         await _harness.Bus.Publish(new HeartbeatScheduled { CorrelationId = jobId, OrganizationId = _module.OrganizationId });
 
-        Assert.True(await _harness.Published.Any<HeartbeatRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.True(await _harness.Published.Any<ModuleJobHeartbeatRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public class TransportReconciliationTests : IAsyncLifetime
             new HeartbeatScheduled { CorrelationId = jobId, OrganizationId = _module.OrganizationId },
             c => c.Headers.Set(MessageHeaders.SchedulingTokenId, token));
 
-        Assert.True(await _harness.Published.Any<HeartbeatRequested>(x => x.Context.Message.CorrelationId == jobId));
+        Assert.True(await _harness.Published.Any<ModuleJobHeartbeatRequested>(x => x.Context.Message.CorrelationId == jobId));
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public class TransportReconciliationTests : IAsyncLifetime
         Assert.True(await _harness.Published.Any<HeartbeatScheduled>(x => x.Context.Message.CorrelationId == destroyJob));
 
         // The pending saga restarted its cycle; resting states ignored theirs.
-        Assert.True(await _harness.Published.Any<HeartbeatRequested>(x => x.Context.Message.CorrelationId == pendingJob));
+        Assert.True(await _harness.Published.Any<ModuleJobHeartbeatRequested>(x => x.Context.Message.CorrelationId == pendingJob));
         await AwaitTickConsumed(approvalJob);
         await AwaitTickConsumed(parkedJob);
         Assert.False(RequestPublishedFor(approvalJob));

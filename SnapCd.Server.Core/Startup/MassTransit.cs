@@ -328,7 +328,9 @@ public static class MassTransit
         typeof(ImportSelectRunnerInstanceConsumer),
         typeof(RemoveSelectRunnerInstanceConsumer),
         // Answers from the connection table, so any instance can serve it; heartbeat requests are published.
-        typeof(HeartbeatConsumer),
+        typeof(ModuleJobHeartbeatConsumer),
+        typeof(StateMigrationHeartbeatConsumer),
+        typeof(RippleProbeHeartbeatConsumer),
 
         // Acts on nothing; it gives a warm-up somewhere to land.
         typeof(WarmupCompetingConsumer),

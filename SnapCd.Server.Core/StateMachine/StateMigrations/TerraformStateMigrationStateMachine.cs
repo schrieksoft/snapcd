@@ -112,7 +112,7 @@ public abstract partial class TerraformStateMigrationStateMachine<
     public Event<LookupAddressesFaulted> ListFaulted { get; } = null!;
 
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
-    public Request<TSaga, HeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
+    public Request<TSaga, StateMigrationHeartbeatRequested, HeartbeatCompleted, HeartbeatFailed> HeartbeatRequested { get; } = null!;
     public Schedule<TSaga, HeartbeatScheduled> HeartbeatScheduled { get; } = null!;
 
     public State SelectRunnerInstancePending { get; } = null!;
