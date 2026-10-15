@@ -6,6 +6,7 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SnapCd.Server.Core.Database;
@@ -113,5 +114,36 @@ public static class RippleProbeRun
 
         if (job.ServerSideError is not null)
             Console.WriteLine($"Error   {job.ServerSideError}");
+
+        DescribeUnknowns(job.SignalsJson);
+    }
+
+    /// <summary>
+    /// Reading the column proves a string survived; decoding it proves an unknown did. An unknown
+    /// is cty's msgpack d4 00 00, so the check is on the decoded bytes rather than on the text.
+    /// </summary>
+    private static void DescribeUnknowns(string? signalsJson)
+    {
+        if (string.IsNullOrWhiteSpace(signalsJson)) return;
+
+        using var document = JsonDocument.Parse(signalsJson);
+        if (!document.RootElement.TryGetProperty("outputs", out var outputs)) return;
+
+        // Both halves are decoded, because a check that can only report "unknown" proves nothing:
+        // before is the concrete value the output holds today, after is what the probe reported.
+        foreach (var output in outputs.EnumerateObject())
+        foreach (var field in new[] { "before", "after" })
+        {
+            if (!output.Value.TryGetProperty(field, out var encoded)) continue;
+            if (encoded.GetString() is not { } value) continue;
+
+            var bytes = Convert.FromBase64String(value);
+            var hex = Convert.ToHexString(bytes).ToLowerInvariant();
+            var description = bytes is [0xd4, 0x00, 0x00]
+                ? "unknown (msgpack fixext1, ext type 0)"
+                : "a concrete value";
+
+            Console.WriteLine($"  decoded {output.Name}.{field}: {hex} -> {description}");
+        }
     }
 }
