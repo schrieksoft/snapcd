@@ -178,6 +178,10 @@ public partial class JobStateMachine<
                     ///////////////////////////////////////////////////
                     x => x
                         .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, TPlanCompleted>>())
+                        // A destroy removes its outputs rather than changing them, which is a
+                        // different question with different inputs, so only an apply propagates.
+                        .If(_ => !IsDestroyJob, propagate => propagate
+                            .Activity(a => a.OfType<StartProbeWaveActivity<TSaga, TPlanCompleted>>()))
                         .IfElse(
                             ctx => PolicyApplicability.Any(ctx.Saga.DeclaredJson, IsDestroyJob),
                             withPolicies => withPolicies

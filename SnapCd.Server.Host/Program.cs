@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Hubs;
 using SnapCd.Server.Core.Middleware;
 using SnapCd.Server.Core.Misc.Configuration;
 using SnapCd.Server.Core.Services;
+using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Services.MaintenanceMode;
 using SnapCd.Server.Core.Services.Dashboard;
 using SnapCd.Server.Core.Services.DataSeeder;
@@ -286,6 +287,13 @@ RecurringJob.AddOrUpdate<StuckJobDetectionJob>(
     "stuck-job-detection-job",
     x => x.ExecuteJob(),
     stuckJobDetectionSettings.CronExpression
+);
+
+var probePropagationSettings = builder.Configuration.GetSection("ProbePropagation").Get<ProbePropagationSettings>() ?? new ProbePropagationSettings();
+RecurringJob.AddOrUpdate<ProbeWaveSweepJob>(
+    "probe-wave-sweep-job",
+    x => x.Run(),
+    probePropagationSettings.SweepCronExpression
 );
 
 // Scheduled messages live in the transport and do not survive a transport change.

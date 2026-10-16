@@ -59,7 +59,11 @@ public class ProbeSignalRecorder : IDisposable
         _logger = logger;
     }
 
-    public async Task Record(Guid moduleId, Guid organizationId, Guid moduleJobId, string signalsJson)
+    /// <summary>
+    /// Stores what a probe reported and returns the participant it was recorded against, so the
+    /// caller can resolve the edges leading out of it. Null when there was nothing to record.
+    /// </summary>
+    public async Task<Guid?> Record(Guid moduleId, Guid organizationId, Guid moduleJobId, string signalsJson)
     {
         var participant = await _dbContext.ProbeWaveParticipants
             .Where(p => p.ModuleId == moduleId && p.OrganizationId == organizationId)
@@ -71,7 +75,7 @@ public class ProbeSignalRecorder : IDisposable
             _logger.LogWarning(
                 "Probe reported signals for Module {ModuleId} with no participant to record them against.",
                 moduleId);
-            return;
+            return null;
         }
 
         JsonObject? outputs;
@@ -82,10 +86,10 @@ public class ProbeSignalRecorder : IDisposable
         catch (JsonException)
         {
             _logger.LogWarning("Probe for Module {ModuleId} returned a signals document that would not parse.", moduleId);
-            return;
+            return null;
         }
 
-        if (outputs == null) return;
+        if (outputs == null) return null;
 
         var set = new SignalOutputSet
         {
@@ -147,6 +151,8 @@ public class ProbeSignalRecorder : IDisposable
             OrganizationId = organizationId,
             ModuleId = moduleId
         });
+
+        return participant.Id;
     }
 
     private static string Checksum(string document)

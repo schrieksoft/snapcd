@@ -24,4 +24,11 @@ public class ProbePropagationSettings
     /// apply that already succeeded must not be held open by it.
     /// </summary>
     public int SignalWaitMinutes { get; set; } = 10;
+
+    /// <summary>
+    /// How often to look for Modules a wave is ready for. The interval is the delay between a
+    /// Module being released and its Apply starting, so it bounds how long a wave takes rather
+    /// than whether it works.
+    /// </summary>
+    public string SweepCronExpression { get; set; } = "*/1 * * * *";
 }

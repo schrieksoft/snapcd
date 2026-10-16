@@ -30,17 +30,20 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
     private readonly ILogger _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ProbeSignalRecorderFactory _recorderFactory;
+    private readonly ProbeContributionResolverFactory _resolverFactory;
     private readonly IBus _bus;
 
     protected ProbeCompletedInvokedConsumer(
         ILogger logger,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         ProbeSignalRecorderFactory recorderFactory,
+        ProbeContributionResolverFactory resolverFactory,
         IBus bus)
     {
         _logger = logger;
         _dbContextFactory = dbContextFactory;
         _recorderFactory = recorderFactory;
+        _resolverFactory = resolverFactory;
         _bus = bus;
     }
 
@@ -69,13 +72,21 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
                 else
                 {
                     using var recorder = _recorderFactory.Create();
-                    await recorder.Record(
+                    var participantId = await recorder.Record(
                         jobView.ModuleId,
                         jobView.OrganizationId,
                         jobId,
                         context.Message.SignalsJson!);
 
                     _logger.LogDebug("Stored probe signals for job {JobId}", jobId);
+
+                    // Whoever waited on this Module now has an answer, and a consumer whose last
+                    // contribution this was is released by it.
+                    if (participantId != null)
+                    {
+                        using var resolver = _resolverFactory.Create();
+                        await resolver.ResolveAfterSignals(participantId.Value, jobView.OrganizationId);
+                    }
                 }
             }
         }
@@ -94,6 +105,7 @@ public class ApplyProbeCompletedInvokedConsumer(
     ILogger<ApplyProbeCompletedInvokedConsumer> logger,
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     ProbeSignalRecorderFactory recorderFactory,
+    ProbeContributionResolverFactory resolverFactory,
     IBus bus)
     : ProbeCompletedInvokedConsumer<ApplyProbeCompletedInvoked, ApplyProbeCompleted>(
-        logger, dbContextFactory, recorderFactory, bus);
+        logger, dbContextFactory, recorderFactory, resolverFactory, bus);

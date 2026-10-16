@@ -269,7 +269,13 @@ public class FakeRunner(
                     TotalChangedCount = changed,
                     CreateCount = changed,
                     TotalCountAfter = changed,
-                    PolicyOutcome = PolicyOutcome
+                    PolicyOutcome = PolicyOutcome,
+                    // A changed output, so the propagation trigger has something to look for. It
+                    // finds no consumer in the seeded graph, which is the path worth exercising:
+                    // the trigger runs and declines rather than never running at all.
+                    OutputsTotalChangedCount = changed,
+                    OutputsModifyCount = changed,
+                    OutputsModifyList = changed == 0 ? null : ["jobrun_output"]
                 });
                 break;
             }
