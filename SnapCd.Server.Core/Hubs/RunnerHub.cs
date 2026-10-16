@@ -62,6 +62,7 @@ public class RunnerHub : Hub
     private readonly ApplyPolicyValidateHandler _applyPolicyValidateHandler;
     private readonly DestroyPolicyValidateHandler _destroyPolicyValidateHandler;
     private readonly ApplyOutputHandler _applyOutputHandler;
+    private readonly ApplyProbeHandler _applyProbeHandler;
     private readonly DestroyOutputHandler _destroyOutputHandler;
     private readonly PlanHandler _planHandler;
     private readonly SplitGetModuleHandler _splitGetModuleHandler;
@@ -114,6 +115,7 @@ public class RunnerHub : Hub
         ApplyPolicyValidateHandler applyPolicyValidateHandler,
         DestroyPolicyValidateHandler destroyPolicyValidateHandler,
         ApplyOutputHandler applyOutputHandler,
+        ApplyProbeHandler applyProbeHandler,
         DestroyOutputHandler destroyOutputHandler,
         PlanHandler planHandler,
         SplitGetModuleHandler splitGetModuleHandler,
@@ -165,6 +167,7 @@ public class RunnerHub : Hub
         _applyPolicyValidateHandler = applyPolicyValidateHandler;
         _destroyPolicyValidateHandler = destroyPolicyValidateHandler;
         _applyOutputHandler = applyOutputHandler;
+        _applyProbeHandler = applyProbeHandler;
         _destroyOutputHandler = destroyOutputHandler;
         _planHandler = planHandler;
         _splitGetModuleHandler = splitGetModuleHandler;
@@ -1855,6 +1858,30 @@ public class RunnerHub : Hub
             .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId);
 
         await _applyOutputHandler.Fault(jobId, errorMessage, stackTrace);
+    }
+
+    public async Task ApplyProbeCompleted(Guid jobId, string? signalsJson)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId);
+
+        await _applyProbeHandler.Complete(jobId, signalsJson);
+    }
+
+    public async Task ApplyProbeCancelled(Guid jobId)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId);
+
+        await _applyProbeHandler.Cancel(jobId);
+    }
+
+    public async Task ApplyProbeFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _authorizationService
+            .ValidateRunnerCanAccessJob<ApplyJobSaga>(Context, jobId);
+
+        await _applyProbeHandler.Fault(jobId, errorMessage, stackTrace);
     }
 
     public async Task DestroyOutputCompleted(Guid jobId, OutputSetCreateDto? outputSet)

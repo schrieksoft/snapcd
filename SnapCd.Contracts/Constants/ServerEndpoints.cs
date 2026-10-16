@@ -202,6 +202,9 @@ public static class ServerEndpoints
     public const string ApplyOutputCompleted = "ApplyOutputCompleted";
     public const string ApplyOutputCancelled = "ApplyOutputCancelled";
     public const string ApplyOutputFaulted = "ApplyOutputFaulted";
+    public const string ApplyProbeCompleted = "ApplyProbeCompleted";
+    public const string ApplyProbeCancelled = "ApplyProbeCancelled";
+    public const string ApplyProbeFaulted = "ApplyProbeFaulted";
     public const string DestroyGetDefinitiveRevisionCompleted = "DestroyGetDefinitiveRevisionCompleted";
     public const string DestroyGetDefinitiveRevisionCancelled = "DestroyGetDefinitiveRevisionCancelled";
     public const string DestroyGetDefinitiveRevisionFaulted = "DestroyGetDefinitiveRevisionFaulted";

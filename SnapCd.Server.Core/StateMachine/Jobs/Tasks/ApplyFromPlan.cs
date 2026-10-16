@@ -61,6 +61,10 @@ public partial class JobStateMachine<
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
+    TProbeRequested,
+    TProbeCompleted,
+    TProbeCancelled,
+    TProbeFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
     TCancelKillCompleted>
@@ -104,6 +108,10 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TProbeRequested : ProbeRequestedBase, new()
+    where TProbeCompleted : ProbeCompletedBase
+    where TProbeCancelled : StepResponseBase
+    where TProbeFaulted : StepFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
     where TCancelKillCompleted : StepResponseBase
@@ -169,7 +177,7 @@ public partial class JobStateMachine<
         );
 
         During(ApplyFromPlanPending,
-            When(ApplyFromPlanCompleted)
+            DealWithProbeReadiness(When(ApplyFromPlanCompleted)
                 .Then(context =>
                 {
                     // Extract ActualResourceCount from the completed message
@@ -185,25 +193,10 @@ public partial class JobStateMachine<
                         ActualResourceCount = actualResourceCount
                     });
                 })
-                // Use SendToRunnerActivity to target specific server instance
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TApplyFromPlanCompleted, TOutputRequested>>())
-                .IfElse(
-                    context => context.Saga.PreviousStateBeforeWaiting != null,
-                    // Runner is disconnected - transition to waiting state
-                    whenTrue => whenTrue
-                        .Then(context =>
-                        {
-                            context.Saga.WaitingSince = DateTime.UtcNow;
-                            _logger.LogWarning(
-                                "ApplyFromPlan: Runner disconnected for job {CorrelationId}, entering waiting state",
-                                context.Saga.CorrelationId);
-                        })
-                        .TransitionTo(OutputWaitingForRunner),
-                    // Runner is connected - continue normally
-                    whenFalse => whenFalse
-                        .Schedule(HeartbeatScheduled,
-                            context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
-                        .TransitionTo(OutputPending)
+                // Three exits rather than two: an upstream may still be running, so the job can
+                // have to park here before it knows whether a probe is wanted at all. The probe
+                // itself runs in the checkout this apply is holding, so it belongs between the
+                // apply and the outputs read rather than in a job of its own.
                 ),
             When(HeartbeatScheduled.Received)
                 .ThenHeartbeatScheduled(HeartbeatRequested),

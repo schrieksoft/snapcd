@@ -560,6 +560,13 @@ public class RunnerHubConnection :
                 return Task.CompletedTask;
             });
 
+        _connection.On<ProbeRequestBase>(nameof(IApplyEndpoints.ApplyProbe),
+            request =>
+            {
+                Task.Run(() => ApplyProbe(request));
+                return Task.CompletedTask;
+            });
+
         _connection.On<OutputRequestBase>(nameof(IDestroyEndpoints.DestroyOutput),
             request =>
             {
@@ -913,6 +920,14 @@ public class RunnerHubConnection :
             Client.InvokeApplyOutputCompleted,
             Client.InvokeApplyOutputCancelled,
             Client.InvokeApplyOutputFaulted);
+
+    public Task ApplyProbe(ProbeRequestBase request) =>
+        _tasks.Value.Probe(
+            request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
+            Client.InvokeApplyProbeCompleted,
+            Client.InvokeApplyProbeCancelled,
+            Client.InvokeApplyProbeFaulted);
 
     public Task ApplyPlan(PlanRequestBase request) =>
         _tasks.Value.Plan(

@@ -29,6 +29,8 @@ public class JobSagaBase : SagaStateMachineInstance
 
     public Guid? ApprovalTimeoutScheduleTokenId { get; set; }
 
+    public Guid? ProbeSignalWaitScheduleTokenId { get; set; }
+
     public int? ApprovalTimeoutMinutes { get; set; }
 
     public bool IsCompleted { get; set; }

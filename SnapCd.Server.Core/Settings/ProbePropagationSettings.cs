@@ -17,4 +17,11 @@ public class ProbePropagationSettings
     /// editing this does not change a wave already in flight.
     /// </summary>
     public int MaxDepth { get; set; } = 5;
+
+    /// <summary>
+    /// How long an apply parks waiting for its upstreams to resolve before giving up and reading
+    /// its outputs. A wave can stall on a consumer that is paused, refuses or is deleted, and an
+    /// apply that already succeeded must not be held open by it.
+    /// </summary>
+    public int SignalWaitMinutes { get; set; } = 10;
 }

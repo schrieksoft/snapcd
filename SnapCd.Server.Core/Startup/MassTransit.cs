@@ -362,6 +362,7 @@ public static class MassTransit
 
         // Handler consumers (offloaded from SignalR handlers)
         typeof(ApplyOutputCompletedInvokedConsumer),
+        typeof(ApplyProbeCompletedInvokedConsumer),
         typeof(DestroyOutputCompletedInvokedConsumer),
         typeof(ApplyVariablesCompletedInvokedConsumer),
         typeof(DestroyVariablesCompletedInvokedConsumer),
@@ -520,6 +521,10 @@ public static class MassTransit
                 ApplyFromPlanRequested,
                 ApplyFromPlanCompleted,
                 ApplyFromPlanCancelled,
+                ApplyProbeRequested,
+                ApplyProbeCompleted,
+                ApplyProbeCancelled,
+                ApplyProbeFaulted,
                 ApplyCancelKillRequested,
                 DummyApplyCancelKillCompleted,
                 ApplyCancelKillCompleted
@@ -568,6 +573,10 @@ public static class MassTransit
                 DestroyFromPlanRequested,
                 DestroyFromPlanCompleted,
                 DestroyFromPlanCancelled,
+                DummyDestroyProbeRequested,
+                DummyDestroyProbeCompleted,
+                DummyDestroyProbeCancelled,
+                DummyDestroyProbeFaulted,
                 DestroyCancelKillRequested,
                 DummyDestroyCancelKillCompleted,
                 DestroyCancelKillCompleted

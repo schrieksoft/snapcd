@@ -8,6 +8,8 @@
 
 using System.Text.Json;
 using MassTransit;
+using Microsoft.Extensions.Options;
+using SnapCd.Server.Core.Settings;
 using SnapCd.Server.Core.Entities.Sagas.Base;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Jobs.Base;
@@ -76,6 +78,10 @@ public partial class JobStateMachine<
     TApplyFromPlanRequested,
     TApplyFromPlanCompleted,
     TApplyFromPlanCancelled,
+    TProbeRequested,
+    TProbeCompleted,
+    TProbeCancelled,
+    TProbeFaulted,
     TCancelKillRequested,
     TDummyCancelKillCompleted,
     TCancelKillCompleted>
@@ -120,6 +126,10 @@ public partial class JobStateMachine<
     where TApplyFromPlanRequested : StepRequestBase, new()
     where TApplyFromPlanCompleted : ApplyResponseBase
     where TApplyFromPlanCancelled : StepResponseBase
+    where TProbeRequested : ProbeRequestedBase, new()
+    where TProbeCompleted : ProbeCompletedBase
+    where TProbeCancelled : StepResponseBase
+    where TProbeFaulted : StepFaultedBase
     where TCancelKillRequested : CancelKillRequestedBase, new()
     where TDummyCancelKillCompleted : class
     where TCancelKillCompleted : StepResponseBase
@@ -165,10 +175,16 @@ public partial class JobStateMachine<
         TApplyFromPlanRequested,
         TApplyFromPlanCompleted,
         TApplyFromPlanCancelled,
+        TProbeRequested,
+        TProbeCompleted,
+        TProbeCancelled,
+        TProbeFaulted,
         TCancelKillRequested,
         TDummyCancelKillCompleted,
         TCancelKillCompleted
     >> _logger;
+
+    private readonly ProbePropagationSettings _probePropagation;
 
     public Event<TRequest> ModuleRequest { get; } = null!;
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
@@ -222,13 +238,19 @@ public partial class JobStateMachine<
             TApplyFromPlanRequested,
             TApplyFromPlanCompleted,
             TApplyFromPlanCancelled,
+            TProbeRequested,
+            TProbeCompleted,
+            TProbeCancelled,
+            TProbeFaulted,
             TCancelKillRequested,
             TDummyCancelKillCompleted,
             TCancelKillCompleted
-        >> logger
+        >> logger,
+        IOptions<ProbePropagationSettings> probePropagation
     )
     {
         _logger = logger;
+        _probePropagation = probePropagation.Value;
 
         InstanceState(x => x.CurrentState);
 
@@ -283,6 +305,7 @@ public partial class JobStateMachine<
         Configure_Plan();
         Configure_PolicyValidate();
         Configure_ApplyFromPlan();
+        Configure_Probe();
         Configure_Output();
         Configure_Approval();
 

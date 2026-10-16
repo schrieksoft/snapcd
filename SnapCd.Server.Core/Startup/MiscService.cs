@@ -123,6 +123,15 @@ public static class MiscService
         services.AddScoped<RunnerConnectionStateMigrationService>();
         services.AddScoped<QuiescenceProbeService>();
         services.AddScoped<TransportProbeService>();
+
+        // The probe step's query, inputs document and signal recording. RippleProbeConsumerLookup
+        // is the output-to-variable map the inputs document is keyed by.
+        services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookupFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeInputsBuilderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeReadinessReaderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeSignalRecorderFactory>();
+        services.AddScoped<Services.RippleProbes.ISignalSecretReader, Services.RippleProbes.SignalSecretReader>();
+        services.AddScoped<Services.RippleProbes.ISignalSecretWriter, Services.RippleProbes.SignalSecretWriter>();
         services.AddScoped<Services.MaintenanceMode.MaintenanceOperationsService>();
         services.AddScoped<TransportReconciliationJob>();
         services.AddScoped<Services.MaintenanceMode.MaintenancePhaseService>();

@@ -781,6 +781,21 @@ public class RunnerHubClient
         await _hubConnection.InvokeAsync(ServerEndpoints.ApplyOutputFaulted, jobId, errorMessage, stackTrace);
     }
 
+    public async Task InvokeApplyProbeCompleted(Guid jobId, string? signalsJson)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyProbeCompleted, jobId, signalsJson);
+    }
+
+    public async Task InvokeApplyProbeCancelled(Guid jobId)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyProbeCancelled, jobId);
+    }
+
+    public async Task InvokeApplyProbeFaulted(Guid jobId, string? errorMessage, string? stackTrace)
+    {
+        await _hubConnection.InvokeAsync(ServerEndpoints.ApplyProbeFaulted, jobId, errorMessage, stackTrace);
+    }
+
     public async Task InvokeDestroyGetDefinitiveRevisionCompleted(Guid jobId, string definitiveRevision)
     {
         await _hubConnection.InvokeAsync(ServerEndpoints.DestroyGetDefinitiveRevisionCompleted, jobId, definitiveRevision);

@@ -433,6 +433,24 @@ public class FakeRunner(
                 });
                 break;
 
+            case nameof(IApplyEndpoints.ApplyProbe):
+                // planwalker's own envelope, with one output whose new value is unknown: the
+                // msgpack fixext1 the real thing emits when a plan cannot know a value yet.
+                await hub.ApplyProbeCompleted(jobId, """
+                    {
+                      "format_version": "1",
+                      "outputs": {
+                        "jobrun_signal": {
+                          "action": "update",
+                          "type": "InN0cmluZyI=",
+                          "before": "sGNoYW1waW9uLWhlcnJpbmc=",
+                          "after": "1AAA"
+                        }
+                      }
+                    }
+                    """);
+                break;
+
             default:
                 // An endpoint nobody answers is the end of the run, and a stall with no reason
                 // given reads as the product hanging.

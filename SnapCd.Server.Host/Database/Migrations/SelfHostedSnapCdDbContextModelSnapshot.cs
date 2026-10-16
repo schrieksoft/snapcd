@@ -8246,6 +8246,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8345,6 +8348,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("PreviousStateBeforeWaiting")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
@@ -8452,6 +8458,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("PreviousStateBeforeWaiting")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
@@ -8563,6 +8572,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("PreviousStateBeforeWaiting")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
@@ -8774,6 +8786,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8887,6 +8902,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("RequestId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8999,6 +9017,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("PreviousStateBeforeWaiting")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("ProvenModuleCount")
                         .HasColumnType("int");
@@ -9128,6 +9149,9 @@ namespace SnapCd.Server.Host.Database.Migrations
                     b.Property<string>("PreviousStateBeforeWaiting")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("ProbeSignalWaitScheduleTokenId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("ProveExitCode")
                         .HasColumnType("int");
