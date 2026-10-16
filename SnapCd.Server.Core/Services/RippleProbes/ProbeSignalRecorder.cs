@@ -10,6 +10,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using MassTransit;
+using SnapCd.Server.Core.Events.System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
@@ -20,6 +22,7 @@ namespace SnapCd.Server.Core.Services.RippleProbes;
 public class ProbeSignalRecorderFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     ISignalSecretWriter secretWriter,
+    IPublishEndpoint bus,
     ILoggerFactory loggerFactory)
 {
     public ProbeSignalRecorder Create()
@@ -27,6 +30,7 @@ public class ProbeSignalRecorderFactory(
         return new ProbeSignalRecorder(
             dbFactory.CreateDbContext(),
             secretWriter,
+            bus,
             loggerFactory.CreateLogger<ProbeSignalRecorder>());
     }
 }
@@ -40,15 +44,18 @@ public class ProbeSignalRecorder : IDisposable
 {
     private readonly SnapCdDbContext _dbContext;
     private readonly ISignalSecretWriter _secretWriter;
+    private readonly IPublishEndpoint _bus;
     private readonly ILogger<ProbeSignalRecorder> _logger;
 
     public ProbeSignalRecorder(
         SnapCdDbContext dbContext,
         ISignalSecretWriter secretWriter,
+        IPublishEndpoint bus,
         ILogger<ProbeSignalRecorder> logger)
     {
         _dbContext = dbContext;
         _secretWriter = secretWriter;
+        _bus = bus;
         _logger = logger;
     }
 
@@ -133,6 +140,13 @@ public class ProbeSignalRecorder : IDisposable
         participant.LastProbeModuleJobId = moduleJobId;
 
         await _dbContext.SaveChangesAsync();
+
+        await _bus.Publish(new ProbeWaveUpdatedEvent
+        {
+            ProbeWaveId = participant.ProbeWaveId,
+            OrganizationId = organizationId,
+            ModuleId = moduleId
+        });
     }
 
     private static string Checksum(string document)

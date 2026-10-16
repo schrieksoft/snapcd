@@ -66,6 +66,7 @@ public static class MiscService
         services.AddSingleton<JobCreatedNotificationService>();
         services.AddSingleton<JobUpdatedNotificationService>();
         services.AddSingleton<StateMigrationUpdatedNotificationService>();
+        services.AddSingleton<ProbeWaveUpdatedNotificationService>();
         services.AddSingleton<LogReceivedNotificationService>();
         services.AddSingleton<RunnerAvailabilityModifiedNotificationService>();
         services.AddSingleton<AgentAvailabilityModifiedNotificationService>();
@@ -129,6 +130,7 @@ public static class MiscService
         services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookupFactory>();
         services.AddScoped<Services.RippleProbes.ProbeInputsBuilderFactory>();
         services.AddScoped<Services.RippleProbes.ProbeReadinessReaderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveReadServiceFactory>();
         services.AddScoped<Services.RippleProbes.ProbeSignalRecorderFactory>();
         services.AddScoped<Services.RippleProbes.ISignalSecretReader, Services.RippleProbes.SignalSecretReader>();
         services.AddScoped<Services.RippleProbes.ISignalSecretWriter, Services.RippleProbes.SignalSecretWriter>();

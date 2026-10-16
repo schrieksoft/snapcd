@@ -379,6 +379,7 @@ public static class MassTransit
         typeof(JobCreatedFanoutConsumer),
         typeof(JobUpdatedFanoutConsumer),
         typeof(StateMigrationUpdatedFanoutConsumer),
+        typeof(ProbeWaveUpdatedFanoutConsumer),
         typeof(LogReceivedFanoutConsumer),
         typeof(RunnerAvailabilityModifiedFanoutConsumer),
         typeof(AgentAvailabilityModifiedFanoutConsumer),
