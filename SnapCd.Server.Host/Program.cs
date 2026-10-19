@@ -289,13 +289,6 @@ RecurringJob.AddOrUpdate<StuckJobDetectionJob>(
     stuckJobDetectionSettings.CronExpression
 );
 
-var probePropagationSettings = builder.Configuration.GetSection("ProbePropagation").Get<ProbePropagationSettings>() ?? new ProbePropagationSettings();
-RecurringJob.AddOrUpdate<ProbeWaveSweepJob>(
-    "probe-wave-sweep-job",
-    x => x.Run(),
-    probePropagationSettings.SweepCronExpression
-);
-
 // Scheduled messages live in the transport and do not survive a transport change.
 BackgroundJob.Enqueue<TransportReconciliationJob>(x => x.ExecuteJob());
 

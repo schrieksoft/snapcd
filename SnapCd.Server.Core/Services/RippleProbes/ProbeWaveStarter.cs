@@ -78,6 +78,18 @@ public class ProbeWaveStarter : IDisposable
     {
         if (changedOutputNames.Count == 0) return null;
 
+        // A probe's Apply is an ordinary Apply, so its plan reports changed outputs and would
+        // start a wave of its own. It exists to answer a wave rather than to begin one, and a
+        // wave per probe would nest without bound: each one counts itself as depth zero.
+        if (await IsProbingForAWave(originModuleJobId, organizationId))
+        {
+            _logger.LogDebug(
+                "Job {ModuleJobId} is itself a probe, so it answers its wave rather than starting one",
+                originModuleJobId);
+
+            return null;
+        }
+
         var consumers = await _lookup.ListConsumers(originModuleId, organizationId, changedOutputNames);
         if (consumers.Count == 0) return null;
 
@@ -149,7 +161,34 @@ public class ProbeWaveStarter : IDisposable
             ModuleId = originModuleId
         });
 
+        // The origin's edges are written Confirmed, so its consumers are released the moment the
+        // wave exists. Nothing else would ask them.
+        foreach (var consumer in consumers)
+        {
+            if (!participantIds.TryGetValue(consumer.ModuleId, out var participantId)) continue;
+
+            await _bus.Publish(new ProbeReadinessCheckRequested
+            {
+                ProbeWaveParticipantId = participantId,
+                ModuleId = consumer.ModuleId,
+                OrganizationId = organizationId
+            });
+        }
+
         return wave.Id;
+    }
+
+    /// <summary>
+    /// Whether this job was started to probe for a wave. The readiness check records the job on
+    /// the participant before starting it, so the row exists by the time a plan completes.
+    /// </summary>
+    private async Task<bool> IsProbingForAWave(Guid moduleJobId, Guid organizationId)
+    {
+        return await _dbContext.ProbeWaveParticipants
+            .AsNoTracking()
+            .AnyAsync(p =>
+                p.LastProbeModuleJobId == moduleJobId &&
+                p.OrganizationId == organizationId);
     }
 
     /// <summary>

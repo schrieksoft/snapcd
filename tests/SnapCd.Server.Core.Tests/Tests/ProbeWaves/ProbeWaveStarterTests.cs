@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Base;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services.RippleProbes;
@@ -50,7 +51,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
 
         var waveIds = await db.ProbeWaves
-            .Where(w => w.OriginModuleId == _originModuleId)
+            .Where(w => w.OriginModuleId == _originModuleId || w.OriginModuleId == _consumerModuleId)
             .Select(w => w.Id)
             .ToListAsync();
 
@@ -156,6 +157,21 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         Assert.DoesNotContain(upstreamOfOrigin, moduleIds);
     }
 
+    /// <summary>
+    /// A probe's Apply is an ordinary Apply, so its plan reports changed outputs. Starting a wave
+    /// for it would nest a wave per probe, each counting itself as depth zero, without bound.
+    /// </summary>
+    [Fact]
+    public async Task A_Job_That_Is_Itself_A_Probe_Starts_No_Wave()
+    {
+        await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
+
+        var probeJobId = Guid.NewGuid();
+        await AddParticipantClaiming(probeJobId);
+
+        Assert.Null(await Start(["vpc_id"], probeJobId));
+    }
+
     [Fact]
     public async Task The_Wave_Records_Where_It_Came_From()
     {
@@ -170,6 +186,31 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         Assert.Equal(_originModuleId, wave.OriginModuleId);
         Assert.Equal(jobId, wave.OriginModuleJobId);
         Assert.Equal(5, wave.MaxDepth);
+    }
+
+    /// <summary>A participant of some other wave, already claiming this job as its probe.</summary>
+    private async Task AddParticipantClaiming(Guid probeJobId)
+    {
+        var wave = new ProbeWave
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            OriginModuleId = _consumerModuleId,
+            OriginModuleJobId = Guid.NewGuid(),
+            MaxDepth = 5
+        };
+
+        await using var db = _fixture.CreateDbContext();
+        db.ProbeWaves.Add(wave);
+        db.ProbeWaveParticipants.Add(new ProbeWaveParticipant
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ProbeWaveId = wave.Id,
+            ModuleId = _originModuleId,
+            LastProbeModuleJobId = probeJobId
+        });
+        await db.SaveChangesAsync();
     }
 
     private async Task<Guid?> Start(string[] changedOutputNames, Guid? originJobId = null)

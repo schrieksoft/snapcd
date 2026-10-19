@@ -160,6 +160,17 @@ public class ProbeContributionResolver : IDisposable
             OrganizationId = organizationId
         });
 
+        // Whoever waited on this participant may now be waiting on nothing. Each is asked to look
+        // again rather than being told it is ready, because only the consumer's own contributions
+        // say whether its last upstream has answered.
+        foreach (var consumer in consumerModuleIds)
+            await _bus.Publish(new ProbeReadinessCheckRequested
+            {
+                ProbeWaveParticipantId = consumer.Id,
+                ModuleId = consumer.ModuleId,
+                OrganizationId = organizationId
+            });
+
         await NotifyWaveOrigin(waveId, organizationId);
     }
 

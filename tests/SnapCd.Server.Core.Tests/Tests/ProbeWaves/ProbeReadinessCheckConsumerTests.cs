@@ -6,12 +6,18 @@
 // Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
 // for terms covering either use.
 
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Consumers.System.Competing;
+using SnapCd.Server.Core.Events.System;
+using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Tests.Infrastructure;
 using Xunit;
@@ -19,12 +25,12 @@ using Xunit;
 namespace SnapCd.Server.Core.Tests.Tests.ProbeWaves;
 
 /// <summary>
-/// Which Modules a wave is ready for. The sweep is what makes a released participant apply, so a
-/// participant it misses is a wave that stalls, and one it picks up too early is an Apply nobody
-/// asked for.
+/// Whether a readiness check starts a participant's Apply. The check is what makes a released
+/// participant probe, so one it declines wrongly is a wave that stalls, and one it accepts too
+/// early is an Apply nobody asked for.
 /// </summary>
 [Collection("NewRoleBasedSharedFixture")]
-public class ProbeWaveSweepServiceTests : IAsyncLifetime
+public class ProbeReadinessCheckConsumerTests : IAsyncLifetime
 {
     private readonly Fixture _fixture;
     private Guid _organizationId;
@@ -35,7 +41,7 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
     private readonly List<Guid> _signalSets = [];
     private readonly List<Guid> _jobs = [];
 
-    public ProbeWaveSweepServiceTests(Fixture fixture) => _fixture = fixture;
+    public ProbeReadinessCheckConsumerTests(Fixture fixture) => _fixture = fixture;
 
     public Task InitializeAsync()
     {
@@ -69,9 +75,7 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         var consumer = await AddParticipant(wave, _consumerModuleId);
         await AddContribution(consumer, upstream, SignalContributionStatus.Potential);
 
-        var released = await Sweep().ListReleased();
-
-        Assert.DoesNotContain(released, r => r.ParticipantId == consumer);
+        Assert.False(await Check(consumer, _consumerModuleId));
     }
 
     [Fact]
@@ -82,9 +86,7 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         var consumer = await AddParticipant(wave, _consumerModuleId);
         await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
 
-        var released = await Sweep().ListReleased();
-
-        Assert.Contains(released, r => r.ParticipantId == consumer);
+        Assert.True(await Check(consumer, _consumerModuleId));
     }
 
     [Fact]
@@ -95,10 +97,8 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         var consumer = await AddParticipant(wave, _consumerModuleId);
         await AddContribution(consumer, upstream, SignalContributionStatus.NotNeeded);
 
-        var released = await Sweep().ListReleased();
-
         // Nothing to probe for, so applying it would be a side effect rather than a probe.
-        Assert.DoesNotContain(released, r => r.ParticipantId == consumer);
+        Assert.False(await Check(consumer, _consumerModuleId));
     }
 
     [Fact]
@@ -111,11 +111,9 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         await AddContribution(consumer, confirmed, SignalContributionStatus.Confirmed);
         await AddContribution(consumer, gone, SignalContributionStatus.Unanswerable);
 
-        var released = await Sweep().ListReleased();
-
         // Unanswerable resolves rather than holds, so one upstream that will never report does
         // not strand a consumer that has a real signal waiting for it.
-        Assert.Contains(released, r => r.ParticipantId == consumer);
+        Assert.True(await Check(consumer, _consumerModuleId));
     }
 
     [Fact]
@@ -127,9 +125,7 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         var consumer = await AddParticipant(wave, _consumerModuleId, set);
         await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
 
-        var released = await Sweep().ListReleased();
-
-        Assert.DoesNotContain(released, r => r.ParticipantId == consumer);
+        Assert.False(await Check(consumer, _consumerModuleId));
     }
 
     [Fact]
@@ -141,10 +137,8 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
         await AddJob(_consumerModuleId, ExecutionStatus.Running);
 
-        var released = await Sweep().ListReleased();
-
         // Its probe step reads the contributions itself, so a second Apply would race the first.
-        Assert.DoesNotContain(released, r => r.ParticipantId == consumer);
+        Assert.False(await Check(consumer, _consumerModuleId));
     }
 
     [Fact]
@@ -155,11 +149,9 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         var consumer = await AddParticipant(wave, _consumerModuleId);
         await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
 
-        var released = await Sweep().ListReleased();
-
         // Cancelling the upstream stops the wave producing new jobs: nobody is waiting on the
         // answer any more.
-        Assert.DoesNotContain(released, r => r.ParticipantId == consumer);
+        Assert.False(await Check(consumer, _consumerModuleId));
     }
 
     [Fact]
@@ -168,17 +160,50 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         var wave = await AddWave();
         var orphan = await AddParticipant(wave, _consumerModuleId);
 
-        var released = await Sweep().ListReleased();
-
         // Participants are over-included from reachability, so most of a wide graph has no edges
         // and must not be applied.
-        Assert.DoesNotContain(released, r => r.ParticipantId == orphan);
+        Assert.False(await Check(orphan, _consumerModuleId));
     }
 
-    private ProbeWaveSweepService Sweep()
+    /// <summary>
+    /// Runs one check and reports whether it started an Apply, which is the only observable the
+    /// consumer has.
+    /// </summary>
+    private async Task<bool> Check(Guid participantId, Guid moduleId)
     {
         var factory = new FixtureDbContextFactory(_fixture);
-        return new ProbeWaveSweepService(factory, new ProbeWaveProgressReaderFactory(factory));
+        var jobService = new Mock<JobService>(
+            Mock.Of<IBus>(), _fixture.CreateDbContext(), null!, null!, null!, null!,
+            factory, null!, null!, null!) { CallBase = false };
+
+        var started = false;
+        jobService
+            .Setup(x => x.Apply(moduleId, _organizationId, It.IsAny<Guid?>(), null, null))
+            .Callback(() => started = true)
+            .Returns(Task.CompletedTask);
+
+        var consumer = new ProbeReadinessCheckCompetingConsumer(
+            NullLogger<ProbeReadinessCheckCompetingConsumer>.Instance,
+            new ProbeWaveProgressReaderFactory(factory),
+            factory,
+            jobService.Object,
+            null!);
+
+        await consumer.Consume(ConsumeContextFor(new ProbeReadinessCheckRequested
+        {
+            ProbeWaveParticipantId = participantId,
+            ModuleId = moduleId,
+            OrganizationId = _organizationId
+        }));
+
+        return started;
+    }
+
+    private static ConsumeContext<T> ConsumeContextFor<T>(T message) where T : class
+    {
+        var context = new Mock<ConsumeContext<T>>();
+        context.SetupGet(x => x.Message).Returns(message);
+        return context.Object;
     }
 
     private sealed class FixtureDbContextFactory(Fixture fixture) : IDbContextFactory<SnapCdDbContext>

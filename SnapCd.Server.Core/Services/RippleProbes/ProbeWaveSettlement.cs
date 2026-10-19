@@ -92,10 +92,11 @@ public class ProbeWaveProgressReader : IDisposable
         return await Read(p => p.ProbeWaveId == probeWaveId && p.OrganizationId == organizationId);
     }
 
-    /// <summary>Participants of every wave, for the sweep, which is not scoped to one.</summary>
-    public async Task<List<ParticipantProgress>> ListUnsignalled()
+    /// <summary>One participant, or null when the row is gone.</summary>
+    public async Task<ParticipantProgress?> GetParticipant(Guid participantId, Guid organizationId)
     {
-        return await Read(p => p.SignalOutputSetId == null);
+        var rows = await Read(p => p.Id == participantId && p.OrganizationId == organizationId);
+        return rows.FirstOrDefault();
     }
 
     public async Task<ProbeWaveSettlement> ReadForOriginJob(Guid originModuleJobId, Guid organizationId)

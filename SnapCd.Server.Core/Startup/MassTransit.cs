@@ -262,6 +262,7 @@ public static class MassTransit
         typeof(SplitMigrateVerifyConsumer),
         typeof(PlanDestroyConsumer),
         typeof(ApplyFromPlanConsumer),
+        typeof(ApplyProbeConsumer),
         typeof(DestroyFromPlanConsumer),
         typeof(ApplyOutputConsumer),
         typeof(DestroyOutputConsumer),
@@ -358,6 +359,7 @@ public static class MassTransit
         typeof(ModuleJobApprovalModifiedCompetingConsumer),
         typeof(SecretModifiedCompetingConsumer),
         typeof(ModuleStateChangedToAppliedCompetingConsumer),
+        typeof(ProbeReadinessCheckCompetingConsumer),
         typeof(ModuleStateChangedToDestroyedCompetingConsumer),
 
         // Handler consumers (offloaded from SignalR handlers)
