@@ -15,6 +15,7 @@ using SnapCd.Server.Core.Events.System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 
 namespace SnapCd.Server.Core.Services.RippleProbes;
@@ -36,7 +37,7 @@ public class ProbeSignalRecorderFactory(
 }
 
 /// <summary>
-/// Stores what a probe reported against the participant that ran it. Each value object is stored
+/// Stores what a probe reported against the Module that ran it. Each value object is stored
 /// whole, because a downstream consumer's inputs document carries it verbatim: only the key
 /// changes, from this Module's output name to the variable it feeds.
 /// </summary>
@@ -60,22 +61,33 @@ public class ProbeSignalRecorder : IDisposable
     }
 
     /// <summary>
-    /// Stores what a probe reported and returns the participant it was recorded against, so the
-    /// caller can resolve the edges leading out of it. Null when there was nothing to record.
+    /// Stores what a probe reported and returns the wave it was recorded against, so the caller
+    /// can resolve the edges leading out of this Module. Null when there was nothing to record.
     /// </summary>
-    public async Task<Guid?> Record(Guid moduleId, Guid organizationId, Guid moduleJobId, string signalsJson)
+    public async Task<Guid?> Record(
+        Guid probeWaveId,
+        Guid moduleId,
+        Guid organizationId,
+        Guid moduleJobId,
+        string signalsJson)
     {
-        var participant = await _dbContext.ProbeWaveParticipants
-            .Where(p => p.ModuleId == moduleId && p.OrganizationId == organizationId)
-            .OrderByDescending(p => p.CreatedDateTime)
-            .FirstOrDefaultAsync();
+        var attempt = await _dbContext.ModuleProbeAttempts
+            .FirstOrDefaultAsync(a => a.ProbeWaveId == probeWaveId &&
+                                      a.ModuleId == moduleId &&
+                                      a.OrganizationId == organizationId);
 
-        if (participant == null)
+        if (attempt == null)
         {
-            _logger.LogWarning(
-                "Probe reported signals for Module {ModuleId} with no participant to record them against.",
-                moduleId);
-            return null;
+            // The origin records its own plan's signals without any probe having been claimed.
+            attempt = new ModuleProbeAttempt
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                ProbeWaveId = probeWaveId,
+                ModuleId = moduleId
+            };
+
+            _dbContext.ModuleProbeAttempts.Add(attempt);
         }
 
         JsonObject? outputs;
@@ -96,7 +108,7 @@ public class ProbeSignalRecorder : IDisposable
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
             ModuleId = moduleId,
-            ProbeWaveId = participant.ProbeWaveId,
+            ProbeWaveId = probeWaveId,
             ModuleJobId = moduleJobId,
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Checksum = Checksum(signalsJson)
@@ -140,19 +152,19 @@ public class ProbeSignalRecorder : IDisposable
             }
         }
 
-        participant.SignalOutputSetId = set.Id;
-        participant.LastProbeModuleJobId = moduleJobId;
+        attempt.SignalOutputSetId = set.Id;
+        attempt.ProbeModuleJobId = moduleJobId;
 
         await _dbContext.SaveChangesAsync();
 
         await _bus.Publish(new ProbeWaveUpdatedEvent
         {
-            ProbeWaveId = participant.ProbeWaveId,
+            ProbeWaveId = probeWaveId,
             OrganizationId = organizationId,
             ModuleId = moduleId
         });
 
-        return participant.Id;
+        return probeWaveId;
     }
 
     private static string Checksum(string document)

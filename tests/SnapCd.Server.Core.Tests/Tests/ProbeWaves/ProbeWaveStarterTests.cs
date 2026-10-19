@@ -56,13 +56,8 @@ public class ProbeWaveStarterTests : IAsyncLifetime
             .Select(w => w.Id)
             .ToListAsync();
 
-        await db.SignalContributions
-            .Where(c => db.ProbeWaveParticipants
-                .Where(p => waveIds.Contains(p.ProbeWaveId))
-                .Select(p => p.Id)
-                .Contains(c.ProbeWaveParticipantId))
-            .ExecuteDeleteAsync();
-        await db.ProbeWaveParticipants.Where(p => waveIds.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.SignalEdges.Where(e => waveIds.Contains(e.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.ModuleProbeAttempts.Where(p => waveIds.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
         var setIds = await db.SignalOutputSets.Where(x => waveIds.Contains(x.ProbeWaveId)).Select(x => x.Id).ToListAsync();
         await db.SignalOutputs.Where(o => setIds.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(x => setIds.Contains(x.Id)).ExecuteDeleteAsync();
@@ -103,34 +98,86 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         Assert.NotNull(waveId);
 
         await using var db = _fixture.CreateDbContext();
-        var contributions = await db.SignalContributions
+        var edges = await db.SignalEdges
             .AsNoTracking()
-            .Where(c => db.ProbeWaveParticipants
-                .Where(p => p.ProbeWaveId == waveId!.Value)
-                .Select(p => p.Id)
-                .Contains(c.ProbeWaveParticipantId))
+            .Where(e => e.ProbeWaveId == waveId!.Value)
             .ToListAsync();
 
-        Assert.NotEmpty(contributions);
-        Assert.All(contributions, c => Assert.Equal(SignalContributionStatus.Confirmed, c.Status));
+        Assert.NotEmpty(edges);
+        Assert.All(edges, e => Assert.Equal(SignalEdgeStatus.Confirmed, e.Status));
     }
 
+    /// <summary>
+    /// No edge points at the origin: it answers from its own plan rather than being probed, so it
+    /// is never a consumer in its own wave. Every edge the wave starts with comes out of it.
+    /// </summary>
     [Fact]
-    public async Task The_Origin_Is_A_Participant()
+    public async Task No_Edge_Points_At_The_Origin()
     {
         await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
 
         var waveId = await Start(["vpc_id"]);
 
         await using var db = _fixture.CreateDbContext();
-        var moduleIds = await db.ProbeWaveParticipants
+        var edges = await db.SignalEdges
             .AsNoTracking()
-            .Where(p => p.ProbeWaveId == waveId!.Value)
-            .Select(p => p.ModuleId)
+            .Where(e => e.ProbeWaveId == waveId!.Value)
             .ToListAsync();
 
-        Assert.Contains(_originModuleId, moduleIds);
+        Assert.NotEmpty(edges);
+        Assert.All(edges, e => Assert.Equal(_originModuleId, e.UpstreamModuleId));
+        Assert.DoesNotContain(_originModuleId, edges.Select(e => e.ConsumerModuleId));
+    }
+
+    /// <summary>
+    /// Only the Modules the change reaches are enrolled. A Module that reads a different output of
+    /// the same producer is reachable and uninvolved, and writing it in order to dismiss it would
+    /// fill a wave with rows nobody acts on.
+    /// </summary>
+    [Fact]
+    public async Task A_Consumer_Of_An_Unchanged_Output_Gets_No_Edge()
+    {
+        await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
+        await AddParamFromOutput(_fixture.Modules["0002"].Id, "untouched", "from_untouched");
+
+        var waveId = await Start(["vpc_id"]);
+
+        await using var db = _fixture.CreateDbContext();
+        var moduleIds = await db.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == waveId!.Value)
+            .Select(e => e.ConsumerModuleId)
+            .ToListAsync();
+
         Assert.Contains(_consumerModuleId, moduleIds);
+        Assert.DoesNotContain(_fixture.Modules["0002"].Id, moduleIds);
+    }
+
+    /// <summary>
+    /// A Module two hops down is not enrolled at creation, because whether the change reaches it
+    /// depends on what the Module above it turns out to change, which no plan has said yet.
+    /// </summary>
+    [Fact]
+    public async Task A_Second_Hop_Gets_No_Edge_At_Creation()
+    {
+        await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
+
+        // Reads an output of the consumer rather than of the origin.
+        await AddParamFromOutput(
+            _fixture.Modules["0002"].Id, "downstream_id", "from_consumer",
+            outputModuleId: _consumerModuleId);
+
+        var waveId = await Start(["vpc_id"]);
+
+        await using var db = _fixture.CreateDbContext();
+        var moduleIds = await db.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == waveId!.Value)
+            .Select(e => e.ConsumerModuleId)
+            .ToListAsync();
+
+        Assert.Single(moduleIds);
+        Assert.DoesNotContain(_fixture.Modules["0002"].Id, moduleIds);
     }
 
     /// <summary>
@@ -139,7 +186,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
     /// can never receive a signal.
     /// </summary>
     [Fact]
-    public async Task A_Module_The_Origin_Reads_From_Is_Not_A_Participant()
+    public async Task A_Module_The_Origin_Reads_From_Gets_No_Edge()
     {
         await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
 
@@ -151,10 +198,10 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         var waveId = await Start(["vpc_id"]);
 
         await using var db = _fixture.CreateDbContext();
-        var moduleIds = await db.ProbeWaveParticipants
+        var moduleIds = await db.SignalEdges
             .AsNoTracking()
-            .Where(p => p.ProbeWaveId == waveId!.Value)
-            .Select(p => p.ModuleId)
+            .Where(e => e.ProbeWaveId == waveId!.Value)
+            .Select(e => e.ConsumerModuleId)
             .ToListAsync();
 
         Assert.Contains(_consumerModuleId, moduleIds);
@@ -203,7 +250,7 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         var waveId = await Start(["vpc_id"], outputSignalsJson: signals);
 
         await using var db = _fixture.CreateDbContext();
-        var origin = await db.ProbeWaveParticipants
+        var origin = await db.ModuleProbeAttempts
             .AsNoTracking()
             .FirstAsync(p => p.ProbeWaveId == waveId!.Value && p.ModuleId == _originModuleId);
 
@@ -231,7 +278,6 @@ public class ProbeWaveStarterTests : IAsyncLifetime
 
         Assert.Equal(_originModuleId, wave.OriginModuleId);
         Assert.Equal(jobId, wave.OriginModuleJobId);
-        Assert.Equal(5, wave.MaxDepth);
     }
 
     /// <summary>A participant of some other wave, already claiming this job as its probe.</summary>
@@ -242,19 +288,18 @@ public class ProbeWaveStarterTests : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             OriginModuleId = _consumerModuleId,
-            OriginModuleJobId = Guid.NewGuid(),
-            MaxDepth = 5
+            OriginModuleJobId = Guid.NewGuid()
         };
 
         await using var db = _fixture.CreateDbContext();
         db.ProbeWaves.Add(wave);
-        db.ProbeWaveParticipants.Add(new ProbeWaveParticipant
+        db.ModuleProbeAttempts.Add(new ModuleProbeAttempt
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             ProbeWaveId = wave.Id,
             ModuleId = _originModuleId,
-            LastProbeModuleJobId = probeJobId
+            ProbeModuleJobId = probeJobId
         });
         await db.SaveChangesAsync();
     }
@@ -275,7 +320,6 @@ public class ProbeWaveStarterTests : IAsyncLifetime
                 Mock.Of<IPublishEndpoint>(),
                 NullLoggerFactory.Instance),
             Mock.Of<IPublishEndpoint>(),
-            new ProbePropagationSettings(),
             NullLogger<ProbeWaveStarter>.Instance);
 
         return await starter.Start(

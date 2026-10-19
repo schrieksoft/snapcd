@@ -54,6 +54,10 @@ public class RunOptions
     public static readonly Guid DiamondCModuleId = new("99999999-9999-9999-9999-999999999942");
     public static readonly Guid DiamondDModuleId = new("99999999-9999-9999-9999-999999999943");
 
+    /// <summary>The two consumers the change under test does not reach.</summary>
+    public static readonly Guid DiamondEModuleId = new("99999999-9999-9999-9999-999999999944");
+    public static readonly Guid DiamondFModuleId = new("99999999-9999-9999-9999-999999999945");
+
     public required string MasterConnectionString { get; init; }
     public required string DatabaseName { get; init; }
     public Guid OrganizationId { get; init; } = SeededOrganizationId;

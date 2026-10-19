@@ -469,6 +469,8 @@ public class FakeRunner(
             _ when moduleId == RunOptions.DiamondBModuleId => "b_id",
             _ when moduleId == RunOptions.DiamondCModuleId => "c_id",
             _ when moduleId == RunOptions.DiamondDModuleId => "d_id",
+            _ when moduleId == RunOptions.DiamondEModuleId => "e_id",
+            _ when moduleId == RunOptions.DiamondFModuleId => "f_id",
             _ => "jobrun_output"
         };
     }

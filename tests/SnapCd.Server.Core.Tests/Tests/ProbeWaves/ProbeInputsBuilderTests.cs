@@ -59,13 +59,8 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await using var db = _fixture.CreateDbContext();
-        await db.SignalContributions
-            .Where(c => db.ProbeWaveParticipants
-                .Where(p => _waves.Contains(p.ProbeWaveId))
-                .Select(p => p.Id)
-                .Contains(c.ProbeWaveParticipantId))
-            .ExecuteDeleteAsync();
-        await db.ProbeWaveParticipants.Where(p => _waves.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.SignalEdges.Where(e => _waves.Contains(e.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.ModuleProbeAttempts.Where(p => _waves.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
         await db.SignalOutputs.Where(o => _signalSets.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(s => _signalSets.Contains(s.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
@@ -78,33 +73,33 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     {
         using var builder = Builder();
 
-        Assert.Null(await builder.FindParticipantToProbeFor(_consumerId, _organizationId));
+        Assert.Null(await builder.FindWaveToProbeFor(_consumerId, _organizationId));
     }
 
     [Fact]
     public async Task A_Potential_Contribution_Is_Not_Enough_To_Probe()
     {
         var wave = await AddWave();
-        var upstream = await AddParticipant(wave, _upstreamAId);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstream, SignalContributionStatus.Potential);
+        await AddAttempt(wave, _upstreamAId);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Potential);
 
         using var builder = Builder();
 
-        Assert.Null(await builder.FindParticipantToProbeFor(_consumerId, _organizationId));
+        Assert.Null(await builder.FindWaveToProbeFor(_consumerId, _organizationId));
     }
 
     [Fact]
     public async Task A_Confirmed_Contribution_Means_There_Is_A_Probe_To_Run()
     {
         var wave = await AddWave();
-        var upstream = await AddParticipant(wave, _upstreamAId);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _upstreamAId);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
 
         using var builder = Builder();
 
-        Assert.Equal(consumer, await builder.FindParticipantToProbeFor(_consumerId, _organizationId));
+        Assert.Equal(wave, await builder.FindWaveToProbeFor(_consumerId, _organizationId));
     }
 
     [Fact]
@@ -112,15 +107,15 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     {
         var wave = await AddWave();
         var set = await AddSignalSet(wave, _consumerId, ("done", VpcSignal, false));
-        var upstream = await AddParticipant(wave, _upstreamAId);
-        var consumer = await AddParticipant(wave, _consumerId, set);
-        await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _upstreamAId);
+        await AddAttempt(wave, _consumerId, set);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
 
         using var builder = Builder();
 
         // Its signal set is the record that it has answered, so a later apply of the same Module
         // is not this wave's business.
-        Assert.Null(await builder.FindParticipantToProbeFor(_consumerId, _organizationId));
+        Assert.Null(await builder.FindWaveToProbeFor(_consumerId, _organizationId));
     }
 
     [Fact]
@@ -135,11 +130,11 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     public async Task An_Unresolved_Upstream_Means_Wait()
     {
         var wave = await AddWave();
-        var upstreamA = await AddParticipant(wave, _upstreamAId);
-        var upstreamB = await AddParticipant(wave, _upstreamBId);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstreamA, SignalContributionStatus.Confirmed);
-        await AddContribution(consumer, upstreamB, SignalContributionStatus.Potential);
+        await AddAttempt(wave, _upstreamAId);
+        await AddAttempt(wave, _upstreamBId);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
+        await AddEdge(wave, _consumerId, _upstreamBId, SignalEdgeStatus.Potential);
 
         using var reader = Readiness();
 
@@ -152,11 +147,11 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     public async Task All_Resolved_With_One_Confirmed_Means_Probe()
     {
         var wave = await AddWave();
-        var upstreamA = await AddParticipant(wave, _upstreamAId);
-        var upstreamB = await AddParticipant(wave, _upstreamBId);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstreamA, SignalContributionStatus.Confirmed);
-        await AddContribution(consumer, upstreamB, SignalContributionStatus.NotNeeded);
+        await AddAttempt(wave, _upstreamAId);
+        await AddAttempt(wave, _upstreamBId);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
+        await AddEdge(wave, _consumerId, _upstreamBId, SignalEdgeStatus.NotNeeded);
 
         using var reader = Readiness();
 
@@ -167,11 +162,11 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     public async Task All_Resolved_With_None_Confirmed_Means_Nothing_To_Probe()
     {
         var wave = await AddWave();
-        var upstreamA = await AddParticipant(wave, _upstreamAId);
-        var upstreamB = await AddParticipant(wave, _upstreamBId);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstreamA, SignalContributionStatus.NotNeeded);
-        await AddContribution(consumer, upstreamB, SignalContributionStatus.Unanswerable);
+        await AddAttempt(wave, _upstreamAId);
+        await AddAttempt(wave, _upstreamBId);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.NotNeeded);
+        await AddEdge(wave, _consumerId, _upstreamBId, SignalEdgeStatus.Unanswerable);
 
         using var reader = Readiness();
 
@@ -185,13 +180,13 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     {
         var wave = await AddWave();
         var set = await AddSignalSet(wave, _upstreamAId, ("vpc_id", VpcSignal, false));
-        var upstream = await AddParticipant(wave, _upstreamAId, set);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _upstreamAId, set);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
         await AddParamFromOutput(_consumerId, _upstreamAId, "vpc_id", "network_id");
 
         using var builder = Builder();
-        var json = await builder.BuildInputsJson(consumer, _consumerId, _organizationId);
+        var json = await builder.BuildInputsJson(wave, _consumerId, _organizationId);
 
         Assert.NotNull(json);
         var document = JsonNode.Parse(json!)!;
@@ -217,13 +212,13 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
         var set = await AddSignalSet(wave, _upstreamAId,
             ("vpc_id", VpcSignal, false),
             ("unread_id", OtherSignal, false));
-        var upstream = await AddParticipant(wave, _upstreamAId, set);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _upstreamAId, set);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
         await AddParamFromOutput(_consumerId, _upstreamAId, "vpc_id", "network_id");
 
         using var builder = Builder();
-        var variables = JsonNode.Parse((await builder.BuildInputsJson(consumer, _consumerId, _organizationId))!)!
+        var variables = JsonNode.Parse((await builder.BuildInputsJson(wave, _consumerId, _organizationId))!)!
             ["variables"]!.AsObject();
 
         Assert.Single(variables);
@@ -245,19 +240,19 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
         var setA = await AddSignalSet(wave, _upstreamAId, ("region", VpcSignal, false));
         var setB = await AddSignalSet(wave, _upstreamBId, ("region", OtherSignal, false));
 
-        var upstreamA = await AddParticipant(wave, _upstreamAId, setA);
-        var upstreamB = await AddParticipant(wave, _upstreamBId, setB);
-        var consumer = await AddParticipant(wave, _consumerId);
+        await AddAttempt(wave, _upstreamAId, setA);
+        await AddAttempt(wave, _upstreamBId, setB);
+        await AddAttempt(wave, _consumerId);
 
-        await AddContribution(consumer, upstreamA, SignalContributionStatus.Confirmed);
-        await AddContribution(consumer, upstreamB, SignalContributionStatus.Confirmed);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
+        await AddEdge(wave, _consumerId, _upstreamBId, SignalEdgeStatus.Confirmed);
 
         await AddParamFromOutputSet(_consumerId, _upstreamAId);
         await AddParamFromOutputSet(_consumerId, _upstreamBId);
         await AddVariableSet(_consumerId, "region");
 
         using var builder = Builder();
-        var variables = JsonNode.Parse((await builder.BuildInputsJson(consumer, _consumerId, _organizationId))!)!
+        var variables = JsonNode.Parse((await builder.BuildInputsJson(wave, _consumerId, _organizationId))!)!
             ["variables"]!.AsObject();
 
         // Mirroring the apply: one of the two wins rather than the probe refusing or emitting both.
@@ -271,7 +266,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
         // The expected winner is read back in the database's own ordering: SQL Server compares
         // uniqueidentifier by a different byte order than Guid.CompareTo does.
         await using var db = _fixture.CreateDbContext();
-        var firstUpstream = await db.ProbeWaveParticipants
+        var firstUpstream = await db.ModuleProbeAttempts
             .Where(p => p.ProbeWaveId == wave && p.ModuleId != _consumerId)
             .OrderBy(p => p.ModuleId)
             .Select(p => p.ModuleId)
@@ -286,15 +281,15 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     {
         var wave = await AddWave();
         var set = await AddSignalSet(wave, _upstreamAId, ("secret_id", VpcSignal, true));
-        var upstream = await AddParticipant(wave, _upstreamAId, set);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _upstreamAId, set);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
         await AddParamFromOutput(_consumerId, _upstreamAId, "secret_id", "token");
 
         var store = new FakeSignalSecretReader { [RemoteNameFor(set, "secret_id")] = VpcSignal };
 
         using var builder = Builder(store);
-        var variables = JsonNode.Parse((await builder.BuildInputsJson(consumer, _consumerId, _organizationId))!)!
+        var variables = JsonNode.Parse((await builder.BuildInputsJson(wave, _consumerId, _organizationId))!)!
             ["variables"]!.AsObject();
 
         var value = variables["token"]!.AsObject();
@@ -306,14 +301,14 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
     public async Task An_Upstream_That_Has_Not_Probed_Yet_Contributes_Nothing()
     {
         var wave = await AddWave();
-        var upstream = await AddParticipant(wave, _upstreamAId);
-        var consumer = await AddParticipant(wave, _consumerId);
-        await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _upstreamAId);
+        await AddAttempt(wave, _consumerId);
+        await AddEdge(wave, _consumerId, _upstreamAId, SignalEdgeStatus.Confirmed);
         await AddParamFromOutput(_consumerId, _upstreamAId, "vpc_id", "network_id");
 
         using var builder = Builder();
 
-        Assert.Null(await builder.BuildInputsJson(consumer, _consumerId, _organizationId));
+        Assert.Null(await builder.BuildInputsJson(wave, _consumerId, _organizationId));
     }
 
     private ProbeReadinessReader Readiness() => new(_fixture.CreateDbContext());
@@ -334,8 +329,7 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             OriginModuleId = _upstreamAId,
-            OriginModuleJobId = Guid.NewGuid(),
-            MaxDepth = 5
+            OriginModuleJobId = Guid.NewGuid()
         };
 
         await using var db = _fixture.CreateDbContext();
@@ -346,33 +340,39 @@ public class ProbeInputsBuilderTests : IAsyncLifetime
         return wave.Id;
     }
 
-    private async Task<Guid> AddParticipant(Guid waveId, Guid moduleId, Guid? signalOutputSetId = null)
+    private async Task AddAttempt(
+        Guid waveId,
+        Guid moduleId,
+        Guid? signalOutputSetId = null,
+        Guid? probeModuleJobId = null)
     {
-        var participant = new ProbeWaveParticipant
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleProbeAttempts.Add(new ModuleProbeAttempt
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             ProbeWaveId = waveId,
             ModuleId = moduleId,
-            SignalOutputSetId = signalOutputSetId
-        };
-
-        await using var db = _fixture.CreateDbContext();
-        db.ProbeWaveParticipants.Add(participant);
+            SignalOutputSetId = signalOutputSetId,
+            ProbeModuleJobId = probeModuleJobId
+        });
         await db.SaveChangesAsync();
-
-        return participant.Id;
     }
 
-    private async Task AddContribution(Guid participantId, Guid upstreamId, SignalContributionStatus status)
+    private async Task AddEdge(
+        Guid waveId,
+        Guid consumerModuleId,
+        Guid upstreamModuleId,
+        SignalEdgeStatus status)
     {
         await using var db = _fixture.CreateDbContext();
-        db.SignalContributions.Add(new SignalContribution
+        db.SignalEdges.Add(new SignalEdge
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
-            ProbeWaveParticipantId = participantId,
-            UpstreamParticipantId = upstreamId,
+            ProbeWaveId = waveId,
+            ConsumerModuleId = consumerModuleId,
+            UpstreamModuleId = upstreamModuleId,
             Status = status
         });
         await db.SaveChangesAsync();

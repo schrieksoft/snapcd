@@ -33,7 +33,7 @@ public class ProbeInputsBuilderFactory(
 }
 
 /// <summary>
-/// Whether a Module's participant has anything to probe for, and the inputs document to probe
+/// Whether a Module has anything to probe for in a wave, and the inputs document to probe
 /// with. The document is the signal value objects copied verbatim under a variables key, keyed by
 /// the consumer's own variable names rather than the producers' output names.
 /// </summary>
@@ -60,46 +60,49 @@ public class ProbeInputsBuilder : IDisposable
     }
 
     /// <summary>
-    /// The participant this Module probes for in the wave it is taking part in, or null when it has
-    /// no confirmed contribution and the step is skipped.
+    /// The wave this Module still owes a probe to, or null when it owes none.
+    ///
+    /// A wave it has already reported in is not its business any more, which is what stops a
+    /// Module probing again on every later apply.
     /// </summary>
-    public async Task<Guid?> FindParticipantToProbeFor(Guid moduleId, Guid organizationId)
+    public async Task<Guid?> FindWaveToProbeFor(Guid moduleId, Guid organizationId)
     {
-        var participantIds = await _dbContext.ProbeWaveParticipants
-            .Where(p =>
-                p.ModuleId == moduleId &&
-                p.OrganizationId == organizationId &&
-                p.SignalOutputSetId == null)
-            .Select(p => p.Id)
+        var reported = await _dbContext.ModuleProbeAttempts
+            .AsNoTracking()
+            .Where(a => a.ModuleId == moduleId &&
+                        a.OrganizationId == organizationId &&
+                        a.SignalOutputSetId != null)
+            .Select(a => a.ProbeWaveId)
             .ToListAsync();
 
-        if (participantIds.Count == 0) return null;
-
-        return await _dbContext.SignalContributions
-            .Where(c =>
-                participantIds.Contains(c.ProbeWaveParticipantId) &&
-                c.OrganizationId == organizationId &&
-                c.Status == SignalContributionStatus.Confirmed)
-            .Select(c => (Guid?)c.ProbeWaveParticipantId)
+        return await _dbContext.SignalEdges
+            .AsNoTracking()
+            .Where(e =>
+                e.ConsumerModuleId == moduleId &&
+                e.OrganizationId == organizationId &&
+                e.Status == SignalEdgeStatus.Confirmed &&
+                !reported.Contains(e.ProbeWaveId))
+            .Select(e => (Guid?)e.ProbeWaveId)
             .FirstOrDefaultAsync();
     }
 
     /// <summary>
-    /// The inputs document for a participant, or null when its confirmed upstreams turn out to
-    /// carry no signal this Module reads.
+    /// The inputs document for a Module's probe in one wave, or null when its confirmed upstreams
+    /// turn out to carry no signal this Module reads.
     /// </summary>
-    public async Task<string?> BuildInputsJson(Guid participantId, Guid moduleId, Guid organizationId)
+    public async Task<string?> BuildInputsJson(Guid probeWaveId, Guid moduleId, Guid organizationId)
     {
-        var upstreamSetIds = await _dbContext.SignalContributions
-            .Where(c =>
-                c.ProbeWaveParticipantId == participantId &&
-                c.OrganizationId == organizationId &&
-                c.Status == SignalContributionStatus.Confirmed)
+        var upstreamSetIds = await _dbContext.SignalEdges
+            .Where(e =>
+                e.ProbeWaveId == probeWaveId &&
+                e.ConsumerModuleId == moduleId &&
+                e.OrganizationId == organizationId &&
+                e.Status == SignalEdgeStatus.Confirmed)
             .Join(
-                _dbContext.ProbeWaveParticipants,
-                c => c.UpstreamParticipantId,
-                p => p.Id,
-                (c, p) => new { p.ModuleId, p.SignalOutputSetId })
+                _dbContext.ModuleProbeAttempts.Where(a => a.ProbeWaveId == probeWaveId),
+                e => e.UpstreamModuleId,
+                a => a.ModuleId,
+                (e, a) => new { a.ModuleId, a.SignalOutputSetId })
             .Where(x => x.SignalOutputSetId != null)
             // Ordered so a collision resolves the same way every run: an unordered result would
             // make the winning value depend on the query plan.

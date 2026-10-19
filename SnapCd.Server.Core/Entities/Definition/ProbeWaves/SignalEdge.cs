@@ -15,33 +15,39 @@ using SnapCd.Server.Core.Enums;
 namespace SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 
 /// <summary>
-/// One edge a signal could travel along, from an upstream participant to a consumer that reads
-/// its outputs. Two of these on one consumer is what makes a diamond expressible, and the
-/// consumer is released only when none of them is still Potential.
+/// One edge a signal could travel along, from a Module that changed an output to one that reads
+/// it. Two of these on one consumer is what makes a diamond expressible, and the consumer probes
+/// only once none of its edges is still Potential.
+///
+/// Named by Module rather than by a row in another table: two upstreams reaching one consumer
+/// write two rows that share nothing, so neither has to exist before the other can be written.
 ///
 /// The only status in a wave, and it carries one because an upstream resolves differently for
 /// different consumers: one may read a changed output while another does not. That answer exists
 /// nowhere else.
 /// </summary>
-public class SignalContribution : AuditBase, IEntity
+public class SignalEdge : AuditBase, IEntity
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
 
-    /// <summary>The participant that may need to probe.</summary>
-    public Guid ProbeWaveParticipantId { get; set; }
+    public Guid ProbeWaveId { get; set; }
 
-    /// <summary>The participant on whose account it may need to.</summary>
-    public Guid UpstreamParticipantId { get; set; }
+    /// <summary>The Module that may need to probe.</summary>
+    public Guid ConsumerModuleId { get; set; }
 
-    public SignalContributionStatus Status { get; set; }
+    /// <summary>The Module on whose account it may need to.</summary>
+    public Guid UpstreamModuleId { get; set; }
 
-    [JsonIgnore] public ProbeWaveParticipant ProbeWaveParticipant { get; set; } = null!;
-    [JsonIgnore] public ProbeWaveParticipant UpstreamParticipant { get; set; } = null!;
+    public SignalEdgeStatus Status { get; set; }
+
+    [JsonIgnore] public ProbeWave ProbeWave { get; set; } = null!;
+    [JsonIgnore] public Module ConsumerModule { get; set; } = null!;
+    [JsonIgnore] public Module UpstreamModule { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;
 
     public Guid ParentId()
     {
-        return ProbeWaveParticipantId;
+        return ProbeWaveId;
     }
 }

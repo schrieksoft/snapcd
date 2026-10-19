@@ -161,9 +161,9 @@ public enum ActualStateHeadline
 
 /// <summary>
 /// Whether a signal could flow along one edge of a wave. Resolves from Potential exactly once,
-/// and a participant is released when none of its contributions is Potential any more.
+/// and a consumer probes when none of its edges is Potential any more.
 /// </summary>
-public enum SignalContributionStatus
+public enum SignalEdgeStatus
 {
     /// <summary>The upstream might signal something this consumer reads. The state at creation.</summary>
     Potential,

@@ -88,7 +88,7 @@ public class MaintenanceOperationsService
     // the machine does not define faults the delivery for every saga of that runner. Groups
     // containing such sagas are skipped and reported instead of woken.
     private static readonly Lazy<HashSet<string>> ValidJobStates = new(() =>
-        new JobMachine(NullLogger<JobMachine>.Instance, Options.Create(new ProbePropagationSettings()))
+        new JobMachine(NullLogger<JobMachine>.Instance)
             .States.Select(s => s.Name).ToHashSet());
 
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;

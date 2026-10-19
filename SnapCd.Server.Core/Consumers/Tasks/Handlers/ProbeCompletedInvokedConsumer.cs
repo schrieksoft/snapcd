@@ -30,14 +30,14 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
     private readonly ILogger _logger;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly ProbeSignalRecorderFactory _recorderFactory;
-    private readonly ProbeContributionResolverFactory _resolverFactory;
+    private readonly SignalEdgeResolverFactory _resolverFactory;
     private readonly IBus _bus;
 
     protected ProbeCompletedInvokedConsumer(
         ILogger logger,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         ProbeSignalRecorderFactory recorderFactory,
-        ProbeContributionResolverFactory resolverFactory,
+        SignalEdgeResolverFactory resolverFactory,
         IBus bus)
     {
         _logger = logger;
@@ -71,21 +71,36 @@ public abstract class ProbeCompletedInvokedConsumer<TInvoked, TCompleted> : ICon
                 }
                 else
                 {
-                    using var recorder = _recorderFactory.Create();
-                    var participantId = await recorder.Record(
-                        jobView.ModuleId,
-                        jobView.OrganizationId,
-                        jobId,
-                        context.Message.SignalsJson!);
+                    // The wave comes from the attempt row that claimed this job, which is written
+                    // before the probe is dispatched.
+                    var probeWaveId = await dbContext.ModuleProbeAttempts
+                        .AsNoTracking()
+                        .Where(a => a.ProbeModuleJobId == jobId && a.OrganizationId == jobView.OrganizationId)
+                        .Select(a => (Guid?)a.ProbeWaveId)
+                        .FirstOrDefaultAsync();
 
-                    _logger.LogDebug("Stored probe signals for job {JobId}", jobId);
-
-                    // Whoever waited on this Module now has an answer, and a consumer whose last
-                    // contribution this was is released by it.
-                    if (participantId != null)
+                    if (probeWaveId == null)
                     {
+                        _logger.LogWarning(
+                            "Probe for job {JobId} reported signals with no wave claiming it", jobId);
+                    }
+                    else
+                    {
+                        using var recorder = _recorderFactory.Create();
+                        await recorder.Record(
+                            probeWaveId.Value,
+                            jobView.ModuleId,
+                            jobView.OrganizationId,
+                            jobId,
+                            context.Message.SignalsJson!);
+
+                        _logger.LogDebug("Stored probe signals for job {JobId}", jobId);
+
+                        // Whoever waited on this Module now has an answer, and a consumer whose
+                        // last edge this was is released by it.
                         using var resolver = _resolverFactory.Create();
-                        await resolver.ResolveAfterSignals(participantId.Value, jobView.OrganizationId);
+                        await resolver.ResolveAfterSignals(
+                            probeWaveId.Value, jobView.ModuleId, jobView.OrganizationId);
                     }
                 }
             }
@@ -105,7 +120,7 @@ public class ApplyProbeCompletedInvokedConsumer(
     ILogger<ApplyProbeCompletedInvokedConsumer> logger,
     IDbContextFactory<SnapCdDbContext> dbContextFactory,
     ProbeSignalRecorderFactory recorderFactory,
-    ProbeContributionResolverFactory resolverFactory,
+    SignalEdgeResolverFactory resolverFactory,
     IBus bus)
     : ProbeCompletedInvokedConsumer<ApplyProbeCompletedInvoked, ApplyProbeCompleted>(
         logger, dbContextFactory, recorderFactory, resolverFactory, bus);

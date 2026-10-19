@@ -9,12 +9,10 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Services.RippleProbes;
 
@@ -23,7 +21,6 @@ public class ProbeWaveStarterFactory(
     RippleProbeConsumerLookupFactory lookupFactory,
     ProbeSignalRecorderFactory recorderFactory,
     IPublishEndpoint bus,
-    IOptions<ProbePropagationSettings> settings,
     ILoggerFactory loggerFactory)
 {
     public ProbeWaveStarter Create()
@@ -33,7 +30,6 @@ public class ProbeWaveStarterFactory(
             lookupFactory.Create(),
             recorderFactory,
             bus,
-            settings.Value,
             loggerFactory.CreateLogger<ProbeWaveStarter>());
     }
 }
@@ -41,7 +37,7 @@ public class ProbeWaveStarterFactory(
 /// <summary>
 /// Creates a wave from the Module whose plan produced the starting signals.
 ///
-/// Participants and contributions are both written at the outset, from the graph as it is then.
+/// Only the Modules this change reaches get an edge at the outset.
 /// That is sound because signals flow along the same edges as real outputs: a probe on a Module
 /// produces signals on that Module's own outputs, and whoever reads those outputs already has a
 /// contribution from it, so no Module becomes reachable part way through.
@@ -52,7 +48,6 @@ public class ProbeWaveStarter : IDisposable
     private readonly RippleProbeConsumerLookup _lookup;
     private readonly ProbeSignalRecorderFactory _recorderFactory;
     private readonly IPublishEndpoint _bus;
-    private readonly ProbePropagationSettings _settings;
     private readonly ILogger<ProbeWaveStarter> _logger;
 
     public ProbeWaveStarter(
@@ -60,14 +55,12 @@ public class ProbeWaveStarter : IDisposable
         RippleProbeConsumerLookup lookup,
         ProbeSignalRecorderFactory recorderFactory,
         IPublishEndpoint bus,
-        ProbePropagationSettings settings,
         ILogger<ProbeWaveStarter> logger)
     {
         _dbContext = dbContext;
         _lookup = lookup;
         _recorderFactory = recorderFactory;
         _bus = bus;
-        _settings = settings;
         _logger = logger;
     }
 
@@ -99,60 +92,33 @@ public class ProbeWaveStarter : IDisposable
         var consumers = await _lookup.ListConsumers(originModuleId, organizationId, changedOutputNames);
         if (consumers.Count == 0) return null;
 
-        // Participants are the Modules reachable from the origin, which is wider than the Modules
-        // reading a changed output: a Module two hops down takes part once the one above it
-        // reports. Over-inclusion is safe, because a participant with no contribution is released
-        // immediately.
-        var reachable = await ReachableModuleIds(originModuleId, organizationId);
-
         var wave = new ProbeWave
         {
             Id = Guid.NewGuid(),
             OrganizationId = organizationId,
             OriginModuleId = originModuleId,
-            OriginModuleJobId = originModuleJobId,
-            MaxDepth = _settings.MaxDepth
+            OriginModuleJobId = originModuleJobId
         };
 
         _dbContext.ProbeWaves.Add(wave);
 
-        // The origin is a participant: its own plan produced the starting signals, so it answers
-        // for itself rather than being probed.
-        var participantIds = new Dictionary<Guid, Guid>();
-        foreach (var moduleId in reachable.Append(originModuleId).Distinct())
-        {
-            var participant = new ProbeWaveParticipant
+        // One edge per Module this change reaches, Confirmed rather than Potential: the edge
+        // exists because the consumer was found to read an output that changed, so the question
+        // Potential asks is already answered. The origin answers from its own plan and is never
+        // probed, so nothing else would resolve them.
+        //
+        // A Module further downstream gets its edge when the one above it reports, because
+        // whether the change reaches it depends on what that Module's plan turns out to change.
+        foreach (var consumer in consumers)
+            _dbContext.SignalEdges.Add(new SignalEdge
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = organizationId,
                 ProbeWaveId = wave.Id,
-                ModuleId = moduleId
-            };
-
-            _dbContext.ProbeWaveParticipants.Add(participant);
-            participantIds[moduleId] = participant.Id;
-        }
-
-        var edges = 0;
-        foreach (var consumer in consumers)
-        {
-            if (!participantIds.TryGetValue(consumer.ModuleId, out var consumerParticipantId)) continue;
-
-            // Confirmed rather than Potential: these edges exist because the consumer was found
-            // to read a changed output, so the question Potential asks is already answered. The
-            // origin answers from its own plan and is never probed, so nothing else would resolve
-            // them.
-            _dbContext.SignalContributions.Add(new SignalContribution
-            {
-                Id = Guid.NewGuid(),
-                OrganizationId = organizationId,
-                ProbeWaveParticipantId = consumerParticipantId,
-                UpstreamParticipantId = participantIds[originModuleId],
-                Status = SignalContributionStatus.Confirmed
+                ConsumerModuleId = consumer.ModuleId,
+                UpstreamModuleId = originModuleId,
+                Status = SignalEdgeStatus.Confirmed
             });
-
-            edges++;
-        }
 
         await _dbContext.SaveChangesAsync();
 
@@ -162,12 +128,13 @@ public class ProbeWaveStarter : IDisposable
         if (!string.IsNullOrWhiteSpace(outputSignalsJson))
         {
             using var recorder = _recorderFactory.Create();
-            await recorder.Record(originModuleId, organizationId, originModuleJobId, outputSignalsJson!);
+            await recorder.Record(
+                wave.Id, originModuleId, organizationId, originModuleJobId, outputSignalsJson!);
         }
 
         _logger.LogInformation(
-            "Propagation started from Module {ModuleId}: {Participants} Modules, {Edges} waiting on it",
-            originModuleId, participantIds.Count, edges);
+            "Propagation started from Module {ModuleId}: {Edges} Module(s) waiting on it",
+            originModuleId, consumers.Count);
 
         await _bus.Publish(new ProbeWaveUpdatedEvent
         {
@@ -176,57 +143,30 @@ public class ProbeWaveStarter : IDisposable
             ModuleId = originModuleId
         });
 
-        // The origin's edges are written Confirmed, so its consumers are released the moment the
+        // The origin's edges are written Confirmed, so its consumers are ready the moment the
         // wave exists. Nothing else would ask them.
         foreach (var consumer in consumers)
-        {
-            if (!participantIds.TryGetValue(consumer.ModuleId, out var participantId)) continue;
-
             await _bus.Publish(new ProbeReadinessCheckRequested
             {
-                ProbeWaveParticipantId = participantId,
+                ProbeWaveId = wave.Id,
                 ModuleId = consumer.ModuleId,
                 OrganizationId = organizationId
             });
-        }
 
         return wave.Id;
     }
 
     /// <summary>
-    /// Whether this job was started to probe for a wave. The readiness check records the job on
-    /// the participant before starting it, so the row exists by the time a plan completes.
+    /// Whether this job was started to probe for a wave. The readiness check records the job
+    /// against the Module before starting it, so the row exists by the time a plan completes.
     /// </summary>
     private async Task<bool> IsProbingForAWave(Guid moduleJobId, Guid organizationId)
     {
-        return await _dbContext.ProbeWaveParticipants
+        return await _dbContext.ModuleProbeAttempts
             .AsNoTracking()
-            .AnyAsync(p =>
-                p.LastProbeModuleJobId == moduleJobId &&
-                p.OrganizationId == organizationId);
-    }
-
-    /// <summary>
-    /// The Modules downstream of the origin, transitively.
-    ///
-    /// The destroy direction of the closure, which is the one that walks from a Module to those
-    /// that depend on it. The apply direction walks the other way, to the Modules it depends on,
-    /// which is the opposite of where a signal travels.
-    ///
-    /// Projected to ids rather than read as entities: the closure view carries denormalised state
-    /// columns this does not need, and a stale value in one of them would throw here.
-    /// </summary>
-    private async Task<List<Guid>> ReachableModuleIds(Guid originModuleId, Guid organizationId)
-    {
-        return await _dbContext.RecursiveDestroyDependencies
-            .AsNoTracking()
-            .Where(rd =>
-                rd.RootModuleId == originModuleId &&
-                rd.RootOrganizationId == organizationId &&
-                rd.DefinedModuleId != originModuleId)
-            .Select(rd => rd.DefinedModuleId)
-            .Distinct()
-            .ToListAsync();
+            .AnyAsync(a =>
+                a.ProbeModuleJobId == moduleJobId &&
+                a.OrganizationId == organizationId);
     }
 
     public void Dispose()

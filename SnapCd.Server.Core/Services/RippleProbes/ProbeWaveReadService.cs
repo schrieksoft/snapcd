@@ -96,9 +96,10 @@ public class ProbeWaveReadService : IDisposable
         Func<Guid, bool>? canReadModule = null,
         int take = 20)
     {
-        var waveIds = await _dbContext.ProbeWaveParticipants
-            .Where(p => p.ModuleId == moduleId && p.OrganizationId == organizationId)
-            .Select(p => p.ProbeWaveId)
+        // A Module takes part in a wave because an edge points at it.
+        var waveIds = await _dbContext.SignalEdges
+            .Where(e => e.ConsumerModuleId == moduleId && e.OrganizationId == organizationId)
+            .Select(e => e.ProbeWaveId)
             .Distinct()
             .ToListAsync();
 
@@ -139,7 +140,6 @@ public class ProbeWaveReadService : IDisposable
                 w.Id,
                 w.OriginModuleId,
                 w.OriginModuleJobId,
-                w.MaxDepth,
                 w.CreatedDateTime,
                 OriginModuleName = w.OriginModule.Name
             })
@@ -147,23 +147,32 @@ public class ProbeWaveReadService : IDisposable
 
         if (wave == null) return null;
 
-        var participants = await _dbContext.ProbeWaveParticipants
+        // The wave's membership is its edges: a Module is in it because something points at it.
+        var edges = await _dbContext.SignalEdges
             .AsNoTracking()
-            .Where(p => p.ProbeWaveId == waveId && p.OrganizationId == organizationId)
-            .Select(p => new
+            .Where(e => e.ProbeWaveId == waveId && e.OrganizationId == organizationId)
+            .Select(e => new
             {
-                p.Id,
-                p.ModuleId,
-                p.SignalOutputSetId,
-                p.LastProbeModuleJobId,
-                ModuleName = p.Module.Name,
-                NamespaceName = p.Module.Namespace.Name
+                e.ConsumerModuleId,
+                e.UpstreamModuleId,
+                e.Status,
+                ConsumerModuleName = e.ConsumerModule.Name,
+                ConsumerNamespaceName = e.ConsumerModule.Namespace.Name,
+                UpstreamModuleName = e.UpstreamModule.Name
             })
             .ToListAsync();
 
-        var visible = canReadModule == null
-            ? participants
-            : participants.Where(p => canReadModule(p.ModuleId)).ToList();
+        var attempts = await _dbContext.ModuleProbeAttempts
+            .AsNoTracking()
+            .Where(a => a.ProbeWaveId == waveId && a.OrganizationId == organizationId)
+            .Select(a => new { a.ModuleId, a.SignalOutputSetId, a.ProbeModuleJobId })
+            .ToListAsync();
+
+        var moduleIds = edges.Select(e => e.ConsumerModuleId).Distinct().ToList();
+
+        var visibleIds = canReadModule == null
+            ? moduleIds
+            : moduleIds.Where(canReadModule).ToList();
 
         var view = new ProbeWaveView
         {
@@ -171,28 +180,13 @@ public class ProbeWaveReadService : IDisposable
             OriginModuleId = wave.OriginModuleId,
             OriginModuleName = wave.OriginModuleName,
             OriginModuleJobId = wave.OriginModuleJobId,
-            MaxDepth = wave.MaxDepth,
             CreatedDateTime = wave.CreatedDateTime,
-            ParticipantsOmitted = participants.Count - visible.Count
+            ModulesOmitted = moduleIds.Count - visibleIds.Count
         };
 
-        var visibleIds = visible.Select(p => p.Id).ToList();
-
-        var contributions = await _dbContext.SignalContributions
-            .AsNoTracking()
-            .Where(c => visibleIds.Contains(c.ProbeWaveParticipantId) && c.OrganizationId == organizationId)
-            .Select(c => new
-            {
-                c.ProbeWaveParticipantId,
-                c.UpstreamParticipantId,
-                c.Status,
-                UpstreamModuleId = c.UpstreamParticipant.ModuleId,
-                UpstreamModuleName = c.UpstreamParticipant.Module.Name
-            })
-            .ToListAsync();
-
-        var setIds = visible.Where(p => p.SignalOutputSetId != null)
-            .Select(p => p.SignalOutputSetId!.Value)
+        var setIds = attempts
+            .Where(a => a.SignalOutputSetId != null && visibleIds.Contains(a.ModuleId))
+            .Select(a => a.SignalOutputSetId!.Value)
             .ToList();
 
         var signals = await _dbContext.SignalOutputs
@@ -201,31 +195,36 @@ public class ProbeWaveReadService : IDisposable
             .OrderBy(s => s.Name)
             .ToListAsync();
 
-        foreach (var p in visible.OrderBy(p => p.NamespaceName).ThenBy(p => p.ModuleName))
+        var ordered = visibleIds
+            .Select(id => edges.First(e => e.ConsumerModuleId == id))
+            .OrderBy(e => e.ConsumerNamespaceName)
+            .ThenBy(e => e.ConsumerModuleName);
+
+        foreach (var module in ordered)
         {
-            view.Participants.Add(new ProbeWaveParticipantView
+            var attempt = attempts.FirstOrDefault(a => a.ModuleId == module.ConsumerModuleId);
+
+            view.Modules.Add(new ProbeWaveModuleView
             {
-                Id = p.Id,
-                ModuleId = p.ModuleId,
-                ModuleName = p.ModuleName,
-                NamespaceName = p.NamespaceName,
-                LastProbeModuleJobId = p.LastProbeModuleJobId,
-                HasProbed = p.SignalOutputSetId != null,
-                Contributions = contributions
-                    .Where(c => c.ProbeWaveParticipantId == p.Id)
-                    .OrderBy(c => c.UpstreamModuleName)
-                    .Select(c => new SignalContributionView
+                ModuleId = module.ConsumerModuleId,
+                ModuleName = module.ConsumerModuleName,
+                NamespaceName = module.ConsumerNamespaceName,
+                ProbeModuleJobId = attempt?.ProbeModuleJobId,
+                HasProbed = attempt?.SignalOutputSetId != null,
+                Edges = edges
+                    .Where(e => e.ConsumerModuleId == module.ConsumerModuleId)
+                    .OrderBy(e => e.UpstreamModuleName)
+                    .Select(e => new SignalEdgeView
                     {
-                        UpstreamParticipantId = c.UpstreamParticipantId,
-                        UpstreamModuleId = c.UpstreamModuleId,
-                        UpstreamModuleName = c.UpstreamModuleName,
-                        Status = c.Status
+                        UpstreamModuleId = e.UpstreamModuleId,
+                        UpstreamModuleName = e.UpstreamModuleName,
+                        Status = e.Status
                     })
                     .ToList(),
-                Signals = p.SignalOutputSetId == null
+                Signals = attempt?.SignalOutputSetId == null
                     ? []
                     : signals
-                        .Where(s => s.SignalOutputSetId == p.SignalOutputSetId!.Value)
+                        .Where(s => s.SignalOutputSetId == attempt.SignalOutputSetId!.Value)
                         .Select(Describe)
                         .ToList()
             });

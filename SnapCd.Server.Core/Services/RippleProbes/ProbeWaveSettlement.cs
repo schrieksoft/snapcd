@@ -26,44 +26,34 @@ public enum ProbeWaveSettlement
 }
 
 /// <summary>
-/// One participant's statuses, which both the sweep and the settlement question are answered from.
+/// How far one Module has got in one wave: the edges into it, and whether it has reported.
 /// </summary>
-public record ParticipantProgress(
-    Guid ParticipantId,
+public record ModuleProgress(
     Guid ProbeWaveId,
     Guid ModuleId,
     Guid OrganizationId,
     bool HasSignalled,
-    List<SignalContributionStatus> ContributionStatuses)
+    List<SignalEdgeStatus> EdgeStatuses)
 {
-    /// <summary>
-    /// Nothing waits on this participant and nothing will probe it. Participants are over-included
-    /// from reachability, so most of a wide graph is in this state and must not hold a wave open.
-    /// </summary>
-    public bool IsBystander => ContributionStatuses.Count == 0;
-
-    /// <summary>Every contribution has resolved, so nothing upstream is still owed.</summary>
+    /// <summary>Every edge into it has resolved, so nothing upstream is still owed.</summary>
     public bool IsResolved =>
-        ContributionStatuses.Count > 0 &&
-        ContributionStatuses.All(s => s != SignalContributionStatus.Potential);
+        EdgeStatuses.Count > 0 &&
+        EdgeStatuses.All(s => s != SignalEdgeStatus.Potential);
 
     /// <summary>
-    /// Resolved with something to probe for. A participant resolved with nothing confirmed has no
+    /// Resolved with something to probe for. A Module resolved with nothing confirmed has no
     /// probe to run, so it owes nobody an answer.
     /// </summary>
     public bool OwesAProbe =>
         IsResolved &&
         !HasSignalled &&
-        ContributionStatuses.Any(s => s == SignalContributionStatus.Confirmed);
+        EdgeStatuses.Any(s => s == SignalEdgeStatus.Confirmed);
 
     /// <summary>
-    /// This participant is why the wave is not finished: either an upstream still owes it an
-    /// answer, or it owes one itself.
+    /// This Module is why the wave is not finished: either an upstream still owes it an answer,
+    /// or it owes one itself.
     /// </summary>
-    public bool IsOutstanding =>
-        !IsBystander &&
-        !HasSignalled &&
-        (!IsResolved || OwesAProbe);
+    public bool IsOutstanding => !HasSignalled && (!IsResolved || OwesAProbe);
 }
 
 public class ProbeWaveProgressReaderFactory(IDbContextFactory<SnapCdDbContext> dbFactory)
@@ -72,11 +62,11 @@ public class ProbeWaveProgressReaderFactory(IDbContextFactory<SnapCdDbContext> d
 }
 
 /// <summary>
-/// Where a wave has got to, per participant.
+/// Where a wave has got to, per Module.
 ///
-/// The sweep and the upstream's wait ask two different questions of the same rows, and an answer
-/// they disagreed on would mean a wave that releases nobody while its origin thinks it is done, or
-/// an origin that waits on a participant the sweep will never start. Both read from here.
+/// The readiness check and the upstream's wait ask two different questions of the same rows, and
+/// an answer they disagreed on would mean a wave that releases nobody while its origin thinks it
+/// is done, or an origin waiting on a Module that will never be started. Both read from here.
 /// </summary>
 public class ProbeWaveProgressReader : IDisposable
 {
@@ -87,16 +77,54 @@ public class ProbeWaveProgressReader : IDisposable
         _dbContext = dbContext;
     }
 
-    public async Task<List<ParticipantProgress>> ListByWave(Guid probeWaveId, Guid organizationId)
+    /// <summary>Every Module an edge points at in this wave, with how far it has got.</summary>
+    public async Task<List<ModuleProgress>> ListByWave(Guid probeWaveId, Guid organizationId)
     {
-        return await Read(p => p.ProbeWaveId == probeWaveId && p.OrganizationId == organizationId);
+        var edges = await _dbContext.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == probeWaveId && e.OrganizationId == organizationId)
+            .Select(e => new { e.ConsumerModuleId, e.Status })
+            .ToListAsync();
+
+        if (edges.Count == 0) return [];
+
+        var signalled = await SignalledModuleIds(probeWaveId, organizationId);
+
+        return edges
+            .GroupBy(e => e.ConsumerModuleId)
+            .Select(g => new ModuleProgress(
+                probeWaveId,
+                g.Key,
+                organizationId,
+                signalled.Contains(g.Key),
+                g.Select(e => e.Status).ToList()))
+            .ToList();
     }
 
-    /// <summary>One participant, or null when the row is gone.</summary>
-    public async Task<ParticipantProgress?> GetParticipant(Guid participantId, Guid organizationId)
+    /// <summary>
+    /// One Module's progress in one wave, or null when no edge points at it: a Module nothing
+    /// reaches is not part of the wave at all.
+    /// </summary>
+    public async Task<ModuleProgress?> GetModule(Guid probeWaveId, Guid moduleId, Guid organizationId)
     {
-        var rows = await Read(p => p.Id == participantId && p.OrganizationId == organizationId);
-        return rows.FirstOrDefault();
+        var statuses = await _dbContext.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == probeWaveId &&
+                        e.ConsumerModuleId == moduleId &&
+                        e.OrganizationId == organizationId)
+            .Select(e => e.Status)
+            .ToListAsync();
+
+        if (statuses.Count == 0) return null;
+
+        var signalled = await _dbContext.ModuleProbeAttempts
+            .AsNoTracking()
+            .AnyAsync(a => a.ProbeWaveId == probeWaveId &&
+                           a.ModuleId == moduleId &&
+                           a.OrganizationId == organizationId &&
+                           a.SignalOutputSetId != null);
+
+        return new ModuleProgress(probeWaveId, moduleId, organizationId, signalled, statuses);
     }
 
     public async Task<ProbeWaveSettlement> ReadForOriginJob(Guid originModuleJobId, Guid organizationId)
@@ -110,36 +138,27 @@ public class ProbeWaveProgressReader : IDisposable
 
         foreach (var waveId in waveIds)
         {
-            var participants = await ListByWave(waveId, organizationId);
+            var modules = await ListByWave(waveId, organizationId);
 
-            // The origin answers from its own plan, so it is never outstanding on its own account.
-            if (participants.Any(p => p.IsOutstanding)) return ProbeWaveSettlement.Waiting;
+            // The origin answers from its own plan, so no edge points at it and it is never
+            // outstanding on its own account.
+            if (modules.Any(m => m.IsOutstanding)) return ProbeWaveSettlement.Waiting;
         }
 
         return ProbeWaveSettlement.Settled;
     }
 
-    private async Task<List<ParticipantProgress>> Read(
-        System.Linq.Expressions.Expression<Func<Entities.Definition.ProbeWaves.ProbeWaveParticipant, bool>> where)
+    private async Task<HashSet<Guid>> SignalledModuleIds(Guid probeWaveId, Guid organizationId)
     {
-        var rows = await _dbContext.ProbeWaveParticipants
+        var ids = await _dbContext.ModuleProbeAttempts
             .AsNoTracking()
-            .Where(where)
-            .Select(p => new
-            {
-                p.Id,
-                p.ProbeWaveId,
-                p.ModuleId,
-                p.OrganizationId,
-                HasSignalled = p.SignalOutputSetId != null,
-                Statuses = p.Contributions.Select(c => c.Status).ToList()
-            })
+            .Where(a => a.ProbeWaveId == probeWaveId &&
+                        a.OrganizationId == organizationId &&
+                        a.SignalOutputSetId != null)
+            .Select(a => a.ModuleId)
             .ToListAsync();
 
-        return rows
-            .Select(r => new ParticipantProgress(
-                r.Id, r.ProbeWaveId, r.ModuleId, r.OrganizationId, r.HasSignalled, r.Statuses))
-            .ToList();
+        return ids.ToHashSet();
     }
 
     public void Dispose()

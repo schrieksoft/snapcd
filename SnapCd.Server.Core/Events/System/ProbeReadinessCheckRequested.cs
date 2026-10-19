@@ -9,8 +9,8 @@
 namespace SnapCd.Server.Core.Events.System;
 
 /// <summary>
-/// Asks whether one participant of a wave can now probe. Published when something that was
-/// holding it back resolves, and answered by recomputing readiness from its contributions rather
+/// Asks whether one Module in a wave can now probe. Published when something that was
+/// holding it back resolves, and answered by recomputing readiness from its edges rather
 /// than from anything carried here, so a duplicate is harmless and a stale one answers no.
 ///
 /// The same shape as ModuleDependencyCheckRequested, which is how a queued Module learns that an
@@ -18,7 +18,7 @@ namespace SnapCd.Server.Core.Events.System;
 /// </summary>
 public class ProbeReadinessCheckRequested
 {
-    public Guid ProbeWaveParticipantId { get; set; }
+    public Guid ProbeWaveId { get; set; }
     public Guid ModuleId { get; set; }
     public Guid OrganizationId { get; set; }
 }

@@ -46,13 +46,8 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await using var db = _fixture.CreateDbContext();
-        await db.SignalContributions
-            .Where(c => db.ProbeWaveParticipants
-                .Where(p => _waves.Contains(p.ProbeWaveId))
-                .Select(p => p.Id)
-                .Contains(c.ProbeWaveParticipantId))
-            .ExecuteDeleteAsync();
-        await db.ProbeWaveParticipants.Where(p => _waves.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.SignalEdges.Where(e => _waves.Contains(e.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.ModuleProbeAttempts.Where(p => _waves.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
         await db.SignalOutputs.Where(o => _signalSets.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(s => _signalSets.Contains(s.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
@@ -72,9 +67,9 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        var origin = await AddParticipant(wave, _originModuleId);
-        var consumer = await AddParticipant(wave, _consumerModuleId);
-        await AddContribution(consumer, origin, SignalContributionStatus.Potential);
+        await AddAttempt(wave, _originModuleId);
+        await AddAttempt(wave, _consumerModuleId);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Potential);
 
         Assert.Equal(ProbeWaveSettlement.Waiting, await Read(jobId));
     }
@@ -84,9 +79,9 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        var origin = await AddParticipant(wave, _originModuleId);
-        var consumer = await AddParticipant(wave, _consumerModuleId);
-        await AddContribution(consumer, origin, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _originModuleId);
+        await AddAttempt(wave, _consumerModuleId);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
         // Resolved upstream and nothing reported yet: this is the state the sweep releases, so the
         // answer is still coming.
@@ -98,10 +93,10 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        var origin = await AddParticipant(wave, _originModuleId);
+        await AddAttempt(wave, _originModuleId);
         var set = await AddSignalSet(wave, _consumerModuleId);
-        var consumer = await AddParticipant(wave, _consumerModuleId, set);
-        await AddContribution(consumer, origin, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _consumerModuleId, set);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
         Assert.Equal(ProbeWaveSettlement.Settled, await Read(jobId));
     }
@@ -111,9 +106,9 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        var origin = await AddParticipant(wave, _originModuleId);
-        var consumer = await AddParticipant(wave, _consumerModuleId);
-        await AddContribution(consumer, origin, SignalContributionStatus.NotNeeded);
+        await AddAttempt(wave, _originModuleId);
+        await AddAttempt(wave, _consumerModuleId);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.NotNeeded);
 
         // It has no probe to run, so it owes nobody an answer and the wave is done with it.
         Assert.Equal(ProbeWaveSettlement.Settled, await Read(jobId));
@@ -124,24 +119,24 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        var origin = await AddParticipant(wave, _originModuleId);
-        var consumer = await AddParticipant(wave, _consumerModuleId);
-        await AddContribution(consumer, origin, SignalContributionStatus.Unanswerable);
+        await AddAttempt(wave, _originModuleId);
+        await AddAttempt(wave, _consumerModuleId);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Unanswerable);
 
         Assert.Equal(ProbeWaveSettlement.Settled, await Read(jobId));
     }
 
+    /// <summary>
+    /// A wave is its edges. A Module nothing points at is not in it, so a wave whose only rows are
+    /// probe attempts has nothing outstanding.
+    /// </summary>
     [Fact]
-    public async Task Participants_With_No_Contributions_Do_Not_Hold_The_Wave_Open()
+    public async Task A_Wave_With_No_Edges_Holds_Nothing_Open()
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        await AddParticipant(wave, _originModuleId);
-        await AddParticipant(wave, _fixture.Modules["0002"].Id);
-        await AddParticipant(wave, _fixture.Modules["0003"].Id);
+        await AddAttempt(wave, _originModuleId);
 
-        // Participants are over-included from reachability, so most of a wide graph has no edges.
-        // Counting those as outstanding would make every wave wait out its full timeout.
         Assert.Equal(ProbeWaveSettlement.Settled, await Read(jobId));
     }
 
@@ -150,14 +145,14 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        var origin = await AddParticipant(wave, _originModuleId);
+        await AddAttempt(wave, _originModuleId);
 
         var reported = await AddSignalSet(wave, _consumerModuleId);
-        var done = await AddParticipant(wave, _consumerModuleId, reported);
-        await AddContribution(done, origin, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _consumerModuleId, reported);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
 
-        var pending = await AddParticipant(wave, _fixture.Modules["0002"].Id);
-        await AddContribution(pending, origin, SignalContributionStatus.Confirmed);
+        await AddAttempt(wave, _fixture.Modules["0002"].Id);
+        await AddEdge(wave, _fixture.Modules["0002"].Id, _originModuleId, SignalEdgeStatus.Confirmed);
 
         Assert.Equal(ProbeWaveSettlement.Waiting, await Read(jobId));
     }
@@ -167,9 +162,9 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
     {
         var jobId = Guid.NewGuid();
         var wave = await AddWave(jobId);
-        var origin = await AddParticipant(wave, _originModuleId);
-        var consumer = await AddParticipant(wave, _consumerModuleId);
-        await AddContribution(consumer, origin, SignalContributionStatus.Potential);
+        await AddAttempt(wave, _originModuleId);
+        await AddAttempt(wave, _consumerModuleId);
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Potential);
 
         using var reader = new ProbeWaveProgressReader(_fixture.CreateDbContext());
         var settlement = await reader.ReadForOriginJob(jobId, _fixture.Organizations["1"].Id);
@@ -190,8 +185,7 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             OriginModuleId = _originModuleId,
-            OriginModuleJobId = originJobId,
-            MaxDepth = 5
+            OriginModuleJobId = originJobId
         };
 
         await using var db = _fixture.CreateDbContext();
@@ -202,33 +196,39 @@ public class ProbeWaveProgressReaderTests : IAsyncLifetime
         return wave.Id;
     }
 
-    private async Task<Guid> AddParticipant(Guid waveId, Guid moduleId, Guid? signalOutputSetId = null)
+    private async Task AddAttempt(
+        Guid waveId,
+        Guid moduleId,
+        Guid? signalOutputSetId = null,
+        Guid? probeModuleJobId = null)
     {
-        var participant = new ProbeWaveParticipant
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleProbeAttempts.Add(new ModuleProbeAttempt
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             ProbeWaveId = waveId,
             ModuleId = moduleId,
-            SignalOutputSetId = signalOutputSetId
-        };
-
-        await using var db = _fixture.CreateDbContext();
-        db.ProbeWaveParticipants.Add(participant);
+            SignalOutputSetId = signalOutputSetId,
+            ProbeModuleJobId = probeModuleJobId
+        });
         await db.SaveChangesAsync();
-
-        return participant.Id;
     }
 
-    private async Task AddContribution(Guid participantId, Guid upstreamId, SignalContributionStatus status)
+    private async Task AddEdge(
+        Guid waveId,
+        Guid consumerModuleId,
+        Guid upstreamModuleId,
+        SignalEdgeStatus status)
     {
         await using var db = _fixture.CreateDbContext();
-        db.SignalContributions.Add(new SignalContribution
+        db.SignalEdges.Add(new SignalEdge
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
-            ProbeWaveParticipantId = participantId,
-            UpstreamParticipantId = upstreamId,
+            ProbeWaveId = waveId,
+            ConsumerModuleId = consumerModuleId,
+            UpstreamModuleId = upstreamModuleId,
             Status = status
         });
         await db.SaveChangesAsync();

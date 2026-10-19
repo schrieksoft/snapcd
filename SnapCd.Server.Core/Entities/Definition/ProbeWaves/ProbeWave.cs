@@ -30,13 +30,10 @@ public class ProbeWave : AuditBase, IEntity, IOrganizationChild
     /// <summary>The job whose plan reported the change.</summary>
     public Guid OriginModuleJobId { get; set; }
 
-    /// <summary>
-    /// Copied from settings at creation, so an operator editing the setting does not change a wave
-    /// already in flight.
-    /// </summary>
-    public int MaxDepth { get; set; }
+    public List<ModuleProbeAttempt> Attempts { get; set; } = new();
 
-    public List<ProbeWaveParticipant> Participants { get; set; } = new();
+    /// <summary>The edges this wave has discovered, which is how it knows who is still owed an answer.</summary>
+    public List<SignalEdge> Contributions { get; set; } = new();
 
     [JsonIgnore] public Module OriginModule { get; set; } = null!;
     [JsonIgnore] public virtual Organization Organization { get; set; } = null!;

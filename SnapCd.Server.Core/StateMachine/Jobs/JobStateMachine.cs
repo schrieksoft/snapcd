@@ -184,7 +184,6 @@ public partial class JobStateMachine<
         TCancelKillCompleted
     >> _logger;
 
-    private readonly ProbePropagationSettings _probePropagation;
 
     public Event<TRequest> ModuleRequest { get; } = null!;
     public Event<RunnerReconnectedEvent> RunnerReconnectedEvent { get; } = null!;
@@ -245,12 +244,10 @@ public partial class JobStateMachine<
             TCancelKillRequested,
             TDummyCancelKillCompleted,
             TCancelKillCompleted
-        >> logger,
-        IOptions<ProbePropagationSettings> probePropagation
+        >> logger
     )
     {
         _logger = logger;
-        _probePropagation = probePropagation.Value;
 
         InstanceState(x => x.CurrentState);
 

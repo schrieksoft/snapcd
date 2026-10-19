@@ -44,49 +44,43 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await using var db = _fixture.CreateDbContext();
-        await db.SignalContributions
-            .Where(c => db.ProbeWaveParticipants
-                .Where(p => _waves.Contains(p.ProbeWaveId))
-                .Select(p => p.Id)
-                .Contains(c.ProbeWaveParticipantId))
-            .ExecuteDeleteAsync();
-        await db.ProbeWaveParticipants.Where(p => _waves.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.SignalEdges.Where(e => _waves.Contains(e.ProbeWaveId)).ExecuteDeleteAsync();
+        await db.ModuleProbeAttempts.Where(p => _waves.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
         await db.SignalOutputs.Where(o => _signalSets.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(s => _signalSets.Contains(s.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
-    public async Task A_Module_Participates_In_A_Wave_Once()
+    public async Task A_Module_Probes_In_A_Wave_Once()
     {
         var waveId = await SeedWave();
-        await SeedParticipant(waveId, _consumerModuleId);
+        await SeedAttempt(waveId, _consumerModuleId);
 
+        // Claiming this row is what stops two readiness checks starting two Applies.
         await Assert.ThrowsAnyAsync<DbUpdateException>(
-            () => SeedParticipant(waveId, _consumerModuleId));
+            () => SeedAttempt(waveId, _consumerModuleId));
     }
 
     [Fact]
-    public async Task The_Same_Module_Participates_In_Two_Waves()
+    public async Task The_Same_Module_Probes_In_Two_Waves()
     {
         var first = await SeedWave();
         var second = await SeedWave();
 
-        await SeedParticipant(first, _consumerModuleId);
-        await SeedParticipant(second, _consumerModuleId);
+        await SeedAttempt(first, _consumerModuleId);
+        await SeedAttempt(second, _consumerModuleId);
     }
 
     [Fact]
     public async Task An_Edge_Exists_Once_Per_Consumer_And_Upstream()
     {
         var waveId = await SeedWave();
-        var upstream = await SeedParticipant(waveId, _originModuleId);
-        var consumer = await SeedParticipant(waveId, _consumerModuleId);
 
-        await SeedContribution(consumer, upstream);
+        await SeedEdge(waveId, _consumerModuleId, _originModuleId);
 
         await Assert.ThrowsAnyAsync<DbUpdateException>(
-            () => SeedContribution(consumer, upstream));
+            () => SeedEdge(waveId, _consumerModuleId, _originModuleId));
     }
 
     /// <summary>
@@ -94,36 +88,32 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
     /// "both have resolved" expressible at all.
     /// </summary>
     [Fact]
-    public async Task One_Consumer_Takes_A_Contribution_Per_Upstream()
+    public async Task One_Consumer_Takes_An_Edge_Per_Upstream()
     {
         var waveId = await SeedWave();
-        var first = await SeedParticipant(waveId, _originModuleId);
-        var second = await SeedParticipant(waveId, _fixture.Modules["0002"].Id);
-        var consumer = await SeedParticipant(waveId, _consumerModuleId);
 
-        await SeedContribution(consumer, first);
-        await SeedContribution(consumer, second);
+        await SeedEdge(waveId, _consumerModuleId, _originModuleId);
+        await SeedEdge(waveId, _consumerModuleId, _fixture.Modules["0002"].Id);
 
         await using var db = _fixture.CreateDbContext();
-        var contributions = await db.SignalContributions.AsNoTracking()
-            .Where(c => c.ProbeWaveParticipantId == consumer)
+        var edges = await db.SignalEdges.AsNoTracking()
+            .Where(e => e.ProbeWaveId == waveId && e.ConsumerModuleId == _consumerModuleId)
             .ToListAsync();
 
-        Assert.Equal(2, contributions.Count);
-        Assert.All(contributions, c => Assert.Equal(SignalContributionStatus.Potential, c.Status));
+        Assert.Equal(2, edges.Count);
+        Assert.All(edges, e => Assert.Equal(SignalEdgeStatus.Potential, e.Status));
     }
 
     [Fact]
-    public async Task A_Contribution_Status_Persists_As_Text()
+    public async Task An_Edge_Status_Persists_As_Text()
     {
         var waveId = await SeedWave();
-        var upstream = await SeedParticipant(waveId, _originModuleId);
-        var consumer = await SeedParticipant(waveId, _consumerModuleId);
-        var contributionId = await SeedContribution(consumer, upstream, SignalContributionStatus.NotNeeded);
+        var edgeId = await SeedEdge(
+            waveId, _consumerModuleId, _originModuleId, SignalEdgeStatus.NotNeeded);
 
         await using var db = _fixture.CreateDbContext();
         var stored = await db.Database
-            .SqlQuery<string>($"SELECT [Status] AS [Value] FROM SignalContributions WHERE Id = {contributionId}")
+            .SqlQuery<string>($"SELECT [Status] AS [Value] FROM SignalEdges WHERE Id = {edgeId}")
             .SingleAsync();
 
         Assert.Equal("NotNeeded", stored);
@@ -203,19 +193,18 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
             Id = id,
             OrganizationId = _organizationId,
             OriginModuleId = _originModuleId,
-            OriginModuleJobId = Guid.NewGuid(),
-            MaxDepth = 5
+            OriginModuleJobId = Guid.NewGuid()
         });
         await db.SaveChangesAsync();
         return id;
     }
 
-    private async Task<Guid> SeedParticipant(Guid waveId, Guid moduleId)
+    private async Task<Guid> SeedAttempt(Guid waveId, Guid moduleId)
     {
         var id = Guid.NewGuid();
 
         await using var db = _fixture.CreateDbContext();
-        db.ProbeWaveParticipants.Add(new ProbeWaveParticipant
+        db.ModuleProbeAttempts.Add(new ModuleProbeAttempt
         {
             Id = id,
             OrganizationId = _organizationId,
@@ -226,20 +215,22 @@ public class ProbeWaveSchemaTests : IAsyncLifetime
         return id;
     }
 
-    private async Task<Guid> SeedContribution(
-        Guid consumerId,
-        Guid upstreamId,
-        SignalContributionStatus status = SignalContributionStatus.Potential)
+    private async Task<Guid> SeedEdge(
+        Guid waveId,
+        Guid consumerModuleId,
+        Guid upstreamModuleId,
+        SignalEdgeStatus status = SignalEdgeStatus.Potential)
     {
         var id = Guid.NewGuid();
 
         await using var db = _fixture.CreateDbContext();
-        db.SignalContributions.Add(new SignalContribution
+        db.SignalEdges.Add(new SignalEdge
         {
             Id = id,
             OrganizationId = _organizationId,
-            ProbeWaveParticipantId = consumerId,
-            UpstreamParticipantId = upstreamId,
+            ProbeWaveId = waveId,
+            ConsumerModuleId = consumerModuleId,
+            UpstreamModuleId = upstreamModuleId,
             Status = status
         });
         await db.SaveChangesAsync();

@@ -36,11 +36,11 @@ public class SendProbeStepToRunnerActivity<TSaga, TMessage, TOutgoingMessage>(
 
         using var inputs = inputsFactory.Create();
 
-        var participantId = await inputs.FindParticipantToProbeFor(saga.ModuleId, saga.OrganizationId);
-        if (participantId == null) return;
+        var probeWaveId = await inputs.FindWaveToProbeFor(saga.ModuleId, saga.OrganizationId);
+        if (probeWaveId == null) return;
 
-        probe.ProbeWaveParticipantId = participantId.Value;
+        probe.ProbeWaveId = probeWaveId.Value;
         probe.InputsJson = await inputs.BuildInputsJson(
-            participantId.Value, saga.ModuleId, saga.OrganizationId) ?? string.Empty;
+            probeWaveId.Value, saga.ModuleId, saga.OrganizationId) ?? string.Empty;
     }
 }

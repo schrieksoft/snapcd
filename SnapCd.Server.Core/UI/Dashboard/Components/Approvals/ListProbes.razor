@@ -29,10 +29,10 @@
             <MudText Typo="Typo.body2" Class="mud-text-secondary">@Summary()</MudText>
         </MudStack>
 
-        @if (_wave.ParticipantsOmitted > 0)
+        @if (_wave.ModulesOmitted > 0)
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
-                @_wave.ParticipantsOmitted other @(_wave.ParticipantsOmitted == 1 ? "Module is" : "Modules are") taking part that you cannot see.
+                @_wave.ModulesOmitted other @(_wave.ModulesOmitted == 1 ? "Module is" : "Modules are") taking part that you cannot see.
             </MudText>
         }
 
@@ -43,31 +43,31 @@
         else
         {
             <MudExpansionPanels>
-                @foreach (var participant in _relevant)
+                @foreach (var module in _relevant)
                 {
-                    var (icon, color, label) = Badge(participant);
+                    var (icon, color, label) = Badge(module);
 
-                    <MudExpansionPanel Expanded="@(participant.Id == _expandedId)"
-                                       ExpandedChanged="@(e => HandleExpansionChanged(participant.Id, e))">
+                    <MudExpansionPanel Expanded="@(module.ModuleId == _expandedId)"
+                                       ExpandedChanged="@(e => HandleExpansionChanged(module.ModuleId, e))">
                         <TitleContent>
                             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                 <MudIcon Icon="@icon" Color="@color" Size="Size.Small"/>
                                 <MudText Typo="Typo.body1" Style="font-family: var(--snap-font-mono);">
-                                    @participant.NamespaceName/@participant.ModuleName
+                                    @module.NamespaceName/@module.ModuleName
                                 </MudText>
                                 <MudText Typo="Typo.body2" Color="@color">@label</MudText>
                             </MudStack>
                         </TitleContent>
                         <ChildContent>
                             <MudText Typo="Typo.overline" Class="mud-text-secondary">Waiting on</MudText>
-                            <MudText Typo="Typo.body2" Class="mb-3">@Upstreams(participant)</MudText>
+                            <MudText Typo="Typo.body2" Class="mb-3">@Upstreams(module)</MudText>
 
-                            @if (participant.Signals.Count > 0)
+                            @if (module.Signals.Count > 0)
                             {
                                 <MudText Typo="Typo.overline" Class="mud-text-secondary">Predicted output changes</MudText>
                                 <MudSimpleTable Dense="true" Class="mb-3">
                                     <tbody>
-                                    @foreach (var signal in participant.Signals)
+                                    @foreach (var signal in module.Signals)
                                     {
                                         <tr>
                                             <td style="font-family: var(--snap-font-mono);">@signal.Name</td>
@@ -94,12 +94,12 @@
                                 </MudSimpleTable>
                             }
 
-                            @if (participant.LastProbeModuleJobId != null)
+                            @if (module.ProbeModuleJobId != null)
                             {
                                 <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
                                 <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto"
-                                          JobId="@participant.LastProbeModuleJobId.Value"
-                                          ModuleId="@participant.ModuleId"
+                                          JobId="@module.ProbeModuleJobId.Value"
+                                          ModuleId="@module.ModuleId"
                                           TaskFilter="@(new[] { "Probe" })"/>
                             }
                             else
@@ -120,7 +120,7 @@
     [CascadingParameter] public Guid OrganizationId { get; set; }
 
     private ProbeWaveView? _wave;
-    private List<ProbeWaveParticipantView> _relevant = [];
+    private List<ProbeWaveModuleView> _relevant = [];
     private Guid? _expandedId;
 
     private Guid? _subscribedWaveId;
@@ -178,7 +178,7 @@
         // reaches has no probe to show. Neither is a panel a reader would open.
         _relevant = _wave == null
             ? []
-            : _wave.Participants
+            : _wave.Modules
                 .Where(p => p.ModuleId != _wave.OriginModuleId && !p.NothingToProbe)
                 .OrderBy(p => p.NamespaceName)
                 .ThenBy(p => p.ModuleName)
@@ -204,11 +204,11 @@
             : $"{reported} of {_relevant.Count} reported, {outstanding} still running{tail}";
     }
 
-    private static string Upstreams(ProbeWaveParticipantView participant)
+    private static string Upstreams(ProbeWaveModuleView module)
     {
-        if (participant.Contributions.Count == 0) return "nothing";
+        if (module.Edges.Count == 0) return "nothing";
 
-        return string.Join(", ", participant.Contributions
+        return string.Join(", ", module.Edges
             .OrderBy(c => c.UpstreamModuleName)
             .Select(c => $"{c.UpstreamModuleName} ({c.Status.ToString().ToLowerInvariant()})"));
     }
@@ -226,7 +226,7 @@
     /// reader might stop for. An unknown value is amber: the probe worked and the answer is that
     /// the plan cannot know yet.
     /// </summary>
-    private static (string Icon, Color Color, string Label) Badge(ProbeWaveParticipantView p) =>
+    private static (string Icon, Color Color, string Label) Badge(ProbeWaveModuleView p) =>
         p.Progress switch
         {
             ProbeProgress.Reported when p.HasDisruptiveSignal =>
@@ -245,8 +245,8 @@
                 (SnapCdIcons.HourglassEmpty, Color.Default, "waiting on an upstream")
         };
 
-    private void HandleExpansionChanged(Guid participantId, bool expanded)
+    private void HandleExpansionChanged(Guid moduleId, bool expanded)
     {
-        _expandedId = expanded ? participantId : null;
+        _expandedId = expanded ? moduleId : null;
     }
 }

@@ -13,11 +13,11 @@ using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 
 namespace SnapCd.Server.Core.Database.ClassMaps.ProbeWaves;
 
-public class ProbeWaveParticipantClassMap : IEntityTypeConfiguration<ProbeWaveParticipant>
+public class ModuleProbeAttemptClassMap : IEntityTypeConfiguration<ModuleProbeAttempt>
 {
-    public void Configure(EntityTypeBuilder<ProbeWaveParticipant> entity)
+    public void Configure(EntityTypeBuilder<ModuleProbeAttempt> entity)
     {
-        entity.ToTable("ProbeWaveParticipants", t => t.UseSqlOutputClause(false));
+        entity.ToTable("ModuleProbeAttempts", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
@@ -25,25 +25,28 @@ public class ProbeWaveParticipantClassMap : IEntityTypeConfiguration<ProbeWavePa
 
         entity
             .HasOne(e => e.Organization)
-            .WithMany(x => x.ProbeWaveParticipants)
+            .WithMany(x => x.ModuleProbeAttempts)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
         entity
             .HasOne(e => e.ProbeWave)
-            .WithMany(x => x.Participants)
+            .WithMany(x => x.Attempts)
             .HasForeignKey(e => new { e.ProbeWaveId, e.OrganizationId })
             .HasPrincipalKey(x => new { x.Id, x.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Restrict because the wave above already cascades and a second cascade path into this
+        // table is what SQL Server refuses, not because a Module should outlive a wave that
+        // mentions it. Deleting a Module has to remove its attempts itself.
         entity
             .HasOne(e => e.Module)
-            .WithMany(x => x.ProbeWaveParticipants)
+            .WithMany(x => x.ModuleProbeAttempts)
             .HasForeignKey(e => new { e.ModuleId, e.OrganizationId })
             .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
 
-        // A Module probes once per wave.
+        // A Module probes once per wave, and claiming this row is what enforces it.
         entity
             .HasIndex(p => new { p.ProbeWaveId, p.ModuleId, p.OrganizationId })
             .IsUnique();

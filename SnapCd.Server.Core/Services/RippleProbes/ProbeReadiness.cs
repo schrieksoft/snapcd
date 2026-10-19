@@ -50,31 +50,31 @@ public class ProbeReadinessReader : IDisposable
 
     public async Task<ProbeReadiness> Read(Guid moduleId, Guid organizationId)
     {
-        // A participant that has already produced its signal set has answered for its wave, so a
-        // later apply of the same Module is not that wave's business.
-        var participantIds = await _dbContext.ProbeWaveParticipants.AsNoTracking()
-            .Where(p =>
-                p.ModuleId == moduleId &&
-                p.OrganizationId == organizationId &&
-                p.SignalOutputSetId == null)
-            .Select(p => p.Id)
+        // A wave this Module has already reported in has had its answer, so a later apply is not
+        // that wave's business.
+        var reported = await _dbContext.ModuleProbeAttempts
+            .AsNoTracking()
+            .Where(a => a.ModuleId == moduleId &&
+                        a.OrganizationId == organizationId &&
+                        a.SignalOutputSetId != null)
+            .Select(a => a.ProbeWaveId)
             .ToListAsync();
 
-        if (participantIds.Count == 0) return ProbeReadiness.NothingToWaitFor;
-
-        var statuses = await _dbContext.SignalContributions.AsNoTracking()
-            .Where(c =>
-                participantIds.Contains(c.ProbeWaveParticipantId) &&
-                c.OrganizationId == organizationId)
-            .Select(c => c.Status)
+        var statuses = await _dbContext.SignalEdges
+            .AsNoTracking()
+            .Where(e =>
+                e.ConsumerModuleId == moduleId &&
+                e.OrganizationId == organizationId &&
+                !reported.Contains(e.ProbeWaveId))
+            .Select(e => e.Status)
             .ToListAsync();
 
         if (statuses.Count == 0) return ProbeReadiness.NothingToWaitFor;
 
-        if (statuses.Any(s => s == SignalContributionStatus.Potential))
+        if (statuses.Any(s => s == SignalEdgeStatus.Potential))
             return ProbeReadiness.WaitForSignals;
 
-        return statuses.Any(s => s == SignalContributionStatus.Confirmed)
+        return statuses.Any(s => s == SignalEdgeStatus.Confirmed)
             ? ProbeReadiness.Probe
             : ProbeReadiness.NothingToProbe;
     }

@@ -14,15 +14,17 @@ using SnapCd.Server.Core.Entities.Interfaces;
 namespace SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 
 /// <summary>
-/// One Module the wave's origin can reach, including the origin itself at the start of the chain.
-/// The unit of work: a Module probes once per wave with every contribution merged.
+/// What one Module did in one wave: the probe job that ran for it, and the signals that probe
+/// reported.
+///
+/// Written when the Module first does something rather than in advance, so a row here means a
+/// probe was attempted. Which Modules a wave might still reach is a question about contributions,
+/// which hang off the wave in their own right and do not refer to this table.
 ///
 /// No status column, because nothing is left for one to say. Whether it is running, faulted or
-/// finished is the probe job's own status; whether it signalled is whether a set exists; whether
-/// it had anything to do is its contributions. A column here would mirror a ModuleJob and could
-/// disagree with it.
+/// finished is the probe job's own status; whether it signalled is whether a set exists.
 /// </summary>
-public class ProbeWaveParticipant : AuditBase, IEntity, IModuleChild
+public class ModuleProbeAttempt : AuditBase, IEntity, IModuleChild
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
@@ -30,18 +32,14 @@ public class ProbeWaveParticipant : AuditBase, IEntity, IModuleChild
     public Guid ProbeWaveId { get; set; }
     public Guid ModuleId { get; set; }
 
-    /// <summary>What this Module reported, once it has probed.</summary>
+    /// <summary>What this Module reported, once its probe has run.</summary>
     public Guid? SignalOutputSetId { get; set; }
 
     /// <summary>
-    /// The latest probe attempt, overwritten on a retry. Not a claim: the job's own status says
-    /// whether it is running. It is how the origin reaches a consumer's probe logs, which the
-    /// signal set cannot do while a probe runs or after it failed.
+    /// The job carrying the probe, written before it starts. Claiming this row is what stops two
+    /// readiness checks starting a second Apply for the same Module in the same wave.
     /// </summary>
-    public Guid? LastProbeModuleJobId { get; set; }
-
-    /// <summary>Contributions this Module waits on.</summary>
-    public List<SignalContribution> Contributions { get; set; } = new();
+    public Guid? ProbeModuleJobId { get; set; }
 
     [JsonIgnore] public ProbeWave ProbeWave { get; set; } = null!;
     [JsonIgnore] public Module Module { get; set; } = null!;

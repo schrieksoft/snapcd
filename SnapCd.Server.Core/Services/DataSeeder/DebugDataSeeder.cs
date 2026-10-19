@@ -47,6 +47,14 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid DiamondCModuleId = new("99999999-9999-9999-9999-999999999942");
     private static readonly Guid DiamondDModuleId = new("99999999-9999-9999-9999-999999999943");
 
+    /// <summary>
+    /// Two consumers the change under test does not reach: e reads an output of a that does not
+    /// move, and f reads one of b that does not. They are what proves a wave stays inside the
+    /// blast radius rather than spreading to everything reachable.
+    /// </summary>
+    private static readonly Guid DiamondEModuleId = new("99999999-9999-9999-9999-999999999944");
+    private static readonly Guid DiamondFModuleId = new("99999999-9999-9999-9999-999999999945");
+
     private static readonly Guid DebugUserId = new("99999999-9999-9999-9999-999999999990");
     private static readonly Guid DebugStackReaderUserId = new("99999999-9999-9999-9999-999999999996");
     private static readonly Guid DebugStackMetadataReaderUserId = new("99999999-9999-9999-9999-999999999997");
@@ -578,7 +586,9 @@ public class DebugDataSeeder : ProductionDataSeeder
             [DiamondAModuleId] = "probe-diamond-a",
             [DiamondBModuleId] = "probe-diamond-b",
             [DiamondCModuleId] = "probe-diamond-c",
-            [DiamondDModuleId] = "probe-diamond-d"
+            [DiamondDModuleId] = "probe-diamond-d",
+            [DiamondEModuleId] = "probe-diamond-e",
+            [DiamondFModuleId] = "probe-diamond-f"
         };
 
         var existing = await dbContext.Modules
@@ -634,6 +644,10 @@ public class DebugDataSeeder : ProductionDataSeeder
         await AddDiamondEdge(dbContext, DiamondCModuleId, DiamondAModuleId, "a_id", "from_a");
         await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondBModuleId, "b_id", "from_b");
         await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondCModuleId, "c_id", "from_c");
+
+        // The edges that must not be followed: the outputs they name do not change.
+        await AddDiamondEdge(dbContext, DiamondEModuleId, DiamondAModuleId, "a_other", "from_a_other");
+        await AddDiamondEdge(dbContext, DiamondFModuleId, DiamondBModuleId, "b_other", "from_b_other");
     }
 
     private async Task AddDiamondEdge(

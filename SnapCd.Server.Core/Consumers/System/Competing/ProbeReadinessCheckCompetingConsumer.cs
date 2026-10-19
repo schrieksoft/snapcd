@@ -9,6 +9,8 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Services.Crud.Jobs;
@@ -33,14 +35,14 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
     private readonly ProbeWaveProgressReaderFactory _progressFactory;
     private readonly IDbContextFactory<SnapCdDbContext> _dbContextFactory;
     private readonly JobService _jobService;
-    private readonly ProbeContributionResolverFactory _resolverFactory;
+    private readonly SignalEdgeResolverFactory _resolverFactory;
 
     public ProbeReadinessCheckCompetingConsumer(
         ILogger<ProbeReadinessCheckCompetingConsumer> logger,
         ProbeWaveProgressReaderFactory progressFactory,
         IDbContextFactory<SnapCdDbContext> dbContextFactory,
         JobService jobService,
-        ProbeContributionResolverFactory resolverFactory)
+        SignalEdgeResolverFactory resolverFactory)
     {
         _logger = logger;
         _progressFactory = progressFactory;
@@ -51,23 +53,37 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
 
     public async Task Consume(ConsumeContext<ProbeReadinessCheckRequested> context)
     {
-        var participantId = context.Message.ProbeWaveParticipantId;
+        var probeWaveId = context.Message.ProbeWaveId;
         var moduleId = context.Message.ModuleId;
         var organizationId = context.Message.OrganizationId;
 
         using var progress = _progressFactory.Create();
-        var participant = await progress.GetParticipant(participantId, organizationId);
+        var module = await progress.GetModule(probeWaveId, moduleId, organizationId);
 
-        if (participant == null)
+        if (module == null)
         {
-            _logger.LogDebug("Probe readiness check for participant {ParticipantId} found no such row", participantId);
+            _logger.LogDebug(
+                "Probe readiness check found no edge into Module {ModuleId} in wave {ProbeWaveId}",
+                moduleId, probeWaveId);
             return;
         }
 
-        if (!participant.OwesAProbe)
+        if (!module.OwesAProbe)
         {
             _logger.LogDebug(
                 "Module {ModuleId} is not ready to probe yet, leaving it to the next check", moduleId);
+            return;
+        }
+
+        // An upstream that has not reported yet may still bring this Module in on a second edge,
+        // and probing now would answer with one upstream's value while another was still coming.
+        // A Module reachable by two paths of different lengths is where this bites: the shorter
+        // one resolves first and would look like the whole answer.
+        if (await AnUpstreamMayStillReport(probeWaveId, moduleId, organizationId))
+        {
+            _logger.LogDebug(
+                "Module {ModuleId} reads an output from a Module that has not reported yet, so it waits",
+                moduleId);
             return;
         }
 
@@ -75,11 +91,11 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
         // refused, or has already been approved and applied. Starting fresh Applies for it would
         // be a side effect nobody asked for. Consumers already running are left to finish, since
         // they are ordinary applies doing real work.
-        if (!await OriginIsStillRunning(participant.ProbeWaveId, organizationId))
+        if (!await OriginIsStillRunning(probeWaveId, organizationId))
         {
             _logger.LogDebug(
                 "Wave {ProbeWaveId} is no longer live, not starting a probe for Module {ModuleId}",
-                participant.ProbeWaveId, moduleId);
+                probeWaveId, moduleId);
             return;
         }
 
@@ -98,11 +114,11 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
 
         try
         {
-            if (!await ClaimProbeJob(participantId, organizationId, jobId))
+            if (!await ClaimProbeJob(probeWaveId, moduleId, organizationId, jobId))
             {
                 _logger.LogDebug(
-                    "Participant {ParticipantId} was claimed by another check, not starting a second Apply",
-                    participantId);
+                    "Module {ModuleId} was claimed by another check, not starting a second Apply",
+                    moduleId);
                 return;
             }
 
@@ -110,7 +126,7 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
 
             _logger.LogInformation(
                 "Propagation: started an Apply to probe Module {ModuleId} in wave {ProbeWaveId}",
-                moduleId, participant.ProbeWaveId);
+                moduleId, probeWaveId);
         }
         catch (Exception ex)
         {
@@ -122,27 +138,108 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
                 moduleId);
 
             using var resolver = _resolverFactory.Create();
-            await resolver.ResolveAsUnanswerable(participantId, organizationId, "its Apply could not be started");
+            await resolver.ResolveAsUnanswerable(
+                probeWaveId, moduleId, organizationId, "its Apply could not be started");
         }
     }
 
     /// <summary>
-    /// Records this job as the participant's probe, and reports whether the claim was ours. The
-    /// update is conditional on the slot still being empty, so two checks racing the same
-    /// participant cannot both start an Apply.
+    /// Whether some Module this one reads an output from is in the wave and has not answered yet.
+    ///
+    /// Read from the declared inputs rather than from the wave's edges, because the edge that
+    /// would make this Module wait does not exist until the upstream reports. That is the cost of
+    /// a wave that grows: its edges describe what has happened, so what might still happen has to
+    /// come from the configuration.
     /// </summary>
-    private async Task<bool> ClaimProbeJob(Guid participantId, Guid organizationId, Guid jobId)
+    private async Task<bool> AnUpstreamMayStillReport(Guid probeWaveId, Guid moduleId, Guid organizationId)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        var claimed = await dbContext.ProbeWaveParticipants
-            .Where(p =>
-                p.Id == participantId &&
-                p.OrganizationId == organizationId &&
-                p.LastProbeModuleJobId == null)
-            .ExecuteUpdateAsync(set => set.SetProperty(p => p.LastProbeModuleJobId, jobId));
+        // Queried per concrete type: the hierarchy is one table and EF can only filter on a leaf,
+        // so an OfType on the shared base does not translate. All three kinds count, including the
+        // output-set edge, where the consumer reads whatever the producer publishes.
+        var producerModuleIds = new List<Guid>();
 
-        return claimed == 1;
+        producerModuleIds.AddRange(await ProducersFor<ModuleParamFromOutput>(dbContext, moduleId, organizationId));
+        producerModuleIds.AddRange(await ProducersFor<ModuleEnvVarFromOutput>(dbContext, moduleId, organizationId));
+        producerModuleIds.AddRange(await ProducersFor<ModuleParamFromOutputSet>(dbContext, moduleId, organizationId));
+
+        producerModuleIds = producerModuleIds.Distinct().ToList();
+
+        if (producerModuleIds.Count == 0) return false;
+
+        // The upstreams this wave has actually reached, which is the set that could still send
+        // this Module a second edge. One that the wave never reached cannot.
+        var inWave = await dbContext.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == probeWaveId && e.OrganizationId == organizationId)
+            .Select(e => e.ConsumerModuleId)
+            .Distinct()
+            .ToListAsync();
+
+        var pendingProducers = producerModuleIds
+            .Where(id => id != moduleId && inWave.Contains(id))
+            .ToList();
+
+        if (pendingProducers.Count == 0) return false;
+
+        // One of them has yet to report, so a second edge into this Module may still arrive.
+        var reportedCount = await dbContext.ModuleProbeAttempts
+            .AsNoTracking()
+            .CountAsync(a => a.ProbeWaveId == probeWaveId &&
+                             a.OrganizationId == organizationId &&
+                             a.SignalOutputSetId != null &&
+                             pendingProducers.Contains(a.ModuleId));
+
+        return reportedCount < pendingProducers.Count;
+    }
+
+    private static async Task<List<Guid>> ProducersFor<TEntity>(
+        SnapCdDbContext dbContext,
+        Guid moduleId,
+        Guid organizationId)
+        where TEntity : ModuleInputWithOutputModuleId
+    {
+        return await dbContext.Set<TEntity>()
+            .AsNoTracking()
+            .Where(i => i.ModuleId == moduleId && i.OrganizationId == organizationId)
+            .Select(i => i.OutputModuleId)
+            .Distinct()
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Records this job as the Module's probe for this wave, and reports whether the claim was
+    /// ours. The unique index on (wave, Module) decides it: two checks racing the same Module both
+    /// insert, and only one row survives.
+    /// </summary>
+    private async Task<bool> ClaimProbeJob(
+        Guid probeWaveId,
+        Guid moduleId,
+        Guid organizationId,
+        Guid jobId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        dbContext.ModuleProbeAttempts.Add(new ModuleProbeAttempt
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            ProbeWaveId = probeWaveId,
+            ModuleId = moduleId,
+            ProbeModuleJobId = jobId
+        });
+
+        try
+        {
+            await dbContext.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException)
+        {
+            // Somebody else is already probing this Module for this wave. Theirs stands.
+            return false;
+        }
     }
 
     private async Task<bool> OriginIsStillRunning(Guid probeWaveId, Guid organizationId)

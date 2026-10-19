@@ -1,0 +1,291 @@
+// SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+// Copyright (c) 2026 Karl Schriek / Schrieksoft.
+// No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+// embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+// system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+// Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+// for terms covering either use.
+
+using MassTransit;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using SnapCd.Server.Core.Database;
+using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
+using SnapCd.Server.Core.Entities.Definition.Signals;
+using SnapCd.Server.Core.Enums;
+using SnapCd.Server.Core.Events.System;
+
+namespace SnapCd.Server.Core.Services.RippleProbes;
+
+public class SignalEdgeResolverFactory(
+    IDbContextFactory<SnapCdDbContext> dbFactory,
+    RippleProbeConsumerLookupFactory lookupFactory,
+    IPublishEndpoint bus,
+    ILoggerFactory loggerFactory)
+{
+    public SignalEdgeResolver Create()
+    {
+        return new SignalEdgeResolver(
+            dbFactory.CreateDbContext(),
+            lookupFactory.Create(),
+            bus,
+            loggerFactory.CreateLogger<SignalEdgeResolver>());
+    }
+}
+
+/// <summary>
+/// Answers the edges leading out of a Module once it has reported, and extends the wave to
+/// whoever reads what it changed.
+///
+/// An edge resolves exactly once, from Potential to one of the three answers, and a consumer
+/// probes when none of its edges is Potential any more.
+/// </summary>
+public class SignalEdgeResolver : IDisposable
+{
+    private readonly SnapCdDbContext _dbContext;
+    private readonly RippleProbeConsumerLookup _lookup;
+    private readonly IPublishEndpoint _bus;
+    private readonly ILogger<SignalEdgeResolver> _logger;
+
+    public SignalEdgeResolver(
+        SnapCdDbContext dbContext,
+        RippleProbeConsumerLookup lookup,
+        IPublishEndpoint bus,
+        ILogger<SignalEdgeResolver> logger)
+    {
+        _dbContext = dbContext;
+        _lookup = lookup;
+        _bus = bus;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// A Module reported signals. Each consumer waiting on it is told whether any of those
+    /// signals is one it reads, and the Modules reading them join the wave.
+    /// </summary>
+    public async Task ResolveAfterSignals(Guid probeWaveId, Guid moduleId, Guid organizationId)
+    {
+        var signalOutputSetId = await _dbContext.ModuleProbeAttempts
+            .AsNoTracking()
+            .Where(a => a.ProbeWaveId == probeWaveId && a.ModuleId == moduleId &&
+                        a.OrganizationId == organizationId)
+            .Select(a => a.SignalOutputSetId)
+            .FirstOrDefaultAsync();
+
+        if (signalOutputSetId == null) return;
+
+        var changedNames = await ChangedSignalNames(signalOutputSetId.Value, organizationId);
+
+        var reading = changedNames.Count == 0
+            ? []
+            : (await _lookup.ListConsumers(moduleId, organizationId, changedNames))
+                .Select(c => c.ModuleId)
+                .ToHashSet();
+
+        // The wave grows here. A Module reading one of these changed outputs gets an edge now
+        // rather than at creation: whether it is reached depends on what this plan turned out to
+        // change, which nothing knew when the wave started.
+        await AddEdges(probeWaveId, moduleId, organizationId, reading);
+
+        await Resolve(
+            probeWaveId,
+            moduleId,
+            organizationId,
+            consumerModuleId => reading.Contains(consumerModuleId)
+                ? SignalEdgeStatus.Confirmed
+                : SignalEdgeStatus.NotNeeded);
+    }
+
+    /// <summary>
+    /// A Module will never report, because its job failed, it is paused, or it no longer exists.
+    /// Its consumers are released rather than left waiting on an answer that is not coming, which
+    /// is what Unanswerable is for.
+    /// </summary>
+    public async Task ResolveAsUnanswerable(
+        Guid probeWaveId,
+        Guid moduleId,
+        Guid organizationId,
+        string why)
+    {
+        _logger.LogWarning(
+            "Propagation: Module {ModuleId} will not report ({Why}), releasing what waited on it",
+            moduleId, why);
+
+        await Resolve(probeWaveId, moduleId, organizationId, _ => SignalEdgeStatus.Unanswerable);
+    }
+
+    /// <summary>
+    /// Writes an edge from this Module to each consumer of what it changed.
+    ///
+    /// Two upstreams reaching one consumer write two rows that share nothing, so there is no row
+    /// for them to contend over and no need to create anything before an edge can be written. The
+    /// unique index refuses a repeat, which is what makes a second report idempotent.
+    /// </summary>
+    private async Task AddEdges(
+        Guid probeWaveId,
+        Guid upstreamModuleId,
+        Guid organizationId,
+        IReadOnlyCollection<Guid> consumerModuleIds)
+    {
+        if (consumerModuleIds.Count == 0) return;
+
+        var already = await _dbContext.SignalEdges
+            .AsNoTracking()
+            .Where(e => e.ProbeWaveId == probeWaveId &&
+                        e.UpstreamModuleId == upstreamModuleId &&
+                        e.OrganizationId == organizationId)
+            .Select(e => e.ConsumerModuleId)
+            .ToListAsync();
+
+        var added = 0;
+
+        foreach (var consumerModuleId in consumerModuleIds)
+        {
+            if (already.Contains(consumerModuleId)) continue;
+
+            _dbContext.SignalEdges.Add(new SignalEdge
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                ProbeWaveId = probeWaveId,
+                ConsumerModuleId = consumerModuleId,
+                UpstreamModuleId = upstreamModuleId,
+                Status = SignalEdgeStatus.Potential
+            });
+
+            added++;
+        }
+
+        if (added == 0) return;
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Propagation: wave {ProbeWaveId} reached {Count} further Module(s)", probeWaveId, added);
+    }
+
+    private async Task Resolve(
+        Guid probeWaveId,
+        Guid upstreamModuleId,
+        Guid organizationId,
+        Func<Guid, SignalEdgeStatus> decide)
+    {
+        var pending = await _dbContext.SignalEdges
+            .Where(e =>
+                e.ProbeWaveId == probeWaveId &&
+                e.UpstreamModuleId == upstreamModuleId &&
+                e.OrganizationId == organizationId &&
+                e.Status == SignalEdgeStatus.Potential)
+            .ToListAsync();
+
+        if (pending.Count == 0)
+        {
+            // A leaf consumer has no outgoing edges, so nothing resolves here, but the origin was
+            // still waiting on its answer.
+            await NotifyWaveOrigin(probeWaveId, organizationId);
+            return;
+        }
+
+        foreach (var edge in pending)
+            edge.Status = decide(edge.ConsumerModuleId);
+
+        await _dbContext.SaveChangesAsync();
+
+        await _bus.Publish(new ProbeWaveUpdatedEvent
+        {
+            ProbeWaveId = probeWaveId,
+            OrganizationId = organizationId
+        });
+
+        // Whoever waited on this Module may now be waiting on nothing. Each is asked to look
+        // again rather than being told it is ready, because only the consumer's own edges say
+        // whether its last upstream has answered.
+        foreach (var edge in pending)
+            await _bus.Publish(new ProbeReadinessCheckRequested
+            {
+                ProbeWaveId = probeWaveId,
+                ModuleId = edge.ConsumerModuleId,
+                OrganizationId = organizationId
+            });
+
+        await NotifyWaveOrigin(probeWaveId, organizationId);
+    }
+
+    /// <summary>
+    /// Tells the job that started this wave to look at it again. That job is parked waiting for
+    /// its consumers, and this resolution may have been the last thing it was waiting on.
+    /// </summary>
+    private async Task NotifyWaveOrigin(Guid probeWaveId, Guid organizationId)
+    {
+        var originJobId = await _dbContext.ProbeWaves
+            .AsNoTracking()
+            .Where(w => w.Id == probeWaveId && w.OrganizationId == organizationId)
+            .Select(w => w.OriginModuleJobId)
+            .FirstOrDefaultAsync();
+
+        if (originJobId == Guid.Empty) return;
+
+        await _bus.Publish(new ProbeWaveProgressedEvent
+        {
+            OriginModuleJobId = originJobId,
+            OrganizationId = organizationId
+        });
+    }
+
+    /// <summary>
+    /// The outputs in a signal set whose value actually changes.
+    ///
+    /// A set holds every output the plan mentioned, including ones it says are unaffected, because
+    /// a reader of the wave wants to see that an output was considered and did not move. Only the
+    /// ones that change reach a consumer, so the action decides rather than mere membership: the
+    /// two sources of a signal set disagree on whether to include an unchanged output at all, and
+    /// reading the action is correct for both.
+    /// </summary>
+    private async Task<List<string>> ChangedSignalNames(Guid signalOutputSetId, Guid organizationId)
+    {
+        var stored = await _dbContext.SignalOutputs
+            .AsNoTracking()
+            .Where(s => s.SignalOutputSetId == signalOutputSetId && s.OrganizationId == organizationId)
+            .Select(s => new { s.Name, Json = (s as LiteralSignalOutput)!.SignalJson })
+            .ToListAsync();
+
+        var changed = new List<string>();
+
+        foreach (var output in stored)
+        {
+            // A sensitive output's value lives in the secret store and its row carries no JSON, so
+            // nothing here can say whether it changed. Treated as changed: missing the propagation
+            // of a secret that moved is worse than probing for one that did not.
+            if (output.Json == null)
+            {
+                changed.Add(output.Name);
+                continue;
+            }
+
+            if (ActionOf(output.Json) != "no-op") changed.Add(output.Name);
+        }
+
+        return changed;
+    }
+
+    private static string? ActionOf(string signalJson)
+    {
+        try
+        {
+            return JsonNode.Parse(signalJson)?["action"]?.GetValue<string>();
+        }
+        catch (JsonException)
+        {
+            // An unreadable value is not evidence that nothing changed.
+            return null;
+        }
+    }
+
+    public void Dispose()
+    {
+        _dbContext.Dispose();
+        _lookup.Dispose();
+    }
+}

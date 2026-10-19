@@ -12,11 +12,11 @@ using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 
 namespace SnapCd.Server.Core.Database.ClassMaps.ProbeWaves;
 
-public class SignalContributionClassMap : IEntityTypeConfiguration<SignalContribution>
+public class SignalEdgeClassMap : IEntityTypeConfiguration<SignalEdge>
 {
-    public void Configure(EntityTypeBuilder<SignalContribution> entity)
+    public void Configure(EntityTypeBuilder<SignalEdge> entity)
     {
-        entity.ToTable("SignalContributions", t => t.UseSqlOutputClause(false));
+        entity.ToTable("SignalEdges", t => t.UseSqlOutputClause(false));
 
         entity.HasKey(e => new { e.Id, e.OrganizationId });
 
@@ -29,33 +29,42 @@ public class SignalContributionClassMap : IEntityTypeConfiguration<SignalContrib
 
         entity
             .HasOne(e => e.Organization)
-            .WithMany(x => x.SignalContributions)
+            .WithMany(x => x.SignalEdges)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
 
         entity
-            .HasOne(e => e.ProbeWaveParticipant)
+            .HasOne(e => e.ProbeWave)
             .WithMany(x => x.Contributions)
-            .HasForeignKey(e => new { e.ProbeWaveParticipantId, e.OrganizationId })
+            .HasForeignKey(e => new { e.ProbeWaveId, e.OrganizationId })
             .HasPrincipalKey(x => new { x.Id, x.OrganizationId })
             .OnDelete(DeleteBehavior.Cascade);
 
-        // The upstream side is Restrict: both ends are participants of one wave, and two cascade
-        // paths into the same table is what SQL Server refuses.
+        // Both Module ends are Restrict because two cascade paths into one table is what SQL
+        // Server refuses, not because a Module should survive a wave that mentions it. Deleting a
+        // Module has to remove its edges itself.
         entity
-            .HasOne(e => e.UpstreamParticipant)
+            .HasOne(e => e.ConsumerModule)
             .WithMany()
-            .HasForeignKey(e => new { e.UpstreamParticipantId, e.OrganizationId })
-            .HasPrincipalKey(x => new { x.Id, x.OrganizationId })
+            .HasForeignKey(e => new { e.ConsumerModuleId, e.OrganizationId })
+            .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict);
 
-        // One edge per consumer and upstream pair.
         entity
-            .HasIndex(p => new { p.ProbeWaveParticipantId, p.UpstreamParticipantId, p.OrganizationId })
+            .HasOne(e => e.UpstreamModule)
+            .WithMany()
+            .HasForeignKey(e => new { e.UpstreamModuleId, e.OrganizationId })
+            .HasPrincipalKey(m => new { m.Id, m.OrganizationId })
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // One edge per consumer and upstream pair in a wave. Two upstreams reaching one consumer
+        // write two rows that share nothing, which is what keeps concurrent writers apart.
+        entity
+            .HasIndex(p => new { p.ProbeWaveId, p.ConsumerModuleId, p.UpstreamModuleId, p.OrganizationId })
             .IsUnique();
 
-        // The release check reads a participant's contributions by status.
+        // The release check reads one consumer's edges by status.
         entity
-            .HasIndex(p => new { p.ProbeWaveParticipantId, p.Status, p.OrganizationId });
+            .HasIndex(p => new { p.ProbeWaveId, p.ConsumerModuleId, p.Status, p.OrganizationId });
     }
 }

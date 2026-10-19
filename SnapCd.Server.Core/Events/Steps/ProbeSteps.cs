@@ -26,8 +26,8 @@ public abstract class ProbeRequestedBase : StepRequestBase
     /// </summary>
     public string InputsJson { get; set; } = null!;
 
-    /// <summary>The participant this probe answers for, which is what its signals are recorded against.</summary>
-    public Guid ProbeWaveParticipantId { get; set; }
+    /// <summary>The wave this probe answers for, which is what its signals are recorded against.</summary>
+    public Guid ProbeWaveId { get; set; }
 }
 
 public abstract class ProbeCompletedBase : StepResponseBase

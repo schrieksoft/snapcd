@@ -9,16 +9,20 @@
 namespace SnapCd.JobRun;
 
 /// <summary>
-/// What a real planwalker reported for a four-root diamond, captured once and replayed here.
+/// What a real planwalker reported for the diamond fixture's roots, captured once and replayed here.
 ///
 /// a changes an output; b and c each read it; d reads both. The shape matters because d's two
 /// contributions resolve at different moments, so it is the only one that exercises waiting for a
 /// second upstream and merging two unknowns into one plan.
 ///
-/// These bytes came from OpenTofu planning real state, not from a hand-written envelope. Every
-/// output is action "unknown" with after "1AAA", the msgpack fixext1 for an unknown value, because
-/// each root's resource is replaced and its id cannot be known until it applies. A hand-written
-/// stand-in would be a guess at a format only planwalker produces.
+/// a and b each publish a second output that does not change, read by two further Modules that a
+/// wave must therefore leave alone. Those appear here as action "no-op" with an unchanged value,
+/// which is how planwalker reports an output it considered and found unaffected.
+///
+/// These bytes came from OpenTofu planning real state, not from a hand-written envelope. A changed
+/// output carries after "1AAA", the msgpack fixext1 for an unknown value, because the resource
+/// behind it is replaced and its id cannot be known until it applies. A hand-written stand-in
+/// would be a guess at a format only planwalker produces.
 /// </summary>
 public static class DiamondSignals
 {
@@ -35,6 +39,12 @@ public static class DiamondSignals
               "type": "InN0cmluZyI=",
               "before": "rHRydXN0aW5nLWxhYg==",
               "after": "1AAA"
+            },
+            "a_other": {
+              "action": "no-op",
+              "type": "InN0cmluZyI=",
+              "before": "rmhvbmVzdC1tZWVya2F0",
+              "after": "rmhvbmVzdC1tZWVya2F0"
             }
           }
         }
@@ -54,6 +64,12 @@ public static class DiamondSignals
               "type": "InN0cmluZyI=",
               "before": "uXRydXN0aW5nLWxhYi13aWxsaW5nLWdydWI=",
               "after": "1AAA"
+            },
+            "b_other": {
+              "action": "no-op",
+              "type": "InN0cmluZyI=",
+              "before": "rGNhdXNhbC1idXJybw==",
+              "after": "rGNhdXNhbC1idXJybw=="
             }
           }
         }

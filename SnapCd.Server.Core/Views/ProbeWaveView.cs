@@ -23,35 +23,32 @@ public class ProbeWaveView
     /// <summary>The job whose plan produced the signals this wave started from.</summary>
     public Guid OriginModuleJobId { get; set; }
 
-    public int MaxDepth { get; set; }
     public DateTime CreatedDateTime { get; set; }
 
-    public List<ProbeWaveParticipantView> Participants { get; set; } = [];
+    public List<ProbeWaveModuleView> Modules { get; set; } = [];
 
     /// <summary>
-    /// Participants left out because the reader cannot see their Module. Counted rather than
-    /// hidden: a wave that silently looks complete is worse than one that says what is missing.
+    /// Modules left out because the reader cannot see them. Counted rather than hidden: a wave
+    /// that silently looks complete is worse than one that says what is missing.
     /// </summary>
-    public int ParticipantsOmitted { get; set; }
+    public int ModulesOmitted { get; set; }
 
     /// <summary>A wave is still going while any participant is still waiting on something.</summary>
-    public bool IsSettled => Participants.All(p => !p.IsWaiting);
+    public bool IsSettled => Modules.All(m => !m.IsWaiting);
 }
 
-public class ProbeWaveParticipantView
+public class ProbeWaveModuleView
 {
-    public Guid Id { get; set; }
     public Guid ModuleId { get; set; }
     public string ModuleName { get; set; } = null!;
     public string NamespaceName { get; set; } = null!;
 
     /// <summary>
-    /// The Apply job whose probe step ran, so its logs can be read. Null until something probes,
-    /// and overwritten if a probe is repeated.
+    /// The Apply job carrying the probe, so its logs can be read. Null until one is started.
     /// </summary>
-    public Guid? LastProbeModuleJobId { get; set; }
+    public Guid? ProbeModuleJobId { get; set; }
 
-    public List<SignalContributionView> Contributions { get; set; } = [];
+    public List<SignalEdgeView> Edges { get; set; } = [];
 
     /// <summary>What this Module predicted, once it has probed.</summary>
     public List<SignalOutputView> Signals { get; set; } = [];
@@ -59,7 +56,7 @@ public class ProbeWaveParticipantView
     public bool HasProbed { get; set; }
 
     /// <summary>Still waiting while any upstream might yet signal something it reads.</summary>
-    public bool IsWaiting => Contributions.Any(c => c.Status == SignalContributionStatus.Potential);
+    public bool IsWaiting => Edges.Any(e => e.Status == SignalEdgeStatus.Potential);
 
     /// <summary>
     /// Nothing reaches this Module along the edges that resolved, so it has no probe to run. Edges
@@ -68,13 +65,13 @@ public class ProbeWaveParticipantView
     public bool NothingToProbe =>
         !IsWaiting &&
         !HasProbed &&
-        !Contributions.Any(c => c.Status == SignalContributionStatus.Confirmed);
+        !Edges.Any(e => e.Status == SignalEdgeStatus.Confirmed);
 
     public ProbeProgress Progress =>
         HasProbed ? ProbeProgress.Reported
         : IsWaiting ? ProbeProgress.WaitingOnUpstream
         : NothingToProbe ? ProbeProgress.NothingToProbe
-        : LastProbeModuleJobId != null ? ProbeProgress.Running
+        : ProbeModuleJobId != null ? ProbeProgress.Running
         : ProbeProgress.Queued;
 
     /// <summary>
@@ -106,12 +103,11 @@ public enum ProbeProgress
     NothingToProbe
 }
 
-public class SignalContributionView
+public class SignalEdgeView
 {
-    public Guid UpstreamParticipantId { get; set; }
     public Guid UpstreamModuleId { get; set; }
     public string UpstreamModuleName { get; set; } = null!;
-    public SignalContributionStatus Status { get; set; }
+    public SignalEdgeStatus Status { get; set; }
 }
 
 /// <summary>
