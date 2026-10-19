@@ -48,6 +48,12 @@ public class RunOptions
 
     public static readonly Guid SeededModuleId = new("99999999-9999-9999-9999-999999999910");
 
+    /// <summary>The debug seeder's diamond: a feeds b and c, and d reads both.</summary>
+    public static readonly Guid DiamondAModuleId = new("99999999-9999-9999-9999-999999999940");
+    public static readonly Guid DiamondBModuleId = new("99999999-9999-9999-9999-999999999941");
+    public static readonly Guid DiamondCModuleId = new("99999999-9999-9999-9999-999999999942");
+    public static readonly Guid DiamondDModuleId = new("99999999-9999-9999-9999-999999999943");
+
     public required string MasterConnectionString { get; init; }
     public required string DatabaseName { get; init; }
     public Guid OrganizationId { get; init; } = SeededOrganizationId;

@@ -270,12 +270,12 @@ public class FakeRunner(
                     CreateCount = changed,
                     TotalCountAfter = changed,
                     PolicyOutcome = PolicyOutcome,
-                    // A changed output, so the propagation trigger has something to look for. It
-                    // finds no consumer in the seeded graph, which is the path worth exercising:
-                    // the trigger runs and declines rather than never running at all.
+                    // A changed output, so the propagation trigger has something to look for.
+                    // The name has to be one a consumer actually reads, or the trigger correctly
+                    // finds nobody and the run proves only that it declines.
                     OutputsTotalChangedCount = changed,
                     OutputsModifyCount = changed,
-                    OutputsModifyList = changed == 0 ? null : ["jobrun_output"]
+                    OutputsModifyList = changed == 0 ? null : [ChangedOutputNameFor(payload)]
                 });
                 break;
             }
@@ -440,21 +440,8 @@ public class FakeRunner(
                 break;
 
             case nameof(IApplyEndpoints.ApplyProbe):
-                // planwalker's own envelope, with one output whose new value is unknown: the
-                // msgpack fixext1 the real thing emits when a plan cannot know a value yet.
-                await hub.ApplyProbeCompleted(jobId, """
-                    {
-                      "format_version": "1",
-                      "outputs": {
-                        "jobrun_signal": {
-                          "action": "update",
-                          "type": "InN0cmluZyI=",
-                          "before": "sGNoYW1waW9uLWhlcnJpbmc=",
-                          "after": "1AAA"
-                        }
-                      }
-                    }
-                    """);
+                trace($"  probe inputs: {Read<string>(payload, "InputsJson")}");
+                await hub.ApplyProbeCompleted(jobId, ProbeSignalsFor(payload));
                 break;
 
             default:
@@ -463,6 +450,43 @@ public class FakeRunner(
                 Console.WriteLine($"  !! no canned reply for {endpoint}; the run will stall here");
                 break;
         }
+    }
+
+    /// <summary>
+    /// The output a plan of this Module reports as changed. The diamond's Modules name theirs as
+    /// the fixture's roots do, so the consumer lookup finds the Modules that read them.
+    /// </summary>
+    private static string ChangedOutputNameFor(object payload)
+    {
+        var moduleId = Read<Guid>(payload, "ModuleId");
+
+        return moduleId switch
+        {
+            _ when moduleId == RunOptions.DiamondAModuleId => "a_id",
+            _ when moduleId == RunOptions.DiamondBModuleId => "b_id",
+            _ when moduleId == RunOptions.DiamondCModuleId => "c_id",
+            _ when moduleId == RunOptions.DiamondDModuleId => "d_id",
+            _ => "jobrun_output"
+        };
+    }
+
+    /// <summary>
+    /// What a probe of this Module reports. The diamond's Modules answer with the signals a real
+    /// planwalker produced for the matching root; anything else answers with one changed output,
+    /// which is enough for a Module whose consumers are not the point of the run.
+    /// </summary>
+    private static string ProbeSignalsFor(object payload)
+    {
+        var moduleId = Read<Guid>(payload, "ModuleId");
+
+        return moduleId switch
+        {
+            _ when moduleId == RunOptions.DiamondAModuleId => DiamondSignals.RootA,
+            _ when moduleId == RunOptions.DiamondBModuleId => DiamondSignals.RootB,
+            _ when moduleId == RunOptions.DiamondCModuleId => DiamondSignals.RootC,
+            _ when moduleId == RunOptions.DiamondDModuleId => DiamondSignals.RootD,
+            _ => DiamondSignals.RootA
+        };
     }
 
     /// <summary>Every instruction the edit was asked for, reported as having worked.</summary>

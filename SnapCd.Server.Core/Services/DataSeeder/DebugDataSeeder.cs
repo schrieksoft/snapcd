@@ -36,6 +36,17 @@ public class DebugDataSeeder : ProductionDataSeeder
     private static readonly Guid MockModuleVpcId = new("99999999-9999-9999-9999-999999999910");
     private static readonly Guid MonorepoTestingModuleId = new("99999999-9999-9999-9999-999999999911");
 
+    /// <summary>
+    /// A diamond: a's output feeds b and c, and d reads both. Separate Modules rather than edges on
+    /// the ones above, whose topology other tests depend on. d is the shape's point: its two
+    /// contributions resolve at different moments, so it is the only Module here that waits for a
+    /// second upstream.
+    /// </summary>
+    private static readonly Guid DiamondAModuleId = new("99999999-9999-9999-9999-999999999940");
+    private static readonly Guid DiamondBModuleId = new("99999999-9999-9999-9999-999999999941");
+    private static readonly Guid DiamondCModuleId = new("99999999-9999-9999-9999-999999999942");
+    private static readonly Guid DiamondDModuleId = new("99999999-9999-9999-9999-999999999943");
+
     private static readonly Guid DebugUserId = new("99999999-9999-9999-9999-999999999990");
     private static readonly Guid DebugStackReaderUserId = new("99999999-9999-9999-9999-999999999996");
     private static readonly Guid DebugStackMetadataReaderUserId = new("99999999-9999-9999-9999-999999999997");
@@ -546,7 +557,112 @@ public class DebugDataSeeder : ProductionDataSeeder
             });
         }
 
+        await SeedProbeDiamond(dbContext);
+
         await dbContext.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Four Modules wired as a diamond, for exercising a propagation wave end to end: a's plan
+    /// changes an output, b and c each read it, and d reads both of theirs.
+    ///
+    /// The source points at the public fixture repo so the graph is clickable in a dev
+    /// environment; the job harness answers every runner call itself and never fetches it.
+    /// </summary>
+    private async Task SeedProbeDiamond(SnapCdDbContext dbContext)
+    {
+        const string fixtureUrl = "https://github.com/schrieksoft/monorepo-testing.git";
+
+        var names = new Dictionary<Guid, string>
+        {
+            [DiamondAModuleId] = "probe-diamond-a",
+            [DiamondBModuleId] = "probe-diamond-b",
+            [DiamondCModuleId] = "probe-diamond-c",
+            [DiamondDModuleId] = "probe-diamond-d"
+        };
+
+        var existing = await dbContext.Modules
+            .Where(m => names.Keys.Contains(m.Id))
+            .Select(m => m.Id)
+            .ToListAsync();
+
+        foreach (var (moduleId, name) in names)
+        {
+            if (existing.Contains(moduleId)) continue;
+
+            var module = new Module
+            {
+                Id = moduleId,
+                OrganizationId = _preseededOrganizationId,
+                NamespaceId = DebugEntityId,
+                RunnerId = DebugEntityId,
+                Name = name,
+                SourceUrl = fixtureUrl,
+                SourceRevision = "main",
+                SourceSubdirectory = $"modules/{name}",
+                SourceType = SourceType.Git,
+                SourceRevisionType = SourceRevisionType.Default,
+                CreatedDateTime = DateTime.UtcNow
+            };
+
+            module.ModuleSaga = new ModuleSaga
+            {
+                CorrelationId = moduleId,
+                OrganizationId = _preseededOrganizationId,
+                RowVersion = [],
+                CurrentState = nameof(ModuleStateMachine.Gatekeeping),
+                DesiredStateHeadline = DesiredStateHeadline.Applied,
+                QueuedDesiredStateHeadline = null
+            };
+
+            module.ModuleModifiedSaga = new ModuleModifiedSaga
+            {
+                CorrelationId = moduleId,
+                OrganizationId = _preseededOrganizationId,
+                RowVersion = [],
+                CurrentState = nameof(ModuleModifiedStateMachine.Idle),
+                LastUpdated = null,
+                TimeoutTokenId = null
+            };
+
+            dbContext.Modules.Add(module);
+        }
+
+        // The edges, named as the fixture's roots name them: each consumer renames the producer's
+        // output to its own variable, which is what makes the rename path real rather than assumed.
+        await AddDiamondEdge(dbContext, DiamondBModuleId, DiamondAModuleId, "a_id", "from_a");
+        await AddDiamondEdge(dbContext, DiamondCModuleId, DiamondAModuleId, "a_id", "from_a");
+        await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondBModuleId, "b_id", "from_b");
+        await AddDiamondEdge(dbContext, DiamondDModuleId, DiamondCModuleId, "c_id", "from_c");
+    }
+
+    private async Task AddDiamondEdge(
+        SnapCdDbContext dbContext,
+        Guid consumerModuleId,
+        Guid producerModuleId,
+        string outputName,
+        string variableName)
+    {
+        // The unique index on (ModuleId, InputKind, Name, OrganizationId) refuses a duplicate, so
+        // a re-run has to check the table rather than only what this pass has queued.
+        var exists = await dbContext.ModuleInputs
+            .OfType<ModuleParamFromOutput>()
+            .AnyAsync(i =>
+                i.ModuleId == consumerModuleId &&
+                i.Name == variableName &&
+                i.OrganizationId == _preseededOrganizationId);
+
+        if (exists) return;
+
+        dbContext.ModuleInputs.Add(new ModuleParamFromOutput
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _preseededOrganizationId,
+            ModuleId = consumerModuleId,
+            Name = variableName,
+            OutputModuleId = producerModuleId,
+            OutputName = outputName
+        });
     }
 
     private async Task SeedDebugSecrets(AsyncServiceScope asyncServiceScope)
