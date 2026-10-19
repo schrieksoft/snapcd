@@ -29,4 +29,22 @@ public class PlanOutputChange
 {
     public string Name { get; set; } = "";
     public PlanAction Action { get; set; }
+
+    /// <summary>
+    /// The output's type, as the ctyjson bytes the plan held. Null for an engine whose plan does
+    /// not carry one, which is not the same as an output with no type.
+    /// </summary>
+    public byte[]? EncodedType { get; set; }
+
+    /// <summary>The prior value, still encoded. Absent when the output is being created.</summary>
+    public byte[]? EncodedBefore { get; set; }
+
+    /// <summary>
+    /// The planned new value, still encoded. An unknown arrives here as msgpack fixext1 and must
+    /// stay that way: it is the one value a downstream plan has to be told it cannot predict.
+    /// </summary>
+    public byte[]? EncodedAfter { get; set; }
+
+    /// <summary>Whether the plan declared this output sensitive.</summary>
+    public bool Sensitive { get; set; }
 }

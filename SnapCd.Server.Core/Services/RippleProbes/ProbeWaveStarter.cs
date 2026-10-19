@@ -21,6 +21,7 @@ namespace SnapCd.Server.Core.Services.RippleProbes;
 public class ProbeWaveStarterFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
     RippleProbeConsumerLookupFactory lookupFactory,
+    ProbeSignalRecorderFactory recorderFactory,
     IPublishEndpoint bus,
     IOptions<ProbePropagationSettings> settings,
     ILoggerFactory loggerFactory)
@@ -30,6 +31,7 @@ public class ProbeWaveStarterFactory(
         return new ProbeWaveStarter(
             dbFactory.CreateDbContext(),
             lookupFactory.Create(),
+            recorderFactory,
             bus,
             settings.Value,
             loggerFactory.CreateLogger<ProbeWaveStarter>());
@@ -48,6 +50,7 @@ public class ProbeWaveStarter : IDisposable
 {
     private readonly SnapCdDbContext _dbContext;
     private readonly RippleProbeConsumerLookup _lookup;
+    private readonly ProbeSignalRecorderFactory _recorderFactory;
     private readonly IPublishEndpoint _bus;
     private readonly ProbePropagationSettings _settings;
     private readonly ILogger<ProbeWaveStarter> _logger;
@@ -55,12 +58,14 @@ public class ProbeWaveStarter : IDisposable
     public ProbeWaveStarter(
         SnapCdDbContext dbContext,
         RippleProbeConsumerLookup lookup,
+        ProbeSignalRecorderFactory recorderFactory,
         IPublishEndpoint bus,
         ProbePropagationSettings settings,
         ILogger<ProbeWaveStarter> logger)
     {
         _dbContext = dbContext;
         _lookup = lookup;
+        _recorderFactory = recorderFactory;
         _bus = bus;
         _settings = settings;
         _logger = logger;
@@ -74,7 +79,8 @@ public class ProbeWaveStarter : IDisposable
         Guid originModuleId,
         Guid organizationId,
         Guid originModuleJobId,
-        IReadOnlyCollection<string> changedOutputNames)
+        IReadOnlyCollection<string> changedOutputNames,
+        string? outputSignalsJson = null)
     {
         if (changedOutputNames.Count == 0) return null;
 
@@ -149,6 +155,15 @@ public class ProbeWaveStarter : IDisposable
         }
 
         await _dbContext.SaveChangesAsync();
+
+        // The origin answers from its own plan rather than by being probed, so its signals are
+        // written here. Without them a consumer's inputs document comes out empty, because
+        // building one requires every confirmed upstream to have reported.
+        if (!string.IsNullOrWhiteSpace(outputSignalsJson))
+        {
+            using var recorder = _recorderFactory.Create();
+            await recorder.Record(originModuleId, organizationId, originModuleJobId, outputSignalsJson!);
+        }
 
         _logger.LogInformation(
             "Propagation started from Module {ModuleId}: {Participants} Modules, {Edges} waiting on it",

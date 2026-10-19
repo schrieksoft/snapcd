@@ -36,6 +36,13 @@ public class PlanCompletedBase : StepResponseBase
     public string? OutputsRecreateList { get; set; }
 
     /// <summary>
+    /// What this plan says its outputs will become, in the format a downstream root consumes.
+    /// Absent for an engine whose plan carries no encoded outputs, which reads as "no propagation
+    /// possible" rather than "no downstream effect": those are different answers.
+    /// </summary>
+    public string? OutputSignalsJson { get; set; }
+
+    /// <summary>
     /// Outcome of policies evaluated inside the plan step itself (Pulumi/CrossGuard advisory
     /// results ride the completed plan). Null when no policies were in scope.
     /// </summary>

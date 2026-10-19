@@ -8,6 +8,7 @@
 
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SnapCd.Server.Core.Database;
@@ -62,6 +63,9 @@ public class ProbeWaveStarterTests : IAsyncLifetime
                 .Contains(c.ProbeWaveParticipantId))
             .ExecuteDeleteAsync();
         await db.ProbeWaveParticipants.Where(p => waveIds.Contains(p.ProbeWaveId)).ExecuteDeleteAsync();
+        var setIds = await db.SignalOutputSets.Where(x => waveIds.Contains(x.ProbeWaveId)).Select(x => x.Id).ToListAsync();
+        await db.SignalOutputs.Where(o => setIds.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
+        await db.SignalOutputSets.Where(x => setIds.Contains(x.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => waveIds.Contains(w.Id)).ExecuteDeleteAsync();
 
         if (_inputs.Count > 0)
@@ -172,6 +176,48 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         Assert.Null(await Start(["vpc_id"], probeJobId));
     }
 
+    /// <summary>
+    /// The origin answers from its own plan rather than by being probed, so the plan's signals are
+    /// stored when the wave is created. Without them a consumer's inputs document comes out empty,
+    /// because building one requires every confirmed upstream to have reported.
+    /// </summary>
+    [Fact]
+    public async Task The_Origins_Own_Plan_Signals_Are_Recorded()
+    {
+        await AddParamFromOutput(_consumerModuleId, "vpc_id", "network_id");
+
+        var signals = """
+            {
+              "format_version": "1",
+              "outputs": {
+                "vpc_id": {
+                  "action": "unknown",
+                  "type": "InN0cmluZyI=",
+                  "before": "rHRydXN0aW5nLWxhYg==",
+                  "after": "1AAA"
+                }
+              }
+            }
+            """;
+
+        var waveId = await Start(["vpc_id"], outputSignalsJson: signals);
+
+        await using var db = _fixture.CreateDbContext();
+        var origin = await db.ProbeWaveParticipants
+            .AsNoTracking()
+            .FirstAsync(p => p.ProbeWaveId == waveId!.Value && p.ModuleId == _originModuleId);
+
+        Assert.NotNull(origin.SignalOutputSetId);
+
+        var stored = await db.SignalOutputs
+            .AsNoTracking()
+            .Where(o => o.SignalOutputSetId == origin.SignalOutputSetId!.Value)
+            .Select(o => o.Name)
+            .ToListAsync();
+
+        Assert.Equal(["vpc_id"], stored);
+    }
+
     [Fact]
     public async Task The_Wave_Records_Where_It_Came_From()
     {
@@ -213,11 +259,21 @@ public class ProbeWaveStarterTests : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
-    private async Task<Guid?> Start(string[] changedOutputNames, Guid? originJobId = null)
+    private async Task<Guid?> Start(
+        string[] changedOutputNames,
+        Guid? originJobId = null,
+        string? outputSignalsJson = null)
     {
+        var factory = new FixtureDbContextFactory(_fixture);
+
         using var starter = new ProbeWaveStarter(
             _fixture.CreateDbContext(),
             new RippleProbeConsumerLookup(_fixture.CreateDbContext()),
+            new ProbeSignalRecorderFactory(
+                factory,
+                Mock.Of<ISignalSecretWriter>(),
+                Mock.Of<IPublishEndpoint>(),
+                NullLoggerFactory.Instance),
             Mock.Of<IPublishEndpoint>(),
             new ProbePropagationSettings(),
             NullLogger<ProbeWaveStarter>.Instance);
@@ -226,7 +282,13 @@ public class ProbeWaveStarterTests : IAsyncLifetime
             _originModuleId,
             _organizationId,
             originJobId ?? Guid.NewGuid(),
-            changedOutputNames);
+            changedOutputNames,
+            outputSignalsJson);
+    }
+
+    private sealed class FixtureDbContextFactory(Fixture fixture) : IDbContextFactory<SnapCdDbContext>
+    {
+        public SnapCdDbContext CreateDbContext() => fixture.CreateDbContext();
     }
 
     private async Task AddParamFromOutput(

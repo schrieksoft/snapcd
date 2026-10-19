@@ -275,7 +275,10 @@ public class FakeRunner(
                     // finds nobody and the run proves only that it declines.
                     OutputsTotalChangedCount = changed,
                     OutputsModifyCount = changed,
-                    OutputsModifyList = changed == 0 ? null : [ChangedOutputNameFor(payload)]
+                    OutputsModifyList = changed == 0 ? null : [ChangedOutputNameFor(payload)],
+                    // The plan's own signals, which the origin of a wave answers from rather than
+                    // being probed. Without them a consumer's inputs document comes out empty.
+                    OutputSignalsJson = changed == 0 ? null : ProbeSignalsFor(payload)
                 });
                 break;
             }

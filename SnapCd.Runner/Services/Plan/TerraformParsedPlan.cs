@@ -63,7 +63,32 @@ public class TerraformParsedPlan : IParsedPlan
         var tfActions = MapToTfplanActions(action);
         return Plan.OutputChanges
             .Where(rc => tfActions.Contains(rc.Change.Action))
-            .Select(rc => new PlanOutputChange { Name = rc.Name, Action = action })
+            .Select(rc => ToOutputChange(rc, action))
             .ToList();
+    }
+
+    /// <summary>
+    /// One output change with its encoded values kept. Change.Values holds the before and after
+    /// in that order, each a msgpack [type-as-ctyjson, value] pair, and a creation has no before.
+    /// </summary>
+    private static PlanOutputChange ToOutputChange(Tfplan.OutputChange change, PlanAction action)
+    {
+        var result = new PlanOutputChange
+        {
+            Name = change.Name,
+            Action = action,
+            Sensitive = change.Sensitive
+        };
+
+        var values = change.Change.Values;
+
+        var before = values.Count > 0 ? PlanOutputSignalReader.Split(values[0].Msgpack.Span) : null;
+        var after = values.Count > 1 ? PlanOutputSignalReader.Split(values[1].Msgpack.Span) : null;
+
+        result.EncodedType = after?.Type ?? before?.Type;
+        result.EncodedBefore = before?.Value;
+        result.EncodedAfter = after?.Value;
+
+        return result;
     }
 }

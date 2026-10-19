@@ -58,7 +58,8 @@ public class StartProbeWaveActivity<TSaga, TMessage> :
                         context.Saga.ModuleId,
                         context.Saga.OrganizationId,
                         context.Saga.CorrelationId,
-                        changed);
+                        changed,
+                        plan.OutputSignalsJson);
                 }
             }
         }
