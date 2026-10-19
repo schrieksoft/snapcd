@@ -177,7 +177,7 @@ public partial class JobStateMachine<
         );
 
         During(ApplyFromPlanPending,
-            DealWithProbeReadiness(When(ApplyFromPlanCompleted)
+            When(ApplyFromPlanCompleted)
                 .Then(context =>
                 {
                     // Extract ActualResourceCount from the completed message
@@ -193,11 +193,9 @@ public partial class JobStateMachine<
                         ActualResourceCount = actualResourceCount
                     });
                 })
-                // Three exits rather than two: an upstream may still be running, so the job can
-                // have to park here before it knows whether a probe is wanted at all. The probe
-                // itself runs in the checkout this apply is holding, so it belongs between the
-                // apply and the outputs read rather than in a job of its own.
-                ),
+                // The probe runs in the checkout this apply is holding, so whether to run one is
+                // decided between the apply and the outputs read rather than in a job of its own.
+                .TransitionTo(WaitingForProbeSignals),
             When(HeartbeatScheduled.Received)
                 .ThenHeartbeatScheduled(HeartbeatRequested),
             When(HeartbeatRequested.Completed)

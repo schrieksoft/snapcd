@@ -128,8 +128,6 @@ public partial class JobStateMachine<
 
     public Event<ProbeSignalsReevaluationRequestedEvent> ProbeSignalsModifiedEvent { get; } = null!;
 
-    public Schedule<TSaga, ProbeSignalWaitTimeoutReceived> ProbeSignalWaitScheduled { get; } = null!;
-
     public State WaitingForProbeSignals { get; } = null!;
     public State ProbeWaitingForRunner { get; } = null!;
     public State ProbePending { get; } = null!;
@@ -142,17 +140,14 @@ public partial class JobStateMachine<
         Event(() => ProbeFaulted, x => x.CorrelateById(y => y.Message.CorrelationId));
         Event(() => ProbeSignalsModifiedEvent, x => x.CorrelateById(y => y.Message.ModuleJobId));
 
-        Schedule(() => ProbeSignalWaitScheduled, saga => saga.ProbeSignalWaitScheduleTokenId,
-            config => { config.Received = e => e.CorrelateById(context => context.Message.CorrelationId); }
-        );
-
-        // A contribution that resolves after this job stopped waiting is news about a job already
-        // running, so it must not fault an unhandled event.
+        // The entry prompt goes through the bus, so it can arrive after the state it was sent
+        // from has been left. An unhandled event faults the saga, so every other state ignores it.
         DuringAny(Ignore(ProbeSignalsModifiedEvent));
 
         During(WaitingForProbeSignals,
-            // The contributions may already be settled by the time this job parks, and nothing
-            // re-raises them. Entry prompts itself so the one arm below does the reading.
+            // The decision needs a database read, which an Enter arm cannot branch a transition
+            // on, so entry prompts itself and the arm below does the reading. The job passes
+            // through this state rather than resting in it.
             When(WaitingForProbeSignals.Enter)
                 .Publish(context => new ProbeSignalsReevaluationRequestedEvent
                 {
@@ -162,22 +157,11 @@ public partial class JobStateMachine<
 
             DealWithProbeReadiness(When(ProbeSignalsModifiedEvent)),
 
-            // Waiting out a wave that never resolves would hold open an apply that already
-            // succeeded, so the outputs are read and the job finishes.
-            When(ProbeSignalWaitScheduled.Received)
-                .Then(context => _logger.LogInformation(
-                    "Probe: waited for signals without resolution for job {CorrelationId}, reading outputs",
-                    context.Saga.CorrelationId))
-                .Then(context => context.Saga.WaitingSince = null)
-                .Activity(x => x.OfType<SendToRunnerActivity<TSaga, ProbeSignalWaitTimeoutReceived, TOutputRequested>>())
-                .TransitionTo(OutputPending),
-
-            // Nothing is running on a runner while parked, so every cancellation ends the job at
-            // once rather than waiting a step out.
+            // Reached only if the prompt is still in flight when a cancel arrives. Nothing is
+            // running on a runner here, so the cancel ends the job at once.
             When(CancelModuleRequested)
                 .Then(context => _logger.LogInformation(
                     "Cancelled while awaiting probe signals for job {JobId}", context.Saga.CorrelationId))
-                .Unschedule(ProbeSignalWaitScheduled)
                 .Publish(context => new TResponseCancelled
                 {
                     ModuleId = context.Saga.ModuleId,
@@ -265,12 +249,13 @@ public partial class JobStateMachine<
     }
 
     /// <summary>
-    /// The three exits from the probe decision, used both when the apply first reaches it and
-    /// every time a contribution resolves afterwards: park, probe, or read the outputs.
+    /// The two exits from the probe decision: probe, or read the outputs.
     ///
-    /// Read from the database each time rather than recorded when the job was created. A
-    /// contribution can resolve while this apply is already running, which is the advantage this
-    /// shape has over deciding once up front.
+    /// Decided once, on arrival. A probe runs only if every condition for it is already met at
+    /// this moment; an upstream that has not yet reported means no probe on this apply rather
+    /// than an apply held open until it does. The apply has already succeeded by the time this
+    /// runs, and holding a finished apply open to wait for information about someone else's
+    /// Module is a cost paid by the wrong job.
     /// </summary>
     private EventActivityBinder<TSaga, TMessage> DealWithProbeReadiness<TMessage>(
         EventActivityBinder<TSaga, TMessage> binder)
@@ -278,87 +263,58 @@ public partial class JobStateMachine<
     {
         return binder
             .IfElseAsync(
-                context => IsReadiness(context, ProbeReadiness.WaitForSignals),
-                wait => wait
-                    .Then(context =>
-                    {
-                        context.Saga.WaitingSince ??= DateTime.UtcNow;
-                        _logger.LogDebug(
-                            "Probe: job {CorrelationId} still waiting on an unresolved upstream",
-                            context.Saga.CorrelationId);
-                    })
-                    .If(context => context.Saga.ProbeSignalWaitScheduleTokenId == null, schedule => schedule
-                        .Schedule(ProbeSignalWaitScheduled,
-                            context => new ProbeSignalWaitTimeoutReceived
+                IsReadyToProbe,
+                probe => probe
+                    .Activity(x => x.OfType<SendProbeStepToRunnerActivity<TSaga, TMessage, TProbeRequested>>())
+                    .IfElse(
+                        context => context.Saga.PreviousStateBeforeWaiting != null,
+                        whenTrue => whenTrue
+                            .Then(context =>
                             {
-                                CorrelationId = context.Saga.CorrelationId,
-                                OrganizationId = context.Saga.OrganizationId
-                            },
-                            context => TimeSpan.FromMinutes(_probePropagation.SignalWaitMinutes)))
-                    .TransitionTo(WaitingForProbeSignals),
-                settled => settled
-                    // Only a job that actually parked holds a token, and Unschedule throws on a
-                    // null one.
-                    .If(context => context.Saga.ProbeSignalWaitScheduleTokenId != null,
-                        cancelWait => cancelWait.Unschedule(ProbeSignalWaitScheduled))
-                    .Then(context => context.Saga.WaitingSince = null)
-                    .IfElseAsync(
-                        context => IsReadiness(context, ProbeReadiness.Probe),
-                        probe => probe
-                            .Activity(x => x.OfType<SendProbeStepToRunnerActivity<TSaga, TMessage, TProbeRequested>>())
-                            .IfElse(
-                                context => context.Saga.PreviousStateBeforeWaiting != null,
-                                whenTrue => whenTrue
-                                    .Then(context =>
-                                    {
-                                        context.Saga.WaitingSince = DateTime.UtcNow;
-                                        _logger.LogWarning(
-                                            "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
-                                            context.Saga.CorrelationId);
-                                    })
-                                    .TransitionTo(ProbeWaitingForRunner),
-                                whenFalse => whenFalse
-                                    .Schedule(HeartbeatScheduled,
-                                        context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
-                                    .TransitionTo(ProbePending)
-                            ),
-                        skip => skip
-                            .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TMessage, TOutputRequested>>())
-                            .IfElse(
-                                context => context.Saga.PreviousStateBeforeWaiting != null,
-                                whenTrue => whenTrue
-                                    .Then(context =>
-                                    {
-                                        context.Saga.WaitingSince = DateTime.UtcNow;
-                                        _logger.LogWarning(
-                                            "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
-                                            context.Saga.CorrelationId);
-                                    })
-                                    .TransitionTo(OutputWaitingForRunner),
-                                whenFalse => whenFalse
-                                    .Schedule(HeartbeatScheduled,
-                                        context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
-                                    .TransitionTo(OutputPending)
-                            )
+                                context.Saga.WaitingSince = DateTime.UtcNow;
+                                _logger.LogWarning(
+                                    "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
+                                    context.Saga.CorrelationId);
+                            })
+                            .TransitionTo(ProbeWaitingForRunner),
+                        whenFalse => whenFalse
+                            .Schedule(HeartbeatScheduled,
+                                context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
+                            .TransitionTo(ProbePending)
+                    ),
+                skip => skip
+                    .Activity(x => x.OfType<SendToRunnerActivity<TSaga, TMessage, TOutputRequested>>())
+                    .IfElse(
+                        context => context.Saga.PreviousStateBeforeWaiting != null,
+                        whenTrue => whenTrue
+                            .Then(context =>
+                            {
+                                context.Saga.WaitingSince = DateTime.UtcNow;
+                                _logger.LogWarning(
+                                    "Probe: Runner disconnected for job {CorrelationId}, entering waiting state",
+                                    context.Saga.CorrelationId);
+                            })
+                            .TransitionTo(OutputWaitingForRunner),
+                        whenFalse => whenFalse
+                            .Schedule(HeartbeatScheduled,
+                                context => new HeartbeatScheduled { CorrelationId = context.Saga.CorrelationId, OrganizationId = context.Saga.OrganizationId })
+                            .TransitionTo(OutputPending)
                     )
             );
     }
 
     /// <summary>
-    /// The readiness is read once per branch rather than carried between them, so the two
-    /// questions below are ordered to stay safe if a contribution resolves in between: asking
-    /// "still waiting?" first and "probe?" second means a late resolution sends the job to
-    /// Output rather than probing on a half-read picture.
+    /// Whether a probe should run on this apply. Everything that is not a clear yes is a no: a
+    /// Module with no wave, an upstream that has not answered, and a resolved wave carrying
+    /// nothing this Module reads all mean the outputs are read and the job finishes.
     /// </summary>
-    private static async Task<bool> IsReadiness<TMessage>(
-        BehaviorContext<TSaga, TMessage> context,
-        ProbeReadiness expected)
+    private static async Task<bool> IsReadyToProbe<TMessage>(BehaviorContext<TSaga, TMessage> context)
         where TMessage : class
     {
         var provider = PipeExtensions.GetPayload<IServiceProvider>(context);
         using var reader = provider.GetRequiredService<ProbeReadinessReaderFactory>().Create();
 
         var readiness = await reader.Read(context.Saga.ModuleId, context.Saga.OrganizationId);
-        return readiness == expected;
+        return readiness == ProbeReadiness.Probe;
     }
 }

@@ -307,6 +307,7 @@ public partial class JobStateMachine<
         Configure_ApplyFromPlan();
         Configure_Probe();
         Configure_Output();
+        Configure_DownstreamWait();
         Configure_Approval();
 
         // Terminal states - ignore runner reconnection events

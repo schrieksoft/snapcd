@@ -130,6 +130,7 @@ public static class MiscService
         services.AddScoped<Services.RippleProbes.RippleProbeConsumerLookupFactory>();
         services.AddScoped<Services.RippleProbes.ProbeInputsBuilderFactory>();
         services.AddScoped<Services.RippleProbes.ProbeReadinessReaderFactory>();
+        services.AddScoped<Services.RippleProbes.ProbeWaveProgressReaderFactory>();
         services.AddScoped<Services.RippleProbes.ProbeWaveReadServiceFactory>();
         services.AddScoped<Services.RippleProbes.ProbeWaveStarterFactory>();
         services.AddScoped<Services.RippleProbes.ProbeContributionResolverFactory>();

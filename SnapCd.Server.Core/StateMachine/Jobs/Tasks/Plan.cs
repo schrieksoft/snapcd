@@ -203,7 +203,7 @@ public partial class JobStateMachine<
                                             ctx => new HeartbeatScheduled { CorrelationId = ctx.Saga.CorrelationId, OrganizationId = ctx.Saga.OrganizationId })
                                         .TransitionTo(PolicyValidatePending)
                                 ),
-                            noPolicies => DealWithApprovalStatus(noPolicies, true)
+                            noPolicies => DealWithDownstreamWave(noPolicies)
                         )
                 )
             //// TODO! use the below to raise an event that can be used for Dashboard notifications!

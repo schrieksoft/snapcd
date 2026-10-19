@@ -9,11 +9,11 @@
 namespace SnapCd.Server.Core.Events.System;
 
 /// <summary>
-/// The parked apply has waited long enough. It reads its outputs and finishes: the apply itself
-/// succeeded, so a wave that never resolved is the wave's problem rather than the job's.
+/// A wave moved on, so an upstream parked waiting for it should look again. Correlated on the job
+/// that started the wave, which is the one doing the waiting.
 /// </summary>
-public class ProbeSignalWaitTimeoutReceived
+public class ProbeWaveProgressedEvent
 {
+    public Guid OriginModuleJobId { get; set; }
     public Guid OrganizationId { get; set; }
-    public Guid CorrelationId { get; set; }
 }

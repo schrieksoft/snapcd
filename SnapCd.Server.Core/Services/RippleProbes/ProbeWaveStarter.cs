@@ -14,14 +14,12 @@ using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.System;
-using SnapCd.Server.Core.Services.DependencyGraph;
 using SnapCd.Server.Core.Settings;
 
 namespace SnapCd.Server.Core.Services.RippleProbes;
 
 public class ProbeWaveStarterFactory(
     IDbContextFactory<SnapCdDbContext> dbFactory,
-    ApplyModuleGraphServiceFactory graphFactory,
     RippleProbeConsumerLookupFactory lookupFactory,
     IPublishEndpoint bus,
     IOptions<ProbePropagationSettings> settings,
@@ -31,7 +29,6 @@ public class ProbeWaveStarterFactory(
     {
         return new ProbeWaveStarter(
             dbFactory.CreateDbContext(),
-            graphFactory.Create(),
             lookupFactory.Create(),
             bus,
             settings.Value,
@@ -50,7 +47,6 @@ public class ProbeWaveStarterFactory(
 public class ProbeWaveStarter : IDisposable
 {
     private readonly SnapCdDbContext _dbContext;
-    private readonly ApplyModuleGraphService _graph;
     private readonly RippleProbeConsumerLookup _lookup;
     private readonly IPublishEndpoint _bus;
     private readonly ProbePropagationSettings _settings;
@@ -58,14 +54,12 @@ public class ProbeWaveStarter : IDisposable
 
     public ProbeWaveStarter(
         SnapCdDbContext dbContext,
-        ApplyModuleGraphService graph,
         RippleProbeConsumerLookup lookup,
         IPublishEndpoint bus,
         ProbePropagationSettings settings,
         ILogger<ProbeWaveStarter> logger)
     {
         _dbContext = dbContext;
-        _graph = graph;
         _lookup = lookup;
         _bus = bus;
         _settings = settings;
@@ -91,7 +85,7 @@ public class ProbeWaveStarter : IDisposable
         // reading a changed output: a Module two hops down takes part once the one above it
         // reports. Over-inclusion is safe, because a participant with no contribution is released
         // immediately.
-        var reachable = await ReachableModuleIds(originModuleId);
+        var reachable = await ReachableModuleIds(originModuleId, organizationId);
 
         var wave = new ProbeWave
         {
@@ -126,13 +120,17 @@ public class ProbeWaveStarter : IDisposable
         {
             if (!participantIds.TryGetValue(consumer.ModuleId, out var consumerParticipantId)) continue;
 
+            // Confirmed rather than Potential: these edges exist because the consumer was found
+            // to read a changed output, so the question Potential asks is already answered. The
+            // origin answers from its own plan and is never probed, so nothing else would resolve
+            // them.
             _dbContext.SignalContributions.Add(new SignalContribution
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = organizationId,
                 ProbeWaveParticipantId = consumerParticipantId,
                 UpstreamParticipantId = participantIds[originModuleId],
-                Status = SignalContributionStatus.Potential
+                Status = SignalContributionStatus.Confirmed
             });
 
             edges++;
@@ -154,21 +152,32 @@ public class ProbeWaveStarter : IDisposable
         return wave.Id;
     }
 
-    private async Task<List<Guid>> ReachableModuleIds(Guid originModuleId)
+    /// <summary>
+    /// The Modules downstream of the origin, transitively.
+    ///
+    /// The destroy direction of the closure, which is the one that walks from a Module to those
+    /// that depend on it. The apply direction walks the other way, to the Modules it depends on,
+    /// which is the opposite of where a signal travels.
+    ///
+    /// Projected to ids rather than read as entities: the closure view carries denormalised state
+    /// columns this does not need, and a stale value in one of them would throw here.
+    /// </summary>
+    private async Task<List<Guid>> ReachableModuleIds(Guid originModuleId, Guid organizationId)
     {
-        var dependencies = await _graph.ListRecursiveApplyDependenciesForReferencedModule(originModuleId);
-
-        return dependencies
-            .Select(d => d.DefinedModuleId)
-            .Where(id => id != originModuleId)
+        return await _dbContext.RecursiveDestroyDependencies
+            .AsNoTracking()
+            .Where(rd =>
+                rd.RootModuleId == originModuleId &&
+                rd.RootOrganizationId == organizationId &&
+                rd.DefinedModuleId != originModuleId)
+            .Select(rd => rd.DefinedModuleId)
             .Distinct()
-            .ToList();
+            .ToListAsync();
     }
 
     public void Dispose()
     {
         _dbContext.Dispose();
-        _graph.Dispose();
         _lookup.Dispose();
     }
 }

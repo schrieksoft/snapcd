@@ -129,7 +129,13 @@ public class ProbeContributionResolver : IDisposable
                 c.Status == SignalContributionStatus.Potential)
             .ToListAsync();
 
-        if (pending.Count == 0) return;
+        if (pending.Count == 0)
+        {
+            // A leaf consumer has no outgoing edges, so nothing resolves here, but the origin was
+            // still waiting on its answer.
+            await NotifyWaveOrigin(waveId, organizationId);
+            return;
+        }
 
         var consumerModuleIds = await _dbContext.ProbeWaveParticipants
             .Where(p => pending.Select(c => c.ProbeWaveParticipantId).Contains(p.Id))
@@ -154,32 +160,27 @@ public class ProbeContributionResolver : IDisposable
             OrganizationId = organizationId
         });
 
-        // A consumer whose last contribution just resolved is now waiting on nothing, and its own
-        // apply may already be parked. Nothing else re-raises that.
-        foreach (var consumer in consumerModuleIds)
-            await NotifyParkedJob(consumer.ModuleId, organizationId);
+        await NotifyWaveOrigin(waveId, organizationId);
     }
 
     /// <summary>
-    /// Tells a parked apply of this Module to look at its contributions again. Correlated on the
-    /// job, so the running job is found rather than the Module.
+    /// Tells the job that started this wave to look at it again. That job is parked waiting for
+    /// its consumers, and this resolution may have been the last thing it was waiting on.
     /// </summary>
-    private async Task NotifyParkedJob(Guid moduleId, Guid organizationId)
+    private async Task NotifyWaveOrigin(Guid waveId, Guid organizationId)
     {
-        var jobIds = await _dbContext.ModuleJobs
-            .Where(j =>
-                j.ModuleId == moduleId &&
-                j.OrganizationId == organizationId &&
-                j.Status == ExecutionStatus.Running)
-            .Select(j => j.Id)
-            .ToListAsync();
+        var originJobId = await _dbContext.ProbeWaves
+            .Where(w => w.Id == waveId && w.OrganizationId == organizationId)
+            .Select(w => w.OriginModuleJobId)
+            .FirstOrDefaultAsync();
 
-        foreach (var jobId in jobIds)
-            await _bus.Publish(new ProbeSignalsReevaluationRequestedEvent
-            {
-                ModuleId = moduleId,
-                ModuleJobId = jobId
-            });
+        if (originJobId == Guid.Empty) return;
+
+        await _bus.Publish(new ProbeWaveProgressedEvent
+        {
+            OriginModuleJobId = originJobId,
+            OrganizationId = organizationId
+        });
     }
 
     public void Dispose()

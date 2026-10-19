@@ -18,7 +18,7 @@ public enum ProbeReadiness
     /// <summary>No wave wants anything from this Module. Read the outputs and finish.</summary>
     NothingToWaitFor,
 
-    /// <summary>An upstream may still confirm. Park until something resolves or the wait expires.</summary>
+    /// <summary>An upstream has not answered yet, so no probe runs on this apply.</summary>
     WaitForSignals,
 
     /// <summary>Every upstream has answered and at least one carries signals this Module reads.</summary>
@@ -36,9 +36,8 @@ public class ProbeReadinessReaderFactory(IDbContextFactory<SnapCdDbContext> dbFa
 /// <summary>
 /// Reads whether a Module's participation in a wave is settled yet.
 ///
-/// Read at the moment it is needed rather than recorded when the job was created: a contribution
-/// can resolve while the apply is already running, and an apply that had read the answer up front
-/// would miss it. That is the whole point of parking rather than deciding once.
+/// Read when the apply reaches the probe decision rather than when the job was created, so a
+/// contribution that resolved while this apply was running is taken into account.
 /// </summary>
 public class ProbeReadinessReader : IDisposable
 {

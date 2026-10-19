@@ -139,11 +139,26 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         var upstream = await AddParticipant(wave, _upstreamModuleId);
         var consumer = await AddParticipant(wave, _consumerModuleId);
         await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
-        await AddRunningJob(_consumerModuleId);
+        await AddJob(_consumerModuleId, ExecutionStatus.Running);
 
         var released = await Sweep().ListReleased();
 
         // Its probe step reads the contributions itself, so a second Apply would race the first.
+        Assert.DoesNotContain(released, r => r.ParticipantId == consumer);
+    }
+
+    [Fact]
+    public async Task A_Wave_Whose_Origin_Job_Stopped_Releases_Nobody()
+    {
+        var wave = await AddWave(originRunning: false);
+        var upstream = await AddParticipant(wave, _upstreamModuleId);
+        var consumer = await AddParticipant(wave, _consumerModuleId);
+        await AddContribution(consumer, upstream, SignalContributionStatus.Confirmed);
+
+        var released = await Sweep().ListReleased();
+
+        // Cancelling the upstream stops the wave producing new jobs: nobody is waiting on the
+        // answer any more.
         Assert.DoesNotContain(released, r => r.ParticipantId == consumer);
     }
 
@@ -160,21 +175,33 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         Assert.DoesNotContain(released, r => r.ParticipantId == orphan);
     }
 
-    private ProbeWaveSweepService Sweep() => new(new FixtureDbContextFactory(_fixture));
+    private ProbeWaveSweepService Sweep()
+    {
+        var factory = new FixtureDbContextFactory(_fixture);
+        return new ProbeWaveSweepService(factory, new ProbeWaveProgressReaderFactory(factory));
+    }
 
     private sealed class FixtureDbContextFactory(Fixture fixture) : IDbContextFactory<SnapCdDbContext>
     {
         public SnapCdDbContext CreateDbContext() => fixture.CreateDbContext();
     }
 
-    private async Task<Guid> AddWave()
+    /// <summary>
+    /// A wave with its origin job still running, which is the only state the sweep starts work
+    /// for. An origin that has stopped has nobody waiting on the answer.
+    /// </summary>
+    private async Task<Guid> AddWave(bool originRunning = true)
     {
+        var originJobId = await AddJob(
+            _upstreamModuleId,
+            originRunning ? ExecutionStatus.Running : ExecutionStatus.Cancelled);
+
         var wave = new ProbeWave
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             OriginModuleId = _upstreamModuleId,
-            OriginModuleJobId = Guid.NewGuid(),
+            OriginModuleJobId = originJobId,
             MaxDepth = 5
         };
 
@@ -239,14 +266,14 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         return set.Id;
     }
 
-    private async Task AddRunningJob(Guid moduleId)
+    private async Task<Guid> AddJob(Guid moduleId, ExecutionStatus status)
     {
         var job = new ModuleJob
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             ModuleId = moduleId,
-            Status = ExecutionStatus.Running,
+            Status = status,
             JobType = "ApplyJobSaga"
         };
 
@@ -255,5 +282,6 @@ public class ProbeWaveSweepServiceTests : IAsyncLifetime
         await db.SaveChangesAsync();
 
         _jobs.Add(job.Id);
+        return job.Id;
     }
 }
