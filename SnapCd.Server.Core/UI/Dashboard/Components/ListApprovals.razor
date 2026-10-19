@@ -77,6 +77,8 @@
             }
         </MudStack>
 
+        <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"/>
+
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
             <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto" JobId="@ModuleJobId" TaskFilter="@(new[] { PlanTaskName, "PolicyValidate" })" @ref="_inlineLogsRef"/>
@@ -99,6 +101,7 @@
 
     private ModuleJob? _moduleJob;
     private ListLogs<ModuleJob, ModuleJobLogEntryDto>? _inlineLogsRef;
+    private ListProbes? _probesRef;
     private ApprovalPanel? _panelRef;
     private IApprovalSource _source = null!;
 
@@ -144,6 +147,9 @@
 
         if (_panelRef != null)
             await _panelRef.Refresh(invokeAsync);
+
+        if (_probesRef != null)
+            await _probesRef.Reload();
 
         if (invokeAsync)
             // needed when call comes in via callback, since in that case the thread is not associated with the Dispatcher.

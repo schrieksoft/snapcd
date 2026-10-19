@@ -1,0 +1,252 @@
+@* SPDX-License-Identifier: LicenseRef-Snap-CD-Source-Available-1.1
+   Copyright (c) 2026 Karl Schriek / Schrieksoft.
+   No license is granted to use this file, in whole or in part, (a) as training, fine-tuning, retrieval, or
+   embedding data for any machine-learning model, or (b) as input to any machine-learning model, agent, or automated
+   system for the purpose of producing a derivative work or reimplementation that is not otherwise permitted by the
+   Snap CD Source-Available License (including any Competing Product as defined therein). Contact info@snapcd.io
+   for terms covering either use. *@
+
+@implements IDisposable
+@using SnapCd.Contracts.Dto.Misc
+@using SnapCd.Server.Core.Entities.Definition
+@using SnapCd.Server.Core.Repositories.Organizations.Secured
+@using SnapCd.Server.Core.Services.PrincipalProvider
+@using SnapCd.Server.Core.Services.RippleProbes
+@using SnapCd.Server.Core.UI.Dashboard.Theme
+@using SnapCd.Server.Core.Views
+@using Color = MudBlazor.Color
+
+@inject ProbeWaveReadServiceFactory ProbeWaveReadServiceFactory
+@inject ModuleSecuredRepositoryFactory ModuleRepoFactory
+@inject SnapCd.Server.Core.Services.Notification.ProbeWaveUpdatedNotificationService ProbeWaveUpdatedNotificationService
+@inject HttpContextPrincipalProvider HttpContextPrincipalProvider
+
+@if (_wave != null)
+{
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.overline" Class="mud-text-secondary">Downstream</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Summary()</MudText>
+        </MudStack>
+
+        @if (_wave.ParticipantsOmitted > 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                @_wave.ParticipantsOmitted other @(_wave.ParticipantsOmitted == 1 ? "Module is" : "Modules are") taking part that you cannot see.
+            </MudText>
+        }
+
+        @if (_relevant.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Nothing downstream reads what this plan changes.</MudText>
+        }
+        else
+        {
+            <MudExpansionPanels>
+                @foreach (var participant in _relevant)
+                {
+                    var (icon, color, label) = Badge(participant);
+
+                    <MudExpansionPanel Expanded="@(participant.Id == _expandedId)"
+                                       ExpandedChanged="@(e => HandleExpansionChanged(participant.Id, e))">
+                        <TitleContent>
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@icon" Color="@color" Size="Size.Small"/>
+                                <MudText Typo="Typo.body1" Style="font-family: var(--snap-font-mono);">
+                                    @participant.NamespaceName/@participant.ModuleName
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="@color">@label</MudText>
+                            </MudStack>
+                        </TitleContent>
+                        <ChildContent>
+                            <MudText Typo="Typo.overline" Class="mud-text-secondary">Waiting on</MudText>
+                            <MudText Typo="Typo.body2" Class="mb-3">@Upstreams(participant)</MudText>
+
+                            @if (participant.Signals.Count > 0)
+                            {
+                                <MudText Typo="Typo.overline" Class="mud-text-secondary">Predicted output changes</MudText>
+                                <MudSimpleTable Dense="true" Class="mb-3">
+                                    <tbody>
+                                    @foreach (var signal in participant.Signals)
+                                    {
+                                        <tr>
+                                            <td style="font-family: var(--snap-font-mono);">@signal.Name</td>
+                                            <td>
+                                                <MudText Typo="Typo.body2" Color="@ActionColor(signal.Action)">@(signal.Action ?? "unknown")</MudText>
+                                            </td>
+                                            <td>
+                                                @if (signal.Sensitive)
+                                                {
+                                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">sensitive</MudText>
+                                                }
+                                                else if (signal.AfterIsUnknown)
+                                                {
+                                                    <MudText Typo="Typo.body2" Color="Color.Warning">value not knowable until applied</MudText>
+                                                }
+                                                else if (!signal.HasBefore)
+                                                {
+                                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">new</MudText>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </MudSimpleTable>
+                            }
+
+                            @if (participant.LastProbeModuleJobId != null)
+                            {
+                                <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
+                                <ListLogs TJob="ModuleJob" TLogEntry="ModuleJobLogEntryDto"
+                                          JobId="@participant.LastProbeModuleJobId.Value"
+                                          ModuleId="@participant.ModuleId"
+                                          TaskFilter="@(new[] { "Probe" })"/>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">No probe has run yet, so there are no logs.</MudText>
+                            }
+                        </ChildContent>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public required Guid ModuleJobId { get; set; }
+    [Parameter] public required Guid ModuleId { get; set; }
+    [CascadingParameter] public Guid OrganizationId { get; set; }
+
+    private ProbeWaveView? _wave;
+    private List<ProbeWaveParticipantView> _relevant = [];
+    private Guid? _expandedId;
+
+    private Guid? _subscribedWaveId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+        Resubscribe();
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedWaveId != null)
+            ProbeWaveUpdatedNotificationService.Unsubscribe(_subscribedWaveId.Value, HandleWaveUpdated);
+    }
+
+    /// <summary>
+    /// The subscription is keyed on the wave, which is only known once it has been read, and a
+    /// job's wave is created after its plan completes, so the first read can find none.
+    /// </summary>
+    private void Resubscribe()
+    {
+        if (_wave?.Id == _subscribedWaveId) return;
+
+        if (_subscribedWaveId != null)
+            ProbeWaveUpdatedNotificationService.Unsubscribe(_subscribedWaveId.Value, HandleWaveUpdated);
+
+        _subscribedWaveId = _wave?.Id;
+
+        if (_subscribedWaveId != null)
+            ProbeWaveUpdatedNotificationService.Subscribe(_subscribedWaveId.Value, HandleWaveUpdated);
+    }
+
+    private async Task HandleWaveUpdated(Guid probeWaveId)
+    {
+        await Reload();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task Reload()
+    {
+        var principalId = HttpContextPrincipalProvider.GetSubject(OrganizationId);
+        var discriminator = HttpContextPrincipalProvider.GetPrincipalDiscriminator();
+        var principalProvider = new LiteralPrincipalProvider(principalId, discriminator, [OrganizationId]);
+
+        using var moduleRepo = ModuleRepoFactory.Create(principalProvider);
+        using var service = ProbeWaveReadServiceFactory.Create();
+
+        _wave = await service.GetByOriginJob(
+            ModuleJobId,
+            OrganizationId,
+            moduleId => moduleRepo.CanRead(moduleId, OrganizationId));
+
+        // The origin answers from its own plan rather than being probed, and a Module nothing
+        // reaches has no probe to show. Neither is a panel a reader would open.
+        _relevant = _wave == null
+            ? []
+            : _wave.Participants
+                .Where(p => p.ModuleId != _wave.OriginModuleId && !p.NothingToProbe)
+                .OrderBy(p => p.NamespaceName)
+                .ThenBy(p => p.ModuleName)
+                .ToList();
+
+        Resubscribe();
+    }
+
+    private string Summary()
+    {
+        var reported = _relevant.Count(p => p.Progress == ProbeProgress.Reported);
+        var outstanding = _relevant.Count - reported;
+
+        if (_relevant.Count == 0) return "no Modules affected";
+
+        var disruptive = _relevant.Count(p => p.HasDisruptiveSignal);
+        var tail = disruptive > 0
+            ? $", {disruptive} predicting a destroy or replace"
+            : string.Empty;
+
+        return outstanding == 0
+            ? $"{reported} of {_relevant.Count} reported{tail}"
+            : $"{reported} of {_relevant.Count} reported, {outstanding} still running{tail}";
+    }
+
+    private static string Upstreams(ProbeWaveParticipantView participant)
+    {
+        if (participant.Contributions.Count == 0) return "nothing";
+
+        return string.Join(", ", participant.Contributions
+            .OrderBy(c => c.UpstreamModuleName)
+            .Select(c => $"{c.UpstreamModuleName} ({c.Status.ToString().ToLowerInvariant()})"));
+    }
+
+    private static Color ActionColor(string? action) => action switch
+    {
+        "delete" or "replace" => Color.Error,
+        "update" => Color.Warning,
+        "create" => Color.Success,
+        _ => Color.Default
+    };
+
+    /// <summary>
+    /// A destroy or replace downstream is the finding worth colouring red, since it is the one a
+    /// reader might stop for. An unknown value is amber: the probe worked and the answer is that
+    /// the plan cannot know yet.
+    /// </summary>
+    private static (string Icon, Color Color, string Label) Badge(ProbeWaveParticipantView p) =>
+        p.Progress switch
+        {
+            ProbeProgress.Reported when p.HasDisruptiveSignal =>
+                (SnapCdIcons.Error, Color.Error, "destroys or replaces"),
+            ProbeProgress.Reported when p.HasUnknownSignal =>
+                (SnapCdIcons.Warning, Color.Warning, "changes, some unknown"),
+            ProbeProgress.Reported when p.Signals.Count > 0 =>
+                (SnapCdIcons.Warning, Color.Warning, "changes"),
+            ProbeProgress.Reported =>
+                (SnapCdIcons.CheckCircle, Color.Success, "no change"),
+            ProbeProgress.Running =>
+                (SnapCdIcons.HourglassTop, Color.Default, "running"),
+            ProbeProgress.Queued =>
+                (SnapCdIcons.HourglassEmpty, Color.Default, "queued"),
+            _ =>
+                (SnapCdIcons.HourglassEmpty, Color.Default, "waiting on an upstream")
+        };
+
+    private void HandleExpansionChanged(Guid participantId, bool expanded)
+    {
+        _expandedId = expanded ? participantId : null;
+    }
+}

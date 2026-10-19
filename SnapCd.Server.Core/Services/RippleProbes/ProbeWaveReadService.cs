@@ -67,6 +67,28 @@ public class ProbeWaveReadService : IDisposable
         return waves;
     }
 
+    /// <summary>
+    /// The wave a job's own plan started, or null when that plan changed nothing anyone reads.
+    ///
+    /// Keyed on the job rather than the Module because a Module has many jobs and only this one's
+    /// findings belong beside this one's approval decision.
+    /// </summary>
+    public async Task<ProbeWaveView?> GetByOriginJob(
+        Guid originModuleJobId,
+        Guid organizationId,
+        Func<Guid, bool>? canReadModule = null)
+    {
+        var waveId = await _dbContext.ProbeWaves
+            .Where(w => w.OriginModuleJobId == originModuleJobId && w.OrganizationId == organizationId)
+            .OrderByDescending(w => w.CreatedDateTime)
+            .Select(w => w.Id)
+            .FirstOrDefaultAsync();
+
+        return waveId == Guid.Empty
+            ? null
+            : await Get(waveId, organizationId, canReadModule);
+    }
+
     /// <summary>Every wave a Module takes part in, whether or not it started them.</summary>
     public async Task<List<ProbeWaveView>> ListByParticipatingModule(
         Guid moduleId,

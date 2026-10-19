@@ -60,6 +60,50 @@ public class ProbeWaveParticipantView
 
     /// <summary>Still waiting while any upstream might yet signal something it reads.</summary>
     public bool IsWaiting => Contributions.Any(c => c.Status == SignalContributionStatus.Potential);
+
+    /// <summary>
+    /// Nothing reaches this Module along the edges that resolved, so it has no probe to run. Edges
+    /// are written from reachability, so most of a wide graph is in this state.
+    /// </summary>
+    public bool NothingToProbe =>
+        !IsWaiting &&
+        !HasProbed &&
+        !Contributions.Any(c => c.Status == SignalContributionStatus.Confirmed);
+
+    public ProbeProgress Progress =>
+        HasProbed ? ProbeProgress.Reported
+        : IsWaiting ? ProbeProgress.WaitingOnUpstream
+        : NothingToProbe ? ProbeProgress.NothingToProbe
+        : LastProbeModuleJobId != null ? ProbeProgress.Running
+        : ProbeProgress.Queued;
+
+    /// <summary>
+    /// A predicted change that destroys or replaces something is the finding worth interrupting
+    /// someone for, as opposed to one that only creates or updates.
+    /// </summary>
+    public bool HasDisruptiveSignal =>
+        Signals.Any(s => s.Action is "delete" or "replace");
+
+    public bool HasUnknownSignal => Signals.Any(s => s.AfterIsUnknown);
+}
+
+/// <summary>How far one participant has got, for a reader deciding whether to wait for it.</summary>
+public enum ProbeProgress
+{
+    /// <summary>An upstream has not answered, so it is not yet known whether this Module probes.</summary>
+    WaitingOnUpstream,
+
+    /// <summary>Released and waiting for its Apply to start.</summary>
+    Queued,
+
+    /// <summary>Its Apply is running and the probe has not reported.</summary>
+    Running,
+
+    /// <summary>It probed and its prediction is recorded.</summary>
+    Reported,
+
+    /// <summary>Resolved with nothing reaching it, so no probe runs.</summary>
+    NothingToProbe
 }
 
 public class SignalContributionView

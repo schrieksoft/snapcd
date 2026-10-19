@@ -12,6 +12,7 @@ using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Tests.Infrastructure;
+using SnapCd.Server.Core.Views;
 using Xunit;
 
 namespace SnapCd.Server.Core.Tests.Tests.ProbeWaves;
@@ -250,16 +251,125 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         Assert.Contains(waves, w => w.Id == wave);
     }
 
+    [Fact]
+    public async Task A_Job_That_Started_No_Wave_Reads_As_Null()
+    {
+        Assert.Null(await Service().GetByOriginJob(Guid.NewGuid(), _organizationId));
+    }
+
+    [Fact]
+    public async Task A_Wave_Is_Found_By_The_Job_That_Started_It()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        await AddParticipant(wave, _originModuleId);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+
+        Assert.NotNull(found);
+        Assert.Equal(wave, found!.Id);
+    }
+
+    [Fact]
+    public async Task A_Wave_Is_Not_Found_From_Another_Organization()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        await AddParticipant(wave, _originModuleId);
+
+        Assert.Null(await Service().GetByOriginJob(jobId, _fixture.Organizations["1"].Id));
+    }
+
+    [Fact]
+    public async Task A_Participant_Waiting_On_An_Upstream_Reads_As_Waiting()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        var origin = await AddParticipant(wave, _originModuleId);
+        var consumer = await AddParticipant(wave, _consumerModuleId);
+        await AddContribution(consumer, origin, SignalContributionStatus.Potential);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+        var participant = found!.Participants.Single(p => p.Id == consumer);
+
+        Assert.Equal(ProbeProgress.WaitingOnUpstream, participant.Progress);
+    }
+
+    [Fact]
+    public async Task A_Released_Participant_With_No_Job_Yet_Reads_As_Queued()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        var origin = await AddParticipant(wave, _originModuleId);
+        var consumer = await AddParticipant(wave, _consumerModuleId);
+        await AddContribution(consumer, origin, SignalContributionStatus.Confirmed);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+        var participant = found!.Participants.Single(p => p.Id == consumer);
+
+        // The sweep has not started its Apply yet, which is a real state a reader sees for up to
+        // one sweep interval.
+        Assert.Equal(ProbeProgress.Queued, participant.Progress);
+    }
+
+    [Fact]
+    public async Task A_Participant_Whose_Probe_Job_Is_Running_Reads_As_Running()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        var origin = await AddParticipant(wave, _originModuleId);
+        var consumer = await AddParticipant(wave, _consumerModuleId, lastProbeModuleJobId: Guid.NewGuid());
+        await AddContribution(consumer, origin, SignalContributionStatus.Confirmed);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+        var participant = found!.Participants.Single(p => p.Id == consumer);
+
+        Assert.Equal(ProbeProgress.Running, participant.Progress);
+    }
+
+    [Fact]
+    public async Task A_Participant_That_Reported_Reads_As_Reported()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        var origin = await AddParticipant(wave, _originModuleId);
+        var set = await AddSignalSet(wave, _consumerModuleId);
+        var consumer = await AddParticipant(wave, _consumerModuleId, set);
+        await AddContribution(consumer, origin, SignalContributionStatus.Confirmed);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+        var participant = found!.Participants.Single(p => p.Id == consumer);
+
+        Assert.Equal(ProbeProgress.Reported, participant.Progress);
+    }
+
+    [Fact]
+    public async Task A_Participant_Nothing_Reaches_Reads_As_Nothing_To_Probe()
+    {
+        var jobId = Guid.NewGuid();
+        var wave = await AddWave(jobId);
+        var origin = await AddParticipant(wave, _originModuleId);
+        var consumer = await AddParticipant(wave, _consumerModuleId);
+        await AddContribution(consumer, origin, SignalContributionStatus.NotNeeded);
+
+        var found = await Service().GetByOriginJob(jobId, _organizationId);
+        var participant = found!.Participants.Single(p => p.Id == consumer);
+
+        // Participants come from reachability, so most of a wide graph lands here and the panel
+        // list must not show them as pending work.
+        Assert.Equal(ProbeProgress.NothingToProbe, participant.Progress);
+    }
+
     private ProbeWaveReadService Service() => new(_fixture.CreateDbContext());
 
-    private async Task<Guid> AddWave()
+    private async Task<Guid> AddWave(Guid? originModuleJobId = null)
     {
         var wave = new ProbeWave
         {
             Id = Guid.NewGuid(),
             OrganizationId = _organizationId,
             OriginModuleId = _originModuleId,
-            OriginModuleJobId = Guid.NewGuid(),
+            OriginModuleJobId = originModuleJobId ?? Guid.NewGuid(),
             MaxDepth = 5
         };
 
