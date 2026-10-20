@@ -12,6 +12,11 @@
     <ItemGroup>
         <ProjectReference Include="..\..\SnapCd.Server.Core\SnapCd.Server.Core.csproj"/>
         <ProjectReference Include="..\..\SnapCd.Server.Host\SnapCd.Server.Host.csproj"/>
+        <ProjectReference Include="..\..\SnapCd.Runner\SnapCd.Runner.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="fixtures\**\*" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
 </Project>

@@ -131,6 +131,33 @@ public class PlanOutputSignalReaderTests
         Assert.Null(document);
     }
 
+    /// <summary>
+    /// A created output's single value is its new one. Reading by position alone puts it in the
+    /// before slot and leaves after empty, which reports a change as having already happened and
+    /// tells a consumer nothing about what is coming.
+    /// </summary>
+    [Fact]
+    public void A_Creations_Only_Value_Is_Its_After()
+    {
+        var split = PlanOutputSignalReader.Split(UnknownString)!.Value;
+
+        var document = PlanSignalsDocument.Build([
+            new PlanOutputChange
+            {
+                Name = "a_id",
+                Action = SnapCd.Contracts.PlanAction.Create,
+                EncodedType = split.Type,
+                EncodedAfter = split.Value
+            }
+        ]);
+
+        var output = System.Text.Json.Nodes.JsonNode.Parse(document!)!["outputs"]!["a_id"]!;
+
+        Assert.Equal("1AAA", (string?)output["after"]);
+        Assert.Null(output["before"]);
+        Assert.Equal("unknown", (string?)output["action"]);
+    }
+
     [Fact]
     public void A_Created_Output_Carries_No_Before()
     {

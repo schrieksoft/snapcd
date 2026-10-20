@@ -222,3 +222,10 @@ tools/snapcd-inspect/snapcd-inspect
 graphify-out
 # demonolith's working directory, which a runner creates beside the code it is given.
 .demono-transfer/
+
+# The job harness's diamond fixture is committed state on purpose: a plan of it has to differ
+# from a prior value, and without the state every root plans as a fresh create and the fixture
+# proves nothing. The lock files pin the provider the state was made with. No real
+# infrastructure, no secrets - six random_pet resources.
+!tools/SnapCd.JobRun/fixtures/**/*.tfstate
+!tools/SnapCd.JobRun/fixtures/**/.terraform.lock.hcl

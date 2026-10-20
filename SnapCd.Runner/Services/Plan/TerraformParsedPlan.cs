@@ -80,10 +80,21 @@ public class TerraformParsedPlan : IParsedPlan
             Sensitive = change.Sensitive
         };
 
+        // Which values a change carries follows its action: a creation has only the new value, a
+        // deletion only the old one, and anything else carries both in that order. Reading by
+        // position alone puts a creation's new value in the before slot.
         var values = change.Change.Values;
 
-        var before = values.Count > 0 ? PlanOutputSignalReader.Split(values[0].Msgpack.Span) : null;
-        var after = values.Count > 1 ? PlanOutputSignalReader.Split(values[1].Msgpack.Span) : null;
+        var (before, after) = change.Change.Action switch
+        {
+            Tfplan.Action.Create when values.Count > 0 =>
+                (null, PlanOutputSignalReader.Split(values[0].Msgpack.Span)),
+            Tfplan.Action.Delete when values.Count > 0 =>
+                (PlanOutputSignalReader.Split(values[0].Msgpack.Span), null),
+            _ => (
+                values.Count > 0 ? PlanOutputSignalReader.Split(values[0].Msgpack.Span) : null,
+                values.Count > 1 ? PlanOutputSignalReader.Split(values[1].Msgpack.Span) : null)
+        };
 
         result.EncodedType = after?.Type ?? before?.Type;
         result.EncodedBefore = before?.Value;

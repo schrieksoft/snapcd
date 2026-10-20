@@ -179,7 +179,7 @@ public class FakeRunner(
     }
 
     /// <summary>The canned answer for one dispatched endpoint.</summary>
-    private async Task Reply(RunnerHub hub, string endpoint, object payload, Guid jobId)
+    protected virtual async Task Reply(RunnerHub hub, string endpoint, object payload, Guid jobId)
     {
         switch (endpoint)
         {

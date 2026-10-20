@@ -110,6 +110,15 @@ public class RunOptions
     public string? ServiceBusConnectionString { get; init; }
 
     public bool Keep { get; init; }
+
+    /// <summary>
+    /// Answer the runner's steps with the runner's own code rather than a canned reply, so the
+    /// engine really plans. Minutes rather than seconds, and it needs tofu on PATH.
+    /// </summary>
+    public bool RealRunner { get; init; }
+
+    /// <summary>Where a real run checks out its Modules and keeps its engine state.</summary>
+    public string WorkingDirectory { get; init; } = string.Empty;
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
 
     /// <summary>Seconds to wait after every endpoint reports ready, before publishing.</summary>
@@ -238,6 +247,9 @@ public class RunOptions
                                             AzureServiceBus
                   --timeout       <seconds> default 300
                   --keep                    leave the database behind to inspect
+                  --real-runner             run the runner's own code, so the engine really
+                                            plans; needs tofu on PATH and is minutes slower
+                  --working-dir   <path>    where a real run checks out Modules
                   --quiet-transport         drop MassTransit to Information (trace is on by default)
                 """);
             return null;
@@ -270,6 +282,9 @@ public class RunOptions
             PrincipalId = Guid.TryParse(Get("principal"), out var p) ? p : SeededUserId,
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),
+            RealRunner = args.Contains("--real-runner"),
+            WorkingDirectory = Get("working-dir")
+                ?? Path.Combine(Path.GetTempPath(), "snapcd-jobrun", DateTime.Now.ToString("yyyyMMdd_HHmmss")),
             TransportTrace = !args.Contains("--quiet-transport"),
             Timeout = ParseTimeout(Get("timeout")),
             SettleSeconds = int.TryParse(Get("settle"), out var st) ? st : 0,
