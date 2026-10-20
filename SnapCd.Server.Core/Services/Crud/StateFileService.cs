@@ -169,6 +169,8 @@ public class StateFileService : GenericCrudService<
 
     public async Task<int> CountVersions(Guid stateFileId, Guid organizationId)
     {
+        SecuredRepository.AssertCanReadVersions(stateFileId, organizationId);
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         return await dbContext.Set<StateFileVersion>()
             .CountAsync(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId);
@@ -180,6 +182,8 @@ public class StateFileService : GenericCrudService<
         int? pageNumber = null,
         int? pageSize = null)
     {
+        SecuredRepository.AssertCanReadVersions(stateFileId, organizationId);
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var query = dbContext.Set<StateFileVersion>()
@@ -233,6 +237,8 @@ public class StateFileService : GenericCrudService<
 
     public async Task RestoreVersion(Guid stateFileId, Guid versionId, Guid organizationId)
     {
+        SecuredRepository.AssertCanWriteVersions(stateFileId, organizationId);
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var version = await dbContext.Set<StateFileVersion>()
@@ -281,6 +287,8 @@ public class StateFileService : GenericCrudService<
             .FirstOrDefaultAsync(v => v.Id == versionId && v.OrganizationId == organizationId)
             ?? throw new InvalidOperationException("Version not found.");
 
+        SecuredRepository.AssertCanReadVersions(version.StateFileId, organizationId);
+
         if (version.Data == null || version.Data.Length == 0)
             return null;
 
@@ -294,13 +302,15 @@ public class StateFileService : GenericCrudService<
             .FirstOrDefaultAsync(v => v.Id == versionId && v.OrganizationId == organizationId)
             ?? throw new InvalidOperationException("Version not found.");
 
+        SecuredRepository.AssertCanWriteVersions(version.StateFileId, organizationId);
+
         dbContext.Set<StateFileVersion>().Remove(version);
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task<StateFile?> FindByName(string name, Guid stateStoreId)
+    public async Task<StateFile?> FindByName(string name, Guid stateStoreId, Guid organizationId)
     {
-        return await SecuredRepository.FindByName(name, stateStoreId);
+        return await SecuredRepository.FindByName(name, stateStoreId, organizationId);
     }
 
     public async Task<StateFile> GetByName(string name, Guid stateStoreId, Guid organizationId)
@@ -308,11 +318,13 @@ public class StateFileService : GenericCrudService<
         return await SecuredRepository.GetByName(name, stateStoreId, organizationId);
     }
 
-    public async Task<StateFileVersion?> GetLatestVersion(Guid stateFileId)
+    public async Task<StateFileVersion?> GetLatestVersion(Guid stateFileId, Guid organizationId)
     {
+        SecuredRepository.AssertCanReadVersions(stateFileId, organizationId);
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         return await dbContext.Set<StateFileVersion>()
-            .Where(v => v.StateFileId == stateFileId)
+            .Where(v => v.StateFileId == stateFileId && v.OrganizationId == organizationId)
             .OrderByDescending(v => v.CreatedDateTime)
             .FirstOrDefaultAsync();
     }
@@ -352,6 +364,8 @@ public class StateFileService : GenericCrudService<
 
     public async Task<StateFileVersion> CreateVersion(Guid stateFileId, Guid organizationId, byte[] encryptedData, Guid principalId, AuditPrincipalDiscriminator principalDiscriminator)
     {
+        SecuredRepository.AssertCanWriteVersions(stateFileId, organizationId);
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         var version = new StateFileVersion
