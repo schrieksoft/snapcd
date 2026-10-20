@@ -7,6 +7,7 @@
 // for terms covering either use.
 
 using Microsoft.EntityFrameworkCore;
+using SnapCd.Server.Core.Entities.Definition;
 using SnapCd.Server.Core.Entities.Definition.ProbeWaves;
 using SnapCd.Server.Core.Entities.Definition.Signals;
 using SnapCd.Server.Core.Enums;
@@ -33,6 +34,9 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     private const string Created =
         """{"action":"create","type":"InN0cmluZyI=","after":"pGxpdmU="}""";
 
+    private const string Replaced =
+        """{"action":"replace","type":"InN0cmluZyI=","before":"pGxpdmU=","after":"1AAA"}""";
+
     private readonly Fixture _fixture;
     private Guid _organizationId;
     private Guid _originModuleId;
@@ -40,6 +44,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
 
     private readonly List<Guid> _waves = [];
     private readonly List<Guid> _signalSets = [];
+    private readonly List<Guid> _jobs = [];
 
     public ProbeWaveReadServiceTests(Fixture fixture) => _fixture = fixture;
 
@@ -59,6 +64,7 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
         await db.SignalOutputs.Where(o => _signalSets.Contains(o.SignalOutputSetId)).ExecuteDeleteAsync();
         await db.SignalOutputSets.Where(s => _signalSets.Contains(s.Id)).ExecuteDeleteAsync();
         await db.ProbeWaves.Where(w => _waves.Contains(w.Id)).ExecuteDeleteAsync();
+        await db.ModuleJobs.Where(j => _jobs.Contains(j.Id)).ExecuteDeleteAsync();
     }
 
     [Fact]
@@ -362,6 +368,206 @@ public class ProbeWaveReadServiceTests : IAsyncLifetime
     }
 
     private ProbeWaveReadService Service() => new(_fixture.CreateDbContext());
+
+
+    /// <summary>
+    /// A wave is pending from the moment it exists. Its edges are all Potential at that point,
+    /// and reading cleared-ness off the edges alone would call it finished before anything ran.
+    /// </summary>
+    [Fact]
+    public async Task A_Wave_Whose_Consumers_Have_Not_Answered_Is_Pending()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Potential);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Pending, view!.Impact);
+    }
+
+    /// <summary>
+    /// The case the edge statuses alone get wrong. A wave spreads as each Module reports, so
+    /// between one Module resolving and its own consumers being enrolled there is no Potential
+    /// edge anywhere - and the Modules it will reach are not in the table yet. What holds the
+    /// answer open is the Module that owes a probe, not the edges into it.
+    /// </summary>
+    [Fact]
+    public async Task A_Confirmed_Module_That_Has_Not_Probed_Keeps_The_Wave_Pending()
+    {
+        var wave = await AddWave();
+
+        // Every edge has resolved, so nothing is Potential, and nothing downstream of this
+        // consumer exists yet because it has not reported.
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Pending, view!.Impact);
+    }
+
+    [Fact]
+    public async Task A_Wave_Whose_Consumers_All_Reported_Harmlessly_Is_Cleared()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var set = await AddSignalSet(wave, _consumerModuleId, ("id", KnownUpdate, false));
+        await AddAttempt(wave, _consumerModuleId, set);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Cleared, view!.Impact);
+    }
+
+    /// <summary>
+    /// A Module nothing reaches has no probe to run, so it cannot be what the wave is waiting on.
+    /// </summary>
+    [Fact]
+    public async Task A_Module_Nothing_Reaches_Does_Not_Hold_The_Wave_Open()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.NotNeeded);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Cleared, view!.Impact);
+    }
+
+    [Fact]
+    public async Task A_Predicted_Replace_Downstream_Reports_An_Impact()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var set = await AddSignalSet(wave, _consumerModuleId, ("id", Replaced, false));
+        await AddAttempt(wave, _consumerModuleId, set);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Impact, view!.Impact);
+    }
+
+    /// <summary>
+    /// An impact is worth reporting as soon as one Module predicts it, rather than waiting for the
+    /// rest of the wave: it is the finding a reader might stop for.
+    /// </summary>
+    [Fact]
+    public async Task An_Impact_Is_Reported_While_Other_Modules_Are_Still_Running()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var set = await AddSignalSet(wave, _consumerModuleId, ("id", Replaced, false));
+        await AddAttempt(wave, _consumerModuleId, set);
+
+        var stillRunning = _fixture.Modules["0002"].Id;
+        await AddEdge(wave, stillRunning, _originModuleId, SignalEdgeStatus.Confirmed);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Impact, view!.Impact);
+    }
+
+    /// <summary>
+    /// A probe whose job died reports no signals and never will, so the wave's answer is
+    /// incomplete in a way that waiting does not fix.
+    /// </summary>
+    [Fact]
+    public async Task A_Probe_Whose_Job_Failed_Reports_A_Failure()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Failed, view!.Impact);
+        Assert.Equal(ProbeProgress.Faulted, view.Modules.Single().Progress);
+    }
+
+    /// <summary>
+    /// A failure outranks work still in flight. Waiting for the rest would leave the reader
+    /// watching a wave that can no longer answer in full.
+    /// </summary>
+    [Fact]
+    public async Task A_Failure_Outranks_Modules_Still_Running()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Failed);
+        await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
+
+        var stillWaiting = _fixture.Modules["0002"].Id;
+        await AddEdge(wave, stillWaiting, _originModuleId, SignalEdgeStatus.Potential);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Failed, view!.Impact);
+    }
+
+    /// <summary>
+    /// A probe that is genuinely still running is not a failure. Its job is Running, which is the
+    /// state every probe passes through.
+    /// </summary>
+    [Fact]
+    public async Task A_Probe_Still_Running_Is_Pending_Rather_Than_Failed()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Running);
+        await AddAttempt(wave, _consumerModuleId, probeModuleJobId: jobId);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Pending, view!.Impact);
+        Assert.Equal(ProbeProgress.Running, view.Modules.Single().Progress);
+    }
+
+    /// <summary>
+    /// A probe that reported and then had its job cancelled still answered. The signals are
+    /// recorded, so the finding stands.
+    /// </summary>
+    [Fact]
+    public async Task A_Probe_That_Reported_Before_Its_Job_Ended_Still_Counts_As_Reported()
+    {
+        var wave = await AddWave();
+        await AddEdge(wave, _consumerModuleId, _originModuleId, SignalEdgeStatus.Confirmed);
+        var jobId = await AddJob(_consumerModuleId, ExecutionStatus.Cancelled);
+        var set = await AddSignalSet(wave, _consumerModuleId, ("id", KnownUpdate, false));
+        await AddAttempt(wave, _consumerModuleId, set, jobId);
+
+        using var service = Service();
+        var view = await service.Get(wave, _organizationId);
+
+        Assert.Equal(DownstreamImpact.Cleared, view!.Impact);
+        Assert.Equal(ProbeProgress.Reported, view.Modules.Single().Progress);
+    }
+
+    private async Task<Guid> AddJob(Guid moduleId, ExecutionStatus status)
+    {
+        var job = new ModuleJob
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _organizationId,
+            ModuleId = moduleId,
+            Status = status,
+            JobType = "ApplyJobSaga"
+        };
+
+        await using var db = _fixture.CreateDbContext();
+        db.ModuleJobs.Add(job);
+        await db.SaveChangesAsync();
+
+        _jobs.Add(job.Id);
+        return job.Id;
+    }
 
     private async Task<Guid> AddWave(Guid? originModuleJobId = null)
     {

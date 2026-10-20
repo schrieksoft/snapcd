@@ -239,7 +239,8 @@ public class RunOptions
                   --target        <string>  what each address becomes, for a move or an import
                   --root          <path>    a split's root within the checkout
                   --force                   let a split proceed over its own doubts
-                  --module        <guid>    default: the seeder's mock Module
+                  --module        <guid>    default: the seeder's mock Module, or the
+                                            diamond's origin with --real-runner
                   --principal     <guid>    default: the seeder's debug user
                   --appsettings   <path>    the server's appsettings.json
                   --bus           <kind>    SqlServer (default) or AzureServiceBus
@@ -254,6 +255,10 @@ public class RunOptions
                 """);
             return null;
         }
+
+        // The only Modules a real-runner run has code for are the diamond's, so the generic mock
+        // Module would place no fixture and exercise no wave while still reporting a healthy apply.
+        var defaultModuleId = args.Contains("--real-runner") ? DiamondAModuleId : SeededModuleId;
 
         return new RunOptions
         {
@@ -278,7 +283,7 @@ public class RunOptions
             Addresses = Get("addresses")?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim()).ToList()
                         ?? ["null_resource.example"],
-            ModuleId = Guid.TryParse(Get("module"), out var m) ? m : SeededModuleId,
+            ModuleId = Guid.TryParse(Get("module"), out var m) ? m : defaultModuleId,
             PrincipalId = Guid.TryParse(Get("principal"), out var p) ? p : SeededUserId,
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),

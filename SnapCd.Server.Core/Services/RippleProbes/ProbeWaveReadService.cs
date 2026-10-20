@@ -11,6 +11,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using SnapCd.Server.Core.Database;
 using SnapCd.Server.Core.Entities.Definition.Signals;
+using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Views;
 
 namespace SnapCd.Server.Core.Services.RippleProbes;
@@ -168,6 +169,19 @@ public class ProbeWaveReadService : IDisposable
             .Select(a => new { a.ModuleId, a.SignalOutputSetId, a.ProbeModuleJobId })
             .ToListAsync();
 
+        // The attempt row keeps no status, so how a probe ended is the probe job's own status.
+        var probeJobIds = attempts
+            .Where(a => a.ProbeModuleJobId != null)
+            .Select(a => a.ProbeModuleJobId!.Value)
+            .ToList();
+
+        var probeJobStatuses = probeJobIds.Count == 0
+            ? new Dictionary<Guid, ExecutionStatus>()
+            : await _dbContext.ModuleJobs
+                .AsNoTracking()
+                .Where(j => probeJobIds.Contains(j.Id) && j.OrganizationId == organizationId)
+                .ToDictionaryAsync(j => j.Id, j => j.Status);
+
         var moduleIds = edges.Select(e => e.ConsumerModuleId).Distinct().ToList();
 
         var visibleIds = canReadModule == null
@@ -211,6 +225,10 @@ public class ProbeWaveReadService : IDisposable
                 NamespaceName = module.ConsumerNamespaceName,
                 ProbeModuleJobId = attempt?.ProbeModuleJobId,
                 HasProbed = attempt?.SignalOutputSetId != null,
+                ProbeJobStatus = attempt?.ProbeModuleJobId is { } probeJobId &&
+                                 probeJobStatuses.TryGetValue(probeJobId, out var probeStatus)
+                    ? probeStatus
+                    : null,
                 Edges = edges
                     .Where(e => e.ConsumerModuleId == module.ConsumerModuleId)
                     .OrderBy(e => e.UpstreamModuleName)

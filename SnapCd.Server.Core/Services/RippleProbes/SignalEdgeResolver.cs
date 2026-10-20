@@ -182,9 +182,9 @@ public class SignalEdgeResolver : IDisposable
 
         if (pending.Count == 0)
         {
-            // A leaf consumer has no outgoing edges, so nothing resolves here, but the origin was
-            // still waiting on its answer.
-            await NotifyWaveOrigin(probeWaveId, organizationId);
+            // A leaf consumer has no outgoing edges, so nothing resolves here, but its own report
+            // is still a change to what the wave shows.
+            await NotifyWave(probeWaveId, organizationId);
             return;
         }
 
@@ -193,11 +193,7 @@ public class SignalEdgeResolver : IDisposable
 
         await _dbContext.SaveChangesAsync();
 
-        await _bus.Publish(new ProbeWaveUpdatedEvent
-        {
-            ProbeWaveId = probeWaveId,
-            OrganizationId = organizationId
-        });
+        await NotifyWave(probeWaveId, organizationId);
 
         // Whoever waited on this Module may now be waiting on nothing. Each is asked to look
         // again rather than being told it is ready, because only the consumer's own edges say
@@ -209,30 +205,15 @@ public class SignalEdgeResolver : IDisposable
                 ModuleId = edge.ConsumerModuleId,
                 OrganizationId = organizationId
             });
-
-        await NotifyWaveOrigin(probeWaveId, organizationId);
     }
 
-    /// <summary>
-    /// Tells the job that started this wave to look at it again. That job is parked waiting for
-    /// its consumers, and this resolution may have been the last thing it was waiting on.
-    /// </summary>
-    private async Task NotifyWaveOrigin(Guid probeWaveId, Guid organizationId)
-    {
-        var originJobId = await _dbContext.ProbeWaves
-            .AsNoTracking()
-            .Where(w => w.Id == probeWaveId && w.OrganizationId == organizationId)
-            .Select(w => w.OriginModuleJobId)
-            .FirstOrDefaultAsync();
-
-        if (originJobId == Guid.Empty) return;
-
-        await _bus.Publish(new ProbeWaveProgressedEvent
+    /// <summary>Tells open pages that what the wave shows has changed.</summary>
+    private Task NotifyWave(Guid probeWaveId, Guid organizationId) =>
+        _bus.Publish(new ProbeWaveUpdatedEvent
         {
-            OriginModuleJobId = originJobId,
+            ProbeWaveId = probeWaveId,
             OrganizationId = organizationId
         });
-    }
 
     /// <summary>
     /// The outputs in a signal set whose value actually changes.

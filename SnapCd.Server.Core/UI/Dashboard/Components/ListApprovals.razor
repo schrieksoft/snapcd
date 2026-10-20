@@ -16,6 +16,7 @@
 @using SnapCd.Server.Core.Repositories.Organizations.Secured
 @using SnapCd.Server.Core.Services.PrincipalProvider
 @using SnapCd.Server.Core.UI.Dashboard.Components.Approvals
+@using SnapCd.Server.Core.Views
 @using Color = MudBlazor.Color
 @using AgentEntity = SnapCd.Server.Core.Entities.Definition.Agent
 
@@ -33,6 +34,7 @@
                    Source="@_source"
                    JobId="@ModuleJobId"
                    ModuleId="@ModuleId"
+                   ApproveCaveat="@ApproveCaveat()"
                    OnDecided="() => RefreshAll()"/>
 
     @if (_moduleJob != null)
@@ -77,7 +79,8 @@
             }
         </MudStack>
 
-        <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"/>
+        <ListProbes @ref="_probesRef" ModuleJobId="@ModuleJobId" ModuleId="@ModuleId"
+                    OnImpactChanged="HandleImpactChanged"/>
 
         <MudPaper Elevation="0" Class="pa-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Logs</MudText>
@@ -102,6 +105,7 @@
     private ModuleJob? _moduleJob;
     private ListLogs<ModuleJob, ModuleJobLogEntryDto>? _inlineLogsRef;
     private ListProbes? _probesRef;
+    private DownstreamImpact? _impact;
     private ApprovalPanel? _panelRef;
     private IApprovalSource _source = null!;
 
@@ -177,6 +181,29 @@
         if (_panelRef != null)
             await _panelRef.Refresh(invokeAsync);
     }
+
+    private async Task HandleImpactChanged(DownstreamImpact? impact)
+    {
+        if (_impact == impact) return;
+
+        _impact = impact;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// What an approver is giving up by deciding now. A wave that found something says nothing
+    /// here: the finding is on screen above the button, and warning about every change that has
+    /// one would train the reader to click through.
+    /// </summary>
+    private string? ApproveCaveat() => _impact switch
+    {
+        DownstreamImpact.Pending =>
+            "Downstream impacts have not finished being checked. Approving now applies this " +
+            "without knowing everything it changes downstream.",
+        DownstreamImpact.Failed =>
+            "A downstream impact check failed, so part of what this change affects is not known.",
+        _ => null
+    };
 
     private string PlanTaskName => JobSagaType == nameof(DestroyJobSaga) ? "PlanDestroy" : "Plan";
 

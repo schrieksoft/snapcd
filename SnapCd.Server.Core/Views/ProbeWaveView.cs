@@ -35,6 +35,40 @@ public class ProbeWaveView
 
     /// <summary>A wave is still going while any participant is still waiting on something.</summary>
     public bool IsSettled => Modules.All(m => !m.IsWaiting);
+
+    /// <summary>
+    /// What the wave says about this change as a whole, for a reader about to approve it.
+    ///
+    /// Failed and Impact are read before Pending, so one bad probe or one destructive prediction
+    /// shows while the rest of the wave is still running. A wave cannot be called cleared until
+    /// nothing is outstanding: how far a change ripples is not known when it starts, so every
+    /// Module that owes a probe may still enrol Modules nobody has heard of yet.
+    /// </summary>
+    public DownstreamImpact Impact =>
+        Modules.Any(m => m.Progress == ProbeProgress.Faulted) ? DownstreamImpact.Failed
+        : Modules.Any(m => m.HasDisruptiveSignal) ? DownstreamImpact.Impact
+        : Modules.Any(m => m.IsOutstanding) ? DownstreamImpact.Pending
+        : DownstreamImpact.Cleared;
+}
+
+/// <summary>
+/// Where a wave has got to, as the approval screen states it. A wave that does not exist has no
+/// value here: nothing downstream reads what the plan changes, which is not the same answer as
+/// a check that ran and found nothing.
+/// </summary>
+public enum DownstreamImpact
+{
+    /// <summary>Something is still to be checked, and what else it reaches is not yet known.</summary>
+    Pending,
+
+    /// <summary>A probe did not report, so part of the effect is unknown and waiting will not fix it.</summary>
+    Failed,
+
+    /// <summary>Everything answered and something downstream is destroyed or replaced.</summary>
+    Impact,
+
+    /// <summary>Everything answered and nothing downstream is disrupted.</summary>
+    Cleared
 }
 
 public class ProbeWaveModuleView
@@ -55,6 +89,12 @@ public class ProbeWaveModuleView
 
     public bool HasProbed { get; set; }
 
+    /// <summary>
+    /// How the probe job ended, where one was started. The attempt row keeps no status of its own,
+    /// because the job carrying the probe already has one.
+    /// </summary>
+    public ExecutionStatus? ProbeJobStatus { get; set; }
+
     /// <summary>Still waiting while any upstream might yet signal something it reads.</summary>
     public bool IsWaiting => Edges.Any(e => e.Status == SignalEdgeStatus.Potential);
 
@@ -67,8 +107,28 @@ public class ProbeWaveModuleView
         !HasProbed &&
         !Edges.Any(e => e.Status == SignalEdgeStatus.Confirmed);
 
+    /// <summary>
+    /// A probe that ended without reporting. Its answer is not coming, so a wave holding one is
+    /// never going to settle on its own.
+    /// </summary>
+    public bool HasFaulted =>
+        !HasProbed &&
+        ProbeJobStatus is ExecutionStatus.Failed
+            or ExecutionStatus.Orphaned
+            or ExecutionStatus.PolicyDenied
+            or ExecutionStatus.Cancelled
+            or ExecutionStatus.NotApproved;
+
+    /// <summary>
+    /// This Module is why the wave is not finished: an upstream still owes it an answer, or it
+    /// owes one itself. Mirrors ModuleProgress.IsOutstanding, which the readiness check reads.
+    /// </summary>
+    public bool IsOutstanding =>
+        !HasProbed && !HasFaulted && (IsWaiting || !NothingToProbe);
+
     public ProbeProgress Progress =>
         HasProbed ? ProbeProgress.Reported
+        : HasFaulted ? ProbeProgress.Faulted
         : IsWaiting ? ProbeProgress.WaitingOnUpstream
         : NothingToProbe ? ProbeProgress.NothingToProbe
         : ProbeModuleJobId != null ? ProbeProgress.Running
@@ -100,7 +160,10 @@ public enum ProbeProgress
     Reported,
 
     /// <summary>Resolved with nothing reaching it, so no probe runs.</summary>
-    NothingToProbe
+    NothingToProbe,
+
+    /// <summary>Its probe ended without reporting, so its prediction will not arrive.</summary>
+    Faulted
 }
 
 public class SignalEdgeView

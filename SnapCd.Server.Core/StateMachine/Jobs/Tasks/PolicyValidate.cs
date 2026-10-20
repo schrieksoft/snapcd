@@ -159,7 +159,7 @@ public partial class JobStateMachine<
                     ///////////////////////////////////////////////////
                     // Passed or SoftWarned: continue to approval/apply
                     ///////////////////////////////////////////////////
-                    x => DealWithDownstreamWave(x)
+                    x => DealWithApprovalStatus(x, true)
                 ),
             When(HeartbeatScheduled.Received)
                 .ThenHeartbeatScheduled(HeartbeatRequested),

@@ -134,6 +134,14 @@ public class SemiFakeRunner(
         var name = Path.GetFileName(request.Metadata.SourceSubdirectory?.TrimEnd('/') ?? string.Empty);
         var source = Path.Combine(fixtureRoot, name);
 
+        // An empty name resolves to the fixture root, which exists, so the check below would pass
+        // and the run would place nothing while still reporting a healthy apply.
+        if (string.IsNullOrEmpty(name))
+            throw new InvalidOperationException(
+                $"Module '{request.Metadata.ModuleName}' has no source subdirectory, so there is no " +
+                "fixture to place. A semi-fake run plans real code: point --module at one of the " +
+                "diamond Modules.");
+
         if (!Directory.Exists(source))
             throw new DirectoryNotFoundException(
                 $"No fixture Module '{name}' under {fixtureRoot}. A semi-fake run plans real code, " +

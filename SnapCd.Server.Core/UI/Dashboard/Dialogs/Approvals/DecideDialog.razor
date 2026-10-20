@@ -12,6 +12,10 @@
     </TitleContent>
     <DialogContent>
         <MudText Typo="Typo.body2">Are you sure you want to @Verb.ToLowerInvariant() this @Noun.ToLowerInvariant()?</MudText>
+        @if (!string.IsNullOrEmpty(Caveat))
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">@Caveat</MudAlert>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Confirm" Size="Size.Small">@Verb</MudButton>
@@ -24,6 +28,9 @@
 
     [Parameter] public required string Verb { get; set; }
     [Parameter] public required string Noun { get; set; }
+
+    /// <summary>Something the decision does not yet account for, shown as a warning. Optional.</summary>
+    [Parameter] public string? Caveat { get; set; }
     private void Cancel() => MudDialog.Cancel();
 
     private void Confirm() => MudDialog.Close(DialogResult.Ok(true));
