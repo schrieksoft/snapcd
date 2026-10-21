@@ -96,9 +96,11 @@ public class SemiFakeRunner(
                 break;
 
             case nameof(IApplyEndpoints.ApplyFromPlan):
-                // Answers the hub itself rather than through callbacks, as the apply is the one
-                // step whose reply the task owns.
-                await tasks.ApplyFromPlan((ApplyFromPlanRequestBase)payload, _unconnected, logStream);
+                await tasks.ApplyFromPlan(
+                    (ApplyFromPlanRequestBase)payload, _unconnected, logStream,
+                    (id, count) => hub.ApplyFromPlanCompleted(id, count),
+                    id => hub.ApplyFromPlanCancelled(id),
+                    (id, error, stack, count) => hub.ApplyFromPlanFaulted(id, error, stack, count));
                 break;
 
             case nameof(IApplyEndpoints.ApplyProbe):

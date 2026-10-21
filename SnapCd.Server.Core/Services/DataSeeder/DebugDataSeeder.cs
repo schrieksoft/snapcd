@@ -612,6 +612,9 @@ public class DebugDataSeeder : ProductionDataSeeder
                 SourceSubdirectory = $"modules/{name}",
                 SourceType = SourceType.Git,
                 SourceRevisionType = SourceRevisionType.Default,
+                // The origin needs a threshold: a wave informs an approval decision, so an
+                // auto-approved apply creates none.
+                ApplyApprovalThreshold = moduleId == DiamondAModuleId ? 1 : null,
                 CreatedDateTime = DateTime.UtcNow
             };
 
@@ -648,6 +651,56 @@ public class DebugDataSeeder : ProductionDataSeeder
         // The edges that must not be followed: the outputs they name do not change.
         await AddDiamondEdge(dbContext, DiamondEModuleId, DiamondAModuleId, "a_other", "from_a_other");
         await AddDiamondEdge(dbContext, DiamondFModuleId, DiamondBModuleId, "b_other", "from_b_other");
+
+        // A consumer's Plan resolves its variables from its upstreams' recorded outputs.
+        await AddDiamondOutputs(dbContext, DiamondAModuleId,
+            ("a_id", "trusting-lab"),
+            ("a_other", "honest-meerkat"));
+
+        await AddDiamondOutputs(dbContext, DiamondBModuleId,
+            ("b_id", "trusting-lab-willing-grub"),
+            ("b_other", "causal-burro"));
+
+        await AddDiamondOutputs(dbContext, DiamondCModuleId,
+            ("c_id", "trusting-lab-fine-gibbon"));
+    }
+
+    /// <summary>
+    /// One output set per producing Module, holding what the fixture's committed state holds.
+    /// </summary>
+    private async Task AddDiamondOutputs(
+        SnapCdDbContext dbContext,
+        Guid moduleId,
+        params (string Name, string Value)[] outputs)
+    {
+        var exists = await dbContext.OutputSets
+            .AnyAsync(os => os.ModuleId == moduleId && os.OrganizationId == _preseededOrganizationId);
+
+        if (exists) return;
+
+        var set = new OutputSet
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = _preseededOrganizationId,
+            ModuleId = moduleId,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            Checksum = "seeded"
+        };
+
+        dbContext.OutputSets.Add(set);
+
+        foreach (var (name, value) in outputs)
+            dbContext.Set<LiteralOutput>().Add(new LiteralOutput
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = _preseededOrganizationId,
+                OutputSetId = set.Id,
+                Name = name,
+                Type = "string",
+                Value = value
+            });
+
+        await dbContext.SaveChangesAsync();
     }
 
     private async Task AddDiamondEdge(

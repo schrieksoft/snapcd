@@ -887,7 +887,12 @@ public class RunnerHubConnection :
         _tasks.Value.ApplyCancelKill(request, _connection!);
 
     public Task ApplyFromPlan(ApplyFromPlanRequestBase request) =>
-        _tasks.Value.ApplyFromPlan(request, _connection!, _jobLogStreams.Value.ModuleJobs);
+        _tasks.Value.ApplyFromPlan(
+            request, _connection!,
+            _jobLogStreams.Value.ModuleJobs,
+            Client.InvokeApplyFromPlanCompleted,
+            Client.InvokeApplyFromPlanCancelled,
+            Client.InvokeApplyFromPlanFaulted);
 
     public Task ApplyGetDefinitiveRevision(GetDefinitiveRevisionRequest request) =>
         _tasks.Value.GetDefinitiveRevision(

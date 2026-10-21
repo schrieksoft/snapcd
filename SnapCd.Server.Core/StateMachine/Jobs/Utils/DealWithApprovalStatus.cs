@@ -185,6 +185,9 @@ public partial class JobStateMachine<
                                 _ => transition,
                                 z1 => z1
                                     .Activity(z2 => z2.OfType<WaitingForApprovalModuleJobActivity<TSaga, TMessage>>())
+                                    // A destroy has no output signals to propagate, so only an apply starts a wave.
+                                    .If(_ => !IsDestroyJob, propagate => propagate
+                                        .Activity(z2 => z2.OfType<StartProbeWaveActivity<TSaga, TMessage>>()))
                                     .Then(context =>
                                     {
                                         // The approval timeout deadline is re-derivable as WaitingSince + ApprovalTimeoutMinutes.

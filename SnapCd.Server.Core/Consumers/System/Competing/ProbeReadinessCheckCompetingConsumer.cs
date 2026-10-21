@@ -87,11 +87,9 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
             return;
         }
 
-        // A wave whose origin job has stopped has nobody waiting on the answer: it was cancelled,
-        // refused, or has already been approved and applied. Starting fresh Applies for it would
-        // be a side effect nobody asked for. Consumers already running are left to finish, since
-        // they are ordinary applies doing real work.
-        if (!await OriginIsStillRunning(probeWaveId, organizationId))
+        // A wave exists to inform one approval decision, so it ends when that decision is made.
+        // A probe already running is left to finish; nothing new is started.
+        if (!await OriginIsAwaitingApproval(probeWaveId, organizationId))
         {
             _logger.LogDebug(
                 "Wave {ProbeWaveId} is no longer live, not starting a probe for Module {ModuleId}",
@@ -242,14 +240,19 @@ public class ProbeReadinessCheckCompetingConsumer : IConsumer<ProbeReadinessChec
         }
     }
 
-    private async Task<bool> OriginIsStillRunning(Guid probeWaveId, Guid organizationId)
+    /// <summary>
+    /// Whether the origin's approval decision is still open. A job past it has the answer it was
+    /// going to act on, and one that is no longer running cannot act on anything.
+    /// </summary>
+    private async Task<bool> OriginIsAwaitingApproval(Guid probeWaveId, Guid organizationId)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         return await dbContext.ProbeWaves
             .AsNoTracking()
             .Where(w => w.Id == probeWaveId && w.OrganizationId == organizationId)
-            .Join(dbContext.ModuleJobs.Where(j => j.Status == ExecutionStatus.Running),
+            .Join(dbContext.ModuleJobs.Where(j =>
+                    j.Status == ExecutionStatus.Running && j.WaitingForApproval == true),
                 w => w.OriginModuleJobId,
                 j => j.Id,
                 (w, _) => w.Id)

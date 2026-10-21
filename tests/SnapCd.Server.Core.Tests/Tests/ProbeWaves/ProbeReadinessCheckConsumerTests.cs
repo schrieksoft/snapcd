@@ -138,6 +138,23 @@ public class ProbeReadinessCheckConsumerTests : IAsyncLifetime
         Assert.False(await Check(wave, _consumerModuleId));
     }
 
+    /// <summary>
+    /// A wave informs one approval decision, so granting it ends the wave. A probe already
+    /// running finishes; nothing further starts.
+    /// </summary>
+    [Fact]
+    public async Task A_Wave_Whose_Origin_Has_Been_Approved_Releases_Nobody()
+    {
+        var wave = await AddWave();
+        var set = await AddSignalSet(wave, _upstreamModuleId);
+        await AddAttempt(wave, _upstreamModuleId, set);
+        await AddEdge(wave, _consumerModuleId, _upstreamModuleId, SignalEdgeStatus.Confirmed);
+
+        await ClearAwaitingApproval(wave);
+
+        Assert.False(await Check(wave, _consumerModuleId));
+    }
+
     [Fact]
     public async Task A_Wave_Whose_Origin_Job_Stopped_Releases_Nobody()
     {
@@ -251,14 +268,15 @@ public class ProbeReadinessCheckConsumerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// A wave with its origin job still running, which is the only state the sweep starts work
-    /// for. An origin that has stopped has nobody waiting on the answer.
+    /// A wave with its origin job awaiting approval, which is the state a wave is created in and
+    /// the only one it releases probes in. An origin past its decision has nobody waiting.
     /// </summary>
     private async Task<Guid> AddWave(bool originRunning = true)
     {
         var originJobId = await AddJob(
             _upstreamModuleId,
-            originRunning ? ExecutionStatus.Running : ExecutionStatus.Cancelled);
+            originRunning ? ExecutionStatus.Running : ExecutionStatus.Cancelled,
+            waitingForApproval: originRunning);
 
         var wave = new ProbeWave
         {
@@ -358,7 +376,25 @@ public class ProbeReadinessCheckConsumerTests : IAsyncLifetime
         _inputs.Add(input.Id);
     }
 
-    private async Task<Guid> AddJob(Guid moduleId, ExecutionStatus status)
+    /// <summary>The origin's decision has been made, which is what ends a wave.</summary>
+    private async Task ClearAwaitingApproval(Guid waveId)
+    {
+        await using var db = _fixture.CreateDbContext();
+
+        var originJobId = await db.ProbeWaves
+            .Where(w => w.Id == waveId)
+            .Select(w => w.OriginModuleJobId)
+            .FirstAsync();
+
+        await db.ModuleJobs
+            .Where(j => j.Id == originJobId)
+            .ExecuteUpdateAsync(u => u.SetProperty(j => j.WaitingForApproval, false));
+    }
+
+    private async Task<Guid> AddJob(
+        Guid moduleId,
+        ExecutionStatus status,
+        bool? waitingForApproval = null)
     {
         var job = new ModuleJob
         {
@@ -366,6 +402,7 @@ public class ProbeReadinessCheckConsumerTests : IAsyncLifetime
             OrganizationId = _organizationId,
             ModuleId = moduleId,
             Status = status,
+            WaitingForApproval = waitingForApproval,
             JobType = "ApplyJobSaga"
         };
 

@@ -151,37 +151,16 @@ public partial class JobStateMachine<
                 .IfElse(
                     x => x.Message.TotalChangedCount + x.Message.OutputsTotalChangedCount == 0,
                     ///////////////////////////////////////////////////
-                    // Nothing to apply, continue to Output
+                    // Nothing to apply: the probe decision, which reads the wave
                     ///////////////////////////////////////////////////
                     x => x
-                        .Then(_ => { _logger.LogDebug($"Nothing to apply, continuing to Output."); })
-                        // Use SendToRunnerActivity to target specific server instance
-                        .Activity(a => a.OfType<SendToRunnerActivity<TSaga, TPlanCompleted, TOutputRequested>>())
-                        .IfElse(
-                            context => context.Saga.PreviousStateBeforeWaiting != null,
-                            // Runner is disconnected - transition to waiting state
-                            whenTrue => whenTrue
-                                .Then(context =>
-                                {
-                                    context.Saga.WaitingSince = DateTime.UtcNow;
-                                    _logger.LogWarning(
-                                        "Plan: Runner disconnected for job {CorrelationId}, entering waiting state",
-                                        context.Saga.CorrelationId);
-                                })
-                                .TransitionTo(OutputWaitingForRunner),
-                            // Runner is connected - continue normally
-                            whenFalse => whenFalse
-                                .TransitionTo(OutputPending)
-                        ),
+                        .Then(_ => { _logger.LogDebug("Nothing to apply, checking whether a probe is owed."); })
+                        .TransitionTo(WaitingForProbeSignals),
                     ///////////////////////////////////////////////////
                     // Something to apply: policies first (if any), then approval
                     ///////////////////////////////////////////////////
                     x => x
                         .Activity(a => a.OfType<RecordPolicyOutcomeActivity<TSaga, TPlanCompleted>>())
-                        // A destroy removes its outputs rather than changing them, which is a
-                        // different question with different inputs, so only an apply propagates.
-                        .If(_ => !IsDestroyJob, propagate => propagate
-                            .Activity(a => a.OfType<StartProbeWaveActivity<TSaga, TPlanCompleted>>()))
                         .IfElse(
                             ctx => PolicyApplicability.Any(ctx.Saga.DeclaredJson, IsDestroyJob),
                             withPolicies => withPolicies

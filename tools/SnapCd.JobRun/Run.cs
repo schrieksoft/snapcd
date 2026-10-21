@@ -16,6 +16,7 @@ using SnapCd.Server.Core.Enums;
 using SnapCd.Server.Core.Events.Gatekeeping;
 using SnapCd.Server.Core.Events.System;
 using SnapCd.Server.Core.Repositories.Organizations.Secured;
+using SnapCd.Server.Core.Services.RippleProbes;
 using SnapCd.Server.Core.Services.Crud.Jobs;
 using SnapCd.Server.Core.Services.PrincipalProvider;
 
@@ -146,7 +147,7 @@ public static class Run
             }
 
             var status = await Watch(dbFactory, approvalFactory, principal, jobId, options,
-                services.GetRequiredService<FakeRunner>());
+                services.GetRequiredService<FakeRunner>(), services);
 
             await Report(dbFactory, services, jobId, options, status);
             return status == ExecutionStatus.Completed ? 0 : 1;
@@ -217,7 +218,8 @@ public static class Run
         IPrincipalProvider principal,
         Guid jobId,
         RunOptions options,
-        FakeRunner runner)
+        FakeRunner runner,
+        IServiceProvider services)
     {
         var deadline = DateTime.UtcNow + options.Timeout;
         var approved = false;
@@ -273,10 +275,18 @@ public static class Run
             }
 
             if (job.Status != ExecutionStatus.Running)
+            {
+                await WaitForWave(dbFactory, services, jobId, options.OrganizationId, runner, deadline);
                 return job.Status;
+            }
 
             if (job.WaitingForApproval == true && !approved)
             {
+                // The wave ends when the decision is made, so a run that wants every hop to probe
+                // has to let it settle first.
+                if (options.ApproveAfterWave)
+                    await WaitForWave(dbFactory, services, jobId, options.OrganizationId, runner, deadline);
+
                 Console.WriteLine("  approving");
                 using (var approvals = approvalFactory.Create(principal))
                     await approvals.Create(new ModuleJobApproval
@@ -297,6 +307,97 @@ public static class Run
 
         Console.WriteLine($"  timed out after {options.Timeout.TotalSeconds:0}s");
         return last ?? ExecutionStatus.Unknown;
+    }
+
+    /// <summary>
+    /// Waits for the probes a job's wave started, which outlive the job itself: an apply reaches
+    /// approval and completes while its consumers are still planning.
+    ///
+    /// A probe that is still running when the run ends is a result nobody saw, and the run reads
+    /// as a pass. Reported per Module so a probe that failed or never reported says so.
+    /// </summary>
+    private static async Task WaitForWave(
+        IDbContextFactory<SnapCdDbContext> dbFactory,
+        IServiceProvider services,
+        Guid originJobId,
+        Guid organizationId,
+        FakeRunner runner,
+        DateTime deadline)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+
+        var waveIds = await db.ProbeWaves
+            .AsNoTracking()
+            .Where(w => w.OriginModuleJobId == originJobId)
+            .Select(w => w.Id)
+            .ToListAsync();
+
+        if (waveIds.Count == 0) return;
+
+        Console.WriteLine("  waiting for the wave");
+
+        var lastProgress = DateTime.UtcNow;
+        var dispatched = runner.Dispatched.Count;
+        var settledCount = -1;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            await using var poll = await dbFactory.CreateDbContextAsync();
+
+            var probes = await poll.ModuleProbeAttempts
+                .AsNoTracking()
+                .Where(a => waveIds.Contains(a.ProbeWaveId))
+                .Join(poll.ModuleJobs, a => a.ProbeModuleJobId, j => j.Id,
+                    (a, j) => new { a.ModuleId, a.SignalOutputSetId, j.Status })
+                .ToListAsync();
+
+            var running = probes.Count(p => p.Status == ExecutionStatus.Running);
+
+            using var progress = services.GetRequiredService<ProbeWaveProgressReaderFactory>().Create();
+            var settlement = await progress.ReadForOriginJob(originJobId, organizationId);
+
+            if (runner.Dispatched.Count != dispatched)
+            {
+                dispatched = runner.Dispatched.Count;
+                lastProgress = DateTime.UtcNow;
+            }
+
+            var settled = probes.Count - running;
+            if (settled != settledCount)
+            {
+                settledCount = settled;
+                lastProgress = DateTime.UtcNow;
+            }
+
+            // A wave grows as each Module reports, so no probe running does not mean the wave is
+            // over: the next hop is enrolled by the report that just landed.
+            if (settlement != ProbeWaveSettlement.Waiting && running == 0) break;
+
+            if (DateTime.UtcNow - lastProgress > StallAfter)
+            {
+                Console.WriteLine(
+                    $"  wave stalled with {running} probe(s) still running after {dispatched} dispatch(es)");
+                break;
+            }
+
+            await Task.Delay(500);
+        }
+
+        await using var final = await dbFactory.CreateDbContextAsync();
+
+        var report = await final.ModuleProbeAttempts
+            .AsNoTracking()
+            .Where(a => waveIds.Contains(a.ProbeWaveId))
+            .Join(final.ModuleJobs, a => a.ProbeModuleJobId, j => j.Id,
+                (a, j) => new { Name = a.Module.Name, a.SignalOutputSetId, j.Status })
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
+        Console.WriteLine($"Probes      {report.Count}");
+        foreach (var probe in report)
+            Console.WriteLine(
+                $"  {probe.Name,-22} {probe.Status}" +
+                (probe.SignalOutputSetId == null ? "  (reported nothing)" : "  reported"));
     }
 
     /// <summary>

@@ -117,6 +117,12 @@ public class RunOptions
     /// </summary>
     public bool RealRunner { get; init; }
 
+    /// <summary>
+    /// Hold the approval until the wave has settled. A wave ends when the approval decision is
+    /// made, so approving as soon as the job asks stops it after one hop.
+    /// </summary>
+    public bool ApproveAfterWave { get; init; }
+
     /// <summary>Where a real run checks out its Modules and keeps its engine state.</summary>
     public string WorkingDirectory { get; init; } = string.Empty;
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(5);
@@ -248,6 +254,8 @@ public class RunOptions
                                             AzureServiceBus
                   --timeout       <seconds> default 300
                   --keep                    leave the database behind to inspect
+                  --approve-after-wave      hold the approval until the wave settles, so every
+                                            hop probes before the decision ends it
                   --real-runner             run the runner's own code, so the engine really
                                             plans; needs tofu on PATH and is minutes slower
                   --working-dir   <path>    where a real run checks out Modules
@@ -288,6 +296,7 @@ public class RunOptions
             RunnerId = Guid.TryParse(Get("runner"), out var r) ? r : Guid.Empty,
             Keep = args.Contains("--keep"),
             RealRunner = args.Contains("--real-runner"),
+            ApproveAfterWave = args.Contains("--approve-after-wave"),
             WorkingDirectory = Get("working-dir")
                 ?? Path.Combine(Path.GetTempPath(), "snapcd-jobrun", DateTime.Now.ToString("yyyyMMdd_HHmmss")),
             TransportTrace = !args.Contains("--quiet-transport"),
